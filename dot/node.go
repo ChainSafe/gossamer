@@ -130,19 +130,18 @@ func InitNode(cfg *Config) error {
 
 // NodeInitialized returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data has been loaded
-func NodeInitialized(basepath string, expected bool) bool {
+func NodeInitialized(basepath string) bool {
 	// check if key registry exists
 	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
 
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
-		if expected {
-			logger.Debug(
-				"node has not been initialised",
-				"basepath", basepath,
-				"error", "failed to locate KEYREGISTRY file in data directory",
-			)
-		}
+		logger.Debug(
+			"node has not been initialised",
+			"basepath", basepath,
+			"error", "failed to locate KEYREGISTRY file in data directory",
+		)
+
 		return false
 	}
 
@@ -256,7 +255,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// create runtime
-	err = loadRuntime(cfg, stateSrvc, ks, networkSrvc)
+	ns, err := createRuntimeStorage(stateSrvc)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +312,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.isRPCEnabled() || cfg.RPC.isWSEnabled(); enabled {
-		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
+		rpcSrvc := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
 		logger.Debug("rpc service disabled by default", "rpc", enabled)
@@ -401,6 +405,7 @@ func (n *Node) Start() error {
 	// start all dot node services
 	n.Services.StartAll()
 
+	n.wg.Add(1)
 	go func() {
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
@@ -408,10 +413,8 @@ func (n *Node) Start() error {
 		<-sigc
 		logger.Info("signal interrupt, shutting down...")
 		n.Stop()
-		os.Exit(130)
 	}()
 
-	n.wg.Add(1)
 	close(n.started)
 	n.wg.Wait()
 	return nil
@@ -428,7 +431,7 @@ func (n *Node) Stop() {
 	n.wg.Done()
 }
 
-func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
+func loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {
@@ -448,7 +451,7 @@ func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeyst
 			continue
 		}
 
-		rt, err := createRuntime(cfg, stateSrvc, ks, net, code)
+		rt, err := createRuntime(cfg, *ns, stateSrvc, ks, net, code)
 		if err != nil {
 			return err
 		}

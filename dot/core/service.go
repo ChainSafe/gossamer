@@ -21,7 +21,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -32,7 +31,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 )
@@ -633,21 +631,10 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash,
 		return common.EmptyHash, nil, err
 	}
 
-	proofForKeys, err := readProofForKeys(stateRoot[:], keys, s.storageState.ExposeDB())
+	proofForKeys, err := s.blockState.GenerateTrieProof(stateRoot, keys)
 	if err != nil {
 		return common.EmptyHash, nil, err
 	}
 
 	return block, proofForKeys, nil
-}
-
-// readProofForKeys will go through the keys and generate the proof for each of them
-// and merge the result into a string array containing the hashes in the hexadecimal format
-func readProofForKeys(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
-	proof, err := trie.GenerateProof(root, keys, db)
-	if err != nil {
-		return nil, err
-	}
-
-	return proof, nil
 }

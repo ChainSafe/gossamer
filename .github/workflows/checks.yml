@@ -28,3 +28,16 @@ jobs:
 
       - name: Run go vet
         run: go vet ./...
+
+  check-description:
+    name: Checks PR has title and body description
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checks PR has title and body description
+        run: |
+          go run .github/PULL_REQUEST/pull_request.go
+
+        env:
+          RAW_TITLE: ${{ github.event.pull_request.title }}
+          RAW_BODY: ${{ github.event.pull_request.body }}

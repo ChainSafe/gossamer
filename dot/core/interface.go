@@ -18,8 +18,8 @@ package core
 
 import (
 	"math/big"
+	"sync"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -43,6 +43,7 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
+	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
@@ -63,7 +64,7 @@ type StorageState interface {
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
-	ExposeDB() chaindb.Database
+	sync.Locker
 }
 
 // TransactionState is the interface for transaction state methods
