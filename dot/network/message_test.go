@@ -106,6 +106,21 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	require.Equal(t, bm, res)
 }
 
+func TestBlockRequestString(t *testing.T) {
+	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	require.Nil(t, err)
+
+	bm := &BlockRequestMessage{
+		RequestedData: 1,
+		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		EndBlockHash:  nil,
+		Direction:     1,
+		Max:           nil,
+	}
+
+	_ = bm.String()
+}
+
 func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 	require.Nil(t, err)

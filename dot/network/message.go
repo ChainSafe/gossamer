@@ -79,12 +79,20 @@ func (bm *BlockRequestMessage) SubProtocol() string {
 
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=%s Direction=%d Max=%p",
+	hash := common.Hash{}
+	max := uint32(0)
+	if bm.EndBlockHash != nil {
+		hash = *bm.EndBlockHash
+	}
+	if bm.Max != nil {
+		max = *bm.Max
+	}
+	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%v EndBlockHash=%s Direction=%d Max=%d",
 		bm.RequestedData,
 		bm.StartingBlock,
-		bm.EndBlockHash.String(),
+		hash.String(),
 		bm.Direction,
-		bm.Max)
+		max)
 }
 
 // Encode returns the protobuf encoded BlockRequestMessage

@@ -175,7 +175,7 @@ func NewService(cfg *Config) (*Service, error) {
 		streamManager:          newStreamManager(ctx),
 		batchSize:              100,
 	}
-	
+
 	network.syncQueue = newSyncQueue(network)
 	return network, err
 }
