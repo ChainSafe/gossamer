@@ -19,7 +19,7 @@ import (
 const (
 	// MAX_WORKERS is the maximum number of parallel sync workers
 	// TODO: determine ideal value
-	MAX_WORKERS = 4
+	MAX_WORKERS = 12
 )
 
 var _ ChainSync = &chainSync{}
@@ -36,6 +36,17 @@ var (
 	bootstrap chainSyncState = 0 //nolint
 	tip       chainSyncState = 1
 )
+
+func chainSyncStateString(mode chainSyncState) string {
+	switch mode {
+	case bootstrap:
+		return "bootstrap"
+	case tip:
+		return "tip"
+	default:
+		return "unknown"
+	}
+}
 
 // TODO: determine ideal limit for pending blocks set
 var pendingBlocksLimit = MAX_RESPONSE_SIZE * 32
@@ -455,7 +466,7 @@ func (cs *chainSync) switchMode(mode chainSyncState) {
 	}
 
 	cs.state = mode
-	logger.Debug("switched sync mode", "mode", mode)
+	logger.Debug("switched sync mode", "mode", chainSyncStateString(mode))
 }
 
 // getTarget takes the average of all peer heads
@@ -524,6 +535,9 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
 	logger.Debug("dispatching sync worker",
+		"id", w.id,
+		"start number", w.startNumber,
+		"start hash", w.startHash,
 		"target hash", w.targetHash,
 		"target number", w.targetNumber,
 	)
@@ -540,7 +554,11 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	defer func() {
 		end := time.Now()
 		w.duration = end.Sub(start)
-		logger.Debug("sync worker complete", "success?", w.err == nil)
+		logger.Debug("sync worker complete",
+			"id", w.id,
+			"success?", w.err == nil,
+			"duration", w.duration,
+		)
 		cs.resultQueue <- w
 	}()
 
@@ -553,8 +571,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 
 	for _, req := range reqs {
 		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time
-		err := cs.doSync(req)
-		if err != nil {
+		if err := cs.doSync(req); err != nil {
 			// failed to sync, set worker error and put into result queue
 			w.err = err
 			return
@@ -623,10 +640,21 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 
 	logger.Trace("success! placing block response data in ready queue")
 
+	if resp == nil {
+		panic("ahhhh")
+	}
+
 	// response was validated! place into ready block queue
 	for _, bd := range resp.BlockData {
+		if bd == nil {
+			panic("ahhh")
+		}
+
 		// if we're expecting headers, validate should ensure we have a header
 		header, _ := types.NewHeaderFromOptional(bd.Header)
+		if header == nil {
+			panic("ahh")
+		}
 
 		// block is ready to be processed!
 		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
@@ -715,6 +743,19 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 
 			if cs.readyBlocks.has(curr.ParentHash) {
 				continue
+			}
+
+			// parent unknown, add to pending blocks
+			body, err := types.NewBodyFromOptional(bd.Body)
+			if err != nil {
+				return fmt.Errorf("failed to convert block body from optional: hash=%s err=%s", bd.Hash, err)
+			}
+
+			if err := cs.pendingBlocks.addBlock(&types.Block{
+				Header: curr,
+				Body:   body,
+			}); err != nil {
+				return err
 			}
 
 			return errUnknownParent
@@ -810,6 +851,11 @@ func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
 
 	if diff.Int64() > 0 && w.direction != DIR_ASCENDING {
 		return nil, errInvalidDirection
+	}
+
+	// start and end block are the same, just request 1 block
+	if diff.Cmp(big.NewInt(0)) == 0 {
+		diff = big.NewInt(1)
 	}
 
 	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,

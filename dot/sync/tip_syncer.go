@@ -27,13 +27,16 @@ func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBl
 }
 
 func (s *tipSyncer) handleWork(ps *peerState) (*worker, error) {
-	return nil, nil
+	return &worker{
+		startHash:    ps.hash,
+		startNumber:  ps.number,
+		targetHash:   ps.hash,
+		targetNumber: ps.number,
+		requestData:  bootstrapRequestData,
+	}, nil
 }
 
 func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
-	// TODO: if the worker succeeded, potentially remove some blocks from the pending block set and
-	// move them into the ready queue
-	//
 	return nil, nil
 }
 
@@ -94,6 +97,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			continue
 		}
 
+		// request descending chain from (parent of pending block) -> (last finalised block)
 		workers = append(workers, &worker{
 			startHash:    block.header.ParentHash,
 			startNumber:  big.NewInt(0).Sub(block.number, big.NewInt(1)),

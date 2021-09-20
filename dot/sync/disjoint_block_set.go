@@ -271,7 +271,7 @@ func (s *disjointBlockSet) getReadyDescendants(curr common.Hash, ready []*types.
 
 	for c := range children {
 		b := s.getBlock(c)
-		if b.body == nil {
+		if b == nil || b.header == nil || b.body == nil {
 			continue
 		}
 
