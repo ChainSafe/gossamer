@@ -18,6 +18,7 @@ package core
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -61,6 +62,7 @@ type StorageState interface {
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
+	sync.Locker
 }
 
 // TransactionState is the interface for transaction state methods
