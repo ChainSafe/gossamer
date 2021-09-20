@@ -42,9 +42,9 @@ type peerState struct {
 // and stored pending work (ie. pending blocks set)
 // workHandler should be implemented by `bootstrapSync` and `tipSync`
 type workHandler interface {
-	// handleWork optionally returns a new worker based on a peerState.
+	// handleNewPeerState optionally returns a new worker based on a peerState.
 	// returned worker may be nil, in which case we do nothing
-	handleWork(*peerState) (*worker, error)
+	handleNewPeerState(*peerState) (*worker, error)
 
 	// handleWorkerResult handles the result of a worker, which may be
 	// nil or error. optionally returns a new worker to be dispatched.
@@ -154,6 +154,7 @@ func (cs *chainSync) start() {
 		if n >= 1 {
 			break
 		}
+		time.Sleep(time.Millisecond * 100)
 	}
 
 	go cs.sync()
@@ -202,7 +203,6 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	if err != nil {
 		return err
 	}
-	fmt.Println(head.Number, ps.number)
 
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
@@ -211,8 +211,6 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		if err != nil {
 			return err
 		}
-
-		fmt.Println(ourHash, ps.hash)
 
 		if ourHash.Equal(ps.hash) {
 			return nil
@@ -335,15 +333,15 @@ func (cs *chainSync) sync() {
 			}
 
 			target := cs.getTarget()
-			if head.Number.Cmp(target) >= 0 {
+			if big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) == -1 {
+				// we are 128 blocks or more behind the target, switch to bootstrap mode
+				logger.Debug("switching to bootstrap sync mode...")
+				cs.setMode(bootstrap)
+			} else {
 				// bootstrap complete, switch state to tip if not already
 				// and begin near-head fork-sync
 				logger.Debug("switching to tip sync mode...")
-				cs.switchMode(tip)
-			} else if big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) == -1 {
-				// we are 128 blocks or more behind the target, switch to bootstrap mode
-				logger.Debug("switching to bootstrap sync mode...")
-				cs.switchMode(bootstrap)
+				cs.setMode(tip)
 			}
 
 			if err := cs.handleWork(ps); err != nil {
@@ -405,9 +403,9 @@ func (cs *chainSync) sync() {
 	}
 }
 
-// switchMode stops all existing workers and clears the worker set and switches the `handler`
-// based on the new mode
-func (cs *chainSync) switchMode(mode chainSyncState) {
+// setMode stops all existing workers and clears the worker set and switches the `handler`
+// based on the new mode, if the mode is different than previous
+func (cs *chainSync) setMode(mode chainSyncState) {
 	if cs.state == mode {
 		return
 	}
@@ -457,7 +455,7 @@ func (cs *chainSync) getTarget() *big.Int {
 // a fork sync
 func (cs *chainSync) handleWork(ps *peerState) error {
 	logger.Trace("handling potential work", "target hash", ps.hash, "target number", ps.number)
-	worker, err := cs.handler.handleWork(ps)
+	worker, err := cs.handler.handleNewPeerState(ps)
 	if err != nil {
 		return err
 	}
@@ -608,7 +606,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
 // TODO: implement this
 func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
-	peers := []peer.ID{}
+	var peers []peer.ID
 
 	cs.RLock()
 	defer cs.RUnlock()

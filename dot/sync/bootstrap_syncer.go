@@ -22,7 +22,7 @@ func newBootstrapSyncer(blockState BlockState) *bootstrapSyncer {
 	}
 }
 
-func (s *bootstrapSyncer) handleWork(ps *peerState) (*worker, error) {
+func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	head, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		return nil, err

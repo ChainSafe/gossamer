@@ -27,13 +27,13 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 
 	// peer's state is equal or lower than ours
 	// should not create a worker for bootstrap mode
-	w, err := s.handleWork(&peerState{
+	w, err := s.handleNewPeerState(&peerState{
 		number: big.NewInt(100),
 	})
 	require.NoError(t, err)
 	require.Nil(t, w)
 
-	w, err = s.handleWork(&peerState{
+	w, err = s.handleNewPeerState(&peerState{
 		number: big.NewInt(99),
 	})
 	require.NoError(t, err)
@@ -47,7 +47,7 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 		targetHash:   common.NewHash([]byte{1}),
 		targetNumber: big.NewInt(101),
 	}
-	w, err = s.handleWork(&peerState{
+	w, err = s.handleNewPeerState(&peerState{
 		number: big.NewInt(101),
 		hash:   common.NewHash([]byte{1}),
 	})
@@ -61,7 +61,7 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 		targetHash:   common.NewHash([]byte{1}),
 		targetNumber: big.NewInt(9999),
 	}
-	w, err = s.handleWork(&peerState{
+	w, err = s.handleNewPeerState(&peerState{
 		number: big.NewInt(9999),
 		hash:   common.NewHash([]byte{1}),
 	})

@@ -22,7 +22,7 @@ func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, workerS
 	}
 }
 
-func (s *tipSyncer) handleWork(ps *peerState) (*worker, error) {
+func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	return nil, nil
 }
 
