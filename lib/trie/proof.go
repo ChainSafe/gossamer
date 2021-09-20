@@ -26,11 +26,9 @@ import (
 var (
 	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
-
-	ErrEmptyNibbles = errors.New("empty nibbles provided from key")
 )
 
-// StackEntry is a entry on the nodes that is prooved already
+// StackEntry is a entry on the nodes that is proved already
 // it stores the necessary infos to keep going and prooving the children nodes
 type StackEntry struct {
 	keyOffset   int
@@ -41,7 +39,8 @@ type StackEntry struct {
 	outputIndex int
 }
 
-//
+// NewStackEntry puts a node into the stack with its hash, the node key (prefix), position into
+// the proof list (outputIndex) and the offset from the nibbled key (keyOffset)
 func NewStackEntry(n node, hash, rd, prefix []byte, outputIndex, keyOffset int) (*StackEntry, error) {
 	_, _, err := n.encodeAndHash()
 	if err != nil {
@@ -58,6 +57,7 @@ func NewStackEntry(n node, hash, rd, prefix []byte, outputIndex, keyOffset int) 
 	}, nil
 }
 
+// Stack represents a list of entries
 type Stack []*StackEntry
 
 // Push adds a new item to the top of the stack
@@ -86,11 +86,13 @@ func (s *Stack) Last() *StackEntry {
 	return (*s)[len(*s)-1]
 }
 
+// StackIterator is used to transform the stack into a iterator, the iterator starts the cursor (index) from 0
 type StackIterator struct {
 	index int
 	set   []*StackEntry
 }
 
+// Next returns the current item the cursor is on and increment the cursor by 1
 func (i *StackIterator) Next() *StackEntry {
 	if i.HasNext() {
 		t := i.set[i.index]
@@ -101,6 +103,7 @@ func (i *StackIterator) Next() *StackEntry {
 	return nil
 }
 
+// Peek returns the current item the cursor is on but dont increment the cursor by 1
 func (i *StackIterator) Peek() *StackEntry {
 	if i.HasNext() {
 		return i.set[i.index]
@@ -108,6 +111,7 @@ func (i *StackIterator) Peek() *StackEntry {
 	return nil
 }
 
+// HasNext returns true if there is more itens into the iterator
 func (i *StackIterator) HasNext() bool {
 	return i.index < len(i.set)
 }
@@ -120,7 +124,9 @@ func (s *Stack) iter() *StackIterator {
 	return iter
 }
 
-//
+// Step struct helps the proof generation with the next step that should be taken when
+// the seek node is found or to keep searching from the next node
+// using the offset of the nibbled key
 type Step struct {
 	Found     bool
 	Value     []byte
@@ -269,7 +275,7 @@ func matchKeyToBranchNode(n *branch, e *StackEntry, nibbleKey []byte) (Step, err
 	}, nil
 }
 
-func unwindStack(stack *Stack, proof [][]byte, key []byte) error {
+func unwindStack(stack *Stack, proof [][]byte, key []byte) {
 	for {
 		entry := stack.Pop()
 		if entry == nil {
@@ -283,6 +289,4 @@ func unwindStack(stack *Stack, proof [][]byte, key []byte) error {
 
 		proof[entry.outputIndex] = entry.nodeRawData
 	}
-
-	return nil
 }

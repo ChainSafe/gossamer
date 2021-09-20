@@ -8,20 +8,23 @@ import (
 )
 
 var (
-	ErrInvalidStateRoot = errors.New("cannot found the state root on storage")
+	// ErrProofNodeNotFound when a needed proof node is not in the database
+	ErrProofNodeNotFound = errors.New("cannot found the state root on storage")
 )
 
+// Lookup struct holds the state root and database reference
+// used to retrieve trie information from database
 type Lookup struct {
 	// root to start the lookup
-	hash []byte
+	root []byte
 	db   chaindb.Database
 }
 
 // NewLookup returns a Lookup to helps the proof generator
 func NewLookup(h []byte, db chaindb.Database) *Lookup {
 	lk := &Lookup{db: db}
-	lk.hash = make([]byte, len(h))
-	copy(lk.hash, h)
+	lk.root = make([]byte, len(h))
+	copy(lk.root, h)
 
 	return lk
 }
@@ -29,12 +32,12 @@ func NewLookup(h []byte, db chaindb.Database) *Lookup {
 // Find will return the desired value or nil if key cannot be found and will record visited nodes
 func (l *Lookup) Find(key []byte, recorder *Recorder) ([]byte, error) {
 	partial := key
-	hash := l.hash
+	hash := l.root
 
 	for {
 		nodeData, err := l.db.Get(hash[:])
 		if err != nil {
-			return nil, ErrInvalidStateRoot
+			return nil, ErrProofNodeNotFound
 		}
 
 		nodeHash := make([]byte, len(hash))
