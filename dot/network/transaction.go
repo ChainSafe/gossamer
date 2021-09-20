@@ -119,6 +119,39 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
+func (s *Service) createBatchMessageHandler(txnBatch chan *batchMessage) NotificationsMessageBatchHandler {
+	return func(peer peer.ID, msg NotificationsMessage) (msgs []*batchMessage, err error) {
+		data := &batchMessage{
+			msg:  msg,
+			peer: peer,
+		}
+		txnBatch <- data
+
+		if len(txnBatch) < s.batchSize {
+			return nil, nil
+		}
+
+		var propagateMsgs []*batchMessage
+		for txnData := range txnBatch {
+			propagate, err := s.handleTransactionMessage(txnData.peer, txnData.msg)
+			if err != nil {
+				continue
+			}
+			if propagate {
+				propagateMsgs = append(propagateMsgs, &batchMessage{
+					msg:  txnData.msg,
+					peer: txnData.peer,
+				})
+			}
+			if len(txnBatch) == 0 {
+				break
+			}
+		}
+		// May be use error to compute peer score.
+		return propagateMsgs, nil
+	}
+}
+
 func validateTransactionHandshake(_ peer.ID, _ Handshake) error {
 	return nil
 }
