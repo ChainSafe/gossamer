@@ -24,10 +24,8 @@ import (
 	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/scale"
-
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -79,10 +77,17 @@ const (
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
 	RequestedData byte
-	StartingBlock *variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
-	EndBlockHash  *optional.Hash
+	// <<<<<<< HEAD
+	// 	StartingBlock *variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	// 	EndBlockHash  *optional.Hash
+	// 	Direction     SyncDirection // 0 = ascending, 1 = descending
+	// 	Max           *optional.Uint32
+	// =======
+	StartingBlock variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	EndBlockHash  *common.Hash
 	Direction     SyncDirection // 0 = ascending, 1 = descending
-	Max           *optional.Uint32
+	Max           *uint32
+	//>>>>>>> edd9b1987aba8f32f220c530b9efdbccb8c05c64
 }
 
 // SubProtocol returns the sync sub-protocol
@@ -92,12 +97,20 @@ func (bm *BlockRequestMessage) SubProtocol() string {
 
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=%s Direction=%d Max=%s",
+	hash := common.Hash{}
+	max := uint32(0)
+	if bm.EndBlockHash != nil {
+		hash = *bm.EndBlockHash
+	}
+	if bm.Max != nil {
+		max = *bm.Max
+	}
+	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%v EndBlockHash=%s Direction=%d Max=%d",
 		bm.RequestedData,
 		bm.StartingBlock,
-		bm.EndBlockHash.String(),
+		hash.String(),
 		bm.Direction,
-		bm.Max.String())
+		max)
 }
 
 // Encode returns the protobuf encoded BlockRequestMessage
@@ -107,13 +120,13 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		max     uint32
 	)
 
-	if bm.EndBlockHash.Exists() {
-		hash := bm.EndBlockHash.Value()
+	if bm.EndBlockHash != nil {
+		hash := bm.EndBlockHash
 		toBlock = hash[:]
 	}
 
-	if bm.Max.Exists() {
-		max = bm.Max.Value()
+	if bm.Max != nil {
+		max = *bm.Max
 	}
 
 	msg := &pb.BlockRequest{
@@ -151,8 +164,8 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 
 	var (
 		startingBlock *variadic.Uint64OrHash
-		endBlockHash  *optional.Hash
-		max           *optional.Uint32
+		endBlockHash  *common.Hash
+		max           *uint32
 	)
 
 	switch from := msg.FromBlock.(type) {
@@ -173,19 +186,20 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	}
 
 	if len(msg.ToBlock) != 0 {
-		endBlockHash = optional.NewHash(true, common.BytesToHash(msg.ToBlock))
+		hash := common.NewHash(msg.ToBlock)
+		endBlockHash = &hash
 	} else {
-		endBlockHash = optional.NewHash(false, common.Hash{})
+		endBlockHash = nil
 	}
 
 	if msg.MaxBlocks != 0 {
-		max = optional.NewUint32(true, msg.MaxBlocks)
+		max = &msg.MaxBlocks
 	} else {
-		max = optional.NewUint32(false, 0)
+		max = nil
 	}
 
 	bm.RequestedData = byte(msg.Fields >> 24)
-	bm.StartingBlock = startingBlock
+	bm.StartingBlock = *startingBlock
 	bm.EndBlockHash = endBlockHash
 	bm.Direction = SyncDirection(byte(msg.Direction))
 	bm.Max = max
@@ -245,10 +259,11 @@ func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	bm.BlockData = make([]*types.BlockData, len(msg.Blocks))
 
 	for i, bd := range msg.Blocks {
-		bm.BlockData[i], err = protobufToBlockData(bd)
+		block, err := protobufToBlockData(bd)
 		if err != nil {
 			return err
 		}
+		bm.BlockData[i] = block
 	}
 
 	return nil
@@ -260,20 +275,16 @@ func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 		Hash: bd.Hash[:],
 	}
 
-	if bd.Header != nil && bd.Header.Exists() {
-		header, err := types.NewHeaderFromOptional(bd.Header)
+	if bd.Header != nil {
+		header, err := scale.Marshal(*bd.Header)
 		if err != nil {
 			return nil, err
 		}
-
-		p.Header, err = header.Encode()
-		if err != nil {
-			return nil, err
-		}
+		p.Header = header
 	}
 
-	if bd.Body != nil && bd.Body.Exists() {
-		body := types.Body(bd.Body.Value())
+	if bd.Body != nil {
+		body := bd.Body
 		exts, err := body.AsEncodedExtrinsics()
 		if err != nil {
 			return nil, err
@@ -282,17 +293,17 @@ func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 		p.Body = types.ExtrinsicsArrayToBytesArray(exts)
 	}
 
-	if bd.Receipt != nil && bd.Receipt.Exists() {
-		p.Receipt = bd.Receipt.Value()
+	if bd.Receipt != nil {
+		p.Receipt = *bd.Receipt
 	}
 
-	if bd.MessageQueue != nil && bd.MessageQueue.Exists() {
-		p.MessageQueue = bd.MessageQueue.Value()
+	if bd.MessageQueue != nil {
+		p.MessageQueue = *bd.MessageQueue
 	}
 
-	if bd.Justification != nil && bd.Justification.Exists() {
-		p.Justification = bd.Justification.Value()
-		if len(bd.Justification.Value()) == 0 {
+	if bd.Justification != nil {
+		p.Justification = *bd.Justification
+		if len(*bd.Justification) == 0 {
 			p.IsEmptyJustification = true
 		}
 	}
@@ -302,16 +313,18 @@ func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 
 func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 	bd := &types.BlockData{
-		Hash: common.BytesToHash(pbd.Hash),
+		Hash:   common.BytesToHash(pbd.Hash),
+		Header: types.NewEmptyHeader(),
 	}
 
 	if pbd.Header != nil {
-		header, err := scale.Decode(pbd.Header, types.NewEmptyHeader())
+		header := types.NewEmptyHeader()
+		err := scale.Unmarshal(pbd.Header, header)
 		if err != nil {
 			return nil, err
 		}
 
-		bd.Header = header.(*types.Header).AsOptional()
+		bd.Header = header
 	}
 
 	if pbd.Body != nil {
@@ -320,31 +333,31 @@ func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 			return nil, err
 		}
 
-		bd.Body = body.AsOptional()
+		bd.Body = body
 	} else {
-		bd.Body = optional.NewBody(false, nil)
+		bd.Body = nil
 	}
 
 	if pbd.Receipt != nil {
-		bd.Receipt = optional.NewBytes(true, pbd.Receipt)
+		bd.Receipt = &pbd.Receipt
 	} else {
-		bd.Receipt = optional.NewBytes(false, nil)
+		bd.Receipt = nil
 	}
 
 	if pbd.MessageQueue != nil {
-		bd.MessageQueue = optional.NewBytes(true, pbd.MessageQueue)
+		bd.MessageQueue = &pbd.MessageQueue
 	} else {
-		bd.MessageQueue = optional.NewBytes(false, nil)
+		bd.MessageQueue = nil
 	}
 
 	if pbd.Justification != nil {
-		bd.Justification = optional.NewBytes(true, pbd.Justification)
+		bd.Justification = &pbd.Justification
 	} else {
-		bd.Justification = optional.NewBytes(false, nil)
+		bd.Justification = nil
 	}
 
 	if pbd.Justification == nil && pbd.IsEmptyJustification {
-		bd.Justification = optional.NewBytes(true, []byte{})
+		bd.Justification = &[]byte{}
 	}
 
 	return bd, nil

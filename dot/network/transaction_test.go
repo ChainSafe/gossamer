@@ -38,19 +38,6 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 	require.Equal(t, testHandshake, msg)
 }
 
-func TestDecodeTransactionMessage(t *testing.T) {
-	testTxMsg := &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
-	}
-
-	enc, err := testTxMsg.Encode()
-	require.NoError(t, err)
-
-	msg, err := decodeTransactionMessage(enc)
-	require.NoError(t, err)
-	require.Equal(t, testTxMsg, msg)
-}
-
 func TestHandleTransactionMessage(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	mockhandler := &MockTransactionHandler{}

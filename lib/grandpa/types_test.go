@@ -35,7 +35,7 @@ func TestPubkeyToVoter(t *testing.T) {
 	state := NewState(voters, 0, 0)
 	voter, err := state.pubkeyToVoter(kr.Alice().Public().(*ed25519.PublicKey))
 	require.NoError(t, err)
-	require.Equal(t, voters[0], voter)
+	require.Equal(t, voters[0], *voter)
 }
 
 func TestSignedVoteEncoding(t *testing.T) {

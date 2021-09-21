@@ -17,14 +17,13 @@
 package network
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -40,7 +39,7 @@ type BlockAnnounceMessage struct {
 	Number         *big.Int
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
-	Digest         types.Digest
+	Digest         scale.VaryingDataTypeSlice
 	BestBlock      bool
 }
 
@@ -66,7 +65,7 @@ func (bm *BlockAnnounceMessage) String() string {
 
 // Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
 func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
-	enc, err := scale.Encode(bm)
+	enc, err := scale.Marshal(*bm)
 	if err != nil {
 		return enc, err
 	}
@@ -75,24 +74,10 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 
 // Decode the message into a BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Decode(in []byte) error {
-	r := &bytes.Buffer{}
-	_, _ = r.Write(in)
-	h, err := types.NewEmptyHeader().Decode(r)
+	err := scale.Unmarshal(in, bm)
 	if err != nil {
 		return err
 	}
-
-	bm.ParentHash = h.ParentHash
-	bm.Number = h.Number
-	bm.StateRoot = h.StateRoot
-	bm.ExtrinsicsRoot = h.ExtrinsicsRoot
-	bm.Digest = h.Digest
-	bestBlock, err := common.ReadByte(r)
-	if err != nil {
-		return err
-	}
-
-	bm.BestBlock = bestBlock == 1
 	return nil
 }
 
@@ -110,22 +95,26 @@ func (*BlockAnnounceMessage) IsHandshake() bool {
 }
 
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
-	hs, err := scale.Decode(in, new(BlockAnnounceHandshake))
+	hs := BlockAnnounceHandshake{}
+	err := scale.Unmarshal(in, &hs)
 	if err != nil {
 		return nil, err
 	}
 
-	return hs.(*BlockAnnounceHandshake), err
+	return &hs, err
 }
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
-	msg := new(BlockAnnounceMessage)
+	msg := BlockAnnounceMessage{
+		Number: big.NewInt(0),
+		Digest: types.NewDigest(),
+	}
 	err := msg.Decode(in)
 	if err != nil {
 		return nil, err
 	}
 
-	return msg, nil
+	return &msg, nil
 }
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
@@ -152,20 +141,15 @@ func (hs *BlockAnnounceHandshake) String() string {
 
 // Encode encodes a BlockAnnounceHandshake message using SCALE
 func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
-	return scale.Encode(hs)
+	return scale.Marshal(*hs)
 }
 
 // Decode the message into a BlockAnnounceHandshake
 func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
-	msg, err := scale.Decode(in, hs)
+	err := scale.Unmarshal(in, hs)
 	if err != nil {
 		return err
 	}
-
-	hs.Roles = msg.(*BlockAnnounceHandshake).Roles
-	hs.BestBlockNumber = msg.(*BlockAnnounceHandshake).BestBlockNumber
-	hs.BestBlockHash = msg.(*BlockAnnounceHandshake).BestBlockHash
-	hs.GenesisHash = msg.(*BlockAnnounceHandshake).GenesisHash
 	return nil
 }
 

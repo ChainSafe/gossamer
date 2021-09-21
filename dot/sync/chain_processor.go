@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package sync
 
 import (
@@ -101,7 +117,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 		logger.Debug("skipping block, already have", "hash", bd.Hash, "number", block.Header.Number)
 
-		err = s.blockState.AddBlockToBlockTree(block.Header)
+		err = s.blockState.AddBlockToBlockTree(&block.Header)
 		if errors.Is(err, blocktree.ErrBlockExists) {
 			return nil
 		} else if err != nil {
@@ -109,9 +125,9 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return err
 		}
 
-		if bd.Justification != nil && bd.Justification.Exists() {
+		if bd.Justification != nil {
 			logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
-			s.handleJustification(block.Header, bd.Justification.Value())
+			s.handleJustification(&block.Header, *bd.Justification)
 		}
 
 		// TODO: this is probably unnecessary, since the state is already in the database
@@ -130,30 +146,18 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		return nil
 	}
 
-	var header *types.Header
-
-	if bd.Header.Exists() && bd.Body.Exists() {
-		header, err = types.NewHeaderFromOptional(bd.Header)
-		if err != nil {
+	if bd.Header != nil && bd.Body != nil {
+		if err = s.handleHeader(bd.Header); err != nil {
 			return err
 		}
 
-		if err = s.handleHeader(header); err != nil {
-			return err
-		}
-
-		body, err := types.NewBodyFromOptional(bd.Body)
-		if err != nil {
-			return err
-		}
-
-		if err = s.handleBody(body); err != nil {
+		if err = s.handleBody(bd.Body); err != nil {
 			return err
 		}
 
 		block := &types.Block{
-			Header: header,
-			Body:   body,
+			Header: *bd.Header,
+			Body:   *bd.Body,
 		}
 
 		logger.Debug("processing block", "hash", bd.Hash)
@@ -166,9 +170,9 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		logger.Debug("block processed", "hash", bd.Hash)
 	}
 
-	if bd.Justification != nil && bd.Justification.Exists() && header != nil {
+	if bd.Justification != nil && bd.Header != nil {
 		logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
-		s.handleJustification(header, bd.Justification.Value())
+		s.handleJustification(bd.Header, *bd.Justification)
 	}
 
 	return nil
@@ -200,7 +204,7 @@ func (s *chainProcessor) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *chainProcessor) handleBlock(block *types.Block) error {
-	if block == nil || block.Header == nil || block.Body == nil {
+	if block == nil || block.Body == nil {
 		return errors.New("block, header, or body is nil")
 	}
 

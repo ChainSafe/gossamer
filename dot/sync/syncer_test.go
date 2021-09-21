@@ -33,6 +33,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 
@@ -53,6 +54,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+//<<<<<<< HEAD
 func newMockFinalityGadget() *syncmocks.FinalityGadget {
 	m := new(syncmocks.FinalityGadget)
 	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
@@ -119,7 +121,7 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
 	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
 		// store updates state trie nodes in database
-		if err = stateSrvc.Storage.StoreTrie(ts, block.Header); err != nil {
+		if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
 			logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
 			return err
 		}
@@ -159,7 +161,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }

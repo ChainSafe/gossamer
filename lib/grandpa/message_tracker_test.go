@@ -89,8 +89,8 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
-		Header: next,
-		Body:   &types.Body{},
+		Header: *next,
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 
@@ -135,8 +135,8 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
-		Header: next,
-		Body:   &types.Body{},
+		Header: *next,
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 

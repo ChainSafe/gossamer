@@ -24,7 +24,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 	EpochLength:        200,
 	C1:                 1,
 	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
+	GenesisAuthorities: []types.AuthorityRaw{},
 	Randomness:         [32]byte{},
 	SecondarySlots:     0,
 }

@@ -216,7 +216,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
-	s.Block.bt = blocktree.NewBlockTreeFromRoot(root.Header, s.db)
+	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header, s.db)
 	newHead := s.Block.BestBlockHash()
 
 	header, _ := s.Block.BestBlockHeader()

@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package sync
 
 import (
@@ -12,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
 
@@ -591,11 +606,8 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 
 	// response was validated! place into ready block queue
 	for _, bd := range resp.BlockData {
-		// if we're expecting headers, validate should ensure we have a header
-		header, _ := types.NewHeaderFromOptional(bd.Header)
-
 		// block is ready to be processed!
-		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
+		logger.Trace("new ready block", "hash", bd.Hash, "number", bd.Header.Number)
 		cs.pendingBlocks.removeBlock(bd.Hash)
 		cs.readyBlocks <- bd
 	}
@@ -647,10 +659,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 		}
 
 		if headerRequested {
-			curr, err = types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return err
-			}
+			curr = bd.Header
 		} else {
 			// TODO: if this is a justification-only request, make sure we have the block for the justification
 			continue
@@ -668,14 +677,9 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 		if !prev.Hash().Equal(curr.ParentHash) || curr.Number.Cmp(big.NewInt(0).Add(prev.Number, big.NewInt(1))) != 0 {
 			// the response is missing some blocks, place blocks from curr onwards into pending blocks set
 			for _, bd := range resp.BlockData[i:] {
-				body, err := types.NewBodyFromOptional(bd.Body)
-				if err != nil {
-					return fmt.Errorf("failed to convert block body from optional: hash=%s err=%s", bd.Hash, err)
-				}
-
 				cs.pendingBlocks.addBlock(&types.Block{
-					Header: curr,
-					Body:   body,
+					Header: *curr,
+					Body:   *bd.Body,
 				})
 			}
 			return errResponseIsNotChain
@@ -742,15 +746,13 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 
 	for i := 0; i < numRequests; i++ {
 		// check if we want to specify a size
-		var max *optional.Uint32
+		var max uint32 = maxResponseSize
 		if i == numRequests-1 {
 			size := numBlocks % maxResponseSize
 			if size == 0 {
 				size = maxResponseSize
 			}
-			max = optional.NewUint32(true, uint32(size))
-		} else {
-			max = optional.NewUint32(false, 0)
+			max = uint32(size)
 		}
 
 		var start *variadic.Uint64OrHash
@@ -762,19 +764,17 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 			start, _ = variadic.NewUint64OrHash(w.startHash)
 		}
 
-		var end *optional.Hash
-		if w.targetHash.Equal(common.EmptyHash) {
-			end = optional.NewHash(false, common.Hash{})
-		} else {
-			end = optional.NewHash(true, w.targetHash)
+		var end *common.Hash
+		if !w.targetHash.Equal(common.EmptyHash) {
+			end = &w.targetHash // TODO: change worker targetHash to ptr?
 		}
 
 		reqs[i] = &network.BlockRequestMessage{
 			RequestedData: w.requestData,
-			StartingBlock: start,
+			StartingBlock: *start,
 			EndBlockHash:  end,
 			Direction:     w.direction,
-			Max:           max,
+			Max:           &max,
 		}
 		startNumber += maxResponseSize
 	}
