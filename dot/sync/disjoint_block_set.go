@@ -60,6 +60,14 @@ type pendingBlock struct {
 }
 
 func (b *pendingBlock) toBlockData() *types.BlockData {
+	if b.justification == nil {
+		return &types.BlockData{
+			Hash:   b.hash,
+			Header: b.header,
+			Body:   b.body,
+		}
+	}
+
 	return &types.BlockData{
 		Hash:          b.hash,
 		Header:        b.header,
