@@ -48,7 +48,7 @@ func TestStableNetworkRPC(t *testing.T) {
 			method:      "system_health",
 			expected: modules.SystemHealthResponse{
 				Peers:           networkSize - 1,
-				IsSyncing:       false,
+				IsSyncing:       true,
 				ShouldHavePeers: true,
 			},
 		},
