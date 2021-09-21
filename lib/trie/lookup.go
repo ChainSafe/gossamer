@@ -21,10 +21,10 @@ type Lookup struct {
 }
 
 // NewLookup returns a Lookup to helps the proof generator
-func NewLookup(h []byte, db chaindb.Database) *Lookup {
+func NewLookup(rootHash []byte, db chaindb.Database) *Lookup {
 	lk := &Lookup{db: db}
-	lk.root = make([]byte, len(h))
-	copy(lk.root, h)
+	lk.root = make([]byte, len(rootHash))
+	copy(lk.root, rootHash)
 
 	return lk
 }

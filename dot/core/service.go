@@ -640,7 +640,7 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash,
 		return common.EmptyHash, nil, err
 	}
 
-	proofForKeys, err := s.blockState.GenerateTrieProof(stateRoot, keys)
+	proofForKeys, err := s.storageState.GenerateTrieProof(stateRoot, keys)
 	if err != nil {
 		return common.EmptyHash, nil, err
 	}

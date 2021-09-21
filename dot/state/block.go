@@ -34,7 +34,6 @@ import (
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 var blockPrefix = "block"
@@ -744,9 +743,4 @@ func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 // GetNonFinalisedBlocks get all the blocks in the blocktree
 func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
-}
-
-// GenerateTrieProof returns the proofs related to the keys on the state root trie
-func (bs *BlockState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
-	return trie.GenerateProof(stateRoot[:], keys, bs.db)
 }

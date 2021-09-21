@@ -325,6 +325,11 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 	return common.Blake2bHash(code)
 }
 
+// GenerateTrieProof returns the proofs related to the keys on the state root trie
+func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
+	return trie.GenerateProof(stateRoot[:], keys, s.db)
+}
+
 // GetBalance gets the balance for an account with the given public key
 func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, error) {
 	skey, err := common.BalanceKey(key)

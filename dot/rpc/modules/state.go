@@ -303,7 +303,6 @@ func (sm *StateModule) GetReadProof(r *http.Request, req *StateGetReadProofReque
 		keys[i] = bKey
 	}
 
-	fmt.Println("GET READ PROOF RPC", req.Keys, len(keys))
 	block, proofs, err := sm.coreAPI.GetReadProofAt(req.Hash, keys)
 	if err != nil {
 		return err
