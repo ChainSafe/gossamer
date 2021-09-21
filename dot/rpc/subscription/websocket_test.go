@@ -220,9 +220,9 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
 
 	var fCh chan<- *types.FinalisationInfo
-	mockedJust := grandpa.JustificationNew{
+	mockedJust := grandpa.Justification{
 		Round: 1,
-		Commit: grandpa.CommitNew{
+		Commit: grandpa.Commit{
 			Hash:       common.Hash{},
 			Number:     1,
 			Precommits: nil,

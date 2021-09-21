@@ -164,11 +164,11 @@ func TestGetDirectVotes(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 5 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: voteB,
 			})
 		}
@@ -198,11 +198,11 @@ func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 5 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -240,15 +240,15 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 3 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 5 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		}
@@ -291,15 +291,15 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 3 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		}
@@ -347,15 +347,15 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 3 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		}
@@ -411,19 +411,19 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 3 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else if i < 8 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteD,
 			})
 		}
@@ -468,11 +468,11 @@ func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -507,15 +507,15 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 3 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		}
@@ -556,15 +556,15 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 3 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		}
@@ -600,10 +600,10 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 	voteB, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	svA := &SignedVoteNew{
+	svA := &SignedVote{
 		Vote: *voteA,
 	}
-	svB := &SignedVoteNew{
+	svB := &SignedVote{
 		Vote: *voteB,
 	}
 
@@ -615,7 +615,7 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 		} else if i < 6 {
 			gs.prevotes.Store(voter, svB)
 		} else {
-			gs.pvEquivocations[voter] = []*SignedVoteNew{svA, svB}
+			gs.pvEquivocations[voter] = []*SignedVote{svA, svB}
 		}
 	}
 
@@ -641,10 +641,10 @@ func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
 	voteC, err := NewVoteFromHash(leaves[2], st.Block)
 	require.NoError(t, err)
 
-	svA := &SignedVoteNew{
+	svA := &SignedVote{
 		Vote: *voteA,
 	}
-	svB := &SignedVoteNew{
+	svB := &SignedVote{
 		Vote: *voteB,
 	}
 
@@ -659,12 +659,12 @@ func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
 			gs.prevotes.Store(voter, svB)
 		} else if i < 5 {
 			// 1 vote for C
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		} else {
 			// 4 equivocators
-			gs.pvEquivocations[voter] = []*SignedVoteNew{svA, svB}
+			gs.pvEquivocations[voter] = []*SignedVote{svA, svB}
 		}
 	}
 
@@ -690,11 +690,11 @@ func TestGetPreVotedBlock_OneBlock(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -729,15 +729,15 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 3 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		}
@@ -790,27 +790,27 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 2 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 4 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		} else if i < 7 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteD,
 			})
 		} else if i < 8 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteE,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteF,
 			})
 		}
@@ -845,17 +845,17 @@ func TestIsCompletable(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -905,17 +905,17 @@ func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -948,17 +948,17 @@ func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -988,14 +988,14 @@ func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -1025,17 +1025,17 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		}
@@ -1071,7 +1071,7 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
-	gs.prevotes.Store(primary, &SignedVoteNew{
+	gs.prevotes.Store(primary, &SignedVote{
 		Vote: *NewVoteFromHeader(header),
 	})
 
@@ -1079,7 +1079,7 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 	require.NoError(t, err)
 	p, has := gs.prevotes.Load(primary)
 	require.True(t, has)
-	require.Equal(t, pv, &p.(*SignedVoteNew).Vote)
+	require.Equal(t, pv, &p.(*SignedVote).Vote)
 }
 
 func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
@@ -1091,7 +1091,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
-	gs.prevotes.Store(primary, &SignedVoteNew{
+	gs.prevotes.Store(primary, &SignedVote{
 		Vote: *NewVoteFromHeader(header),
 	})
 
@@ -1121,17 +1121,17 @@ func TestIsFinalisable_True(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -1159,17 +1159,17 @@ func TestIsFinalisable_False(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
-			gs.precommits.Store(voter, &SignedVoteNew{
+			gs.precommits.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -1204,11 +1204,11 @@ func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 4 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 5 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		}
@@ -1245,15 +1245,15 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
 		if i < 1 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
 		} else if i < 2 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteB,
 			})
 		} else if i < 3 {
-			gs.prevotes.Store(voter, &SignedVoteNew{
+			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteC,
 			})
 		}

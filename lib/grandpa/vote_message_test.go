@@ -54,7 +54,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range voters {
-		equivocated := gs.checkForEquivocation(&v, &SignedVoteNew{
+		equivocated := gs.checkForEquivocation(&v, &SignedVote{
 			Vote: *vote,
 		}, prevote)
 		require.False(t, equivocated)
@@ -90,14 +90,14 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVoteNew{
+	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
 		Vote: *vote1,
 	})
 
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(&voter, &SignedVoteNew{
+	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
 	require.True(t, equivocated)
@@ -142,14 +142,14 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVoteNew{
+	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
 		Vote: *vote,
 	})
 
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(&voter, &SignedVoteNew{
+	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
 	require.True(t, equivocated)
@@ -160,7 +160,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote3 := NewVoteFromHeader(branches[1])
 	require.NoError(t, err)
 
-	equivocated = gs.checkForEquivocation(&voter, &SignedVoteNew{
+	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote3,
 	}, prevote)
 	require.True(t, equivocated)
@@ -305,7 +305,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVoteNew{
+	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
 		Vote: *voteA,
 	})
 

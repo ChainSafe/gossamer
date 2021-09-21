@@ -17,8 +17,8 @@
 package grandpa
 
 import (
-	"bytes"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -224,43 +224,27 @@ func (s *Service) sendNeighbourMessage() {
 	}
 }
 
+//TODO VDT this up baby
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
 func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
-	var (
-		mi interface{}
-		ok bool
-	)
-
 	switch msg.Data[0] {
 	case voteType:
-		r := &bytes.Buffer{}
-		_, _ = r.Write(msg.Data[1:])
-		vm := &VoteMessage{}
-		err = vm.Decode(r)
-		m = vm
+		m = &VoteMessage{}
+		err = scale2.Unmarshal(msg.Data[1:], m)
 		logger.Trace("got VoteMessage!!!", "msg", m)
 	case commitType:
-		r := &bytes.Buffer{}
-		_, _ = r.Write(msg.Data[1:])
-		cm := &CommitMessageNew{}
-		err = cm.Decode(r)
-		m = cm
+		m = &CommitMessage{}
+		err = scale2.Unmarshal(msg.Data[1:], m)
 		logger.Trace("got CommitMessage!!!", "msg", m)
 	case neighbourType:
-		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
-		if m, ok = mi.(*NeighbourMessage); !ok {
-			return nil, ErrInvalidMessageType
-		}
+		m = &NeighbourMessage{}
+		err = scale2.Unmarshal(msg.Data[1:], m)
 	case catchUpRequestType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
-		if m, ok = mi.(*catchUpRequest); !ok {
-			return nil, ErrInvalidMessageType
-		}
+		m = &catchUpRequest{}
+		err = scale2.Unmarshal(msg.Data[1:], m)
 	case catchUpResponseType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpResponseNew{})
-		if m, ok = mi.(*catchUpResponseNew); !ok {
-			return nil, ErrInvalidMessageType
-		}
+		m = &catchUpResponse{}
+		err = scale2.Unmarshal(msg.Data[1:], m)
 	default:
 		return nil, ErrInvalidMessageType
 	}

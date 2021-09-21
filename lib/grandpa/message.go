@@ -18,9 +18,6 @@ package grandpa
 
 import (
 	"fmt"
-	"io"
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,6 +32,7 @@ type GrandpaMessage interface { //nolint
 	Type() byte
 }
 
+// TODO Make these a VDT
 var (
 	voteType            byte
 	commitType          byte = 1
@@ -47,7 +45,16 @@ var (
 // this is encoded and signed and the signature is included in SignedMessage
 type FullVote struct {
 	Stage subround
-	Vote  *Vote
+	Vote  Vote
+	Round uint64
+	SetID uint64
+}
+
+// FullVote represents a vote with additional information about the state
+// this is encoded and signed and the signature is included in SignedMessage
+type FullVoteNew struct {
+	Stage subround
+	Vote  Vote
 	Round uint64
 	SetID uint64
 }
@@ -66,60 +73,12 @@ func (m *SignedMessage) String() string {
 	return fmt.Sprintf("stage=%s hash=%s number=%d authorityID=%s", m.Stage, m.Hash, m.Number, m.AuthorityID)
 }
 
-// Decode SCALE decodes the data into a SignedMessage
-func (m *SignedMessage) Decode(r io.Reader) (err error) {
-	m.Stage, err = subround(0).Decode(r)
-	if err != nil {
-		return err
-	}
-
-	vote, err := new(Vote).Decode(r)
-	if err != nil {
-		return err
-	}
-
-	m.Hash = vote.Hash
-	m.Number = vote.Number
-
-	sig, err := common.Read64Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	copy(m.Signature[:], sig[:])
-
-	id, err := common.Read32Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	copy(m.AuthorityID[:], id[:])
-	return nil
-}
-
 // VoteMessage represents a network-level vote message
 // https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/communication/gossip.rs#L336
 type VoteMessage struct {
 	Round   uint64
 	SetID   uint64
-	Message *SignedMessage
-}
-
-// Decode SCALE decodes the data into a VoteMessage
-func (v *VoteMessage) Decode(r io.Reader) (err error) {
-	v.Round, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	v.SetID, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	v.Message = new(SignedMessage)
-	err = v.Message.Decode(r)
-	return err
+	Message SignedMessage
 }
 
 // Type returns voteType
@@ -170,31 +129,8 @@ type AuthData struct {
 	AuthorityID ed25519.PublicKeyBytes
 }
 
-// Encode SCALE encodes the AuthData
-func (d *AuthData) Encode() ([]byte, error) {
-	return append(d.Signature[:], d.AuthorityID[:]...), nil
-}
-
-// Decode SCALE decodes the data into an AuthData
-func (d *AuthData) Decode(r io.Reader) error {
-	sig, err := common.Read64Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	copy(d.Signature[:], sig[:])
-
-	id, err := common.Read32Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	copy(d.AuthorityID[:], id[:])
-	return nil
-}
-
 // CommitMessage represents a network finalisation message
-type CommitMessageNew struct {
+type CommitMessage struct {
 	Round      uint64
 	SetID      uint64
 	Vote       Vote
@@ -202,130 +138,8 @@ type CommitMessageNew struct {
 	AuthData   []AuthData
 }
 
-// CommitMessage represents a network finalisation message
-type CommitMessage struct {
-	Round      uint64
-	SetID      uint64
-	Vote       *Vote
-	Precommits []*Vote
-	AuthData   []*AuthData
-}
-
-// Decode SCALE decodes the data into a CommitMessage
-func (f *CommitMessageNew) Decode(r io.Reader) (err error) {
-	f.Round, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	f.SetID, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	v, err := new(Vote).Decode(r)
-	//f.Vote, err = new(Vote).Decode(r)
-	if err != nil {
-		return err
-	}
-	f.Vote = *v
-
-	sd := &scale.Decoder{Reader: r}
-	numPrecommits, err := sd.Decode(new(big.Int))
-	if err != nil {
-		return err
-	}
-
-	f.Precommits = make([]Vote, numPrecommits.(*big.Int).Int64())
-	for i := range f.Precommits {
-		pc ,err := new(Vote).Decode(r)
-		//f.Precommits[i], err = new(Vote).Decode(r)
-		if err != nil {
-			return err
-		}
-		f.Precommits[i] = *pc
-	}
-
-	numAuthData, err := sd.Decode(new(big.Int))
-	if err != nil {
-		return err
-	}
-
-	if numAuthData.(*big.Int).Cmp(numPrecommits.(*big.Int)) != 0 {
-		return ErrPrecommitSignatureMismatch
-	}
-
-	f.AuthData = make([]AuthData, numAuthData.(*big.Int).Int64())
-	for i := range f.AuthData {
-		f.AuthData[i] = AuthData{}
-		err = f.AuthData[i].Decode(r)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Decode SCALE decodes the data into a CommitMessage
-func (f *CommitMessage) Decode(r io.Reader) (err error) {
-	f.Round, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	f.SetID, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	f.Vote, err = new(Vote).Decode(r)
-	if err != nil {
-		return err
-	}
-
-	sd := &scale.Decoder{Reader: r}
-	numPrecommits, err := sd.Decode(new(big.Int))
-	if err != nil {
-		return err
-	}
-
-	f.Precommits = make([]*Vote, numPrecommits.(*big.Int).Int64())
-	for i := range f.Precommits {
-		f.Precommits[i], err = new(Vote).Decode(r)
-		if err != nil {
-			return err
-		}
-	}
-
-	numAuthData, err := sd.Decode(new(big.Int))
-	if err != nil {
-		return err
-	}
-
-	if numAuthData.(*big.Int).Cmp(numPrecommits.(*big.Int)) != 0 {
-		return ErrPrecommitSignatureMismatch
-	}
-
-	f.AuthData = make([]*AuthData, numAuthData.(*big.Int).Int64())
-	for i := range f.AuthData {
-		f.AuthData[i] = new(AuthData)
-		err = f.AuthData[i].Decode(r)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // Type returns commitType
 func (f *CommitMessage) Type() byte {
-	return commitType
-}
-
-// Type returns commitType
-func (f *CommitMessageNew) Type() byte {
 	return commitType
 }
 
@@ -341,26 +155,14 @@ func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-// ToConsensusMessage converts the CommitMessage into a network-level consensus message
-func (f *CommitMessageNew) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(f)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ConsensusMessage{
-		Data: append([]byte{commitType}, enc...),
-	}, nil
-}
-
-func (s *Service) newCommitMessageNew(header *types.Header, round uint64) (*CommitMessageNew, error) {
+func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
 	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
 	if err != nil {
 		return nil, err
 	}
 
 	precommits, authData := justificationToCompact(pcs)
-	return &CommitMessageNew{
+	return &CommitMessage{
 		Round:      round,
 		Vote:       *NewVoteFromHeader(header),
 		Precommits: precommits,
@@ -368,22 +170,7 @@ func (s *Service) newCommitMessageNew(header *types.Header, round uint64) (*Comm
 	}, nil
 }
 
-//func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
-//	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	precommits, authData := justificationToCompact(pcs)
-//	return &CommitMessage{
-//		Round:      round,
-//		Vote:       NewVoteFromHeader(header),
-//		Precommits: precommits,
-//		AuthData:   authData,
-//	}, nil
-//}
-
-func justificationToCompact(just []SignedVoteNew) ([]Vote, []AuthData) {
+func justificationToCompact(just []SignedVote) ([]Vote, []AuthData) {
 	precommits := make([]Vote, len(just))
 	authData := make([]AuthData, len(just))
 
@@ -398,14 +185,14 @@ func justificationToCompact(just []SignedVoteNew) ([]Vote, []AuthData) {
 	return precommits, authData
 }
 
-func compactToJustification(vs []Vote, auths []AuthData) ([]SignedVoteNew, error) {
+func compactToJustification(vs []Vote, auths []AuthData) ([]SignedVote, error) {
 	if len(vs) != len(auths) {
 		return nil, errVoteToSignatureMismatch
 	}
 
-	just := make([]SignedVoteNew, len(vs))
+	just := make([]SignedVote, len(vs))
 	for i, v := range vs {
-		just[i] = SignedVoteNew{
+		just[i] = SignedVote{
 			Vote:        v,
 			Signature:   auths[i].Signature,
 			AuthorityID: auths[i].AuthorityID,
@@ -444,25 +231,16 @@ func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-//type catchUpResponse struct {
-//	SetID                  uint64
-//	Round                  uint64
-//	PreVoteJustification   []*SignedVote
-//	PreCommitJustification []*SignedVote
-//	Hash                   common.Hash
-//	Number                 uint32
-//}
-
-type catchUpResponseNew struct {
+type catchUpResponse struct {
 	SetID                  uint64
 	Round                  uint64
-	PreVoteJustification   []SignedVoteNew
-	PreCommitJustification []SignedVoteNew
+	PreVoteJustification   []SignedVote
+	PreCommitJustification []SignedVote
 	Hash                   common.Hash
 	Number                 uint32
 }
 
-func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponseNew, error) {
+func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
 	header, err := s.blockState.GetFinalisedHeader(round, setID)
 	if err != nil {
 		return nil, err
@@ -478,7 +256,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponseNew, 
 		return nil, err
 	}
 
-	return &catchUpResponseNew{
+	return &catchUpResponse{
 		SetID:                  setID,
 		Round:                  round,
 		PreVoteJustification:   pvs,
@@ -488,30 +266,13 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponseNew, 
 	}, nil
 }
 
-//// Type returns catchUpResponseType
-//func (r *catchUpResponse) Type() byte {
-//	return catchUpResponseType
-//}
-
 // Type returns catchUpResponseType
-func (r *catchUpResponseNew) Type() byte {
+func (r *catchUpResponse) Type() byte {
 	return catchUpResponseType
 }
 
-//// ToConsensusMessage converts the catchUpResponse into a network-level consensus message
-//func (r *catchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
-//	enc, err := scale.Encode(r)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return &ConsensusMessage{
-//		Data: append([]byte{catchUpResponseType}, enc...),
-//	}, nil
-//}
-
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
-func (r *catchUpResponseNew) ToConsensusMessage() (*ConsensusMessage, error) {
+func (r *catchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
 	enc, err := scale.Encode(r)
 	if err != nil {
 		return nil, err

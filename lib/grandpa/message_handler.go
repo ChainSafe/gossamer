@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"reflect"
 
@@ -28,8 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -62,13 +61,13 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		}
 
 		return nil, nil
-	case *CommitMessageNew:
+	case *CommitMessage:
 		return nil, h.handleCommitMessageNew(msg)
 	case *NeighbourMessage:
 		return nil, h.handleNeighbourMessage(from, msg)
 	case *catchUpRequest:
 		return h.handleCatchUpRequest(msg)
-	case *catchUpResponseNew:
+	case *catchUpResponse:
 		return nil, h.handleCatchUpResponse(msg)
 	default:
 		return nil, ErrInvalidMessageType
@@ -103,7 +102,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	return nil
 }
 
-func (h *MessageHandler) handleCommitMessageNew(msg *CommitMessageNew) error {
+func (h *MessageHandler) handleCommitMessageNew(msg *CommitMessage) error {
 	logger.Debug("received commit message", "msg", msg)
 
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
@@ -197,7 +196,7 @@ func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMe
 	return resp.ToConsensusMessage()
 }
 
-func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponseNew) error {
+func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	if !h.grandpa.authority {
 		return nil
 	}
@@ -283,14 +282,14 @@ func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit 
 	return nil
 }
 
-func (h *MessageHandler) verifyCommitMessageJustificationNew(fm *CommitMessageNew) error {
+func (h *MessageHandler) verifyCommitMessageJustificationNew(fm *CommitMessage) error {
 	if len(fm.Precommits) != len(fm.AuthData) {
 		return ErrPrecommitSignatureMismatch
 	}
 
 	count := 0
 	for i, pc := range fm.Precommits {
-		just := &SignedVoteNew{
+		just := &SignedVote{
 			Vote:        pc,
 			Signature:   fm.AuthData[i].Signature,
 			AuthorityID: fm.AuthData[i].AuthorityID,
@@ -363,7 +362,7 @@ func (h *MessageHandler) verifyCommitMessageJustificationNew(fm *CommitMessageNe
 //	return nil
 //}
 
-func (h *MessageHandler) verifyPreVoteJustificationNew(msg *catchUpResponseNew) (common.Hash, error) {
+func (h *MessageHandler) verifyPreVoteJustificationNew(msg *catchUpResponse) (common.Hash, error) {
 	// verify pre-vote justification, returning the pre-voted block if there is one
 	votes := make(map[common.Hash]uint64)
 
@@ -419,7 +418,7 @@ func (h *MessageHandler) verifyPreVoteJustificationNew(msg *catchUpResponseNew) 
 //	return prevote, nil
 //}
 
-func (h *MessageHandler) verifyPreCommitJustificationNew(msg *catchUpResponseNew) error {
+func (h *MessageHandler) verifyPreCommitJustificationNew(msg *catchUpResponse) error {
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {
@@ -462,11 +461,11 @@ func (h *MessageHandler) verifyPreCommitJustificationNew(msg *catchUpResponseNew
 //}
 
 
-func (h *MessageHandler) verifyJustificationNew(just *SignedVoteNew, round, setID uint64, stage subround) error {
+func (h *MessageHandler) verifyJustificationNew(just *SignedVote, round, setID uint64, stage subround) error {
 	// verify signature
-	msg, err := scale.Encode(&FullVote{
+	msg, err := scale2.Marshal(FullVote{
 		Stage: stage,
-		Vote:  &just.Vote,
+		Vote:  just.Vote,
 		Round: round,
 		SetID: setID,
 	})
@@ -552,8 +551,9 @@ func (h *MessageHandler) verifyJustificationNew(just *SignedVoteNew, round, setI
 
 // VerifyBlockJustification verifies the finality justification for a block
 func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) error {
-	fj := JustificationNew{}
-	err := fj.Decode(justification)
+	fj := Justification{}
+	//err := fj.Decode(justification)
+	err := scale2.Unmarshal(justification, &fj)
 	if err != nil {
 		return err
 	}
@@ -611,9 +611,9 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		}
 
 		// verify signature for each precommit
-		msg, err := scale.Encode(&FullVote{
+		msg, err := scale2.Marshal(FullVote{
 			Stage: precommit,
-			Vote:  &just.Vote,
+			Vote:  just.Vote,
 			Round: fj.Round,
 			SetID: setID,
 		})

@@ -259,9 +259,9 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		wsconn, ws, cancel := setupWSConn(t)
 		defer cancel()
 
-		mockedJust := grandpa.JustificationNew{
+		mockedJust := grandpa.Justification{
 			Round: 1,
-			Commit: grandpa.CommitNew{
+			Commit: grandpa.Commit{
 				Hash:       common.Hash{},
 				Number:     1,
 				Precommits: nil,

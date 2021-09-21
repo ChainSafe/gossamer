@@ -49,7 +49,7 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 func TestHandleNetworkMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	just := []SignedVoteNew{
+	just := []SignedVote{
 		{
 			Vote:        *testVote,
 			Signature:   testSignature,
@@ -59,7 +59,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessageNew(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77)
 	require.NoError(t, err)
 
 	cm, err := fm.ToConsensusMessage()

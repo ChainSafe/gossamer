@@ -18,7 +18,6 @@ package grandpa
 
 import (
 	"bytes"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -31,7 +30,7 @@ type (
 	Voter      = types.GrandpaVoter
 	Voters     = types.GrandpaVoters
 	Vote       = types.GrandpaVote
-	SignedVoteNew = types.GrandpaSignedVoteNew
+	SignedVote = types.GrandpaSignedVoteNew
 )
 
 type subround byte
@@ -156,70 +155,26 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 	return NewVoteFromHeader(h), nil
 }
 
-//// Commit contains all the signed precommits for a given block
-//type Commit struct {
-//	Hash       common.Hash
-//	Number     uint32
-//	Precommits []*SignedVote
-//}
-
 // Commit contains all the signed precommits for a given block
-type CommitNew struct {
+type Commit struct {
 	Hash       common.Hash
 	Number     uint32
-	Precommits []SignedVoteNew
+	Precommits []SignedVote
 }
-
-//// Justification represents a finality justification for a block
-//type Justification struct {
-//	Round  uint64
-//	Commit *Commit
-//}
 
 // Justification represents a finality justification for a block
-type JustificationNew struct {
+type Justification struct {
 	Round  uint64
-	Commit CommitNew
+	Commit Commit
 }
 
-func newJustificationNew(round uint64, hash common.Hash, number uint32, j []SignedVoteNew) *JustificationNew {
-	return &JustificationNew{
+func newJustification(round uint64, hash common.Hash, number uint32, j []SignedVote) *Justification {
+	return &Justification{
 		Round: round,
-		Commit: CommitNew{
+		Commit: Commit{
 			Hash:       hash,
 			Number:     number,
 			Precommits: j,
 		},
 	}
-}
-
-//// Encode returns the SCALE encoding of a Justification
-//func (j *Justification) Encode() ([]byte, error) {
-//	return scale.Encode(j)
-//}
-
-//// Decode returns a SCALE decoded Justification
-//func (j *Justification) Decode(r io.Reader) error {
-//	sd := &scale.Decoder{Reader: r}
-//	i, err := sd.Decode(&Justification{Commit: &Commit{}})
-//	if err != nil {
-//		return err
-//	}
-//
-//	dec := i.(*Justification)
-//	j.Round = dec.Round
-//	j.Commit = dec.Commit
-//	return nil
-//}
-
-// Decode returns a SCALE decoded Justification
-func (j *JustificationNew) Decode(in []byte) error {
-	just := JustificationNew{}
-	err := scale2.Unmarshal(in, &just)
-	if err != nil {
-		return err
-	}
-	j.Round = just.Round
-	j.Commit = just.Commit
-	return nil
 }
