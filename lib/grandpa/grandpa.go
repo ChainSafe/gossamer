@@ -704,18 +704,16 @@ func (s *Service) determinePreVote() (*Vote, error) {
 // determinePreCommit determines what block is our pre-committed block for the current round
 func (s *Service) determinePreCommit() (*Vote, error) {
 	// the pre-committed block is simply the pre-voted block (GRANDPA-GHOST)
-	fmt.Println("determining PreCommit")
 	pvb, err := s.getPreVotedBlock()
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Got block")
+
 	s.mapLock.Lock()
 	s.preVotedBlock[s.state.round] = &pvb
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	fmt.Println("Next change")
 	if uint64(pvb.Number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
@@ -724,7 +722,6 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 
 		pvb = *NewVoteFromHeader(header)
 	}
-	fmt.Println("done")
 	return &pvb, nil
 }
 

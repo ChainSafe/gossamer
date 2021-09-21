@@ -17,15 +17,12 @@
 package grandpa
 
 import (
-	"bytes"
 	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/scale"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,38 +37,43 @@ func TestPubkeyToVoter(t *testing.T) {
 }
 
 func TestSignedVoteEncoding(t *testing.T) {
-	just := &SignedVote{
-		Vote:        testVote,
+	exp := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000")
+	just := SignedVoteNew{
+		Vote:        *testVote,
 		Signature:   testSignature,
 		AuthorityID: testAuthorityID,
 	}
 
-	enc, err := just.Encode()
+	enc, err := scale2.Marshal(just)
 	require.NoError(t, err)
 
-	rw := &bytes.Buffer{}
-	rw.Write(enc)
-	dec := new(SignedVote)
-	_, err = dec.Decode(rw)
+	require.Equal(t, exp, enc)
+
+	dec := SignedVoteNew{}
+	err = scale2.Unmarshal(enc, &dec)
 	require.NoError(t, err)
 	require.Equal(t, just, dec)
 }
 
 func TestSignedVoteArrayEncoding(t *testing.T) {
-	just := []*SignedVote{
+	exp := common.MustHexToBytes("0x040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000")
+	just := []SignedVoteNew{
 		{
-			Vote:        testVote,
+			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: testAuthorityID,
 		},
 	}
 
-	enc, err := scale.Encode(just)
+	enc, err := scale2.Marshal(just)
 	require.NoError(t, err)
 
-	dec, err := scale.Decode(enc, make([]*SignedVote, 1))
+	require.Equal(t, exp, enc)
+
+	dec := []SignedVoteNew{}
+	err = scale2.Unmarshal(enc, &dec)
 	require.NoError(t, err)
-	require.Equal(t, just, dec.([]*SignedVote))
+	require.Equal(t, just, dec)
 }
 
 func TestJustification(t *testing.T) {

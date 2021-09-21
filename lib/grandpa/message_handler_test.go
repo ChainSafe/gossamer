@@ -46,20 +46,6 @@ func newTestDigest() scale2.VaryingDataTypeSlice {
 	return digest
 }
 
-func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedVote {
-	var just []*SignedVote
-	for i := 0; i < qty; i++ {
-		j := &SignedVote{
-			Vote:        NewVote(testHash, uint32(round)),
-			Signature:   createSignedVoteMsg(t, uint32(round), round, setID, kr.Keys[i%len(kr.Keys)], subround),
-			AuthorityID: kr.Keys[i%len(kr.Keys)].Public().(*ed25519.PublicKey).AsBytes(),
-		}
-		just = append(just, j)
-	}
-	return just
-
-}
-
 func buildTestJustificationNew(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []SignedVoteNew {
 	var just []SignedVoteNew
 	for i := 0; i < qty; i++ {
@@ -246,14 +232,14 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	gs, st := newTestService(t)
 	gs.state.round = 77
 
-	just := &SignedVote{
-		Vote:        testVote,
+	just := &SignedVoteNew{
+		Vote:        *testVote,
 		Signature:   [64]byte{0x1},
 		AuthorityID: gs.publicKeyBytes(),
 	}
 
 	h := NewMessageHandler(gs, st.Block)
-	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
+	err := h.verifyJustificationNew(just, gs.state.round, gs.state.setID, precommit)
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -424,13 +410,13 @@ func TestVerifyJustification(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 
 	vote := NewVote(testHash, 123)
-	just := &SignedVote{
-		Vote:        vote,
+	just := &SignedVoteNew{
+		Vote:        *vote,
 		Signature:   createSignedVoteMsg(t, vote.Number, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := h.verifyJustificationNew(just, 77, gs.state.setID, precommit)
 	require.NoError(t, err)
 }
 
@@ -439,14 +425,14 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 
 	vote := NewVote(testHash, 123)
-	just := &SignedVote{
-		Vote: vote,
+	just := &SignedVoteNew{
+		Vote: *vote,
 		// create signed vote with mismatched vote number
 		Signature:   createSignedVoteMsg(t, vote.Number+1, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := h.verifyJustificationNew(just, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrInvalidSignature.Error())
 }
 
@@ -458,13 +444,13 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	require.NoError(t, err)
 
 	vote := NewVote(testHash, 123)
-	just := &SignedVote{
-		Vote:        vote,
+	just := &SignedVoteNew{
+		Vote:        *vote,
 		Signature:   createSignedVoteMsg(t, vote.Number, 77, gs.state.setID, fakeKey, precommit),
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err = h.verifyJustificationNew(just, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrVoterNotFound.Error())
 }
 

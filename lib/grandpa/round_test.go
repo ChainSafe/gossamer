@@ -200,8 +200,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
 		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
-		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: pv,
+		prevotes.Store(gs.publicKeyBytes(), &SignedVoteNew{
+			Vote: *pv,
 		})
 	}
 
@@ -212,8 +212,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 			pv := prevote.(*Vote)
 			err = gs.validateVote(pv)
 			if err == nil {
-				gs.prevotes.Store(k, &SignedVote{
-					Vote: pv,
+				gs.prevotes.Store(k, &SignedVoteNew{
+					Vote: *pv,
 				})
 			}
 			return true
@@ -223,8 +223,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	for _, gs := range gss {
 		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
-		precommits.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: pc,
+		precommits.Store(gs.publicKeyBytes(), &SignedVoteNew{
+			Vote: *pc,
 		})
 		err = gs.finalise()
 		require.NoError(t, err)

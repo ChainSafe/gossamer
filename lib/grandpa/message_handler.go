@@ -62,8 +62,6 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		}
 
 		return nil, nil
-	//case *CommitMessage:
-	//	return nil, h.handleCommitMessage(msg)
 	case *CommitMessageNew:
 		return nil, h.handleCommitMessageNew(msg)
 	case *NeighbourMessage:
@@ -507,57 +505,55 @@ func (h *MessageHandler) verifyJustificationNew(just *SignedVoteNew, round, setI
 	}
 	return nil
 }
-
-func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage subround) error {
-	// verify signature
-	msg, err := scale.Encode(&FullVote{
-		Stage: stage,
-		Vote:  just.Vote,
-		Round: round,
-		SetID: setID,
-	})
-	if err != nil {
-		return err
-	}
-
-	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
-	if err != nil {
-		return err
-	}
-
-	ok, err := pk.Verify(msg, just.Signature[:])
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return ErrInvalidSignature
-	}
-
-	// verify authority in justification set
-	authFound := false
-	for _, auth := range h.grandpa.authorities() {
-		justKey, err := just.AuthorityID.Encode()
-		if err != nil {
-			return err
-		}
-		if reflect.DeepEqual(auth.Key.Encode(), justKey) {
-			authFound = true
-			break
-		}
-	}
-	if !authFound {
-		return ErrVoterNotFound
-	}
-	return nil
-}
+//
+//func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage subround) error {
+//	// verify signature
+//	msg, err := scale.Encode(&FullVote{
+//		Stage: stage,
+//		Vote:  just.Vote,
+//		Round: round,
+//		SetID: setID,
+//	})
+//	if err != nil {
+//		return err
+//	}
+//
+//	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+//	if err != nil {
+//		return err
+//	}
+//
+//	ok, err := pk.Verify(msg, just.Signature[:])
+//	if err != nil {
+//		return err
+//	}
+//
+//	if !ok {
+//		return ErrInvalidSignature
+//	}
+//
+//	// verify authority in justification set
+//	authFound := false
+//	for _, auth := range h.grandpa.authorities() {
+//		justKey, err := just.AuthorityID.Encode()
+//		if err != nil {
+//			return err
+//		}
+//		if reflect.DeepEqual(auth.Key.Encode(), justKey) {
+//			authFound = true
+//			break
+//		}
+//	}
+//	if !authFound {
+//		return ErrVoterNotFound
+//	}
+//	return nil
+//}
 
 // VerifyBlockJustification verifies the finality justification for a block
 func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) error {
-	r := &bytes.Buffer{}
-	_, _ = r.Write(justification)
-	fj := new(Justification)
-	err := fj.Decode(r)
+	fj := JustificationNew{}
+	err := fj.Decode(justification)
 	if err != nil {
 		return err
 	}
@@ -617,7 +613,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		// verify signature for each precommit
 		msg, err := scale.Encode(&FullVote{
 			Stage: precommit,
-			Vote:  just.Vote,
+			Vote:  &just.Vote,
 			Round: fj.Round,
 			SetID: setID,
 		})

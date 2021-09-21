@@ -196,12 +196,12 @@ type FinalisationInfo struct {
 	SetID  uint64
 }
 
-// GrandpaSignedVote represents a signed precommit message for a finalised block
-type GrandpaSignedVote struct {
-	Vote        *GrandpaVote
-	Signature   [64]byte
-	AuthorityID ed25519.PublicKeyBytes
-}
+//// GrandpaSignedVote represents a signed precommit message for a finalised block
+//type GrandpaSignedVote struct {
+//	Vote        *GrandpaVote
+//	Signature   [64]byte
+//	AuthorityID ed25519.PublicKeyBytes
+//}
 
 // GrandpaSignedVote represents a signed precommit message for a finalised block
 type GrandpaSignedVoteNew struct {
@@ -210,16 +210,28 @@ type GrandpaSignedVoteNew struct {
 	AuthorityID ed25519.PublicKeyBytes
 }
 
-func (s *GrandpaSignedVote) String() string {
-	return fmt.Sprintf("SignedVote hash=%s number=%d authority=%s",
-		s.Vote.Hash,
-		s.Vote.Number,
-		s.AuthorityID,
-	)
-}
+//func (s *GrandpaSignedVote) String() string {
+//	return fmt.Sprintf("SignedVote hash=%s number=%d authority=%s",
+//		s.Vote.Hash,
+//		s.Vote.Number,
+//		s.AuthorityID,
+//	)
+//}
+
+//// Encode returns the SCALE encoded Justification
+//func (s *GrandpaSignedVote) Encode() ([]byte, error) {
+//	enc, err := s.Vote.Encode()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	enc = append(enc, s.Signature[:]...)
+//	enc = append(enc, s.AuthorityID[:]...)
+//	return enc, nil
+//}
 
 // Encode returns the SCALE encoded Justification
-func (s *GrandpaSignedVote) Encode() ([]byte, error) {
+func (s *GrandpaSignedVoteNew) Encode() ([]byte, error) {
 	enc, err := s.Vote.Encode()
 	if err != nil {
 		return nil, err
@@ -231,19 +243,34 @@ func (s *GrandpaSignedVote) Encode() ([]byte, error) {
 }
 
 // Decode returns the SCALE decoded Justification
-func (s *GrandpaSignedVote) Decode(r io.Reader) (*GrandpaSignedVote, error) {
+func (s *GrandpaSignedVoteNew) Decode(r io.Reader) (*GrandpaSignedVoteNew, error) {
 	sd := &scale.Decoder{Reader: r}
 	i, err := sd.Decode(s)
 	if err != nil {
 		return nil, err
 	}
 
-	d := i.(*GrandpaSignedVote)
+	d := i.(GrandpaSignedVoteNew)
 	s.Vote = d.Vote
 	s.Signature = d.Signature
 	s.AuthorityID = d.AuthorityID
 	return s, nil
 }
+
+//// Decode returns the SCALE decoded Justification
+//func (s *GrandpaSignedVote) Decode(r io.Reader) (*GrandpaSignedVote, error) {
+//	sd := &scale.Decoder{Reader: r}
+//	i, err := sd.Decode(s)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	d := i.(*GrandpaSignedVote)
+//	s.Vote = d.Vote
+//	s.Signature = d.Signature
+//	s.AuthorityID = d.AuthorityID
+//	return s, nil
+//}
 
 // GrandpaVote represents a vote for a block with the given hash and number
 type GrandpaVote struct {
