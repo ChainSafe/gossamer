@@ -23,8 +23,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
@@ -64,17 +62,18 @@ func (hs *GrandpaHandshake) String() string {
 
 // Encode encodes a GrandpaHandshake message using SCALE
 func (hs *GrandpaHandshake) Encode() ([]byte, error) {
-	return scale.Encode(hs)
+	return scale2.Marshal(*hs)
 }
 
 // Decode the message into a GrandpaHandshake
 func (hs *GrandpaHandshake) Decode(in []byte) error {
-	msg, err := scale.Decode(in, hs)
+	//msg, err := scale.Decode(in, hs)
+	err := scale2.Unmarshal(in, hs)
 	if err != nil {
 		return err
 	}
 
-	hs.Roles = msg.(*GrandpaHandshake).Roles
+	//hs.Roles = msg.(*GrandpaHandshake).Roles
 	return nil
 }
 
