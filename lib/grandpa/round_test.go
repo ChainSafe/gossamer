@@ -149,8 +149,8 @@ func TestGrandpa_BaseCase(t *testing.T) {
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15)
 		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
-		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: pv,
+		prevotes.Store(gs.publicKeyBytes(), &SignedVoteNew{
+			Vote: *pv,
 		})
 	}
 
@@ -162,8 +162,8 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	for _, gs := range gss {
 		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
-		precommits.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: pc,
+		precommits.Store(gs.publicKeyBytes(), &SignedVoteNew{
+			Vote: *pc,
 		})
 		err = gs.finalise()
 		require.NoError(t, err)
@@ -297,7 +297,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalised := make([]*CommitMessage, len(kr.Keys))
+	finalised := make([]*CommitMessageNew, len(kr.Keys))
 
 	for i, fin := range fins {
 		go func(i int, fin <-chan GrandpaMessage) {
@@ -305,7 +305,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 			case f := <-fin:
 
 				// receive first message, which is finalised block from previous round
-				if f.(*CommitMessage).Round == 0 {
+				if f.(*CommitMessageNew).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -313,7 +313,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 					}
 				}
 
-				finalised[i] = f.(*CommitMessage)
+				finalised[i] = f.(*CommitMessageNew)
 
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalised block from %d", i)
@@ -328,10 +328,10 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	for _, fb := range finalised {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
-		finalised[0].Precommits = []*Vote{}
-		finalised[0].AuthData = []*AuthData{}
-		fb.Precommits = []*Vote{}
-		fb.AuthData = []*AuthData{}
+		finalised[0].Precommits = []Vote{}
+		finalised[0].AuthData = []AuthData{}
+		fb.Precommits = []Vote{}
+		fb.AuthData = []AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }

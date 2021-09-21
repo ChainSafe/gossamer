@@ -70,7 +70,7 @@ func (s *Service) receiveMessages(ctx context.Context) {
 	}
 }
 
-func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*SignedVote, *VoteMessage, error) {
+func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*SignedVoteNew, *VoteMessage, error) {
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,
 		Vote:  vote,
@@ -86,8 +86,8 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 		return nil, nil, err
 	}
 
-	pc := &SignedVote{
-		Vote:        vote,
+	pc := &SignedVoteNew{
+		Vote:        *vote,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
@@ -158,7 +158,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 				return nil, err
 			}
 
-			cm, err := s.newCommitMessage(header, m.Round)
+			cm, err := s.newCommitMessageNew(header, m.Round)
 			if err != nil {
 				return nil, err
 			}
@@ -206,8 +206,8 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 		return nil, err
 	}
 
-	just := &SignedVote{
-		Vote:        vote,
+	just := &SignedVoteNew{
+		Vote:        *vote,
 		Signature:   m.Message.Signature,
 		AuthorityID: pk.AsBytes(),
 	}
@@ -230,11 +230,11 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage subround) bool {
+func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVoteNew, stage subround) bool {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification
-	var eq map[ed25519.PublicKeyBytes][]*SignedVote
+	var eq map[ed25519.PublicKeyBytes][]*SignedVoteNew
 
 	switch stage {
 	case prevote, primaryProposal:
@@ -260,7 +260,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage sub
 
 	if has && existingVote.Vote.Hash != vote.Vote.Hash {
 		// the voter has already voted, all their votes are now equivocatory
-		eq[v] = []*SignedVote{existingVote, vote}
+		eq[v] = []*SignedVoteNew{existingVote, vote}
 		s.deleteVote(v, stage)
 		return true
 	}

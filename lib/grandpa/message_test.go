@@ -74,9 +74,9 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 
 func TestCommitMessageToConsensusMessage(t *testing.T) {
 	gs, st := newTestService(t)
-	just := []*SignedVote{
+	just := []SignedVoteNew{
 		{
-			Vote:        testVote,
+			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
@@ -84,13 +84,13 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessageNew(gs.head, 77)
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
-	expected := &CommitMessage{
+	expected := &CommitMessageNew{
 		Round:      77,
-		Vote:       NewVoteFromHeader(gs.head),
+		Vote:       *NewVoteFromHeader(gs.head),
 		Precommits: precommits,
 		AuthData:   authData,
 	}
@@ -130,17 +130,17 @@ func TestNewCatchUpResponse(t *testing.T) {
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)
 
-	pvj := []*SignedVote{
+	pvj := []SignedVoteNew{
 		{
-			Vote:        testVote,
+			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: testAuthorityID,
 		},
 	}
 
-	pcj := []*SignedVote{
+	pcj := []SignedVoteNew{
 		{
-			Vote:        testVote2,
+			Vote:        *testVote2,
 			Signature:   testSignature,
 			AuthorityID: testAuthorityID,
 		},
@@ -154,7 +154,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	resp, err := gs.newCatchUpResponse(round, setID)
 	require.NoError(t, err)
 
-	expected := &catchUpResponse{
+	expected := &catchUpResponseNew{
 		Round:                  round,
 		SetID:                  setID,
 		PreVoteJustification:   pvj,

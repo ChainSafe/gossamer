@@ -32,6 +32,7 @@ type (
 	Voters     = types.GrandpaVoters
 	Vote       = types.GrandpaVote
 	SignedVote = types.GrandpaSignedVote
+	SignedVoteNew = types.GrandpaSignedVoteNew
 )
 
 type subround byte
@@ -163,16 +164,40 @@ type Commit struct {
 	Precommits []*SignedVote
 }
 
+// Commit contains all the signed precommits for a given block
+type CommitNew struct {
+	Hash       common.Hash
+	Number     uint32
+	Precommits []SignedVoteNew
+}
+
 // Justification represents a finality justification for a block
 type Justification struct {
 	Round  uint64
 	Commit *Commit
 }
 
+// Justification represents a finality justification for a block
+type JustificationNew struct {
+	Round  uint64
+	Commit CommitNew
+}
+
 func newJustification(round uint64, hash common.Hash, number uint32, j []*SignedVote) *Justification {
 	return &Justification{
 		Round: round,
 		Commit: &Commit{
+			Hash:       hash,
+			Number:     number,
+			Precommits: j,
+		},
+	}
+}
+
+func newJustificationNew(round uint64, hash common.Hash, number uint32, j []SignedVoteNew) *JustificationNew {
+	return &JustificationNew{
+		Round: round,
+		Commit: CommitNew{
 			Hash:       hash,
 			Number:     number,
 			Precommits: j,

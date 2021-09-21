@@ -84,6 +84,12 @@ type GrandpaVoter struct {
 	ID  uint64
 }
 
+// GrandpaVoter represents a GRANDPA voter
+type GrandpaVoterNew struct {
+	Key ed25519.PublicKey
+	ID  uint64
+}
+
 // PublicKeyBytes returns the voter key as PublicKeyBytes
 func (v *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
 	return v.Key.AsBytes()
@@ -193,6 +199,13 @@ type FinalisationInfo struct {
 // GrandpaSignedVote represents a signed precommit message for a finalised block
 type GrandpaSignedVote struct {
 	Vote        *GrandpaVote
+	Signature   [64]byte
+	AuthorityID ed25519.PublicKeyBytes
+}
+
+// GrandpaSignedVote represents a signed precommit message for a finalised block
+type GrandpaSignedVoteNew struct {
+	Vote        GrandpaVote
 	Signature   [64]byte
 	AuthorityID ed25519.PublicKeyBytes
 }

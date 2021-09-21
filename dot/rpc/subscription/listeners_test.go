@@ -19,6 +19,7 @@ package subscription
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -258,16 +259,16 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		wsconn, ws, cancel := setupWSConn(t)
 		defer cancel()
 
-		mockedJust := grandpa.Justification{
+		mockedJust := grandpa.JustificationNew{
 			Round: 1,
-			Commit: &grandpa.Commit{
+			Commit: grandpa.CommitNew{
 				Hash:       common.Hash{},
 				Number:     1,
 				Precommits: nil,
 			},
 		}
 
-		mockedJustBytes, err := mockedJust.Encode()
+		mockedJustBytes, err := scale.Marshal(mockedJust)
 		require.NoError(t, err)
 
 		blockStateMock := new(mocks.BlockAPI)

@@ -242,7 +242,7 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 	case commitType:
 		r := &bytes.Buffer{}
 		_, _ = r.Write(msg.Data[1:])
-		cm := &CommitMessage{}
+		cm := &CommitMessageNew{}
 		err = cm.Decode(r)
 		m = cm
 		logger.Trace("got CommitMessage!!!", "msg", m)
@@ -257,8 +257,8 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 			return nil, ErrInvalidMessageType
 		}
 	case catchUpResponseType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpResponse{})
-		if m, ok = mi.(*catchUpResponse); !ok {
+		mi, err = scale.Decode(msg.Data[1:], &catchUpResponseNew{})
+		if m, ok = mi.(*catchUpResponseNew); !ok {
 			return nil, ErrInvalidMessageType
 		}
 	default:

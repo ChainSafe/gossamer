@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"os"
 	"sync"
@@ -66,8 +67,8 @@ type Service struct {
 	state           *State                                   // current state
 	prevotes        *sync.Map                                // map[ed25519.PublicKeyBytes]*SignedVote // pre-votes for the current round
 	precommits      *sync.Map                                // map[ed25519.PublicKeyBytes]*SignedVote // pre-commits for the current round
-	pvEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-vote stage
-	pcEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-commit stage
+	pvEquivocations map[ed25519.PublicKeyBytes][]*SignedVoteNew // equivocatory votes for current pre-vote stage
+	pcEquivocations map[ed25519.PublicKeyBytes][]*SignedVoteNew // equivocatory votes for current pre-commit stage
 	tracker         *tracker                                 // tracker of vote messages we may need in the future
 	head            *types.Header                            // most recently finalised block
 
@@ -161,8 +162,8 @@ func NewService(cfg *Config) (*Service, error) {
 		authority:          cfg.Authority,
 		prevotes:           new(sync.Map),
 		precommits:         new(sync.Map),
-		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
-		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
+		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVoteNew),
+		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVoteNew),
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
@@ -324,8 +325,8 @@ func (s *Service) initiateRound() error {
 
 	s.prevotes = new(sync.Map)
 	s.precommits = new(sync.Map)
-	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
-	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
+	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVoteNew)
+	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVoteNew)
 	s.tracker, err = newTracker(s.blockState, s.messageHandler)
 	if err != nil {
 		return err
@@ -449,7 +450,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 // broadcast commit message from the previous round to the network
 // ignore errors, since it's not critical to broadcast
 func (s *Service) primaryBroadcastCommitMessage() {
-	cm, err := s.newCommitMessage(s.head, s.state.round-1)
+	cm, err := s.newCommitMessageNew(s.head, s.state.round-1)
 	if err != nil {
 		return
 	}
@@ -622,7 +623,7 @@ func (s *Service) attemptToFinalize() error {
 			"total votes for bfc", pc,
 		)
 
-		cm, err := s.newCommitMessage(s.head, s.state.round)
+		cm, err := s.newCommitMessageNew(s.head, s.state.round)
 		if err != nil {
 			return err
 		}
@@ -638,7 +639,7 @@ func (s *Service) attemptToFinalize() error {
 	}
 }
 
-func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage subround) (*SignedVote, bool) {
+func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage subround) (*SignedVoteNew, bool) {
 	var (
 		v   interface{}
 		has bool
@@ -655,7 +656,7 @@ func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage subround) (*SignedV
 		return nil, false
 	}
 
-	return v.(*SignedVote), true
+	return v.(*SignedVoteNew), true
 }
 
 func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage subround) {
@@ -677,7 +678,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	primary := s.derivePrimary()
 	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
 	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
-		vote = prm.Vote
+		vote = &prm.Vote
 	} else {
 		header, err := s.blockState.BestBlockHeader()
 		if err != nil {
@@ -703,16 +704,18 @@ func (s *Service) determinePreVote() (*Vote, error) {
 // determinePreCommit determines what block is our pre-committed block for the current round
 func (s *Service) determinePreCommit() (*Vote, error) {
 	// the pre-committed block is simply the pre-voted block (GRANDPA-GHOST)
+	fmt.Println("determining PreCommit")
 	pvb, err := s.getPreVotedBlock()
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Println("Got block")
 	s.mapLock.Lock()
 	s.preVotedBlock[s.state.round] = &pvb
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	fmt.Println("Next change")
 	if uint64(pvb.Number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
@@ -721,7 +724,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 
 		pvb = *NewVoteFromHeader(header)
 	}
-
+	fmt.Println("done")
 	return &pvb, nil
 }
 
@@ -805,7 +808,7 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	pcj, err := newJustification(s.state.round, bfc.Hash, bfc.Number, pcs).Encode()
+	pcj, err := scale.Marshal(*newJustificationNew(s.state.round, bfc.Hash, bfc.Number, pcs))
 	if err != nil {
 		return err
 	}
@@ -838,11 +841,11 @@ func (s *Service) finalise() error {
 // createJustification collects the signed precommits received for this round and turns them into
 // a justification by adding all signed precommits that are for the best finalised candidate or
 // a descendent of the bfc
-func (s *Service) createJustification(bfc common.Hash, stage subround) ([]*SignedVote, error) {
+func (s *Service) createJustification(bfc common.Hash, stage subround) ([]SignedVoteNew, error) {
 	var (
 		spc  *sync.Map
 		err  error
-		just []*SignedVote
+		just []SignedVoteNew
 	)
 
 	switch stage {
@@ -854,7 +857,7 @@ func (s *Service) createJustification(bfc common.Hash, stage subround) ([]*Signe
 
 	// TODO: use equivacatory votes to create justification as well
 	spc.Range(func(_, value interface{}) bool {
-		pc := value.(*SignedVote)
+		pc := value.(*SignedVoteNew)
 		var isDescendant bool
 
 		isDescendant, err = s.blockState.IsDescendantOf(bfc, pc.Vote.Hash)
@@ -866,7 +869,7 @@ func (s *Service) createJustification(bfc common.Hash, stage subround) ([]*Signe
 			return true
 		}
 
-		just = append(just, pc)
+		just = append(just, *pc)
 		return true
 	})
 
@@ -1225,8 +1228,8 @@ func (s *Service) getDirectVotes(stage subround) map[Vote]uint64 {
 	}
 
 	src.Range(func(_, value interface{}) bool {
-		sv := value.(*SignedVote)
-		votes[*sv.Vote]++
+		sv := value.(*SignedVoteNew)
+		votes[sv.Vote]++
 		return true
 	})
 

@@ -3,6 +3,7 @@ package subscription
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"testing"
 	"time"
@@ -219,16 +220,16 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
 
 	var fCh chan<- *types.FinalisationInfo
-	mockedJust := grandpa.Justification{
+	mockedJust := grandpa.JustificationNew{
 		Round: 1,
-		Commit: &grandpa.Commit{
+		Commit: grandpa.CommitNew{
 			Hash:       common.Hash{},
 			Number:     1,
 			Precommits: nil,
 		},
 	}
 
-	mockedJustBytes, err := mockedJust.Encode()
+	mockedJustBytes, err := scale.Marshal(mockedJust)
 	require.NoError(t, err)
 
 	BlockAPI := new(modulesmocks.BlockAPI)

@@ -30,7 +30,7 @@ type tracker struct {
 	blockState     BlockState
 	handler        *MessageHandler
 	voteMessages   map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
-	commitMessages map[common.Hash]*CommitMessage                                 // map of commit block hash to commit message
+	commitMessages map[common.Hash]*CommitMessageNew                                 // map of commit block hash to commit message
 	mapLock        sync.Mutex
 	in             chan *types.Block // receive imported block from BlockState
 	chanID         byte              // BlockState channel ID
@@ -48,7 +48,7 @@ func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
 		blockState:     bs,
 		handler:        handler,
 		voteMessages:   make(map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage),
-		commitMessages: make(map[common.Hash]*CommitMessage),
+		commitMessages: make(map[common.Hash]*CommitMessageNew),
 		mapLock:        sync.Mutex{},
 		in:             in,
 		chanID:         id,
@@ -83,11 +83,17 @@ func (t *tracker) addVote(v *networkVoteMessage) {
 	msgs[v.msg.Message.AuthorityID] = v
 }
 
-func (t *tracker) addCommit(cm *CommitMessage) {
+func (t *tracker) addCommitNew(cm *CommitMessageNew) {
 	t.mapLock.Lock()
 	defer t.mapLock.Unlock()
 	t.commitMessages[cm.Vote.Hash] = cm
 }
+
+//func (t *tracker) addCommit(cm *CommitMessage) {
+//	t.mapLock.Lock()
+//	defer t.mapLock.Unlock()
+//	t.commitMessages[cm.Vote.Hash] = cm
+//}
 
 func (t *tracker) handleBlocks() {
 	for {
