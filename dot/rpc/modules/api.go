@@ -12,11 +12,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // StorageAPI is the interface for the storage state
 type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
+	GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error)
 	GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
