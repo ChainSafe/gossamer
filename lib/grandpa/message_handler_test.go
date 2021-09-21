@@ -464,7 +464,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 		PreVoteJustification: just,
 	}
 
-	prevote, err := h.verifyPreVoteJustificationNew(msg)
+	prevote, err := h.verifyPreVoteJustification(msg)
 	require.NoError(t, err)
 	require.Equal(t, testHash, prevote)
 }
@@ -483,7 +483,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 		Number:                 uint32(round),
 	}
 
-	err := h.verifyPreCommitJustificationNew(msg)
+	err := h.verifyPreCommitJustification(msg)
 	require.NoError(t, err)
 }
 
