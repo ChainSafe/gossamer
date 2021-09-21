@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -54,13 +55,22 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		return nil, err
 	}
 
+	// we've reached the target, return
 	if res.targetNumber.Cmp(head.Number) <= 0 {
 		return nil, nil
 	}
 
+	startNumber := big.NewInt(0).Add(head.Number, big.NewInt(1))
+
+	// in the case we started a block producing node, we might have produced blocks
+	// before fully syncing (this should probably be fixed by connecting sync into BABE)
+	if errors.Is(res.err.err, errUnknownParent) {
+		startNumber = big.NewInt(0).Sub(res.startNumber, big.NewInt(1))
+	}
+
 	return &worker{
 		startHash:    common.EmptyHash, // for bootstrap, just use number
-		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
+		startNumber:  startNumber,
 		targetHash:   res.targetHash,
 		targetNumber: res.targetNumber,
 		requestData:  res.requestData,

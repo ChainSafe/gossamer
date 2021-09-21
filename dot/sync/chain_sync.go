@@ -366,21 +366,7 @@ func (cs *chainSync) sync() {
 	for {
 		select {
 		case ps := <-cs.workQueue:
-			head, err := cs.blockState.BestBlockHeader()
-			if err != nil {
-				logger.Error("failed to get best block header", "error", err)
-				continue
-			}
-
-			target := cs.getTarget()
-			if big.NewInt(0).Add(head.Number, big.NewInt(MAX_RESPONSE_SIZE)).Cmp(target) == -1 {
-				// we are 128 blocks or more behind the target, switch to bootstrap mode
-				cs.switchMode(bootstrap)
-			} else {
-				// bootstrap complete, switch state to tip if not already
-				// and begin near-head fork-sync
-				cs.switchMode(tip)
-			}
+			cs.maybeSwitchMode()
 
 			if err := cs.handleWork(ps); err != nil {
 				logger.Error("failed to handle chain sync work", "error", err)
@@ -423,6 +409,8 @@ func (cs *chainSync) sync() {
 
 			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
+			cs.maybeSwitchMode()
+
 			workers, err := cs.handler.handleTick()
 			if err != nil {
 				logger.Error("failed to handle tick", "error", err)
@@ -443,6 +431,24 @@ func (cs *chainSync) sync() {
 		case <-cs.ctx.Done():
 			return
 		}
+	}
+}
+
+func (cs *chainSync) maybeSwitchMode() {
+	head, err := cs.blockState.BestBlockHeader()
+	if err != nil {
+		logger.Error("failed to get best block header", "error", err)
+		return
+	}
+
+	target := cs.getTarget()
+	if big.NewInt(0).Add(head.Number, big.NewInt(MAX_RESPONSE_SIZE)).Cmp(target) == -1 {
+		// we are 128 blocks or more behind the target, switch to bootstrap mode
+		cs.switchMode(bootstrap)
+	} else if head.Number.Cmp(target) >= 0 {
+		// bootstrap complete, switch state to tip if not already
+		// and begin near-head fork-sync
+		cs.switchMode(tip)
 	}
 }
 
@@ -632,7 +638,7 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 	}
 
 	// perform some pre-validation of response, error if failure
-	if err := cs.validateResponse(req, resp); err != nil {
+	if err := cs.validateResponse(who, req, resp); err != nil {
 		return &workerError{
 			err: err,
 			who: who,
@@ -643,14 +649,6 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 
 	// response was validated! place into ready block queue
 	for _, bd := range resp.BlockData {
-		// if we're expecting headers, validate should ensure we have a header
-		header, _ := types.NewHeaderFromOptional(bd.Header)
-		if header != nil {
-			logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
-		} else {
-			logger.Trace("new ready block", "hash", bd.Hash)
-		}
-
 		// block is ready to be processed!
 		handleReadyBlock(bd, cs.pendingBlocks, cs.readyBlocks)
 	}
@@ -661,6 +659,23 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue) {
 	// see if there are any descendents in the pending queue that are now ready to be processed,
 	// as we have just become aware of their parent block
+
+	// if header was not requested, get it from the pending set
+	// if we're expecting headers, validate should ensure we have a header
+	header, _ := types.NewHeaderFromOptional(bd.Header)
+	if header != nil {
+		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
+	} else {
+		block := pendingBlocks.getBlock(bd.Hash)
+		header := block.header
+		if header == nil {
+			panic("block isnt ready!!!! no header")
+		}
+
+		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
+		bd.Header = header.AsOptional()
+	}
+
 	ready := []*types.BlockData{bd}
 	ready = pendingBlocks.getReadyDescendants(bd.Hash, ready)
 
@@ -694,7 +709,7 @@ func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
 // 	- the response is not empty
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockResponseMessage) error {
+func (cs *chainSync) validateResponse(who peer.ID, req *BlockRequestMessage, resp *BlockResponseMessage) error {
 	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}
@@ -709,6 +724,7 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 
 	for i, bd := range resp.BlockData {
 		if err = validateBlockData(req, bd); err != nil {
+			cs.ignorePeers[who] = struct{}{}
 			return err
 		}
 

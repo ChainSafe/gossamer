@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	//"github.com/ChainSafe/gossamer/dot/types"
 )
 
 var _ workHandler = &tipSyncer{}
@@ -38,7 +37,11 @@ func (s *tipSyncer) handleWork(ps *peerState) (*worker, error) {
 }
 
 func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
-	if errors.Is(res.err.err, errUnknownParent) {
+	if res.err == nil {
+		return nil, nil
+	}
+
+	if errors.Is(res.err.err, errUnknownParent) || res.err.err.Error() == "stream reset" { // TODO: use errors.Is
 		// handleTick will handle this case
 		return nil, nil
 	}
@@ -80,6 +83,12 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 	for _, block := range s.pendingBlocks.getBlocks() {
 		if block.header == nil {
 			// case 1
+
+			if block.number.Cmp(fin.Number) <= 0 {
+				// TODO: delete from pending set (this should not happen, it should have already been deleted)
+				continue
+			}
+
 			workers = append(workers, &worker{
 				startHash:    block.hash,
 				startNumber:  block.number,

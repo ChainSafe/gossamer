@@ -159,6 +159,8 @@ func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDa
 		retData, err := s.blockState.GetHeader(hash)
 		if err == nil && retData != nil {
 			blockData.Header = retData.AsOptional()
+		} else {
+			logger.Debug("failed to get header for block", "number", num, "hash", hash)
 		}
 	}
 
