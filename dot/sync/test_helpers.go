@@ -140,22 +140,23 @@ func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*ge
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }
 
 // BuildBlock ...
 func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
+	digest := types.NewDigest()
+	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Digest:     digest,
 	}
 
-	err := instance.InitializeBlock(header)
+	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
 	idata := types.NewInherentsData()
@@ -212,7 +213,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	res.Number = header.Number
 
 	return &types.Block{
-		Header: res,
-		Body:   body,
+		Header: *res,
+		Body:   *body,
 	}
 }

@@ -55,13 +55,13 @@ func TestEpochData(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	auth := &Authority{
+	auth := Authority{
 		Key:    kr.Alice().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 
 	data := &EpochData{
-		Authorities: []*Authority{auth},
+		Authorities: []Authority{auth},
 		Randomness:  [32]byte{77},
 	}
 

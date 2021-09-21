@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -34,12 +35,16 @@ import (
 var testHeader = &types.Header{
 	ParentHash: testGenesisHeader.Hash(),
 	Number:     big.NewInt(1),
-	Digest: types.Digest{
-		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	},
+	Digest:     newTestDigest(),
 }
 
 var testHash = testHeader.Hash()
+
+func newTestDigest() scale2.VaryingDataTypeSlice {
+	digest := types.NewDigest()
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	return digest
+}
 
 func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedVote {
 	var just []*SignedVote
@@ -196,15 +201,16 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	_, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 
+	digest := types.NewDigest()
+	err = digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			Number:     big.NewInt(2),
 			ParentHash: st.Block.GenesisHash(),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{0},
+		Body: types.Body{0},
 	}
 
 	err = st.Block.AddBlock(block)
@@ -250,15 +256,16 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	require.NoError(t, err)
 	fm.Vote = NewVote(testHash, uint32(round))
 
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
 	err = st.Block.AddBlock(block)
@@ -342,23 +349,24 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	setID := uint64(0)
 	gs.state.round = round + 1
 
+	digest := types.NewDigest()
+	err := digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(2),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
-	err := st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(block.Header)
+	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
 	require.NoError(t, err)
 
 	pvj := []*SignedVote{
@@ -509,7 +517,7 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
-	auths := []*types.GrandpaVoter{
+	auths := []types.GrandpaVoter{
 		{
 			Key: kr.Alice().Public().(*ed25519.PublicKey),
 		},
@@ -526,8 +534,8 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.NoError(t, err)
 
 	block := &types.Block{
-		Header: testHeader,
-		Body:   &types.Body{0},
+		Header: *testHeader,
+		Body:   types.Body{0},
 	}
 
 	err = st.Block.AddBlock(block)
