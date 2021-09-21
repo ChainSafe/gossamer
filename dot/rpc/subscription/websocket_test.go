@@ -258,7 +258,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	}
 
 	fCh <- &types.FinalisationInfo{
-		Header: header,
+		Header: *header,
 	}
 
 	time.Sleep(time.Second * 2)
@@ -347,13 +347,16 @@ func TestSubscribeAllHeads(t *testing.T) {
 		common.EmptyHash,
 	)
 
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	require.NoError(t, err)
 	fCh <- &types.FinalisationInfo{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash:     common.EmptyHash,
 			Number:         big.NewInt(0),
 			StateRoot:      common.EmptyHash,
 			ExtrinsicsRoot: common.EmptyHash,
-			Digest:         types.NewDigest(types.NewBABEPreRuntimeDigest([]byte{0xff})),
+			Digest:         digest,
 		},
 	}
 
@@ -362,13 +365,17 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected+"\n", string(msg))
 
+	digest = types.NewDigest()
+	err = digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	require.NoError(t, err)
+
 	iCh <- &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash:     common.EmptyHash,
 			Number:         big.NewInt(0),
 			StateRoot:      common.EmptyHash,
 			ExtrinsicsRoot: common.EmptyHash,
-			Digest:         types.NewDigest(types.NewBABEPreRuntimeDigest([]byte{0xff})),
+			Digest:         digest,
 		},
 	}
 	time.Sleep(time.Millisecond * 500)

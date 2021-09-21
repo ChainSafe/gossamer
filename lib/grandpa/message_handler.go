@@ -473,7 +473,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	return nil
 }
 
-func isInAuthSet(auth *ed25519.PublicKey, set []*types.GrandpaVoter) bool {
+func isInAuthSet(auth *ed25519.PublicKey, set []types.GrandpaVoter) bool {
 	for _, a := range set {
 		if bytes.Equal(a.Key.Encode(), auth.Encode()) {
 			return true

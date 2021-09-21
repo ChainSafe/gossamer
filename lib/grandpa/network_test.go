@@ -90,18 +90,19 @@ func TestSendNeighbourMessage(t *testing.T) {
 	}()
 	go gs.sendNeighbourMessage()
 
+	digest := types.NewDigest()
+	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: st.Block.GenesisHash(),
 			Number:     big.NewInt(1),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
-	err := st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	hash := block.Header.Hash()

@@ -1,118 +1,70 @@
 package types
 
 import (
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// The follow are the consensus digest types for grandpa
-var (
-	GrandpaScheduledChangeType = byte(1)
-	GrandpaForcedChangeType    = byte(2)
-	GrandpaOnDisabledType      = byte(3)
-	GrandpaPauseType           = byte(4)
-	GrandpaResumeType          = byte(5)
-)
+// NewBabeConsensusDigest constructs a vdt representing a babe consensus digest
+func NewBabeConsensusDigest() scale.VaryingDataType {
+	return scale.MustNewVaryingDataType(NextEpochData{}, BABEOnDisabled{}, NextConfigData{})
+}
 
-// The follow are the consensus digest types for BABE
-var (
-	NextEpochDataType  = byte(1)
-	BABEOnDisabledType = byte(2)
-	NextConfigDataType = byte(3)
-)
+// NewGrandpaConsensusDigest constructs a vdt representing a grandpa consensus digest
+func NewGrandpaConsensusDigest() scale.VaryingDataType {
+	return scale.MustNewVaryingDataType(GrandpaScheduledChange{}, GrandpaForcedChange{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
+}
 
 // GrandpaScheduledChange represents a GRANDPA scheduled authority change
 type GrandpaScheduledChange struct {
-	Auths []*GrandpaAuthoritiesRaw
+	Auths []GrandpaAuthoritiesRaw
 	Delay uint32
 }
 
-// Encode returns a SCALE encoded GrandpaScheduledChange with first type byte
-func (sc *GrandpaScheduledChange) Encode() ([]byte, error) {
-	d, err := scale.Encode(sc)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaScheduledChangeType}, d...), nil
-}
+// Index Returns VDT index
+func (sc GrandpaScheduledChange) Index() uint { return 1 }
 
 // GrandpaForcedChange represents a GRANDPA forced authority change
 type GrandpaForcedChange struct {
-	Auths []*GrandpaAuthoritiesRaw
+	Auths []GrandpaAuthoritiesRaw
 	Delay uint32
 }
 
-// Encode returns a SCALE encoded GrandpaForcedChange with first type byte
-func (fc *GrandpaForcedChange) Encode() ([]byte, error) {
-	d, err := scale.Encode(fc)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaForcedChangeType}, d...), nil
-}
+// Index Returns VDT index
+func (fc GrandpaForcedChange) Index() uint { return 2 }
 
 // GrandpaOnDisabled represents a GRANDPA authority being disabled
 type GrandpaOnDisabled struct {
 	ID uint64
 }
 
-// Encode returns a SCALE encoded GrandpaOnDisabled with first type byte
-func (od *GrandpaOnDisabled) Encode() ([]byte, error) {
-	d, err := scale.Encode(od)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaOnDisabledType}, d...), nil
-}
+// Index Returns VDT index
+func (od GrandpaOnDisabled) Index() uint { return 3 }
 
 // GrandpaPause represents an authority set pause
 type GrandpaPause struct {
 	Delay uint32
 }
 
-// Encode returns a SCALE encoded GrandpaPause with first type byte
-func (p *GrandpaPause) Encode() ([]byte, error) {
-	d, err := scale.Encode(p)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaPauseType}, d...), nil
-}
+// Index Returns VDT index
+func (p GrandpaPause) Index() uint { return 4 }
 
 // GrandpaResume represents an authority set resume
 type GrandpaResume struct {
 	Delay uint32
 }
 
-// Encode returns a SCALE encoded GrandpaResume with first type byte
-func (r *GrandpaResume) Encode() ([]byte, error) {
-	d, err := scale.Encode(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaResumeType}, d...), nil
-}
+// Index Returns VDT index
+func (r GrandpaResume) Index() uint { return 5 }
 
 // NextEpochData is the digest that contains the data for the upcoming BABE epoch.
 // It is included in the first block of every epoch to describe the next epoch.
 type NextEpochData struct {
-	Authorities []*AuthorityRaw
+	Authorities []AuthorityRaw
 	Randomness  [RandomnessLength]byte
 }
 
-// Encode returns a SCALE encoded NextEpochData with first type byte
-func (d *NextEpochData) Encode() ([]byte, error) {
-	enc, err := scale.Encode(d)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{NextEpochDataType}, enc...), nil
-}
+// Index Returns VDT index
+func (d NextEpochData) Index() uint { return 1 }
 
 // ToEpochData returns the NextEpochData as EpochData
 func (d *NextEpochData) ToEpochData() (*EpochData, error) {
@@ -132,15 +84,8 @@ type BABEOnDisabled struct {
 	ID uint32
 }
 
-// Encode returns a SCALE encoded BABEOnDisabled with first type byte
-func (od *BABEOnDisabled) Encode() ([]byte, error) {
-	d, err := scale.Encode(od)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{BABEOnDisabledType}, d...), nil
-}
+// Index Returns VDT index
+func (od BABEOnDisabled) Index() uint { return 2 }
 
 // NextConfigData is the digest that contains changes to the BABE configuration.
 // It is potentially included in the first block of an epoch to describe the next epoch.
@@ -150,15 +95,8 @@ type NextConfigData struct {
 	SecondarySlots byte
 }
 
-// Encode returns a SCALE encoded NextConfigData with first type byte
-func (d *NextConfigData) Encode() ([]byte, error) {
-	enc, err := scale.Encode(d)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{NextConfigDataType}, enc...), nil
-}
+// Index Returns VDT index
+func (d NextConfigData) Index() uint { return 3 }
 
 // ToConfigData returns the NextConfigData as ConfigData
 func (d *NextConfigData) ToConfigData() *ConfigData {

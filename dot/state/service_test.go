@@ -84,7 +84,7 @@ func TestService_Initialise(t *testing.T) {
 	err := state.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	err = state.Initialise(genData, genesisHeader, genTrie)
@@ -180,7 +180,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(trieState, block.Header)
+		err = serv.Storage.StoreTrie(trieState, &block.Header)
 		require.NoError(t, err)
 
 		blocks = append(blocks, block)
@@ -225,9 +225,9 @@ func TestService_PruneStorage(t *testing.T) {
 	var toFinalize common.Hash
 	for i := 0; i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
-		block.Header.Digest = types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest(),
-		}
+		digest := types.NewDigest()
+		digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest())
+		block.Header.Digest = digest
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -359,10 +359,12 @@ func TestService_Import(t *testing.T) {
 		tr.Put([]byte(tc), []byte(tc))
 	}
 
+	digest := types.NewDigest()
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest())
 	header := &types.Header{
 		Number:    big.NewInt(77),
 		StateRoot: tr.MustHash(),
-		Digest:    types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest()},
+		Digest:    digest,
 	}
 
 	firstSlot := uint64(100)
