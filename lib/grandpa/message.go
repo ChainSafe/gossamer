@@ -18,11 +18,12 @@ package grandpa
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
@@ -88,7 +89,8 @@ func (v *VoteMessage) Type() byte {
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(v)
+	//enc, err := scale.Encode(v)
+	enc, err := scale2.Marshal(*v)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +110,8 @@ type NeighbourMessage struct {
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	enc, err := scale.Encode(m)
+	//enc, err := scale.Encode(m)
+	enc, err := scale2.Marshal(*m)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +148,8 @@ func (f *CommitMessage) Type() byte {
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
 func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(f)
+	//enc, err := scale.Encode(f)
+	enc, err := scale2.Marshal(*f)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +225,8 @@ func (r *catchUpRequest) Type() byte {
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
 func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(r)
+	//enc, err := scale.Encode(r)
+	enc, err := scale2.Marshal(*r)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +278,8 @@ func (r *catchUpResponse) Type() byte {
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *catchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(r)
+	//enc, err := scale.Encode(r)
+	enc, err := scale2.Marshal(*r)
 	if err != nil {
 		return nil, err
 	}

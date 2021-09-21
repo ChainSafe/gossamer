@@ -238,7 +238,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	}
 
 	h := NewMessageHandler(gs, st.Block)
-	err := h.verifyJustificationNew(just, gs.state.round, gs.state.setID, precommit)
+	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -415,7 +415,7 @@ func TestVerifyJustification(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustificationNew(just, 77, gs.state.setID, precommit)
+	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
 	require.NoError(t, err)
 }
 
@@ -431,7 +431,7 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustificationNew(just, 77, gs.state.setID, precommit)
+	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrInvalidSignature.Error())
 }
 
@@ -449,7 +449,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustificationNew(just, 77, gs.state.setID, precommit)
+	err = h.verifyJustification(just, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrVoterNotFound.Error())
 }
 
