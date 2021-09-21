@@ -7,7 +7,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/stretchr/testify/mock"
 
@@ -29,7 +28,7 @@ func NewMockBlockState(n *big.Int) *mockBlockState {
 		Number:         n,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.Digest{},
+		Digest:         types.NewDigest(),
 	}
 
 	m := new(mockBlockState)
@@ -69,18 +68,18 @@ func testBlockResponseMessage() *BlockResponseMessage {
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		testHeader := types.Header{
+		testHeader := &types.Header{
 			Number: big.NewInt(int64(77 + i)),
-			Digest: types.Digest{},
+			Digest: types.NewDigest(),
 		}
 
 		msg.BlockData = append(msg.BlockData, &types.BlockData{
 			Hash:          testHeader.Hash(),
-			Header:        testHeader.AsOptional(),
-			Body:          optional.NewBody(true, []byte{4, 4, 2}),
-			MessageQueue:  optional.NewBytes(false, nil),
-			Receipt:       optional.NewBytes(false, nil),
-			Justification: optional.NewBytes(false, nil),
+			Header:        testHeader,
+			Body:          types.NewBody([]byte{4, 4, 2}),
+			MessageQueue:  nil,
+			Receipt:       nil,
+			Justification: nil,
 		})
 	}
 
@@ -168,14 +167,16 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 	}
 }
 
-var start, _ = variadic.NewUint64OrHash(uint64(1))
+var starting, _ = variadic.NewUint64OrHash(uint64(1))
+
+var one = uint32(1)
 
 var testBlockRequestMessage = &BlockRequestMessage{
 	RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-	StartingBlock: start,
-	EndBlockHash:  optional.NewHash(true, common.Hash{}),
+	StartingBlock: *starting,
+	EndBlockHash:  &common.Hash{},
 	Direction:     1,
-	Max:           optional.NewUint32(true, 1),
+	Max:           &one,
 }
 
 func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
@@ -186,6 +187,7 @@ func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, erro
 
 var testBlockAnnounceMessage = &BlockAnnounceMessage{
 	Number: big.NewInt(128 * 7),
+	Digest: types.NewDigest(),
 }
 
 var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
@@ -193,9 +195,12 @@ var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
 }
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
-	msg := new(BlockAnnounceMessage)
+	msg := BlockAnnounceMessage{
+		Number: big.NewInt(0),
+		Digest: types.NewDigest(),
+	}
 	err := msg.Decode(in)
-	return msg, err
+	return &msg, err
 }
 
 func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {

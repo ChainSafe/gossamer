@@ -93,13 +93,17 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	// simulate block sent from BABE session
-	newBlock := &types.Block{
-		Header: &types.Header{
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
+
+	newBlock := types.Block{
+		Header: types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: s.blockState.BestBlockHash(),
-			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
+			Digest:     digest,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *types.NewBody([]byte{}),
 	}
 
 	expected := &network.BlockAnnounceMessage{
@@ -107,7 +111,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 		Number:         newBlock.Header.Number,
 		StateRoot:      newBlock.Header.StateRoot,
 		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
-		Digest:         newBlock.Header.Digest,
+		Digest:         digest,
 		BestBlock:      true,
 	}
 
@@ -116,7 +120,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	err = s.HandleBlockProduced(newBlock, state)
+	err = s.HandleBlockProduced(&newBlock, state)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)

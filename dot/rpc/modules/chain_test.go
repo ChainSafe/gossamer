@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
@@ -40,7 +41,10 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
+	di := types.NewDigestItem()
+	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+
+	d, err := scale.Marshal(di)
 	require.NoError(t, err)
 
 	expected := &ChainBlockHeaderResponse{
@@ -70,7 +74,10 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
+	di := types.NewDigestItem()
+	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+
+	d, err := scale.Marshal(di)
 	require.NoError(t, err)
 
 	expected := &ChainBlockHeaderResponse{
@@ -112,7 +119,10 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
+	di := types.NewDigestItem()
+	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+
+	d, err := scale.Marshal(di)
 	require.NoError(t, err)
 
 	expectedHeader := &ChainBlockHeaderResponse{
@@ -150,7 +160,10 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
+	di := types.NewDigestItem()
+	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+
+	d, err := scale.Marshal(di)
 	require.NoError(t, err)
 
 	expectedHeader := &ChainBlockHeaderResponse{
@@ -288,11 +301,11 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
+	digest := types.NewDigest()
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.Header{
 		Number: big.NewInt(1),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Digest: digest,
 	}
 	err = state.Block.SetHeader(header)
 	require.NoError(t, err)
@@ -328,7 +341,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	rt, err := stateSrvc.CreateGenesisRuntime(genTrie, gen)
 	require.NoError(t, err)
 
-	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block, rt)
+	err = loadTestBlocks(t, genesisHeader.Hash(), stateSrvc.Block, rt)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -337,11 +350,11 @@ func newTestStateService(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
+func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -351,8 +364,8 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	block0 := &types.Block{
-		Header: header0,
-		Body:   &blockBody0,
+		Header: *header0,
+		Body:   blockBody0,
 	}
 
 	err := bs.AddBlock(block0)
@@ -363,11 +376,12 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	bs.StoreRuntime(block0.Header.Hash(), rt)
 
 	// Create header & blockData for block 1
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	header1 := &types.Header{
-		Number: big.NewInt(1),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Number:     big.NewInt(1),
+		Digest:     digest,
 		ParentHash: blockHash0,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -376,8 +390,8 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	block1 := &types.Block{
-		Header: header1,
-		Body:   &blockBody1,
+		Header: *header1,
+		Body:   blockBody1,
 	}
 
 	// Add the block1 to the DB

@@ -104,15 +104,16 @@ func TestNewCatchUpResponse(t *testing.T) {
 	round := uint64(1)
 	setID := uint64(1)
 
+	digest := types.NewDigest()
+	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
 	hash := block.Header.Hash()
@@ -121,7 +122,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 		Number: 1,
 	}
 
-	err := st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(hash, round, setID)

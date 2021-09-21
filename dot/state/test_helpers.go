@@ -73,17 +73,20 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
+		digest := types.NewDigest()
+		_ = digest.Add(*d.ToPreRuntimeDigest())
+
 		block := &types.Block{
-			Header: &types.Header{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
-				Digest:     types.Digest{d.ToPreRuntimeDigest()},
+				Digest:     digest,
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
-		currentChain = append(currentChain, block.Header)
+		currentChain = append(currentChain, &block.Header)
 
 		hash := block.Header.Hash()
 		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
@@ -108,21 +111,22 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
+			digest := types.NewDigest()
+			_ = digest.Add(types.PreRuntimeDigest{
+				Data: []byte{byte(i)},
+			})
+
 			block := &types.Block{
-				Header: &types.Header{
+				Header: types.Header{
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
-					Digest: types.Digest{
-						&types.PreRuntimeDigest{
-							Data: []byte{byte(i)},
-						},
-					},
+					Digest:     digest,
 				},
-				Body: &types.Body{},
+				Body: types.Body{},
 			}
 
-			branchChains = append(branchChains, block.Header)
+			branchChains = append(branchChains, &block.Header)
 
 			hash := block.Header.Hash()
 			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
@@ -153,12 +157,12 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
 		block := &types.Block{
-			Header: &types.Header{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
 		hash := block.Header.Hash()
@@ -187,18 +191,19 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
+			digest := types.NewDigest()
+			_ = digest.Add(types.PreRuntimeDigest{
+				Data: []byte{byte(i), byte(j), r},
+			})
+
 			block := &types.Block{
-				Header: &types.Header{
+				Header: types.Header{
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i)),
 					StateRoot:  trie.EmptyHash,
-					Digest: types.Digest{
-						&types.PreRuntimeDigest{
-							Data: []byte{byte(i), byte(j), r},
-						},
-					},
+					Digest:     digest,
 				},
-				Body: &types.Body{},
+				Body: types.Body{},
 			}
 
 			hash := block.Header.Hash()
@@ -232,12 +237,12 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Has
 	}
 
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: *parent,
 			Number:     big.NewInt(bNum),
 			StateRoot:  trieStateRoot,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *types.NewBody([]byte{}),
 	}
 	return block, trieState
 }
