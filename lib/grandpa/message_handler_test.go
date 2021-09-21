@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +39,7 @@ var testHeader = &types.Header{
 
 var testHash = testHeader.Hash()
 
-func newTestDigest() scale2.VaryingDataTypeSlice {
+func newTestDigest() scale.VaryingDataTypeSlice {
 	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	return digest
@@ -61,7 +61,7 @@ func buildTestJustificationNew(t *testing.T, qty int, round, setID uint64, kr *k
 
 func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *ed25519.Keypair, subround subround) [64]byte {
 	// create vote message
-	msg, err := scale2.Marshal(FullVote{
+	msg, err := scale.Marshal(FullVote{
 		Stage: subround,
 		Vote:  *NewVote(testHash, number),
 		Round: round,
@@ -553,7 +553,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	number := uint32(2)
 	precommits := buildTestJustificationNew(t, 2, round, setID, kr, precommit)
 	just := newJustification(round, testHash, number, precommits)
-	data, err := scale2.Marshal(*just)
+	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
@@ -562,7 +562,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	precommits = buildTestJustificationNew(t, 2, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	just.Commit.Precommits[0].Vote.Hash = genhash
-	data, err = scale2.Marshal(*just)
+	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
@@ -571,7 +571,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	// use wrong round, shouldn't verify
 	precommits = buildTestJustificationNew(t, 2, round+1, setID, kr, precommit)
 	just = newJustification(round+2, testHash, number, precommits)
-	data, err = scale2.Marshal(*just)
+	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
@@ -580,7 +580,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	// add authority not in set, shouldn't verify
 	precommits = buildTestJustificationNew(t, len(auths)+1, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
-	data, err = scale2.Marshal(*just)
+	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
@@ -588,7 +588,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	// not enough signatures, shouldn't verify
 	precommits = buildTestJustificationNew(t, 1, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
-	data, err = scale2.Marshal(*just)
+	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
