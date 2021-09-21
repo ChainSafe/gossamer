@@ -7,14 +7,21 @@ import (
 )
 
 type GetKeysRequest struct {
-	Key    string
-	Prefix string
+	Key    []byte
+	Prefix []byte
 	Hash   common.Hash
 }
 
 type ChildStateModule struct {
 	storageAPI StorageAPI
 	blockAPI   BlockAPI
+}
+
+func NewChildStateModule(s StorageAPI, b BlockAPI) *ChildStateModule {
+	return &ChildStateModule{
+		storageAPI: s,
+		blockAPI:   b,
+	}
 }
 
 func (cs *ChildStateModule) GetKeys(r *http.Request, req *GetKeysRequest, res *[]string) error {
@@ -27,12 +34,12 @@ func (cs *ChildStateModule) GetKeys(r *http.Request, req *GetKeysRequest, res *[
 		return err
 	}
 
-	trie, err := cs.storageAPI.GetStorageChild(stateRoot, []byte(req.Key))
+	trie, err := cs.storageAPI.GetStorageChild(stateRoot, req.Key)
 	if err != nil {
 		return err
 	}
 
-	keys := trie.GetKeysWithPrefix([]byte(req.Hash.String()))
+	keys := trie.GetKeysWithPrefix(req.Prefix)
 	hexKeys := make([]string, len(keys))
 	for idx, k := range keys {
 		hex := common.BytesToHex(k)
