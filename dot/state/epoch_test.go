@@ -32,7 +32,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 	EpochLength:        200,
 	C1:                 1,
 	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
+	GenesisAuthorities: []types.AuthorityRaw{},
 	Randomness:         [32]byte{},
 	SecondarySlots:     0,
 }
@@ -70,13 +70,13 @@ func TestEpochState_EpochData(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	auth := &types.Authority{
+	auth := types.Authority{
 		Key:    keyring.Alice().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 
 	info := &types.EpochData{
-		Authorities: []*types.Authority{auth},
+		Authorities: []types.Authority{auth},
 		Randomness:  [32]byte{77},
 	}
 
@@ -151,10 +151,12 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 
 	babeHeader := types.NewBabePrimaryPreDigest(0, s.epochLength+2, [32]byte{}, [64]byte{})
 	enc := babeHeader.Encode()
-	digest := types.NewBABEPreRuntimeDigest(enc)
+	d := types.NewBABEPreRuntimeDigest(enc)
+	digest := types.NewDigest()
+	digest.Add(*d)
 
 	header := &types.Header{
-		Digest: types.Digest{digest},
+		Digest: digest,
 	}
 
 	epoch, err := s.GetEpochForBlock(header)
@@ -163,10 +165,12 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 
 	babeHeader = types.NewBabePrimaryPreDigest(0, s.epochLength*2+3, [32]byte{}, [64]byte{})
 	enc = babeHeader.Encode()
-	digest = types.NewBABEPreRuntimeDigest(enc)
+	d = types.NewBABEPreRuntimeDigest(enc)
+	digest2 := types.NewDigest()
+	digest2.Add(*d)
 
 	header = &types.Header{
-		Digest: types.Digest{digest},
+		Digest: digest2,
 	}
 
 	epoch, err = s.GetEpochForBlock(header)

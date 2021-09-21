@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
@@ -32,6 +33,7 @@ func createTestBlockTree(header *types.Header, depth int, db chaindb.Database) (
 		header := &types.Header{
 			ParentHash: previousHash,
 			Number:     big.NewInt(int64(i)),
+			Digest:     types.NewDigest(),
 		}
 
 		hash := header.Hash()
@@ -52,10 +54,18 @@ func createTestBlockTree(header *types.Header, depth int, db chaindb.Database) (
 		previousHash = branch.hash
 
 		for i := int(branch.depth.Uint64()); i <= depth; i++ {
+			digest := types.NewDigest()
+			err := digest.Add(types.ConsensusDigest{
+				ConsensusEngineID: types.BabeEngineID,
+				Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+			})
+			if err != nil {
+				return nil, nil
+			}
 			header := &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest:     types.Digest{utils.NewMockDigestItem(rand.Intn(256))},
+				Digest:     digest,
 			}
 
 			hash := header.Hash()

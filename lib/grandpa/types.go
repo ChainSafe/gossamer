@@ -79,13 +79,13 @@ func (s subround) String() string {
 
 // State represents a GRANDPA state
 type State struct {
-	voters []*Voter // set of voters
-	setID  uint64   // authority set ID
-	round  uint64   // voting round number
+	voters []Voter // set of voters
+	setID  uint64  // authority set ID
+	round  uint64  // voting round number
 }
 
 // NewState returns a new GRANDPA state
-func NewState(voters []*Voter, setID, round uint64) *State {
+func NewState(voters []Voter, setID, round uint64) *State {
 	return &State{
 		voters: voters,
 		setID:  setID,

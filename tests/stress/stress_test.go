@@ -463,7 +463,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 			continue
 		}
 
-		header = block.Header
+		header = &block.Header
 		logger.Debug("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
 
 		if block.Body != nil {

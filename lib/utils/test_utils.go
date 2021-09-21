@@ -21,9 +21,6 @@ import (
 	"os"
 	"path"
 	"testing"
-
-	typesmocks "github.com/ChainSafe/gossamer/dot/types/mocks"
-	"github.com/stretchr/testify/mock"
 )
 
 // TestDir test data directory
@@ -76,15 +73,4 @@ func RemoveTestDir(t *testing.T) {
 	if err != nil || PathExists(testDir) {
 		fmt.Println(fmt.Errorf("failed to remove test directory: %s", err))
 	}
-}
-
-// NewMockDigestItem creates a mock digest item for testing purposes.
-func NewMockDigestItem(i int) *typesmocks.MockDigestItem {
-	mockDigestItem := new(typesmocks.MockDigestItem)
-	mockDigestItem.On("String").Return("")
-	mockDigestItem.On("Type").Return(byte(i))
-	mockDigestItem.On("Encode").Return([]byte{byte(i)}, nil)
-	mockDigestItem.On("Decode", mock.AnythingOfType("io.Reader")).Return(nil)
-
-	return mockDigestItem
 }

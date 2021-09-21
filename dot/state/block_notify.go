@@ -123,7 +123,7 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 
 	logger.Debug("notifying finalised block chans...", "chans", bs.finalised)
 	info := &types.FinalisationInfo{
-		Header: header,
+		Header: *header,
 		Round:  round,
 		SetID:  setID,
 	}

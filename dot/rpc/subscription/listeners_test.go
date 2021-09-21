@@ -110,7 +110,8 @@ func TestBlockListener_Listen(t *testing.T) {
 		cancelTimeout: time.Second * 5,
 	}
 
-	block := types.NewEmptyBlock()
+	//block := types.NewEmptyBlock()
+	block := types.NewBlock(*types.NewEmptyHeader(), *new(types.Body))
 	block.Header.Number = big.NewInt(1)
 
 	go bl.Listen()
@@ -120,13 +121,13 @@ func TestBlockListener_Listen(t *testing.T) {
 		BlockAPI.AssertCalled(t, "UnregisterImportedChannel", mock.AnythingOfType("uint8"))
 	}()
 
-	notifyChan <- block
+	notifyChan <- &block
 	time.Sleep(time.Second * 2)
 
 	_, msg, err := ws.ReadMessage()
 	require.NoError(t, err)
 
-	head, err := modules.HeaderToJSON(*block.Header)
+	head, err := modules.HeaderToJSON(block.Header)
 	require.NoError(t, err)
 
 	expectedResposnse := newSubcriptionBaseResponseJSON()
@@ -167,7 +168,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	}()
 
 	notifyChan <- &types.FinalisationInfo{
-		Header: header,
+		Header: *header,
 	}
 	time.Sleep(time.Second * 2)
 
@@ -216,8 +217,8 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	require.NoError(t, err)
 
 	block := &types.Block{
-		Header: header,
-		Body:   body,
+		Header: *header,
+		Body:   *body,
 	}
 
 	esl.Listen()
@@ -240,7 +241,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	require.Equal(t, string(expectedImportedBytes)+"\n", string(msg))
 
 	notifyFinalizedChan <- &types.FinalisationInfo{
-		Header: header,
+		Header: *header,
 	}
 	time.Sleep(time.Second * 2)
 
@@ -286,7 +287,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 
 		sub.Listen()
 		finchannel <- &types.FinalisationInfo{
-			Header: types.NewEmptyHeader(),
+			Header: *types.NewEmptyHeader(),
 		}
 
 		time.Sleep(time.Second * 3)

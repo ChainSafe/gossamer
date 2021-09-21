@@ -53,7 +53,7 @@ func (a *GrandpaAuthoritiesRaw) Decode(r io.Reader) (*GrandpaAuthoritiesRaw, err
 
 // FromRawEd25519 sets the Authority given GrandpaAuthoritiesRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
-func (a *Authority) FromRawEd25519(raw *GrandpaAuthoritiesRaw) error {
+func (a *Authority) FromRawEd25519(raw GrandpaAuthoritiesRaw) error {
 	key, err := ed25519.NewPublicKey(raw.Key[:])
 	if err != nil {
 		return err
@@ -65,10 +65,10 @@ func (a *Authority) FromRawEd25519(raw *GrandpaAuthoritiesRaw) error {
 }
 
 // GrandpaAuthoritiesRawToAuthorities turns a slice of GrandpaAuthoritiesRaw into a slice of Authority
-func GrandpaAuthoritiesRawToAuthorities(adr []*GrandpaAuthoritiesRaw) ([]*Authority, error) {
-	ad := make([]*Authority, len(adr))
+func GrandpaAuthoritiesRawToAuthorities(adr []GrandpaAuthoritiesRaw) ([]Authority, error) {
+	ad := make([]Authority, len(adr))
 	for i, r := range adr {
-		ad[i] = new(Authority)
+		ad[i] = Authority{}
 		err := ad[i].FromRawEd25519(r)
 		if err != nil {
 			return nil, err
@@ -117,12 +117,12 @@ func (v *GrandpaVoter) Decode(r io.Reader) error {
 }
 
 // NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities
-func NewGrandpaVotersFromAuthorities(ad []*Authority) []*GrandpaVoter {
-	v := make([]*GrandpaVoter, len(ad))
+func NewGrandpaVotersFromAuthorities(ad []Authority) []GrandpaVoter {
+	v := make([]GrandpaVoter, len(ad))
 
 	for i, d := range ad {
 		if pk, ok := d.Key.(*ed25519.PublicKey); ok {
-			v[i] = &GrandpaVoter{
+			v[i] = GrandpaVoter{
 				Key: pk,
 				ID:  d.Weight,
 			}
@@ -133,8 +133,8 @@ func NewGrandpaVotersFromAuthorities(ad []*Authority) []*GrandpaVoter {
 }
 
 // NewGrandpaVotersFromAuthoritiesRaw returns an array of GrandpaVoters given an array of GrandpaAuthoritiesRaw
-func NewGrandpaVotersFromAuthoritiesRaw(ad []*GrandpaAuthoritiesRaw) ([]*GrandpaVoter, error) {
-	v := make([]*GrandpaVoter, len(ad))
+func NewGrandpaVotersFromAuthoritiesRaw(ad []GrandpaAuthoritiesRaw) ([]GrandpaVoter, error) {
+	v := make([]GrandpaVoter, len(ad))
 
 	for i, d := range ad {
 		key, err := ed25519.NewPublicKey(d.Key[:])
@@ -142,7 +142,7 @@ func NewGrandpaVotersFromAuthoritiesRaw(ad []*GrandpaAuthoritiesRaw) ([]*Grandpa
 			return nil, err
 		}
 
-		v[i] = &GrandpaVoter{
+		v[i] = GrandpaVoter{
 			Key: key,
 			ID:  d.ID,
 		}
@@ -152,7 +152,7 @@ func NewGrandpaVotersFromAuthoritiesRaw(ad []*GrandpaAuthoritiesRaw) ([]*Grandpa
 }
 
 // GrandpaVoters represents []*GrandpaVoter
-type GrandpaVoters []*GrandpaVoter
+type GrandpaVoters []GrandpaVoter
 
 // String returns a formatted Voters string
 func (v GrandpaVoters) String() string {
@@ -171,9 +171,9 @@ func DecodeGrandpaVoters(r io.Reader) (GrandpaVoters, error) {
 		return nil, err
 	}
 
-	voters := make([]*GrandpaVoter, length)
+	voters := make([]GrandpaVoter, length)
 	for i := range voters {
-		voters[i] = new(GrandpaVoter)
+		voters[i] = GrandpaVoter{}
 		err = voters[i].Decode(r)
 		if err != nil {
 			return nil, err
@@ -185,7 +185,7 @@ func DecodeGrandpaVoters(r io.Reader) (GrandpaVoters, error) {
 
 // FinalisationInfo represents information about what block was finalised in what round and setID
 type FinalisationInfo struct {
-	Header *Header
+	Header Header
 	Round  uint64
 	SetID  uint64
 }

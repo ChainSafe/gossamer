@@ -17,6 +17,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"os"
 	"sync"
@@ -176,12 +177,20 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+	digest := types.NewDigest()
+	for i := range block.Header.Digest.Types {
+		err := digest.Add(block.Header.Digest.Types[i].Value())
+		if err != nil {
+			return err
+		}
+	}
+
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
 		StateRoot:      block.Header.StateRoot,
 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
-		Digest:         block.Header.Digest,
+		Digest:         digest,
 		BestBlock:      true,
 	}
 
@@ -190,12 +199,12 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 }
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
-	if block == nil || block.Header == nil || state == nil {
-		return nil
+	if block == nil || state == nil {
+		return fmt.Errorf("unable to handle block due to nil parameter")
 	}
 
 	// store updates state trie nodes in database
-	err := s.storageState.StoreTrie(state, block.Header)
+	err := s.storageState.StoreTrie(state, &block.Header)
 	if err != nil {
 		logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
 		return err
@@ -215,7 +224,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
 
 	// handle consensus digests
-	s.digestHandler.HandleDigests(block.Header)
+	s.digestHandler.HandleDigests(&block.Header)
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if err != nil {
@@ -235,7 +244,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if block production epoch transitioned
-	if err := s.handleCurrentSlot(block.Header); err != nil {
+	if err := s.handleCurrentSlot(&block.Header); err != nil {
 		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
 		return err
 	}

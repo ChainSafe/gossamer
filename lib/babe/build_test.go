@@ -59,10 +59,10 @@ func TestSeal(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.Digest{})
+	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
-	encHeader, err := header.Encode()
+	encHeader, err := scale.Marshal(*header)
 	require.NoError(t, err)
 
 	hash, err := common.Blake2bHash(encHeader)
@@ -89,7 +89,6 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
 
-	//decoded, err := scale.Decode(rawMeta, []byte{})
 	var decoded []byte
 	err = scale.Unmarshal(rawMeta, &decoded)
 	require.NoError(t, err)
@@ -189,22 +188,22 @@ func TestBuildBlock_ok(t *testing.T) {
 	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{preDigest},
+		Digest:     digest,
 	}
 
 	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
 	require.Equal(t, expectedBlockHeader.Number, block.Header.Number)
 	require.NotEqual(t, block.Header.StateRoot, emptyHash)
 	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
-	require.Equal(t, 3, len(block.Header.Digest))
-	require.Equal(t, preDigest, block.Header.Digest[0])
-	require.Equal(t, types.PreRuntimeDigestType, block.Header.Digest[0].Type())
-	require.Equal(t, types.ConsensusDigestType, block.Header.Digest[1].Type())
-	require.Equal(t, types.SealDigestType, block.Header.Digest[2].Type())
-	require.Equal(t, types.NextEpochDataType, block.Header.Digest[1].(*types.ConsensusDigest).DataType())
+	require.Equal(t, 3, len(block.Header.Digest.Types))
+	require.Equal(t, *preDigest, block.Header.Digest.Types[0].Value())
 
 	// confirm block body is correct
 	extsRes, err := block.Body.AsExtrinsics()
@@ -265,7 +264,11 @@ func TestApplyExtrinsic(t *testing.T) {
 	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest(preDigest))
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
 
 	//initialise block header
@@ -282,7 +285,10 @@ func TestApplyExtrinsic(t *testing.T) {
 	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
 	require.NoError(t, err)
 
-	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), types.NewDigest(preDigest2))
+	digest2 := types.NewDigest()
+	err = digest2.Add(*preDigest2)
+	require.NoError(t, err)
+	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), digest2)
 	require.NoError(t, err)
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
@@ -311,7 +317,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	rt, err := babeService.blockState.GetRuntime(nil)
@@ -386,7 +392,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	var err error
 	babeService := createTestService(t, cfg)
 
-	babeService.epochData.authorities = []*types.Authority{
+	babeService.epochData.authorities = []types.Authority{
 		{Key: nil, Weight: 1},
 	}
 
