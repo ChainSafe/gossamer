@@ -19,7 +19,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"os"
 	"sort"
 	"testing"
@@ -1052,10 +1051,13 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 	require.Nil(t, child)
 }
 
-func Test_ext_default_child_storage_storage_kill_version_2(t *testing.T) {
+func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	err := inst.ctx.Storage.SetChild(testChildKey, tr)
 	require.NoError(t, err)
 
 	// Confirm if value is set
@@ -1070,14 +1072,78 @@ func Test_ext_default_child_storage_storage_kill_version_2(t *testing.T) {
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
 
-	optLim, err := optional.NewBytes(true, testLimitBytes).Encode()
+	optLimit, err := optional.NewBytes(true, testLimitBytes).Encode()
 	require.NoError(t, err)
-	fmt.Printf("optLimit %v\n", optLim)
 
-	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLim...))
+	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
 	require.NoError(t, err)
+	require.Equal(t, []byte{0, 0, 0, 0}, res)
 
 	child, _ = inst.ctx.Storage.GetChild(testChildKey)
+	require.Nil(t, child)
+}
+
+func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	err := inst.ctx.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	child, err := inst.ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	testLimit := uint32(1)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	optLimit, err := optional.NewBytes(true, testLimitBytes).Encode()
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
+	require.NoError(t, err)
+	require.Equal(t, []byte{1, 0, 0, 0}, res)
+
+	child, err = inst.ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(child.Entries()))
+}
+
+func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	err := inst.ctx.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	child, err := inst.ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	optLimit, err := optional.NewBytes(false, nil).Encode()
+	require.NoError(t, err)
+
+	//TODO determine why this call fails with Error:      	Received unexpected error: Failed to call the `rtm_ext_default_child_storage_storage_kill_version_2` exported function.
+	//  when passing limit optional as false
+	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 0, 0, 0}, res)
+
+	child, err = inst.ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
 	require.Nil(t, child)
 }
 
