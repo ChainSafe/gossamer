@@ -18,7 +18,6 @@ package state
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -40,19 +39,6 @@ func (bs *BlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 	return ch
 }
 
-//func (bs *BlockState) GetImportedBlockNotifierChannel() (*ImportNotifier, error) {
-//	bs.importedLock.Lock()
-//	defer bs.importedLock.Unlock()
-//
-//	in := &ImportNotifier{
-//		ch: make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-//	}
-//	//ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
-//	bs.imported[in] = struct{}{}
-//
-//	return in, nil
-//}
-
 // RegisterFinalizedChannel registers a channel for block notification upon block finalisation.
 // It returns the channel ID (used for unregistering the channel)
 func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
@@ -71,20 +57,12 @@ func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo
 	return id, nil
 }
 
-// FreeImportedBlockNotifierChannel to free and close imported block notifier channel
+// FreeImportedBlockNotifierChannel to free imported block notifier channel
 func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	bs.importedLock.Lock()
 	defer bs.importedLock.Unlock()
-	fmt.Printf("delete chan %v\n", ch)
 	delete(bs.imported, ch)
 }
-
-//func (bs *BlockState) FreeImportedBlockNotifierChannel(ch *ImportNotifier) {
-//	bs.importedLock.Lock()
-//	defer bs.importedLock.Unlock()
-//	// todo (ed) add test to confirm this is deleting
-//	delete(bs.imported, ch)
-//}
 
 // UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
 // A channel must be unregistered before closing it.
