@@ -56,7 +56,7 @@ type BlockState interface {
 // GrandpaState is the interface required by grandpa into the grandpa state
 type GrandpaState interface { //nolint
 	GetCurrentSetID() (uint64, error)
-	GetAuthorities(setID uint64) ([]*types.GrandpaVoter, error)
+	GetAuthorities(setID uint64) ([]types.GrandpaVoter, error)
 	GetSetIDByBlockNumber(num *big.Int) (uint64, error)
 	SetLatestRound(round uint64) error
 	GetLatestRound() (uint64, error)
@@ -82,6 +82,6 @@ type Network interface {
 		handshakeValidator network.HandshakeValidator,
 		messageDecoder network.MessageDecoder,
 		messageHandler network.NotificationsMessageHandler,
-		overwriteProtocol bool,
+		batchHandler network.NotificationsMessageBatchHandler,
 	) error
 }

@@ -18,7 +18,9 @@ package sync
 
 import (
 	"math/big"
+	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -61,8 +63,7 @@ type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	SetSyncing(bool)
-	Lock()
-	Unlock()
+	sync.Locker
 }
 
 // CodeSubstitutedState interface to handle storage of code substitute state
@@ -94,7 +95,7 @@ type BlockImportHandler interface {
 // Network is the interface for the network
 type Network interface {
 	// DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
-	DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error)
+	DoBlockRequest(to peer.ID, req *network.BlockRequestMessage) (*network.BlockResponseMessage, error)
 
 	// Peers returns a list of currently connected peers
 	Peers() []common.PeerInfo

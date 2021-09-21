@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package sync
 
 import (
@@ -26,7 +42,7 @@ func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBl
 	}
 }
 
-func (s *tipSyncer) handleWork(ps *peerState) (*worker, error) {
+func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	return &worker{
 		startHash:    ps.hash,
 		startNumber:  ps.number,
@@ -94,7 +110,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 				startNumber:  block.number,
 				targetHash:   fin.Hash(),
 				targetNumber: fin.Number,
-				direction:    DIR_DESCENDING,
+				direction:    network.Descending,
 				requestData:  bootstrapRequestData,
 			})
 			continue
@@ -126,7 +142,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			startHash:    block.header.ParentHash,
 			startNumber:  big.NewInt(0).Sub(block.number, big.NewInt(1)),
 			targetNumber: fin.Number,
-			direction:    DIR_DESCENDING,
+			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
 		})
 	}

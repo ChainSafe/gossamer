@@ -82,14 +82,15 @@ func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
 	}
 }
 
-func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
-	messageID byte,
-	handshakeGetter network.HandshakeGetter,
-	handshakeDecoder network.HandshakeDecoder,
-	handshakeValidator network.HandshakeValidator,
-	messageDecoder network.MessageDecoder,
-	messageHandler network.NotificationsMessageHandler,
-	overwriteProtocol bool,
+func (*testNetwork) RegisterNotificationsProtocol(
+	_ protocol.ID,
+	_ byte,
+	_ network.HandshakeGetter,
+	_ network.HandshakeDecoder,
+	_ network.HandshakeValidator,
+	_ network.MessageDecoder,
+	_ network.NotificationsMessageHandler,
+	_ network.NotificationsMessageBatchHandler,
 ) error {
 	return nil
 }
@@ -386,8 +387,8 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 		for _, h := range headers {
 			time.Sleep(time.Millisecond * 10)
 			block := &types.Block{
-				Header: h,
-				Body:   &types.Body{},
+				Header: *h,
+				Body:   types.Body{},
 			}
 			gs.blockState.(*state.BlockState).AddBlock(block)
 		}

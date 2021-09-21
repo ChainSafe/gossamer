@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package sync
 
 import (
@@ -17,10 +33,6 @@ import (
 )
 
 func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
-	if testing.Short() {
-		t.Skip() // this test takes around 4min to run
-	}
-
 	syncer := newTestSyncer(t)
 	responder := newTestSyncer(t)
 
@@ -31,11 +43,11 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	rt, err := responder.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	for i := 0; i < MAX_RESPONSE_SIZE*2; i++ {
+	for i := 0; i < maxResponseSize*2; i++ {
 		block := BuildBlock(t, rt, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
-		parent = block.Header
+		parent = &block.Header
 	}
 
 	// syncer makes request for chain
@@ -45,7 +57,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: network.RequestedDataHeader + network.RequestedDataBody,
-		StartingBlock: start,
+		StartingBlock: *start,
 	}
 
 	// get response
@@ -65,7 +77,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	req = &network.BlockRequestMessage{
 		RequestedData: network.RequestedDataHeader + network.RequestedDataBody,
-		StartingBlock: start,
+		StartingBlock: *start,
 	}
 
 	// get response
@@ -92,7 +104,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 		block := BuildBlock(t, rt, parent, nil)
 		err = syncer.blockState.AddBlock(block)
 		require.NoError(t, err)
-		parent = block.Header
+		parent = &block.Header
 	}
 
 	responder := newTestSyncer(t)
@@ -107,7 +119,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 		block := BuildBlock(t, rt, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
-		parent = block.Header
+		parent = &block.Header
 	}
 
 	startNum := 15
@@ -116,7 +128,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
+		StartingBlock: *start,
 	}
 
 	// resp contains blocks 15 to 15 + maxResponseSize)
@@ -129,7 +141,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	}
 }
 
-func TestChainProcessor_RemoveIncludedExtrinsics(t *testing.T) {
+func TestChainProcessor_handleBody_ShouldRemoveIncludedExtrinsics(t *testing.T) {
 	syncer := newTestSyncer(t)
 
 	ext := []byte("nootwashere")
@@ -145,18 +157,8 @@ func TestChainProcessor_RemoveIncludedExtrinsics(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics(exts)
 	require.NoError(t, err)
 
-	bd := &types.BlockData{
-		Body: body.AsOptional(),
-	}
-
-	msg := &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{bd},
-	}
-
-	for _, bd := range msg.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
-		require.NoError(t, err)
-	}
+	err = syncer.chainProcessor.(*chainProcessor).handleBody(body)
+	require.NoError(t, err)
 
 	inQueue := syncer.chainProcessor.(*chainProcessor).transactionState.(*state.TransactionState).Pop()
 	require.Nil(t, inQueue, "queue should be empty")
@@ -181,8 +183,8 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 
 	bd := []*types.BlockData{{
 		Hash:          block.Header.Hash(),
-		Header:        block.Header.AsOptional(),
-		Body:          block.Body.AsOptional(),
+		Header:        &block.Header,
+		Body:          &block.Body,
 		Receipt:       nil,
 		MessageQueue:  nil,
 		Justification: nil,
@@ -221,17 +223,21 @@ func TestChainProcessor_HandleJustification(t *testing.T) {
 	syncer := newTestSyncer(t)
 
 	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	digest := types.NewDigest()
+	err := digest.Add(d)
+	require.NoError(t, err)
+
 	header := &types.Header{
 		ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{d},
+		Digest:     digest,
 	}
 
 	just := []byte("testjustification")
 
-	err := syncer.blockState.AddBlock(&types.Block{
-		Header: header,
-		Body:   &types.Body{},
+	err = syncer.blockState.AddBlock(&types.Block{
+		Header: *header,
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 

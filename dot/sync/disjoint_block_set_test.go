@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package sync
 
 import (
@@ -6,7 +22,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 
 	"github.com/stretchr/testify/require"
 )
@@ -56,8 +71,8 @@ func TestDisjointBlockSet(t *testing.T) {
 	require.Equal(t, expected, s.getBlock(header2.Hash()))
 
 	block := &types.Block{
-		Header: header2,
-		Body:   &types.Body{0xc, 0xd},
+		Header: *header2,
+		Body:   types.Body{0xc, 0xd},
 	}
 	s.addBlock(block)
 	require.Equal(t, 3, s.size())
@@ -65,7 +80,7 @@ func TestDisjointBlockSet(t *testing.T) {
 		hash:   header2.Hash(),
 		number: header2.Number,
 		header: header2,
-		body:   block.Body,
+		body:   &block.Body,
 	}
 	require.Equal(t, expected, s.getBlock(header2.Hash()))
 
@@ -90,12 +105,9 @@ func TestPendingBlock_toBlockData(t *testing.T) {
 	}
 
 	expected := &types.BlockData{
-		Hash:          pb.hash,
-		Header:        pb.header.AsOptional(),
-		Body:          pb.body.AsOptional(),
-		Justification: optional.NewBytes(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
+		Hash:   pb.hash,
+		Header: pb.header,
+		Body:   pb.body,
 	}
 
 	require.Equal(t, expected, pb.toBlockData())
@@ -109,8 +121,8 @@ func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 	block1 := &types.Block{
-		Header: header1,
-		Body:   &types.Body{},
+		Header: *header1,
+		Body:   types.Body{},
 	}
 
 	header2 := &types.Header{
@@ -118,8 +130,8 @@ func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
 		Number:     big.NewInt(2),
 	}
 	block2 := &types.Block{
-		Header: header2,
-		Body:   &types.Body{},
+		Header: *header2,
+		Body:   types.Body{},
 	}
 	s.addBlock(block2)
 
@@ -128,8 +140,8 @@ func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
 		Number:     big.NewInt(3),
 	}
 	block3 := &types.Block{
-		Header: header3,
-		Body:   &types.Body{},
+		Header: *header3,
+		Body:   types.Body{},
 	}
 	s.addBlock(block3)
 
@@ -138,8 +150,8 @@ func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
 		Number:     big.NewInt(2),
 	}
 	block2NotDescendant := &types.Block{
-		Header: header2NotDescendant,
-		Body:   &types.Body{},
+		Header: *header2NotDescendant,
+		Body:   types.Body{},
 	}
 	s.addBlock(block2NotDescendant)
 
@@ -160,8 +172,8 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 	block1 := &types.Block{
-		Header: header1,
-		Body:   &types.Body{},
+		Header: *header1,
+		Body:   types.Body{},
 	}
 
 	header2 := &types.Header{
@@ -169,8 +181,8 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 		Number:     big.NewInt(2),
 	}
 	block2 := &types.Block{
-		Header: header2,
-		Body:   &types.Body{},
+		Header: *header2,
+		Body:   types.Body{},
 	}
 	s.addBlock(block2)
 
@@ -185,8 +197,8 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 		Number:     big.NewInt(2),
 	}
 	block2NotDescendant := &types.Block{
-		Header: header2NotDescendant,
-		Body:   &types.Body{},
+		Header: *header2NotDescendant,
+		Body:   types.Body{},
 	}
 	s.addBlock(block2NotDescendant)
 

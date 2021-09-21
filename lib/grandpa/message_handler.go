@@ -65,7 +65,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case *CommitMessage:
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourMessage:
-		return nil, h.handleNeighbourMessage(from, msg)
+		return nil, h.handleNeighbourMessage(msg)
 	case *catchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *catchUpResponse:
@@ -75,7 +75,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) handleNeighbourMessage(_ peer.ID, msg *NeighbourMessage) error {
+func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err
@@ -471,7 +471,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	return nil
 }
 
-func isInAuthSet(auth *ed25519.PublicKey, set []*types.GrandpaVoter) bool {
+func isInAuthSet(auth *ed25519.PublicKey, set []types.GrandpaVoter) bool {
 	for _, a := range set {
 		if bytes.Equal(a.Key.Encode(), auth.Encode()) {
 			return true

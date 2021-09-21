@@ -17,6 +17,7 @@
 package optional
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -382,7 +383,7 @@ func (x *Hash) Set(exists bool, value common.Hash) {
 // Digest is the interface implemented by the block digest
 type Digest interface {
 	Encode() ([]byte, error)
-	Decode(io.Reader) error // Decode assumes the type byte (first byte) has been removed from the encoding.
+	Decode(buf *bytes.Buffer) error // Decode assumes the type byte (first byte) has been removed from the encoding.
 }
 
 // CoreHeader is a state block header
@@ -404,14 +405,6 @@ func (h *CoreHeader) String() string {
 type Header struct {
 	exists bool
 	value  *CoreHeader
-}
-
-// NewHeader returns a new optional.Header
-func NewHeader(exists bool, value *CoreHeader) *Header {
-	return &Header{
-		exists: exists,
-		value:  value,
-	}
 }
 
 // Exists returns true if the value is Some, false if it is None.

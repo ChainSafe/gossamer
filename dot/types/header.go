@@ -19,26 +19,24 @@ package types
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Header is a state block header
 type Header struct {
-	ParentHash     common.Hash `json:"parentHash"`
-	Number         *big.Int    `json:"number"`
-	StateRoot      common.Hash `json:"stateRoot"`
-	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
-	Digest         Digest      `json:"digest"`
+	ParentHash     common.Hash                `json:"parentHash"`
+	Number         *big.Int                   `json:"number"`
+	StateRoot      common.Hash                `json:"stateRoot"`
+	ExtrinsicsRoot common.Hash                `json:"extrinsicsRoot"`
+	Digest         scale.VaryingDataTypeSlice `json:"digest"`
 	hash           common.Hash
 }
 
 // NewHeader creates a new block header and sets its hash field
-func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest []DigestItem) (*Header, error) {
+func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (*Header, error) {
 	if number == nil {
 		// Hash() will panic if number is nil
 		return nil, errors.New("cannot have nil block number")
@@ -60,12 +58,26 @@ func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.In
 func NewEmptyHeader() *Header {
 	return &Header{
 		Number: big.NewInt(0),
-		Digest: []DigestItem{},
+		Digest: NewDigest(),
 	}
 }
 
+// Exists returns a boolean indicating if the header exists
+func (bh *Header) Exists() bool {
+	exists := bh != nil
+	return exists
+}
+
+// Empty returns a boolean indicating is the header is empty
+func (bh *Header) Empty() bool {
+	if !bh.StateRoot.Equal(common.Hash{}) || !bh.ExtrinsicsRoot.Equal(common.Hash{}) || !bh.ParentHash.Equal(common.Hash{}) {
+		return false
+	}
+	return (bh.Number.Cmp(big.NewInt(0)) == 0 || bh.Number == nil) && len(bh.Digest.Types) == 0
+}
+
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
-func (bh *Header) DeepCopy() *Header {
+func (bh *Header) DeepCopy() (*Header, error) {
 	cp := NewEmptyHeader()
 	copy(cp.ParentHash[:], bh.ParentHash[:])
 	copy(cp.StateRoot[:], bh.StateRoot[:])
@@ -75,12 +87,17 @@ func (bh *Header) DeepCopy() *Header {
 		cp.Number = new(big.Int).Set(bh.Number)
 	}
 
-	if len(bh.Digest) > 0 {
-		cp.Digest = make([]DigestItem, len(bh.Digest))
-		copy(cp.Digest[:], bh.Digest[:])
+	if len(bh.Digest.Types) > 0 {
+		cp.Digest = NewDigest()
+		for _, d := range bh.Digest.Types {
+			err := cp.Digest.Add(d.Value())
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	return cp
+	return cp, nil
 }
 
 // String returns the formatted header as a string
@@ -94,7 +111,7 @@ func (bh *Header) String() string {
 // If hashing the header errors, this will panic.
 func (bh *Header) Hash() common.Hash {
 	if bh.hash == [32]byte{} {
-		enc, err := scale.Encode(bh)
+		enc, err := scale.Marshal(*bh)
 		if err != nil {
 			panic(err)
 		}
@@ -108,120 +125,4 @@ func (bh *Header) Hash() common.Hash {
 	}
 
 	return bh.hash
-}
-
-// Encode returns the SCALE encoding of a header
-func (bh *Header) Encode() ([]byte, error) {
-	return scale.Encode(bh)
-}
-
-// MustEncode returns the SCALE encoded header and panics if it fails to encode
-func (bh *Header) MustEncode() []byte {
-	enc, err := bh.Encode()
-	if err != nil {
-		panic(err)
-	}
-	return enc
-}
-
-// Decode decodes the SCALE encoded input into this header
-func (bh *Header) Decode(r io.Reader) (*Header, error) {
-	sd := scale.Decoder{Reader: r}
-
-	ph, err := sd.Decode(common.Hash{})
-	if err != nil {
-		return nil, err
-	}
-
-	num, err := sd.Decode(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
-
-	sr, err := sd.Decode(common.Hash{})
-	if err != nil {
-		return nil, err
-	}
-
-	er, err := sd.Decode(common.Hash{})
-	if err != nil {
-		return nil, err
-	}
-
-	d, err := DecodeDigest(r)
-	if err != nil {
-		return nil, err
-	}
-
-	bh.ParentHash = ph.(common.Hash)
-	bh.Number = num.(*big.Int)
-	bh.StateRoot = sr.(common.Hash)
-	bh.ExtrinsicsRoot = er.(common.Hash)
-	bh.Digest = d
-	return bh, nil
-}
-
-// AsOptional returns the Header as an optional.Header
-func (bh *Header) AsOptional() *optional.Header {
-	return optional.NewHeader(true, &optional.CoreHeader{
-		ParentHash:     bh.ParentHash,
-		Number:         bh.Number,
-		StateRoot:      bh.StateRoot,
-		ExtrinsicsRoot: bh.ExtrinsicsRoot,
-		Digest:         &bh.Digest,
-	})
-}
-
-// NewHeaderFromOptional returns a Header given an optional.Header. If the optional.Header is None, an error is returned.
-func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
-	if !oh.Exists() {
-		return nil, errors.New("header is None")
-	}
-
-	h := oh.Value()
-
-	if h.Number == nil {
-		// Hash() will panic if number is nil
-		return nil, errors.New("cannot have nil block number")
-	}
-
-	bh := &Header{
-		ParentHash:     h.ParentHash,
-		Number:         h.Number,
-		StateRoot:      h.StateRoot,
-		ExtrinsicsRoot: h.ExtrinsicsRoot,
-		Digest:         *(h.Digest.(*Digest)),
-	}
-
-	bh.Hash()
-	return bh, nil
-}
-
-// decodeOptionalHeader decodes a SCALE encoded optional Header into an *optional.Header
-func decodeOptionalHeader(r io.Reader) (*optional.Header, error) {
-	sd := scale.Decoder{Reader: r}
-
-	exists, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if exists == 1 {
-		header := &Header{
-			ParentHash:     common.Hash{},
-			Number:         big.NewInt(0),
-			StateRoot:      common.Hash{},
-			ExtrinsicsRoot: common.Hash{},
-			Digest:         Digest{},
-		}
-		_, err = sd.Decode(header)
-		if err != nil {
-			return nil, err
-		}
-
-		header.Hash()
-		return header.AsOptional(), nil
-	}
-
-	return optional.NewHeader(false, nil), nil
 }

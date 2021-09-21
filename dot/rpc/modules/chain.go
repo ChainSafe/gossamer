@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ChainHashRequest Hash as a string
@@ -91,12 +92,12 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 		return err
 	}
 
-	res.Block.Header, err = HeaderToJSON(*block.Header)
+	res.Block.Header, err = HeaderToJSON(block.Header)
 	if err != nil {
 		return err
 	}
 
-	if *block.Body != nil {
+	if block.Body != nil {
 		ext, err := block.Body.AsEncodedExtrinsics()
 		if err != nil {
 			return err
@@ -257,8 +258,9 @@ func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
 	} else {
 		res.Number = common.BytesToHex(header.Number.Bytes())
 	}
-	for _, item := range header.Digest {
-		enc, err := item.Encode()
+
+	for _, item := range header.Digest.Types {
+		enc, err := scale.Marshal(item)
 		if err != nil {
 			return ChainBlockHeaderResponse{}, err
 		}

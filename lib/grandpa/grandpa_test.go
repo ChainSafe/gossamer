@@ -48,6 +48,7 @@ import (
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
+	Digest:    types.NewDigest(),
 }
 
 var (
@@ -92,10 +93,10 @@ func newTestState(t *testing.T) *state.Service {
 	}
 }
 
-func newTestVoters() []*Voter {
-	vs := []*Voter{}
+func newTestVoters() []Voter {
+	vs := []Voter{}
 	for i, k := range kr.Keys {
-		vs = append(vs, &Voter{
+		vs = append(vs, Voter{
 			Key: k.Public().(*ed25519.PublicKey),
 			ID:  uint64(i),
 		})
@@ -129,7 +130,7 @@ func TestUpdateAuthorities(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), gs.state.setID)
 
-	next := []*Voter{
+	next := []Voter{
 		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 
@@ -1068,7 +1069,8 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 1)
 
-	primary := gs.derivePrimary().PublicKeyBytes()
+	derivePrimary := gs.derivePrimary()
+	primary := derivePrimary.PublicKeyBytes()
 	gs.prevotes.Store(primary, &SignedVote{
 		Vote: NewVoteFromHeader(header),
 	})
@@ -1087,7 +1089,8 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	primary := gs.derivePrimary().PublicKeyBytes()
+	derivePrimary := gs.derivePrimary()
+	primary := derivePrimary.PublicKeyBytes()
 	gs.prevotes.Store(primary, &SignedVote{
 		Vote: NewVoteFromHeader(header),
 	})

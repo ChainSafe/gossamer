@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package sync
 
 import (
@@ -12,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
 
@@ -24,17 +39,11 @@ const (
 
 var _ ChainSync = &chainSync{}
 
-//nolint
-type (
-	BlockRequestMessage  = network.BlockRequestMessage
-	BlockResponseMessage = network.BlockResponseMessage
-)
-
 type chainSyncState byte
 
-var (
-	bootstrap chainSyncState = 0 //nolint
-	tip       chainSyncState = 1
+const (
+	bootstrap chainSyncState = iota
+	tip
 )
 
 func chainSyncStateString(mode chainSyncState) string {
@@ -49,7 +58,7 @@ func chainSyncStateString(mode chainSyncState) string {
 }
 
 // TODO: determine ideal limit for pending blocks set
-var pendingBlocksLimit = MAX_RESPONSE_SIZE * 32
+var pendingBlocksLimit = maxResponseSize * 32
 
 // peerState tracks our peers's best reported blocks
 type peerState struct {
@@ -62,9 +71,9 @@ type peerState struct {
 // and stored pending work (ie. pending blocks set)
 // workHandler should be implemented by `bootstrapSync` and `tipSync`
 type workHandler interface {
-	// handleWork optionally returns a new worker based on a peerState.
+	// handleNewPeerState optionally returns a new worker based on a peerState.
 	// returned worker may be nil, in which case we do nothing
-	handleWork(*peerState) (*worker, error)
+	handleNewPeerState(*peerState) (*worker, error)
 
 	// handleWorkerResult handles the result of a worker, which may be
 	// nil or error. optionally returns a new worker to be dispatched.
@@ -188,6 +197,7 @@ func (cs *chainSync) start() {
 		if n >= 1 {
 			break
 		}
+		time.Sleep(time.Millisecond * 100)
 	}
 
 	go cs.sync()
@@ -243,12 +253,10 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
-		ourHash, err := cs.blockState.GetHashByNumber(ps.number)
+		ourHash, err := cs.blockState.GetHashByNumber(ps.number) //nolint
 		if err != nil {
 			return err
 		}
-
-		fmt.Println(ourHash, ps.hash)
 
 		if ourHash.Equal(ps.hash) {
 			return nil
@@ -442,19 +450,19 @@ func (cs *chainSync) maybeSwitchMode() {
 	}
 
 	target := cs.getTarget()
-	if big.NewInt(0).Add(head.Number, big.NewInt(MAX_RESPONSE_SIZE)).Cmp(target) == -1 {
+	if big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) == -1 {
 		// we are 128 blocks or more behind the target, switch to bootstrap mode
-		cs.switchMode(bootstrap)
+		cs.setMode(bootstrap)
 	} else if head.Number.Cmp(target) >= 0 {
 		// bootstrap complete, switch state to tip if not already
 		// and begin near-head fork-sync
-		cs.switchMode(tip)
+		cs.setMode(tip)
 	}
 }
 
-// switchMode stops all existing workers and clears the worker set and switches the `handler`
-// based on the new mode
-func (cs *chainSync) switchMode(mode chainSyncState) {
+// setMode stops all existing workers and clears the worker set and switches the `handler`
+// based on the new mode, if the mode is different than previous
+func (cs *chainSync) setMode(mode chainSyncState) {
 	if cs.state == mode {
 		return
 	}
@@ -505,7 +513,7 @@ func (cs *chainSync) getTarget() *big.Int {
 // a fork sync
 func (cs *chainSync) handleWork(ps *peerState) error {
 	logger.Trace("handling potential work", "target hash", ps.hash, "target number", ps.number)
-	worker, err := cs.handler.handleWork(ps)
+	worker, err := cs.handler.handleNewPeerState(ps)
 	if err != nil {
 		return err
 	}
@@ -586,7 +594,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 }
 
-func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
+func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	// determine which peers have the blocks we want to request
 	peers := cs.determineSyncPeers(req)
 
@@ -628,7 +636,7 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 		}
 	}
 
-	if req.Direction == DIR_DESCENDING {
+	if req.Direction == network.Descending {
 		// reverse blocks before pre-validating and placing in ready queue
 		tmp := make([]*types.BlockData, len(resp.BlockData))
 		for i, bd := range resp.BlockData {
@@ -662,18 +670,16 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
-	header, _ := types.NewHeaderFromOptional(bd.Header)
-	if header != nil {
-		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
+	if bd.Header != nil {
+		logger.Trace("new ready block", "hash", bd.Hash, "number", bd.Header.Number)
 	} else {
 		block := pendingBlocks.getBlock(bd.Hash)
-		header := block.header
-		if header == nil {
+		if block.header == nil {
 			panic("block isnt ready!!!! no header")
 		}
 
-		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
-		bd.Header = header.AsOptional()
+		logger.Trace("new ready block", "hash", bd.Hash, "number", block.header.Number)
+		bd.Header = block.header
 	}
 
 	ready := []*types.BlockData{bd}
@@ -686,9 +692,8 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 }
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
-func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
-	peers := []peer.ID{}
-
+func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
+	var peers []peer.ID
 	cs.RLock()
 	defer cs.RUnlock()
 
@@ -709,7 +714,7 @@ func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
 // 	- the response is not empty
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(who peer.ID, req *BlockRequestMessage, resp *BlockResponseMessage) error {
+func (cs *chainSync) validateResponse(who peer.ID, req *network.BlockRequestMessage, resp *network.BlockResponseMessage) error {
 	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}
@@ -729,10 +734,7 @@ func (cs *chainSync) validateResponse(who peer.ID, req *BlockRequestMessage, res
 		}
 
 		if headerRequested {
-			curr, err = types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return err
-			}
+			curr = bd.Header
 		} else {
 			// if this is a justification-only request, make sure we have the block for the justification
 			if err = cs.validateJustification(bd); err != nil {
@@ -756,14 +758,9 @@ func (cs *chainSync) validateResponse(who peer.ID, req *BlockRequestMessage, res
 			}
 
 			// parent unknown, add to pending blocks
-			body, err := types.NewBodyFromOptional(bd.Body)
-			if err != nil {
-				return fmt.Errorf("failed to convert block body from optional: hash=%s err=%s", bd.Hash, err)
-			}
-
 			if err := cs.pendingBlocks.addBlock(&types.Block{
-				Header: curr,
-				Body:   body,
+				Header: *curr,
+				Body:   *bd.Body,
 			}); err != nil {
 				return err
 			}
@@ -776,20 +773,15 @@ func (cs *chainSync) validateResponse(who peer.ID, req *BlockRequestMessage, res
 		if !prev.Hash().Equal(curr.ParentHash) || curr.Number.Cmp(big.NewInt(0).Add(prev.Number, big.NewInt(1))) != 0 {
 			// the response is missing some blocks, place blocks from curr onwards into pending blocks set
 			for _, bd := range resp.BlockData[i:] {
-				body, err := types.NewBodyFromOptional(bd.Body)
-				if err != nil {
-					return fmt.Errorf("failed to convert block body from optional: hash=%s err=%s", bd.Hash, err)
-				}
-
 				if err := cs.pendingBlocks.addBlock(&types.Block{
-					Header: curr,
-					Body:   body,
+					Header: *curr,
+					Body:   *bd.Body,
 				}); err != nil {
 					return err
 				}
 
-				if bd.Justification != nil && bd.Justification.Exists() {
-					if err := cs.pendingBlocks.addJustification(bd.Hash, bd.Justification.Value()); err != nil {
+				if bd.Justification != nil {
+					if err := cs.pendingBlocks.addJustification(bd.Hash, *bd.Justification); err != nil {
 						return err
 					}
 				}
@@ -804,18 +796,18 @@ func (cs *chainSync) validateResponse(who peer.ID, req *BlockRequestMessage, res
 }
 
 // validateBlockData checks that the expected fields are in the block data
-func validateBlockData(req *BlockRequestMessage, bd *types.BlockData) error {
+func validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData) error {
 	if bd == nil {
 		return errNilBlockData
 	}
 
 	requestedData := req.RequestedData
 
-	if (requestedData&network.RequestedDataHeader) == 1 && (bd.Header == nil || !bd.Header.Exists()) {
+	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
 		return errNilHeaderInResponse
 	}
 
-	if (requestedData&network.RequestedDataBody>>1) == 1 && (bd.Body == nil || !bd.Body.Exists()) {
+	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
 		return errNilBodyInResponse
 	}
 
@@ -829,7 +821,7 @@ func (cs *chainSync) validateJustification(bd *types.BlockData) error {
 
 	// this is ok, since the remote peer doesn't need to provide the info we request from them
 	// especially with justifications, it's common that they don't have them.
-	if bd.Justification == nil || !bd.Justification.Exists() {
+	if bd.Justification == nil {
 		return nil
 	}
 
@@ -841,7 +833,7 @@ func (cs *chainSync) validateJustification(bd *types.BlockData) error {
 	return nil
 }
 
-func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
+func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 	// worker must specify a start number
 	// empty start hash is ok (eg. in the case of bootstrap, start hash is unknown)
 	if w.startNumber == nil {
@@ -855,11 +847,11 @@ func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
 	}
 
 	diff := big.NewInt(0).Sub(w.targetNumber, w.startNumber)
-	if diff.Int64() < 0 && w.direction != DIR_DESCENDING {
+	if diff.Int64() < 0 && w.direction != network.Descending {
 		return nil, errInvalidDirection
 	}
 
-	if diff.Int64() > 0 && w.direction != DIR_ASCENDING {
+	if diff.Int64() > 0 && w.direction != network.Ascending {
 		return nil, errInvalidDirection
 	}
 
@@ -871,26 +863,24 @@ func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
 	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
 	// take absolute value of difference between start and target
 	numBlocks := int(big.NewInt(0).Abs(diff).Int64())
-	numRequests := numBlocks / MAX_RESPONSE_SIZE
+	numRequests := numBlocks / maxResponseSize
 
-	if numBlocks%MAX_RESPONSE_SIZE != 0 {
+	if numBlocks%maxResponseSize != 0 {
 		numRequests++
 	}
 
 	startNumber := w.startNumber.Uint64()
-	reqs := make([]*BlockRequestMessage, numRequests)
+	reqs := make([]*network.BlockRequestMessage, numRequests)
 
 	for i := 0; i < numRequests; i++ {
 		// check if we want to specify a size
-		var max *optional.Uint32
+		var max uint32 = maxResponseSize
 		if i == numRequests-1 {
-			size := numBlocks % MAX_RESPONSE_SIZE
+			size := numBlocks % maxResponseSize
 			if size == 0 {
-				size = MAX_RESPONSE_SIZE
+				size = maxResponseSize
 			}
-			max = optional.NewUint32(true, uint32(size))
-		} else {
-			max = optional.NewUint32(false, 0)
+			max = uint32(size)
 		}
 
 		var start *variadic.Uint64OrHash
@@ -902,21 +892,19 @@ func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
 			start, _ = variadic.NewUint64OrHash(w.startHash)
 		}
 
-		var end *optional.Hash
-		if w.targetHash.Equal(common.EmptyHash) {
-			end = optional.NewHash(false, common.Hash{})
-		} else {
-			end = optional.NewHash(true, w.targetHash)
+		var end *common.Hash
+		if !w.targetHash.Equal(common.EmptyHash) {
+			end = &w.targetHash // TODO: change worker targetHash to ptr?
 		}
 
-		reqs[i] = &BlockRequestMessage{
+		reqs[i] = &network.BlockRequestMessage{
 			RequestedData: w.requestData,
-			StartingBlock: start,
+			StartingBlock: *start,
 			EndBlockHash:  end,
 			Direction:     w.direction,
-			Max:           max,
+			Max:           &max,
 		}
-		startNumber += MAX_RESPONSE_SIZE
+		startNumber += maxResponseSize
 	}
 
 	return reqs, nil

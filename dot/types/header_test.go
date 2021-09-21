@@ -17,74 +17,105 @@
 package types
 
 import (
-	"bytes"
 	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestDecodeHeader(t *testing.T) {
-	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
+func TestEmptyHeader(t *testing.T) {
+	head := NewEmptyHeader()
+	isEmpty := head.Empty()
+	require.True(t, isEmpty)
+
+	head.Number = big.NewInt(21)
+	isEmpty = head.Empty()
+	require.False(t, isEmpty)
+
+	vdts := NewDigest()
+	err := vdts.Add(
+		PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		},
+	)
 	require.NoError(t, err)
 
-	enc, err := header.Encode()
+	head2, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), vdts)
 	require.NoError(t, err)
 
-	rw := &bytes.Buffer{}
-	rw.Write(enc)
-	dec, err := new(Header).Decode(rw)
+	isEmpty = head2.Empty()
+	require.False(t, isEmpty)
+
+	head3, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(21), vdts)
 	require.NoError(t, err)
-	dec.Hash()
-	require.Equal(t, header, dec)
+
+	isEmpty = head3.Empty()
+	require.False(t, isEmpty)
 }
 
-func TestMustEncodeHeader(t *testing.T) {
-	bh1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
-	require.NoError(t, err)
-	enc, err := bh1.Encode()
+func TestEncodeAndDecodeHeader(t *testing.T) {
+	expected, err := common.HexToBytes("0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0642414245340201000000ef55a50f00000000044241424549040118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000054241424501014625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d")
 	require.NoError(t, err)
 
-	testDigest := Digest{
-		&PreRuntimeDigest{
+	vdts := NewDigest()
+	err = vdts.Add(
+		PreRuntimeDigest{
 			ConsensusEngineID: BabeEngineID,
-			Data:              []byte{1, 2, 3},
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
 		},
-		&SealDigest{
+		ConsensusDigest{
 			ConsensusEngineID: BabeEngineID,
-			Data:              []byte{4, 5, 6, 7},
+			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		},
-	}
-
-	bh2, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), testDigest)
+		SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"),
+		},
+	)
 	require.NoError(t, err)
-	enc2, err := bh2.Encode()
+
+	headerVdt, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), vdts)
 	require.NoError(t, err)
 
-	tests := []struct {
-		name string
-		take *Header
-		want []byte
-	}{
-		{
-			name: "correct",
-			take: bh1,
-			want: enc,
-		},
-		{
-			name: "correct2",
-			take: bh2,
-			want: enc2,
-		},
-	}
+	encVdt, err := scale.Marshal(*headerVdt)
+	require.NoError(t, err)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.take.MustEncode(); !bytes.Equal(got, tt.want) {
-				t.Errorf("MustEncode() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	require.Equal(t, expected, encVdt)
+
+	var decVdt = NewEmptyHeader()
+	err = scale.Unmarshal(encVdt, decVdt)
+	require.NoError(t, err)
+	decVdt.Hash()
+	require.Equal(t, headerVdt, decVdt)
+}
+
+func TestHeaderDeepCopy(t *testing.T) {
+	vdts := NewDigest()
+	err := vdts.Add(
+		PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		},
+		ConsensusDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+		SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"),
+		},
+	)
+	require.NoError(t, err)
+
+	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(1), vdts)
+	require.NoError(t, err)
+
+	dc, err := header.DeepCopy()
+	require.NoError(t, err)
+	dc.Hash()
+	require.Equal(t, header, dc)
 }

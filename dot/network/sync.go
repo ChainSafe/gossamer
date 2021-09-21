@@ -52,6 +52,10 @@ func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockRe
 }
 
 func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessage, error) {
+	// allocating a new (large) buffer every time slows down the syncing by a dramatic amount,
+	// as malloc is one of the most CPU intensive tasks.
+	// thus we should allocate buffers at startup and re-use them instead of allocating new ones each time.
+	//
 	// TODO: should we create another buffer pool for block response buffers?
 	// for bootstrap this is ok since it's not parallelized, but will need to be updated for tip-mode
 	s.blockResponseBufMu.Lock()

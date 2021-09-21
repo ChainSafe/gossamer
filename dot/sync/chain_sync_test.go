@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package sync
 
 import (
@@ -11,7 +27,6 @@ import (
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -24,20 +39,20 @@ import (
 var testTimeout = time.Second * 5
 
 func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0), types.Digest{})
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	bs := new(syncmocks.MockBlockState)
 	bs.On("BestBlockHeader").Return(header, nil)
 	bs.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).Return(byte(0), nil)
+	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	net := new(syncmocks.MockNetwork)
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
-	readyBlocks := newBlockQueue(MAX_RESPONSE_SIZE)
+	readyBlocks := newBlockQueue(maxResponseSize)
 	cs, err := newChainSync(bs, net, readyBlocks)
 	require.NoError(t, err)
-
 	return cs, readyBlocks
 }
 
@@ -60,10 +75,10 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 
 	// test case where peer has a lower head than us, but they are on the same chain as us
 	cs.blockState = new(syncmocks.MockBlockState)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.Digest{})
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.MockBlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(998), types.Digest{})
+	fin, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(998), types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.MockBlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
 	cs.blockState.(*syncmocks.MockBlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(hash, nil)
@@ -85,7 +100,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	// test case where peer has a lower head than us, and they are on an invalid fork
 	cs.blockState = new(syncmocks.MockBlockState)
 	cs.blockState.(*syncmocks.MockBlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.Digest{})
+	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.MockBlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
 	cs.blockState.(*syncmocks.MockBlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
@@ -107,7 +122,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	// test case where peer has a lower head than us, but they are on a valid fork (that is not our chain)
 	cs.blockState = new(syncmocks.MockBlockState)
 	cs.blockState.(*syncmocks.MockBlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(998), types.Digest{})
+	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(998), types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.MockBlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
 	cs.blockState.(*syncmocks.MockBlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
@@ -158,7 +173,7 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 func TestChainSync_sync_tip(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 	cs.blockState = new(syncmocks.MockBlockState)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.Digest{})
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.MockBlockState).On("BestBlockHeader").Return(header, nil)
 
@@ -212,55 +227,61 @@ func TestWorkerToRequests(t *testing.T) {
 	w = &worker{
 		startNumber:  big.NewInt(10),
 		targetNumber: big.NewInt(1),
-		direction:    DIR_ASCENDING,
+		direction:    network.Ascending,
 	}
 	_, err = workerToRequests(w)
 	require.Equal(t, errInvalidDirection, err)
 
 	type testCase struct {
 		w        *worker
-		expected []*BlockRequestMessage
+		expected []*network.BlockRequestMessage
 	}
+
+	var (
+		max128 = uint32(128)
+		max9   = uint32(9)
+		max64  = uint32(64)
+	)
 
 	testCases := []testCase{
 		{
 			w: &worker{
 				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + MAX_RESPONSE_SIZE),
-				direction:    DIR_ASCENDING,
+				targetNumber: big.NewInt(1 + maxResponseSize),
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: variadic.MustNewUint64OrHash(1),
-					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(true, uint32(128)),
+					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  nil,
+					Direction:     network.Ascending,
+					Max:           &max128,
 				},
 			},
 		},
 		{
 			w: &worker{
 				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + (MAX_RESPONSE_SIZE * 2)),
-				direction:    DIR_ASCENDING,
+				targetNumber: big.NewInt(1 + (maxResponseSize * 2)),
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: variadic.MustNewUint64OrHash(1),
-					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(false, 0),
+					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  nil,
+					Direction:     network.Ascending,
+					Max:           &max128,
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-					StartingBlock: variadic.MustNewUint64OrHash(1 + MAX_RESPONSE_SIZE),
-					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(true, uint32(128)),
+					StartingBlock: *variadic.MustNewUint64OrHash(1 + maxResponseSize),
+					EndBlockHash:  nil,
+					Direction:     network.Ascending,
+					Max:           &max128,
 				},
 			},
 		},
@@ -268,16 +289,16 @@ func TestWorkerToRequests(t *testing.T) {
 			w: &worker{
 				startNumber:  big.NewInt(1),
 				targetNumber: big.NewInt(10),
-				direction:    DIR_ASCENDING,
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: variadic.MustNewUint64OrHash(1),
-					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(true, 9),
+					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  nil,
+					Direction:     network.Ascending,
+					Max:           &max9,
 				},
 			},
 		},
@@ -285,40 +306,40 @@ func TestWorkerToRequests(t *testing.T) {
 			w: &worker{
 				startNumber:  big.NewInt(10),
 				targetNumber: big.NewInt(1),
-				direction:    DIR_DESCENDING,
+				direction:    network.Descending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: variadic.MustNewUint64OrHash(10),
-					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_DESCENDING,
-					Max:           optional.NewUint32(true, 9),
+					StartingBlock: *variadic.MustNewUint64OrHash(10),
+					EndBlockHash:  nil,
+					Direction:     network.Descending,
+					Max:           &max9,
 				},
 			},
 		},
 		{
 			w: &worker{
 				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + MAX_RESPONSE_SIZE + (MAX_RESPONSE_SIZE / 2)),
-				direction:    DIR_ASCENDING,
+				targetNumber: big.NewInt(1 + maxResponseSize + (maxResponseSize / 2)),
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: variadic.MustNewUint64OrHash(1),
-					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(false, 0),
+					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  nil,
+					Direction:     network.Ascending,
+					Max:           &max128,
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-					StartingBlock: variadic.MustNewUint64OrHash(1 + MAX_RESPONSE_SIZE),
-					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(true, uint32(MAX_RESPONSE_SIZE/2)),
+					StartingBlock: *variadic.MustNewUint64OrHash(1 + maxResponseSize),
+					EndBlockHash:  nil,
+					Direction:     network.Ascending,
+					Max:           &max64,
 				},
 			},
 		},
@@ -327,16 +348,16 @@ func TestWorkerToRequests(t *testing.T) {
 				startNumber:  big.NewInt(1),
 				targetNumber: big.NewInt(10),
 				targetHash:   common.Hash{0xa},
-				direction:    DIR_ASCENDING,
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: variadic.MustNewUint64OrHash(1),
-					EndBlockHash:  optional.NewHash(true, common.Hash{0xa}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(true, 9),
+					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  &(common.Hash{0xa}),
+					Direction:     network.Ascending,
+					Max:           &max9,
 				},
 			},
 		},
@@ -346,16 +367,16 @@ func TestWorkerToRequests(t *testing.T) {
 				startHash:    common.Hash{0xb},
 				targetNumber: big.NewInt(10),
 				targetHash:   common.Hash{0xc},
-				direction:    DIR_ASCENDING,
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: variadic.MustNewUint64OrHash(common.Hash{0xb}),
-					EndBlockHash:  optional.NewHash(true, common.Hash{0xc}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(true, 9),
+					StartingBlock: *variadic.MustNewUint64OrHash(common.Hash{0xb}),
+					EndBlockHash:  &(common.Hash{0xc}),
+					Direction:     network.Ascending,
+					Max:           &max9,
 				},
 			},
 		},
@@ -370,7 +391,7 @@ func TestWorkerToRequests(t *testing.T) {
 }
 
 func TestValidateBlockData(t *testing.T) {
-	req := &BlockRequestMessage{
+	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
 	}
 
@@ -381,39 +402,39 @@ func TestValidateBlockData(t *testing.T) {
 	require.Equal(t, errNilHeaderInResponse, err)
 
 	err = validateBlockData(req, &types.BlockData{
-		Header: &optional.Header{},
+		Header: &types.Header{},
 	})
 	require.Equal(t, errNilBodyInResponse, err)
 
 	err = validateBlockData(req, &types.BlockData{
-		Header: &optional.Header{},
-		Body:   &optional.Body{},
+		Header: &types.Header{},
+		Body:   &types.Body{},
 	})
 	require.NoError(t, err)
 }
 
 func TestChainSync_validateResponse(t *testing.T) {
 	cs, _ := newTestChainSync(t)
-	err := cs.validateResponse(nil, nil)
+	err := cs.validateResponse("", nil, nil)
 	require.Equal(t, errEmptyBlockData, err)
 
-	req := &BlockRequestMessage{
+	req := &network.BlockRequestMessage{
 		RequestedData: network.RequestedDataHeader,
 	}
 
-	resp := &BlockResponseMessage{
+	resp := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					Number: big.NewInt(1),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					Number: big.NewInt(2),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 		},
 	}
@@ -421,7 +442,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 	hash := (&types.Header{
 		Number: big.NewInt(2),
 	}).Hash()
-	err = cs.validateResponse(req, resp)
+	err = cs.validateResponse("", req, resp)
 	require.Equal(t, errResponseIsNotChain, err)
 	require.True(t, cs.pendingBlocks.hasBlock(hash))
 	cs.pendingBlocks.removeBlock(hash)
@@ -429,20 +450,20 @@ func TestChainSync_validateResponse(t *testing.T) {
 	parent := (&types.Header{
 		Number: big.NewInt(1),
 	}).Hash()
-	resp = &BlockResponseMessage{
+	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					Number: big.NewInt(1),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					ParentHash: parent,
 					Number:     big.NewInt(3),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 		},
 	}
@@ -451,7 +472,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 		ParentHash: parent,
 		Number:     big.NewInt(3),
 	}).Hash()
-	err = cs.validateResponse(req, resp)
+	err = cs.validateResponse("", req, resp)
 	require.Equal(t, errResponseIsNotChain, err)
 	require.True(t, cs.pendingBlocks.hasBlock(hash))
 	cs.pendingBlocks.removeBlock(hash)
@@ -459,25 +480,25 @@ func TestChainSync_validateResponse(t *testing.T) {
 	parent = (&types.Header{
 		Number: big.NewInt(2),
 	}).Hash()
-	resp = &BlockResponseMessage{
+	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					Number: big.NewInt(2),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					ParentHash: parent,
 					Number:     big.NewInt(3),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 		},
 	}
 
-	err = cs.validateResponse(req, resp)
+	err = cs.validateResponse("", req, resp)
 	require.NoError(t, err)
 	require.False(t, cs.pendingBlocks.hasBlock(hash))
 }
@@ -485,12 +506,13 @@ func TestChainSync_validateResponse(t *testing.T) {
 func TestChainSync_doSync(t *testing.T) {
 	cs, readyBlocks := newTestChainSync(t)
 
-	req := &BlockRequestMessage{
+	max := uint32(1)
+	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
-		StartingBlock: variadic.MustNewUint64OrHash(1),
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     DIR_ASCENDING,
-		Max:           optional.NewUint32(true, uint32(1)),
+		StartingBlock: *variadic.MustNewUint64OrHash(1),
+		EndBlockHash:  nil,
+		Direction:     network.Ascending,
+		Max:           &max,
 	}
 
 	workerErr := cs.doSync(req)
@@ -505,13 +527,13 @@ func TestChainSync_doSync(t *testing.T) {
 	require.NotNil(t, workerErr)
 	require.Equal(t, errNilResponse, workerErr.err)
 
-	resp := &BlockResponseMessage{
+	resp := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					Number: big.NewInt(1),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 		},
 	}
@@ -528,26 +550,26 @@ func TestChainSync_doSync(t *testing.T) {
 	parent := (&types.Header{
 		Number: big.NewInt(2),
 	}).Hash()
-	resp = &BlockResponseMessage{
+	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					ParentHash: parent,
 					Number:     big.NewInt(3),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 			{
-				Header: (&types.Header{
+				Header: &types.Header{
 					Number: big.NewInt(2),
-				}).AsOptional(),
-				Body: (&types.Body{}).AsOptional(),
+				},
+				Body: &types.Body{},
 			},
 		},
 	}
 
 	// test to see if descending blocks get reversed
-	req.Direction = DIR_DESCENDING
+	req.Direction = network.Descending
 	cs.network = new(syncmocks.MockNetwork)
 	cs.network.(*syncmocks.MockNetwork).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 	workerErr = cs.doSync(req)
@@ -570,8 +592,8 @@ func TestHandleReadyBlock(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 	block1 := &types.Block{
-		Header: header1,
-		Body:   &types.Body{},
+		Header: *header1,
+		Body:   types.Body{},
 	}
 
 	header2 := &types.Header{
@@ -579,8 +601,8 @@ func TestHandleReadyBlock(t *testing.T) {
 		Number:     big.NewInt(2),
 	}
 	block2 := &types.Block{
-		Header: header2,
-		Body:   &types.Body{},
+		Header: *header2,
+		Body:   types.Body{},
 	}
 	cs.pendingBlocks.addBlock(block2)
 
@@ -589,8 +611,8 @@ func TestHandleReadyBlock(t *testing.T) {
 		Number:     big.NewInt(3),
 	}
 	block3 := &types.Block{
-		Header: header3,
-		Body:   &types.Body{},
+		Header: *header3,
+		Body:   types.Body{},
 	}
 	cs.pendingBlocks.addBlock(block3)
 
@@ -599,8 +621,8 @@ func TestHandleReadyBlock(t *testing.T) {
 		Number:     big.NewInt(2),
 	}
 	block2NotDescendant := &types.Block{
-		Header: header2NotDescendant,
-		Body:   &types.Body{},
+		Header: *header2NotDescendant,
+		Body:   types.Body{},
 	}
 	cs.pendingBlocks.addBlock(block2NotDescendant)
 

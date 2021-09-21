@@ -6,7 +6,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -21,13 +20,13 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
-			Header: &types.Header{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
 				StateRoot:  trie.EmptyHash,
-				Digest:     types.Digest{},
+				Digest:     types.NewDigest(),
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
 		previousHash = block.Header.Hash()
@@ -39,43 +38,44 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	start, err := variadic.NewUint64OrHash(uint64(1))
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0,
-		Max:           optional.NewUint32(false, 0),
+		Max:           nil,
 	}
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(MAX_RESPONSE_SIZE), len(resp.BlockData))
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 
+	max := uint32(maxResponseSize + 100)
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0,
-		Max:           optional.NewUint32(true, MAX_RESPONSE_SIZE+100),
+		Max:           &max,
 	}
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(MAX_RESPONSE_SIZE), len(resp.BlockData))
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 }
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
 	require.NoError(t, err)
@@ -85,22 +85,22 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0,
-		Max:           optional.NewUint32(false, 0),
+		Max:           nil,
 	}
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(MAX_RESPONSE_SIZE), len(resp.BlockData))
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 }
 
 func TestService_CreateBlockResponse_Descending(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
 	require.NoError(t, err)
@@ -110,15 +110,15 @@ func TestService_CreateBlockResponse_Descending(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+		Max:           nil,
 	}
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(MAX_RESPONSE_SIZE), len(resp.BlockData))
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, big.NewInt(128), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(1), resp.BlockData[127].Number())
 }
@@ -144,11 +144,14 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	// set receipt message and justification
+	a := []byte("asdf")
+	b := []byte("ghjkl")
+	c := []byte("qwerty")
 	bds = &types.BlockData{
 		Hash:          bestHash,
-		Receipt:       optional.NewBytes(true, []byte("asdf")),
-		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
-		Justification: optional.NewBytes(true, []byte("qwerty")),
+		Receipt:       &a,
+		MessageQueue:  &b,
+		Justification: &c,
 	}
 
 	endHash := s.blockState.BestBlockHash()
@@ -167,17 +170,17 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			description: "test get Header and Body",
 			value: &network.BlockRequestMessage{
 				RequestedData: 3,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
+				StartingBlock: *start,
+				EndBlockHash:  &endHash,
 				Direction:     0,
-				Max:           optional.NewUint32(false, 0),
+				Max:           nil,
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
-						Header: bestBlock.Header.AsOptional(),
-						Body:   bestBlock.Body.AsOptional(),
+						Header: &bestBlock.Header,
+						Body:   &bestBlock.Body,
 					},
 				},
 			},
@@ -186,17 +189,17 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			description: "test get Header",
 			value: &network.BlockRequestMessage{
 				RequestedData: 1,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
+				StartingBlock: *start,
+				EndBlockHash:  &endHash,
 				Direction:     0,
-				Max:           optional.NewUint32(false, 0),
+				Max:           nil,
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
-						Header: bestBlock.Header.AsOptional(),
-						Body:   optional.NewBody(false, nil),
+						Header: &bestBlock.Header,
+						Body:   nil,
 					},
 				},
 			},
@@ -205,17 +208,17 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			description: "test get Receipt",
 			value: &network.BlockRequestMessage{
 				RequestedData: 4,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
+				StartingBlock: *start,
+				EndBlockHash:  &endHash,
 				Direction:     0,
-				Max:           optional.NewUint32(false, 0),
+				Max:           nil,
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
 						Hash:    optional.NewHash(true, bestHash).Value(),
-						Header:  optional.NewHeader(false, nil),
-						Body:    optional.NewBody(false, nil),
+						Header:  nil,
+						Body:    nil,
 						Receipt: bds.Receipt,
 					},
 				},
@@ -225,17 +228,17 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			description: "test get MessageQueue",
 			value: &network.BlockRequestMessage{
 				RequestedData: 8,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
+				StartingBlock: *start,
+				EndBlockHash:  &endHash,
 				Direction:     0,
-				Max:           optional.NewUint32(false, 0),
+				Max:           nil,
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
 						Hash:         optional.NewHash(true, bestHash).Value(),
-						Header:       optional.NewHeader(false, nil),
-						Body:         optional.NewBody(false, nil),
+						Header:       nil,
+						Body:         nil,
 						MessageQueue: bds.MessageQueue,
 					},
 				},
