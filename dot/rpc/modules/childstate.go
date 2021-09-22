@@ -28,7 +28,7 @@ func NewChildStateModule(s StorageAPI, b BlockAPI) *ChildStateModule {
 }
 
 // GetKeys returns the keys from the specified child storage. The keys can also be filtered based on a prefix.
-func (cs *ChildStateModule) GetKeys(r *http.Request, req *GetKeysRequest, res *[]string) error {
+func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[]string) error {
 	if req.Hash == common.EmptyHash {
 		req.Hash = cs.blockAPI.BestBlockHash()
 	}
