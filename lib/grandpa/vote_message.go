@@ -69,7 +69,7 @@ func (s *Service) receiveMessages(ctx context.Context) {
 	}
 }
 
-func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*SignedVote, *VoteMessage, error) {
+func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*SignedVote, *VoteMessage, error) {
 	msg, err := scale2.Marshal(FullVote{
 		Stage: stage,
 		Vote:  *vote,
@@ -230,7 +230,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage subround) bool {
+func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) bool {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification

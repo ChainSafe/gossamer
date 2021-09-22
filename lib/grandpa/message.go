@@ -39,7 +39,7 @@ func NewGrandpaMessage() scale.VaryingDataType {
 // FullVote represents a vote with additional information about the state
 // this is encoded and signed and the signature is included in SignedMessage
 type FullVote struct {
-	Stage subround
+	Stage Subround
 	Vote  Vote
 	Round uint64
 	SetID uint64
@@ -47,7 +47,7 @@ type FullVote struct {
 
 // SignedMessage represents a block hash and number signed by an authority
 type SignedMessage struct {
-	Stage       subround // 0 for pre-vote, 1 for pre-commit, 2 for primary proposal
+	Stage       Subround // 0 for pre-vote, 1 for pre-commit, 2 for primary proposal
 	Hash        common.Hash
 	Number      uint32
 	Signature   [64]byte // ed25519.SignatureLength

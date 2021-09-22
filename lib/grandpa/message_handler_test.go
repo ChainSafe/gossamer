@@ -45,7 +45,7 @@ func newTestDigest() scale.VaryingDataTypeSlice {
 	return digest
 }
 
-func buildTestJustificationNew(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []SignedVote {
+func buildTestJustificationNew(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
 	var just []SignedVote
 	for i := 0; i < qty; i++ {
 		j := SignedVote{
@@ -59,7 +59,7 @@ func buildTestJustificationNew(t *testing.T, qty int, round, setID uint64, kr *k
 
 }
 
-func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *ed25519.Keypair, subround subround) [64]byte {
+func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
 	// create vote message
 	msg, err := scale.Marshal(FullVote{
 		Stage: subround,

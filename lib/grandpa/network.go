@@ -72,7 +72,6 @@ func (hs *GrandpaHandshake) Decode(in []byte) error {
 		return err
 	}
 
-	//hs.Roles = msg.(*GrandpaHandshake).Roles
 	return nil
 }
 

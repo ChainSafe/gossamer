@@ -114,7 +114,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
 			// TODO: make this synchronous
 			go h.grandpa.network.SendBlockReqestByHash(msg.Vote.Hash)
-			h.grandpa.tracker.addCommitNew(msg)
+			h.grandpa.tracker.addCommit(msg)
 		}
 		return err
 	}
@@ -336,7 +336,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	return nil
 }
 
-func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage subround) error {
+func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage Subround) error {
 	// verify signature
 	msg, err := scale.Marshal(FullVote{
 		Stage: stage,

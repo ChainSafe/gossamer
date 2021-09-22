@@ -18,8 +18,6 @@ package grandpa
 
 import (
 	"bytes"
-	"io"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -33,37 +31,15 @@ type (
 	SignedVote = types.GrandpaSignedVoteNew
 )
 
-type subround byte
+type Subround byte
 
 var (
-	prevote         subround
-	precommit       subround = 1
-	primaryProposal subround = 2
+	prevote         Subround
+	precommit       Subround = 1
+	primaryProposal Subround = 2
 )
 
-func (s subround) Encode() ([]byte, error) {
-	return []byte{byte(s)}, nil
-}
-
-func (s subround) Decode(r io.Reader) (subround, error) {
-	b, err := common.ReadByte(r)
-	if err != nil {
-		return 255, nil
-	}
-
-	switch b {
-	case 0:
-		return prevote, nil
-	case 1:
-		return precommit, nil
-	case 2:
-		return primaryProposal, nil
-	default:
-		return 255, ErrCannotDecodeSubround
-	}
-}
-
-func (s subround) String() string {
+func (s Subround) String() string {
 	switch s {
 	case prevote:
 		return "prevote"

@@ -83,17 +83,11 @@ func (t *tracker) addVote(v *networkVoteMessage) {
 	msgs[v.msg.Message.AuthorityID] = v
 }
 
-func (t *tracker) addCommitNew(cm *CommitMessage) {
+func (t *tracker) addCommit(cm *CommitMessage) {
 	t.mapLock.Lock()
 	defer t.mapLock.Unlock()
 	t.commitMessages[cm.Vote.Hash] = cm
 }
-
-//func (t *tracker) addCommit(cm *CommitMessage) {
-//	t.mapLock.Lock()
-//	defer t.mapLock.Unlock()
-//	t.commitMessages[cm.Vote.Hash] = cm
-//}
 
 func (t *tracker) handleBlocks() {
 	for {
