@@ -310,7 +310,7 @@ func (sm *StateModule) GetReadProof(r *http.Request, req *StateGetReadProofReque
 
 	var decProof []string
 	for _, p := range proofs {
-		decProof = append(decProof, fmt.Sprintf("0x%x", p))
+		decProof = append(decProof, common.BytesToHex(p))
 	}
 
 	*res = StateGetReadProofResponse{
