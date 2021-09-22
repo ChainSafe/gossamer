@@ -24,6 +24,7 @@ import (
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -377,6 +378,10 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 		return ErrVoterNotFound
 	}
 	return nil
+}
+
+func (s *Service) ReportPeer(peerId peer.ID, reputationChange peerset.ReputationChange) {
+
 }
 
 // VerifyBlockJustification verifies the finality justification for a block

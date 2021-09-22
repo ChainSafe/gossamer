@@ -245,6 +245,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if enabled := networkServiceEnabled(cfg); enabled {
 		// create network service and append network service to node services
 		networkSrvc, err = createNetworkService(cfg, stateSrvc)
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to create network service: %s", err)
 		}

@@ -84,6 +84,7 @@ type BabeVerifier interface {
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
 	VerifyBlockJustification(common.Hash, []byte) error
+	//ReportPeer()
 }
 
 // BlockImportHandler is the interface for the handler of newly imported blocks
