@@ -30,17 +30,17 @@ type BabeConfiguration struct {
 	EpochLength        uint64 // duration of epoch in slots
 	C1                 uint64 // (1-(c1/c2)) is the probability of a slot being empty
 	C2                 uint64
-	GenesisAuthorities []*AuthorityRaw
+	GenesisAuthorities []AuthorityRaw
 	Randomness         [RandomnessLength]byte
 	SecondarySlots     byte
 }
 
 // BABEAuthorityRawToAuthority turns a slice of BABE AuthorityRaw into a slice of Authority
-func BABEAuthorityRawToAuthority(adr []*AuthorityRaw) ([]*Authority, error) {
-	ad := make([]*Authority, len(adr))
+func BABEAuthorityRawToAuthority(adr []AuthorityRaw) ([]Authority, error) {
+	ad := make([]Authority, len(adr))
 	for i, r := range adr {
-		ad[i] = new(Authority)
-		err := ad[i].FromRawSr25519(r)
+		ad[i] = Authority{}
+		err := ad[i].FromRawSr25519(&r) //nolint
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func BABEAuthorityRawToAuthority(adr []*AuthorityRaw) ([]*Authority, error) {
 
 // EpochData is the data provided for a BABE epoch
 type EpochData struct {
-	Authorities []*Authority
+	Authorities []Authority
 	Randomness  [RandomnessLength]byte
 }
 
@@ -61,9 +61,9 @@ func (d *EpochData) ToEpochDataRaw() *EpochDataRaw {
 		Randomness: d.Randomness,
 	}
 
-	rawAuths := make([]*AuthorityRaw, len(d.Authorities))
+	rawAuths := make([]AuthorityRaw, len(d.Authorities))
 	for i, auth := range d.Authorities {
-		rawAuths[i] = auth.ToRaw()
+		rawAuths[i] = *auth.ToRaw()
 	}
 
 	raw.Authorities = rawAuths
@@ -72,7 +72,7 @@ func (d *EpochData) ToEpochDataRaw() *EpochDataRaw {
 
 // EpochDataRaw is the data provided for an epoch, with Authority as AuthorityRaw
 type EpochDataRaw struct {
-	Authorities []*AuthorityRaw
+	Authorities []AuthorityRaw
 	Randomness  [RandomnessLength]byte
 }
 
@@ -100,12 +100,11 @@ type ConfigData struct {
 
 // GetSlotFromHeader returns the BABE slot from the given header
 func GetSlotFromHeader(header *Header) (uint64, error) {
-	if len(header.Digest) == 0 {
+	if len(header.Digest.Types) == 0 {
 		return 0, fmt.Errorf("chain head missing digest")
 	}
 
-	digestItem := header.Digest[0]
-	preDigest, ok := digestItem.(*PreRuntimeDigest)
+	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-digest")
 	}

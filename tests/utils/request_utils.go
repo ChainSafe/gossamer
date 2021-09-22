@@ -29,6 +29,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -159,19 +160,19 @@ func NewEndpoint(port string) string {
 	return "http://" + HOSTNAME + ":" + port
 }
 
-func rpcLogsToDigest(t *testing.T, logs []string) types.Digest {
-	digest := types.Digest{}
+func rpcLogsToDigest(t *testing.T, logs []string) scale.VaryingDataTypeSlice {
+	digest := types.NewDigest()
 
 	for _, l := range logs {
 		itemBytes, err := common.HexToBytes(l)
 		require.NoError(t, err)
 
-		r := &bytes.Buffer{}
-		_, _ = r.Write(itemBytes)
-		item, err := types.DecodeDigestItem(r)
+		var di = types.NewDigestItem()
+		err = scale.Unmarshal(itemBytes, &di)
 		require.NoError(t, err)
 
-		digest = append(digest, item)
+		err = digest.Add(di.Value())
+		require.NoError(t, err)
 	}
 
 	return digest

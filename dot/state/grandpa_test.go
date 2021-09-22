@@ -29,7 +29,7 @@ import (
 
 var (
 	kr, _     = keystore.NewEd25519Keyring()
-	testAuths = []*types.GrandpaVoter{
+	testAuths = []types.GrandpaVoter{
 		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 )
@@ -57,7 +57,7 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	testAuths2 := []*types.GrandpaVoter{
+	testAuths2 := []types.GrandpaVoter{
 		{Key: kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
 	}
 
@@ -91,7 +91,7 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	testAuths2 := []*types.GrandpaVoter{
+	testAuths2 := []types.GrandpaVoter{
 		{Key: kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
 	}
 

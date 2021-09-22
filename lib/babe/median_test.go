@@ -98,13 +98,16 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		predigest, err := builder.buildBlockPreDigest(slot)
 		require.NoError(t, err)
 
+		digest := types.NewDigest()
+		err = digest.Add(*predigest)
+		require.NoError(t, err)
 		block := &types.Block{
-			Header: &types.Header{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest:     types.Digest{predigest},
+				Digest:     digest,
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
 		arrivalTime := previousAT.Add(duration)
@@ -164,13 +167,16 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	predigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
+	digest := types.NewDigest()
+	err = digest.Add(predigest)
+	require.NoError(t, err)
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: genesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
-			Digest:     types.Digest{predigest},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
 	arrivalTime := time.Now().UnixNano() - slot.duration.Nanoseconds()

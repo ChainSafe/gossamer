@@ -493,12 +493,12 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	require.NoError(t, err)
 
 	b := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
 			Number:     big.NewInt(2),
 			StateRoot:  sr1,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *types.NewBody([]byte{}),
 	}
 
 	err = chain.Block.AddBlock(b)

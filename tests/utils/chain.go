@@ -141,7 +141,7 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	require.NoError(t, err, fmt.Sprintf("%v", block.Block.Body))
 
 	return &types.Block{
-		Header: h,
-		Body:   b,
+		Header: *h,
+		Body:   *b,
 	}
 }

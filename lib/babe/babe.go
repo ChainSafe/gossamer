@@ -76,7 +76,7 @@ type ServiceConfig struct {
 	BlockImportHandler   BlockImportHandler
 	Keypair              *sr25519.Keypair
 	Runtime              runtime.Instance
-	AuthData             []*types.Authority
+	AuthData             []types.Authority
 	IsDev                bool
 	ThresholdNumerator   uint64 // for development purposes
 	ThresholdDenominator uint64 // for development purposes
@@ -303,7 +303,7 @@ func (b *Service) Stop() error {
 }
 
 // Authorities returns the current BABE authorities
-func (b *Service) Authorities() []*types.Authority {
+func (b *Service) Authorities() []types.Authority {
 	return b.epochData.authorities
 }
 
@@ -312,7 +312,7 @@ func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
 }
 
-func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint32, error) {
+func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, error) {
 	if !b.authority {
 		return 0, ErrNotAuthority
 	}
@@ -484,7 +484,10 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 
 	// there is a chance that the best block header may change in the course of building the block,
 	// so let's copy it first.
-	parent := parentHeader.DeepCopy()
+	parent, err := parentHeader.DeepCopy()
+	if err != nil {
+		return err
+	}
 
 	currentSlot := Slot{
 		start:    time.Now(),

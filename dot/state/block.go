@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sync"
 	"time"
 
@@ -31,6 +30,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
@@ -236,7 +237,7 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 
 // GetHeader returns a BlockHeader for a given hash
 func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
-	result := new(types.Header)
+	result := types.NewEmptyHeader()
 
 	if bs.db == nil {
 		return nil, fmt.Errorf("database is nil")
@@ -251,18 +252,12 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 		return nil, err
 	}
 
-	rw := &bytes.Buffer{}
-	_, err = rw.Write(data)
+	err = scale.Unmarshal(data, result)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = result.Decode(rw)
-	if err != nil {
-		return nil, err
-	}
-
-	if reflect.DeepEqual(result, new(types.Header)) {
+	if result.Empty() {
 		return nil, chaindb.ErrKeyNotFound
 	}
 
@@ -302,7 +297,7 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &types.Block{Header: header, Body: blockBody}, nil
+	return &types.Block{Header: *header, Body: *blockBody}, nil
 }
 
 // GetBlockByNumber returns a block for a given blockNumber
@@ -336,9 +331,8 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 // SetHeader will set the header into DB
 func (bs *BlockState) SetHeader(header *types.Header) error {
 	hash := header.Hash()
-
 	// Write the encoded header
-	bh, err := header.Encode()
+	bh, err := scale.Marshal(*header)
 	if err != nil {
 		return err
 	}
@@ -374,16 +368,16 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
 func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 	hasReceipt, _ := bs.HasReceipt(bd.Hash)
-	if bd.Receipt != nil && bd.Receipt.Exists() && !hasReceipt {
-		err := bs.SetReceipt(bd.Hash, bd.Receipt.Value())
+	if bd.Receipt != nil && !hasReceipt {
+		err := bs.SetReceipt(bd.Hash, *bd.Receipt)
 		if err != nil {
 			return err
 		}
 	}
 
 	hasMessageQueue, _ := bs.HasMessageQueue(bd.Hash)
-	if bd.MessageQueue != nil && bd.MessageQueue.Exists() && !hasMessageQueue {
-		err := bs.SetMessageQueue(bd.Hash, bd.MessageQueue.Value())
+	if bd.MessageQueue != nil && !hasMessageQueue {
+		err := bs.SetMessageQueue(bd.Hash, *bd.MessageQueue)
 		if err != nil {
 			return err
 		}
@@ -409,13 +403,13 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	prevHead := bs.bt.DeepestBlockHash()
 
 	// add block to blocktree
-	err = bs.bt.AddBlock(block.Header, uint64(arrivalTime.UnixNano()))
+	err = bs.bt.AddBlock(&block.Header, uint64(arrivalTime.UnixNano()))
 	if err != nil {
 		return err
 	}
 
 	// add the header to the DB
-	err = bs.SetHeader(block.Header)
+	err = bs.SetHeader(&block.Header)
 	if err != nil {
 		return err
 	}
@@ -431,14 +425,14 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 	// only set number->hash mapping for our current chain
 	var onChain bool
-	if onChain, err = bs.isBlockOnCurrentChain(block.Header); onChain && err == nil {
+	if onChain, err = bs.isBlockOnCurrentChain(&block.Header); onChain && err == nil {
 		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 		if err != nil {
 			return err
 		}
 	}
 
-	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value()))
+	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body))
 	if err != nil {
 		return err
 	}
