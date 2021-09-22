@@ -43,7 +43,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -76,7 +76,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -122,7 +122,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -169,7 +169,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(header), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(header), Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 

@@ -58,8 +58,8 @@ func (s *Service) receiveMessages(ctx context.Context) {
 				"vote", v,
 				"round", vm.Round,
 				"subround", vm.Message.Stage,
-				"prevote count", s.lenVotes(prevote),
-				"precommit count", s.lenVotes(precommit),
+				"prevote count", s.lenVotes(Prevote),
+				"precommit count", s.lenVotes(Precommit),
 				"votes needed", s.state.threshold(),
 			)
 		case <-ctx.Done():
@@ -127,13 +127,13 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	}
 
 	switch m.Message.Stage {
-	case prevote, primaryProposal:
-		pv, has := s.loadVote(pk.AsBytes(), prevote)
+	case Prevote, PrimaryProposal:
+		pv, has := s.loadVote(pk.AsBytes(), Prevote)
 		if has && pv.Vote.Hash.Equal(m.Message.Hash) {
 			return nil, errVoteExists
 		}
-	case precommit:
-		pc, has := s.loadVote(pk.AsBytes(), precommit)
+	case Precommit:
+		pc, has := s.loadVote(pk.AsBytes(), Precommit)
 		if has && pc.Vote.Hash.Equal(m.Message.Hash) {
 			return nil, errVoteExists
 		}
@@ -218,9 +218,9 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	}
 
 	switch m.Message.Stage {
-	case prevote, primaryProposal:
+	case Prevote, PrimaryProposal:
 		s.prevotes.Store(pk.AsBytes(), just)
-	case precommit:
+	case Precommit:
 		s.precommits.Store(pk.AsBytes(), just)
 	}
 
@@ -237,9 +237,9 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 	var eq map[ed25519.PublicKeyBytes][]*SignedVote
 
 	switch stage {
-	case prevote, primaryProposal:
+	case Prevote, PrimaryProposal:
 		eq = s.pvEquivocations
-	case precommit:
+	case Precommit:
 		eq = s.pcEquivocations
 	}
 

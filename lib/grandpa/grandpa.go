@@ -228,7 +228,7 @@ func (s *Service) authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
 	for i, v := range s.state.voters {
 		ad[i] = &types.Authority{
-			Key:    v.Key,
+			Key:    &v.Key,
 			Weight: v.ID,
 		}
 	}
@@ -431,7 +431,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 	}
 
 	// send primary prevote message to network
-	spv, primProposal, err := s.createSignedVoteAndVoteMessage(pv, primaryProposal)
+	spv, primProposal, err := s.createSignedVoteAndVoteMessage(pv, PrimaryProposal)
 	if err != nil {
 		return false, fmt.Errorf("failed to create primary proposal message: %w", err)
 	}
@@ -490,7 +490,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	spv, vm, err := s.createSignedVoteAndVoteMessage(pv, prevote)
+	spv, vm, err := s.createSignedVoteAndVoteMessage(pv, Prevote)
 	if err != nil {
 		return err
 	}
@@ -504,7 +504,7 @@ func (s *Service) playGrandpaRound() error {
 	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
-	go s.sendVoteMessage(prevote, vm, roundComplete)
+	go s.sendVoteMessage(Prevote, vm, roundComplete)
 
 	logger.Debug("receiving pre-commit messages...")
 	time.Sleep(interval)
@@ -519,7 +519,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
+	spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, Precommit)
 	if err != nil {
 		return err
 	}
@@ -528,7 +528,7 @@ func (s *Service) playGrandpaRound() error {
 	logger.Debug("sending pre-commit message...", "vote", pc)
 
 	// continue to send precommit messages until round is done
-	go s.sendVoteMessage(precommit, pcm, roundComplete)
+	go s.sendVoteMessage(Precommit, pcm, roundComplete)
 
 	err = s.attemptToFinalize()
 	if err != nil {
@@ -599,7 +599,7 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
+		pc, err := s.getTotalVotesForBlock(bfc.Hash, Precommit)
 		if err != nil {
 			return err
 		}
@@ -614,7 +614,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
-		votes := s.getDirectVotes(precommit)
+		votes := s.getDirectVotes(Precommit)
 		logger.Debug("finalised block!!!",
 			"setID", s.state.setID,
 			"round", s.state.round,
@@ -646,9 +646,9 @@ func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedV
 	)
 
 	switch stage {
-	case prevote, primaryProposal:
+	case Prevote, PrimaryProposal:
 		v, has = s.prevotes.Load(key)
-	case precommit:
+	case Precommit:
 		v, has = s.precommits.Load(key)
 	}
 
@@ -661,9 +661,9 @@ func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedV
 
 func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
 	switch stage {
-	case prevote, primaryProposal:
+	case Prevote, PrimaryProposal:
 		s.prevotes.Delete(key)
-	case precommit:
+	case Precommit:
 		s.precommits.Delete(key)
 	}
 }
@@ -676,7 +676,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// and greater than the best final candidate from the last round, we choose that.
 	// otherwise, we simply choose the head of our chain.
 	primary := s.derivePrimary()
-	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
+	prm, has := s.loadVote(primary.PublicKeyBytes(), Prevote)
 	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
 		vote = &prm.Vote
 	} else {
@@ -752,7 +752,7 @@ func (s *Service) isFinalisable(round uint64) (bool, error) {
 		return false, errors.New("cannot find best final candidate for round")
 	}
 
-	pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
+	pc, err := s.getTotalVotesForBlock(bfc.Hash, Precommit)
 	if err != nil {
 		return false, err
 	}
@@ -794,13 +794,13 @@ func (s *Service) finalise() error {
 	s.bestFinalCandidate[s.state.round] = bfc
 
 	// create prevote justification ie. list of all signed prevotes for the bfc
-	pvs, err := s.createJustification(bfc.Hash, prevote)
+	pvs, err := s.createJustification(bfc.Hash, Prevote)
 	if err != nil {
 		return err
 	}
 
 	// create precommit justification ie. list of all signed precommits for the bfc
-	pcs, err := s.createJustification(bfc.Hash, precommit)
+	pcs, err := s.createJustification(bfc.Hash, Precommit)
 	if err != nil {
 		return err
 	}
@@ -846,9 +846,9 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 	)
 
 	switch stage {
-	case prevote:
+	case Prevote:
 		spc = s.prevotes
-	case precommit:
+	case Precommit:
 		spc = s.precommits
 	}
 
@@ -891,7 +891,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 	}
 
 	// get all blocks with >=2/3 pre-commits
-	blocks, err := s.getPossibleSelectedBlocks(precommit, s.state.threshold())
+	blocks, err := s.getPossibleSelectedBlocks(Precommit, s.state.threshold())
 	if err != nil {
 		return nil, err
 	}
@@ -951,7 +951,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 // isCompletable returns true if the round is completable, false otherwise
 func (s *Service) isCompletable() (bool, error) {
 	// haven't received enough votes, not completable
-	if uint64(s.lenVotes(precommit)+len(s.pcEquivocations)) < s.state.threshold() {
+	if uint64(s.lenVotes(Precommit)+len(s.pcEquivocations)) < s.state.threshold() {
 		return false, nil
 	}
 
@@ -960,7 +960,7 @@ func (s *Service) isCompletable() (bool, error) {
 		return false, err
 	}
 
-	votes := s.getVotes(precommit)
+	votes := s.getVotes(Precommit)
 
 	// for each block with at least 1 vote that's a descendant of the prevoted block,
 	// check that (total precommits - total pc equivocations - precommits for that block) >= 2/3 |V|
@@ -980,7 +980,7 @@ func (s *Service) isCompletable() (bool, error) {
 			continue
 		}
 
-		c, err := s.getTotalVotesForBlock(v.Hash, precommit)
+		c, err := s.getTotalVotesForBlock(v.Hash, Precommit)
 		if err != nil {
 			return false, err
 		}
@@ -998,7 +998,7 @@ func (s *Service) isCompletable() (bool, error) {
 // the pre-voted block is the block with the highest block number in the set of all the blocks with
 // total votes >= 2/3 the total number of voters, where the total votes is determined by getTotalVotesForBlock.
 func (s *Service) getPreVotedBlock() (Vote, error) {
-	blocks, err := s.getPossibleSelectedBlocks(prevote, s.state.threshold())
+	blocks, err := s.getPossibleSelectedBlocks(Prevote, s.state.threshold())
 	if err != nil {
 		return Vote{}, err
 	}
@@ -1046,7 +1046,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 	)
 
 	for {
-		blocks, err = s.getPossibleSelectedBlocks(prevote, threshold)
+		blocks, err = s.getPossibleSelectedBlocks(Prevote, threshold)
 		if err != nil {
 			return Vote{}, err
 		}
@@ -1176,7 +1176,7 @@ func (s *Service) getTotalVotesForBlock(hash common.Hash, stage Subround) (uint6
 
 	// equivocatory votes
 	var ev int
-	if stage == prevote {
+	if stage == Prevote {
 		ev = len(s.pvEquivocations)
 	} else {
 		ev = len(s.pcEquivocations)
@@ -1218,7 +1218,7 @@ func (s *Service) getDirectVotes(stage Subround) map[Vote]uint64 {
 	votes := make(map[Vote]uint64)
 
 	var src *sync.Map
-	if stage == prevote {
+	if stage == Prevote {
 		src = s.prevotes
 	} else {
 		src = s.precommits
@@ -1296,7 +1296,7 @@ func (s *Service) PreVotes() []ed25519.PublicKeyBytes {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(prevote)+len(s.pvEquivocations))
+	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(Prevote)+len(s.pvEquivocations))
 
 	s.prevotes.Range(func(k interface{}, _ interface{}) bool {
 		b := k.(ed25519.PublicKeyBytes)
@@ -1316,7 +1316,7 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(precommit)+len(s.pcEquivocations))
+	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(Precommit)+len(s.pcEquivocations))
 
 	s.precommits.Range(func(k interface{}, _ interface{}) bool {
 		b := k.(ed25519.PublicKeyBytes)
@@ -1335,12 +1335,12 @@ func (s *Service) lenVotes(stage Subround) int {
 	var count int
 
 	switch stage {
-	case prevote, primaryProposal:
+	case Prevote, PrimaryProposal:
 		s.prevotes.Range(func(_, _ interface{}) bool {
 			count++
 			return true
 		})
-	case precommit:
+	case Precommit:
 		s.precommits.Range(func(_, _ interface{}) bool {
 			count++
 			return true

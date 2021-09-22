@@ -25,27 +25,27 @@ import (
 
 //nolint
 type (
-	Voter      = types.GrandpaVoter
+	Voter      = types.GrandpaVoterNew
 	Voters     = types.GrandpaVoters
 	Vote       = types.GrandpaVote
-	SignedVote = types.GrandpaSignedVoteNew
+	SignedVote = types.GrandpaSignedVote
 )
 
 type Subround byte
 
 var (
-	prevote         Subround
-	precommit       Subround = 1
-	primaryProposal Subround = 2
+	Prevote         Subround
+	Precommit       Subround = 1
+	PrimaryProposal Subround = 2
 )
 
 func (s Subround) String() string {
 	switch s {
-	case prevote:
+	case Prevote:
 		return "prevote"
-	case precommit:
+	case Precommit:
 		return "precommit"
-	case primaryProposal:
+	case PrimaryProposal:
 		return "primaryProposal"
 	}
 
@@ -85,7 +85,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	}
 
 	return &Voter{
-		Key: pk,
+		Key: *pk,
 		ID:  id,
 	}, nil
 }

@@ -104,13 +104,14 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	logger.Debug("received commit message", "msg", msg)
-
+	fmt.Println("Handling commit message")
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil
 	}
 
 	// check justification here
 	if err := h.verifyCommitMessageJustification(msg); err != nil {
+		fmt.Println("Error verifyCommitMessage")
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
 			// TODO: make this synchronous
 			go h.grandpa.network.SendBlockReqestByHash(msg.Vote.Hash)
@@ -132,7 +133,6 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, pcs); err != nil {
 		return err
 	}
-
 	// TODO: re-add catch-up logic
 	return nil
 }
@@ -260,8 +260,9 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 			AuthorityID: fm.AuthData[i].AuthorityID,
 		}
 
-		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
+		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, Precommit)
 		if err != nil {
+			fmt.Println("Error verifying justification: ", err)
 			continue
 		}
 
@@ -292,7 +293,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	votes := make(map[common.Hash]uint64)
 
 	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, prevote)
+		err := h.verifyJustification(&just, msg.Round, msg.SetID, Prevote)
 		if err != nil {
 			continue
 		}
@@ -319,7 +320,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, precommit)
+		err := h.verifyJustification(&just, msg.Round, msg.SetID, Precommit)
 		if err != nil {
 			continue
 		}
@@ -337,6 +338,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 }
 
 func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage Subround) error {
+	fmt.Println("Attempting to verify Justification")
 	// verify signature
 	msg, err := scale.Marshal(FullVote{
 		Stage: stage,
@@ -347,6 +349,7 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 	if err != nil {
 		return err
 	}
+	fmt.Println("Unmarshalled")
 
 	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
 	if err != nil {
@@ -359,8 +362,10 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 	}
 
 	if !ok {
-		return ErrInvalidSignature
+		return ErrInvalidSignature // SOmetimes this gets returned. WHy?
 	}
+
+	// TODO Jimmy this is where to debug
 
 	// verify authority in justification set
 	authFound := false
@@ -375,7 +380,7 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 		}
 	}
 	if !authFound {
-		return ErrVoterNotFound
+		return ErrVoterNotFound //THIS is what is being returned
 	}
 	return nil
 }
@@ -442,7 +447,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 		// verify signature for each precommit
 		msg, err := scale.Marshal(FullVote{
-			Stage: precommit,
+			Stage: Precommit,
 			Vote:  just.Vote,
 			Round: fj.Round,
 			SetID: setID,
@@ -470,7 +475,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	return nil
 }
 
-func isInAuthSet(auth *ed25519.PublicKey, set []types.GrandpaVoter) bool {
+func isInAuthSet(auth *ed25519.PublicKey, set []types.GrandpaVoterNew) bool {
 	for _, a := range set {
 		if bytes.Equal(a.Key.Encode(), auth.Encode()) {
 			return true

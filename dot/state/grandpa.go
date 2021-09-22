@@ -26,7 +26,6 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 var (
@@ -45,7 +44,7 @@ type GrandpaState struct {
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
+func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.GrandpaVoterNew) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
 		db: grandpaDB,
@@ -90,8 +89,9 @@ func setIDChangeKey(setID uint64) []byte {
 }
 
 // setAuthorities sets the authorities for a given setID
-func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoter) error {
-	enc, err := scale.Encode(authorities)
+func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoterNew) error {
+	//enc, err := scale.Encode(authorities)
+	enc, err := types.EncodeGrandpaVoters(authorities)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaV
 }
 
 // GetAuthorities returns the authorities for the given setID
-func (s *GrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoter, error) {
+func (s *GrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoterNew, error) {
 	enc, err := s.db.Get(authoritiesKey(setID))
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 }
 
 // SetNextChange sets the next authority change
-func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *big.Int) error {
+func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoterNew, number *big.Int) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
 		return err
@@ -307,7 +307,7 @@ func roundAndSetIDToBytes(round, setID uint64) []byte {
 }
 
 // SetPrevotes sets the prevotes for a specific round and set ID in the database
-func (s *GrandpaState) SetPrevotes(round, setID uint64, pvs []types.GrandpaSignedVoteNew) error {
+func (s *GrandpaState) SetPrevotes(round, setID uint64, pvs []types.GrandpaSignedVote) error {
 	data, err := scale2.Marshal(pvs)
 	if err != nil {
 		return err
@@ -317,13 +317,13 @@ func (s *GrandpaState) SetPrevotes(round, setID uint64, pvs []types.GrandpaSigne
 }
 
 // GetPrevotes retrieves the prevotes for a specific round and set ID from the database
-func (s *GrandpaState) GetPrevotes(round, setID uint64) ([]types.GrandpaSignedVoteNew, error) {
+func (s *GrandpaState) GetPrevotes(round, setID uint64) ([]types.GrandpaSignedVote, error) {
 	data, err := s.db.Get(prevotesKey(round, setID))
 	if err != nil {
 		return nil, err
 	}
 
-	pvs := []types.GrandpaSignedVoteNew{}
+	pvs := []types.GrandpaSignedVote{}
 	err = scale2.Unmarshal(data, &pvs)
 	//pvs, err := scale.Decode(data, []*types.GrandpaSignedVote{})
 	if err != nil {
@@ -334,7 +334,7 @@ func (s *GrandpaState) GetPrevotes(round, setID uint64) ([]types.GrandpaSignedVo
 }
 
 // SetPrecommits sets the precommits for a specific round and set ID in the database
-func (s *GrandpaState) SetPrecommits(round, setID uint64, pcs []types.GrandpaSignedVoteNew) error {
+func (s *GrandpaState) SetPrecommits(round, setID uint64, pcs []types.GrandpaSignedVote) error {
 	//data, err := scale.Encode(pcs)
 	data, err := scale2.Marshal(pcs)
 	if err != nil {
@@ -345,13 +345,13 @@ func (s *GrandpaState) SetPrecommits(round, setID uint64, pcs []types.GrandpaSig
 }
 
 // GetPrecommits retrieves the precommits for a specific round and set ID from the database
-func (s *GrandpaState) GetPrecommits(round, setID uint64) ([]types.GrandpaSignedVoteNew, error) {
+func (s *GrandpaState) GetPrecommits(round, setID uint64) ([]types.GrandpaSignedVote, error) {
 	data, err := s.db.Get(precommitsKey(round, setID))
 	if err != nil {
 		return nil, err
 	}
 
-	pcs := []types.GrandpaSignedVoteNew{}
+	pcs := []types.GrandpaSignedVote{}
 	err = scale2.Unmarshal(data, &pcs)
 	//pcs, err := scale.Decode(data, []*types.GrandpaSignedVote{})
 	if err != nil {
