@@ -34,6 +34,7 @@ func (r *Recorder) Peek() *NodeRecord {
 	return nil
 }
 
+// HasNext returns bool if there is data inside the slice
 func (r *Recorder) HasNext() bool {
 	return len(*r) > 0
 }
