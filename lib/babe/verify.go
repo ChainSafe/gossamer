@@ -26,12 +26,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // verifierInfo contains the information needed to verify blocks
 // it remains the same for an epoch
 type verifierInfo struct {
-	authorities []*types.Authority
+	authorities []types.Authority
 	randomness  Randomness
 	threshold   *common.Uint128
 }
@@ -249,7 +250,7 @@ func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, er
 type verifier struct {
 	blockState  BlockState
 	epoch       uint64
-	authorities []*types.Authority
+	authorities []types.Authority
 	randomness  Randomness
 	threshold   *common.Uint128
 }
@@ -273,27 +274,27 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*veri
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
-	if len(header.Digest) < 2 {
+	if len(header.Digest.Types) < 2 {
 		return fmt.Errorf("block header is missing digest items")
 	}
 
 	logger.Trace("beginning BABE authorship right verification", "block", header.Hash())
 
 	// check for valid seal by verifying signature
-	preDigestItem := header.Digest[0]
-	sealItem := header.Digest[len(header.Digest)-1]
+	preDigestItem := header.Digest.Types[0]
+	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
 
-	preDigest, ok := preDigestItem.(*types.PreRuntimeDigest)
+	preDigest, ok := preDigestItem.Value().(types.PreRuntimeDigest)
 	if !ok {
 		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	seal, ok := sealItem.(*types.SealDigest)
+	seal, ok := sealItem.Value().(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("last digest item is not seal")
+		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	babePreDigest, err := b.verifyPreRuntimeDigest(preDigest)
+	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
 	if err != nil {
 		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 	}
@@ -303,12 +304,21 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	authorPub := b.authorities[babePreDigest.AuthorityIndex()].Key
 
 	// remove seal before verifying signature
-	header.Digest = header.Digest[:len(header.Digest)-1]
+	h := types.NewDigest()
+	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
+		err = h.Add(val.Value())
+		if err != nil {
+			return err
+		}
+	}
+
+	header.Digest = h
 	defer func() {
-		header.Digest = append(header.Digest, sealItem)
+		err = header.Digest.Add(sealItem.Value())
+		logger.Error("Error adding item to digest", "error", err)
 	}()
 
-	encHeader, err := header.Encode()
+	encHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return err
 	}
@@ -436,13 +446,11 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, v
 }
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {
-	if len(header.Digest) == 0 {
+	if len(header.Digest.Types) == 0 {
 		return 0, fmt.Errorf("no digest provided")
 	}
 
-	digestItem := header.Digest[0]
-
-	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	preDigest, ok := header.Digest.Types[0].Value().(types.PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}

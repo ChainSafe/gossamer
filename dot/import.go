@@ -17,7 +17,6 @@
 package dot
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -27,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -126,18 +126,20 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 	}
 	logs := digestRaw["logs"].([]interface{})
 
-	digest := types.Digest{}
+	digest := types.NewDigest()
 
 	for _, log := range logs {
 		digestBytes := common.MustHexToBytes(log.(string))
-		r := &bytes.Buffer{}
-		_, _ = r.Write(digestBytes)
-		digestItem, err := types.DecodeDigestItem(r)
+		var digestItem = types.NewDigestItem()
+		err := scale.Unmarshal(digestBytes, &digestItem)
 		if err != nil {
 			return nil, err
 		}
 
-		digest = append(digest, digestItem)
+		err = digest.Add(digestItem.Value())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	header := &types.Header{

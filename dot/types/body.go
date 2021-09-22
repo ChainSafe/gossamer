@@ -18,14 +18,13 @@ package types
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Body is the encoded extrinsics inside a state block
@@ -120,16 +119,16 @@ func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 		return []Extrinsic{}, nil
 	}
 
-	dec, err := scale.Decode(*b, exts)
+	err := scale2.Unmarshal(*b, &exts)
 	if err != nil {
 		return nil, err
 	}
 
-	decodedExts := dec.([][]byte)
+	decodedExts := exts
 	ret := make([][]byte, len(decodedExts))
 
 	for i, ext := range decodedExts {
-		ret[i], err = scale.Encode(ext)
+		ret[i], err = scale2.Marshal(ext)
 		if err != nil {
 			return nil, err
 		}
@@ -138,42 +137,10 @@ func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 	return BytesArrayToExtrinsics(ret), nil
 }
 
-// NewBodyFromOptional returns a Body given an optional.Body. If the optional.Body is None, an error is returned.
-func NewBodyFromOptional(ob *optional.Body) (*Body, error) {
-	if !ob.Exists() {
-		return nil, errors.New("body is None")
-	}
-
-	res := Body(ob.Value())
-	return &res, nil
-}
-
 // AsOptional returns the Body as an optional.Body
 func (b *Body) AsOptional() *optional.Body {
 	ob := optional.CoreBody([]byte(*b))
 	return optional.NewBody(true, ob)
-}
-
-// decodeOptionalBody decodes a SCALE encoded optional Body into an *optional.Body
-func decodeOptionalBody(r io.Reader) (*optional.Body, error) {
-	sd := scale.Decoder{Reader: r}
-
-	exists, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if exists == 1 {
-		b, err := sd.Decode([]byte{})
-		if err != nil {
-			return nil, err
-		}
-
-		body := Body(b.([]byte))
-		return body.AsOptional(), nil
-	}
-
-	return optional.NewBody(false, nil), nil
 }
 
 // HasExtrinsic returns true if body contains target Extrisic

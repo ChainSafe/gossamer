@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
 	"github.com/ChainSafe/chaindb"
@@ -503,7 +502,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		justificationResponses := []*types.BlockData{}
 
 		for _, bd := range resp.BlockData {
-			if bd.Justification.Exists() {
+			if bd.Justification != nil {
 				justificationResponses = append(justificationResponses, bd)
 				numJustifications++
 			}
@@ -533,7 +532,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		return fmt.Errorf("response doesn't contain block headers")
 	}
 
-	if resp.BlockData[0].Body == nil || !resp.BlockData[0].Body.Exists() {
+	if resp.BlockData[0].Body == nil {
 		// update peer's score
 		q.updatePeerScore(pid, -1)
 		return fmt.Errorf("response doesn't contain block bodies")
@@ -604,7 +603,7 @@ func (q *syncQueue) processBlockRequests() {
 				continue
 			}
 
-			reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
+			reqData, ok := q.isRequestDataCached(&req.req.StartingBlock)
 
 			if !ok {
 				q.trySync(req)
@@ -714,6 +713,11 @@ func (q *syncQueue) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRes
 
 	msg := new(BlockResponseMessage)
 	err = msg.Decode(q.buf[:n])
+	for _, bd := range msg.BlockData {
+		if bd.Header != nil {
+			bd.Header.Hash()
+		}
+	}
 	return msg, err
 }
 
@@ -814,11 +818,7 @@ func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.Blo
 			panic(err)
 		}
 
-		header, err := types.NewHeaderFromOptional(data[idx].Header)
-		if err != nil {
-			logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
-			return
-		}
+		header := data[idx].Header
 
 		// don't request a chain that's been dropped
 		if header.Number.Int64() <= finalised.Number.Int64() {
@@ -890,19 +890,19 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 }
 
 func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
-	var max *optional.Uint32
+	var max *uint32
 	if size != 0 {
-		max = optional.NewUint32(true, size)
+		max = &size
 	} else {
-		max = optional.NewUint32(false, 0)
+		max = nil
 	}
 
 	start, _ := variadic.NewUint64OrHash(uint64(startInt))
 
 	blockRequest := &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0, // TODO: define this somewhere
 		Max:           max,
 	}
@@ -911,19 +911,19 @@ func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 }
 
 func createBlockRequestWithHash(startHash common.Hash, size uint32) *BlockRequestMessage {
-	var max *optional.Uint32
+	var max *uint32
 	if size != 0 {
-		max = optional.NewUint32(true, size)
+		max = &size
 	} else {
-		max = optional.NewUint32(false, 0)
+		max = nil
 	}
 
 	start, _ := variadic.NewUint64OrHash(startHash)
 
 	blockRequest := &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0, // TODO: define this somewhere
 		Max:           max,
 	}

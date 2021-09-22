@@ -75,7 +75,7 @@ func ExtrinsicsArrayToBytesArray(exts []Extrinsic) [][]byte {
 func BytesArrayToExtrinsics(b [][]byte) []Extrinsic {
 	exts := make([]Extrinsic, len(b))
 	for i, be := range b {
-		exts[i] = Extrinsic(be)
+		exts[i] = be
 	}
 	return exts
 }

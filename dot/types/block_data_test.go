@@ -17,292 +17,177 @@
 package types
 
 import (
-	"bytes"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
-var testDigest = &Digest{
-	&PreRuntimeDigest{
+var (
+	digestItem = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	digest     = scale.NewVaryingDataTypeSlice(digestItem)
+	testDigest = digest
+)
+var _ = testDigest.Add(
+	PreRuntimeDigest{
 		ConsensusEngineID: BabeEngineID,
 		Data:              []byte{1, 2, 3},
 	},
-	&SealDigest{
+	SealDigest{
 		ConsensusEngineID: BabeEngineID,
 		Data:              []byte{4, 5, 6, 7},
 	},
-}
+)
 
-func TestBlockDataEncodeEmpty(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-
-	bd := &BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}
-
-	expected := append([]byte{0}, hash[:]...)
-	expected = append(expected, []byte{0, 0, 0, 0}...)
-
-	enc, err := bd.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(expected, enc) {
-		t.Fatalf("Fail: got %x expected %x", enc, expected)
-	}
-}
-
-func TestBlockDataEncodeHeader(t *testing.T) {
-	hash := common.NewHash([]byte{0})
+func TestNumber(t *testing.T) {
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         testDigest,
-	}
-
-	bd := &BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}
-
-	enc, err := bd.Encode()
+	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(5), testDigest)
 	require.NoError(t, err)
 
-	r := &bytes.Buffer{}
-	_, _ = r.Write(enc)
+	bd := BlockData{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        headerVdt,
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
 
-	res := new(BlockData)
-	err = res.Decode(r)
-	require.NoError(t, err)
-	require.Equal(t, bd, res)
+	num := bd.Number()
+	require.Equal(t, big.NewInt(5), num)
 }
 
-func TestBlockDataEncodeBody(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+func TestBlockDataEncodeAndDecodeEmpty(t *testing.T) {
+	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000000000000")
+	require.NoError(t, err)
 
-	bd := &BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
+	bd := BlockData{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        nil,
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
 	}
 
+	enc, err := scale.Marshal(bd)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, enc)
+
+	var block BlockData
+	if bd.Header != nil {
+		block.Header = NewEmptyHeader()
+	}
+	err = scale.Unmarshal(enc, &block)
+	require.NoError(t, err)
+	if block.Header != nil {
+		_ = block.Header.Hash()
+	}
+	require.Equal(t, bd, block)
+}
+
+func TestBlockDataEncodeAndDecodeHeader(t *testing.T) {
+	expected, err := common.HexToBytes("0x000000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f0806424142450c0102030542414245100405060700000000")
+	require.NoError(t, err)
+
+	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+
+	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
+	require.NoError(t, err)
+
+	bd := BlockData{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        headerVdt,
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+
+	enc, err := scale.Marshal(bd)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, enc)
+
+	var block BlockData
+	if bd.Header != nil {
+		block.Header = NewEmptyHeader()
+	}
+	err = scale.Unmarshal(enc, &block)
+	require.NoError(t, err)
+	if block.Header != nil {
+		_ = block.Header.Hash()
+	}
+	require.Equal(t, bd, block)
+}
+
+func TestBlockDataEncodeAndDecodeBody(t *testing.T) {
 	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000001100a0b0c0d000000")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	enc, err := bd.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(expected, enc) {
-		t.Fatalf("Fail: got %x expected %x", enc, expected)
-	}
-}
-
-func TestBlockDataEncodeAll(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
-
-	bd := &BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(true, []byte("asdf")),
-		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
-		Justification: optional.NewBytes(true, []byte("qwerty")),
-	}
-
-	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000001100a0b0c0d011061736466011467686a6b6c0118717765727479")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	enc, err := bd.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(expected, enc) {
-		t.Fatalf("Fail: got %x expected %x", enc, expected)
-	}
-}
-
-func TestBlockDataDecodeHeader(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         testDigest,
-	}
-
-	expected := &BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}
-
-	enc, err := expected.Encode()
 	require.NoError(t, err)
 
-	res := new(BlockData)
-	r := &bytes.Buffer{}
-	r.Write(enc)
+	bd := BlockData{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        nil,
+		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
 
-	err = res.Decode(r)
+	enc, err := scale.Marshal(bd)
 	require.NoError(t, err)
 
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("Fail: got %v expected %v", res, expected)
+	require.Equal(t, expected, enc)
+
+	var block BlockData
+	if bd.Header != nil {
+		block.Header = NewEmptyHeader()
 	}
+	err = scale.Unmarshal(enc, &block)
+	require.NoError(t, err)
+	if block.Header != nil {
+		_ = block.Header.Hash()
+	}
+	require.Equal(t, bd, block)
 }
 
-func TestBlockDataDecodeBody(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
+	expected, err := common.HexToBytes("0x7d0000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f0806424142450c0102030542414245100405060701100a0b0c0d010401010402010403")
+	require.NoError(t, err)
 
-	expected := &BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}
-
-	enc, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000001100a0b0c0d000000")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	res := new(BlockData)
-	r := &bytes.Buffer{}
-	r.Write(enc)
-
-	err = res.Decode(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("Fail: got %v expected %v", res, expected)
-	}
-}
-
-func TestBlockDataDecodeAll(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
-
-	expected := &BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(true, []byte("asdf")),
-		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
-		Justification: optional.NewBytes(true, []byte("qwerty")),
-	}
-
-	enc, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000001100a0b0c0d011061736466011467686a6b6c0118717765727479")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	res := new(BlockData)
-	r := &bytes.Buffer{}
-	r.Write(enc)
-
-	err = res.Decode(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("Fail: got %v expected %v", res, expected)
-	}
-}
-
-func TestBlockDataArrayEncodeAndDecode(t *testing.T) {
-	hash := common.NewHash([]byte{0})
+	hash := common.NewHash([]byte{125})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+	body := NewBody([]byte{0xa, 0xb, 0xc, 0xd})
 
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         testDigest,
-	}
+	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
+	require.NoError(t, err)
 
-	expected := []*BlockData{{
+	bd := BlockData{
 		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}, {
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(true, []byte("asdf")),
-		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
-		Justification: optional.NewBytes(true, []byte("qwerty")),
-	}, {
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}}
-
-	enc, err := EncodeBlockDataArray(expected)
-	if err != nil {
-		t.Fatal(err)
+		Header:        headerVdt,
+		Body:          body,
+		Receipt:       &[]byte{1},
+		MessageQueue:  &[]byte{2},
+		Justification: &[]byte{3},
 	}
 
-	r := &bytes.Buffer{}
-	r.Write(enc)
+	enc, err := scale.Marshal(bd)
+	require.NoError(t, err)
 
-	res, err := DecodeBlockDataArray(r)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Equal(t, expected, enc)
 
-	if !reflect.DeepEqual(res[1], expected[1]) {
-		t.Fatalf("Fail: got %v expected %v", res[1], expected[1])
+	var block BlockData
+	if bd.Header != nil {
+		block.Header = NewEmptyHeader()
 	}
+	err = scale.Unmarshal(enc, &block)
+	require.NoError(t, err)
+	if block.Header != nil {
+		_ = block.Header.Hash()
+	}
+	require.Equal(t, bd, block)
 }

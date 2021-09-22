@@ -141,10 +141,10 @@ func (s *Service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.B
 	return babeCfg, nil
 }
 
-func loadGrandpaAuthorities(t *trie.Trie) ([]*types.GrandpaVoter, error) {
+func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 	authsRaw := t.Get(runtime.GrandpaAuthoritiesKey)
 	if authsRaw == nil {
-		return []*types.GrandpaVoter{}, nil
+		return []types.GrandpaVoter{}, nil
 	}
 
 	r := &bytes.Buffer{}

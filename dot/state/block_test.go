@@ -32,6 +32,7 @@ import (
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
+	Digest:    types.NewDigest(),
 }
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
@@ -53,7 +54,7 @@ func TestSetAndGetHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
-		Digest:    types.Digest{},
+		Digest:    types.NewDigest(),
 	}
 
 	err := bs.SetHeader(header)
@@ -70,7 +71,7 @@ func TestHasHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
-		Digest:    types.Digest{},
+		Digest:    types.NewDigest(),
 	}
 
 	err := bs.SetHeader(header)
@@ -87,12 +88,12 @@ func TestGetBlockByNumber(t *testing.T) {
 	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 	}
 
 	block := &types.Block{
-		Header: blockHeader,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Header: *blockHeader,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
 	// AddBlock also sets mapping [blockNumber : hash] in DB
@@ -110,7 +111,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 	// Create blockHash
@@ -119,8 +120,8 @@ func TestAddBlock(t *testing.T) {
 	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	block0 := &types.Block{
-		Header: header0,
-		Body:   &blockBody0,
+		Header: *header0,
+		Body:   blockBody0,
 	}
 
 	// Add the block0 to the DB
@@ -130,7 +131,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header & blockData for block 1
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 		ParentHash: blockHash0,
 	}
 	blockHash1 := header1.Hash()
@@ -139,8 +140,8 @@ func TestAddBlock(t *testing.T) {
 	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	block1 := &types.Block{
-		Header: header1,
-		Body:   &blockBody1,
+		Header: *header1,
+		Body:   blockBody1,
 	}
 
 	// Add the block1 to the DB
@@ -181,16 +182,19 @@ func TestGetSlotForBlock(t *testing.T) {
 	data := babeHeader.Encode()
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
+	digest := types.NewDigest()
+	err := digest.Add(*preDigest)
+	require.NoError(t, err)
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
-			Digest:     types.Digest{preDigest},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
-	err := bs.AddBlock(block)
+	err = bs.AddBlock(block)
 	require.NoError(t, err)
 
 	res, err := bs.GetSlotForBlock(block.Header.Hash())
@@ -249,11 +253,11 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	}
 
 	newBlock := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: bestHash,
 			Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
 	err = bs.AddBlock(newBlock)
@@ -273,12 +277,13 @@ func TestFinalizedHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Digest:     digest,
 	}
 
 	testhash := header.Hash()
@@ -286,8 +291,8 @@ func TestFinalizedHash(t *testing.T) {
 	require.NoError(t, err)
 
 	err = bs.AddBlock(&types.Block{
-		Header: header,
-		Body:   &types.Body{},
+		Header: *header,
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 
@@ -380,13 +385,13 @@ func TestGetHashByNumber(t *testing.T) {
 
 	header := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	block := &types.Block{
-		Header: header,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Header: *header,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
 	err = bs.AddBlock(block)
@@ -402,13 +407,13 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header1a := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	block1a := &types.Block{
-		Header: header1a,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Header: *header1a,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
 	err := bs.AddBlock(block1a)
@@ -420,14 +425,14 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header1b := &types.Header{
 		Number:         big.NewInt(1),
-		Digest:         types.Digest{},
+		Digest:         types.NewDigest(),
 		ParentHash:     testGenesisHeader.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
 	}
 
 	block1b := &types.Block{
-		Header: header1b,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Header: *header1b,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
 	err = bs.AddBlock(block1b)
@@ -440,14 +445,14 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header2b := &types.Header{
 		Number:         big.NewInt(2),
-		Digest:         types.Digest{},
+		Digest:         types.NewDigest(),
 		ParentHash:     header1b.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
 	}
 
 	block2b := &types.Block{
-		Header: header2b,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Header: *header2b,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
 	err = bs.AddBlock(block2b)
@@ -464,13 +469,13 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header2a := &types.Header{
 		Number:     big.NewInt(2),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 		ParentHash: header1a.Hash(),
 	}
 
 	block2a := &types.Block{
-		Header: header2a,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Header: *header2a,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
 	err = bs.AddBlock(block2a)
@@ -478,13 +483,13 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header3a := &types.Header{
 		Number:     big.NewInt(3),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 		ParentHash: header2a.Hash(),
 	}
 
 	block3a := &types.Block{
-		Header: header3a,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Header: *header3a,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
 	err = bs.AddBlock(block3a)
@@ -510,7 +515,7 @@ func TestAddBlockToBlockTree(t *testing.T) {
 
 	header := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
@@ -532,19 +537,23 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, fin)
 
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
+
+	digest2 := types.NewDigest()
+	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
+	require.NoError(t, err)
+
 	header1 := &types.Header{
-		Number: big.NewInt(1),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Number:     big.NewInt(1),
+		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	header100 := &types.Header{
-		Number: big.NewInt(100),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest(),
-		},
+		Number:     big.NewInt(100),
+		Digest:     digest2,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
@@ -575,23 +584,26 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 	firstSlot := uint64(42069)
 
+	digest := types.NewDigest()
+	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest())
+	require.NoError(t, err)
+	digest2 := types.NewDigest()
+	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
+	require.NoError(t, err)
+
 	header1 := &types.Header{
-		Number: big.NewInt(1),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest(),
-		},
+		Number:     big.NewInt(1),
+		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	header100 := &types.Header{
-		Number: big.NewInt(100),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest(),
-		},
+		Number:     big.NewInt(100),
+		Digest:     digest2,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	err := bs.SetHeader(header1)
+	err = bs.SetHeader(header1)
 	require.NoError(t, err)
 	err = bs.db.Put(headerHashKey(header1.Number.Uint64()), header1.Hash().ToBytes())
 	require.NoError(t, err)

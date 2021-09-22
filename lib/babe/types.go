@@ -52,12 +52,12 @@ func NewSlot(start time.Time, duration time.Duration, number uint64) *Slot {
 }
 
 // Authorities is an alias for []*types.Authority
-type Authorities []*types.Authority
+type Authorities []types.Authority
 
 // String returns the Authorities as a formatted string
 func (d Authorities) String() string {
 	str := ""
-	for _, di := range []*types.Authority(d) {
+	for _, di := range []types.Authority(d) {
 		str = str + fmt.Sprintf("[key=0x%x weight=%d] ", di.Key.Encode(), di.Weight)
 	}
 	return str
@@ -67,7 +67,7 @@ func (d Authorities) String() string {
 type epochData struct {
 	randomness     Randomness
 	authorityIndex uint32
-	authorities    []*types.Authority
+	authorities    []types.Authority
 	threshold      *common.Uint128
 }
 

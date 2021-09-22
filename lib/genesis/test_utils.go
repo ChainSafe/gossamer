@@ -128,7 +128,7 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }

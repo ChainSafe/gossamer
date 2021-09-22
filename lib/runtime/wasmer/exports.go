@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
@@ -91,23 +92,23 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 }
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
-func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
+func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	ret, err := in.exec(runtime.GrandpaAuthorities, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	adr, err := scale.Decode(ret, []*types.GrandpaAuthoritiesRaw{})
+	adr, err := scale.Decode(ret, []types.GrandpaAuthoritiesRaw{})
 	if err != nil {
 		return nil, err
 	}
 
-	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]*types.GrandpaAuthoritiesRaw))
+	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]types.GrandpaAuthoritiesRaw))
 }
 
 // InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
-	encodedHeader, err := scale.Encode(header)
+	encodedHeader, err := scale2.Marshal(*header)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
@@ -134,8 +135,8 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 		return nil, err
 	}
 
-	bh := new(types.Header)
-	_, err = scale.Decode(data, bh)
+	bh := types.NewEmptyHeader()
+	err = scale2.Unmarshal(data, bh)
 	if err != nil {
 		return nil, err
 	}
@@ -146,24 +147,32 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 // ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
-	b := block.DeepCopy()
+	b, err := block.DeepCopy()
+	if err != nil {
+		return nil, err
+	}
 
 	if in.version == nil {
-		var err error
 		in.version, err = in.Version()
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	b.Header.Digest = types.NewDigest()
+
 	// remove seal digest only
-	b.Header.Digest = types.NewEmptyDigest()
-	for _, d := range block.Header.Digest {
-		if d.Type() == types.SealDigestType {
+	for _, d := range block.Header.Digest.Types {
+		switch d.Value().(type) {
+		case types.SealDigest:
 			continue
+		default:
+			err = b.Header.Digest.Add(d.Value())
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		b.Header.Digest = append(b.Header.Digest, d)
 	}
 
 	bdEnc, err := b.Encode()
@@ -171,7 +180,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	return in.exec(runtime.CoreExecuteBlock, bdEnc)
+	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.

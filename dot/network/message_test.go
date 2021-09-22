@@ -23,11 +23,41 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestEncodeBlockRequestMessage(t *testing.T) {
+	expected, err := common.HexToBytes("0x08808080082220fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1280130011220dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	require.Nil(t, err)
+
+	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	require.Nil(t, err)
+
+	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	require.NoError(t, err)
+
+	one := uint32(1)
+
+	bm := &BlockRequestMessage{
+		RequestedData: 1,
+		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		EndBlockHash:  &endBlock,
+		Direction:     1,
+		Max:           &one,
+	}
+
+	encMsg, err := bm.Encode()
+	require.NoError(t, err)
+
+	require.Equal(t, expected, encMsg) // Pass!
+
+	res := new(BlockRequestMessage)
+	err = res.Decode(encMsg)
+	require.NoError(t, err)
+	require.Equal(t, bm, res)
+}
 
 func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
@@ -36,12 +66,13 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	require.NoError(t, err)
 
+	one := uint32(1)
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
-		EndBlockHash:  optional.NewHash(true, endBlock),
+		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		EndBlockHash:  &endBlock,
 		Direction:     1,
-		Max:           optional.NewUint32(true, 1),
+		Max:           &one,
 	}
 
 	encMsg, err := bm.Encode()
@@ -57,12 +88,13 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	require.NoError(t, err)
 
+	one := uint32(1)
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: variadic.NewUint64OrHashFromBytes([]byte{1, 1}),
-		EndBlockHash:  optional.NewHash(true, endBlock),
+		StartingBlock: *variadic.NewUint64OrHashFromBytes([]byte{1, 1}),
+		EndBlockHash:  &endBlock,
 		Direction:     1,
-		Max:           optional.NewUint32(true, 1),
+		Max:           &one,
 	}
 
 	encMsg, err := bm.Encode()
@@ -72,6 +104,21 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	err = res.Decode(encMsg)
 	require.NoError(t, err)
 	require.Equal(t, bm, res)
+}
+
+func TestBlockRequestString(t *testing.T) {
+	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	require.Nil(t, err)
+
+	bm := &BlockRequestMessage{
+		RequestedData: 1,
+		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		EndBlockHash:  nil,
+		Direction:     1,
+		Max:           nil,
+	}
+
+	_ = bm.String()
 }
 
 func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
@@ -80,10 +127,10 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		EndBlockHash:  nil,
 		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+		Max:           nil,
 	}
 
 	encMsg, err := bm.Encode()
@@ -95,51 +142,41 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	require.Equal(t, bm, res)
 }
 
-func TestEncodeBlockResponseMessage_WithHeader(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         &types.Digest{},
-	}
-
-	bd := &types.BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}
+func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
+	bd := types.NewEmptyBlockData()
+	bd.Header = types.NewEmptyHeader()
+	bd.Header.Hash()
 
 	bm := &BlockResponseMessage{
 		BlockData: []*types.BlockData{bd},
 	}
 
-	encMsg, err := bm.Encode()
+	enc, err := bm.Encode()
 	require.NoError(t, err)
 
-	res := new(BlockResponseMessage)
-	err = res.Decode(encMsg)
+	empty := types.NewEmptyBlockData()
+	empty.Header = types.NewEmptyHeader()
+
+	act := &BlockResponseMessage{
+		BlockData: []*types.BlockData{empty},
+	}
+	err = act.Decode(enc)
 	require.NoError(t, err)
-	require.Equal(t, bm, res)
+
+	for _, b := range act.BlockData {
+		if b.Header != nil {
+			_ = b.Header.Hash()
+		}
+	}
+
+	require.Equal(t, bm, act)
 }
 
 func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         &types.Digest{},
-	}
+	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
+	require.NoError(t, err)
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
 	body, err := types.NewBodyFromBytes(exts)
@@ -147,62 +184,84 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 
 	bd := &types.BlockData{
 		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          body.AsOptional(),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
+		Header:        header,
+		Body:          body,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
 	}
 
 	bm := &BlockResponseMessage{
 		BlockData: []*types.BlockData{bd},
 	}
 
-	encMsg, err := bm.Encode()
+	enc, err := bm.Encode()
 	require.NoError(t, err)
 
-	res := new(BlockResponseMessage)
-	err = res.Decode(encMsg)
+	empty := types.NewEmptyBlockData()
+	empty.Header = types.NewEmptyHeader()
+
+	act := &BlockResponseMessage{
+		BlockData: []*types.BlockData{empty},
+	}
+	err = act.Decode(enc)
 	require.NoError(t, err)
-	require.Equal(t, bm, res)
+
+	for _, bd := range act.BlockData {
+		if bd.Header != nil {
+			_ = bd.Header.Hash()
+		}
+	}
+
+	require.Equal(t, bm, act)
+
 }
 
 func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
+	exp := common.MustHexToBytes("0x0aa2010a2000000000000000000000000000000000000000000000000000000000000000001262000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f001a0510010305071a040c0901021a040c0304052201012a0102320103")
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         &types.Digest{},
-	}
+	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
+	require.NoError(t, err)
 
-	exts := [][]byte{{16, 1, 3, 5, 7}, {12, 9, 1, 2}, {12, 3, 4, 5}}
-	body, err := types.NewBodyFromEncodedBytes(exts)
+	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
+	body, err := types.NewBodyFromBytes(exts)
 	require.NoError(t, err)
 
 	bd := &types.BlockData{
 		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          body.AsOptional(),
-		Receipt:       optional.NewBytes(true, []byte{77}),
-		MessageQueue:  optional.NewBytes(true, []byte{88, 99}),
-		Justification: optional.NewBytes(true, []byte{11, 22, 33}),
+		Header:        header,
+		Body:          body,
+		Receipt:       &[]byte{1},
+		MessageQueue:  &[]byte{2},
+		Justification: &[]byte{3},
 	}
 
 	bm := &BlockResponseMessage{
 		BlockData: []*types.BlockData{bd},
 	}
 
-	encMsg, err := bm.Encode()
+	enc, err := bm.Encode()
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
+
+	empty := types.NewEmptyBlockData()
+	empty.Header = types.NewEmptyHeader()
+
+	act := &BlockResponseMessage{
+		BlockData: []*types.BlockData{empty},
+	}
+	err = act.Decode(enc)
 	require.NoError(t, err)
 
-	res := new(BlockResponseMessage)
-	err = res.Decode(encMsg)
-	require.NoError(t, err)
-	require.Equal(t, bm, res)
+	for _, bd := range act.BlockData {
+		if bd.Header != nil {
+			_ = bd.Header.Hash()
+		}
+	}
+
+	require.Equal(t, bm, act)
 }
 
 func TestEncodeBlockAnnounceMessage(t *testing.T) {
@@ -231,20 +290,22 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.Digest{},
+		Digest:         types.NewDigest(),
 	}
 	encMsg, err := bhm.Encode()
 	require.Nil(t, err)
 
 	require.Equal(t, expected, encMsg)
-
 }
 
 func TestDecode_BlockAnnounceMessage(t *testing.T) {
 	announceMessage, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000")
 	require.Nil(t, err)
 
-	bhm := new(BlockAnnounceMessage)
+	bhm := BlockAnnounceMessage{
+		Number: big.NewInt(0),
+		Digest: types.NewDigest(),
+	}
 	err = bhm.Decode(announceMessage)
 	require.Nil(t, err)
 
@@ -257,12 +318,12 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.Nil(t, err)
 
-	expected := &BlockAnnounceMessage{
+	expected := BlockAnnounceMessage{
 		ParentHash:     parentHash,
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.Digest{},
+		Digest:         types.NewDigest(),
 	}
 
 	require.Equal(t, expected, bhm)
