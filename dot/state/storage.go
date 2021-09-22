@@ -265,7 +265,7 @@ func (s *StorageState) StorageRoot() (common.Hash, error) {
 }
 
 // EnumeratedTrieRoot not implemented
-func (*StorageState) EnumeratedTrieRoot(values [][]byte) {
+func (*StorageState) EnumeratedTrieRoot(_ [][]byte) {
 	//TODO
 	panic("not implemented")
 }
