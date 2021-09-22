@@ -35,7 +35,7 @@ func (l *Lookup) Find(key []byte, recorder *Recorder) ([]byte, error) {
 	hash := l.root
 
 	for {
-		nodeData, err := l.db.Get(hash[:])
+		nodeData, err := l.db.Get(hash)
 		if err != nil {
 			return nil, ErrProofNodeNotFound
 		}
@@ -79,7 +79,7 @@ func (l *Lookup) Find(key []byte, recorder *Recorder) ([]byte, error) {
 					return nil, nil
 				default:
 					partial = partial[length+1:]
-					copy(hash[:], child.getHash())
+					copy(hash, child.getHash())
 				}
 			}
 		}
