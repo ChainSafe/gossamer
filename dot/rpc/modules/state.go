@@ -180,7 +180,7 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 }
 
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
-func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *StatePairResponse) error {
+func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *StatePairResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	var (
 		stateRootHash *common.Hash
@@ -221,7 +221,7 @@ func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *Sta
 }
 
 // Call isn't implemented properly yet.
-func (sm *StateModule) Call(r *http.Request, _ *StateCallRequest, _ *StateCallResponse) error {
+func (sm *StateModule) Call(_ *http.Request, _ *StateCallRequest, _ *StateCallResponse) error {
 	_ = sm.networkAPI
 	_ = sm.storageAPI
 	return nil
