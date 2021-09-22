@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -42,6 +43,10 @@ type chainProcessor struct {
 	// of them within this channel and thus will be processed first
 	readyBlocks *blockQueue
 
+	// set of block not yet ready to be processed.
+	// blocks are placed here if they fail to be processed due to missing parent block
+	pendingBlocks DisjointBlockSet
+
 	blockState         BlockState
 	storageState       StorageState
 	transactionState   TransactionState
@@ -50,13 +55,14 @@ type chainProcessor struct {
 	blockImportHandler BlockImportHandler
 }
 
-func newChainProcessor(readyBlocks *blockQueue, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
+func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
 		ctx:                ctx,
 		cancel:             cancel,
 		readyBlocks:        readyBlocks,
+		pendingBlocks:      pendingBlocks,
 		blockState:         blockState,
 		storageState:       storageState,
 		transactionState:   transactionState,
@@ -88,9 +94,15 @@ func (s *chainProcessor) processReadyBlocks() {
 		}
 
 		if err := s.processBlockData(bd); err != nil {
-			logger.Error("ready block failed", "hash", bd.Hash)
-			// TODO: we probably want to relay this error to the chainSync module so the block can be retried
+			logger.Error("ready block failed", "hash", bd.Hash, "error", err)
+
 			// depending on the error, we might want to save this block for later
+			if strings.Contains(err.Error(), "failed to get parent hash") {
+				s.pendingBlocks.addBlock(&types.Block{
+					Header: *bd.Header,
+					Body:   *bd.Body,
+				})
+			}
 		}
 	}
 }

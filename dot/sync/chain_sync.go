@@ -18,11 +18,11 @@ package sync
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -161,7 +161,7 @@ type chainSync struct {
 	finalisedChID byte
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue) (*chainSync, error) {
+func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet) (*chainSync, error) {
 	finalisedCh := make(chan *types.FinalisationInfo, 128)
 	id, err := bs.RegisterFinalizedChannel(finalisedCh)
 	if err != nil {
@@ -181,7 +181,7 @@ func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue) (*chainSy
 		ignorePeers:   make(map[peer.ID]struct{}),
 		workerState:   newWorkerState(),
 		readyBlocks:   readyBlocks,
-		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
+		pendingBlocks: pendingBlocks,
 		state:         bootstrap,
 		handler:       newBootstrapSyncer(bs),
 		benchmarker:   newSyncBenchmarker(),
@@ -637,7 +637,8 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	logger.Trace("sending out block request", "request", req)
 
 	// TODO: use scoring to determine what peer to try to sync from first
-	who := peers[rand.Intn(len(peers))]
+	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
+	who := peers[idx.Int64()]
 	resp, err := cs.network.DoBlockRequest(who, req)
 	if err != nil {
 		return &workerError{

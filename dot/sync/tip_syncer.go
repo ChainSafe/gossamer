@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var _ workHandler = &tipSyncer{}
@@ -43,6 +44,15 @@ func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBl
 }
 
 func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
+	fin, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	if ps.number.Cmp(fin.Number) <= 0 {
+		return nil, nil
+	}
+
 	return &worker{
 		startHash:    ps.hash,
 		startNumber:  ps.number,
@@ -58,8 +68,37 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	}
 
 	if errors.Is(res.err.err, errUnknownParent) || res.err.err.Error() == "stream reset" { // TODO: use errors.Is
-		// handleTick will handle this case
+		// handleTick will handle the errUnknownParent case
 		return nil, nil
+	}
+
+	fin, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	// don't retry if we're requesting blocks lower than finalised
+	switch res.direction {
+	case network.Ascending:
+		if res.targetNumber.Cmp(fin.Number) <= 0 {
+			return nil, nil
+		}
+
+		// if start is lower than finalised, increase it to finalised+1
+		if res.startNumber.Cmp(fin.Number) <= 0 {
+			res.startNumber = big.NewInt(0).Add(fin.Number, big.NewInt(1))
+			res.startHash = common.Hash{}
+		}
+	case network.Descending:
+		if res.startNumber.Cmp(fin.Number) <= 0 {
+			return nil, nil
+		}
+
+		// if target is lower than finalised, increase it to finalised+1
+		if res.targetNumber.Cmp(fin.Number) <= 0 {
+			res.targetNumber = big.NewInt(0).Add(fin.Number, big.NewInt(1))
+			res.targetHash = common.Hash{}
+		}
 	}
 
 	return &worker{
@@ -141,7 +180,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 		workers = append(workers, &worker{
 			startHash:    block.header.ParentHash,
 			startNumber:  big.NewInt(0).Sub(block.number, big.NewInt(1)),
-			targetNumber: fin.Number,
+			targetNumber: big.NewInt(0).Add(fin.Number, big.NewInt(1)),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
 		})
