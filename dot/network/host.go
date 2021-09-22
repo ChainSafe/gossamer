@@ -19,6 +19,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"net"
 	"path"
 	"sync"
@@ -291,7 +292,8 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stre
 }
 
 func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
-	encMsg, err := msg.Encode()
+	//encMsg, err := msg.Encode()
+	encMsg, err := scale.Marshal(msg)
 	if err != nil {
 		return err
 	}

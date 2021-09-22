@@ -2,6 +2,7 @@ package network
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 	"math/big"
 
@@ -117,7 +118,7 @@ func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Messa
 }
 
 func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Message) error {
-	encMsg, err := msg.Encode()
+	encMsg, err := scale.Marshal(msg)
 	if err != nil {
 		return err
 	}

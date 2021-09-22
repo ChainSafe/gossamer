@@ -19,7 +19,7 @@ func TestEncodeSignedVote(t *testing.T) {
 	var testSignature = [64]byte{1, 2, 3, 4}
 	var testAuthorityID = [32]byte{5, 6, 7, 8}
 
-	sv := GrandpaSignedVoteNew{
+	sv := GrandpaSignedVote{
 		Vote:        testVote,
 		Signature:   testSignature,
 		AuthorityID: testAuthorityID,
@@ -28,7 +28,7 @@ func TestEncodeSignedVote(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, exp, enc)
 
-	res :=  GrandpaSignedVoteNew{}
+	res :=  GrandpaSignedVote{}
 	err = scale2.Unmarshal(enc, &res)
 	require.NoError(t, err)
 	require.Equal(t, sv, res)

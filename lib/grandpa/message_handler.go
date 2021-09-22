@@ -114,7 +114,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
 			// TODO: make this synchronous
 			go h.grandpa.network.SendBlockReqestByHash(msg.Vote.Hash)
-			h.grandpa.tracker.addCommitNew(msg)
+			h.grandpa.tracker.addCommit(msg)
 		}
 		return err
 	}
@@ -470,7 +470,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	return nil
 }
 
-func isInAuthSet(auth *ed25519.PublicKey, set []types.GrandpaVoter) bool {
+func isInAuthSet(auth *ed25519.PublicKey, set []types.GrandpaVoterNew) bool {
 	for _, a := range set {
 		if bytes.Equal(a.Key.Encode(), auth.Encode()) {
 			return true

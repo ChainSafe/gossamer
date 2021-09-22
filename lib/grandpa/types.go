@@ -27,10 +27,10 @@ import (
 
 //nolint
 type (
-	Voter      = types.GrandpaVoter
+	Voter      = types.GrandpaVoterNew
 	Voters     = types.GrandpaVoters
 	Vote       = types.GrandpaVote
-	SignedVote = types.GrandpaSignedVoteNew
+	SignedVote = types.GrandpaSignedVote
 )
 
 type subround byte
@@ -109,7 +109,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	}
 
 	return &Voter{
-		Key: pk,
+		Key: *pk,
 		ID:  id,
 	}, nil
 }

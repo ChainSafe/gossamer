@@ -78,29 +78,23 @@ func GrandpaAuthoritiesRawToAuthorities(adr []GrandpaAuthoritiesRaw) ([]Authorit
 }
 
 // GrandpaVoter represents a GRANDPA voter
-type GrandpaVoter struct {
-	Key *ed25519.PublicKey
-	ID  uint64
-}
-
-// GrandpaVoter represents a GRANDPA voter
 type GrandpaVoterNew struct {
 	Key ed25519.PublicKey
 	ID  uint64
 }
 
 // PublicKeyBytes returns the voter key as PublicKeyBytes
-func (v *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
+func (v *GrandpaVoterNew) PublicKeyBytes() ed25519.PublicKeyBytes {
 	return v.Key.AsBytes()
 }
 
 // String returns a formatted GrandpaVoter string
-func (v *GrandpaVoter) String() string {
+func (v *GrandpaVoterNew) String() string {
 	return fmt.Sprintf("[key=0x%s id=%d]", v.PublicKeyBytes(), v.ID)
 }
 
 // Decode will decode the Reader into a GrandpaVoter
-func (v *GrandpaVoter) Decode(r io.Reader) error {
+func (v *GrandpaVoterNew) Decode(r io.Reader) error {
 	keyBytes, err := common.Read32Bytes(r)
 	if err != nil {
 		return err
@@ -116,19 +110,19 @@ func (v *GrandpaVoter) Decode(r io.Reader) error {
 		return err
 	}
 
-	v.Key = key
+	v.Key = *key
 	v.ID = id
 	return nil
 }
 
 // NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities
-func NewGrandpaVotersFromAuthorities(ad []Authority) []GrandpaVoter {
-	v := make([]GrandpaVoter, len(ad))
+func NewGrandpaVotersFromAuthorities(ad []Authority) []GrandpaVoterNew {
+	v := make([]GrandpaVoterNew, len(ad))
 
 	for i, d := range ad {
 		if pk, ok := d.Key.(*ed25519.PublicKey); ok {
-			v[i] = GrandpaVoter{
-				Key: pk,
+			v[i] = GrandpaVoterNew{
+				Key: *pk,
 				ID:  d.Weight,
 			}
 		}
@@ -138,8 +132,8 @@ func NewGrandpaVotersFromAuthorities(ad []Authority) []GrandpaVoter {
 }
 
 // NewGrandpaVotersFromAuthoritiesRaw returns an array of GrandpaVoters given an array of GrandpaAuthoritiesRaw
-func NewGrandpaVotersFromAuthoritiesRaw(ad []GrandpaAuthoritiesRaw) ([]GrandpaVoter, error) {
-	v := make([]GrandpaVoter, len(ad))
+func NewGrandpaVotersFromAuthoritiesRaw(ad []GrandpaAuthoritiesRaw) ([]GrandpaVoterNew, error) {
+	v := make([]GrandpaVoterNew, len(ad))
 
 	for i, d := range ad {
 		key, err := ed25519.NewPublicKey(d.Key[:])
@@ -147,8 +141,8 @@ func NewGrandpaVotersFromAuthoritiesRaw(ad []GrandpaAuthoritiesRaw) ([]GrandpaVo
 			return nil, err
 		}
 
-		v[i] = GrandpaVoter{
-			Key: key,
+		v[i] = GrandpaVoterNew{
+			Key: *key,
 			ID:  d.ID,
 		}
 	}
@@ -156,8 +150,8 @@ func NewGrandpaVotersFromAuthoritiesRaw(ad []GrandpaAuthoritiesRaw) ([]GrandpaVo
 	return v, nil
 }
 
-// GrandpaVoters represents []*GrandpaVoter
-type GrandpaVoters []GrandpaVoter
+// GrandpaVoters represents []GrandpaVoter
+type GrandpaVoters []GrandpaVoterNew
 
 // String returns a formatted Voters string
 func (v GrandpaVoters) String() string {
@@ -169,16 +163,16 @@ func (v GrandpaVoters) String() string {
 }
 
 // DecodeGrandpaVoters returns a SCALE decoded GrandpaVoters
-func DecodeGrandpaVoters(r io.Reader) (GrandpaVoters, error) {
+func DecodeGrandpaVoters(r io.Reader) ([]GrandpaVoterNew, error) {
 	sd := &scale.Decoder{Reader: r}
 	length, err := sd.DecodeInteger()
 	if err != nil {
 		return nil, err
 	}
 
-	voters := make([]GrandpaVoter, length)
+	voters := make([]GrandpaVoterNew, length)
 	for i := range voters {
-		voters[i] = GrandpaVoter{}
+		voters[i] = GrandpaVoterNew{}
 		err = voters[i].Decode(r)
 		if err != nil {
 			return nil, err
@@ -196,13 +190,13 @@ type FinalisationInfo struct {
 }
 
 // GrandpaSignedVote represents a signed precommit message for a finalised block
-type GrandpaSignedVoteNew struct {
+type GrandpaSignedVote struct {
 	Vote        GrandpaVote
 	Signature   [64]byte
 	AuthorityID ed25519.PublicKeyBytes
 }
 
-func (s *GrandpaSignedVoteNew) String() string {
+func (s *GrandpaSignedVote) String() string {
 	return fmt.Sprintf("SignedVote hash=%s number=%d authority=%s",
 		s.Vote.Hash,
 		s.Vote.Number,
@@ -219,24 +213,4 @@ type GrandpaVote struct {
 // String returns the Vote as a string
 func (v *GrandpaVote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.Hash, v.Number)
-}
-
-// Decode returns the SCALE decoded Vote
-func (v *GrandpaVote) Decode(r io.Reader) (*GrandpaVote, error) {
-	if v == nil {
-		v = new(GrandpaVote)
-	}
-
-	var err error
-	v.Hash, err = common.ReadHash(r)
-	if err != nil {
-		return nil, err
-	}
-
-	v.Number, err = common.ReadUint32(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return v, nil
 }

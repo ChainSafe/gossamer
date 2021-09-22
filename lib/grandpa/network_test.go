@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"testing"
 	"time"
@@ -32,7 +33,8 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 		Roles: 4,
 	}
 
-	enc, err := hs.Encode()
+	//enc, err := hs.Encode()
+	enc, err := scale.Marshal(*hs)
 	require.NoError(t, err)
 
 	res := new(GrandpaHandshake)
