@@ -42,6 +42,7 @@ func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockRe
 	if err != nil {
 		return nil, err
 	}
+	logger.Info("outgoing sync stream", "id", stream.ID())
 
 	defer func() {
 		_ = stream.Close()
@@ -90,6 +91,8 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
+	logger.Info("incoming sync stream", "id", stream.ID())
+
 	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage)
 }
 
@@ -107,13 +110,14 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 	}
 
 	defer func() {
+		logger.Info("closing sync stream", "id", stream.ID())
 		_ = stream.Close()
 	}()
 
 	if req, ok := msg.(*BlockRequestMessage); ok {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			logger.Debug("cannot create response for request", "error", err)
+			logger.Info("cannot create response for request", "error", err)
 			return nil
 		}
 

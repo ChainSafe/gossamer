@@ -97,15 +97,14 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 	workers := []*worker{}
 
 	for _, block := range s.pendingBlocks.getBlocks() {
+		if block.number.Cmp(fin.Number) <= 0 {
+			// TODO: delete from pending set (this should not happen, it should have already been deleted)
+			s.pendingBlocks.removeBlock(block.hash)
+			continue
+		}
+
 		if block.header == nil {
 			// case 1
-
-			if block.number.Cmp(fin.Number) <= 0 {
-				// TODO: delete from pending set (this should not happen, it should have already been deleted)
-				s.pendingBlocks.removeBlock(block.hash)
-				continue
-			}
-
 			workers = append(workers, &worker{
 				startHash:    block.hash,
 				startNumber:  block.number,
@@ -135,12 +134,6 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			// block is ready, as parent is known!
 			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
 			handleReadyBlock(block.toBlockData(), s.pendingBlocks, s.readyBlocks)
-			continue
-		}
-
-		if block.number.Cmp(fin.Number) <= 0 {
-			// TODO: delete from pending set (this should not happen, it should have already been deleted)
-			s.pendingBlocks.removeBlock(block.hash)
 			continue
 		}
 

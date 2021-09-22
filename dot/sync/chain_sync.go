@@ -18,8 +18,11 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"math/big"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -131,7 +134,6 @@ type chainSync struct {
 	// the `chainProcessor` will read from this channel and process the blocks
 	// note: blocks must not be put into this channel unless their parent is known
 	//
-	// TODO: ensure this is checked
 	// there is a case where we request and process "duplicate" blocks, which is where there
 	// are some blocks in this queue, and at the same time, the bootstrap worker errors and dispatches
 	// a new worker with start=(current best head), which results in the blocks in the queue
@@ -412,6 +414,11 @@ func (cs *chainSync) sync() {
 						cs.ignorePeers[res.err.who] = struct{}{}
 						cs.Unlock()
 					}
+					continue
+				}
+
+				if errors.Is(res.err.err, io.EOF) {
+					time.Sleep(time.Millisecond * 250)
 				}
 			}
 
@@ -629,8 +636,8 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	// send out request and potentially receive response, error if timeout
 	logger.Trace("sending out block request", "request", req)
 
-	// TODO: either randomly sort or use scoring to determine what peer to try to sync from
-	who := peers[0]
+	// TODO: use scoring to determine what peer to try to sync from first
+	who := peers[rand.Intn(len(peers))]
 	resp, err := cs.network.DoBlockRequest(who, req)
 	if err != nil {
 		return &workerError{
