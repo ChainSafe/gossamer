@@ -228,25 +228,25 @@ func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCa
 }
 
 // GetChildKeys isn't implemented properly yet.
-func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) error {
+func (*StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
 
 // GetChildStorage isn't implemented properly yet.
-func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) error {
+func (*StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
 
 // GetChildStorageHash isn't implemented properly yet.
-func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageResponse) error {
+func (*StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
 
 // GetChildStorageSize isn't implemented properly yet.
-func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageSizeResponse) error {
+func (*StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageSizeResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
@@ -469,7 +469,7 @@ func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorag
 // SubscribeStorage Storage subscription. If storage keys are specified, it creates a message for each block which
 //  changes the specified storage keys. If none are specified, then it creates a message for every block.
 //  This endpoint communicates over the Websocket protocol, but this func should remain here so it's added to rpc_methods list
-func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
+func (*StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
 	return nil
 }
 
