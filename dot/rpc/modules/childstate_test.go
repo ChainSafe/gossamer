@@ -25,8 +25,8 @@ func TestChildStateGetKeys(t *testing.T) {
 	require.Len(t, res, 3)
 
 	for _, r := range res {
-		b, err := common.HexToBytes(r)
-		require.NoError(t, err)
+		b, dErr := common.HexToBytes(r)
+		require.NoError(t, dErr)
 		require.Contains(t, []string{
 			":child_first", ":child_second", ":another_child",
 		}, string(b))
