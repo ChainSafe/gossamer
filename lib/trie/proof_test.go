@@ -51,5 +51,5 @@ func TestProofGeneration(t *testing.T) {
 	require.NoError(t, err)
 
 	// TODO: use the verify_proof function to assert the tests
-	require.Equal(t, len(proof), 5)
+	require.Equal(t, 5, len(proof))
 }

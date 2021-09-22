@@ -15,14 +15,9 @@ func (r *Recorder) Record(h, rd []byte) {
 	*r = append(*r, nr)
 }
 
-// Len returns the current length of the recorded list
-func (r *Recorder) Len() int {
-	return len(*r)
-}
-
 // Next returns the current item the cursor is on and increment the cursor by 1
 func (r *Recorder) Next() *NodeRecord {
-	if r.Len() > 0 {
+	if r.HasNext() {
 		n := (*r)[0]
 		*r = (*r)[1:]
 		return &n
@@ -33,8 +28,12 @@ func (r *Recorder) Next() *NodeRecord {
 
 // Peek returns the current item the cursor is on but dont increment the cursor by 1
 func (r *Recorder) Peek() *NodeRecord {
-	if r.Len() > 0 {
+	if r.HasNext() {
 		return &(*r)[0]
 	}
 	return nil
+}
+
+func (r *Recorder) HasNext() bool {
+	return len(*r) > 0
 }
