@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -389,7 +390,7 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
-			logger.Error("worker error", "error", res.err.err)
+			logger.Debug("worker error", "error", res.err.err)
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
@@ -403,6 +404,15 @@ func (cs *chainSync) sync() {
 				}
 			case context.Canceled:
 				return
+			default:
+				// TODO: using this err requires upgrading libp2p versions
+				if strings.Contains(res.err.err.Error(), "dial backoff") || res.err.err.Error() == "protocol not supported" {
+					if res.err.who != peer.ID("") {
+						cs.Lock()
+						cs.ignorePeers[res.err.who] = struct{}{}
+						cs.Unlock()
+					}
+				}
 			}
 
 			worker, err := cs.handler.handleWorkerResult(res)

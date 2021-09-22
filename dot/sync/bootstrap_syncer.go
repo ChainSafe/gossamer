@@ -81,7 +81,12 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	// in the case we started a block producing node, we might have produced blocks
 	// before fully syncing (this should probably be fixed by connecting sync into BABE)
 	if errors.Is(res.err.err, errUnknownParent) {
-		startNumber = big.NewInt(0).Sub(res.startNumber, big.NewInt(1))
+		fin, err := s.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			return nil, err
+		}
+
+		startNumber = fin.Number
 	}
 
 	return &worker{

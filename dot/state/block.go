@@ -262,7 +262,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	}
 
 	result.Hash()
-	return result, err
+	return result, nil
 }
 
 // GetHashByNumber returns the block hash given the number
@@ -449,7 +449,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 // handleAddedBlock re-sets the canonical number->hash mapping if there was a chain re-org.
 // prev is the previous best block hash before the new block was added to the blocktree.
-// curr is the current best blogetck hash.
+// curr is the current best block hash.
 func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 	ancestor, err := bs.HighestCommonAncestor(prev, curr)
 	if err != nil {
