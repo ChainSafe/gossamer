@@ -17,6 +17,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"math/big"
@@ -89,7 +90,7 @@ func setIDChangeKey(setID uint64) []byte {
 
 // setAuthorities sets the authorities for a given setID
 func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoterNew) error {
-	enc, err := scale.Marshal(authorities)
+	enc, err := types.EncodeGrandpaVoters(authorities)
 	if err != nil {
 		return err
 	}
@@ -104,15 +105,20 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoterNew, er
 		return nil, err
 	}
 
-	v := []types.GrandpaVoterNew{}
-	err = scale.Unmarshal(enc, &v)
+	r := &bytes.Buffer{}
+	_, err = r.Write(enc)
+	if err != nil {
+		return nil, err
+	}
 
+	v, err := types.DecodeGrandpaVoters(r)
 	if err != nil {
 		return nil, err
 	}
 
 	return v, nil
 }
+
 
 // setCurrentSetID sets the current set ID
 func (s *GrandpaState) setCurrentSetID(setID uint64) error {

@@ -228,7 +228,7 @@ func (s *Service) authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
 	for i, v := range s.state.voters {
 		ad[i] = &types.Authority{
-			Key:    v.Key,
+			Key:    &v.Key,
 			Weight: v.ID,
 		}
 	}

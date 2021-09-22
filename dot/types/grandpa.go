@@ -18,6 +18,7 @@ package types
 
 import (
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -94,6 +95,19 @@ func (v *GrandpaVoterNew) String() string {
 }
 
 // Decode will decode the Reader into a GrandpaVoter
+func (v *GrandpaVoterNew) Encode() ([]byte, error) {
+	enc := []byte{}
+	b := v.Key.Encode()
+	enc = append(enc, b...)
+	e, err := scale2.Marshal(v.ID)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, e...)
+	return enc, nil
+}
+
+// Decode will decode the Reader into a GrandpaVoter
 func (v *GrandpaVoterNew) Decode(r io.Reader) error {
 	keyBytes, err := common.Read32Bytes(r)
 	if err != nil {
@@ -162,7 +176,27 @@ func (v GrandpaVoters) String() string {
 	return str
 }
 
-// DecodeGrandpaVoters returns a SCALE decoded GrandpaVoters
+// EncodeGrandpaVoters returns an encoded GrandpaVoters
+func EncodeGrandpaVoters(voters []GrandpaVoterNew) ([]byte, error) {
+	enc := []byte{}
+
+	length, err := scale2.Marshal(len(voters))
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, length...)
+	for _, val := range voters {
+		e, err := val.Encode()
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, e...)
+	}
+
+	return enc, nil
+}
+
+// DecodeGrandpaVoters returns a decoded GrandpaVoters
 func DecodeGrandpaVoters(r io.Reader) ([]GrandpaVoterNew, error) {
 	sd := &scale.Decoder{Reader: r}
 	length, err := sd.DecodeInteger()

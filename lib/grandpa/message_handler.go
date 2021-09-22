@@ -288,12 +288,15 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 }
 
 func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (common.Hash, error) {
+	fmt.Println("In the method!")
 	// verify pre-vote justification, returning the pre-voted block if there is one
 	votes := make(map[common.Hash]uint64)
 
 	for _, just := range msg.PreVoteJustification {
+		fmt.Println("In the first loop!")
 		err := h.verifyJustification(&just, msg.Round, msg.SetID, prevote)
 		if err != nil {
+			fmt.Println("Error is happening!")
 			continue
 		}
 
@@ -302,6 +305,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 
 	var prevote common.Hash
 	for hash, count := range votes {
+		fmt.Println("In the loop!")
 		if count >= h.grandpa.state.threshold() {
 			prevote = hash
 			break

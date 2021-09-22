@@ -17,6 +17,7 @@
 package state
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -33,6 +34,30 @@ var (
 		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 )
+
+func TestKeyEncode(t *testing.T) {
+	exp := testAuths[0].Key.Encode()
+
+	enc, err := testAuths[0].Encode()
+	require.NoError(t, err)
+
+	k := *kr.Alice().Public().(*ed25519.PublicKey)
+	err = k.Decode(exp)
+	require.NoError(t, err)
+
+	require.Equal(t, testAuths[0].Key, k)
+
+	r := &bytes.Buffer{}
+	_, _ = r.Write(enc)
+
+	gv := types.GrandpaVoterNew{}
+	err = gv.Decode(r)
+	require.NoError(t, err)
+
+	require.Equal(t, testAuths[0], gv)
+	require.Equal(t, k, gv.Key)
+
+}
 
 func TestNewGrandpaStateFromGenesis(t *testing.T) {
 	db := NewInMemoryDB(t)
