@@ -193,7 +193,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 
 	length, err := readLEB128ToUint64(stream, buf[:1])
 	if err != nil {
-		return 0, err // TODO: return bytes read from readLEB128ToUint64
+		return 0, fmt.Errorf("failed to read length: %w", err) // TODO: return bytes read from readLEB128ToUint64
 	}
 
 	if length == 0 {

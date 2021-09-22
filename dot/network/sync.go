@@ -18,6 +18,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -32,7 +33,6 @@ func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockRe
 
 	s.host.h.ConnManager().Protect(to, "")
 	defer s.host.h.ConnManager().Unprotect(to, "")
-	defer s.host.closeStream(to, fullSyncID)
 
 	// TODO: make this a constant
 	ctx, cancel := context.WithTimeout(s.ctx, time.Second*5)
@@ -43,8 +43,11 @@ func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockRe
 		return nil, err
 	}
 
-	err = s.host.writeToStream(stream, req)
-	if err != nil {
+	defer func() {
+		_ = stream.Close()
+	}()
+
+	if err = s.host.writeToStream(stream, req); err != nil {
 		return nil, err
 	}
 
@@ -65,12 +68,20 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 
 	n, err := readStream(stream, buf[:])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read stream error: %w", err)
+	}
+
+	if n == 0 {
+		return nil, fmt.Errorf("received empty message")
 	}
 
 	msg := new(BlockResponseMessage)
 	err = msg.Decode(buf[:n])
-	return msg, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode block response: %w", err)
+	}
+
+	return msg, nil
 }
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
@@ -92,25 +103,23 @@ func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {
 // the only messages we should receive over an inbound stream are BlockRequestMessages, so we only need to handle those
 func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) error {
 	if msg == nil {
-		_ = stream.Close()
 		return nil
 	}
 
-	// if it's a BlockRequest, call core for processing
-	if req, ok := msg.(*BlockRequestMessage); ok {
-		defer func() {
-			_ = stream.Close()
-		}()
+	defer func() {
+		_ = stream.Close()
+	}()
 
+	if req, ok := msg.(*BlockRequestMessage); ok {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			logger.Debug("cannot create response for request", "error", err)
 			return nil
 		}
 
-		err = s.host.writeToStream(stream, resp)
-		if err != nil {
+		if err = s.host.writeToStream(stream, resp); err != nil {
 			logger.Error("failed to send BlockResponse message", "peer", stream.Conn().RemotePeer(), "error", err)
+			return err
 		}
 	}
 

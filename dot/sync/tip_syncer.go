@@ -102,6 +102,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 
 			if block.number.Cmp(fin.Number) <= 0 {
 				// TODO: delete from pending set (this should not happen, it should have already been deleted)
+				s.pendingBlocks.removeBlock(block.hash)
 				continue
 			}
 
@@ -134,6 +135,12 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			// block is ready, as parent is known!
 			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
 			handleReadyBlock(block.toBlockData(), s.pendingBlocks, s.readyBlocks)
+			continue
+		}
+
+		if block.number.Cmp(fin.Number) <= 0 {
+			// TODO: delete from pending set (this should not happen, it should have already been deleted)
+			s.pendingBlocks.removeBlock(block.hash)
 			continue
 		}
 
