@@ -783,6 +783,12 @@ func (cs *chainSync) validateResponse(who peer.ID, req *network.BlockRequestMess
 				return err
 			}
 
+			if bd.Justification != nil {
+				if err := cs.pendingBlocks.addJustification(bd.Hash, *bd.Justification); err != nil {
+					return err
+				}
+			}
+
 			return errUnknownParent
 		}
 

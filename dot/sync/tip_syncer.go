@@ -180,7 +180,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 		workers = append(workers, &worker{
 			startHash:    block.header.ParentHash,
 			startNumber:  big.NewInt(0).Sub(block.number, big.NewInt(1)),
-			targetNumber: big.NewInt(0).Add(fin.Number, big.NewInt(1)),
+			targetNumber: fin.Number,
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
 		})

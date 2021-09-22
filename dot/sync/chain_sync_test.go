@@ -51,7 +51,7 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
 	readyBlocks := newBlockQueue(maxResponseSize)
-	cs, err := newChainSync(bs, net, readyBlocks)
+	cs, err := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit))
 	require.NoError(t, err)
 	return cs, readyBlocks
 }
@@ -176,6 +176,7 @@ func TestChainSync_sync_tip(t *testing.T) {
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.MockBlockState).On("BestBlockHeader").Return(header, nil)
+	cs.blockState.(*syncmocks.MockBlockState).On("GetHighestFinalisedHeader").Return(header, nil)
 
 	go cs.sync()
 	defer cs.cancel()
