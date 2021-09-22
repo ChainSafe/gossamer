@@ -80,12 +80,12 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	require.NoError(t, err)
 
 	b := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: bb.Header.Hash(),
 			Number:     big.NewInt(0).Add(big.NewInt(1), bb.Header.Number),
 			StateRoot:  stateRoot,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: []byte{},
 	}
 
 	err = st.Block.AddBlock(b)

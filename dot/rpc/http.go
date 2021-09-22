@@ -127,6 +127,8 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			srvc = modules.NewDevModule(h.serverConfig.BlockProducerAPI, h.serverConfig.NetworkAPI)
 		case "offchain":
 			srvc = modules.NewOffchainModule(h.serverConfig.NodeStorage)
+		case "childstate":
+			srvc = modules.NewChildStateModule(h.serverConfig.StorageAPI, h.serverConfig.BlockAPI)
 		default:
 			h.logger.Warn("Unrecognised module", "module", mod)
 			continue

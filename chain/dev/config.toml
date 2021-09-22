@@ -35,5 +35,5 @@ enabled = true
 ws = true
 port = 8545
 host = "localhost"
-modules = ["system", "author", "chain", "state", "rpc", "grandpa"]
+modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate"]
 ws-port = 8546
