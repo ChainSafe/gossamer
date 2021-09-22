@@ -189,7 +189,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	resp, err := gs.newCatchUpResponse(round, setID)
 	require.NoError(t, err)
 
-	expected := &catchUpResponse{
+	expected := &CatchUpResponse{
 		Round:                  round,
 		SetID:                  setID,
 		PreVoteJustification:   pvj,

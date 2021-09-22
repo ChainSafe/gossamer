@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/rand"
 	"sync"
 	"testing"
@@ -61,12 +62,17 @@ func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
 	cm, ok := msg.(*ConsensusMessage)
 	require.True(n.t, ok)
 
-	gmsg, err := decodeMessage(cm)
+	dec := NewGrandpaMessage()
+	err := scale.Unmarshal(cm.Data, &dec)
 	require.NoError(n.t, err)
 
-	if gmsg.Type() == commitType {
+	gmsg, err := decodeMessage(dec)
+	require.NoError(n.t, err)
+
+	switch gmsg.(type) {
+	case *CommitMessage:
 		n.finalised <- gmsg
-	} else {
+	default:
 		n.out <- gmsg
 	}
 }

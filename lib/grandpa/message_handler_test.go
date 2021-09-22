@@ -81,7 +81,11 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 		Data: common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
 	}
 
-	msg, err := decodeMessage(cm)
+	dec := NewGrandpaMessage()
+	err := scale.Unmarshal(cm.Data, &dec)
+	require.NoError(t, err)
+
+	msg, err := decodeMessage(dec)
 	require.NoError(t, err)
 
 	sigb := common.MustHexToBytes("0x36e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f")
@@ -124,7 +128,11 @@ func TestDecodeMessage_CommitMessage(t *testing.T) {
 	cm, err := expected.ToConsensusMessage()
 	require.NoError(t, err)
 
-	msg, err := decodeMessage(cm)
+	dec := NewGrandpaMessage()
+	err = scale.Unmarshal(cm.Data, &dec)
+	require.NoError(t, err)
+
+	msg, err := decodeMessage(dec)
 	require.NoError(t, err)
 	require.Equal(t, expected, msg)
 }
@@ -134,7 +142,11 @@ func TestDecodeMessage_NeighbourMessage(t *testing.T) {
 		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
 	}
 
-	msg, err := decodeMessage(cm)
+	dec := NewGrandpaMessage()
+	err := scale.Unmarshal(cm.Data, &dec)
+	require.NoError(t, err)
+
+	msg, err := decodeMessage(dec)
 	require.NoError(t, err)
 
 	expected := &NeighbourMessage{
@@ -151,10 +163,12 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 		Data: common.MustHexToBytes("0x0311000000000000002200000000000000"),
 	}
 
-	msg, err := decodeMessage(cm)
+	m := NewGrandpaMessage()
+	err := scale.Unmarshal(cm.Data, &m)
+	msg, err := decodeMessage(m)
 	require.NoError(t, err)
 
-	expected := &catchUpRequest{
+	expected := &CatchUpRequest{
 		Round: 0x11,
 		SetID: 0x22,
 	}
@@ -458,7 +472,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 
 	just := buildTestJustificationNew(t, int(gs.state.threshold()), 1, gs.state.setID, kr, prevote)
-	msg := &catchUpResponse{
+	msg := &CatchUpResponse{
 		Round:                1,
 		SetID:                gs.state.setID,
 		PreVoteJustification: just,
@@ -475,7 +489,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 
 	round := uint64(1)
 	just := buildTestJustificationNew(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	msg := &catchUpResponse{
+	msg := &CatchUpResponse{
 		Round:                  round,
 		SetID:                  gs.state.setID,
 		PreCommitJustification: just,
@@ -500,7 +514,7 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 
 	pvJust := buildTestJustificationNew(t, int(gs.state.threshold()), round, gs.state.setID, kr, prevote)
 	pcJust := buildTestJustificationNew(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	msg := &catchUpResponse{
+	msg := &CatchUpResponse{
 		Round:                  round,
 		SetID:                  gs.state.setID,
 		PreVoteJustification:   pvJust,

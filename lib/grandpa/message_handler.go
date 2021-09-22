@@ -65,9 +65,9 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourMessage:
 		return nil, h.handleNeighbourMessage(from, msg)
-	case *catchUpRequest:
+	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
-	case *catchUpResponse:
+	case *CatchUpResponse:
 		return nil, h.handleCatchUpResponse(msg)
 	default:
 		return nil, ErrInvalidMessageType
@@ -137,7 +137,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	return nil
 }
 
-func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMessage, error) {
+func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMessage, error) {
 	if !h.grandpa.authority {
 		return nil, nil
 	}
@@ -161,7 +161,7 @@ func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMe
 	return resp.ToConsensusMessage()
 }
 
-func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
+func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	if !h.grandpa.authority {
 		return nil
 	}
@@ -287,7 +287,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 	return nil
 }
 
-func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (common.Hash, error) {
+func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (common.Hash, error) {
 	// verify pre-vote justification, returning the pre-voted block if there is one
 	votes := make(map[common.Hash]uint64)
 
@@ -315,7 +315,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (commo
 	return prevote, nil
 }
 
-func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) error {
+func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {

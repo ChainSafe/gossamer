@@ -23,37 +23,22 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
-// TODO: the fields can be un-exported, as can all the message implementations
 type GrandpaMessage interface { //nolint
 	ToConsensusMessage() (*network.ConsensusMessage, error)
-	Type() byte
 }
 
-// TODO Make these a VDT
-var (
-	voteType            byte
-	commitType          byte = 1
-	neighbourType       byte = 2
-	catchUpRequestType  byte = 3
-	catchUpResponseType byte = 4
-)
+// NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
+func NewGrandpaMessage() scale.VaryingDataType {
+	return scale.MustNewVaryingDataType(VoteMessage{}, CommitMessage{}, NeighbourMessage{}, CatchUpRequest{}, CatchUpResponse{})
+}
 
 // FullVote represents a vote with additional information about the state
 // this is encoded and signed and the signature is included in SignedMessage
 type FullVote struct {
-	Stage subround
-	Vote  Vote
-	Round uint64
-	SetID uint64
-}
-
-// FullVote represents a vote with additional information about the state
-// this is encoded and signed and the signature is included in SignedMessage
-type FullVoteNew struct {
 	Stage subround
 	Vote  Vote
 	Round uint64
@@ -82,21 +67,24 @@ type VoteMessage struct {
 	Message SignedMessage
 }
 
-// Type returns voteType
-func (v *VoteMessage) Type() byte {
-	return voteType
-}
+// Index Returns VDT index
+func (v VoteMessage) Index() uint { return 0 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	//enc, err := scale.Encode(v)
-	enc, err := scale2.Marshal(*v)
+	msg := NewGrandpaMessage()
+	err := msg.Set(*v)
+	if err != nil {
+		return nil, err
+	}
+
+	enc, err := scale.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ConsensusMessage{
-		Data: append([]byte{voteType}, enc...),
+		Data: enc,
 	}, nil
 }
 
@@ -108,22 +96,25 @@ type NeighbourMessage struct {
 	Number  uint32
 }
 
+// Index Returns VDT index
+func (m NeighbourMessage) Index() uint { return 2 }
+
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	//enc, err := scale.Encode(m)
-	enc, err := scale2.Marshal(*m)
+	msg := NewGrandpaMessage()
+	err := msg.Set(*m)
+	if err != nil {
+		return nil, err
+	}
+
+	enc, err := scale.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ConsensusMessage{
-		Data: append([]byte{neighbourType}, enc...),
+		Data: enc,
 	}, nil
-}
-
-// Type returns neighbourType
-func (m *NeighbourMessage) Type() byte {
-	return neighbourType
 }
 
 // AuthData represents signature data within a CommitMessage to be paired with a Precommit
@@ -141,24 +132,6 @@ type CommitMessage struct {
 	AuthData   []AuthData
 }
 
-// Type returns commitType
-func (f *CommitMessage) Type() byte {
-	return commitType
-}
-
-// ToConsensusMessage converts the CommitMessage into a network-level consensus message
-func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	//enc, err := scale.Encode(f)
-	enc, err := scale2.Marshal(*f)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ConsensusMessage{
-		Data: append([]byte{commitType}, enc...),
-	}, nil
-}
-
 func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
 	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
 	if err != nil {
@@ -171,6 +144,27 @@ func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitM
 		Vote:       *NewVoteFromHeader(header),
 		Precommits: precommits,
 		AuthData:   authData,
+	}, nil
+}
+
+// Index Returns VDT index
+func (f CommitMessage) Index() uint { return 1 }
+
+// ToConsensusMessage converts the CommitMessage into a network-level consensus message
+func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
+	msg := NewGrandpaMessage()
+	err := msg.Set(*f)
+	if err != nil {
+		return nil, err
+	}
+
+	enc, err := scale.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ConsensusMessage{
+		Data: enc,
 	}, nil
 }
 
@@ -206,37 +200,40 @@ func compactToJustification(vs []Vote, auths []AuthData) ([]SignedVote, error) {
 	return just, nil
 }
 
-type catchUpRequest struct {
+type CatchUpRequest struct {
 	Round uint64
 	SetID uint64
 }
 
-func newCatchUpRequest(round, setID uint64) *catchUpRequest {
-	return &catchUpRequest{
+func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
+	return &CatchUpRequest{
 		Round: round,
 		SetID: setID,
 	}
 }
 
-// Type returns catchUpRequestType
-func (r *catchUpRequest) Type() byte {
-	return catchUpRequestType
-}
+// Index Returns VDT index
+func (r CatchUpRequest) Index() uint { return 3 }
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
-func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
-	//enc, err := scale.Encode(r)
-	enc, err := scale2.Marshal(*r)
+func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
+	msg := NewGrandpaMessage()
+	err := msg.Set(*r)
+	if err != nil {
+		return nil, err
+	}
+
+	enc, err := scale.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ConsensusMessage{
-		Data: append([]byte{catchUpRequestType}, enc...),
+		Data: enc,
 	}, nil
 }
 
-type catchUpResponse struct {
+type CatchUpResponse struct {
 	SetID                  uint64
 	Round                  uint64
 	PreVoteJustification   []SignedVote
@@ -245,7 +242,7 @@ type catchUpResponse struct {
 	Number                 uint32
 }
 
-func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
+func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, error) {
 	header, err := s.blockState.GetFinalisedHeader(round, setID)
 	if err != nil {
 		return nil, err
@@ -261,7 +258,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 		return nil, err
 	}
 
-	return &catchUpResponse{
+	return &CatchUpResponse{
 		SetID:                  setID,
 		Round:                  round,
 		PreVoteJustification:   pvs,
@@ -271,20 +268,23 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 	}, nil
 }
 
-// Type returns catchUpResponseType
-func (r *catchUpResponse) Type() byte {
-	return catchUpResponseType
-}
+// Index Returns VDT index
+func (r CatchUpResponse) Index() uint { return 4 }
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
-func (r *catchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
-	//enc, err := scale.Encode(r)
-	enc, err := scale2.Marshal(*r)
+func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
+	msg := NewGrandpaMessage()
+	err := msg.Set(*r)
+	if err != nil {
+		return nil, err
+	}
+
+	enc, err := scale.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ConsensusMessage{
-		Data: append([]byte{catchUpResponseType}, enc...),
+		Data: enc,
 	}, nil
 }

@@ -18,11 +18,11 @@ package grandpa
 
 import (
 	"fmt"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
@@ -62,13 +62,12 @@ func (hs *GrandpaHandshake) String() string {
 
 // Encode encodes a GrandpaHandshake message using SCALE
 func (hs *GrandpaHandshake) Encode() ([]byte, error) {
-	return scale2.Marshal(*hs)
+	return scale.Marshal(*hs)
 }
 
 // Decode the message into a GrandpaHandshake
 func (hs *GrandpaHandshake) Decode(in []byte) error {
-	//msg, err := scale.Decode(in, hs)
-	err := scale2.Unmarshal(in, hs)
+	err := scale.Unmarshal(in, hs)
 	if err != nil {
 		return err
 	}
@@ -149,7 +148,9 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, nil
 	}
 
-	m, err := decodeMessage(cm)
+	dec := NewGrandpaMessage()
+	err := scale.Unmarshal(cm.Data, &dec)
+	m, err := decodeMessage(dec)
 	if err != nil {
 		return false, err
 	}
@@ -169,7 +170,10 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		logger.Warn("unexpected type returned from message handler", "response", resp)
 	}
 
-	if m.Type() == neighbourType || m.Type() == catchUpResponseType {
+	switch m.(type) {
+	case *NeighbourMessage:
+		return false, nil
+	case *CatchUpResponse:
 		return false, nil
 	}
 
@@ -223,33 +227,21 @@ func (s *Service) sendNeighbourMessage() {
 	}
 }
 
-//TODO VDT this up baby
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
-func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
-	switch msg.Data[0] {
-	case voteType:
-		m = &VoteMessage{}
-		err = scale2.Unmarshal(msg.Data[1:], m)
+func decodeMessage(msg scale.VaryingDataType) (m GrandpaMessage, err error) {
+	switch val := msg.Value().(type) {
+	case VoteMessage:
+		m = &val
 		logger.Trace("got VoteMessage!!!", "msg", m)
-	case commitType:
-		m = &CommitMessage{}
-		err = scale2.Unmarshal(msg.Data[1:], m)
+	case CommitMessage:
+		m = &val
 		logger.Trace("got CommitMessage!!!", "msg", m)
-	case neighbourType:
-		m = &NeighbourMessage{}
-		err = scale2.Unmarshal(msg.Data[1:], m)
-	case catchUpRequestType:
-		m = &catchUpRequest{}
-		err = scale2.Unmarshal(msg.Data[1:], m)
-	case catchUpResponseType:
-		m = &catchUpResponse{}
-		err = scale2.Unmarshal(msg.Data[1:], m)
-	default:
-		return nil, ErrInvalidMessageType
-	}
-
-	if err != nil {
-		return nil, err
+	case NeighbourMessage:
+		m = &val
+	case CatchUpRequest:
+		m = &val
+	case CatchUpResponse:
+		m = &val
 	}
 
 	return m, nil
