@@ -98,10 +98,12 @@ func (s *chainProcessor) processReadyBlocks() {
 
 			// depending on the error, we might want to save this block for later
 			if strings.Contains(err.Error(), "failed to get parent hash") {
-				s.pendingBlocks.addBlock(&types.Block{
+				if err := s.pendingBlocks.addBlock(&types.Block{
 					Header: *bd.Header,
 					Body:   *bd.Body,
-				})
+				}); err != nil {
+					logger.Debug("failed to re-add block to pending blocks", "error", err)
+				}
 			}
 		}
 	}

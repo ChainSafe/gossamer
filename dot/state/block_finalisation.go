@@ -146,7 +146,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	if err := bs.handleFinalisedBlock(hash); err != nil {
-		return fmt.Errorf("failed to set number->hash mapping on finalisation", "error", err)
+		return fmt.Errorf("failed to set number->hash mapping on finalisation: %w", err)
 	}
 
 	if round > 0 {
