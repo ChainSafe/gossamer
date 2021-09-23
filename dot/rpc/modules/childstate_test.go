@@ -1,9 +1,11 @@
 package modules
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -48,6 +50,65 @@ func TestChildStateGetKeys(t *testing.T) {
 		require.Contains(t, []string{
 			":child_first", ":child_second",
 		}, string(b))
+	}
+}
+
+func TestGetStorageHash(t *testing.T) {
+	mod, blockHash := setupChildStateStorage(t)
+
+	tests := []struct {
+		expect   string
+		err      error
+		hash     common.Hash
+		keyChild []byte
+		entry    []byte
+	}{
+		{
+			err:      nil,
+			expect:   common.BytesToHash([]byte(":child_first_value")).String(),
+			hash:     common.EmptyHash,
+			entry:    []byte(":child_first"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   common.BytesToHash([]byte(":child_second_value")).String(),
+			hash:     blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			hash:     blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":not_exist"),
+		},
+		{
+			err:  chaindb.ErrKeyNotFound,
+			hash: common.BytesToHash([]byte("invalid block hash")),
+		},
+	}
+
+	for _, test := range tests {
+		var req GetStorageHash
+		var res string
+
+		req.Hash = test.hash
+		req.EntryKey = test.entry
+		req.KeyChild = test.keyChild
+
+		err := mod.GetStorageHash(nil, &req, &res)
+
+		if test.err != nil {
+			require.Error(t, err)
+			require.Equal(t, err, test.err)
+		} else {
+			require.NoError(t, err)
+		}
+
+		if test.expect != "" {
+			require.Equal(t, test.expect, res)
+		}
 	}
 }
 
