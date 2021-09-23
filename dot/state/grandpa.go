@@ -44,18 +44,10 @@ type GrandpaState struct {
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
+func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.GrandpaVoterNew) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
 		db: grandpaDB,
-	}
-
-	auths := make([]types.GrandpaVoterNew, len(genesisAuthorities))
-	for i, v := range genesisAuthorities {
-		auths[i] = types.GrandpaVoterNew{
-			*v.Key,
-			v.ID,
-		}
 	}
 
 	if err := s.setCurrentSetID(genesisSetID); err != nil {
@@ -66,7 +58,7 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.
 		return nil, err
 	}
 
-	if err := s.setAuthorities(genesisSetID, auths); err != nil {
+	if err := s.setAuthorities(genesisSetID, genesisAuthorities); err != nil {
 		return nil, err
 	}
 
