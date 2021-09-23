@@ -47,6 +47,15 @@ func TestImportChannel(t *testing.T) {
 	}
 }
 
+func TestFreeImportedBlockNotifierChannel(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+	ch := bs.GetImportedBlockNotifierChannel()
+	require.Equal(t, 1, len(bs.imported))
+
+	bs.FreeImportedBlockNotifierChannel(ch)
+	require.Equal(t, 0, len(bs.imported))
+}
+
 func TestFinalizedChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
