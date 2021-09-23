@@ -76,18 +76,10 @@ const (
 
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
-	RequestedData byte
-	// <<<<<<< HEAD
-	// 	StartingBlock *variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
-	// 	EndBlockHash  *optional.Hash
-	// 	Direction     SyncDirection // 0 = ascending, 1 = descending
-	// 	Max           *optional.Uint32
-	// =======
 	StartingBlock variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
 	EndBlockHash  *common.Hash
 	Direction     SyncDirection // 0 = ascending, 1 = descending
 	Max           *uint32
-	//>>>>>>> edd9b1987aba8f32f220c530b9efdbccb8c05c64
 }
 
 // SubProtocol returns the sync sub-protocol
