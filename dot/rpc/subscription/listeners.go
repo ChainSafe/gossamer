@@ -191,7 +191,6 @@ func (l *BlockFinalizedListener) Listen() {
 		defer func() {
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.chanID)
 			close(l.done)
-			close(l.channel)
 		}()
 
 		for {
