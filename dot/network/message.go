@@ -76,6 +76,7 @@ const (
 
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
+	RequestedData byte
 	StartingBlock variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
 	EndBlockHash  *common.Hash
 	Direction     SyncDirection // 0 = ascending, 1 = descending
