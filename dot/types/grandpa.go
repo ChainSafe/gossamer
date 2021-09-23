@@ -240,7 +240,7 @@ func (v GrandpaVoters) String() string {
 }
 
 // EncodeGrandpaVoters returns an encoded GrandpaVoters
-func EncodeGrandpaVoters(voters []GrandpaVoter) ([]byte, error) {
+func EncodeGrandpaVoters(voters []GrandpaVoterNew) ([]byte, error) {
 	enc := []byte{}
 
 	length, err := scale2.Marshal(len(voters))
@@ -257,26 +257,6 @@ func EncodeGrandpaVoters(voters []GrandpaVoter) ([]byte, error) {
 	}
 
 	return enc, nil
-}
-
-// DecodeGrandpaVoters returns a SCALE decoded GrandpaVoters
-func DecodeGrandpaVotersNew(r io.Reader) (GrandpaVoters, error) {
-	sd := &scale.Decoder{Reader: r}
-	length, err := sd.DecodeInteger()
-	if err != nil {
-		return nil, err
-	}
-
-	voters := make([]GrandpaVoterNew, length)
-	for i := range voters {
-		voters[i] = GrandpaVoterNew{}
-		err = voters[i].Decode(r)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return voters, nil
 }
 
 // DecodeGrandpaVoters returns a SCALE decoded GrandpaVoters

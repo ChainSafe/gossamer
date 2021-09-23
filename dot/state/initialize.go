@@ -104,7 +104,15 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to load grandpa authorities: %w", err)
 	}
 
-	grandpaState, err := NewGrandpaStateFromGenesis(db, grandpaAuths)
+	voters := make([]types.GrandpaVoter, len(grandpaAuths))
+	for i, v := range grandpaAuths {
+		voters[i] = types.GrandpaVoter{
+			&v.Key,
+			v.ID,
+		}
+	}
+
+	grandpaState, err := NewGrandpaStateFromGenesis(db, voters)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %s", err)
 	}
@@ -141,30 +149,16 @@ func (s *Service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.B
 	return babeCfg, nil
 }
 
-func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
+func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoterNew, error) {
 	authsRaw := t.Get(runtime.GrandpaAuthoritiesKey)
 	if authsRaw == nil {
-		return []types.GrandpaVoter{}, nil
+		return []types.GrandpaVoterNew{}, nil
 	}
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(authsRaw[1:])
 
-	gv, err := types.DecodeGrandpaVoters(r)
-	if err != nil {
-		return []types.GrandpaVoter{}, err
-	}
-
-	voters := make([]types.GrandpaVoter, len(gv))
-	for i, v := range gv{
-		voters[i] = types.GrandpaVoter{
-			&v.Key,
-			v.ID,
-		}
-	}
-
-	return voters, nil
-	//return types.DecodeGrandpaVoters(r)
+	return types.DecodeGrandpaVoters(r)
 }
 
 // storeInitialValues writes initial genesis values to the state database

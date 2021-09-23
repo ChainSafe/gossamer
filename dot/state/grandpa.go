@@ -50,6 +50,14 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.
 		db: grandpaDB,
 	}
 
+	auths := make([]types.GrandpaVoterNew, len(genesisAuthorities))
+	for i, v := range genesisAuthorities {
+		auths[i] = types.GrandpaVoterNew{
+			*v.Key,
+			v.ID,
+		}
+	}
+
 	if err := s.setCurrentSetID(genesisSetID); err != nil {
 		return nil, err
 	}
@@ -58,7 +66,7 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.
 		return nil, err
 	}
 
-	if err := s.setAuthorities(genesisSetID, genesisAuthorities); err != nil {
+	if err := s.setAuthorities(genesisSetID, auths); err != nil {
 		return nil, err
 	}
 
@@ -89,7 +97,7 @@ func setIDChangeKey(setID uint64) []byte {
 }
 
 // setAuthorities sets the authorities for a given setID
-func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoter) error {
+func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoterNew) error {
 	enc, err := types.EncodeGrandpaVoters(authorities) // This method seems to be working
 	if err != nil {
 		return err
@@ -165,8 +173,16 @@ func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *b
 		return err
 	}
 
+	auths := make([]types.GrandpaVoterNew, len(authorities))
+	for i, v := range authorities {
+		auths[i] = types.GrandpaVoterNew{
+			*v.Key,
+			v.ID,
+		}
+	}
+
 	nextSetID := currSetID + 1
-	err = s.setAuthorities(nextSetID, authorities)
+	err = s.setAuthorities(nextSetID, auths)
 	if err != nil {
 		return err
 	}
