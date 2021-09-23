@@ -66,7 +66,7 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 
 	buf := s.blockResponseBuf
 
-	n, err := readStream(stream, buf[:])
+	n, err := readStream(stream, buf)
 	if err != nil {
 		return nil, fmt.Errorf("read stream error: %w", err)
 	}

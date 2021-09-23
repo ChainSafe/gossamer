@@ -239,6 +239,7 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 // setPeerHead sets a peer's best known block and potentially adds the peer's state to the workQueue
 func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) error {
 	ps := &peerState{
+		who:    p,
 		hash:   hash,
 		number: number,
 	}
