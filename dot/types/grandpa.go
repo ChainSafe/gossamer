@@ -193,13 +193,13 @@ func (v *GrandpaVoter) Decode(r io.Reader) error {
 }
 
 // NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities
-func NewGrandpaVotersFromAuthorities(ad []Authority) []GrandpaVoter {
-	v := make([]GrandpaVoter, len(ad))
+func NewGrandpaVotersFromAuthorities(ad []Authority) []GrandpaVoterNew {
+	v := make([]GrandpaVoterNew, len(ad))
 
 	for i, d := range ad {
 		if pk, ok := d.Key.(*ed25519.PublicKey); ok {
-			v[i] = GrandpaVoter{
-				Key: pk,
+			v[i] = GrandpaVoterNew{
+				Key: *pk,
 				ID:  d.Weight,
 			}
 		}

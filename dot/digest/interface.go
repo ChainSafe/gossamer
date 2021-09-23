@@ -20,7 +20,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 )
 
 // BlockState interface for block state methods
@@ -41,7 +40,7 @@ type EpochState interface {
 
 // GrandpaState is the interface for the state.GrandpaState
 type GrandpaState interface {
-	SetNextChange(authorities []grandpa.Voter, number *big.Int) error
+	SetNextChange(authorities []types.GrandpaVoterNew, number *big.Int) error
 	IncrementSetID() error
 	SetNextPause(number *big.Int) error
 	SetNextResume(number *big.Int) error

@@ -104,14 +104,6 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to load grandpa authorities: %w", err)
 	}
 
-	//voters := make([]types.GrandpaVoter, len(grandpaAuths))
-	//for i, v := range grandpaAuths {
-	//	voters[i] = types.GrandpaVoter{
-	//		&v.Key,
-	//		v.ID,
-	//	}
-	//}
-
 	grandpaState, err := NewGrandpaStateFromGenesis(db, grandpaAuths)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %s", err)

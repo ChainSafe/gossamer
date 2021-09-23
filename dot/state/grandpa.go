@@ -159,22 +159,14 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 }
 
 // SetNextChange sets the next authority change
-func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *big.Int) error {
+func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoterNew, number *big.Int) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
 		return err
 	}
 
-	auths := make([]types.GrandpaVoterNew, len(authorities))
-	for i, v := range authorities {
-		auths[i] = types.GrandpaVoterNew{
-			*v.Key,
-			v.ID,
-		}
-	}
-
 	nextSetID := currSetID + 1
-	err = s.setAuthorities(nextSetID, auths)
+	err = s.setAuthorities(nextSetID, authorities)
 	if err != nil {
 		return err
 	}

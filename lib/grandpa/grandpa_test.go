@@ -138,7 +138,11 @@ func TestUpdateAuthorities(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), gs.state.setID)
 
-	next := []Voter{
+	next := []types.GrandpaVoterNew{
+		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+	}
+
+	nextOld := []types.GrandpaVoter{
 		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 
@@ -152,7 +156,7 @@ func TestUpdateAuthorities(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, uint64(1), gs.state.setID)
-	require.Equal(t, next, gs.state.voters)
+	require.Equal(t, nextOld, gs.state.voters)
 }
 
 func TestGetDirectVotes(t *testing.T) {
