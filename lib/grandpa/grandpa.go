@@ -228,7 +228,7 @@ func (s *Service) authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
 	for i, v := range s.state.voters {
 		ad[i] = &types.Authority{
-			Key:    &v.Key,
+			Key:    v.Key,
 			Weight: v.ID,
 		}
 	}
@@ -263,7 +263,15 @@ func (s *Service) updateAuthorities() error {
 		return err
 	}
 
-	s.state.voters = nextAuthorities
+	auths := make([]types.GrandpaVoter, len(nextAuthorities))
+	for i, v := range nextAuthorities {
+		auths[i] = types.GrandpaVoter{
+			&v.Key,
+			v.ID,
+		}
+	}
+
+	s.state.voters = auths
 	s.state.setID = currSetID
 	s.state.round = 1 // round resets to 1 after a set ID change
 	return nil

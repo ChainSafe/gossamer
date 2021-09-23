@@ -97,7 +97,7 @@ func newTestVoters() []Voter {
 	vs := []Voter{}
 	for i, k := range kr.Keys {
 		vs = append(vs, Voter{
-			Key: *k.Public().(*ed25519.PublicKey),
+			Key: k.Public().(*ed25519.PublicKey),
 			ID:  uint64(i),
 		})
 	}
@@ -131,7 +131,7 @@ func TestUpdateAuthorities(t *testing.T) {
 	require.Equal(t, uint64(0), gs.state.setID)
 
 	next := []Voter{
-		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 
 	err = gs.grandpaState.(*state.GrandpaState).SetNextChange(next, big.NewInt(1))

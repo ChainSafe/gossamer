@@ -43,9 +43,13 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID, currSetID)
 
+	testAuths2 := []types.GrandpaVoterNew{
+		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+	}
+
 	auths, err := gs.GetAuthorities(currSetID)
 	require.NoError(t, err)
-	require.Equal(t, testAuths, auths)
+	require.Equal(t, testAuths2, auths)
 
 	num, err := gs.GetSetIDChange(0)
 	require.NoError(t, err)
@@ -61,12 +65,16 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 		{Key: kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
 	}
 
+	testAuths3 := []types.GrandpaVoterNew{
+		{Key: *kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
+	}
+
 	err = gs.SetNextChange(testAuths2, big.NewInt(1))
 	require.NoError(t, err)
 
 	auths, err := gs.GetAuthorities(genesisSetID + 1)
 	require.NoError(t, err)
-	require.Equal(t, testAuths2, auths)
+	require.Equal(t, testAuths3, auths)
 
 	atBlock, err := gs.GetSetIDChange(genesisSetID + 1)
 	require.NoError(t, err)

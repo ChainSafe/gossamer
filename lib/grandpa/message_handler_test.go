@@ -530,15 +530,15 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
-	auths := []types.GrandpaVoterNew{
+	auths := []types.GrandpaVoter{
 		{
-			Key: *kr.Alice().Public().(*ed25519.PublicKey),
+			Key: kr.Alice().Public().(*ed25519.PublicKey),
 		},
 		{
-			Key: *kr.Bob().Public().(*ed25519.PublicKey),
+			Key: kr.Bob().Public().(*ed25519.PublicKey),
 		},
 		{
-			Key: *kr.Charlie().Public().(*ed25519.PublicKey),
+			Key: kr.Charlie().Public().(*ed25519.PublicKey),
 		},
 	}
 

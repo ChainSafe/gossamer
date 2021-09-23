@@ -25,8 +25,8 @@ import (
 
 //nolint
 type (
-	Voter      = types.GrandpaVoterNew
-	Voters     = types.GrandpaVoters
+	Voter      = types.GrandpaVoter
+	Voters     = []Voter
 	Vote       = types.GrandpaVote
 	SignedVote = types.GrandpaSignedVote
 )
@@ -85,7 +85,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	}
 
 	return &Voter{
-		Key: *pk,
+		Key: pk,
 		ID:  id,
 	}, nil
 }
