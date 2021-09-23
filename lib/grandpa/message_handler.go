@@ -349,7 +349,6 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 	if err != nil {
 		return err
 	}
-	fmt.Println("Unmarshalled")
 
 	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
 	if err != nil {
@@ -362,7 +361,7 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 	}
 
 	if !ok {
-		return ErrInvalidSignature // SOmetimes this gets returned. WHy?
+		return ErrInvalidSignature // Sometimes this gets returned. Why?
 	}
 
 	// TODO Jimmy this is where to debug
