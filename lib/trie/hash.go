@@ -51,7 +51,7 @@ var hasherPool = sync.Pool{
 }
 
 // NewHasher create new Hasher instance
-func NewHasher(parallel bool) *hasher {
+func newHasher(parallel bool) *hasher {
 	h := hasherPool.Get().(*hasher)
 	h.parallel = parallel
 	return h
@@ -102,7 +102,7 @@ func (h *hasher) encode(n node) ([]byte, error) {
 }
 
 func encodeAndHash(n node) ([]byte, error) {
-	h := NewHasher(false)
+	h := newHasher(false)
 	defer h.returnToPool()
 
 	encChild, err := h.Hash(n)
