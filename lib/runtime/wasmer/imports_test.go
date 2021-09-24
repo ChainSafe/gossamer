@@ -21,6 +21,7 @@ import (
 	"os"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -54,6 +55,17 @@ func TestMain(m *testing.M) {
 
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
+}
+
+func Test_ext_offchain_timestamp_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	ret, err := inst.Exec("ext_offchain_timestamp_version_1", nil)
+	require.NoError(t, err)
+
+	expected := time.Now().Unix()
+
+	require.GreaterOrEqual(t, expected, ret)
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {

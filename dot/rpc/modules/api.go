@@ -110,8 +110,8 @@ type BlockFinalityAPI interface {
 	PreCommits() []ed25519.PublicKeyBytes
 }
 
-// RuntimeStorageAPI is the interface to interacts with the node storage
-type RuntimeStorageAPI interface {
+// OffchainStorageAPI is the interface to interacts with the node storage
+type OffchainStorageAPI interface {
 	SetLocal(k, v []byte) error
 	SetPersistent(k, v []byte) error
 	GetLocal(k []byte) ([]byte, error)
