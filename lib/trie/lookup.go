@@ -9,7 +9,7 @@ import (
 
 var (
 	// ErrProofNodeNotFound when a needed proof node is not in the database
-	ErrProofNodeNotFound = errors.New("cannot found the state root on storage")
+	ErrProofNodeNotFound = errors.New("cannot found the state root in storage")
 )
 
 // Lookup struct holds the state root and database reference
