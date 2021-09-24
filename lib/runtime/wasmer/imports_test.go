@@ -185,10 +185,14 @@ func Test_ext_offchain_local_storage_clear_version_1(t *testing.T) {
 	testkey := []byte("noot")
 	inst.ctx.Storage.Set(testkey, []byte{1})
 
-	enc, err := scale.Encode(testkey)
+	kind := int32(1)
+	encKind, err := scale.Encode(kind)
 	require.NoError(t, err)
 
-	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", enc)
+	encKey, err := scale.Encode(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
 	require.NoError(t, err)
 
 	val := inst.ctx.Storage.Get(testkey)
