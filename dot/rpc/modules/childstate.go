@@ -14,7 +14,7 @@ type GetKeysRequest struct {
 }
 
 // GetKeysRequest the request to get the entry child storage hash
-type GetStorageHash struct {
+type GetChildStorageRequest struct {
 	KeyChild []byte
 	EntryKey []byte
 	Hash     common.Hash
@@ -62,11 +62,10 @@ func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[
 }
 
 // GetStorageHash returns the hash of a child storage entry
-func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash, res *string) error {
+func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetChildStorageRequest, res *string) error {
 	if req.Hash == common.EmptyHash {
 		req.Hash = cs.blockAPI.BestBlockHash()
 	}
-
 	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&req.Hash)
 	if err != nil {
 		return err
@@ -81,5 +80,25 @@ func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash,
 		*res = common.BytesToHash(item).String()
 	}
 
+	return nil
+}
+
+// GetStorageSize returns the size of a child storage entry.
+func (cs *ChildStateModule) GetStorageSize(_ *http.Request, req *GetChildStorageRequest, res *uint64) error {
+	if req.Hash == common.EmptyHash {
+		req.Hash = cs.blockAPI.BestBlockHash()
+	}
+
+	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&req.Hash)
+	if err != nil {
+		return err
+	}
+
+	item, err := cs.storageAPI.GetStorageFromChild(stateRoot, req.KeyChild, req.EntryKey)
+	if err != nil {
+		return err
+	}
+
+	*res = uint64(len(item))
 	return nil
 }

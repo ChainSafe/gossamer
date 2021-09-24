@@ -53,7 +53,7 @@ func TestChildStateGetKeys(t *testing.T) {
 	}
 }
 
-func TestGetStorageHash(t *testing.T) {
+func TestChildStateGetStorageHash(t *testing.T) {
 	mod, blockHash := setupChildStateStorage(t)
 
 	tests := []struct {
@@ -90,7 +90,7 @@ func TestGetStorageHash(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		var req GetStorageHash
+		var req GetChildStorageRequest
 		var res string
 
 		req.Hash = test.hash
@@ -109,6 +109,70 @@ func TestGetStorageHash(t *testing.T) {
 		if test.expect != "" {
 			require.Equal(t, test.expect, res)
 		}
+	}
+}
+
+func TestChildStateGetStorageSize(t *testing.T) {
+	mod, blockHash := setupChildStateStorage(t)
+
+	tests := []struct {
+		expect   uint64
+		err      error
+		hash     common.Hash
+		keyChild []byte
+		entry    []byte
+	}{
+		{
+			err:      nil,
+			expect:   uint64(len([]byte(":child_first_value"))),
+			hash:     common.EmptyHash,
+			entry:    []byte(":child_first"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   uint64(len([]byte(":child_second_value"))),
+			hash:     blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   0,
+			hash:     common.EmptyHash,
+			entry:    []byte(":not_found_so_size_0"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			hash:     blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":not_exist"),
+		},
+		{
+			err:  chaindb.ErrKeyNotFound,
+			hash: common.BytesToHash([]byte("invalid block hash")),
+		},
+	}
+
+	for _, test := range tests {
+		var req GetChildStorageRequest
+		var res uint64
+
+		req.Hash = test.hash
+		req.EntryKey = test.entry
+		req.KeyChild = test.keyChild
+
+		err := mod.GetStorageSize(nil, &req, &res)
+
+		if test.err != nil {
+			require.Error(t, err)
+			require.Equal(t, err, test.err)
+		} else {
+			require.NoError(t, err)
+		}
+
+		require.Equal(t, test.expect, res)
 	}
 }
 
