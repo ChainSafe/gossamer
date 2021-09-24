@@ -43,15 +43,15 @@ func (_m *MockBlockFinalityAPI) GetSetID() uint64 {
 }
 
 // GetVoters provides a mock function with given fields:
-func (_m *MockBlockFinalityAPI) GetVoters() types.GrandpaVoters {
+func (_m *MockBlockFinalityAPI) GetVoters() []types.GrandpaVoterNew {
 	ret := _m.Called()
 
-	var r0 types.GrandpaVoters
-	if rf, ok := ret.Get(0).(func() types.GrandpaVoters); ok {
+	var r0 []types.GrandpaVoterNew
+	if rf, ok := ret.Get(0).(func() []types.GrandpaVoterNew); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(types.GrandpaVoters)
+			r0 = ret.Get(0).([]types.GrandpaVoterNew)
 		}
 	}
 

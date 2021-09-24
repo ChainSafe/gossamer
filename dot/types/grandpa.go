@@ -78,11 +78,11 @@ func GrandpaAuthoritiesRawToAuthorities(adr []GrandpaAuthoritiesRaw) ([]Authorit
 	return ad, nil
 }
 
-// GrandpaVoter represents a GRANDPA voter
-type GrandpaVoter struct {
-	Key *ed25519.PublicKey
-	ID  uint64
-}
+//// GrandpaVoter represents a GRANDPA voter
+//type GrandpaVoter struct {
+//	Key *ed25519.PublicKey
+//	ID  uint64
+//}
 
 // GrandpaVoter represents a GRANDPA voter
 type GrandpaVoterNew struct {
@@ -90,20 +90,20 @@ type GrandpaVoterNew struct {
 	ID  uint64
 }
 
-// PublicKeyBytes returns the voter key as PublicKeyBytes
-func (v *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
-	return v.Key.AsBytes()
-}
+//// PublicKeyBytes returns the voter key as PublicKeyBytes
+//func (v *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
+//	return v.Key.AsBytes()
+//}
 
 // PublicKeyBytes returns the voter key as PublicKeyBytes
 func (v *GrandpaVoterNew) PublicKeyBytes() ed25519.PublicKeyBytes {
 	return v.Key.AsBytes()
 }
 
-// String returns a formatted GrandpaVoter string
-func (v *GrandpaVoter) String() string {
-	return fmt.Sprintf("[key=0x%s id=%d]", v.PublicKeyBytes(), v.ID)
-}
+//// String returns a formatted GrandpaVoter string
+//func (v *GrandpaVoter) String() string {
+//	return fmt.Sprintf("[key=0x%s id=%d]", v.PublicKeyBytes(), v.ID)
+//}
 
 // String returns a formatted GrandpaVoter string
 func (v *GrandpaVoterNew) String() string {
@@ -132,30 +132,18 @@ func (v *GrandpaVoterNew) Decode(r io.Reader) error {
 	return nil
 }
 
-// Decode will decode the Reader into a GrandpaVoter
-func (v *GrandpaVoter) Encode() ([]byte, error) {
-	enc := []byte{}
-	b := v.Key.Encode()
-	enc = append(enc, b...)
-	e, err := scale2.Marshal(v.ID)
-	if err != nil {
-		return nil, err
-	}
-	enc = append(enc, e...)
-	return enc, nil
-}
-
-// Decode will decode the Reader into a GrandpaVoter
-func (v *GrandpaVoterNew) ToNew(in []GrandpaVoterNew) ([]GrandpaVoter, error) {
-	a := make([]GrandpaVoter, len(in))
-	for i, v := range in {
-		a[i] = GrandpaVoter{
-			&v.Key,
-			v.ID,
-		}
-	}
-	return a, nil
-}
+//// Decode will decode the Reader into a GrandpaVoter
+//func (v *GrandpaVoter) Encode() ([]byte, error) {
+//	enc := []byte{}
+//	b := v.Key.Encode()
+//	enc = append(enc, b...)
+//	e, err := scale2.Marshal(v.ID)
+//	if err != nil {
+//		return nil, err
+//	}
+//	enc = append(enc, e...)
+//	return enc, nil
+//}
 
 // Decode will decode the Reader into a GrandpaVoter
 func (v *GrandpaVoterNew) Encode() ([]byte, error) {
@@ -170,27 +158,27 @@ func (v *GrandpaVoterNew) Encode() ([]byte, error) {
 	return enc, nil
 }
 
-// Decode will decode the Reader into a GrandpaVoter
-func (v *GrandpaVoter) Decode(r io.Reader) error {
-	keyBytes, err := common.Read32Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	key, err := ed25519.NewPublicKey(keyBytes[:])
-	if err != nil {
-		return err
-	}
-
-	id, err := common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	v.Key = key
-	v.ID = id
-	return nil
-}
+//// Decode will decode the Reader into a GrandpaVoter
+//func (v *GrandpaVoter) Decode(r io.Reader) error {
+//	keyBytes, err := common.Read32Bytes(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	key, err := ed25519.NewPublicKey(keyBytes[:])
+//	if err != nil {
+//		return err
+//	}
+//
+//	id, err := common.ReadUint64(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	v.Key = key
+//	v.ID = id
+//	return nil
+//}
 
 // NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities
 func NewGrandpaVotersFromAuthorities(ad []Authority) []GrandpaVoterNew {
@@ -240,7 +228,7 @@ func (v GrandpaVoters) String() string {
 }
 
 // EncodeGrandpaVoters returns an encoded GrandpaVoters
-func EncodeGrandpaVoters(voters []GrandpaVoterNew) ([]byte, error) {
+func EncodeGrandpaVoters(voters GrandpaVoters) ([]byte, error) {
 	enc := []byte{}
 
 	length, err := scale2.Marshal(len(voters))

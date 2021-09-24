@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"github.com/ChainSafe/gossamer/dot/types"
 	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
@@ -30,10 +31,15 @@ func TestPubkeyToVoter(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
+	v := types.GrandpaVoterNew{
+		voters[0].Key,
+		voters[0].ID,
+	}
+
 	state := NewState(voters, 0, 0)
 	voter, err := state.pubkeyToVoter(kr.Alice().Public().(*ed25519.PublicKey))
 	require.NoError(t, err)
-	require.Equal(t, voters[0], *voter)
+	require.Equal(t, v, *voter)
 }
 
 func TestSignedVoteEncoding(t *testing.T) {

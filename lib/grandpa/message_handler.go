@@ -104,14 +104,12 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	logger.Debug("received commit message", "msg", msg)
-	fmt.Println("Handling commit message")
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil
 	}
 
 	// check justification here
 	if err := h.verifyCommitMessageJustification(msg); err != nil {
-		fmt.Println("Error verifyCommitMessage")
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
 			// TODO: make this synchronous
 			go h.grandpa.network.SendBlockReqestByHash(msg.Vote.Hash)
@@ -338,7 +336,6 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 }
 
 func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage Subround) error {
-	fmt.Println("Attempting to verify Justification")
 	// verify signature
 	msg, err := scale.Marshal(FullVote{
 		Stage: stage,
@@ -364,10 +361,9 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 		return ErrInvalidSignature // Sometimes this gets returned. Why?
 	}
 
-	// TODO Jimmy this is where to debug
-
 	// verify authority in justification set
 	authFound := false
+	//auths := h.grandpa.authorities()
 	for _, auth := range h.grandpa.authorities() {
 		justKey, err := just.AuthorityID.Encode()
 		if err != nil {

@@ -226,11 +226,12 @@ func (s *Service) Stop() error {
 // authorities returns the current grandpa authorities
 func (s *Service) authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
-	for i, v := range s.state.voters {
-		ad[i] = &types.Authority{
-			Key:    v.Key,
-			Weight: v.ID,
+	for i := 0; i < len(s.state.voters); i++ {
+		a := &types.Authority{
+			Key:    &s.state.voters[i].Key,
+			Weight: s.state.voters[i].ID,
 		}
+		ad[i] = a
 	}
 
 	return ad
@@ -263,15 +264,15 @@ func (s *Service) updateAuthorities() error {
 		return err
 	}
 
-	auths := make([]types.GrandpaVoter, len(nextAuthorities))
-	for i, v := range nextAuthorities {
-		auths[i] = types.GrandpaVoter{
-			&v.Key,
-			v.ID,
-		}
-	}
+	//auths := make([]types.GrandpaVoter, len(nextAuthorities))
+	//for i, v := range nextAuthorities {
+	//	auths[i] = types.GrandpaVoter{
+	//		&v.Key,
+	//		v.ID,
+	//	}
+	//}
 
-	s.state.voters = auths
+	s.state.voters = nextAuthorities
 	s.state.setID = currSetID
 	s.state.round = 1 // round resets to 1 after a set ID change
 	return nil
@@ -1295,8 +1296,15 @@ func (s *Service) GetRound() uint64 {
 }
 
 // GetVoters returns the list of current grandpa.Voters
-func (s *Service) GetVoters() Voters {
-	return s.state.voters
+func (s *Service) GetVoters() []types.GrandpaVoterNew {
+	votes := make([]types.GrandpaVoterNew, len(s.state.voters))
+	for i, v := range s.state.voters {
+		votes[i] = types.GrandpaVoterNew{
+			v.Key,
+			v.ID,
+		}
+	}
+	return votes
 }
 
 // PreVotes returns the current prevotes to the current round

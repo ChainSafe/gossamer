@@ -87,7 +87,7 @@ func newTestState(t *testing.T) *state.Service {
 	auths := make([]types.GrandpaVoterNew, len(voters))
 	for i, v := range voters {
 		auths[i] = types.GrandpaVoterNew{
-			*v.Key,
+			v.Key,
 			v.ID,
 		}
 	}
@@ -105,7 +105,7 @@ func newTestVoters() []Voter {
 	vs := []Voter{}
 	for i, k := range kr.Keys {
 		vs = append(vs, Voter{
-			Key: k.Public().(*ed25519.PublicKey),
+			Key: *k.Public().(*ed25519.PublicKey),
 			ID:  uint64(i),
 		})
 	}
@@ -142,10 +142,6 @@ func TestUpdateAuthorities(t *testing.T) {
 		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 
-	nextOld := []types.GrandpaVoter{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
-	}
-
 	err = gs.grandpaState.(*state.GrandpaState).SetNextChange(next, big.NewInt(1))
 	require.NoError(t, err)
 
@@ -156,7 +152,7 @@ func TestUpdateAuthorities(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, uint64(1), gs.state.setID)
-	require.Equal(t, nextOld, gs.state.voters)
+	require.Equal(t, next, gs.state.voters)
 }
 
 func TestGetDirectVotes(t *testing.T) {
