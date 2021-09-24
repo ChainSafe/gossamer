@@ -1543,7 +1543,6 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 //export ext_offchain_timestamp_version_1
 func ext_offchain_timestamp_version_1(context unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_offchain_timestamp_version_1] executing...")
-	// logger.Warn("[ext_offchain_timestamp_version_1] unimplemented")
 	now := time.Now().Unix()
 
 	return C.int64_t(now)
