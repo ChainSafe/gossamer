@@ -213,25 +213,14 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 }
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
-	bl := &BlockListener{
-		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:        c,
-		cancel:        make(chan struct{}, 1),
-		cancelTimeout: defaultCancelTimeout,
-		done:          make(chan struct{}, 1),
-	}
+	bl := NewBlockListener(c)
 
 	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	var err error
-	bl.ChanID, err = c.BlockAPI.RegisterImportedChannel(bl.Channel)
-
-	if err != nil {
-		return nil, err
-	}
+	bl.Channel = c.BlockAPI.GetImportedBlockNotifierChannel()
 
 	c.mu.Lock()
 
@@ -286,13 +275,9 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	var err error
-	listener.importedChanID, err = c.BlockAPI.RegisterImportedChannel(listener.importedChan)
-	if err != nil {
-		c.safeSendError(reqID, nil, "could not register imported channel")
-		return nil, fmt.Errorf("could not register imported channel")
-	}
+	listener.importedChan = c.BlockAPI.GetImportedBlockNotifierChannel()
 
+	var err error
 	listener.finalizedChanID, err = c.BlockAPI.RegisterFinalizedChannel(listener.finalizedChan)
 	if err != nil {
 		c.safeSendError(reqID, nil, "could not register finalised channel")
@@ -316,23 +301,13 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	}
 
 	// listen for built blocks
-	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:        c,
-		extrinsic:     types.Extrinsic(extBytes),
-		finalisedChan: make(chan *types.FinalisationInfo),
-		cancel:        make(chan struct{}, 1),
-		done:          make(chan struct{}, 1),
-		cancelTimeout: defaultCancelTimeout,
-	}
+	esl := NewExtrinsicSubmitListener(c, extBytes)
 
 	if c.BlockAPI == nil {
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
-	esl.importedChanID, err = c.BlockAPI.RegisterImportedChannel(esl.importedChan)
-	if err != nil {
-		return nil, err
-	}
+
+	esl.importedChan = c.BlockAPI.GetImportedBlockNotifierChannel()
 
 	esl.finalisedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalisedChan)
 	if err != nil {
