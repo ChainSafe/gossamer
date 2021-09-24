@@ -18,7 +18,6 @@ package trie
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -45,9 +44,7 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 			return nil, err
 		}
 
-		fmt.Println("Len of records ", len(*recorder))
-
-		for recorder.HasNext() {
+		for !recorder.IsEmpty() {
 			recNode := recorder.Next()
 			nodeHashHex := common.BytesToHex(recNode.Hash)
 			if _, ok := trackedProofs[nodeHashHex]; !ok {
@@ -59,7 +56,6 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 	proofs := make([][]byte, 0)
 
 	for _, p := range trackedProofs {
-		fmt.Printf("tracked proofs: 0x%x\n", p)
 		proofs = append(proofs, p)
 	}
 

@@ -17,7 +17,7 @@ func (r *Recorder) Record(h, rd []byte) {
 
 // Next returns the current item the cursor is on and increment the cursor by 1
 func (r *Recorder) Next() *NodeRecord {
-	if r.HasNext() {
+	if !r.IsEmpty() {
 		n := (*r)[0]
 		*r = (*r)[1:]
 		return &n
@@ -28,13 +28,13 @@ func (r *Recorder) Next() *NodeRecord {
 
 // Peek returns the current item the cursor is on but dont increment the cursor by 1
 func (r *Recorder) Peek() *NodeRecord {
-	if r.HasNext() {
+	if !r.IsEmpty() {
 		return &(*r)[0]
 	}
 	return nil
 }
 
 // HasNext returns bool if there is data inside the slice
-func (r *Recorder) HasNext() bool {
+func (r *Recorder) IsEmpty() bool {
 	return len(*r) > 0
 }
