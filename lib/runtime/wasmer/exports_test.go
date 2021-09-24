@@ -265,6 +265,9 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	cfg := &Config{}
 	cfg.Storage = genState
 	cfg.LogLvl = 4
+	nodeStorage := runtime.NodeStorage{}
+	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
+	cfg.NodeStorage = nodeStorage
 
 	rt, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
