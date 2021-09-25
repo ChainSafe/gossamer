@@ -51,7 +51,7 @@ One important distinction is that we are building the Polkadot Runtime Environme
     Each time you work on the code be sure that you are working on the branch that you have created as opposed to your local copy of the gossamer repo. Keeping your changes segregated in this branch will make it easier to merge your changes into the repo later.
 
     ```sh
-    git checkout feature-in-progress-branch
+    git checkout -b feature-in-progress-branch
     ```
 
 7. **Test your changes.**
