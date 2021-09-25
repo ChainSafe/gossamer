@@ -104,8 +104,8 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
-		genesisHash: header.Hash(),
-		lastFinalised: header.Hash(),
+		genesisHash:                header.Hash(),
+		lastFinalised:              header.Hash(),
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
