@@ -183,12 +183,16 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 }
 
 func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
+	if curr.Equal(bs.lastFinalised) {
+		return nil
+	}
+
 	prev, err := bs.GetHighestFinalisedHash()
 	if err != nil {
 		return err
 	}
 
-	if curr.Equal(bs.genesisHash) || prev.Equal(curr) {
+	if prev.Equal(curr) {
 		return nil
 	}
 

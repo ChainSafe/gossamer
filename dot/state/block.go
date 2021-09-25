@@ -85,7 +85,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
-	bs.lastFinalised, err = bs.GetFinalisedHash(0, 0)
+	bs.lastFinalised, err = bs.GetHighestFinalisedHash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
@@ -104,6 +104,8 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		genesisHash: header.Hash(),
+		lastFinalised: header.Hash(),
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
@@ -121,8 +123,6 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 	if err := bs.SetBlockBody(header.Hash(), types.NewBody([]byte{})); err != nil {
 		return nil, err
 	}
-
-	bs.genesisHash = header.Hash()
 
 	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
