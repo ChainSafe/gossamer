@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -33,6 +34,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
@@ -54,7 +56,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-//<<<<<<< HEAD
 func newMockFinalityGadget() *syncmocks.FinalityGadget {
 	m := new(syncmocks.FinalityGadget)
 	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
@@ -109,6 +110,16 @@ func newTestSyncer(t *testing.T) *Service {
 	rtCfg := &wasmer.Config{}
 	rtCfg.Storage = genState
 	rtCfg.LogLvl = 3
+
+	nodeStorage := runtime.NodeStorage{}
+	if stateSrvc != nil {
+		nodeStorage.BaseDB = stateSrvc.Base
+	} else {
+		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		require.NoError(t, err)
+	}
+
+	rtCfg.NodeStorage = nodeStorage
 
 	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
