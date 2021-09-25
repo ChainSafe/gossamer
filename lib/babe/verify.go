@@ -315,7 +315,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	header.Digest = h
 	defer func() {
 		if err = header.Digest.Add(sealItem.Value()); err != nil {
-			logger.Error("failed to add seal back to digest after verifying", "error", err)
+			logger.Error("failed to re-add seal to digest", "error", err)
 		}
 	}()
 
