@@ -11,7 +11,9 @@ exclude_patterns = [
     "dot/config/**/*",
     "dot/rpc/modules/test_data",
     "lib/runtime/test_data",
-    "**/*_test.go"
+    "**/*_test.go",
+    "**/mocks/*",
+    "**/mock_*"
 ]
 
 [[analyzers]]

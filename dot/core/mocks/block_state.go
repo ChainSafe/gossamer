@@ -143,6 +143,11 @@ func (_m *MockBlockState) BestBlockStateRoot() (common.Hash, error) {
 	return r0, r1
 }
 
+// FreeImportedBlockNotifierChannel provides a mock function with given fields: ch
+func (_m *MockBlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
+	_m.Called(ch)
+}
+
 // GenesisHash provides a mock function with given fields:
 func (_m *MockBlockState) GenesisHash() common.Hash {
 	ret := _m.Called()
@@ -267,6 +272,22 @@ func (_m *MockBlockState) GetFinalisedHeader(_a0 uint64, _a1 uint64) (*types.Hea
 	return r0, r1
 }
 
+// GetImportedBlockNotifierChannel provides a mock function with given fields:
+func (_m *MockBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
+	ret := _m.Called()
+
+	var r0 chan *types.Block
+	if rf, ok := ret.Get(0).(func() chan *types.Block); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.Block)
+		}
+	}
+
+	return r0
+}
+
 // GetRuntime provides a mock function with given fields: _a0
 func (_m *MockBlockState) GetRuntime(_a0 *common.Hash) (runtime.Instance, error) {
 	ret := _m.Called(_a0)
@@ -369,41 +390,6 @@ func (_m *MockBlockState) RegisterFinalizedChannel(ch chan<- *types.Finalisation
 	return r0, r1
 }
 
-// RegisterImportedChannel provides a mock function with given fields: ch
-func (_m *MockBlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
-	ret := _m.Called(ch)
-
-	var r0 byte
-	if rf, ok := ret.Get(0).(func(chan<- *types.Block) byte); ok {
-		r0 = rf(ch)
-	} else {
-		r0 = ret.Get(0).(byte)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- *types.Block) error); ok {
-		r1 = rf(ch)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// SetFinalisedHash provides a mock function with given fields: _a0, _a1, _a2
-func (_m *MockBlockState) SetFinalisedHash(_a0 common.Hash, _a1 uint64, _a2 uint64) error {
-	ret := _m.Called(_a0, _a1, _a2)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(common.Hash, uint64, uint64) error); ok {
-		r0 = rf(_a0, _a1, _a2)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // StoreRuntime provides a mock function with given fields: _a0, _a1
 func (_m *MockBlockState) StoreRuntime(_a0 common.Hash, _a1 runtime.Instance) {
 	_m.Called(_a0, _a1)
@@ -434,10 +420,5 @@ func (_m *MockBlockState) SubChain(start common.Hash, end common.Hash) ([]common
 
 // UnregisterFinalisedChannel provides a mock function with given fields: id
 func (_m *MockBlockState) UnregisterFinalisedChannel(id byte) {
-	_m.Called(id)
-}
-
-// UnregisterImportedChannel provides a mock function with given fields: id
-func (_m *MockBlockState) UnregisterImportedChannel(id byte) {
 	_m.Called(id)
 }
