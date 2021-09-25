@@ -66,7 +66,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := &peerState{
-		who: testPeer,
+		who:    testPeer,
 		hash:   hash,
 		number: number,
 	}
@@ -88,7 +88,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	err = cs.setPeerHead(testPeer, hash, number)
 	require.NoError(t, err)
 	expected = &peerState{
-		who: testPeer,
+		who:    testPeer,
 		hash:   hash,
 		number: number,
 	}
@@ -111,7 +111,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	err = cs.setPeerHead(testPeer, hash, number)
 	require.True(t, errors.Is(err, errPeerOnInvalidFork))
 	expected = &peerState{
-		who: testPeer,
+		who:    testPeer,
 		hash:   hash,
 		number: number,
 	}
@@ -135,7 +135,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	err = cs.setPeerHead(testPeer, hash, number)
 	require.NoError(t, err)
 	expected = &peerState{
-		who: testPeer,
+		who:    testPeer,
 		hash:   hash,
 		number: number,
 	}
