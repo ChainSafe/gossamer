@@ -42,7 +42,7 @@ One important distinction is that we are building the Polkadot Runtime Environme
 
 5. **Find something to work on.**
 
-    To start, check out our open issues. We recommend starting with an [issue labeled `Good First Issue`](https://github.com/ChainSafe/gossamer/issues?q=is%3Aopen+is%3Aissue+label%3A%22Good+First+Issue%22). Leave a comment to let us know that you would like to work on.
+    To start, check out our open issues. We recommend starting with an [issue labeled `Good First Issue`](https://github.com/ChainSafe/gossamer/issues?q=is%3Aopen+is%3Aissue+label%3A%22Good+First+Issue%22). Leave a comment to let us know that you would like to work on it.
 
     Another option is to improve gossamer where you see fit based on your evaluation of our code. In order to best facilitate collaboration, please create an issue before you start working on it.
 
