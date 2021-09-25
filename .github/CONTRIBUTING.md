@@ -81,7 +81,7 @@ One important distinction is that we are building the Polkadot Runtime Environme
     Before opening a pull request be sure to run the linter
 
     ```sh
-    gometallinter ./...
+    make lint
     ```
 
 9. **Create a pull request.**
