@@ -409,6 +409,27 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 	require.Equal(t, testvalue, val)
 }
 
+func Test_ext_offline_index_set_version_1(t *testing.T) {
+	// TODO this currently fails with error could nat find exported function, determine how else to test this
+	t.Skip()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("washere")
+
+	encKey, err := scale.Encode(testkey)
+	require.NoError(t, err)
+	encValue, err := scale.Encode(testvalue)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offline_index_set_version_1", append(encKey, encValue...))
+	require.NoError(t, err)
+
+	val, err := inst.ctx.NodeStorage.PersistentStorage.Get(testkey)
+	require.NoError(t, err)
+	require.Equal(t, testvalue, val)
+}
+
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
