@@ -2,8 +2,8 @@ package trie
 
 // nodeRecord represets a record of a visited node
 type nodeRecord struct {
-	RawData []byte
-	Hash    []byte
+	rawData []byte
+	hash    []byte
 }
 
 // Recorder keeps the list of nodes find by Lookup.Find
@@ -11,8 +11,7 @@ type recorder []nodeRecord
 
 // Record insert a node insede the recorded list
 func (r *recorder) record(h, rd []byte) {
-	nr := nodeRecord{RawData: rd, Hash: h}
-	*r = append(*r, nr)
+	*r = append(*r, nodeRecord{rawData: rd, hash: h})
 }
 
 // Next returns the current item the cursor is on and increment the cursor by 1
@@ -28,5 +27,5 @@ func (r *recorder) next() *nodeRecord {
 
 // IsEmpty returns bool if there is data inside the slice
 func (r *recorder) isEmpty() bool {
-	return len(*r) > 0
+	return len(*r) <= 0
 }

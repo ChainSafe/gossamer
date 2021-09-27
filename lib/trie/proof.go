@@ -46,9 +46,9 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 
 		for !recorder.isEmpty() {
 			recNode := recorder.next()
-			nodeHashHex := common.BytesToHex(recNode.Hash)
+			nodeHashHex := common.BytesToHex(recNode.hash)
 			if _, ok := trackedProofs[nodeHashHex]; !ok {
-				trackedProofs[nodeHashHex] = recNode.RawData
+				trackedProofs[nodeHashHex] = recNode.rawData
 			}
 		}
 	}
