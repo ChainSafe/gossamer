@@ -37,15 +37,15 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 		nk := keyToNibbles(k)
 
 		lookup := NewLookup(root, db)
-		recorder := new(Recorder)
+		recorder := new(recorder)
 
-		_, err := lookup.Find(nk, recorder)
+		_, err := lookup.find(nk, recorder)
 		if err != nil {
 			return nil, err
 		}
 
-		for !recorder.IsEmpty() {
-			recNode := recorder.Next()
+		for !recorder.isEmpty() {
+			recNode := recorder.next()
 			nodeHashHex := common.BytesToHex(recNode.Hash)
 			if _, ok := trackedProofs[nodeHashHex]; !ok {
 				trackedProofs[nodeHashHex] = recNode.RawData
