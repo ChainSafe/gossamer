@@ -143,27 +143,9 @@ func (_m *MockBlockState) BestBlockStateRoot() (common.Hash, error) {
 	return r0, r1
 }
 
-// GenerateTrieProof provides a mock function with given fields: stateRoot, keys
-func (_m *MockBlockState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
-	ret := _m.Called(stateRoot, keys)
-
-	var r0 [][]byte
-	if rf, ok := ret.Get(0).(func(common.Hash, [][]byte) [][]byte); ok {
-		r0 = rf(stateRoot, keys)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([][]byte)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(common.Hash, [][]byte) error); ok {
-		r1 = rf(stateRoot, keys)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+// FreeImportedBlockNotifierChannel provides a mock function with given fields: ch
+func (_m *MockBlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
+	_m.Called(ch)
 }
 
 // GenesisHash provides a mock function with given fields:
