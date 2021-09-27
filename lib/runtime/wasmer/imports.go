@@ -59,7 +59,7 @@ package wasmer
 // extern int64_t ext_default_child_storage_root_version_1(void *context, int64_t a);
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
-// extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int32_t b);
+// extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
 // extern int64_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
 // extern void ext_default_child_storage_clear_prefix_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_default_child_storage_exists_version_1(void *context, int64_t a, int64_t b);
@@ -113,7 +113,6 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
-	"sort"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -1121,7 +1120,7 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan C.int64_t, lim C.int32_t) C.int32_t {
+func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan C.int64_t, lim C.int64_t) C.int32_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_2] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1129,46 +1128,26 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 	storage := ctx.Storage
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 
-	limitBuf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(limitBuf, uint32(lim))
+	limitBytes := asMemorySlice(instanceContext, lim)
 	buf := &bytes.Buffer{}
-	buf.Write(limitBuf)
+	buf.Write(limitBytes)
 
 	limit, err := optional.NewBytes(true, nil).Decode(buf)
 	if err != nil {
 		logger.Warn("[ext_default_child_storage_storage_kill_version_2] cannot generate limit", "error", err)
 		return 0
 	}
-	limitUint := uint32(0)
-	if limit.Exists() {
-		limitUint = binary.LittleEndian.Uint32(limit.Value())
-	}
 
-	tr, err := storage.GetChild(childStorageKey)
+	_, all, err := storage.DeleteChildLimit(childStorageKey, limit)
 	if err != nil {
 		logger.Warn("[ext_default_child_storage_storage_kill_version_2] cannot get child storage", "error", err)
 	}
 
-	if int(limitUint) >= len(tr.Entries()) || !limit.Exists() {
-		storage.DeleteChild(childStorageKey)
+	if all {
+		return 1
+	} else {
 		return 0
 	}
-
-	keys := make([]string, 0, len(tr.Entries()))
-	for k := range tr.Entries() {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	deleted := uint32(0)
-	for _, k := range keys {
-		tr.Delete([]byte(k))
-		deleted++
-		if deleted == limitUint {
-			return 1
-		}
-	}
-
-	return 0
 }
 
 //export ext_default_child_storage_storage_kill_version_3

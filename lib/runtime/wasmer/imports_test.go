@@ -1130,7 +1130,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
 	require.NoError(t, err)
-	require.Equal(t, []byte{1, 0, 0, 0}, res)
+	require.Equal(t, []byte{0, 0, 0, 0}, res)
 
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
@@ -1157,14 +1157,12 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	optLimit, err := optional.NewBytes(false, nil).Encode()
 	require.NoError(t, err)
 
-	//TODO determine why this call fails with Error:      	Received unexpected error: Failed to call the `rtm_ext_default_child_storage_storage_kill_version_2` exported function.
-	//  when passing limit optional as false
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
 	require.NoError(t, err)
-	require.Equal(t, []byte{0, 0, 0, 0}, res)
+	require.Equal(t, []byte{1, 0, 0, 0}, res)
 
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.Nil(t, child)
 }
 
