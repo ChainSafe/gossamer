@@ -36,7 +36,7 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 	for _, k := range keys {
 		nk := keyToNibbles(k)
 
-		lookup := NewLookup(root, db)
+		lookup := newLookup(root, db)
 		recorder := new(recorder)
 
 		_, err := lookup.find(nk, recorder)
