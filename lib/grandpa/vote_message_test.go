@@ -54,7 +54,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range voters {
-		n := types.GrandpaVoterNew{
+		n := types.GrandpaVoter{
 			v.Key,
 			v.ID,
 		}
@@ -101,7 +101,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	n := types.GrandpaVoterNew{
+	n := types.GrandpaVoter{
 		voter.Key,
 		voter.ID,
 	}
@@ -158,7 +158,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
 
-	n := types.GrandpaVoterNew{
+	n := types.GrandpaVoter{
 		voter.Key,
 		voter.ID,
 	}
@@ -174,7 +174,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote3 := NewVoteFromHeader(branches[1])
 	require.NoError(t, err)
 
-	n = types.GrandpaVoterNew{
+	n = types.GrandpaVoter{
 		voter.Key,
 		voter.ID,
 	}

@@ -65,10 +65,10 @@ func TestGrandpaProveFinality(t *testing.T) {
 }
 
 func TestRoundState(t *testing.T) {
-	var voters []types.GrandpaVoterNew
+	var voters []types.GrandpaVoter
 
 	for _, k := range kr.Keys {
-		voters = append(voters, types.GrandpaVoterNew{
+		voters = append(voters, types.GrandpaVoter{
 			Key: *k.Public().(*ed25519.PublicKey),
 			ID:  1,
 		})

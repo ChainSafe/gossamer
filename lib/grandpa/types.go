@@ -25,7 +25,7 @@ import (
 
 //nolint
 type (
-	Voter      = types.GrandpaVoterNew
+	Voter      = types.GrandpaVoter
 	Voters     = []Voter
 	Vote       = types.GrandpaVote
 	SignedVote = types.GrandpaSignedVote
@@ -69,7 +69,7 @@ func NewState(voters []Voter, setID, round uint64) *State {
 }
 
 // pubkeyToVoter returns a Voter given a public key
-func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*types.GrandpaVoterNew, error) {
+func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*types.GrandpaVoter, error) {
 	max := uint64(2^64) - 1
 	id := max
 
@@ -84,7 +84,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*types.GrandpaVoterNew, er
 		return nil, ErrVoterNotFound
 	}
 
-	return &types.GrandpaVoterNew{
+	return &types.GrandpaVoter{
 		Key: *pk,
 		ID:  id,
 	}, nil

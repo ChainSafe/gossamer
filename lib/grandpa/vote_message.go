@@ -231,7 +231,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *types.GrandpaVoterNew, vote *SignedVote, stage Subround) bool {
+func (s *Service) checkForEquivocation(voter *types.GrandpaVoter, vote *SignedVote, stage Subround) bool {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification

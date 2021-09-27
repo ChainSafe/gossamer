@@ -44,7 +44,7 @@ type GrandpaState struct {
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.GrandpaVoterNew) (*GrandpaState, error) {
+func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
 		db: grandpaDB,
@@ -89,7 +89,7 @@ func setIDChangeKey(setID uint64) []byte {
 }
 
 // setAuthorities sets the authorities for a given setID
-func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoterNew) error {
+func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoter) error {
 	enc, err := types.EncodeGrandpaVoters(authorities) // This method seems to be working
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaV
 }
 
 // GetAuthorities returns the authorities for the given setID
-func (s *GrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoterNew, error) {
+func (s *GrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoter, error) {
 	enc, err := s.db.Get(authoritiesKey(setID))
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 }
 
 // SetNextChange sets the next authority change
-func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoterNew, number *big.Int) error {
+func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *big.Int) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
 		return err

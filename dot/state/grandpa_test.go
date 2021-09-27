@@ -29,7 +29,7 @@ import (
 
 var (
 	kr, _     = keystore.NewEd25519Keyring()
-	testAuthsNew = []types.GrandpaVoterNew{
+	testAuthsNew = []types.GrandpaVoter{
 		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 )
@@ -43,7 +43,7 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID, currSetID)
 
-	testAuths2 := []types.GrandpaVoterNew{
+	testAuths2 := []types.GrandpaVoter{
 		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 

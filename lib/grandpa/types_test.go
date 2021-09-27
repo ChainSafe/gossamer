@@ -31,7 +31,7 @@ func TestPubkeyToVoter(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	v := types.GrandpaVoterNew{
+	v := types.GrandpaVoter{
 		voters[0].Key,
 		voters[0].ID,
 	}

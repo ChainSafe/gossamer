@@ -104,7 +104,7 @@ type SystemAPI interface {
 type BlockFinalityAPI interface {
 	GetSetID() uint64
 	GetRound() uint64
-	GetVoters() []types.GrandpaVoterNew
+	GetVoters() []types.GrandpaVoter
 	PreVotes() []ed25519.PublicKeyBytes
 	PreCommits() []ed25519.PublicKeyBytes
 }

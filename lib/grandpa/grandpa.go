@@ -1296,10 +1296,10 @@ func (s *Service) GetRound() uint64 {
 }
 
 // GetVoters returns the list of current grandpa.Voters
-func (s *Service) GetVoters() []types.GrandpaVoterNew {
-	votes := make([]types.GrandpaVoterNew, len(s.state.voters))
+func (s *Service) GetVoters() []types.GrandpaVoter {
+	votes := make([]types.GrandpaVoter, len(s.state.voters))
 	for i, v := range s.state.voters {
-		votes[i] = types.GrandpaVoterNew{
+		votes[i] = types.GrandpaVoter{
 			v.Key,
 			v.ID,
 		}
