@@ -69,7 +69,11 @@ func TestRoundState(t *testing.T) {
 
 	for _, k := range kr.Keys {
 		voters = append(voters, types.GrandpaVoter{
+<<<<<<< HEAD
 			Key: *k.Public().(*ed25519.PublicKey),
+=======
+			Key: k.Public().(*ed25519.PublicKey),
+>>>>>>> development
 			ID:  1,
 		})
 	}

@@ -25,8 +25,8 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
-	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
-	UnregisterImportedChannel(id byte)
+	GetImportedBlockNotifierChannel() chan *types.Block
+	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 }
@@ -40,7 +40,11 @@ type EpochState interface {
 
 // GrandpaState is the interface for the state.GrandpaState
 type GrandpaState interface {
+<<<<<<< HEAD
 	SetNextChange(authorities []types.GrandpaVoter, number *big.Int) error
+=======
+	SetNextChange(authorities []grandpa.Voter, number *big.Int) error
+>>>>>>> development
 	IncrementSetID() error
 	SetNextPause(number *big.Int) error
 	SetNextResume(number *big.Int) error

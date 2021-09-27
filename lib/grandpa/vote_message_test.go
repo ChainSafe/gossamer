@@ -356,8 +356,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
-	gs.tracker, err = newTracker(st.Block, gs.messageHandler)
-	require.NoError(t, err)
+	gs.tracker = newTracker(st.Block, gs.messageHandler)
 
 	fake := &types.Header{
 		Number: big.NewInt(77),
@@ -390,8 +389,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
-	require.NoError(t, err)
+	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	var branches []*types.Header
 	for {
