@@ -65,17 +65,17 @@ func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 		}
 		// First argument must be a pointer and must be http.Request.
 		reqType := mtype.In(1)
-		if reqType.Kind() != reflect.Pointer || reqType.Elem() != typeOfRequest {
+		if reqType.Kind() != reflect.Ptr || reqType.Elem() != typeOfRequest {
 			continue
 		}
 		// Second argument must be a pointer and must be exported.
 		args := mtype.In(2)
-		if args.Kind() != reflect.Pointer || !isExportedOrBuiltIn(args) {
+		if args.Kind() != reflect.Ptr || !isExportedOrBuiltIn(args) {
 			continue
 		}
 		// Third argument must be a pointer and must be exported.
 		reply := mtype.In(3)
-		if reply.Kind() != reflect.Pointer || !isExportedOrBuiltIn(reply) {
+		if reply.Kind() != reflect.Ptr || !isExportedOrBuiltIn(reply) {
 			continue
 		}
 		// Method needs one out: error.
@@ -99,7 +99,7 @@ func isExported(name string) bool {
 
 // isExportedOrBuiltIn returns true if a type is exported or a built in.
 func isExportedOrBuiltIn(t reflect.Type) bool {
-	for t.Kind() == reflect.Pointer {
+	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 	// PkgPath will be non-empty even for an exported type,
