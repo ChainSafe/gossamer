@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func iterateDB(db *badger.DB, cb func(*badger.Item)) {
+func iterateDB(db *badger.DB, cb func(*badger.Item)) { //nolint
 	txn := db.NewTransaction(false)
 	itr := txn.NewIterator(badger.DefaultIteratorOptions)
 
@@ -20,7 +20,7 @@ func iterateDB(db *badger.DB, cb func(*badger.Item)) {
 	}
 }
 
-func runPruneCmd(t *testing.T, configFile, prunedDBPath string) {
+func runPruneCmd(t *testing.T, configFile, prunedDBPath string) { //nolint
 	ctx, err := newTestContext(
 		"Test state trie offline pruning  --prune-state",
 		[]string{"config", "pruned-db-path", "bloom-size", "retain-blocks"},
