@@ -19,7 +19,6 @@ package subscription
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -38,6 +37,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

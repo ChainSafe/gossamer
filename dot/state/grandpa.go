@@ -20,12 +20,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
@@ -90,7 +90,7 @@ func setIDChangeKey(setID uint64) []byte {
 
 // setAuthorities sets the authorities for a given setID
 func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoter) error {
-	enc, err := types.EncodeGrandpaVoters(authorities) // This method seems to be working
+	enc, err := types.EncodeGrandpaVoters(authorities)
 	if err != nil {
 		return err
 	}
@@ -307,7 +307,7 @@ func roundAndSetIDToBytes(round, setID uint64) []byte {
 
 // SetPrevotes sets the prevotes for a specific round and set ID in the database
 func (s *GrandpaState) SetPrevotes(round, setID uint64, pvs []types.GrandpaSignedVote) error {
-	data, err := scale2.Marshal(pvs)
+	data, err := scale.Marshal(pvs)
 	if err != nil {
 		return err
 	}
@@ -323,8 +323,7 @@ func (s *GrandpaState) GetPrevotes(round, setID uint64) ([]types.GrandpaSignedVo
 	}
 
 	pvs := []types.GrandpaSignedVote{}
-	err = scale2.Unmarshal(data, &pvs)
-	//pvs, err := scale.Decode(data, []*types.GrandpaSignedVote{})
+	err = scale.Unmarshal(data, &pvs)
 	if err != nil {
 		return nil, err
 	}
@@ -334,8 +333,7 @@ func (s *GrandpaState) GetPrevotes(round, setID uint64) ([]types.GrandpaSignedVo
 
 // SetPrecommits sets the precommits for a specific round and set ID in the database
 func (s *GrandpaState) SetPrecommits(round, setID uint64, pcs []types.GrandpaSignedVote) error {
-	//data, err := scale.Encode(pcs)
-	data, err := scale2.Marshal(pcs)
+	data, err := scale.Marshal(pcs)
 	if err != nil {
 		return err
 	}
@@ -351,8 +349,7 @@ func (s *GrandpaState) GetPrecommits(round, setID uint64) ([]types.GrandpaSigned
 	}
 
 	pcs := []types.GrandpaSignedVote{}
-	err = scale2.Unmarshal(data, &pcs)
-	//pcs, err := scale.Decode(data, []*types.GrandpaSignedVote{})
+	err = scale.Unmarshal(data, &pcs)
 	if err != nil {
 		return nil, err
 	}

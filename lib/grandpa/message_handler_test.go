@@ -45,7 +45,7 @@ func newTestDigest() scale.VaryingDataTypeSlice {
 	return digest
 }
 
-func buildTestJustificationNew(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
+func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
 	var just []SignedVote
 	for i := 0; i < qty; i++ {
 		j := SignedVote{
@@ -165,6 +165,8 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 
 	m := NewGrandpaMessage()
 	err := scale.Unmarshal(cm.Data, &m)
+	require.NoError(t, err)
+
 	msg, err := decodeMessage(m)
 	require.NoError(t, err)
 
@@ -261,7 +263,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 
 	round := uint64(77)
 	gs.state.round = round
-	just := buildTestJustificationNew(t, int(gs.state.threshold()), round, gs.state.setID, kr, Precommit)
+	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, Precommit)
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
@@ -300,7 +302,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	round := uint64(77)
 	gs.state.round = round
 
-	just := buildTestJustificationNew(t, int(gs.state.threshold()), round, gs.state.setID, kr, Precommit)
+	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, Precommit)
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
@@ -471,7 +473,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
-	just := buildTestJustificationNew(t, int(gs.state.threshold()), 1, gs.state.setID, kr, Prevote)
+	just := buildTestJustification(t, int(gs.state.threshold()), 1, gs.state.setID, kr, Prevote)
 	msg := &CatchUpResponse{
 		Round:                1,
 		SetID:                gs.state.setID,
@@ -488,7 +490,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 
 	round := uint64(1)
-	just := buildTestJustificationNew(t, int(gs.state.threshold()), round, gs.state.setID, kr, Precommit)
+	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, Precommit)
 	msg := &CatchUpResponse{
 		Round:                  round,
 		SetID:                  gs.state.setID,
@@ -512,8 +514,8 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	round := uint64(77)
 	gs.state.round = round + 1
 
-	pvJust := buildTestJustificationNew(t, int(gs.state.threshold()), round, gs.state.setID, kr, Prevote)
-	pcJust := buildTestJustificationNew(t, int(gs.state.threshold()), round, gs.state.setID, kr, Precommit)
+	pvJust := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, Prevote)
+	pcJust := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, Precommit)
 	msg := &CatchUpResponse{
 		Round:                  round,
 		SetID:                  gs.state.setID,
@@ -565,7 +567,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 
 	round := uint64(2)
 	number := uint32(2)
-	precommits := buildTestJustificationNew(t, 2, round, setID, kr, Precommit)
+	precommits := buildTestJustification(t, 2, round, setID, kr, Precommit)
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
@@ -573,7 +575,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.NoError(t, err)
 
 	// use wrong hash, shouldn't verify
-	precommits = buildTestJustificationNew(t, 2, round+1, setID, kr, Precommit)
+	precommits = buildTestJustification(t, 2, round+1, setID, kr, Precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err = scale.Marshal(*just)
@@ -583,7 +585,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.Equal(t, ErrPrecommitBlockMismatch, err)
 
 	// use wrong round, shouldn't verify
-	precommits = buildTestJustificationNew(t, 2, round+1, setID, kr, Precommit)
+	precommits = buildTestJustification(t, 2, round+1, setID, kr, Precommit)
 	just = newJustification(round+2, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
@@ -592,7 +594,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.Equal(t, ErrInvalidSignature, err)
 
 	// add authority not in set, shouldn't verify
-	precommits = buildTestJustificationNew(t, len(auths)+1, round+1, setID, kr, Precommit)
+	precommits = buildTestJustification(t, len(auths)+1, round+1, setID, kr, Precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
@@ -600,7 +602,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.Equal(t, ErrAuthorityNotInSet, err)
 
 	// not enough signatures, shouldn't verify
-	precommits = buildTestJustificationNew(t, 1, round+1, setID, kr, Precommit)
+	precommits = buildTestJustification(t, 1, round+1, setID, kr, Precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)

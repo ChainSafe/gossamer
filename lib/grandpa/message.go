@@ -200,6 +200,7 @@ func compactToJustification(vs []Vote, auths []AuthData) ([]SignedVote, error) {
 	return just, nil
 }
 
+// CatchUpRequest struct to represent a CatchUpRequest message
 type CatchUpRequest struct {
 	Round uint64
 	SetID uint64
@@ -233,6 +234,7 @@ func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
+// CatchUpResponse struct to represent a CatchUpResponse message
 type CatchUpResponse struct {
 	SetID                  uint64
 	Round                  uint64

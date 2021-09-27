@@ -29,27 +29,27 @@ import (
 
 var (
 	kr, _     = keystore.NewEd25519Keyring()
-	testAuthsNew = []types.GrandpaVoter{
+	testAuths = []types.GrandpaVoter{
 		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 )
 
 func TestNewGrandpaStateFromGenesis(t *testing.T) {
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, testAuthsNew)
+	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
 	currSetID, err := gs.GetCurrentSetID()
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID, currSetID)
 
-	testAuths2 := []types.GrandpaVoter{
-		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
-	}
+	//testAuths2 := []types.GrandpaVoter{
+	//	{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+	//}
 
 	auths, err := gs.GetAuthorities(currSetID)
 	require.NoError(t, err)
-	require.Equal(t, testAuths2, auths)
+	require.Equal(t, testAuths, auths)
 
 	num, err := gs.GetSetIDChange(0)
 	require.NoError(t, err)
@@ -58,15 +58,15 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 
 func TestGrandpaState_SetNextChange(t *testing.T) {
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, testAuthsNew)
+	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	err = gs.SetNextChange(testAuthsNew, big.NewInt(1))
+	err = gs.SetNextChange(testAuths, big.NewInt(1))
 	require.NoError(t, err)
 
 	auths, err := gs.GetAuthorities(genesisSetID + 1)
 	require.NoError(t, err)
-	require.Equal(t, testAuthsNew, auths)
+	require.Equal(t, testAuths, auths)
 
 	atBlock, err := gs.GetSetIDChange(genesisSetID + 1)
 	require.NoError(t, err)
@@ -75,7 +75,7 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 
 func TestGrandpaState_IncrementSetID(t *testing.T) {
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, testAuthsNew)
+	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
 	err = gs.IncrementSetID()
@@ -88,10 +88,10 @@ func TestGrandpaState_IncrementSetID(t *testing.T) {
 
 func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, testAuthsNew)
+	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	err = gs.SetNextChange(testAuthsNew, big.NewInt(100))
+	err = gs.SetNextChange(testAuths, big.NewInt(100))
 	require.NoError(t, err)
 
 	setID, err := gs.GetSetIDByBlockNumber(big.NewInt(50))
@@ -120,7 +120,7 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 
 func TestGrandpaState_LatestRound(t *testing.T) {
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, testAuthsNew)
+	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
 	r, err := gs.GetLatestRound()

@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -26,13 +27,15 @@ import (
 //nolint
 type (
 	Voter      = types.GrandpaVoter
-	Voters     = []Voter
+	Voters     = types.GrandpaVoters
 	Vote       = types.GrandpaVote
 	SignedVote = types.GrandpaSignedVote
 )
 
+// Subround subrounds in a grandpa round
 type Subround byte
 
+//nolint
 var (
 	Prevote         Subround
 	Precommit       Subround = 1
@@ -69,7 +72,7 @@ func NewState(voters []Voter, setID, round uint64) *State {
 }
 
 // pubkeyToVoter returns a Voter given a public key
-func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*types.GrandpaVoter, error) {
+func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	max := uint64(2^64) - 1
 	id := max
 
@@ -84,7 +87,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*types.GrandpaVoter, error
 		return nil, ErrVoterNotFound
 	}
 
-	return &types.GrandpaVoter{
+	return &Voter{
 		Key: *pk,
 		ID:  id,
 	}, nil

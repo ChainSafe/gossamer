@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
@@ -149,6 +150,10 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 
 	dec := NewGrandpaMessage()
 	err := scale.Unmarshal(cm.Data, &dec)
+	if err != nil {
+		return false, err
+	}
+
 	m, err := decodeMessage(dec)
 	if err != nil {
 		return false, err
@@ -241,6 +246,8 @@ func decodeMessage(msg scale.VaryingDataType) (m GrandpaMessage, err error) {
 		m = &val
 	case CatchUpResponse:
 		m = &val
+	default:
+		return nil, fmt.Errorf("message type not recognised")
 	}
 
 	return m, nil

@@ -1,7 +1,6 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"testing"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )

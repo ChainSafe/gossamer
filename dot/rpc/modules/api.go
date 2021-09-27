@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -104,7 +105,7 @@ type SystemAPI interface {
 type BlockFinalityAPI interface {
 	GetSetID() uint64
 	GetRound() uint64
-	GetVoters() []types.GrandpaVoter
+	GetVoters() grandpa.Voters
 	PreVotes() []ed25519.PublicKeyBytes
 	PreCommits() []ed25519.PublicKeyBytes
 }

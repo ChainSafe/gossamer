@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/rand"
 	"sync"
 	"testing"
@@ -29,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"

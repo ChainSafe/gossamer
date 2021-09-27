@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -260,7 +261,6 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, Precommit)
 		if err != nil {
-			fmt.Println("Error verifying justification: ", err)
 			continue
 		}
 
@@ -291,7 +291,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	votes := make(map[common.Hash]uint64)
 
 	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, Prevote)
+		err := h.verifyJustification(&just, msg.Round, msg.SetID, Prevote) //nolint
 		if err != nil {
 			continue
 		}
@@ -318,7 +318,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, Precommit)
+		err := h.verifyJustification(&just, msg.Round, msg.SetID, Precommit) //nolint
 		if err != nil {
 			continue
 		}
@@ -358,12 +358,11 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 	}
 
 	if !ok {
-		return ErrInvalidSignature // Sometimes this gets returned. Why?
+		return ErrInvalidSignature
 	}
 
 	// verify authority in justification set
 	authFound := false
-	//auths := h.grandpa.authorities()
 	for _, auth := range h.grandpa.authorities() {
 		justKey, err := just.AuthorityID.Encode()
 		if err != nil {
@@ -375,7 +374,7 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 		}
 	}
 	if !authFound {
-		return ErrVoterNotFound //THIS is what is being returned
+		return ErrVoterNotFound
 	}
 	return nil
 }

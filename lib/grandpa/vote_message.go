@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/ChainSafe/gossamer/dot/types"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -71,7 +71,7 @@ func (s *Service) receiveMessages(ctx context.Context) {
 }
 
 func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*SignedVote, *VoteMessage, error) {
-	msg, err := scale2.Marshal(FullVote{
+	msg, err := scale.Marshal(FullVote{
 		Stage: stage,
 		Vote:  *vote,
 		Round: s.state.round,
@@ -115,11 +115,6 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	// make sure round does not increment while VoteMessage is being validated
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
-
-	// TODO Jimmy, add an empty check here?
-	//if m.Message == nil {
-	//	return nil, errors.New("invalid VoteMessage; missing Message field")
-	//}
 
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.Message.AuthorityID[:])
@@ -231,7 +226,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *types.GrandpaVoter, vote *SignedVote, stage Subround) bool {
+func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) bool {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification
@@ -296,7 +291,7 @@ func (s *Service) validateVote(v *Vote) error {
 }
 
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
-	msg, err := scale2.Marshal(FullVote{
+	msg, err := scale.Marshal(FullVote{
 		Stage: m.Message.Stage,
 		Vote:  *NewVote(m.Message.Hash, m.Message.Number),
 		Round: m.Round,

@@ -84,15 +84,7 @@ func newTestState(t *testing.T) *state.Service {
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
-	auths := make([]types.GrandpaVoter, len(voters))
-	for i, v := range voters {
-		auths[i] = types.GrandpaVoter{
-			v.Key,
-			v.ID,
-		}
-	}
-
-	grandpa, err := state.NewGrandpaStateFromGenesis(db, auths)
+	grandpa, err := state.NewGrandpaStateFromGenesis(db, voters)
 	require.NoError(t, err)
 
 	return &state.Service{
@@ -138,7 +130,7 @@ func TestUpdateAuthorities(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), gs.state.setID)
 
-	next := []types.GrandpaVoter{
+	next := []Voter{
 		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 

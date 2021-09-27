@@ -3,10 +3,11 @@ package types
 import (
 	"bytes"
 	"fmt"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,12 +25,12 @@ func TestEncodeSignedVote(t *testing.T) {
 		Signature:   testSignature,
 		AuthorityID: testAuthorityID,
 	}
-	enc, err := scale2.Marshal(sv)
+	enc, err := scale.Marshal(sv)
 	require.NoError(t, err)
 	require.Equal(t, exp, enc)
 
-	res :=  GrandpaSignedVote{}
-	err = scale2.Unmarshal(enc, &res)
+	res := GrandpaSignedVote{}
+	err = scale.Unmarshal(enc, &res)
 	require.NoError(t, err)
 	require.Equal(t, sv, res)
 }

@@ -54,11 +54,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range voters {
-		n := types.GrandpaVoter{
-			v.Key,
-			v.ID,
-		}
-		equivocated := gs.checkForEquivocation(&n, &SignedVote{
+		equivocated := gs.checkForEquivocation(&v, &SignedVote{
 			Vote: *vote,
 		}, Prevote)
 		require.False(t, equivocated)
@@ -101,12 +97,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	n := types.GrandpaVoter{
-		voter.Key,
-		voter.ID,
-	}
-
-	equivocated := gs.checkForEquivocation(&n, &SignedVote{
+	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, Prevote)
 	require.True(t, equivocated)
@@ -158,12 +149,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
 
-	n := types.GrandpaVoter{
-		voter.Key,
-		voter.ID,
-	}
-
-	equivocated := gs.checkForEquivocation(&n, &SignedVote{
+	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, Prevote)
 	require.True(t, equivocated)
@@ -174,12 +160,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote3 := NewVoteFromHeader(branches[1])
 	require.NoError(t, err)
 
-	n = types.GrandpaVoter{
-		voter.Key,
-		voter.ID,
-	}
-
-	equivocated = gs.checkForEquivocation(&n, &SignedVote{
+	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote3,
 	}, Prevote)
 	require.True(t, equivocated)

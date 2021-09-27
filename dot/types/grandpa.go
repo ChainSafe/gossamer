@@ -18,12 +18,12 @@ package types
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // GrandpaAuthoritiesRaw represents a GRANDPA authority where their key is a byte array
@@ -116,7 +116,7 @@ func (v *GrandpaVoter) Decode(r io.Reader) error {
 	return nil
 }
 
-// Decode will decode the Reader into a GrandpaVoter
+// Encode will encode the GrandpaVoter
 func (v *GrandpaVoter) Encode() ([]byte, error) {
 	enc := []byte{}
 	b := v.Key.Encode()
@@ -198,7 +198,6 @@ func EncodeGrandpaVoters(voters GrandpaVoters) ([]byte, error) {
 
 // DecodeGrandpaVoters returns a decoded GrandpaVoters
 func DecodeGrandpaVoters(r io.Reader) (GrandpaVoters, error) {
-	// TODO remove scale here
 	sd := &scale.Decoder{Reader: r}
 	length, err := sd.DecodeInteger()
 	if err != nil {

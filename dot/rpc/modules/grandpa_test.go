@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/stretchr/testify/require"
 
@@ -65,7 +66,7 @@ func TestGrandpaProveFinality(t *testing.T) {
 }
 
 func TestRoundState(t *testing.T) {
-	var voters []types.GrandpaVoter
+	var voters grandpa.Voters
 
 	for _, k := range kr.Keys {
 		voters = append(voters, types.GrandpaVoter{

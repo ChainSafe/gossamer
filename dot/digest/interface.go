@@ -17,10 +17,10 @@
 package digest
 
 import (
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 )
 
 // BlockState interface for block state methods

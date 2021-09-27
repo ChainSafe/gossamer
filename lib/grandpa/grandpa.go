@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"os"
 	"sync"
@@ -32,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -227,11 +227,11 @@ func (s *Service) Stop() error {
 func (s *Service) authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
 	for i := 0; i < len(s.state.voters); i++ {
-		a := &types.Authority{
+		ad[i] = &types.Authority{
 			Key:    &s.state.voters[i].Key,
 			Weight: s.state.voters[i].ID,
 		}
-		ad[i] = a
+		//ad[i] = a
 	}
 
 	return ad
@@ -263,14 +263,6 @@ func (s *Service) updateAuthorities() error {
 	if err != nil {
 		return err
 	}
-
-	//auths := make([]types.GrandpaVoter, len(nextAuthorities))
-	//for i, v := range nextAuthorities {
-	//	auths[i] = types.GrandpaVoter{
-	//		&v.Key,
-	//		v.ID,
-	//	}
-	//}
 
 	s.state.voters = nextAuthorities
 	s.state.setID = currSetID
@@ -1289,15 +1281,8 @@ func (s *Service) GetRound() uint64 {
 }
 
 // GetVoters returns the list of current grandpa.Voters
-func (s *Service) GetVoters() []types.GrandpaVoter {
-	votes := make([]types.GrandpaVoter, len(s.state.voters))
-	for i, v := range s.state.voters {
-		votes[i] = types.GrandpaVoter{
-			v.Key,
-			v.ID,
-		}
-	}
-	return votes
+func (s *Service) GetVoters() Voters {
+	return s.state.voters
 }
 
 // PreVotes returns the current prevotes to the current round
