@@ -72,8 +72,8 @@ func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
 	}
 }
 
-func randBytes(n int) []byte {
-	r := make([]byte, n)
+func rand32Bytes() []byte {
+	r := make([]byte, 32)
 	rand.Read(r) //nolint
 	return r
 }

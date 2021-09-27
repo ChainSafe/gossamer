@@ -35,11 +35,11 @@ func TestProofGeneration(t *testing.T) {
 	require.NoError(t, err)
 
 	trie := NewEmptyTrie()
-	trie.Put([]byte("cat"), randBytes(32))
-	trie.Put([]byte("catapulta"), randBytes(32))
-	trie.Put([]byte("catapora"), randBytes(32))
-	trie.Put([]byte("dog"), randBytes(32))
-	trie.Put([]byte("doguinho"), randBytes(32))
+	trie.Put([]byte("cat"), rand32Bytes())
+	trie.Put([]byte("catapulta"), rand32Bytes())
+	trie.Put([]byte("catapora"), rand32Bytes())
+	trie.Put([]byte("dog"), rand32Bytes())
+	trie.Put([]byte("doguinho"), rand32Bytes())
 
 	err = trie.Store(memdb)
 	require.NoError(t, err)

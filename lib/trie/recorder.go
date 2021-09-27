@@ -26,14 +26,6 @@ func (r *recorder) next() *nodeRecord {
 	return nil
 }
 
-// Peek returns the current item the cursor is on but dont increment the cursor by 1
-func (r *recorder) peek() *nodeRecord {
-	if !r.isEmpty() {
-		return &(*r)[0]
-	}
-	return nil
-}
-
 // IsEmpty returns bool if there is data inside the slice
 func (r *recorder) isEmpty() bool {
 	return len(*r) > 0
