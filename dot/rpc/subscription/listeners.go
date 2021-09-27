@@ -105,7 +105,7 @@ func (s *StorageObserver) GetFilter() map[string][]byte {
 }
 
 // Listen to satisfy Listener interface (but is no longer used by StorageObserver)
-func (s *StorageObserver) Listen() {}
+func (*StorageObserver) Listen() {}
 
 // Stop to satisfy Listener interface (but is no longer used by StorageObserver)
 func (s *StorageObserver) Stop() error {
@@ -117,18 +117,28 @@ func (s *StorageObserver) Stop() error {
 type BlockListener struct {
 	Channel       chan *types.Block
 	wsconn        *WSConn
-	ChanID        byte
 	subID         uint32
 	done          chan struct{}
 	cancel        chan struct{}
 	cancelTimeout time.Duration
 }
 
+// NewBlockListener constructor for creating BlockListener
+func NewBlockListener(conn *WSConn) *BlockListener {
+	bl := &BlockListener{
+		wsconn:        conn,
+		cancel:        make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		done:          make(chan struct{}, 1),
+	}
+	return bl
+}
+
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockListener) Listen() {
 	go func() {
 		defer func() {
-			l.wsconn.BlockAPI.UnregisterImportedChannel(l.ChanID)
+			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.Channel)
 			close(l.done)
 		}()
 
@@ -221,7 +231,6 @@ type AllBlocksListener struct {
 
 	wsconn          *WSConn
 	finalizedChanID byte
-	importedChanID  byte
 	subID           uint32
 	done            chan struct{}
 	cancel          chan struct{}
@@ -235,7 +244,6 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 		cancelTimeout: defaultCancelTimeout,
 		wsconn:        conn,
 		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
-		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 	}
 }
 
@@ -243,10 +251,9 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 func (l *AllBlocksListener) Listen() {
 	go func() {
 		defer func() {
-			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.importedChan)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalizedChanID)
 
-			close(l.importedChan)
 			close(l.finalizedChan)
 			close(l.done)
 		}()
@@ -304,7 +311,6 @@ type ExtrinsicSubmitListener struct {
 	subID           uint32
 	extrinsic       types.Extrinsic
 	importedChan    chan *types.Block
-	importedChanID  byte
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
@@ -313,14 +319,28 @@ type ExtrinsicSubmitListener struct {
 	cancelTimeout   time.Duration
 }
 
+// NewExtrinsicSubmitListener constructor to build new ExtrinsicSubmitListener
+func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte) *ExtrinsicSubmitListener {
+	esl := &ExtrinsicSubmitListener{
+		wsconn:        conn,
+		extrinsic:     types.Extrinsic(extBytes),
+		finalisedChan: make(chan *types.FinalisationInfo),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+	}
+	return esl
+}
+
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *ExtrinsicSubmitListener) Listen() {
 	// listen for imported blocks with extrinsic
 	go func() {
 		defer func() {
-			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.importedChan)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalisedChanID)
 			close(l.done)
+			close(l.finalisedChan)
 		}()
 
 		for {
@@ -430,7 +450,7 @@ func (l *RuntimeVersionListener) GetChannelID() uint32 {
 
 // Stop to runtimeVersionListener not implemented yet because the listener
 // does not need to be stoped
-func (l *RuntimeVersionListener) Stop() error { return nil }
+func (*RuntimeVersionListener) Stop() error { return nil }
 
 // GrandpaJustificationListener struct has the finalisedCh and the context to stop the goroutines
 type GrandpaJustificationListener struct {

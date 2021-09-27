@@ -26,22 +26,17 @@ import (
 	"github.com/google/uuid"
 )
 
-// RegisterImportedChannel registers a channel for block notification upon block import.
-// It returns the channel ID (used for unregistering the channel)
-func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
-	bs.importedLock.RLock()
+// DEFAULT_BUFFER_SIZE buffer size for channels
+const DEFAULT_BUFFER_SIZE = 100
 
-	id, err := bs.importedBytePool.Get()
-	if err != nil {
-		return 0, err
-	}
-
-	bs.importedLock.RUnlock()
-
+// GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
+func (bs *BlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 	bs.importedLock.Lock()
-	bs.imported[id] = ch
-	bs.importedLock.Unlock()
-	return id, nil
+	defer bs.importedLock.Unlock()
+
+	ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
+	bs.imported[ch] = struct{}{}
+	return ch
 }
 
 // RegisterFinalizedChannel registers a channel for block notification upon block finalisation.
@@ -62,17 +57,11 @@ func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo
 	return id, nil
 }
 
-// UnregisterImportedChannel removes the block import notification channel with the given ID.
-// A channel must be unregistered before closing it.
-func (bs *BlockState) UnregisterImportedChannel(id byte) {
+// FreeImportedBlockNotifierChannel to free imported block notifier channel
+func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	bs.importedLock.Lock()
 	defer bs.importedLock.Unlock()
-
-	delete(bs.imported, id)
-	err := bs.importedBytePool.Put(id)
-	if err != nil {
-		logger.Error("failed to unregister imported channel", "error", err)
-	}
+	delete(bs.imported, ch)
 }
 
 // UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
@@ -97,8 +86,8 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 	}
 
 	logger.Trace("notifying imported block chans...", "chans", bs.imported)
-	for _, ch := range bs.imported {
-		go func(ch chan<- *types.Block) {
+	for ch := range bs.imported {
+		go func(ch chan *types.Block) {
 			select {
 			case ch <- block:
 			default:
