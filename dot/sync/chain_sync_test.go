@@ -246,6 +246,7 @@ func TestWorkerToRequests(t *testing.T) {
 		max128 = uint32(128)
 		max9   = uint32(9)
 		max64  = uint32(64)
+		max1   = uint32(1)
 	)
 
 	testCases := []testCase{
@@ -385,6 +386,22 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(10),
+				targetNumber: big.NewInt(10),
+				direction:    network.Ascending,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*network.BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint64OrHash(10),
+					Direction:     network.Ascending,
+					Max:           &max1,
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
@@ -455,6 +472,10 @@ func TestChainSync_validateResponse(t *testing.T) {
 	parent := (&types.Header{
 		Number: big.NewInt(1),
 	}).Hash()
+	header3 := &types.Header{
+		ParentHash: parent,
+		Number:     big.NewInt(3),
+	}
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
@@ -464,11 +485,10 @@ func TestChainSync_validateResponse(t *testing.T) {
 				Body: &types.Body{},
 			},
 			{
-				Header: &types.Header{
-					ParentHash: parent,
-					Number:     big.NewInt(3),
-				},
-				Body: &types.Body{},
+				Hash:          header3.Hash(),
+				Header:        header3,
+				Body:          &types.Body{},
+				Justification: &[]byte{0},
 			},
 		},
 	}
@@ -480,6 +500,8 @@ func TestChainSync_validateResponse(t *testing.T) {
 	err = cs.validateResponse("", req, resp)
 	require.Equal(t, errResponseIsNotChain, err)
 	require.True(t, cs.pendingBlocks.hasBlock(hash))
+	bd := cs.pendingBlocks.getBlock(hash)
+	require.NotNil(t, bd.justification)
 	cs.pendingBlocks.removeBlock(hash)
 
 	parent = (&types.Header{
