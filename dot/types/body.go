@@ -36,7 +36,7 @@ func NewBody(b []byte) *Body {
 	return &body
 }
 
-// NewBodyFromBytes returns a new Body from a slice of byte slices
+// NewBodyFromBytes returns a new Body from a slice of byte slices (not encoded extrinsics)
 func NewBodyFromBytes(exts [][]byte) (*Body, error) {
 	enc, err := scale.Encode(exts)
 	if err != nil {
@@ -47,8 +47,13 @@ func NewBodyFromBytes(exts [][]byte) (*Body, error) {
 	return &body, nil
 }
 
-// NewBodyFromEncodedBytes returns a new Body from a slice of byte slices that are SCALE encoded extrinsics
+// NewBodyFromEncodedBytes returns a new Body from a slice of byte slices that are
+// SCALE encoded extrinsics
 func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
+	// A collection of same-typed values is encoded, prefixed with a compact
+	// encoding of the number of items, followed by each item's encoding
+	// concatenated in turn.
+	// https://substrate.dev/docs/en/knowledgebase/advanced/codec#vectors-lists-series-sets
 	enc, err := scale.Encode(big.NewInt(int64(len(exts))))
 	if err != nil {
 		return nil, err
@@ -73,7 +78,8 @@ func NewBodyFromExtrinsics(exts []Extrinsic) (*Body, error) {
 	return &body, nil
 }
 
-// NewBodyFromExtrinsicStrings creates a block body given an array of hex-encoded 0x-prefixed strings.
+// NewBodyFromExtrinsicStrings creates a block body given an array of hex-encoded
+// 0x-prefixed strings.
 func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 	exts := [][]byte{}
 	for _, s := range ss {

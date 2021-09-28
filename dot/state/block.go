@@ -40,7 +40,8 @@ var blockPrefix = "block"
 
 const pruneKeyBufferSize = 1000
 
-// BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
+// BlockState defines fields for manipulating the state of blocks, such as BlockTree,
+// BlockDB and Header
 type BlockState struct {
 	bt        *blocktree.BlockTree
 	baseState *BaseState
@@ -351,13 +352,13 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 }
 
 // GetBlockBody will return Body for a given hash
-func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
+func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.BodyExtrinsics, error) {
 	data, err := bs.db.Get(blockBodyKey(hash))
 	if err != nil {
 		return nil, err
 	}
 
-	return types.NewBody(data), nil
+	return types.NewBodyExtrinsicsFromBytes(data)
 }
 
 // SetBlockBody will add a block body to the db
@@ -432,7 +433,12 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		}
 	}
 
-	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body))
+	encodedBody, err := block.Body.AsSCALEEncodedBody()
+	if err != nil {
+		return err
+	}
+
+	err = bs.SetBlockBody(block.Header.Hash(), &encodedBody)
 	if err != nil {
 		return err
 	}

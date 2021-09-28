@@ -204,13 +204,17 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	digest := types.NewDigest()
 	err = digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	require.NoError(t, err)
+
+	body, err := types.NewBodyExtrinsicsFromBytes([]byte{0})
+	require.NoError(t, err)
+
 	block := &types.Block{
 		Header: types.Header{
 			Number:     big.NewInt(2),
 			ParentHash: st.Block.GenesisHash(),
 			Digest:     digest,
 		},
-		Body: types.Body{0},
+		Body: *body,
 	}
 
 	err = st.Block.AddBlock(block)
@@ -265,7 +269,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
-		Body: types.Body{},
+		Body: types.BodyExtrinsics{},
 	}
 
 	err = st.Block.AddBlock(block)
@@ -358,7 +362,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 			Number:     big.NewInt(2),
 			Digest:     digest,
 		},
-		Body: types.Body{},
+		Body: types.BodyExtrinsics{},
 	}
 
 	err = st.Block.AddBlock(block)
@@ -533,9 +537,12 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
 	require.NoError(t, err)
 
+	body, err := types.NewBodyExtrinsicsFromBytes([]byte{0})
+	require.NoError(t, err)
+
 	block := &types.Block{
 		Header: *testHeader,
-		Body:   types.Body{0},
+		Body:   *body,
 	}
 
 	err = st.Block.AddBlock(block)

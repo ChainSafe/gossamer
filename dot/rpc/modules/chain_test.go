@@ -140,7 +140,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	expected := &ChainBlockResponse{
 		Block: ChainBlock{
 			Header: *expectedHeader,
-			Body:   nil,
+			Body:   []string{"0x2800010203040506070809"},
 		},
 	}
 
@@ -179,7 +179,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	expected := &ChainBlockResponse{
 		Block: ChainBlock{
 			Header: *expectedHeader,
-			Body:   nil,
+			Body:   []string{"0x2800010203040506070809"},
 		},
 	}
 
@@ -360,12 +360,9 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 	}
 	// Create blockHash
 	blockHash0 := header0.Hash()
-	// BlockBody with fake extrinsics
-	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
 	block0 := &types.Block{
 		Header: *header0,
-		Body:   blockBody0,
+		Body:   *types.NewBodyExtrinsics([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
 	}
 
 	err := bs.AddBlock(block0)
@@ -386,12 +383,9 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		StateRoot:  trie.EmptyHash,
 	}
 
-	// Create Block with fake extrinsics
-	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
 	block1 := &types.Block{
 		Header: *header1,
-		Body:   blockBody1,
+		Body:   *types.NewBodyExtrinsics([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
 	}
 
 	// Add the block1 to the DB

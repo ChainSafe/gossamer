@@ -103,7 +103,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},
-		Body: *types.NewBody([]byte{}),
+		Body: *types.NewBodyExtrinsics([]types.Extrinsic{}),
 	}
 
 	expected := &network.BlockAnnounceMessage{

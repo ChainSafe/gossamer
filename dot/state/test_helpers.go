@@ -83,7 +83,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
 			},
-			Body: types.Body{},
+			Body: types.BodyExtrinsics{},
 		}
 
 		currentChain = append(currentChain, &block.Header)
@@ -123,7 +123,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
 				},
-				Body: types.Body{},
+				Body: types.BodyExtrinsics{},
 			}
 
 			branchChains = append(branchChains, &block.Header)
@@ -162,7 +162,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
 			},
-			Body: types.Body{},
+			Body: types.BodyExtrinsics{},
 		}
 
 		hash := block.Header.Hash()
@@ -203,7 +203,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
 				},
-				Body: types.Body{},
+				Body: types.BodyExtrinsics{},
 			}
 
 			hash := block.Header.Hash()
@@ -236,13 +236,16 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Has
 		parent = &bb
 	}
 
+	body, err := types.NewBodyExtrinsicsFromBytes([]byte{})
+	require.NoError(t, err)
+
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: *parent,
 			Number:     big.NewInt(bNum),
 			StateRoot:  trieStateRoot,
 		},
-		Body: *types.NewBody([]byte{}),
+		Body: *body,
 	}
 	return block, trieState
 }

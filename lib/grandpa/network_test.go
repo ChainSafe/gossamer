@@ -99,7 +99,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
-		Body: types.Body{},
+		Body: types.BodyExtrinsics{},
 	}
 
 	err = st.Block.AddBlock(block)

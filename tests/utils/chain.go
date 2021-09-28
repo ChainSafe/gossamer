@@ -137,7 +137,7 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	h, err := types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigest(t, header.Digest.Logs))
 	require.NoError(t, err)
 
-	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)
+	b, err := types.NewBodyExtrinsicsFromExtrinsicStrings(block.Block.Body)
 	require.NoError(t, err, fmt.Sprintf("%v", block.Block.Body))
 
 	return &types.Block{

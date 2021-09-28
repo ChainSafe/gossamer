@@ -498,7 +498,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 			Number:     big.NewInt(2),
 			StateRoot:  sr1,
 		},
-		Body: *types.NewBody([]byte{}),
+		Body: *types.NewBodyExtrinsics([]types.Extrinsic{[]byte{}}),
 	}
 
 	err = chain.Block.AddBlock(b)
