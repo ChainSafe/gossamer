@@ -119,7 +119,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	if err := bs.SetBlockBody(header.Hash(), types.NewBody([]byte{})); err != nil {
+	if err := bs.SetBlockBody(header.Hash(), types.NewBodyExtrinsics([]types.Extrinsic{})); err != nil {
 		return nil, err
 	}
 
@@ -359,8 +359,12 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.BodyExtrinsics, err
 }
 
 // SetBlockBody will add a block body to the db
-func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
-	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
+func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.BodyExtrinsics) error {
+	optionalBody, err := body.AsOptional()
+	if err != nil {
+		return err
+	}
+	return bs.db.Put(blockBodyKey(hash), optionalBody.Value())
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
@@ -430,12 +434,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		}
 	}
 
-	encodedBody, err := block.Body.AsSCALEEncodedBody()
-	if err != nil {
-		return err
-	}
-
-	err = bs.SetBlockBody(block.Header.Hash(), &encodedBody)
+	err = bs.SetBlockBody(block.Header.Hash(), &block.Body)
 	if err != nil {
 		return err
 	}

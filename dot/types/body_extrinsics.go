@@ -22,7 +22,8 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // BodyExtrinsics is the extrinsics(not encoded) inside a state block.
@@ -42,7 +43,7 @@ func NewBodyExtrinsicsFromBytes(b []byte) (*BodyExtrinsics, error) {
 		return NewBodyExtrinsics([]Extrinsic{}), nil
 	}
 
-	err := scale2.Unmarshal(b, &exts)
+	err := scale.Unmarshal(b, &exts)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func NewBodyExtrinsicsFromEncodedBytes(exts [][]byte) (*BodyExtrinsics, error) {
 	// encoding of the number of items, followed by each item's encoding
 	// concatenated in turn.
 	// https://substrate.dev/docs/en/knowledgebase/advanced/codec#vectors-lists-series-sets
-	enc, err := scale2.Marshal(big.NewInt(int64(len(exts))))
+	enc, err := scale.Marshal(big.NewInt(int64(len(exts))))
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +87,13 @@ func NewBodyExtrinsicsFromExtrinsicStrings(ss []string) (*BodyExtrinsics, error)
 	return NewBodyExtrinsics(BytesArrayToExtrinsics(exts)), nil
 }
 
-func (b *BodyExtrinsics) AsSCALEEncodedBody() (Body, error) {
-	encodedBody, err := scale2.Marshal(ExtrinsicsArrayToBytesArray(*b))
+func (b *BodyExtrinsics) AsSCALEEncodedBody() ([]byte, error) {
+	encodedBody, err := scale.Marshal(ExtrinsicsArrayToBytesArray(*b))
 	if err != nil {
 		return nil, err
 	}
 
-	return Body(encodedBody), nil
+	return encodedBody, nil
 }
 
 func (b *BodyExtrinsics) DeepCopy() BodyExtrinsics {
@@ -117,7 +118,7 @@ func (b *BodyExtrinsics) HasExtrinsic(target Extrinsic) (bool, error) {
 		}
 
 		//otherwise try to encode and compare
-		encext, err := scale2.Marshal(currext)
+		encext, err := scale.Marshal(currext)
 		if err != nil {
 			return false, fmt.Errorf("fail while scale encode: %w", err)
 		}
@@ -137,11 +138,21 @@ func (b *BodyExtrinsics) AsEncodedExtrinsics() ([]Extrinsic, error) {
 	var err error
 
 	for i, ext := range decodedExts {
-		ret[i], err = scale2.Marshal(ext)
+		ret[i], err = scale.Marshal(ext)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return BytesArrayToExtrinsics(ret), nil
+}
+
+// AsOptional returns the Body as an optional.Body
+func (b *BodyExtrinsics) AsOptional() (*optional.Body, error) {
+	encodedBody, err := b.AsSCALEEncodedBody()
+	if err != nil {
+		return nil, err
+	}
+	ob := optional.CoreBody([]byte(encodedBody))
+	return optional.NewBody(true, ob), nil
 }
