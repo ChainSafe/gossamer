@@ -137,7 +137,6 @@ func (lvd *LegacyVersionData) Decode(in []byte) error {
 	lvd.implVersion = info.ImplVersion
 	lvd.apiItems = info.APIItems
 
-
 	return nil
 }
 
