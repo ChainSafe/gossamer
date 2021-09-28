@@ -397,7 +397,7 @@ func (cs *chainSync) sync() {
 
 			// handle results from worker
 			// if there is an error, potentially retry the worker
-			if res.err == nil {
+			if res.err == nil || res.ctx.Err() != nil {
 				continue
 			}
 
@@ -689,17 +689,16 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
-	if bd.Header != nil {
-		logger.Trace("new ready block", "hash", bd.Hash, "number", bd.Header.Number)
-	} else {
+	if bd.Header == nil {
 		block := pendingBlocks.getBlock(bd.Hash)
 		if block.header == nil {
-			panic("block isnt ready!!!! no header")
+			panic("block isn't ready! header is unknown!")
 		}
 
-		logger.Trace("new ready block", "hash", bd.Hash, "number", block.header.Number)
 		bd.Header = block.header
 	}
+
+	logger.Trace("new ready block", "hash", bd.Hash, "number", bd.Header.Number)
 
 	ready := []*types.BlockData{bd}
 	ready = pendingBlocks.getReadyDescendants(bd.Hash, ready)

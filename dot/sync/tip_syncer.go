@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
+	//"github.com/libp2p/go-libp2p-core/mux"
 )
 
 var _ workHandler = &tipSyncer{}
@@ -67,7 +68,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		return nil, nil
 	}
 
-	if errors.Is(res.err.err, errUnknownParent) || res.err.err.Error() == "stream reset" { // TODO: use errors.Is
+	if errors.Is(res.err.err, errUnknownParent) /*|| errors.Is(res.err.err, mux.ErrReset)*/ {
 		// handleTick will handle the errUnknownParent case
 		return nil, nil
 	}
@@ -107,7 +108,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		targetHash:   res.targetHash,
 		targetNumber: res.targetNumber,
 		direction:    res.direction,
-		requestData:  bootstrapRequestData,
+		requestData:  res.requestData,
 	}, nil
 }
 
