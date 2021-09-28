@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/chyeh/pubip"
 	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
@@ -37,7 +38,7 @@ import (
 	secio "github.com/libp2p/go-libp2p-secio"
 	ma "github.com/multiformats/go-multiaddr"
 
-	"github.com/chyeh/pubip"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
 var privateCIDRs = []string{
@@ -86,13 +87,15 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		}
 	}
 
-	// create connection manager
-	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers)
-
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
 	if err != nil {
 		return nil, err
+	}
+
+	bNodePeers := make([]peer.ID, len(bns))
+	for idx, n := range bns {
+		bNodePeers[idx] = n.ID
 	}
 
 	// format persistent peers
@@ -100,6 +103,15 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	rNodePeers := make([]peer.ID, len(pps))
+	for idx, n := range pps {
+		rNodePeers[idx] = n.ID
+	}
+
+	peerCfgSet := peerset.NewConfigSet(uint32(cfg.MaxPeers-cfg.MinPeers), uint32(cfg.MinPeers), bNodePeers, rNodePeers, false)
+	// create connection manager
+	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 
 	for _, pp := range pps {
 		cm.persistentPeers.Store(pp.ID, struct{}{})
@@ -173,7 +185,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	bwc := metrics.NewBandwidthCounter()
-	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers)
+	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers, cm.peerSetHandler)
 
 	host := &host{
 		ctx:             ctx,
@@ -240,20 +252,12 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
-	failed := 0
 	var allNodes []peer.AddrInfo
 	allNodes = append(allNodes, h.bootnodes...)
 	allNodes = append(allNodes, h.persistentPeers...)
 	for _, addrInfo := range allNodes {
 		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
-		err := h.connect(addrInfo)
-		if err != nil {
-			logger.Debug("failed to bootstrap to peer", "error", err)
-			failed++
-		}
-	}
-	if failed == len(allNodes) && len(allNodes) != 0 {
-		logger.Error("failed to bootstrap to any bootnode")
+		h.cm.peerSetHandler.AddToPeerSet(0, addrInfo.ID)
 	}
 }
 
@@ -323,18 +327,19 @@ func (h *host) peers() []peer.ID {
 // addReservedPeers adds the peers `addrs` to the protected peers list and connects to them
 func (h *host) addReservedPeers(addrs ...string) error {
 	for _, addr := range addrs {
-		maddr, err := ma.NewMultiaddr(addr)
+		mAddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
 			return err
 		}
 
-		addinfo, err := peer.AddrInfoFromP2pAddr(maddr)
+		addrInfo, err := peer.AddrInfoFromP2pAddr(mAddr)
 		if err != nil {
 			return err
 		}
+		h.cm.peerSetHandler.AddReservedPeer(0, addrInfo.ID)
 
-		h.h.ConnManager().Protect(addinfo.ID, "")
-		if err := h.connect(*addinfo); err != nil {
+		h.h.ConnManager().Protect(addrInfo.ID, "")
+		if err := h.connect(*addrInfo); err != nil {
 			return err
 		}
 	}
@@ -349,7 +354,7 @@ func (h *host) removeReservedPeers(ids ...string) error {
 		if err != nil {
 			return err
 		}
-
+		h.cm.peerSetHandler.RemoveReservedPeer(0, peerID)
 		h.h.ConnManager().Unprotect(peerID, "")
 	}
 
@@ -397,4 +402,9 @@ func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 // protocols returns all protocols currently supported by the node
 func (h *host) protocols() []string {
 	return h.h.Mux().Protocols()
+}
+
+// closePeer closes connection with peer.
+func (h *host) closePeer(peer peer.ID) error { //nolint
+	return h.h.Network().ClosePeer(peer)
 }

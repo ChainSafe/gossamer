@@ -107,8 +107,5 @@ func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 	)
 
 	// connect to found peer
-	err := n.host.connect(p)
-	if err != nil {
-		n.logger.Error("Failed to connect to peer using mDNS discovery", "error", err)
-	}
+	n.host.cm.peerSetHandler.AddToPeerSet(0, p.ID)
 }

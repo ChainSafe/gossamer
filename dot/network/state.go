@@ -19,9 +19,9 @@ package network
 import (
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -52,6 +52,19 @@ type Syncer interface {
 
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {
-	HandleTransactionMessage(*TransactionMessage) (bool, error)
+	HandleTransactionMessage(peer.ID, *TransactionMessage) (bool, error)
 	TransactionsCount() int
+}
+
+// PeerSetHandler is the interface used by the connection manager to handle peerset.
+type PeerSetHandler interface {
+	ReportPeer(peer.ID, peerset.ReputationChange)
+	Incoming(int, peer.ID, uint64) (peerset.Message, error)
+	GetMessageQueue() []peerset.Message
+	AddReservedPeer(int, peer.ID)
+	AddToPeerSet(int, peer.ID)
+	RemoveReservedPeer(int, peer.ID)
+	RemoveFromPeerSet(int, peer.ID)
+	Dropped(int, peer.ID, peerset.DropReason) error
+	GetReputation(peer.ID) (int32, error)
 }

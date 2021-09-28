@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ethereum/go-ethereum/common/math"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -32,7 +34,21 @@ var (
 	maxHandshakeSize           = reflect.TypeOf(BlockAnnounceHandshake{}).Size()
 )
 
-const handshakeTimeout = time.Second * 10
+const (
+	handshakeTimeout = time.Second * 10
+
+	// reputation change when fail to decode message
+	badMessageValue  = -(1 << 12)
+	badMessageReason = "Bad message"
+
+	// reputation change when a peer is on unsupported protocol version.
+	badProtocolValue  = math.MinInt32
+	badProtocolReason = "Unsupported protocol"
+
+	// reputation change when a peer doesn't respond in time to our messages.
+	timeOutValue  = -(1 << 10)
+	timeOutReason = "Request timeout"
+)
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
@@ -252,12 +268,23 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			}
 		}
 
+		// report peer if we get duplicate gossip message.
+		s.host.cm.peerSetHandler.ReportPeer(peer, peerset.ReputationChange{
+			Value:  duplicateGossipValue,
+			Reason: duplicateGossipReason,
+		})
+
 		return nil
 	}
 }
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
+		s.host.cm.peerSetHandler.ReportPeer(peer, peerset.ReputationChange{
+			Value:  badProtocolValue,
+			Reason: badProtocolReason,
+		})
+
 		return
 	}
 
@@ -294,6 +321,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		var hs Handshake
 		select {
 		case <-hsTimer.C:
+			s.host.cm.peerSetHandler.ReportPeer(peer, peerset.ReputationChange{
+				Value:  timeOutValue,
+				Reason: timeOutReason,
+			})
+
 			logger.Trace("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
 			_ = stream.Close()
 			info.outboundHandshakeData.Delete(peer)
@@ -348,6 +380,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	if err != nil {
 		logger.Trace("failed to send message to peer", "peer", peer, "error", err)
 	}
+
+	s.host.cm.peerSetHandler.ReportPeer(peer, peerset.ReputationChange{
+		Value:  gossipSuccessValue,
+		Reason: gossipSuccessReason,
+	})
 }
 
 // broadcastExcluding sends a message to each connected peer except the given peer,
@@ -393,6 +430,11 @@ func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDe
 
 		hs, err := decoder(msgBytes[:tot])
 		if err != nil {
+			s.host.cm.peerSetHandler.ReportPeer(stream.Conn().RemotePeer(), peerset.ReputationChange{
+				Value:  badMessageValue,
+				Reason: badMessageReason,
+			})
+
 			hsC <- &handshakeReader{hs: nil, err: err}
 			return
 		}

@@ -35,6 +35,7 @@ type Service struct {
 	blockState     BlockState
 	chainSync      ChainSync
 	chainProcessor ChainProcessor
+	network        Network
 }
 
 // Config is the configuration for the sync Service.
@@ -94,6 +95,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:     cfg.BlockState,
 		chainSync:      chainSync,
 		chainProcessor: chainProcessor,
+		network:        cfg.Network,
 	}, nil
 }
 

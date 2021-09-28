@@ -26,6 +26,7 @@ import (
 	"time"
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -49,6 +50,14 @@ const (
 	maxMessageSize = 1024 * 63 // 63kb for now
 
 	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
+
+	gossipSuccessValue  = 1 << 4
+	gossipSuccessReason = "SuccessFull gossip"
+
+	// duplicateGossipValue and duplicateGossipReason reputation change value and message when a peer
+	// sends us a gossip message that we already knew about.
+	duplicateGossipValue  = -(1 << 2)
+	duplicateGossipReason = "Duplicate gossip"
 )
 
 var (
@@ -239,12 +248,13 @@ func (s *Service) Start() error {
 		txnBatchHandler,
 	)
 	if err != nil {
-		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+		logger.Warn("failed to register notifications protocol", "sub-protocol", transactionsID, "error", err)
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
 	s.host.h.Network().SetConnHandler(s.handleConn)
 
+	go s.processMessageQueue()
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
 		logger.Info("Started listening", "address", addr)
@@ -373,8 +383,16 @@ func (s *Service) sentBlockIntervalTelemetry() {
 	}
 }
 
-func (*Service) handleConn(conn libp2pnetwork.Conn) {
-	// TODO: update this for scoring (#1399)
+func (s *Service) handleConn(conn libp2pnetwork.Conn) {
+	// TODO: setID currently is 0 change when we have multiple set.
+	m, err := s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer(), 0)
+	if err != nil {
+		logger.Error("failed to handle incoming connection request from", "peerID", conn.RemotePeer())
+	}
+
+	if m.GetStatus() == peerset.Reject {
+		_ = conn.Close()
+	}
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -742,4 +760,35 @@ func (*Service) StartingBlock() int64 {
 // IsSynced returns whether we are synced (no longer in bootstrap mode) or not
 func (s *Service) IsSynced() bool {
 	return s.syncer.IsSynced()
+}
+
+// ReportPeer reports peerStatus for the reputation change
+func (s *Service) ReportPeer(p peer.ID, change peerset.ReputationChange) {
+	s.host.cm.peerSetHandler.ReportPeer(p, change)
+}
+
+func (s *Service) processMessageQueue() {
+	ticker := time.NewTicker(time.Millisecond * 200)
+	for range ticker.C {
+		mq := s.host.cm.peerSetHandler.GetMessageQueue()
+		for _, m := range mq {
+			peerID := m.GetPeerID()
+			switch m.GetStatus() {
+			case peerset.Connect:
+				err := s.host.connect(s.host.h.Peerstore().PeerInfo(peerID))
+				if err != nil {
+					logger.Error("failed to open connection with ", "peer", peerID, "error", err)
+					continue
+				}
+				logger.Info("Connected to ", "peer", peerID)
+			case peerset.Drop:
+				err := s.host.closePeer(peerID)
+				if err != nil {
+					logger.Error("failed to close connection for ", "peer", peerID, "error", err)
+					continue
+				}
+				logger.Info("Connection dropped successfully ", "peer", peerID)
+			}
+		}
+	}
 }

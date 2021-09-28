@@ -21,18 +21,14 @@ import (
 	"crypto/rand"
 	"math/big"
 	"sync"
-	"time"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-
 	ma "github.com/multiformats/go-multiaddr"
-)
 
-var (
-	maxRetries = 12
+	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
 // ConnManager implements connmgr.ConnManager
@@ -51,15 +47,23 @@ type ConnManager struct {
 
 	// persistentPeers contains peers we should remain connected to.
 	persistentPeers *sync.Map // map[peer.ID]struct{}
+
+	peerSetHandler PeerSetHandler
 }
 
-func newConnManager(min, max int) *ConnManager {
+func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) *ConnManager {
+	psh, err := peerset.NewPeerSetHandler(peerSetCfg)
+	if err != nil {
+		return nil
+	}
+
 	return &ConnManager{
 		min:             min,
 		max:             max,
 		closeHandlerMap: make(map[protocol.ID]func(peerID peer.ID)),
 		protectedPeers:  new(sync.Map),
 		persistentPeers: new(sync.Map),
+		peerSetHandler:  psh,
 	}
 }
 
@@ -195,53 +199,6 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	if cm.disconnectHandler != nil {
 		cm.disconnectHandler(c.RemotePeer())
 	}
-
-	if !cm.isPersistent(c.RemotePeer()) {
-		return
-	}
-
-	addrs := cm.host.h.Peerstore().Addrs(c.RemotePeer())
-	info := peer.AddrInfo{
-		ID:    c.RemotePeer(),
-		Addrs: addrs,
-	}
-
-	count := 0
-	retry := func() bool {
-		err := cm.host.connect(info)
-		if err != nil {
-			logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
-			return false
-		}
-
-		count++
-		if count > maxRetries {
-			return true
-		}
-		return true
-	}
-
-	go func() {
-		if retry() {
-			return
-		}
-
-		retryTimer := time.NewTicker(time.Minute)
-		defer retryTimer.Stop()
-		for {
-			select {
-			case <-cm.host.ctx.Done():
-				return
-			case <-retryTimer.C:
-				if retry() {
-					return
-				}
-			}
-		}
-	}()
-
-	// TODO: if number of peers falls below the min desired peer count,
-	// we should try to connect to previously discovered peers (#1852)
 }
 
 // OpenedStream is called when a stream opened

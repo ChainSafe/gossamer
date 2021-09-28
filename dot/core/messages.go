@@ -18,14 +18,17 @@ package core
 
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
 // returns boolean for transaction propagation, true - transactions should be propagated
-func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (bool, error) {
+func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.TransactionMessage) (bool, error) {
 	logger.Debug("received TransactionMessage")
 
 	if !s.net.IsSynced() {
@@ -64,6 +67,10 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 			val, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
+				s.net.ReportPeer(peerID, peerset.ReputationChange{
+					Value:  state.BadTransactionValue,
+					Reason: state.BadTransactionReason,
+				})
 				logger.Debug("failed to validate transaction", "err", err)
 				return nil
 			}
@@ -87,6 +94,11 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 			return false, err
 		}
 	}
+
+	s.net.ReportPeer(peerID, peerset.ReputationChange{
+		Value:  state.GoodTransactionValue,
+		Reason: state.GoodTransactionReason,
+	})
 
 	msg.Extrinsics = toPropagate
 	return len(msg.Extrinsics) > 0, nil

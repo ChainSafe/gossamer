@@ -20,7 +20,10 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -80,6 +83,7 @@ type TransactionState interface {
 type Network interface {
 	GossipMessage(network.NotificationsMessage)
 	IsSynced() bool
+	ReportPeer(p peer.ID, change peerset.ReputationChange)
 }
 
 // EpochState is the interface for state.EpochState

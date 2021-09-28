@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -84,7 +83,6 @@ type BabeVerifier interface {
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
 	VerifyBlockJustification(common.Hash, []byte) error
-	//ReportPeer()
 }
 
 // BlockImportHandler is the interface for the handler of newly imported blocks

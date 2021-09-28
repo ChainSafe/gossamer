@@ -6,6 +6,19 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+const (
+
+	// GoodTransactionValue is the reputation change value for good transaction
+	GoodTransactionValue = (1 << 7)
+	// GoodTransactionReason is the reason for reputation change value for good transaction
+	GoodTransactionReason = "Good Transaction"
+
+	// BadTransactionValue is reputation change when transaction import was not performed
+	BadTransactionValue = -(1 << 12)
+	// BadTransactionReason when transaction import was not performed
+	BadTransactionReason = "Bad Transaction"
+)
+
 // TransactionState represents the queue of transactions
 type TransactionState struct {
 	queue *transaction.PriorityQueue

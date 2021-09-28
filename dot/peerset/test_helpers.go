@@ -21,27 +21,27 @@ var (
 	peer2 = peer.ID("testPeer2")
 )
 
-func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.ID, reservedOnly bool) *PeerSet {
-	con := &config{
-		sets: []*SetConfig{
+func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.ID) *Handler {
+	con := &ConfigSet{
+		Set: []*config{
 			{
 				inPeers:       in,
 				outPeers:      out,
 				bootNodes:     bootNode,
 				reservedNodes: reservedPeer,
-				reservedOnly:  reservedOnly,
+				reservedOnly:  false,
 			},
 		},
 	}
 
-	ps, err := fromConfig(con)
+	handler, err := NewPeerSetHandler(con)
 	require.NoError(t, err)
 
-	return ps
+	return handler
 }
 
-func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState {
-	state, err := NewPeerState([]*SetConfig{
+func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState { // nolint
+	state, err := NewPeerState([]*config{
 		{
 			inPeers:  maxIn,
 			outPeers: maxOut,
