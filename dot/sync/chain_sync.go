@@ -493,7 +493,7 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 	case bootstrap:
 		cs.handler = newBootstrapSyncer(cs.blockState)
 	case tip:
-		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.readyBlocks, cs.workerState)
+		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.readyBlocks)
 	}
 
 	cs.state = mode

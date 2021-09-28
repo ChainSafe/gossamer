@@ -40,7 +40,7 @@ func newTestTipSyncer(t *testing.T) *tipSyncer {
 
 	readyBlocks := newBlockQueue(maxResponseSize)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
-	return newTipSyncer(bs, pendingBlocks, readyBlocks, newWorkerState())
+	return newTipSyncer(bs, pendingBlocks, readyBlocks)
 }
 
 func TestTipSyncer_handleNewPeerState(t *testing.T) {

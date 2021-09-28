@@ -31,15 +31,13 @@ type tipSyncer struct {
 	blockState    BlockState
 	pendingBlocks DisjointBlockSet
 	readyBlocks   *blockQueue
-	workerState   *workerState
 }
 
-func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue, workerState *workerState) *tipSyncer {
+func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue) *tipSyncer {
 	return &tipSyncer{
 		blockState:    blockState,
 		pendingBlocks: pendingBlocks,
 		readyBlocks:   readyBlocks,
-		workerState:   workerState,
 	}
 }
 
