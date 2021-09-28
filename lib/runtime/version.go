@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	newScale "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Version represents the data returned by runtime call core_version
@@ -31,7 +32,7 @@ type Version interface {
 	AuthoringVersion() uint32
 	SpecVersion() uint32
 	ImplVersion() uint32
-	APIItems() []*APIItem
+	APIItems() []APIItem
 	TransactionVersion() uint32
 	Encode() ([]byte, error)
 }
@@ -49,11 +50,11 @@ type LegacyVersionData struct {
 	authoringVersion uint32
 	specVersion      uint32
 	implVersion      uint32
-	apiItems         []*APIItem
+	apiItems         []APIItem
 }
 
 // NewLegacyVersionData returns a new LegacyVersionData
-func NewLegacyVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []*APIItem) *LegacyVersionData {
+func NewLegacyVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []APIItem) *LegacyVersionData {
 	return &LegacyVersionData{
 		specName:         specName,
 		implName:         implName,
@@ -90,7 +91,7 @@ func (v *LegacyVersionData) ImplVersion() uint32 {
 }
 
 // APIItems returns the API items
-func (v *LegacyVersionData) APIItems() []*APIItem {
+func (v *LegacyVersionData) APIItems() []APIItem {
 	return v.apiItems
 }
 
@@ -101,7 +102,7 @@ func (v *LegacyVersionData) TransactionVersion() uint32 {
 
 // Encode returns the SCALE encoding of the Version
 func (v *LegacyVersionData) Encode() ([]byte, error) {
-	info := &struct {
+	info := struct {
 		SpecName         []byte
 		ImplName         []byte
 		AuthoringVersion uint32
@@ -115,7 +116,7 @@ func (v *LegacyVersionData) Encode() ([]byte, error) {
 		ImplVersion:      v.implVersion,
 	}
 
-	enc, err := scale.Encode(info)
+	enc, err := newScale.Marshal(info)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +186,7 @@ func (v *LegacyVersionData) Decode(in []byte) error {
 			return err
 		}
 
-		v.apiItems = append(v.apiItems, &APIItem{
+		v.apiItems = append(v.apiItems, APIItem{
 			Name: name,
 			Ver:  version,
 		})
@@ -201,12 +202,12 @@ type VersionData struct {
 	authoringVersion   uint32
 	specVersion        uint32
 	implVersion        uint32
-	apiItems           []*APIItem
+	apiItems           []APIItem
 	transactionVersion uint32
 }
 
 // NewVersionData returns a new VersionData
-func NewVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []*APIItem, transactionVersion uint32) *VersionData {
+func NewVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []APIItem, transactionVersion uint32) *VersionData {
 	return &VersionData{
 		specName:           specName,
 		implName:           implName,
@@ -244,7 +245,7 @@ func (v *VersionData) ImplVersion() uint32 {
 }
 
 // APIItems returns the API items
-func (v *VersionData) APIItems() []*APIItem {
+func (v *VersionData) APIItems() []APIItem {
 	return v.apiItems
 }
 
@@ -345,7 +346,7 @@ func (v *VersionData) Decode(in []byte) error {
 			return err
 		}
 
-		v.apiItems = append(v.apiItems, &APIItem{
+		v.apiItems = append(v.apiItems, APIItem{
 			Name: name,
 			Ver:  version,
 		})
