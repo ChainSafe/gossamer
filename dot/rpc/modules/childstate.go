@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package modules
 
 import (
@@ -53,33 +69,10 @@ func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[
 	keys := trie.GetKeysWithPrefix(req.Prefix)
 	hexKeys := make([]string, len(keys))
 	for idx, k := range keys {
-		hex := common.BytesToHex(k)
-		hexKeys[idx] = hex
+		hexKeys[idx] = common.BytesToHex(k)
 	}
 
 	*res = hexKeys
-	return nil
-}
-
-// GetStorageHash returns the hash of a child storage entry
-func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetChildStorageRequest, res *string) error {
-	if req.Hash == common.EmptyHash {
-		req.Hash = cs.blockAPI.BestBlockHash()
-	}
-	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&req.Hash)
-	if err != nil {
-		return err
-	}
-
-	item, err := cs.storageAPI.GetStorageFromChild(stateRoot, req.KeyChild, req.EntryKey)
-	if err != nil {
-		return err
-	}
-
-	if len(item) > 0 {
-		*res = common.BytesToHash(item).String()
-	}
-
 	return nil
 }
 

@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package modules
 
 import (
@@ -50,65 +66,6 @@ func TestChildStateGetKeys(t *testing.T) {
 		require.Contains(t, []string{
 			":child_first", ":child_second",
 		}, string(b))
-	}
-}
-
-func TestChildStateGetStorageHash(t *testing.T) {
-	mod, blockHash := setupChildStateStorage(t)
-
-	tests := []struct {
-		expect   string
-		err      error
-		hash     common.Hash
-		keyChild []byte
-		entry    []byte
-	}{
-		{
-			err:      nil,
-			expect:   common.BytesToHash([]byte(":child_first_value")).String(),
-			hash:     common.EmptyHash,
-			entry:    []byte(":child_first"),
-			keyChild: []byte(":child_storage_key"),
-		},
-		{
-			err:      nil,
-			expect:   common.BytesToHash([]byte(":child_second_value")).String(),
-			hash:     blockHash,
-			entry:    []byte(":child_second"),
-			keyChild: []byte(":child_storage_key"),
-		},
-		{
-			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
-			hash:     blockHash,
-			entry:    []byte(":child_second"),
-			keyChild: []byte(":not_exist"),
-		},
-		{
-			err:  chaindb.ErrKeyNotFound,
-			hash: common.BytesToHash([]byte("invalid block hash")),
-		},
-	}
-
-	for _, test := range tests {
-		var req GetChildStorageRequest
-		var res string
-
-		req.Hash = test.hash
-		req.EntryKey = test.entry
-		req.KeyChild = test.keyChild
-
-		err := mod.GetStorageHash(nil, &req, &res)
-
-		if test.err != nil {
-			require.Error(t, err)
-			require.Equal(t, err, test.err)
-		} else {
-			require.NoError(t, err)
-		}
-
-		if test.expect != "" {
-			require.Equal(t, test.expect, res)
-		}
 	}
 }
 
