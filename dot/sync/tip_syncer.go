@@ -22,7 +22,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
-	//"github.com/libp2p/go-libp2p-core/mux"
 )
 
 var _ workHandler = &tipSyncer{}
@@ -68,7 +67,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		return nil, nil
 	}
 
-	if errors.Is(res.err.err, errUnknownParent) /*|| errors.Is(res.err.err, mux.ErrReset)*/ {
+	if errors.Is(res.err.err, errUnknownParent) {
 		// handleTick will handle the errUnknownParent case
 		return nil, nil
 	}
