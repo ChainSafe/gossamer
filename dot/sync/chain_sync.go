@@ -665,7 +665,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	}
 
 	// perform some pre-validation of response, error if failure
-	if err := cs.validateResponse(who, req, resp); err != nil {
+	if err := cs.validateResponse(req, resp); err != nil {
 		return &workerError{
 			err: err,
 			who: who,
@@ -733,7 +733,7 @@ func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.I
 // 	- the response is not empty
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(who peer.ID, req *network.BlockRequestMessage, resp *network.BlockResponseMessage) error {
+func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *network.BlockResponseMessage) error {
 	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}
