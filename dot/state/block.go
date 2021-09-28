@@ -119,7 +119,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	if err := bs.SetBlockBody(header.Hash(), types.NewBodyExtrinsics([]types.Extrinsic{})); err != nil {
+	if err := bs.SetBlockBody(header.Hash(), types.NewBody([]types.Extrinsic{})); err != nil {
 		return nil, err
 	}
 
@@ -349,17 +349,17 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 }
 
 // GetBlockBody will return Body for a given hash
-func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.BodyExtrinsics, error) {
+func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 	data, err := bs.db.Get(blockBodyKey(hash))
 	if err != nil {
 		return nil, err
 	}
 
-	return types.NewBodyExtrinsicsFromBytes(data)
+	return types.NewBodyFromBytes(data)
 }
 
 // SetBlockBody will add a block body to the db
-func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.BodyExtrinsics) error {
+func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	optionalBody, err := body.AsOptional()
 	if err != nil {
 		return err

@@ -388,7 +388,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 			time.Sleep(time.Millisecond * 10)
 			block := &types.Block{
 				Header: *h,
-				Body:   types.BodyExtrinsics{},
+				Body:   types.Body{},
 			}
 			gs.blockState.(*state.BlockState).AddBlock(block)
 		}

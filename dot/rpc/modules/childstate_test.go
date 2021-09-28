@@ -101,7 +101,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 			Number:     big.NewInt(0).Add(big.NewInt(1), bb.Header.Number),
 			StateRoot:  stateRoot,
 		},
-		Body: types.BodyExtrinsics{},
+		Body: types.Body{},
 	}
 
 	err = st.Block.AddBlock(b)

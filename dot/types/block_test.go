@@ -32,7 +32,7 @@ func TestEmptyBlock(t *testing.T) {
 	isEmpty := block.Empty()
 	require.True(t, isEmpty)
 
-	block = NewBlock(*NewEmptyHeader(), BodyExtrinsics{})
+	block = NewBlock(*NewEmptyHeader(), Body{})
 	isEmpty = block.Empty()
 	require.True(t, isEmpty)
 
@@ -48,11 +48,11 @@ func TestEmptyBlock(t *testing.T) {
 	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigest())
 	require.NoError(t, err)
 
-	block = NewBlock(*header, BodyExtrinsics{})
+	block = NewBlock(*header, Body{})
 	isEmpty = block.Empty()
 	require.False(t, isEmpty)
 
-	block = NewBlock(*NewEmptyHeader(), *NewBodyExtrinsics([]Extrinsic{[]byte{4, 1}}))
+	block = NewBlock(*NewEmptyHeader(), *NewBody([]Extrinsic{[]byte{4, 1}}))
 	isEmpty = block.Empty()
 	require.False(t, isEmpty)
 }
@@ -73,14 +73,14 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigest())
 	require.NoError(t, err)
 
-	block := NewBlock(*header, *NewBodyExtrinsics([]Extrinsic{[]byte{4, 1}}))
+	block := NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
 
 	enc, err := scale.Marshal(block)
 	require.NoError(t, err)
 
 	require.Equal(t, expected, enc)
 
-	dec := NewBlock(*NewEmptyHeader(), *new(BodyExtrinsics))
+	dec := NewBlock(*NewEmptyHeader(), *new(Body))
 	err = scale.Unmarshal(enc, &dec)
 	require.NoError(t, err)
 	if dec.Header.Number != nil {
@@ -91,7 +91,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 
 func TestDeepCopyBlock(t *testing.T) {
 	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 39, 71, 171, 124, 13, 195, 139, 127, 42, 251, 168, 43, 213, 226, 214, 172, 239, 140, 49, 224, 152, 0, 246, 96, 183, 94, 200, 74, 112, 5, 9, 159, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
-	block := NewBlock(*NewEmptyHeader(), *new(BodyExtrinsics))
+	block := NewBlock(*NewEmptyHeader(), *new(Body))
 
 	err := scale.Unmarshal(data, &block)
 	if err != nil {
@@ -108,14 +108,14 @@ func TestMustEncodeBlock(t *testing.T) {
 	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
 	require.NoError(t, err)
 
-	b1 := NewBlock(*h1, *NewBodyExtrinsics([]Extrinsic{[]byte{4, 1}}))
+	b1 := NewBlock(*h1, *NewBody([]Extrinsic{[]byte{4, 1}}))
 	enc, err := b1.Encode()
 	require.NoError(t, err)
 
 	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
 	require.NoError(t, err)
 
-	b2 := NewBlock(*h2, *NewBodyExtrinsics([]Extrinsic{[]byte{0xa, 0xb}}))
+	b2 := NewBlock(*h2, *NewBody([]Extrinsic{[]byte{0xa, 0xb}}))
 	enc2, err := b2.Encode()
 	require.NoError(t, err)
 

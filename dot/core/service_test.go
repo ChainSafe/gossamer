@@ -64,7 +64,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
 				Digest:     types.NewDigest(),
 			},
-			Body: types.BodyExtrinsics{},
+			Body: types.Body{},
 		}
 
 		previousHash = block.Header.Hash()
@@ -127,7 +127,7 @@ func TestAnnounceBlock(t *testing.T) {
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},
-		Body: *types.NewBodyExtrinsics([]types.Extrinsic{}),
+		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
 	expected := &network.BlockAnnounceMessage{
@@ -311,7 +311,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
 			Digest:     digest,
 		},
-		Body: types.BodyExtrinsics([]types.Extrinsic{tx}),
+		Body: types.Body([]types.Extrinsic{tx}),
 	}
 
 	s.blockState.StoreRuntime(block.Header.Hash(), rt)
@@ -375,7 +375,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	}
 
 	err := s.maintainTransactionPool(&types.Block{
-		Body: *types.NewBodyExtrinsics([]types.Extrinsic{}),
+		Body: *types.NewBody([]types.Extrinsic{}),
 	})
 	require.NoError(t, err)
 
@@ -421,7 +421,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	}
 
 	err := s.maintainTransactionPool(&types.Block{
-		Body: types.BodyExtrinsics([]types.Extrinsic{txs[0].Extrinsic}),
+		Body: types.Body([]types.Extrinsic{txs[0].Extrinsic}),
 	})
 	require.NoError(t, err)
 
@@ -504,7 +504,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	body1 := types.NewBodyExtrinsics([]types.Extrinsic{[]byte("Old Runtime")})
+	body1 := types.NewBody([]types.Extrinsic{[]byte("Old Runtime")})
 	newBlock1 := &types.Block{
 		Header: types.Header{
 			ParentHash: hash,
@@ -513,7 +513,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 		Body: *body1,
 	}
 
-	body2 := types.NewBodyExtrinsics([]types.Extrinsic{[]byte("Updated Runtime")})
+	body2 := types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")})
 	require.NoError(t, err)
 
 	newBlockRTUpdate := &types.Block{
@@ -597,7 +597,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	codeHashBefore := parentRt.GetCodeHash()
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
 
-	body := types.NewBodyExtrinsics([]types.Extrinsic{[]byte("Updated Runtime")})
+	body := types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")})
 	newBlock := &types.Block{
 		Header: types.Header{
 			ParentHash: blockHash,
@@ -647,7 +647,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 
 	testBlock := &types.Block{
 		Header: *header,
-		Body:   *types.NewBodyExtrinsics([]types.Extrinsic{}),
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -677,7 +677,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 
 	testBlock := &types.Block{
 		Header: *header,
-		Body:   *types.NewBodyExtrinsics([]types.Extrinsic{}),
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -702,7 +702,7 @@ func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 
 	testBlock := &types.Block{
 		Header: *header,
-		Body:   *types.NewBodyExtrinsics([]types.Extrinsic{}),
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -787,7 +787,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 
 	testBlock := &types.Block{
 		Header: *header,
-		Body:   *types.NewBodyExtrinsics([]types.Extrinsic{}),
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)

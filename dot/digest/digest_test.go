@@ -58,7 +58,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
 				Digest:     digest,
 			},
-			Body: types.BodyExtrinsics{},
+			Body: types.Body{},
 		}
 
 		previousHash = block.Header.Hash()

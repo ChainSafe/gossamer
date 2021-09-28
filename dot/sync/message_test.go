@@ -26,7 +26,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 				StateRoot:  trie.EmptyHash,
 				Digest:     types.NewDigest(),
 			},
-			Body: types.BodyExtrinsics{},
+			Body: types.Body{},
 		}
 
 		previousHash = block.Header.Hash()

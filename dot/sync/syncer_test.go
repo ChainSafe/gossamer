@@ -158,7 +158,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 	require.NoError(t, err)
 
 	exts := []types.Extrinsic{ext}
-	body := types.NewBodyExtrinsics(exts)
+	body := types.NewBody(exts)
 	bd := &types.BlockData{
 		Body: body,
 	}
@@ -264,7 +264,7 @@ func TestSyncer_HandleJustification(t *testing.T) {
 
 	err = syncer.blockState.AddBlock(&types.Block{
 		Header: *header,
-		Body:   types.BodyExtrinsics{},
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 

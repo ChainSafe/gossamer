@@ -180,15 +180,15 @@ func (_m *MockBlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 }
 
 // GetBlockBody provides a mock function with given fields: hash
-func (_m *MockBlockState) GetBlockBody(hash common.Hash) (*types.BodyExtrinsics, error) {
+func (_m *MockBlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 	ret := _m.Called(hash)
 
-	var r0 *types.BodyExtrinsics
-	if rf, ok := ret.Get(0).(func(common.Hash) *types.BodyExtrinsics); ok {
+	var r0 *types.Body
+	if rf, ok := ret.Get(0).(func(common.Hash) *types.Body); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.BodyExtrinsics)
+			r0 = ret.Get(0).(*types.Body)
 		}
 	}
 

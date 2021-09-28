@@ -312,7 +312,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
 		},
-		Body: types.BodyExtrinsics{},
+		Body: types.Body{},
 	})
 	require.NoError(t, err)
 

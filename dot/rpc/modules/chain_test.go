@@ -362,7 +362,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 	blockHash0 := header0.Hash()
 	block0 := &types.Block{
 		Header: *header0,
-		Body:   *types.NewBodyExtrinsics([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
 	}
 
 	err := bs.AddBlock(block0)
@@ -385,7 +385,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 
 	block1 := &types.Block{
 		Header: *header1,
-		Body:   *types.NewBodyExtrinsics([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
 	}
 
 	// Add the block1 to the DB

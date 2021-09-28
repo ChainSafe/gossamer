@@ -111,7 +111,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	}
 
 	//block := types.NewEmptyBlock()
-	block := types.NewBlock(*types.NewEmptyHeader(), *new(types.BodyExtrinsics))
+	block := types.NewBlock(*types.NewEmptyHeader(), *new(types.Body))
 	block.Header.Number = big.NewInt(1)
 
 	go bl.Listen()
@@ -213,7 +213,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	header := types.NewEmptyHeader()
 	exts := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	body := types.NewBodyExtrinsics(exts)
+	body := types.NewBody(exts)
 
 	block := &types.Block{
 		Header: *header,

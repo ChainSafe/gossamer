@@ -88,7 +88,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: *next,
-		Body:   types.BodyExtrinsics{},
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 
@@ -134,7 +134,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: *next,
-		Body:   types.BodyExtrinsics{},
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 

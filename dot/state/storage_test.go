@@ -57,7 +57,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
-	body, err := types.NewBodyExtrinsicsFromBytes([]byte{})
+	body, err := types.NewBodyFromBytes([]byte{})
 	require.NoError(t, err)
 
 	block := &types.Block{

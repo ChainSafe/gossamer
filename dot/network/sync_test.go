@@ -90,7 +90,7 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 		testHeader := types.NewEmptyHeader()
 		testHeader.Number = big.NewInt(int64(77 + i))
 
-		body := types.NewBodyExtrinsics([]types.Extrinsic{[]byte{0}})
+		body := types.NewBody([]types.Extrinsic{[]byte{0}})
 		msg.BlockData = append(msg.BlockData, &types.BlockData{
 			Header: testHeader,
 			Body:   body,
@@ -373,7 +373,7 @@ func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
 	q.responses = append(q.responses, &types.BlockData{
 		Hash:          testHeader0.Hash(),
 		Header:        testHeader0,
-		Body:          types.NewBodyExtrinsics([]types.Extrinsic{[]byte{4, 4, 2}}),
+		Body:          types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}}),
 		Receipt:       nil,
 		MessageQueue:  nil,
 		Justification: nil,
@@ -401,7 +401,7 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 			{
 				Hash:          testHeader0.Hash(),
 				Header:        testHeader0,
-				Body:          types.NewBodyExtrinsics([]types.Extrinsic{[]byte{4, 4, 2}}),
+				Body:          types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}}),
 				Receipt:       nil,
 				MessageQueue:  nil,
 				Justification: nil,

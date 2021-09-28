@@ -132,7 +132,7 @@ func TestBlockDataEncodeAndDecodeBody(t *testing.T) {
 	bd := BlockData{
 		Hash:          common.NewHash([]byte{0}),
 		Header:        nil,
-		Body:          NewBodyExtrinsics([]Extrinsic{[]byte{0xa, 0xb, 0xc, 0xd}}),
+		Body:          NewBody([]Extrinsic{[]byte{0xa, 0xb, 0xc, 0xd}}),
 		Receipt:       nil,
 		MessageQueue:  nil,
 		Justification: nil,
@@ -168,7 +168,7 @@ func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
 	bd := BlockData{
 		Hash:          hash,
 		Header:        headerVdt,
-		Body:          NewBodyExtrinsics([]Extrinsic{[]byte{0xa, 0xb, 0xc, 0xd}}),
+		Body:          NewBody([]Extrinsic{[]byte{0xa, 0xb, 0xc, 0xd}}),
 		Receipt:       &[]byte{1},
 		MessageQueue:  &[]byte{2},
 		Justification: &[]byte{3},

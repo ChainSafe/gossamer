@@ -26,21 +26,21 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// BodyExtrinsics is the extrinsics(not encoded) inside a state block.
-type BodyExtrinsics []Extrinsic
+// Body is the extrinsics(not encoded) inside a state block.
+type Body []Extrinsic
 
-// NewBodyExtrinsics returns a BodyExtrinsics from an Extrinsic array.
-func NewBodyExtrinsics(e []Extrinsic) *BodyExtrinsics {
-	body := BodyExtrinsics(e)
+// NewBody returns a BodyExtrinsics from an Extrinsic array.
+func NewBody(e []Extrinsic) *Body {
+	body := Body(e)
 	return &body
 }
 
-// NewBodyExtrinsics returns a BodyExtrinsics from a SCALE encoded byte array.
-func NewBodyExtrinsicsFromBytes(b []byte) (*BodyExtrinsics, error) {
+// NewBodyFromBytes returns a BodyExtrinsics from a SCALE encoded byte array.
+func NewBodyFromBytes(b []byte) (*Body, error) {
 	exts := [][]byte{}
 
 	if len(b) == 0 {
-		return NewBodyExtrinsics([]Extrinsic{}), nil
+		return NewBody([]Extrinsic{}), nil
 	}
 
 	err := scale.Unmarshal(b, &exts)
@@ -48,12 +48,12 @@ func NewBodyExtrinsicsFromBytes(b []byte) (*BodyExtrinsics, error) {
 		return nil, err
 	}
 
-	return NewBodyExtrinsics(BytesArrayToExtrinsics(exts)), nil
+	return NewBody(BytesArrayToExtrinsics(exts)), nil
 }
 
-// NewBodyExtrinsicsFromEncodedBytes returns a new Body from a slice of byte slices that are
+// NewBodyFromEncodedBytes returns a new Body from a slice of byte slices that are
 // SCALE encoded extrinsics
-func NewBodyExtrinsicsFromEncodedBytes(exts [][]byte) (*BodyExtrinsics, error) {
+func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
 	// A collection of same-typed values is encoded, prefixed with a compact
 	// encoding of the number of items, followed by each item's encoding
 	// concatenated in turn.
@@ -67,12 +67,12 @@ func NewBodyExtrinsicsFromEncodedBytes(exts [][]byte) (*BodyExtrinsics, error) {
 		enc = append(enc, ext...)
 	}
 
-	return NewBodyExtrinsicsFromBytes(enc)
+	return NewBodyFromBytes(enc)
 }
 
-// NewBodyExtrinsicsFromExtrinsicStrings creates a block body given an array of hex-encoded
+// NewBodyFromExtrinsicStrings creates a block body given an array of hex-encoded
 // 0x-prefixed strings.
-func NewBodyExtrinsicsFromExtrinsicStrings(ss []string) (*BodyExtrinsics, error) {
+func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 	exts := [][]byte{}
 	for _, s := range ss {
 		b, err := common.HexToBytes(s)
@@ -84,10 +84,10 @@ func NewBodyExtrinsicsFromExtrinsicStrings(ss []string) (*BodyExtrinsics, error)
 		exts = append(exts, b)
 	}
 
-	return NewBodyExtrinsics(BytesArrayToExtrinsics(exts)), nil
+	return NewBody(BytesArrayToExtrinsics(exts)), nil
 }
 
-func (b *BodyExtrinsics) AsSCALEEncodedBody() ([]byte, error) {
+func (b *Body) AsSCALEEncodedBody() ([]byte, error) {
 	encodedBody, err := scale.Marshal(ExtrinsicsArrayToBytesArray(*b))
 	if err != nil {
 		return nil, err
@@ -96,15 +96,15 @@ func (b *BodyExtrinsics) AsSCALEEncodedBody() ([]byte, error) {
 	return encodedBody, nil
 }
 
-func (b *BodyExtrinsics) DeepCopy() BodyExtrinsics {
+func (b *Body) DeepCopy() Body {
 	newExtrinsics := make([]Extrinsic, len([]Extrinsic(*b)))
 	copy(newExtrinsics, []Extrinsic(*b))
 
-	return BodyExtrinsics(newExtrinsics)
+	return Body(newExtrinsics)
 }
 
 // HasExtrinsic returns true if body contains target Extrisic
-func (b *BodyExtrinsics) HasExtrinsic(target Extrinsic) (bool, error) {
+func (b *Body) HasExtrinsic(target Extrinsic) (bool, error) {
 	exts := *b
 
 	// goes through the decreasing order due to the fact that extrinsicsToBody
@@ -132,7 +132,7 @@ func (b *BodyExtrinsics) HasExtrinsic(target Extrinsic) (bool, error) {
 }
 
 // AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
-func (b *BodyExtrinsics) AsEncodedExtrinsics() ([]Extrinsic, error) {
+func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 	decodedExts := *b
 	ret := make([][]byte, len(decodedExts))
 	var err error
@@ -148,7 +148,7 @@ func (b *BodyExtrinsics) AsEncodedExtrinsics() ([]Extrinsic, error) {
 }
 
 // AsOptional returns the Body as an optional.Body
-func (b *BodyExtrinsics) AsOptional() (*optional.Body, error) {
+func (b *Body) AsOptional() (*optional.Body, error) {
 	encodedBody, err := b.AsSCALEEncodedBody()
 	if err != nil {
 		return nil, err

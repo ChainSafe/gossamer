@@ -27,11 +27,11 @@ import (
 func TestBodyExtrinsicsToSCALEEncodedBody(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	bodyExtrinsicsBefore := NewBodyExtrinsics(exts)
+	bodyExtrinsicsBefore := NewBody(exts)
 	scaleEncodedBody, err := bodyExtrinsicsBefore.AsSCALEEncodedBody()
 	require.NoError(t, err)
 
-	bodyExtrinsicsAfter, err := NewBodyExtrinsicsFromBytes(scaleEncodedBody)
+	bodyExtrinsicsAfter, err := NewBodyFromBytes(scaleEncodedBody)
 	require.NoError(t, err)
 
 	require.Equal(t, bodyExtrinsicsBefore, bodyExtrinsicsAfter)
@@ -40,7 +40,7 @@ func TestBodyExtrinsicsToSCALEEncodedBody(t *testing.T) {
 func TestHasExtrinsics(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	bodyExtrinsics := NewBodyExtrinsics(exts)
+	bodyExtrinsics := NewBody(exts)
 
 	found, err := bodyExtrinsics.HasExtrinsic(Extrinsic{1, 2, 3})
 	require.NoError(t, err)
@@ -50,14 +50,14 @@ func TestHasExtrinsics(t *testing.T) {
 func TestBodyExtrinsicsFromEncodedBytes(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	bodyExtrinsicsBefore := NewBodyExtrinsics(exts)
+	bodyExtrinsicsBefore := NewBody(exts)
 
 	encodeExtrinsics, err := bodyExtrinsicsBefore.AsEncodedExtrinsics()
 	require.NoError(t, err)
 
 	encodedBytes := ExtrinsicsArrayToBytesArray(encodeExtrinsics)
 
-	bodyExtrinsicsAfter, err := NewBodyExtrinsicsFromEncodedBytes(encodedBytes)
+	bodyExtrinsicsAfter, err := NewBodyFromEncodedBytes(encodedBytes)
 	require.NoError(t, err)
 
 	require.Equal(t, bodyExtrinsicsBefore, bodyExtrinsicsAfter)
@@ -73,8 +73,8 @@ func TestBodyExtrinsicsFromExtrinsicStrings(t *testing.T) {
 
 	fmt.Println(extStrings)
 
-	bodyFromByteExtrinsics := NewBodyExtrinsics(exts)
-	bodyFromStringExtrinsics, err := NewBodyExtrinsicsFromExtrinsicStrings(extStrings)
+	bodyFromByteExtrinsics := NewBody(exts)
+	bodyFromStringExtrinsics, err := NewBodyFromExtrinsicStrings(extStrings)
 	require.NoError(t, err)
 
 	require.Equal(t, bodyFromByteExtrinsics, bodyFromStringExtrinsics)

@@ -35,7 +35,7 @@ type BlockState interface {
 	CompareAndSetBlockData(bd *types.BlockData) error
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	HasBlockBody(hash common.Hash) (bool, error)
-	GetBlockBody(common.Hash) (*types.BodyExtrinsics, error)
+	GetBlockBody(common.Hash) (*types.Body, error)
 	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)
 	HasHeader(hash common.Hash) (bool, error)

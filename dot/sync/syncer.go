@@ -276,7 +276,7 @@ func (s *Service) handleHeader(header *types.Header) error {
 }
 
 // handleBody handles block bodies included in BlockResponses
-func (s *Service) handleBody(body *types.BodyExtrinsics) {
+func (s *Service) handleBody(body *types.Body) {
 	for _, ext := range *body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}

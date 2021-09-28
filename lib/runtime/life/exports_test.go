@@ -187,7 +187,7 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 
 	return &types.Block{
 		Header: *res,
-		Body:   *types.NewBodyExtrinsics(types.BytesArrayToExtrinsics(exts)),
+		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 }
 
@@ -256,7 +256,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0xa35fb7f7616f5c979d48222b3d2fa7cb2331ef73954726714d91ca945cc34fd8"),
 			Digest:         digest,
 		},
-		Body: *types.NewBodyExtrinsics(types.BytesArrayToExtrinsics(exts)),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
@@ -306,7 +306,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0x9a87f6af64ef97aff2d31bebfdd59f8fe2ef6019278b634b2515a38f1c4c2420"),
 			Digest:         digest,
 		},
-		Body: *types.NewBodyExtrinsics(types.BytesArrayToExtrinsics(exts)),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, _ = instance.ExecuteBlock(block) // TODO: fix

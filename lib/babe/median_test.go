@@ -107,7 +107,7 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 				Number:     big.NewInt(int64(i)),
 				Digest:     digest,
 			},
-			Body: types.BodyExtrinsics{},
+			Body: types.Body{},
 		}
 
 		arrivalTime := previousAT.Add(duration)
@@ -176,7 +176,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 			Number:     big.NewInt(int64(1)),
 			Digest:     digest,
 		},
-		Body: types.BodyExtrinsics{},
+		Body: types.Body{},
 	}
 
 	arrivalTime := time.Now().UnixNano() - slot.duration.Nanoseconds()

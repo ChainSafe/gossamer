@@ -57,7 +57,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	a := []byte("asdf")
 	b := []byte("ghjkl")
 	c := []byte("qwerty")
-	body, err := types.NewBodyExtrinsicsFromBytes([]byte{})
+	body, err := types.NewBodyFromBytes([]byte{})
 	require.NoError(t, err)
 
 	bds := []*types.BlockData{{

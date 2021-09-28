@@ -23,11 +23,11 @@ import (
 // Block defines a state block
 type Block struct {
 	Header Header
-	Body   BodyExtrinsics
+	Body   Body
 }
 
 // NewBlock returns a new Block
-func NewBlock(header Header, body BodyExtrinsics) Block {
+func NewBlock(header Header, body Body) Block {
 	return Block{
 		Header: header,
 		Body:   body,
@@ -38,7 +38,7 @@ func NewBlock(header Header, body BodyExtrinsics) Block {
 func NewEmptyBlock() Block {
 	return Block{
 		Header: *NewEmptyHeader(),
-		Body:   BodyExtrinsics(nil),
+		Body:   Body(nil),
 	}
 }
 

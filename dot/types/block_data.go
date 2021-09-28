@@ -29,7 +29,7 @@ import (
 type BlockData struct {
 	Hash          common.Hash
 	Header        *Header
-	Body          *BodyExtrinsics
+	Body          *Body
 	Receipt       *[]byte
 	MessageQueue  *[]byte
 	Justification *[]byte

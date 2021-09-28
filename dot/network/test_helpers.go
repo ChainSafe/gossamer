@@ -73,9 +73,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 			Digest: types.NewDigest(),
 		}
 
-		// body, err := types.NewBodyExtrinsicsFromBytes([]byte{4, 4, 2})
-		// logger.Error("Failed to get extrinsics from bytes:", err)
-		body := types.NewBodyExtrinsics([]types.Extrinsic{[]byte{4, 4, 2}})
+		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
 
 		msg.BlockData = append(msg.BlockData, &types.BlockData{
 			Hash:          testHeader.Hash(),

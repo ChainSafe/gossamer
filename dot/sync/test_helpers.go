@@ -190,7 +190,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 
 	inExt := exts
 
-	var body *types.BodyExtrinsics
+	var body *types.Body
 	if ext != nil {
 		var txn *transaction.Validity
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
@@ -205,7 +205,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		require.NoError(t, err)
 
 	} else {
-		body = types.NewBodyExtrinsics(types.BytesArrayToExtrinsics(exts))
+		body = types.NewBody(types.BytesArrayToExtrinsics(exts))
 	}
 
 	// apply each inherent extrinsic
