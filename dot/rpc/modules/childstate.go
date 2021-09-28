@@ -29,7 +29,7 @@ type GetKeysRequest struct {
 	Hash   common.Hash
 }
 
-// GetKeysRequest the request to get the entry child storage hash
+// GetStorageHash the request to get the entry child storage hash
 type GetStorageHash struct {
 	KeyChild []byte
 	EntryKey []byte
