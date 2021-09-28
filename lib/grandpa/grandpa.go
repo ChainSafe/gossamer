@@ -231,7 +231,6 @@ func (s *Service) authorities() []*types.Authority {
 			Key:    &s.state.voters[i].Key,
 			Weight: s.state.voters[i].ID,
 		}
-		//ad[i] = a
 	}
 
 	return ad

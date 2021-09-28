@@ -148,13 +148,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, nil
 	}
 
-	dec := NewGrandpaMessage()
-	err := scale.Unmarshal(cm.Data, &dec)
-	if err != nil {
-		return false, err
-	}
-
-	m, err := decodeMessage(dec)
+	m, err := decodeMessage(cm)
 	if err != nil {
 		return false, err
 	}
@@ -232,7 +226,13 @@ func (s *Service) sendNeighbourMessage() {
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
-func decodeMessage(msg scale.VaryingDataType) (m GrandpaMessage, err error) {
+func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
+	msg := NewGrandpaMessage()
+	err = scale.Unmarshal(cm.Data, &msg)
+	if err != nil {
+		return nil, err
+	}
+
 	switch val := msg.Value().(type) {
 	case VoteMessage:
 		m = &val
@@ -247,7 +247,7 @@ func decodeMessage(msg scale.VaryingDataType) (m GrandpaMessage, err error) {
 	case CatchUpResponse:
 		m = &val
 	default:
-		return nil, fmt.Errorf("message type not recognised")
+		return nil, ErrInvalidMessageType
 	}
 
 	return m, nil

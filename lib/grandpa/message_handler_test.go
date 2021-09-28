@@ -81,11 +81,7 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 		Data: common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
 	}
 
-	dec := NewGrandpaMessage()
-	err := scale.Unmarshal(cm.Data, &dec)
-	require.NoError(t, err)
-
-	msg, err := decodeMessage(dec)
+	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
 	sigb := common.MustHexToBytes("0x36e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f")
@@ -128,11 +124,7 @@ func TestDecodeMessage_CommitMessage(t *testing.T) {
 	cm, err := expected.ToConsensusMessage()
 	require.NoError(t, err)
 
-	dec := NewGrandpaMessage()
-	err = scale.Unmarshal(cm.Data, &dec)
-	require.NoError(t, err)
-
-	msg, err := decodeMessage(dec)
+	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 	require.Equal(t, expected, msg)
 }
@@ -142,11 +134,7 @@ func TestDecodeMessage_NeighbourMessage(t *testing.T) {
 		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
 	}
 
-	dec := NewGrandpaMessage()
-	err := scale.Unmarshal(cm.Data, &dec)
-	require.NoError(t, err)
-
-	msg, err := decodeMessage(dec)
+	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
 	expected := &NeighbourMessage{
@@ -163,11 +151,7 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 		Data: common.MustHexToBytes("0x0311000000000000002200000000000000"),
 	}
 
-	m := NewGrandpaMessage()
-	err := scale.Unmarshal(cm.Data, &m)
-	require.NoError(t, err)
-
-	msg, err := decodeMessage(m)
+	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
 	expected := &CatchUpRequest{

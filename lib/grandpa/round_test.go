@@ -28,8 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -62,11 +60,7 @@ func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
 	cm, ok := msg.(*ConsensusMessage)
 	require.True(n.t, ok)
 
-	dec := NewGrandpaMessage()
-	err := scale.Unmarshal(cm.Data, &dec)
-	require.NoError(n.t, err)
-
-	gmsg, err := decodeMessage(dec)
+	gmsg, err := decodeMessage(cm)
 	require.NoError(n.t, err)
 
 	switch gmsg.(type) {
