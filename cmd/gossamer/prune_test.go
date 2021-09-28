@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	//"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/dgraph-io/badger/v2"
 	"github.com/stretchr/testify/require"
 )

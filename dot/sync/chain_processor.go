@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -97,7 +96,7 @@ func (s *chainProcessor) processReadyBlocks() {
 			logger.Error("ready block failed", "hash", bd.Hash, "error", err)
 
 			// depending on the error, we might want to save this block for later
-			if strings.Contains(err.Error(), "failed to get parent hash") {
+			if errors.Is(err, errFailedToGetParent) {
 				if err := s.pendingBlocks.addBlock(&types.Block{
 					Header: *bd.Header,
 					Body:   *bd.Body,
@@ -229,7 +228,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
-		return fmt.Errorf("failed to get parent hash: %w", err)
+		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
 	}
 
 	s.storageState.Lock()

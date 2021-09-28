@@ -234,8 +234,9 @@ func (s *Service) Rewind(toBlock int64) error {
 
 	s.Block.lastFinalised = header.Hash()
 
-	// TODO: this is broken, it needs to set the latest finalised header
-	// there is no reverse lookup function for best block -> best finalised before that block
+	// TODO: this is broken, it needs to set the latest finalised header after
+	// rewinding to some block number, but there is no reverse lookup function
+	// for best block -> best finalised before that block
 	err = s.Block.SetFinalisedHash(header.Hash(), 0, 0)
 	if err != nil {
 		return err

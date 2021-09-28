@@ -506,6 +506,58 @@ func TestChainSync_validateResponse(t *testing.T) {
 	err = cs.validateResponse("", req, resp)
 	require.NoError(t, err)
 	require.False(t, cs.pendingBlocks.hasBlock(hash))
+
+	req = &network.BlockRequestMessage{
+		RequestedData: network.RequestedDataJustification,
+	}
+	resp = &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Hash:          common.EmptyHash,
+				Justification: &[]byte{0},
+			},
+		},
+	}
+
+	err = cs.validateResponse("", req, resp)
+	require.NoError(t, err)
+	require.False(t, cs.pendingBlocks.hasBlock(hash))
+}
+
+func TestChainSync_validateResponse_firstBlock(t *testing.T) {
+	cs, _ := newTestChainSync(t)
+	bs := new(syncmocks.MockBlockState)
+	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
+	cs.blockState = bs
+
+	req := &network.BlockRequestMessage{
+		RequestedData: bootstrapRequestData,
+	}
+
+	header := &types.Header{
+		Number: big.NewInt(2),
+	}
+
+	resp := &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Hash: header.Hash(),
+				Header: &types.Header{
+					Number: big.NewInt(2),
+				},
+				Body:          &types.Body{},
+				Justification: &[]byte{0},
+			},
+		},
+	}
+
+	err := cs.validateResponse("", req, resp)
+	require.True(t, errors.Is(err, errUnknownParent))
+	require.True(t, cs.pendingBlocks.hasBlock(header.Hash()))
+	bd := cs.pendingBlocks.getBlock(header.Hash())
+	require.NotNil(t, bd.header)
+	require.NotNil(t, bd.body)
+	require.NotNil(t, bd.justification)
 }
 
 func TestChainSync_doSync(t *testing.T) {

@@ -56,6 +56,7 @@ var (
 	errInvalidDirection             = errors.New("direction of request does not match specified start and target")
 	errUnknownParent                = errors.New("parent of first block in block response is unknown")
 	errUnknownBlockForJustification = errors.New("received justification for unknown block")
+	errFailedToGetParent            = errors.New("failed to get parent header")
 )
 
 // ErrNilChannel is returned if a channel is nil

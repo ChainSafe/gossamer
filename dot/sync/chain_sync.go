@@ -19,9 +19,7 @@ package sync
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"strings"
 	"sync"
@@ -370,6 +368,16 @@ func (cs *chainSync) logSyncSpeed() {
 	}
 }
 
+func (cs *chainSync) ignorePeer(who peer.ID) {
+	if who == peer.ID("") {
+		return
+	}
+
+	cs.Lock()
+	cs.ignorePeers[who] = struct{}{}
+	cs.Unlock()
+}
+
 func (cs *chainSync) sync() {
 	// set to slot time
 	// TODO: make configurable
@@ -400,27 +408,19 @@ func (cs *chainSync) sync() {
 			// TODO: periodically clear out ignore list, currently is done if (ignore list >= peer list)
 			switch res.err.err {
 			case context.DeadlineExceeded:
-				if res.err.who != peer.ID("") {
-					cs.Lock()
-					cs.ignorePeers[res.err.who] = struct{}{}
-					cs.Unlock()
-				}
+				cs.ignorePeer(res.err.who)
 			case context.Canceled:
 				return
 			default:
-				// TODO: using this err requires upgrading libp2p versions
+				// TODO: using these errs in the switch requires upgrading libp2p versions
 				if strings.Contains(res.err.err.Error(), "dial backoff") || res.err.err.Error() == "protocol not supported" {
-					if res.err.who != peer.ID("") {
-						cs.Lock()
-						cs.ignorePeers[res.err.who] = struct{}{}
-						cs.Unlock()
-					}
+					cs.ignorePeer(res.err.who)
 					continue
 				}
 
-				if errors.Is(res.err.err, io.EOF) {
-					time.Sleep(time.Millisecond * 250)
-				}
+				// if errors.Is(res.err.err, io.EOF) {
+				// 	time.Sleep(time.Millisecond * 250)
+				// }
 			}
 
 			worker, err := cs.handler.handleWorkerResult(res)
@@ -748,7 +748,6 @@ func (cs *chainSync) validateResponse(who peer.ID, req *network.BlockRequestMess
 
 	for i, bd := range resp.BlockData {
 		if err = validateBlockData(req, bd); err != nil {
-			cs.ignorePeers[who] = struct{}{}
 			return err
 		}
 

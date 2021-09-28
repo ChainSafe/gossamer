@@ -203,7 +203,6 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 	batch := bs.db.NewBatch()
 	for _, hash := range subchain {
-		// TODO: set number from ancestor.Number + i ?
 		header, err := bs.GetHeader(hash)
 		if err != nil {
 			return fmt.Errorf("failed to get header in subchain: %w", err)
