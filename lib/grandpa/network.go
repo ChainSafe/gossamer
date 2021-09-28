@@ -227,7 +227,7 @@ func (s *Service) sendNeighbourMessage() {
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
 func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
-	msg := NewGrandpaMessage()
+	msg := newGrandpaMessage()
 	err = scale.Unmarshal(cm.Data, &msg)
 	if err != nil {
 		return nil, err

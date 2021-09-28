@@ -32,7 +32,7 @@ type GrandpaMessage interface { //nolint
 }
 
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
-func NewGrandpaMessage() scale.VaryingDataType {
+func newGrandpaMessage() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(VoteMessage{}, CommitMessage{}, NeighbourMessage{}, CatchUpRequest{}, CatchUpResponse{})
 }
 
@@ -72,7 +72,7 @@ func (v VoteMessage) Index() uint { return 0 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	msg := NewGrandpaMessage()
+	msg := newGrandpaMessage()
 	err := msg.Set(*v)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (m NeighbourMessage) Index() uint { return 2 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	msg := NewGrandpaMessage()
+	msg := newGrandpaMessage()
 	err := msg.Set(*m)
 	if err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func (f CommitMessage) Index() uint { return 1 }
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
 func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	msg := NewGrandpaMessage()
+	msg := newGrandpaMessage()
 	err := msg.Set(*f)
 	if err != nil {
 		return nil, err
@@ -218,7 +218,7 @@ func (r CatchUpRequest) Index() uint { return 3 }
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
 func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
-	msg := NewGrandpaMessage()
+	msg := newGrandpaMessage()
 	err := msg.Set(*r)
 	if err != nil {
 		return nil, err
@@ -275,7 +275,7 @@ func (r CatchUpResponse) Index() uint { return 4 }
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
-	msg := NewGrandpaMessage()
+	msg := newGrandpaMessage()
 	err := msg.Set(*r)
 	if err != nil {
 		return nil, err
