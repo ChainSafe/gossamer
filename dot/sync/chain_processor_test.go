@@ -29,8 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
-	"github.com/ChainSafe/chaindb"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -139,7 +137,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	for _, bd := range resp.BlockData {
 		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
-		require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
+		require.True(t, errors.Is(err, errFailedToGetParent))
 	}
 }
 
