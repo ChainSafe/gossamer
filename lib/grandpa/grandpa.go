@@ -326,10 +326,7 @@ func (s *Service) initiateRound() error {
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
-	s.tracker, err = newTracker(s.blockState, s.messageHandler)
-	if err != nil {
-		return err
-	}
+	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.tracker.start()
 	logger.Trace("started message tracker")
 	s.roundLock.Unlock()
@@ -376,13 +373,9 @@ func (s *Service) initiate() error {
 }
 
 func (s *Service) waitForFirstBlock() error {
-	ch := make(chan *types.Block)
-	id, err := s.blockState.RegisterImportedChannel(ch)
-	if err != nil {
-		return err
-	}
+	ch := s.blockState.GetImportedBlockNotifierChannel()
 
-	defer s.blockState.UnregisterImportedChannel(id)
+	defer s.blockState.FreeImportedBlockNotifierChannel(ch)
 
 	// loop until block 1
 	for {

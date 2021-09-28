@@ -32,12 +32,9 @@ var testMessageTimeout = time.Second * 3
 
 func TestImportChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
+	ch := bs.GetImportedBlockNotifierChannel()
 
-	ch := make(chan *types.Block, 3)
-	id, err := bs.RegisterImportedChannel(ch)
-	require.NoError(t, err)
-
-	defer bs.UnregisterImportedChannel(id)
+	defer bs.FreeImportedBlockNotifierChannel(ch)
 
 	AddBlocksToState(t, bs, 3)
 
@@ -48,6 +45,15 @@ func TestImportChannel(t *testing.T) {
 			t.Fatal("did not receive imported block")
 		}
 	}
+}
+
+func TestFreeImportedBlockNotifierChannel(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+	ch := bs.GetImportedBlockNotifierChannel()
+	require.Equal(t, 1, len(bs.imported))
+
+	bs.FreeImportedBlockNotifierChannel(ch)
+	require.Equal(t, 0, len(bs.imported))
 }
 
 func TestFinalizedChannel(t *testing.T) {
@@ -79,13 +85,9 @@ func TestImportChannel_Multi(t *testing.T) {
 
 	num := 5
 	chs := make([]chan *types.Block, num)
-	ids := make([]byte, num)
 
-	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.Block)
-		ids[i], err = bs.RegisterImportedChannel(chs[i])
-		require.NoError(t, err)
+		chs[i] = bs.GetImportedBlockNotifierChannel()
 	}
 
 	var wg sync.WaitGroup
@@ -93,7 +95,7 @@ func TestImportChannel_Multi(t *testing.T) {
 
 	for i, ch := range chs {
 
-		go func(i int, ch chan *types.Block) {
+		go func(i int, ch <-chan *types.Block) {
 			select {
 			case b := <-ch:
 				require.Equal(t, big.NewInt(1), b.Header.Number)
@@ -109,9 +111,6 @@ func TestImportChannel_Multi(t *testing.T) {
 	AddBlocksToState(t, bs, 1)
 	wg.Wait()
 
-	for _, id := range ids {
-		bs.UnregisterImportedChannel(id)
-	}
 }
 
 func TestFinalizedChannel_Multi(t *testing.T) {

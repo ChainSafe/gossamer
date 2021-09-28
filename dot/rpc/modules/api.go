@@ -12,11 +12,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // StorageAPI is the interface for the storage state
 type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
+	GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error)
 	GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
@@ -35,8 +37,8 @@ type BlockAPI interface {
 	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
-	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
-	UnregisterImportedChannel(id byte)
+	GetImportedBlockNotifierChannel() chan *types.Block
+	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
