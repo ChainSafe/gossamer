@@ -39,6 +39,7 @@ func (bs *BlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 	return ch
 }
 
+//nolint
 // GetFinalisedNotifierChannel function to retrieve a finalized block notifier channel
 func (bs *BlockState) GetFinalisedNotifierChannel() chan *types.FinalisationInfo {
 	bs.finalisedLock.Lock()
@@ -57,6 +58,7 @@ func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	delete(bs.imported, ch)
 }
 
+//nolint
 // FreeFinalisedNotifierChannel to free finalized notifier channel
 func (bs *BlockState) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
 	bs.finalisedLock.Lock()
