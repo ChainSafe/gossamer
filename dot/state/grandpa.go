@@ -111,7 +111,7 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoter, error
 		return nil, err
 	}
 
-	v, err := types.DecodeGrandpaVoters(r)
+	v, err := types.DecodeGrandpaVoters(enc)
 	if err != nil {
 		return nil, err
 	}

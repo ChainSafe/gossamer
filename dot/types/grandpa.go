@@ -18,12 +18,10 @@ package types
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // GrandpaAuthoritiesRaw represents a GRANDPA authority where their key is a byte array
@@ -31,25 +29,6 @@ type GrandpaAuthoritiesRaw struct {
 	Key [ed25519.PublicKeyLength]byte
 	ID  uint64
 }
-
-//// Decode will decode the Reader into a GrandpaAuthoritiesRaw
-//func (a *GrandpaAuthoritiesRaw) Decode(r io.Reader) (*GrandpaAuthoritiesRaw, error) {
-//	key, err := common.Read32Bytes(r)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	id, err := common.ReadUint64(r)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	a = new(GrandpaAuthoritiesRaw)
-//	a.Key = key
-//	a.ID = id
-//
-//	return a, nil
-//}
 
 // FromRawEd25519 sets the Authority given GrandpaAuthoritiesRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
@@ -78,6 +57,24 @@ func GrandpaAuthoritiesRawToAuthorities(adr []GrandpaAuthoritiesRaw) ([]Authorit
 	return ad, nil
 }
 
+// ScaleVoter represents a scale compatible GRANDPA voter
+type ScaleVoter struct {
+	Key [32]byte
+	ID  uint64
+}
+
+func (sv *ScaleVoter) toGrandpaVoter() (GrandpaVoter, error) {
+	key, err := ed25519.NewPublicKey(sv.Key[:])
+	if err != nil {
+		return GrandpaVoter{}, err
+	}
+	voter := GrandpaVoter{
+		Key: *key,
+		ID:  sv.ID,
+	}
+	return voter, nil
+}
+
 // GrandpaVoter represents a GRANDPA voter
 type GrandpaVoter struct {
 	Key ed25519.PublicKey
@@ -92,41 +89,6 @@ func (gv *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
 // String returns a formatted GrandpaVoter string
 func (gv *GrandpaVoter) String() string {
 	return fmt.Sprintf("[key=0x%s id=%d]", gv.PublicKeyBytes(), gv.ID)
-}
-
-// Decode will decode the Reader into a GrandpaVoter
-func (gv *GrandpaVoter) Decode(r io.Reader) error {
-	keyBytes, err := common.Read32Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	key, err := ed25519.NewPublicKey(keyBytes[:])
-	if err != nil {
-		return err
-	}
-
-	id, err := common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	gv.Key = *key
-	gv.ID = id
-	return nil
-}
-
-// Encode will encode the GrandpaVoter
-func (gv *GrandpaVoter) Encode() ([]byte, error) {
-	enc := []byte{}
-	b := gv.Key.Encode()
-	enc = append(enc, b...)
-	e, err := scale2.Marshal(gv.ID)
-	if err != nil {
-		return nil, err
-	}
-	enc = append(enc, e...)
-	return enc, nil
 }
 
 // NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities
@@ -178,42 +140,37 @@ func (v GrandpaVoters) String() string {
 
 // EncodeGrandpaVoters returns an encoded GrandpaVoters
 func EncodeGrandpaVoters(voters GrandpaVoters) ([]byte, error) {
-	enc := []byte{}
+	sv := make([]ScaleVoter, len(voters))
+	for i := range voters {
+		sv[i] = ScaleVoter{
+			Key: voters[i].Key.AsBytes(),
+			ID:  voters[i].ID,
+		}
+	}
 
-	length, err := scale2.Marshal(len(voters))
+	enc, err := scale.Marshal(sv)
 	if err != nil {
 		return nil, err
 	}
-	enc = append(enc, length...)
-	for _, val := range voters {
-		e, err := val.Encode()
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, e...)
-	}
-
 	return enc, nil
 }
 
 // DecodeGrandpaVoters returns a decoded GrandpaVoters
-func DecodeGrandpaVoters(r io.Reader) (GrandpaVoters, error) {
-	sd := &scale.Decoder{Reader: r}
-	length, err := sd.DecodeInteger()
+func DecodeGrandpaVoters(in []byte) (GrandpaVoters, error) {
+	dec := []ScaleVoter{}
+	err := scale.Unmarshal(in, &dec)
 	if err != nil {
 		return nil, err
 	}
 
-	voters := make([]GrandpaVoter, length)
-	for i := range voters {
-		voters[i] = GrandpaVoter{}
-		err = voters[i].Decode(r)
+	gv := make(GrandpaVoters, len(dec))
+	for i := range dec {
+		gv[i], err = dec[i].toGrandpaVoter()
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	return voters, nil
+	return gv, nil
 }
 
 // FinalisationInfo represents information about what block was finalised in what round and setID
