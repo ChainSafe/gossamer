@@ -41,7 +41,7 @@ func generateRand(size int) [][]byte {
 }
 
 func TestNewHasher(t *testing.T) {
-	hasher := NewHasher(false)
+	hasher := newHasher(false)
 	defer hasher.returnToPool()
 
 	_, err := hasher.hash.Write([]byte("noot"))
@@ -58,7 +58,7 @@ func TestNewHasher(t *testing.T) {
 }
 
 func TestHashLeaf(t *testing.T) {
-	hasher := NewHasher(false)
+	hasher := newHasher(false)
 	defer hasher.returnToPool()
 
 	n := &leaf{key: generateRandBytes(380), value: generateRandBytes(64)}
@@ -71,7 +71,7 @@ func TestHashLeaf(t *testing.T) {
 }
 
 func TestHashBranch(t *testing.T) {
-	hasher := NewHasher(false)
+	hasher := newHasher(false)
 	defer hasher.returnToPool()
 
 	n := &branch{key: generateRandBytes(380), value: generateRandBytes(380)}
@@ -85,7 +85,7 @@ func TestHashBranch(t *testing.T) {
 }
 
 func TestHashShort(t *testing.T) {
-	hasher := NewHasher(false)
+	hasher := newHasher(false)
 	defer hasher.returnToPool()
 
 	n := &leaf{key: generateRandBytes(2), value: generateRandBytes(3)}
