@@ -23,13 +23,13 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/sync/errgroup"
 )
 
 // Hasher is a wrapper around a hash function
-type Hasher struct {
+type hasher struct {
 	hash     hash.Hash
 	tmp      bytes.Buffer
 	parallel bool // Whether to use parallel threads when hashing
@@ -43,7 +43,7 @@ var hasherPool = sync.Pool{
 		// This allocation will be helpful for encoding keys. This is the min buffer size.
 		buf.Grow(700)
 
-		return &Hasher{
+		return &hasher{
 			tmp:  buf,
 			hash: h,
 		}
@@ -51,20 +51,20 @@ var hasherPool = sync.Pool{
 }
 
 // NewHasher create new Hasher instance
-func NewHasher(parallel bool) *Hasher {
-	h := hasherPool.Get().(*Hasher)
+func newHasher(parallel bool) *hasher {
+	h := hasherPool.Get().(*hasher)
 	h.parallel = parallel
 	return h
 }
 
-func (h *Hasher) returnToPool() {
+func (h *hasher) returnToPool() {
 	h.tmp.Reset()
 	h.hash.Reset()
 	hasherPool.Put(h)
 }
 
 // Hash encodes the node and then hashes it if its encoded length is > 32 bytes
-func (h *Hasher) Hash(n node) (res []byte, err error) {
+func (h *hasher) Hash(n node) (res []byte, err error) {
 	encNode, err := h.encode(n)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (h *Hasher) Hash(n node) (res []byte, err error) {
 // encode is the high-level function wrapping the encoding for different node types
 // encoding has the following format:
 // NodeHeader | Extra partial key length | Partial Key | Value
-func (h *Hasher) encode(n node) ([]byte, error) {
+func (h *hasher) encode(n node) ([]byte, error) {
 	switch n := n.(type) {
 	case *branch:
 		return h.encodeBranch(n)
@@ -102,7 +102,7 @@ func (h *Hasher) encode(n node) ([]byte, error) {
 }
 
 func encodeAndHash(n node) ([]byte, error) {
-	h := NewHasher(false)
+	h := newHasher(false)
 	defer h.returnToPool()
 
 	encChild, err := h.Hash(n)
@@ -110,7 +110,7 @@ func encodeAndHash(n node) ([]byte, error) {
 		return nil, err
 	}
 
-	scEncChild, err := scale.Encode(encChild)
+	scEncChild, err := scale.Marshal(encChild)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func encodeAndHash(n node) ([]byte, error) {
 }
 
 // encodeBranch encodes a branch with the encoding specified at the top of this package
-func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
+func (h *hasher) encodeBranch(b *branch) ([]byte, error) {
 	if !b.dirty && b.encoding != nil {
 		return b.encoding, nil
 	}
@@ -134,13 +134,11 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 	h.tmp.Write(common.Uint16ToBytes(b.childrenBitmap()))
 
 	if b.value != nil {
-		buffer := bytes.Buffer{}
-		se := scale.Encoder{Writer: &buffer}
-		_, err = se.Encode(b.value)
+		bytes, err := scale.Marshal(b.value)
 		if err != nil {
 			return nil, err
 		}
-		h.tmp.Write(buffer.Bytes())
+		h.tmp.Write(bytes)
 	}
 
 	if h.parallel {
@@ -188,7 +186,7 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 }
 
 // encodeLeaf encodes a leaf with the encoding specified at the top of this package
-func (h *Hasher) encodeLeaf(l *leaf) ([]byte, error) {
+func (h *hasher) encodeLeaf(l *leaf) ([]byte, error) {
 	if !l.dirty && l.encoding != nil {
 		return l.encoding, nil
 	}
@@ -203,15 +201,12 @@ func (h *Hasher) encodeLeaf(l *leaf) ([]byte, error) {
 
 	h.tmp.Write(nibblesToKeyLE(l.key))
 
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
-
-	_, err = se.Encode(l.value)
+	bytes, err := scale.Marshal(l.value)
 	if err != nil {
 		return nil, err
 	}
 
-	h.tmp.Write(buffer.Bytes())
+	h.tmp.Write(bytes)
 	l.encoding = h.tmp.Bytes()
 	return h.tmp.Bytes(), nil
 }
