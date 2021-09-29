@@ -32,24 +32,24 @@ type GrandpaAuthoritiesRaw struct {
 	ID  uint64
 }
 
-// Decode will decode the Reader into a GrandpaAuthoritiesRaw
-func (a *GrandpaAuthoritiesRaw) Decode(r io.Reader) (*GrandpaAuthoritiesRaw, error) {
-	key, err := common.Read32Bytes(r)
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := common.ReadUint64(r)
-	if err != nil {
-		return nil, err
-	}
-
-	a = new(GrandpaAuthoritiesRaw)
-	a.Key = key
-	a.ID = id
-
-	return a, nil
-}
+//// Decode will decode the Reader into a GrandpaAuthoritiesRaw
+//func (a *GrandpaAuthoritiesRaw) Decode(r io.Reader) (*GrandpaAuthoritiesRaw, error) {
+//	key, err := common.Read32Bytes(r)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	id, err := common.ReadUint64(r)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	a = new(GrandpaAuthoritiesRaw)
+//	a.Key = key
+//	a.ID = id
+//
+//	return a, nil
+//}
 
 // FromRawEd25519 sets the Authority given GrandpaAuthoritiesRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
