@@ -20,13 +20,9 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
-
-func TestNew(t *testing.T) {
-
-}
 
 func TestBodyToExtrinsics(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
@@ -89,10 +85,11 @@ func TestBody_FindEncodedExtrinsic(t *testing.T) {
 	body1, err := NewBodyFromExtrinsics([]Extrinsic{})
 	require.Nil(t, err)
 
-	decodedTarget, err := scale.Decode(target, []byte{})
+	decodedTarget := []byte{}
+	err = scale.Unmarshal(target, &decodedTarget)
 	require.Nil(t, err)
 
-	body2, err := NewBodyFromExtrinsics([]Extrinsic{decodedTarget.([]byte)})
+	body2, err := NewBodyFromExtrinsics([]Extrinsic{decodedTarget})
 	require.Nil(t, err)
 
 	tests := []struct {
