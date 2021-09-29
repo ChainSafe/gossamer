@@ -359,7 +359,7 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 
 // SetBlockBody will add a block body to the db
 func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
-	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
+	return bs.db.Put(blockBodyKey(hash), *body)
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db

@@ -22,7 +22,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -134,12 +133,6 @@ func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 	}
 
 	return BytesArrayToExtrinsics(ret), nil
-}
-
-// AsOptional returns the Body as an optional.Body
-func (b *Body) AsOptional() *optional.Body {
-	ob := optional.CoreBody([]byte(*b))
-	return optional.NewBody(true, ob)
 }
 
 // HasExtrinsic returns true if body contains target Extrisic
