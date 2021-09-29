@@ -52,10 +52,9 @@ type BlockState struct {
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
-	finalised                      map[byte]chan<- *types.FinalisationInfo
+	finalised                      map[chan *types.FinalisationInfo]struct{}
 	finalisedLock                  sync.RWMutex
 	importedLock                   sync.RWMutex
-	finalisedBytePool              *common.BytePool
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
@@ -74,7 +73,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		imported:                   make(map[chan *types.Block]struct{}),
-		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
+		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
@@ -90,7 +89,6 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
 
-	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
 
@@ -101,7 +99,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		imported:                   make(map[chan *types.Block]struct{}),
-		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
+		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
@@ -133,7 +131,6 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
 
