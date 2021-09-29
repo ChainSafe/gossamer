@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestEncodeGrandpaVote(t *testing.T) {
 	exp := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000")
 	var testVote = GrandpaVote{
@@ -25,6 +24,7 @@ func TestEncodeGrandpaVote(t *testing.T) {
 
 	dec := GrandpaVote{}
 	err = scale.Unmarshal(enc, &dec)
+	require.NoError(t, err)
 	require.Equal(t, testVote, dec)
 
 }
