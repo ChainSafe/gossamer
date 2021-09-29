@@ -385,13 +385,15 @@ func (s *Service) sentBlockIntervalTelemetry() {
 
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// TODO: setID currently is 0 change when we have multiple set.
-	m, err := s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer(), 0)
-	if err != nil {
-		logger.Error("failed to handle incoming connection request from", "peerID", conn.RemotePeer())
-	}
+	if conn.Stat().Direction.String() == "Inbound" {
+		m, err := s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer(), 0)
+		if err != nil {
+			logger.Error("failed to handle incoming connection request from", "peerID", conn.RemotePeer())
+		}
 
-	if m.GetStatus() == peerset.Reject {
-		_ = conn.Close()
+		if m.GetStatus() == peerset.Reject {
+			_ = conn.Close()
+		}
 	}
 }
 
