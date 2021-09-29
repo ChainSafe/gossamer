@@ -55,11 +55,11 @@ func (b *Block) Encode() ([]byte, error) {
 	}
 
 	// get a SCALE encoded block body
-	encodedBody, err := b.Body.AsSCALEEncodedBody()
+	encodedBody, err := scale.Marshal(b.Body)
 	if err != nil {
 		return nil, err
 	}
-	return append(enc, []byte(encodedBody)...), nil
+	return append(enc, encodedBody...), nil
 }
 
 // MustEncode returns the SCALE encoded block and panics if it fails to encode

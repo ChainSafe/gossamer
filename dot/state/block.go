@@ -360,11 +360,12 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 
 // SetBlockBody will add a block body to the db
 func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
-	optionalBody, err := body.AsOptional()
+	encodedBody, err := scale.Marshal(*body)
 	if err != nil {
 		return err
 	}
-	return bs.db.Put(blockBodyKey(hash), optionalBody.Value())
+
+	return bs.db.Put(blockBodyKey(hash), encodedBody)
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db

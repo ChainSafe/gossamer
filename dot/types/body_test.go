@@ -21,49 +21,50 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBodyExtrinsicsToSCALEEncodedBody(t *testing.T) {
+func TestBodyToSCALEEncodedBody(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	bodyExtrinsicsBefore := NewBody(exts)
-	scaleEncodedBody, err := bodyExtrinsicsBefore.AsSCALEEncodedBody()
+	bodyBefore := NewBody(exts)
+	scaleEncodedBody, err := scale.Marshal(*bodyBefore)
 	require.NoError(t, err)
 
-	bodyExtrinsicsAfter, err := NewBodyFromBytes(scaleEncodedBody)
+	bodyAfter, err := NewBodyFromBytes(scaleEncodedBody)
 	require.NoError(t, err)
 
-	require.Equal(t, bodyExtrinsicsBefore, bodyExtrinsicsAfter)
+	require.Equal(t, bodyBefore, bodyAfter)
 }
 
 func TestHasExtrinsics(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	bodyExtrinsics := NewBody(exts)
+	body := NewBody(exts)
 
-	found, err := bodyExtrinsics.HasExtrinsic(Extrinsic{1, 2, 3})
+	found, err := body.HasExtrinsic(Extrinsic{1, 2, 3})
 	require.NoError(t, err)
 	require.True(t, found)
 }
 
-func TestBodyExtrinsicsFromEncodedBytes(t *testing.T) {
+func TestBodyFromEncodedBytes(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	bodyExtrinsicsBefore := NewBody(exts)
+	bodyBefore := NewBody(exts)
 
-	encodeExtrinsics, err := bodyExtrinsicsBefore.AsEncodedExtrinsics()
+	encodeExtrinsics, err := bodyBefore.AsEncodedExtrinsics()
 	require.NoError(t, err)
 
 	encodedBytes := ExtrinsicsArrayToBytesArray(encodeExtrinsics)
 
-	bodyExtrinsicsAfter, err := NewBodyFromEncodedBytes(encodedBytes)
+	bodyAfter, err := NewBodyFromEncodedBytes(encodedBytes)
 	require.NoError(t, err)
 
-	require.Equal(t, bodyExtrinsicsBefore, bodyExtrinsicsAfter)
+	require.Equal(t, bodyBefore, bodyAfter)
 }
 
-func TestBodyExtrinsicsFromExtrinsicStrings(t *testing.T) {
+func TestBodyFromExtrinsicStrings(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 	extStrings := []string{}
 

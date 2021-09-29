@@ -22,20 +22,19 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Body is the extrinsics(not encoded) inside a state block.
 type Body []Extrinsic
 
-// NewBody returns a BodyExtrinsics from an Extrinsic array.
+// NewBody returns a Body from an Extrinsic array.
 func NewBody(e []Extrinsic) *Body {
 	body := Body(e)
 	return &body
 }
 
-// NewBodyFromBytes returns a BodyExtrinsics from a SCALE encoded byte array.
+// NewBodyFromBytes returns a Body from a SCALE encoded byte array.
 func NewBodyFromBytes(b []byte) (*Body, error) {
 	exts := [][]byte{}
 
@@ -73,7 +72,7 @@ func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
 // NewBodyFromExtrinsicStrings creates a block body given an array of hex-encoded
 // 0x-prefixed strings.
 func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
-	exts := [][]byte{}
+	exts := []Extrinsic{}
 	for _, s := range ss {
 		b, err := common.HexToBytes(s)
 		if err == common.ErrNoPrefix {
@@ -84,21 +83,19 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 		exts = append(exts, b)
 	}
 
-	return NewBody(BytesArrayToExtrinsics(exts)), nil
+	return NewBody(exts), nil
 }
 
-func (b *Body) AsSCALEEncodedBody() ([]byte, error) {
-	encodedBody, err := scale.Marshal(ExtrinsicsArrayToBytesArray(*b))
-	if err != nil {
-		return nil, err
-	}
-
-	return encodedBody, nil
-}
-
+// DeepCopy creates a new copy of the body.
 func (b *Body) DeepCopy() Body {
 	newExtrinsics := make([]Extrinsic, len([]Extrinsic(*b)))
-	copy(newExtrinsics, []Extrinsic(*b))
+
+	for _, e := range []Extrinsic(*b) {
+		temp := make([]byte, len(e))
+		copy(temp, e)
+
+		newExtrinsics = append(newExtrinsics, temp)
+	}
 
 	return Body(newExtrinsics)
 }
@@ -134,7 +131,7 @@ func (b *Body) HasExtrinsic(target Extrinsic) (bool, error) {
 // AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
 func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 	decodedExts := *b
-	ret := make([][]byte, len(decodedExts))
+	ret := make([]Extrinsic, len(decodedExts))
 	var err error
 
 	for i, ext := range decodedExts {
@@ -144,15 +141,5 @@ func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 		}
 	}
 
-	return BytesArrayToExtrinsics(ret), nil
-}
-
-// AsOptional returns the Body as an optional.Body
-func (b *Body) AsOptional() (*optional.Body, error) {
-	encodedBody, err := b.AsSCALEEncodedBody()
-	if err != nil {
-		return nil, err
-	}
-	ob := optional.CoreBody([]byte(encodedBody))
-	return optional.NewBody(true, ob), nil
+	return ret, nil
 }
