@@ -18,6 +18,7 @@ package wasmer
 
 import (
 	"bytes"
+	"encoding/binary"
 	"os"
 	"sort"
 	"testing"
@@ -60,12 +61,21 @@ func TestMain(m *testing.M) {
 func Test_ext_offchain_timestamp_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	ret, err := inst.Exec("ext_offchain_timestamp_version_1", nil)
+	ret, err := inst.Exec("rtm_ext_offchain_timestamp_version_1", nil)
 	require.NoError(t, err)
 
 	expected := time.Now().Unix()
-
 	require.GreaterOrEqual(t, expected, ret)
+}
+
+func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	enc := make([]byte, 8)
+	binary.LittleEndian.PutUint64(enc, uint64(time.Now().UnixMilli()))
+
+	_, err := inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc)
+	require.NoError(t, err)
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
