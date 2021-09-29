@@ -487,7 +487,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 		vote, err := NewVoteFromHash(leaves[1], gs.blockState)
 		require.NoError(t, err)
 
-		_, vmsg, err := gs.createSignedVoteAndVoteMessage(vote, Prevote)
+		_, vmsg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 		require.NoError(t, err)
 
 		for _, in := range ins {

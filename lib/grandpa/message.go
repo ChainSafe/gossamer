@@ -117,7 +117,7 @@ func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, erro
 	}, nil
 }
 
-// AuthData represents signature data within a CommitMessage to be paired with a Precommit
+// AuthData represents signature data within a CommitMessage to be paired with a precommit
 type AuthData struct {
 	Signature   [64]byte
 	AuthorityID ed25519.PublicKeyBytes

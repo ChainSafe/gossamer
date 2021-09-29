@@ -174,7 +174,7 @@ func TestGetDirectVotes(t *testing.T) {
 		}
 	}
 
-	directVotes := gs.getDirectVotes(Prevote)
+	directVotes := gs.getDirectVotes(prevote)
 	require.Equal(t, 2, len(directVotes))
 	require.Equal(t, uint64(5), directVotes[voteA])
 	require.Equal(t, uint64(4), directVotes[voteB])
@@ -208,11 +208,11 @@ func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
 		}
 	}
 
-	votesForA, err := gs.getVotesForBlock(voteA.Hash, Prevote)
+	votesForA, err := gs.getVotesForBlock(voteA.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(5), votesForA)
 
-	votesForB, err := gs.getVotesForBlock(voteB.Hash, Prevote)
+	votesForB, err := gs.getVotesForBlock(voteB.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), votesForB)
 }
@@ -254,16 +254,16 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 		}
 	}
 
-	votesForA, err := gs.getVotesForBlock(voteA.Hash, Prevote)
+	votesForA, err := gs.getVotesForBlock(voteA.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), votesForA)
 
 	// votesForB should be # of votes for A + # of votes for B
-	votesForB, err := gs.getVotesForBlock(voteB.Hash, Prevote)
+	votesForB, err := gs.getVotesForBlock(voteB.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(5), votesForB)
 
-	votesForC, err := gs.getVotesForBlock(voteC.Hash, Prevote)
+	votesForC, err := gs.getVotesForBlock(voteC.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), votesForC)
 }
@@ -305,12 +305,12 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 		}
 	}
 
-	votes := gs.getVotes(Prevote)
+	votes := gs.getVotes(prevote)
 	prevoted := make(map[common.Hash]uint32)
 	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
-		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, Prevote, gs.state.threshold())
+		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())
 		require.NoError(t, err)
 	}
 
@@ -361,12 +361,12 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 		}
 	}
 
-	votes := gs.getVotes(Prevote)
+	votes := gs.getVotes(prevote)
 	prevoted := make(map[common.Hash]uint32)
 	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
-		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, Prevote, gs.state.threshold())
+		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())
 		require.NoError(t, err)
 	}
 
@@ -429,12 +429,12 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 		}
 	}
 
-	votes := gs.getVotes(Prevote)
+	votes := gs.getVotes(prevote)
 	prevoted := make(map[common.Hash]uint32)
 	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
-		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, Prevote, gs.state.threshold())
+		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())
 		require.NoError(t, err)
 	}
 
@@ -478,7 +478,7 @@ func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
 		}
 	}
 
-	blocks, err := gs.getPossibleSelectedBlocks(Prevote, gs.state.threshold())
+	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(blocks))
 	require.Equal(t, voteA.Number, blocks[voteA.Hash])
@@ -521,7 +521,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 		}
 	}
 
-	blocks, err := gs.getPossibleSelectedBlocks(Prevote, gs.state.threshold())
+	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 
 	expected, err := st.Block.GetBlockHash(big.NewInt(6))
@@ -570,7 +570,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 		}
 	}
 
-	blocks, err := gs.getPossibleSelectedBlocks(Prevote, gs.state.threshold())
+	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 
 	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
@@ -619,7 +619,7 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 		}
 	}
 
-	blocks, err := gs.getPossibleSelectedBlocks(Prevote, gs.state.threshold())
+	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 	require.Equal(t, 2, len(blocks))
 }
@@ -668,7 +668,7 @@ func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
 		}
 	}
 
-	blocks, err := gs.getPossibleSelectedBlocks(Prevote, gs.state.threshold())
+	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 	require.Equal(t, 2, len(blocks))
 }

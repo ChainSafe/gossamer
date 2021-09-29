@@ -37,18 +37,18 @@ type Subround byte
 
 //nolint
 var (
-	Prevote         Subround
-	Precommit       Subround = 1
-	PrimaryProposal Subround = 2
+	prevote         Subround
+	precommit       Subround = 1
+	primaryProposal Subround = 2
 )
 
 func (s Subround) String() string {
 	switch s {
-	case Prevote:
+	case prevote:
 		return "prevote"
-	case Precommit:
+	case precommit:
 		return "precommit"
-	case PrimaryProposal:
+	case primaryProposal:
 		return "primaryProposal"
 	}
 

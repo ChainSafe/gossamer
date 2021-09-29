@@ -85,17 +85,17 @@ type GrandpaVoter struct {
 }
 
 // PublicKeyBytes returns the voter key as PublicKeyBytes
-func (v *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
-	return v.Key.AsBytes()
+func (gv *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
+	return gv.Key.AsBytes()
 }
 
 // String returns a formatted GrandpaVoter string
-func (v *GrandpaVoter) String() string {
-	return fmt.Sprintf("[key=0x%s id=%d]", v.PublicKeyBytes(), v.ID)
+func (gv *GrandpaVoter) String() string {
+	return fmt.Sprintf("[key=0x%s id=%d]", gv.PublicKeyBytes(), gv.ID)
 }
 
 // Decode will decode the Reader into a GrandpaVoter
-func (v *GrandpaVoter) Decode(r io.Reader) error {
+func (gv *GrandpaVoter) Decode(r io.Reader) error {
 	keyBytes, err := common.Read32Bytes(r)
 	if err != nil {
 		return err
@@ -111,17 +111,17 @@ func (v *GrandpaVoter) Decode(r io.Reader) error {
 		return err
 	}
 
-	v.Key = *key
-	v.ID = id
+	gv.Key = *key
+	gv.ID = id
 	return nil
 }
 
 // Encode will encode the GrandpaVoter
-func (v *GrandpaVoter) Encode() ([]byte, error) {
+func (gv *GrandpaVoter) Encode() ([]byte, error) {
 	enc := []byte{}
-	b := v.Key.Encode()
+	b := gv.Key.Encode()
 	enc = append(enc, b...)
-	e, err := scale2.Marshal(v.ID)
+	e, err := scale2.Marshal(gv.ID)
 	if err != nil {
 		return nil, err
 	}

@@ -71,7 +71,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	v.Number = 0x7777
 
 	// test precommit
-	_, vm, err := gs.createSignedVoteAndVoteMessage(v, Precommit)
+	_, vm, err := gs.createSignedVoteAndVoteMessage(v, precommit)
 	require.NoError(t, err)
 	vm.Message.Signature = [64]byte{}
 
@@ -79,7 +79,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 		Round: gs.state.round,
 		SetID: gs.state.setID,
 		Message: SignedMessage{
-			Stage:       Precommit,
+			Stage:       precommit,
 			Hash:        v.Hash,
 			Number:      v.Number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
@@ -89,7 +89,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	require.Equal(t, expected, vm)
 
 	// test prevote
-	_, vm, err = gs.createSignedVoteAndVoteMessage(v, Prevote)
+	_, vm, err = gs.createSignedVoteAndVoteMessage(v, prevote)
 	require.NoError(t, err)
 	vm.Message.Signature = [64]byte{}
 
@@ -97,7 +97,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 		Round: gs.state.round,
 		SetID: gs.state.setID,
 		Message: SignedMessage{
-			Stage:       Prevote,
+			Stage:       prevote,
 			Hash:        v.Hash,
 			Number:      v.Number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),

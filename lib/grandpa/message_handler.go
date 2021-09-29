@@ -259,7 +259,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 			AuthorityID: fm.AuthData[i].AuthorityID,
 		}
 
-		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, Precommit)
+		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
 			continue
 		}
@@ -291,7 +291,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	votes := make(map[common.Hash]uint64)
 
 	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, Prevote) //nolint
+		err := h.verifyJustification(&just, msg.Round, msg.SetID, prevote) //nolint
 		if err != nil {
 			continue
 		}
@@ -318,7 +318,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, Precommit) //nolint
+		err := h.verifyJustification(&just, msg.Round, msg.SetID, precommit) //nolint
 		if err != nil {
 			continue
 		}
@@ -441,7 +441,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 		// verify signature for each precommit
 		msg, err := scale.Marshal(FullVote{
-			Stage: Precommit,
+			Stage: precommit,
 			Vote:  just.Vote,
 			Round: fj.Round,
 			SetID: setID,
