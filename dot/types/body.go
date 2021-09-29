@@ -23,8 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Body is the encoded extrinsics inside a state block
@@ -38,7 +37,7 @@ func NewBody(b []byte) *Body {
 
 // NewBodyFromBytes returns a new Body from a slice of byte slices
 func NewBodyFromBytes(exts [][]byte) (*Body, error) {
-	enc, err := scale.Encode(exts)
+	enc, err := scale.Marshal(exts)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +48,7 @@ func NewBodyFromBytes(exts [][]byte) (*Body, error) {
 
 // NewBodyFromEncodedBytes returns a new Body from a slice of byte slices that are SCALE encoded extrinsics
 func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
-	enc, err := scale.Encode(big.NewInt(int64(len(exts))))
+	enc, err := scale.Marshal(big.NewInt(int64(len(exts))))
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +63,7 @@ func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
 
 // NewBodyFromExtrinsics creates a block body given an array of extrinsics.
 func NewBodyFromExtrinsics(exts []Extrinsic) (*Body, error) {
-	enc, err := scale.Encode(ExtrinsicsArrayToBytesArray(exts))
+	enc, err := scale.Marshal(ExtrinsicsArrayToBytesArray(exts))
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,7 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 		exts = append(exts, b)
 	}
 
-	enc, err := scale.Encode(exts)
+	enc, err := scale.Marshal(exts)
 	if err != nil {
 		return nil, err
 	}
@@ -97,18 +96,18 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 
 // AsExtrinsics decodes the body into an array of extrinsics
 func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
-	exts := [][]byte{}
+	dec := [][]byte{}
 
 	if len(*b) == 0 {
 		return []Extrinsic{}, nil
 	}
 
-	dec, err := scale.Decode(*b, exts)
+	err := scale.Unmarshal(*b, &dec)
 	if err != nil {
 		return nil, err
 	}
 
-	return BytesArrayToExtrinsics(dec.([][]byte)), nil
+	return BytesArrayToExtrinsics(dec), nil
 }
 
 // AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
@@ -119,7 +118,7 @@ func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 		return []Extrinsic{}, nil
 	}
 
-	err := scale2.Unmarshal(*b, &exts)
+	err := scale.Unmarshal(*b, &exts)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +127,7 @@ func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 	ret := make([][]byte, len(decodedExts))
 
 	for i, ext := range decodedExts {
-		ret[i], err = scale2.Marshal(ext)
+		ret[i], err = scale.Marshal(ext)
 		if err != nil {
 			return nil, err
 		}
@@ -162,7 +161,7 @@ func (b *Body) HasExtrinsic(target Extrinsic) (bool, error) {
 		}
 
 		//otherwise try to encode and compare
-		encext, err := scale.Encode(currext)
+		encext, err := scale.Marshal(currext)
 		if err != nil {
 			return false, fmt.Errorf("fail while scale encode: %w", err)
 		}
