@@ -88,7 +88,7 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 
 // DeepCopy creates a new copy of the body.
 func (b *Body) DeepCopy() Body {
-	newExtrinsics := []Extrinsic{}
+	newExtrinsics := make([]Extrinsic, 0, len([]Extrinsic(*b)))
 
 	for _, e := range []Extrinsic(*b) {
 		temp := make([]byte, len(e))
