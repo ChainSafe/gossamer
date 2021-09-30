@@ -115,11 +115,14 @@ func TestMustEncodeBlock(t *testing.T) {
 	enc, err := b1.Encode()
 	require.NoError(t, err)
 
+	exp := common.MustHexToBytes("0x01020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b")
 	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
 	require.NoError(t, err)
 	b2 := NewBlock(*h2, *NewBody([]byte{0xa, 0xb}))
 	enc2, err := b2.Encode()
 	require.NoError(t, err)
+	require.Equal(t, exp, enc2)
+
 
 	tests := []struct {
 		name string
