@@ -100,7 +100,7 @@ func (b *Body) DeepCopy() Body {
 	return Body(newExtrinsics)
 }
 
-// HasExtrinsic returns true if body contains target Extrisic
+// HasExtrinsic returns true if body contains target Extrinsic
 func (b *Body) HasExtrinsic(target Extrinsic) (bool, error) {
 	exts := *b
 

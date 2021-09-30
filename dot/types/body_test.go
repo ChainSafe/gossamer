@@ -25,9 +25,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBodyToSCALEEncodedBody(t *testing.T) {
-	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
+var exts = []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
+func TestBodyToSCALEEncodedBody(t *testing.T) {
 	bodyBefore := NewBody(exts)
 	scaleEncodedBody, err := scale.Marshal(*bodyBefore)
 	require.NoError(t, err)
@@ -39,8 +39,6 @@ func TestBodyToSCALEEncodedBody(t *testing.T) {
 }
 
 func TestHasExtrinsics(t *testing.T) {
-	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
-
 	body := NewBody(exts)
 
 	found, err := body.HasExtrinsic(Extrinsic{1, 2, 3})
@@ -49,8 +47,6 @@ func TestHasExtrinsics(t *testing.T) {
 }
 
 func TestBodyFromEncodedBytes(t *testing.T) {
-	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
-
 	bodyBefore := NewBody(exts)
 
 	encodeExtrinsics, err := bodyBefore.AsEncodedExtrinsics()
@@ -65,7 +61,6 @@ func TestBodyFromEncodedBytes(t *testing.T) {
 }
 
 func TestBodyFromExtrinsicStrings(t *testing.T) {
-	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 	extStrings := []string{}
 
 	for _, ext := range exts {

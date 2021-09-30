@@ -29,6 +29,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var sampleBlockBody = *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
@@ -93,7 +95,7 @@ func TestGetBlockByNumber(t *testing.T) {
 
 	block := &types.Block{
 		Header: *blockHeader,
-		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   sampleBlockBody,
 	}
 
 	// AddBlock also sets mapping [blockNumber : hash] in DB
@@ -118,7 +120,7 @@ func TestAddBlock(t *testing.T) {
 	blockHash0 := header0.Hash()
 	block0 := &types.Block{
 		Header: *header0,
-		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   sampleBlockBody,
 	}
 
 	// Add the block0 to the DB
@@ -135,7 +137,7 @@ func TestAddBlock(t *testing.T) {
 
 	block1 := &types.Block{
 		Header: *header1,
-		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   sampleBlockBody,
 	}
 
 	// Add the block1 to the DB
@@ -385,7 +387,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 	block := &types.Block{
 		Header: *header,
-		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block)
@@ -425,13 +427,9 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		ExtrinsicsRoot: common.Hash{99},
 	}
 
-	blockbody1b := types.NewBody(
-		[]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}},
-	)
-
 	block1b := &types.Block{
 		Header: *header1b,
-		Body:   *blockbody1b,
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block1b)
@@ -451,7 +449,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block2b := &types.Block{
 		Header: *header2b,
-		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block2b)
@@ -474,7 +472,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block2a := &types.Block{
 		Header: *header2a,
-		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block2a)
@@ -488,7 +486,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block3a := &types.Block{
 		Header: *header3a,
-		Body:   *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}),
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block3a)

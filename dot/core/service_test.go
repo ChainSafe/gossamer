@@ -504,17 +504,13 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	body1 := types.NewBody([]types.Extrinsic{[]byte("Old Runtime")})
 	newBlock1 := &types.Block{
 		Header: types.Header{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
 			Digest:     types.NewDigest()},
-		Body: *body1,
+		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
-
-	body2 := types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")})
-	require.NoError(t, err)
 
 	newBlockRTUpdate := &types.Block{
 		Header: types.Header{
@@ -522,7 +518,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
-		Body: *body2,
+		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
 	ts, err := s.storageState.TrieState(nil) // Pass genesis root

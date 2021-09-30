@@ -58,6 +58,7 @@ func TestEmptyBlock(t *testing.T) {
 }
 
 func TestEncodeAndDecodeBlock(t *testing.T) {
+	// SCALE encoding of the block, NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
 	expected, err := common.HexToBytes("0x4545454545454545454545454545454545454545454545454545454545454545042747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140004080401")
 	require.NoError(t, err)
 
