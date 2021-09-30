@@ -73,6 +73,10 @@ func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) {
 	s.Lock()
 	defer s.Unlock()
 
+	if _, has := s.blocks[hash]; has {
+		return
+	}
+
 	s.blocks[hash] = &pendingBlock{
 		hash:   hash,
 		number: number,
