@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -301,7 +300,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	logger.Trace("verified block BABE pre-runtime digest", "block", header.Hash())
 
-	authorPub := b.authorities[babePreDigest.AuthorityIndex()].Key
+	authorPub := b.authorities[babePreDigest.GetAuthorityIndex()].Key
 
 	// remove seal before verifying signature
 	h := types.NewDigest()
@@ -353,7 +352,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			continue
 		}
 
-		existingBlockProducerIndex := babePreDigest.AuthorityIndex()
+		existingBlockProducerIndex := babePreDigest.GetAuthorityIndex()
 
 		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
 			return ErrProducerEquivocated
@@ -364,15 +363,13 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 }
 
 func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types.BabePreRuntimeDigest, error) {
-	r := &bytes.Buffer{}
-	_, _ = r.Write(digest.Data)
-	babePreDigest, err := types.DecodeBabePreDigest(r)
+	babePreDigest, err := types.DecodeBabePreDigest(digest.Data)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(b.authorities) <= int(babePreDigest.AuthorityIndex()) {
-		logger.Trace("verifyPreRuntimeDigest", "invalid auth index", babePreDigest.AuthorityIndex(), "our auths", len(b.authorities))
+	if len(b.authorities) <= int(babePreDigest.GetAuthorityIndex()) {
+		logger.Trace("verifyPreRuntimeDigest", "invalid auth index", babePreDigest.GetAuthorityIndex(), "our auths", len(b.authorities))
 		return nil, ErrInvalidBlockProducerIndex
 	}
 
@@ -382,9 +379,9 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 
 	switch d := babePreDigest.(type) {
 	case *types.BabePrimaryPreDigest:
-		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
+		ok, err = b.verifyPrimarySlotWinner(d.GetAuthorityIndex(), d.GetSlotNumber(), d.GetVrfOutput(), d.GetVrfProof())
 	case *types.BabeSecondaryVRFPreDigest:
-		pub := b.authorities[d.AuthorityIndex()].Key
+		pub := b.authorities[d.GetAuthorityIndex()].Key
 		var pk *sr25519.PublicKey
 		pk, err = sr25519.NewPublicKey(pub.Encode())
 		if err != nil {
@@ -394,7 +391,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
 	case *types.BabeSecondaryPlainPreDigest:
 		ok = true
-		err = verifySecondarySlotPlain(d.AuthorityIndex(), d.SlotNumber(), len(b.authorities), b.randomness)
+		err = verifySecondarySlotPlain(d.GetAuthorityIndex(), d.GetSlotNumber(), len(b.authorities), b.randomness)
 	}
 
 	// verify that they are the slot winner
@@ -456,12 +453,10 @@ func getAuthorityIndex(header *types.Header) (uint32, error) {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}
 
-	r := &bytes.Buffer{}
-	_, _ = r.Write(preDigest.Data)
-	babePreDigest, err := types.DecodeBabePreDigest(r)
+	babePreDigest, err := types.DecodeBabePreDigest(preDigest.Data)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
-	return babePreDigest.AuthorityIndex(), nil
+	return babePreDigest.GetAuthorityIndex(), nil
 }

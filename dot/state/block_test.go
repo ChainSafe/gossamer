@@ -17,6 +17,7 @@
 package state
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"testing"
 	"time"
@@ -178,12 +179,15 @@ func TestGetSlotForBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 	expectedSlot := uint64(77)
 
-	babeHeader := types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{})
-	data := babeHeader.Encode()
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()
-	err := digest.Add(*preDigest)
+	err = digest.Add(*preDigest)
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
