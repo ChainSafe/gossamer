@@ -378,9 +378,9 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	)
 
 	switch d := babePreDigest.(type) {
-	case *types.BabePrimaryPreDigest:
-		ok, err = b.verifyPrimarySlotWinner(d.GetAuthorityIndex(), d.GetSlotNumber(), d.GetVrfOutput(), d.GetVrfProof())
-	case *types.BabeSecondaryVRFPreDigest:
+	case types.BabePrimaryPreDigest:
+		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex, d.SlotNumber, d.VrfOutput, d.VrfProof)
+	case types.BabeSecondaryVRFPreDigest:
 		pub := b.authorities[d.GetAuthorityIndex()].Key
 		var pk *sr25519.PublicKey
 		pk, err = sr25519.NewPublicKey(pub.Encode())
@@ -388,10 +388,10 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 			return nil, err
 		}
 
-		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
-	case *types.BabeSecondaryPlainPreDigest:
+		ok, err = verifySecondarySlotVRF(&d, pk, b.epoch, len(b.authorities), b.randomness)
+	case types.BabeSecondaryPlainPreDigest:
 		ok = true
-		err = verifySecondarySlotPlain(d.GetAuthorityIndex(), d.GetSlotNumber(), len(b.authorities), b.randomness)
+		err = verifySecondarySlotPlain(d.AuthorityIndex, d.SlotNumber, len(b.authorities), b.randomness)
 	}
 
 	// verify that they are the slot winner
