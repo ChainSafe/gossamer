@@ -92,6 +92,9 @@ func (cs *ChildStateModule) GetStorageSize(_ *http.Request, req *GetChildStorage
 		return err
 	}
 
-	*res = uint64(len(item))
+	if item != nil {
+		*res = uint64(len(item))
+	}
+
 	return nil
 }
