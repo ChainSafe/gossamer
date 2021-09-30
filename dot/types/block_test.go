@@ -123,7 +123,6 @@ func TestMustEncodeBlock(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, exp, enc2)
 
-
 	tests := []struct {
 		name string
 		take *Block

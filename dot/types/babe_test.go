@@ -2,11 +2,11 @@ package types
 
 import (
 	"bytes"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )

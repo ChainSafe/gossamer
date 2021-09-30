@@ -18,6 +18,7 @@ package types
 
 import (
 	"errors"
+
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -78,11 +79,11 @@ func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput
 func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
 	digest := NewBabeDigest()
 	err := digest.Set(*d)
-	if err != nil{
+	if err != nil {
 		return nil
 	}
 	enc, err := scale.Marshal(digest)
-	if err != nil{
+	if err != nil {
 		return nil
 	}
 	return NewBABEPreRuntimeDigest(enc)
@@ -91,22 +92,22 @@ func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
 // Index Returns VDT index
 func (d BabePrimaryPreDigest) Index() uint { return 1 }
 
-// AuthorityIndex returns the digest's authority index
+// GetAuthorityIndex returns the digest's authority index
 func (d BabePrimaryPreDigest) GetAuthorityIndex() uint32 {
 	return d.AuthorityIndex
 }
 
-// SlotNumber returns the digest's slot number
+// GetSlotNumber returns the digest's slot number
 func (d BabePrimaryPreDigest) GetSlotNumber() uint64 {
 	return d.SlotNumber
 }
 
-// VrfOutput returns the digest's VRF output
+// GetVrfOutput returns the digest's VRF output
 func (d BabePrimaryPreDigest) GetVrfOutput() [sr25519.VrfOutputLength]byte {
 	return d.VrfOutput
 }
 
-// VrfProof returns the digest's VRF proof
+// GetVrfProof returns the digest's VRF proof
 func (d BabePrimaryPreDigest) GetVrfProof() [sr25519.VrfProofLength]byte {
 	return d.VrfProof
 }
@@ -129,11 +130,11 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
 	digest := NewBabeDigest()
 	err := digest.Set(*d)
-	if err != nil{
+	if err != nil {
 		return nil
 	}
 	enc, err := scale.Marshal(digest)
-	if err != nil{
+	if err != nil {
 		return nil
 	}
 	return NewBABEPreRuntimeDigest(enc)
@@ -142,12 +143,12 @@ func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
 // Index Returns VDT index
 func (d BabeSecondaryPlainPreDigest) Index() uint { return 2 }
 
-// AuthorityIndex returns the digest's authority index
+// GetAuthorityIndex returns the digest's authority index
 func (d BabeSecondaryPlainPreDigest) GetAuthorityIndex() uint32 {
 	return d.AuthorityIndex
 }
 
-// SlotNumber returns the digest's slot number
+// GetSlotNumber returns the digest's slot number
 func (d BabeSecondaryPlainPreDigest) GetSlotNumber() uint64 {
 	return d.SlotNumber
 }
@@ -173,22 +174,22 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfO
 // Index Returns VDT index
 func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }
 
-// AuthorityIndex returns the digest's authority index
+// GetAuthorityIndex returns the digest's authority index
 func (d BabeSecondaryVRFPreDigest) GetAuthorityIndex() uint32 {
 	return d.AuthorityIndex
 }
 
-// SlotNumber returns the digest's slot number
+// GetSlotNumber returns the digest's slot number
 func (d BabeSecondaryVRFPreDigest) GetSlotNumber() uint64 {
 	return d.SlotNumber
 }
 
-// VrfOutput returns the digest's VRF output
+// GetVrfOutput returns the digest's VRF output
 func (d BabeSecondaryVRFPreDigest) GetVrfOutput() [sr25519.VrfOutputLength]byte {
 	return d.VrfOutput
 }
 
-// VrfProof returns the digest's VRF proof
+// GetVrfProof returns the digest's VRF proof
 func (d BabeSecondaryVRFPreDigest) GetVrfProof() [sr25519.VrfProofLength]byte {
 	return d.VrfProof
 }

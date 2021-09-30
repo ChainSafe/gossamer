@@ -17,7 +17,6 @@
 package state
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"testing"
 	"time"
@@ -25,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
