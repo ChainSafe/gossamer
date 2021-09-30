@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -225,10 +226,10 @@ func (s *Service) Stop() error {
 // authorities returns the current grandpa authorities
 func (s *Service) authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
-	for i, v := range s.state.voters {
+	for i := 0; i < len(s.state.voters); i++ {
 		ad[i] = &types.Authority{
-			Key:    v.Key,
-			Weight: v.ID,
+			Key:    &s.state.voters[i].Key,
+			Weight: s.state.voters[i].ID,
 		}
 	}
 
@@ -531,7 +532,7 @@ func (s *Service) playGrandpaRound() error {
 	return nil
 }
 
-func (s *Service) sendVoteMessage(stage subround, msg *VoteMessage, roundComplete <-chan struct{}) {
+func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplete <-chan struct{}) {
 	ticker := time.NewTicker(interval * 4)
 	defer ticker.Stop()
 
@@ -631,7 +632,7 @@ func (s *Service) attemptToFinalize() error {
 	}
 }
 
-func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage subround) (*SignedVote, bool) {
+func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {
 	var (
 		v   interface{}
 		has bool
@@ -651,7 +652,7 @@ func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage subround) (*SignedV
 	return v.(*SignedVote), true
 }
 
-func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage subround) {
+func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
 	switch stage {
 	case prevote, primaryProposal:
 		s.prevotes.Delete(key)
@@ -670,7 +671,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	primary := s.derivePrimary()
 	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
 	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
-		vote = prm.Vote
+		vote = &prm.Vote
 	} else {
 		header, err := s.blockState.BestBlockHeader()
 		if err != nil {
@@ -714,7 +715,6 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 
 		pvb = *NewVoteFromHeader(header)
 	}
-
 	return &pvb, nil
 }
 
@@ -798,7 +798,7 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	pcj, err := newJustification(s.state.round, bfc.Hash, bfc.Number, pcs).Encode()
+	pcj, err := scale.Marshal(*newJustification(s.state.round, bfc.Hash, bfc.Number, pcs))
 	if err != nil {
 		return err
 	}
@@ -831,11 +831,11 @@ func (s *Service) finalise() error {
 // createJustification collects the signed precommits received for this round and turns them into
 // a justification by adding all signed precommits that are for the best finalised candidate or
 // a descendent of the bfc
-func (s *Service) createJustification(bfc common.Hash, stage subround) ([]*SignedVote, error) {
+func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]SignedVote, error) {
 	var (
 		spc  *sync.Map
 		err  error
-		just []*SignedVote
+		just []SignedVote
 	)
 
 	switch stage {
@@ -859,7 +859,7 @@ func (s *Service) createJustification(bfc common.Hash, stage subround) ([]*Signe
 			return true
 		}
 
-		just = append(just, pc)
+		just = append(just, *pc)
 		return true
 	})
 
@@ -1077,7 +1077,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 // thus, if there are no blocks with >=threshold total votes, but the sum of votes for blocks A and B is >=threshold, then this function returns
 // the first common ancestor of A and B.
 // in general, this function will return the highest block on each chain with >=threshold votes.
-func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (map[common.Hash]uint32, error) {
+func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (map[common.Hash]uint32, error) {
 	// get blocks that were directly voted for
 	votes := s.getDirectVotes(stage)
 	blocks := make(map[common.Hash]uint32)
@@ -1116,7 +1116,7 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 
 // getPossibleSelectedAncestors recursively searches for ancestors with >=2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >=2/3 votes
-func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint32, stage subround, threshold uint64) (map[common.Hash]uint32, error) {
+func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint32, stage Subround, threshold uint64) (map[common.Hash]uint32, error) {
 	for _, v := range votes {
 		if v.Hash == curr {
 			continue
@@ -1160,7 +1160,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, s
 
 // getTotalVotesForBlock returns the total number of observed votes for a block B in a subround, which is equal
 // to the direct votes for B and B's descendants plus the total number of equivocating voters
-func (s *Service) getTotalVotesForBlock(hash common.Hash, stage subround) (uint64, error) {
+func (s *Service) getTotalVotesForBlock(hash common.Hash, stage Subround) (uint64, error) {
 	// observed votes for block
 	dv, err := s.getVotesForBlock(hash, stage)
 	if err != nil {
@@ -1181,7 +1181,7 @@ func (s *Service) getTotalVotesForBlock(hash common.Hash, stage subround) (uint6
 // getVotesForBlock returns the number of observed votes for a block B.
 // The set of all observed votes by v in the sub-round stage of round r for block B is
 // equal to all of the observed direct votes cast for block B and all of the B's descendants
-func (s *Service) getVotesForBlock(hash common.Hash, stage subround) (uint64, error) {
+func (s *Service) getVotesForBlock(hash common.Hash, stage Subround) (uint64, error) {
 	votes := s.getDirectVotes(stage)
 
 	// B will be counted as in it's own subchain, so don't need to start with B's vote count
@@ -1207,7 +1207,7 @@ func (s *Service) getVotesForBlock(hash common.Hash, stage subround) (uint64, er
 }
 
 // getDirectVotes returns a map of Votes to direct vote counts
-func (s *Service) getDirectVotes(stage subround) map[Vote]uint64 {
+func (s *Service) getDirectVotes(stage Subround) map[Vote]uint64 {
 	votes := make(map[Vote]uint64)
 
 	var src *sync.Map
@@ -1219,7 +1219,7 @@ func (s *Service) getDirectVotes(stage subround) map[Vote]uint64 {
 
 	src.Range(func(_, value interface{}) bool {
 		sv := value.(*SignedVote)
-		votes[*sv.Vote]++
+		votes[sv.Vote]++
 		return true
 	})
 
@@ -1227,7 +1227,7 @@ func (s *Service) getDirectVotes(stage subround) map[Vote]uint64 {
 }
 
 // getVotes returns all the current votes as an array
-func (s *Service) getVotes(stage subround) []Vote {
+func (s *Service) getVotes(stage Subround) []Vote {
 	votes := s.getDirectVotes(stage)
 	va := make([]Vote, len(votes))
 	i := 0
@@ -1324,7 +1324,7 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 	return votes
 }
 
-func (s *Service) lenVotes(stage subround) int {
+func (s *Service) lenVotes(stage Subround) int {
 	var count int
 
 	switch stage {

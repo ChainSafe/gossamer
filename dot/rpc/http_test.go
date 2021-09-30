@@ -38,6 +38,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestRegisterModules(t *testing.T) {
+	rpcapiMocks := new(mocks.MockRPCAPI)
+
+	mods := []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate"}
+
+	for _, modName := range mods {
+		rpcapiMocks.On("BuildMethodNames", mock.Anything, modName).Once()
+	}
+
+	cfg := &HTTPServerConfig{
+		Modules: mods,
+		RPCAPI:  rpcapiMocks,
+	}
+
+	NewHTTPServer(cfg)
+
+	for _, modName := range mods {
+		rpcapiMocks.AssertCalled(t, "BuildMethodNames", mock.Anything, modName)
+	}
+}
+
 func TestNewHTTPServer(t *testing.T) {
 	coreAPI := core.NewTestService(t, nil)
 	si := &types.SystemInfo{

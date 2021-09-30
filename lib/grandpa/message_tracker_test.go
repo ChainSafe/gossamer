@@ -145,7 +145,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	}
 	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
 	require.True(t, has)
-	require.Equal(t, expectedVote, pv.(*SignedVote).Vote, gs.tracker.voteMessages)
+	require.Equal(t, expectedVote, &pv.(*SignedVote).Vote, gs.tracker.voteMessages)
 }
 
 func TestMessageTracker_MapInsideMap(t *testing.T) {
