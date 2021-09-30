@@ -26,14 +26,14 @@ import (
 type GetKeysRequest struct {
 	Key    []byte
 	Prefix []byte
-	Hash   common.Hash
+	Hash   *common.Hash
 }
 
 // GetStorageHash the request to get the entry child storage hash
 type GetStorageHash struct {
 	KeyChild []byte
 	EntryKey []byte
-	Hash     common.Hash
+	Hash     *common.Hash
 }
 
 // ChildStateModule is the module responsible to implement all the childstate RPC calls
@@ -52,11 +52,11 @@ func NewChildStateModule(s StorageAPI, b BlockAPI) *ChildStateModule {
 
 // GetKeys returns the keys from the specified child storage. The keys can also be filtered based on a prefix.
 func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[]string) error {
-	if req.Hash == common.EmptyHash {
-		req.Hash = cs.blockAPI.BestBlockHash()
+	if req.Hash == nil {
+		*req.Hash = cs.blockAPI.BestBlockHash()
 	}
 
-	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&req.Hash)
+	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(req.Hash)
 	if err != nil {
 		return err
 	}
@@ -78,11 +78,11 @@ func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[
 
 // GetStorageHash returns the hash of a child storage entry
 func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash, res *string) error {
-	if req.Hash == common.EmptyHash {
-		req.Hash = cs.blockAPI.BestBlockHash()
+	if req.Hash == nil {
+		*req.Hash = cs.blockAPI.BestBlockHash()
 	}
 
-	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&req.Hash)
+	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(req.Hash)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash,
 		return err
 	}
 
-	if len(item) > 0 {
+	if item != nil {
 		*res = common.BytesToHash(item).String()
 	}
 

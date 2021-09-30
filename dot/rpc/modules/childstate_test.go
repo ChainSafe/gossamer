@@ -35,7 +35,7 @@ func TestChildStateGetKeys(t *testing.T) {
 	req := &GetKeysRequest{
 		Key:    []byte(":child_storage_key"),
 		Prefix: []byte{},
-		Hash:   common.EmptyHash,
+		Hash:   nil,
 	}
 
 	res := make([]string, 0)
@@ -54,7 +54,7 @@ func TestChildStateGetKeys(t *testing.T) {
 	req = &GetKeysRequest{
 		Key:    []byte(":child_storage_key"),
 		Prefix: []byte(":child_"),
-		Hash:   currBlockHash,
+		Hash:   &currBlockHash,
 	}
 
 	err = childStateModule.GetKeys(nil, req, &res)
@@ -72,37 +72,38 @@ func TestChildStateGetKeys(t *testing.T) {
 
 func TestGetStorageHash(t *testing.T) {
 	mod, blockHash := setupChildStateStorage(t)
+	invalidBlockHash := common.BytesToHash([]byte("invalid block hash"))
 
 	tests := []struct {
 		expect   string
 		err      error
-		hash     common.Hash
+		hash     *common.Hash
 		keyChild []byte
 		entry    []byte
 	}{
 		{
 			err:      nil,
 			expect:   common.BytesToHash([]byte(":child_first_value")).String(),
-			hash:     common.EmptyHash,
+			hash:     nil,
 			entry:    []byte(":child_first"),
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
 			err:      nil,
 			expect:   common.BytesToHash([]byte(":child_second_value")).String(),
-			hash:     blockHash,
+			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
 			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
-			hash:     blockHash,
+			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
 		},
 		{
 			err:  chaindb.ErrKeyNotFound,
-			hash: common.BytesToHash([]byte("invalid block hash")),
+			hash: &invalidBlockHash,
 		},
 	}
 
