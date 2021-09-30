@@ -531,14 +531,6 @@ func TestTrieDiff(t *testing.T) {
 	dbTrie := NewEmptyTrie()
 	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.getHash()))
 	require.NoError(t, err)
-
-	enc, err := dbTrie.Encode()
-	require.NoError(t, err)
-
-	newEnc, err := newTrie.Encode()
-	require.NoError(t, err)
-
-	require.Equal(t, enc, newEnc)
 }
 
 func TestDelete(t *testing.T) {

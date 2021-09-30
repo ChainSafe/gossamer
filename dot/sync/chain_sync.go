@@ -599,6 +599,9 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	if err != nil {
 		// if we are creating valid workers, this should not happen
 		logger.Crit("failed to create requests from worker", "worker", w, "error", err)
+		w.err = &workerError{
+			err: err,
+		}
 		return
 	}
 

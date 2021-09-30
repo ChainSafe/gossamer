@@ -229,7 +229,7 @@ func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 		return b.encoding, b.hash, nil
 	}
 
-	hasher := NewHasher(false)
+	hasher := newHasher(false)
 	enc, err := hasher.encodeBranch(b)
 	if err != nil {
 		return nil, nil, err
@@ -255,7 +255,7 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	if !l.isDirty() && l.encoding != nil && l.hash != nil {
 		return l.encoding, l.hash, nil
 	}
-	hasher := NewHasher(false)
+	hasher := newHasher(false)
 	enc, err := hasher.encodeLeaf(l)
 
 	if err != nil {
