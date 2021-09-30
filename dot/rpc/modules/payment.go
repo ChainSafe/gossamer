@@ -11,7 +11,7 @@ type PaymentQueryInfoRequest struct {
 	// hex SCALE encoded extrinsic
 	Ext string
 	// hex optional block hash indicating the state
-	Hash common.Hash
+	Hash *common.Hash
 }
 
 type PaymentModule struct {
@@ -25,11 +25,14 @@ func NewPaymentModule(blockAPI BlockAPI) *PaymentModule {
 }
 
 func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest, res *uint) error {
-	if common.EmptyHash.Equal(req.Hash) {
-		req.Hash = p.blockAPI.BestBlockHash()
+	var hash common.Hash
+	if req.Hash == nil {
+		hash = p.blockAPI.BestBlockHash()
+	} else {
+		hash = *req.Hash
 	}
 
-	r, err := p.blockAPI.GetRuntime(&req.Hash)
+	r, err := p.blockAPI.GetRuntime(&hash)
 	if err != nil {
 		return err
 	}

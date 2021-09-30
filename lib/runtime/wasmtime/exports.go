@@ -17,7 +17,6 @@
 package wasmtime
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 
@@ -162,9 +161,7 @@ func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 
 // PaymentQueryInfo returns information of a given extrinsic
 func (in *Instance) PaymentQueryInfo(ext []byte) ([]byte, error) {
-	lenB := make([]byte, 4)
-	binary.LittleEndian.PutUint32(lenB, uint32(len(ext)))
-	encLen, err := scale2.Marshal(lenB)
+	encLen, err := scale2.Marshal(uint32(len(ext)))
 	if err != nil {
 		return nil, err
 	}
