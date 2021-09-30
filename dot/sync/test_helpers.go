@@ -19,12 +19,12 @@ package sync
 import (
 	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/ChainSafe/gossamer/dot/state"
+	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -34,11 +34,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
 // NewMockFinalityGadget create and return sync FinalityGadget interface mock
@@ -99,6 +99,16 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 		require.NoError(t, err)
+
+		nodeStorage := runtime.NodeStorage{}
+		if stateSrvc != nil {
+			nodeStorage.BaseDB = stateSrvc.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
+		}
+
+		rtCfg.NodeStorage = nodeStorage
 
 		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
