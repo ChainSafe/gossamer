@@ -305,9 +305,6 @@ func TestApplyExtrinsic(t *testing.T) {
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
-	// TODO (ed) currently skipping this because it's failing on github with error:
-	//  failed to sign with subkey: fork/exec /Users/runner/.local/bin/subkey: exec format error
-	t.Skip()
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
 		LogLvl:           log.LvlInfo,
@@ -331,7 +328,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
 	var decoded []byte
-	err = scale.Unmarshal(rawMeta, []byte{})
+	err = scale.Unmarshal(rawMeta, &decoded)
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
