@@ -17,13 +17,12 @@
 package grandpa
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -64,17 +63,16 @@ func (hs *GrandpaHandshake) String() string {
 
 // Encode encodes a GrandpaHandshake message using SCALE
 func (hs *GrandpaHandshake) Encode() ([]byte, error) {
-	return scale.Encode(hs)
+	return scale.Marshal(*hs)
 }
 
 // Decode the message into a GrandpaHandshake
 func (hs *GrandpaHandshake) Decode(in []byte) error {
-	msg, err := scale.Decode(in, hs)
+	err := scale.Unmarshal(in, hs)
 	if err != nil {
 		return err
 	}
 
-	hs.Roles = msg.(*GrandpaHandshake).Roles
 	return nil
 }
 
@@ -170,7 +168,10 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		logger.Warn("unexpected type returned from message handler", "response", resp)
 	}
 
-	if m.Type() == neighbourType || m.Type() == catchUpResponseType {
+	switch m.(type) {
+	case *NeighbourMessage:
+		return false, nil
+	case *CatchUpResponse:
 		return false, nil
 	}
 
@@ -225,48 +226,28 @@ func (s *Service) sendNeighbourMessage() {
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
-func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
-	var (
-		mi interface{}
-		ok bool
-	)
-
-	switch msg.Data[0] {
-	case voteType:
-		r := &bytes.Buffer{}
-		_, _ = r.Write(msg.Data[1:])
-		vm := &VoteMessage{}
-		err = vm.Decode(r)
-		m = vm
-		logger.Trace("got VoteMessage!!!", "msg", m)
-	case commitType:
-		r := &bytes.Buffer{}
-		_, _ = r.Write(msg.Data[1:])
-		cm := &CommitMessage{}
-		err = cm.Decode(r)
-		m = cm
-		logger.Trace("got CommitMessage!!!", "msg", m)
-	case neighbourType:
-		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
-		if m, ok = mi.(*NeighbourMessage); !ok {
-			return nil, ErrInvalidMessageType
-		}
-	case catchUpRequestType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
-		if m, ok = mi.(*catchUpRequest); !ok {
-			return nil, ErrInvalidMessageType
-		}
-	case catchUpResponseType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpResponse{})
-		if m, ok = mi.(*catchUpResponse); !ok {
-			return nil, ErrInvalidMessageType
-		}
-	default:
-		return nil, ErrInvalidMessageType
-	}
-
+func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
+	msg := newGrandpaMessage()
+	err = scale.Unmarshal(cm.Data, &msg)
 	if err != nil {
 		return nil, err
+	}
+
+	switch val := msg.Value().(type) {
+	case VoteMessage:
+		m = &val
+		logger.Trace("got VoteMessage!!!", "msg", m)
+	case CommitMessage:
+		m = &val
+		logger.Trace("got CommitMessage!!!", "msg", m)
+	case NeighbourMessage:
+		m = &val
+	case CatchUpRequest:
+		m = &val
+	case CatchUpResponse:
+		m = &val
+	default:
+		return nil, ErrInvalidMessageType
 	}
 
 	return m, nil

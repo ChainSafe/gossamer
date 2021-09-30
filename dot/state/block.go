@@ -546,6 +546,16 @@ func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
 	return header.StateRoot, nil
 }
 
+// GetBlockStateRoot returns the state root of the given block hash
+func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (common.Hash, error) {
+	header, err := bs.GetHeader(bhash)
+	if err != nil {
+		return common.EmptyHash, err
+	}
+
+	return header.StateRoot, nil
+}
+
 // BestBlockNumber returns the block number of the current head of the chain
 func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
 	header, err := bs.GetHeader(bs.BestBlockHash())
