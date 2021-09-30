@@ -17,6 +17,7 @@
 package wasmtime
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 
@@ -157,6 +158,18 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
 func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	return in.exec(runtime.DecodeSessionKeys, enc)
+}
+
+// PaymentQueryInfo returns information of a given extrinsic
+func (in *Instance) PaymentQueryInfo(ext []byte) ([]byte, error) {
+	lenB := make([]byte, 4)
+	binary.LittleEndian.PutUint32(lenB, uint32(len(ext)))
+	encLen, err := scale2.Marshal(lenB)
+	if err != nil {
+		return nil, err
+	}
+
+	return in.exec(runtime.TransactionPaymentApiQueryInfo, append(ext, encLen...))
 }
 
 func (in *Instance) CheckInherents()      {} //nolint
