@@ -420,14 +420,6 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
 
-	if signature[64] == 27 {
-		signature[64] = 0
-	}
-
-	if signature[64] == 28 {
-		signature[64] = 1
-	}
-
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
@@ -454,44 +446,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 //export ext_crypto_secp256k1_ecdsa_recover_version_2
 func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_2] executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
-
-	// msg must be the 32-byte hash of the message to be signed.
-	// sig must be a 65-byte compact ECDSA signature containing the
-	// recovery id as the last element
-	message := memory[msg : msg+32]
-	signature := memory[sig : sig+65]
-
-	if signature[64] == 27 {
-		signature[64] = 0
-	}
-
-	if signature[64] == 28 {
-		signature[64] = 1
-	}
-
-	pub, err := secp256k1.RecoverPublicKey(message, signature)
-	if err != nil {
-		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_2] failed to recover public key", "error", err)
-		var ret int64
-		ret, err = toWasmMemoryResult(instanceContext, nil)
-		if err != nil {
-			logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_2] failed to allocate memory", "error", err)
-			return 0
-		}
-		return C.int64_t(ret)
-	}
-
-	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_version_2]", "len", len(pub), "recovered public key", fmt.Sprintf("0x%x", pub))
-
-	ret, err := toWasmMemoryResult(instanceContext, pub[1:])
-	if err != nil {
-		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_2] failed to allocate memory", "error", err)
-		return 0
-	}
-
-	return C.int64_t(ret)
+	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
@@ -505,14 +460,6 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 	// recovery id as the last element
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
-
-	if signature[64] == 27 {
-		signature[64] = 0
-	}
-
-	if signature[64] == 28 {
-		signature[64] = 1
-	}
 
 	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
 	if err != nil {
@@ -535,39 +482,7 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
 func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_2] executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
-
-	// msg must be the 32-byte hash of the message to be signed.
-	// sig must be a 65-byte compact ECDSA signature containing the
-	// recovery id as the last element
-	message := memory[msg : msg+32]
-	signature := memory[sig : sig+65]
-
-	if signature[64] == 27 {
-		signature[64] = 0
-	}
-
-	if signature[64] == 28 {
-		signature[64] = 1
-	}
-
-	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
-	if err != nil {
-		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_2] failed to recover public key", "error", err)
-		ret, _ := toWasmMemoryResult(instanceContext, nil)
-		return C.int64_t(ret)
-	}
-
-	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_2]", "len", len(cpub), "recovered public key", fmt.Sprintf("0x%x", cpub))
-
-	ret, err := toWasmMemoryResult(instanceContext, cpub)
-	if err != nil {
-		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_2] failed to allocate memory", "error", err)
-		return 0
-	}
-
-	return C.int64_t(ret)
+	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context, sig, msg)
 }
 
 //export ext_crypto_sr25519_generate_version_1
