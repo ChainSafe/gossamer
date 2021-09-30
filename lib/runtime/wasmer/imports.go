@@ -1145,9 +1145,9 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 
 	if all {
 		return 1
-	} else {
-		return 0
 	}
+
+	return 0
 }
 
 //export ext_default_child_storage_storage_kill_version_3

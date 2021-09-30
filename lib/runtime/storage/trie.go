@@ -181,7 +181,7 @@ func (s *TrieState) DeleteChild(key []byte) {
 }
 
 // DeleteChildLimit deletes up to limit of database entries by lexicographic order, return number
-//  deleted, true if all delete atherwise false
+//  deleted, true if all delete otherwise false
 func (s *TrieState) DeleteChildLimit(key []byte, limit *optional.Bytes) (uint32, bool, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
