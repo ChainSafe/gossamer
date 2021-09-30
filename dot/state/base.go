@@ -135,6 +135,11 @@ func (s *BaseState) Get(key []byte) ([]byte, error) {
 	return s.db.Get(key)
 }
 
+// Del deletes key from database
+func (s *BaseState) Del(key []byte) error {
+	return s.db.Del(key)
+}
+
 func (s *BaseState) storeSkipToEpoch(epoch uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)
