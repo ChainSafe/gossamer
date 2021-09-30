@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -220,14 +221,14 @@ func TestWSConn_HandleComm(t *testing.T) {
 	var fCh chan<- *types.FinalisationInfo
 	mockedJust := grandpa.Justification{
 		Round: 1,
-		Commit: &grandpa.Commit{
+		Commit: grandpa.Commit{
 			Hash:       common.Hash{},
 			Number:     1,
 			Precommits: nil,
 		},
 	}
 
-	mockedJustBytes, err := mockedJust.Encode()
+	mockedJustBytes, err := scale.Marshal(mockedJust)
 	require.NoError(t, err)
 
 	BlockAPI := new(mocks.MockBlockAPI)

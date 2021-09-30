@@ -97,7 +97,7 @@ func newTestVoters() []Voter {
 	vs := []Voter{}
 	for i, k := range kr.Keys {
 		vs = append(vs, Voter{
-			Key: k.Public().(*ed25519.PublicKey),
+			Key: *k.Public().(*ed25519.PublicKey),
 			ID:  uint64(i),
 		})
 	}
@@ -131,7 +131,7 @@ func TestUpdateAuthorities(t *testing.T) {
 	require.Equal(t, uint64(0), gs.state.setID)
 
 	next := []Voter{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 
 	err = gs.grandpaState.(*state.GrandpaState).SetNextChange(next, big.NewInt(1))
@@ -150,12 +150,12 @@ func TestUpdateAuthorities(t *testing.T) {
 func TestGetDirectVotes(t *testing.T) {
 	gs, _ := newTestService(t)
 
-	voteA := &Vote{
+	voteA := Vote{
 		Hash:   common.Hash{0xa},
 		Number: 1,
 	}
 
-	voteB := &Vote{
+	voteB := Vote{
 		Hash:   common.Hash{0xb},
 		Number: 1,
 	}
@@ -176,8 +176,8 @@ func TestGetDirectVotes(t *testing.T) {
 
 	directVotes := gs.getDirectVotes(prevote)
 	require.Equal(t, 2, len(directVotes))
-	require.Equal(t, uint64(5), directVotes[*voteA])
-	require.Equal(t, uint64(4), directVotes[*voteB])
+	require.Equal(t, uint64(5), directVotes[voteA])
+	require.Equal(t, uint64(4), directVotes[voteB])
 }
 
 func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
@@ -199,11 +199,11 @@ func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
 
 		if i < 5 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -241,15 +241,15 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 
 		if i < 3 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 5 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		}
 	}
@@ -292,15 +292,15 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 
 		if i < 3 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		}
 	}
@@ -348,15 +348,15 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 
 		if i < 3 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		}
 	}
@@ -412,19 +412,19 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 
 		if i < 3 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else if i < 8 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteD,
+				Vote: *voteD,
 			})
 		}
 	}
@@ -469,11 +469,11 @@ func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -508,15 +508,15 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 
 		if i < 3 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		}
 	}
@@ -557,15 +557,15 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 
 		if i < 3 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		}
 	}
@@ -601,10 +601,10 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 	require.NoError(t, err)
 
 	svA := &SignedVote{
-		Vote: voteA,
+		Vote: *voteA,
 	}
 	svB := &SignedVote{
-		Vote: voteB,
+		Vote: *voteB,
 	}
 
 	for i, k := range kr.Keys {
@@ -642,10 +642,10 @@ func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
 	require.NoError(t, err)
 
 	svA := &SignedVote{
-		Vote: voteA,
+		Vote: *voteA,
 	}
 	svB := &SignedVote{
-		Vote: voteB,
+		Vote: *voteB,
 	}
 
 	for i, k := range kr.Keys {
@@ -660,7 +660,7 @@ func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
 		} else if i < 5 {
 			// 1 vote for C
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		} else {
 			// 4 equivocators
@@ -691,11 +691,11 @@ func TestGetPreVotedBlock_OneBlock(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -730,15 +730,15 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 
 		if i < 3 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		}
 	}
@@ -791,27 +791,27 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 
 		if i < 2 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 4 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		} else if i < 7 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteD,
+				Vote: *voteD,
 			})
 		} else if i < 8 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteE,
+				Vote: *voteE,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteF,
+				Vote: *voteF,
 			})
 		}
 	}
@@ -846,17 +846,17 @@ func TestIsCompletable(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -906,17 +906,17 @@ func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -949,17 +949,17 @@ func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -989,14 +989,14 @@ func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -1026,17 +1026,17 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		}
 	}
@@ -1072,14 +1072,14 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
 	gs.prevotes.Store(primary, &SignedVote{
-		Vote: NewVoteFromHeader(header),
+		Vote: *NewVoteFromHeader(header),
 	})
 
 	pv, err := gs.determinePreVote()
 	require.NoError(t, err)
 	p, has := gs.prevotes.Load(primary)
 	require.True(t, has)
-	require.Equal(t, pv, p.(*SignedVote).Vote)
+	require.Equal(t, pv, &p.(*SignedVote).Vote)
 }
 
 func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
@@ -1092,7 +1092,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
 	gs.prevotes.Store(primary, &SignedVote{
-		Vote: NewVoteFromHeader(header),
+		Vote: *NewVoteFromHeader(header),
 	})
 
 	state.AddBlocksToState(t, st.Block, 5)
@@ -1122,17 +1122,17 @@ func TestIsFinalisable_True(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -1160,17 +1160,17 @@ func TestIsFinalisable_False(t *testing.T) {
 
 		if i < 6 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 			gs.precommits.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -1205,11 +1205,11 @@ func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
 
 		if i < 4 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 5 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		}
 	}
@@ -1246,15 +1246,15 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 
 		if i < 1 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteA,
+				Vote: *voteA,
 			})
 		} else if i < 2 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteB,
+				Vote: *voteB,
 			})
 		} else if i < 3 {
 			gs.prevotes.Store(voter, &SignedVote{
-				Vote: voteC,
+				Vote: *voteC,
 			})
 		}
 	}
