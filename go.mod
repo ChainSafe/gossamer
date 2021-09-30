@@ -51,7 +51,8 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
-	golang.org/x/tools v0.1.5 // indirect
+	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/tools v0.1.6-0.20210908145159-e5f719fbe6d5 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.26.0-rc.1
 	honnef.co/go/tools v0.2.0 // indirect
