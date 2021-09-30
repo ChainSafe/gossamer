@@ -18,12 +18,10 @@ package grandpa
 
 import (
 	"bytes"
-	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 //nolint
@@ -34,37 +32,17 @@ type (
 	SignedVote = types.GrandpaSignedVote
 )
 
-type subround byte
+// Subround subrounds in a grandpa round
+type Subround byte
 
+//nolint
 var (
-	prevote         subround
-	precommit       subround = 1
-	primaryProposal subround = 2
+	prevote         Subround
+	precommit       Subround = 1
+	primaryProposal Subround = 2
 )
 
-func (s subround) Encode() ([]byte, error) {
-	return []byte{byte(s)}, nil
-}
-
-func (s subround) Decode(r io.Reader) (subround, error) {
-	b, err := common.ReadByte(r)
-	if err != nil {
-		return 255, nil
-	}
-
-	switch b {
-	case 0:
-		return prevote, nil
-	case 1:
-		return precommit, nil
-	case 2:
-		return primaryProposal, nil
-	default:
-		return 255, ErrCannotDecodeSubround
-	}
-}
-
-func (s subround) String() string {
+func (s Subround) String() string {
 	switch s {
 	case prevote:
 		return "prevote"
@@ -110,7 +88,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	}
 
 	return &Voter{
-		Key: pk,
+		Key: *pk,
 		ID:  id,
 	}, nil
 }
@@ -160,41 +138,22 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 type Commit struct {
 	Hash       common.Hash
 	Number     uint32
-	Precommits []*SignedVote
+	Precommits []SignedVote
 }
 
 // Justification represents a finality justification for a block
 type Justification struct {
 	Round  uint64
-	Commit *Commit
+	Commit Commit
 }
 
-func newJustification(round uint64, hash common.Hash, number uint32, j []*SignedVote) *Justification {
+func newJustification(round uint64, hash common.Hash, number uint32, j []SignedVote) *Justification {
 	return &Justification{
 		Round: round,
-		Commit: &Commit{
+		Commit: Commit{
 			Hash:       hash,
 			Number:     number,
 			Precommits: j,
 		},
 	}
-}
-
-// Encode returns the SCALE encoding of a Justification
-func (j *Justification) Encode() ([]byte, error) {
-	return scale.Encode(j)
-}
-
-// Decode returns a SCALE decoded Justification
-func (j *Justification) Decode(r io.Reader) error {
-	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode(&Justification{Commit: &Commit{}})
-	if err != nil {
-		return err
-	}
-
-	dec := i.(*Justification)
-	j.Round = dec.Round
-	j.Commit = dec.Commit
-	return nil
 }
