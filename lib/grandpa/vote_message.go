@@ -23,7 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -70,10 +70,10 @@ func (s *Service) receiveMessages(ctx context.Context) {
 	}
 }
 
-func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*SignedVote, *VoteMessage, error) {
-	msg, err := scale.Encode(&FullVote{
+func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*SignedVote, *VoteMessage, error) {
+	msg, err := scale.Marshal(FullVote{
 		Stage: stage,
-		Vote:  vote,
+		Vote:  *vote,
 		Round: s.state.round,
 		SetID: s.state.setID,
 	})
@@ -87,7 +87,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 	}
 
 	pc := &SignedVote{
-		Vote:        vote,
+		Vote:        *vote,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
@@ -103,7 +103,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 	vm := &VoteMessage{
 		Round:   s.state.round,
 		SetID:   s.state.setID,
-		Message: sm,
+		Message: *sm,
 	}
 
 	return pc, vm, nil
@@ -115,10 +115,6 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	// make sure round does not increment while VoteMessage is being validated
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
-
-	if m.Message == nil {
-		return nil, errors.New("invalid VoteMessage; missing Message field")
-	}
 
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.Message.AuthorityID[:])
@@ -207,7 +203,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	}
 
 	just := &SignedVote{
-		Vote:        vote,
+		Vote:        *vote,
 		Signature:   m.Message.Signature,
 		AuthorityID: pk.AsBytes(),
 	}
@@ -230,7 +226,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage subround) bool {
+func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) bool {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification
@@ -295,9 +291,9 @@ func (s *Service) validateVote(v *Vote) error {
 }
 
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
-	msg, err := scale.Encode(&FullVote{
+	msg, err := scale.Marshal(FullVote{
 		Stage: m.Message.Stage,
-		Vote:  NewVote(m.Message.Hash, m.Message.Number),
+		Vote:  *NewVote(m.Message.Hash, m.Message.Number),
 		Round: m.Round,
 		SetID: m.SetID,
 	})
