@@ -126,7 +126,7 @@ func NewGrandpaVotersFromAuthoritiesRaw(ad []GrandpaAuthoritiesRaw) ([]GrandpaVo
 	return v, nil
 }
 
-// GrandpaVoters represents []*GrandpaVoter
+// GrandpaVoters represents []GrandpaVoter
 type GrandpaVoters []GrandpaVoter
 
 // String returns a formatted Voters string
