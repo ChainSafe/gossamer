@@ -38,6 +38,7 @@ type BlockState interface {
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
@@ -62,6 +63,7 @@ type StorageState interface {
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
+	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	sync.Locker
 }
 
