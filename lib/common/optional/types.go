@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 const none = "None"
@@ -73,7 +74,7 @@ func (x *Bytes) Encode() ([]byte, error) {
 		return []byte{0}, nil
 	}
 
-	value, err := scale.Encode(x.value)
+	value, err := scale2.Marshal(x.value)
 	if err != nil {
 		return nil, err
 	}
@@ -101,27 +102,6 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 			return nil, err
 		}
 		x.value = value
-	}
-
-	return x, nil
-}
-
-// DecodeBytes return an optional Bytes from scale encoded data
-func (x *Bytes) DecodeBytes(data []byte) (*Bytes, error) {
-	if len(data) == 0 || data[0] > 1 {
-		return nil, ErrInvalidOptional
-	}
-
-	x.exists = data[0] != 0
-
-	if x.exists {
-		decData, err := scale.Decode(data[1:], []byte{})
-		if err != nil {
-			return nil, err
-		}
-		x.value = decData.([]byte)
-	} else {
-		x.value = nil
 	}
 
 	return x, nil

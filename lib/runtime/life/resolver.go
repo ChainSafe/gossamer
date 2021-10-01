@@ -1342,14 +1342,14 @@ func toWasmMemorySized(memory, data []byte, size uint32) (uint32, error) {
 
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(memory, data []byte) (int64, error) {
-	var opt *optional.Bytes
+	var opt *[]byte
 	if data == nil {
-		opt = optional.NewBytes(false, nil)
+		opt = nil
 	} else {
-		opt = optional.NewBytes(true, data)
+		opt = &data
 	}
 
-	enc, err := opt.Encode()
+	enc, err := scale.Marshal(opt)
 	if err != nil {
 		return 0, err
 	}
