@@ -108,7 +108,6 @@ package wasmer
 import "C"
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -232,10 +231,9 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	id := memory[keyTypeID : keyTypeID+4]
 	seedBytes := asMemorySlice(instanceContext, seedSpan)
-	buf := &bytes.Buffer{}
-	buf.Write(seedBytes)
 
-	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
 		return 0
@@ -243,8 +241,8 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	var kp crypto.Keypair
 
-	if seed.Exists() {
-		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	if seed != nil {
+		kp, err = ed25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
 		kp, err = ed25519.GenerateKeypair()
 	}
@@ -493,20 +491,18 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 	memory := instanceContext.Memory().Data()
 
 	id := memory[keyTypeID : keyTypeID+4]
-
 	seedBytes := asMemorySlice(instanceContext, seedSpan)
-	buf := &bytes.Buffer{}
-	buf.Write(seedBytes)
 
-	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warn("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
 		return 0
 	}
 
 	var kp crypto.Keypair
-	if seed.Exists() {
-		kp, err = sr25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	if seed != nil {
+		kp, err = sr25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
 		kp, err = sr25519.GenerateKeypair()
 	}
@@ -1902,14 +1898,14 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
-	var opt *optional.Bytes
+	var opt *[]byte
 	if data == nil {
-		opt = optional.NewBytes(false, nil)
+		opt = nil
 	} else {
-		opt = optional.NewBytes(true, data)
+		opt = &data
 	}
 
-	enc, err := opt.Encode()
+	enc, err := scale.Marshal(opt)
 	if err != nil {
 		return 0, err
 	}

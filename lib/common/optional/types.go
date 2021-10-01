@@ -24,8 +24,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 const none = "None"
@@ -60,51 +58,6 @@ func (x *Bytes) String() string {
 		return none
 	}
 	return fmt.Sprintf("%x", x.value)
-}
-
-// Set sets the exists and value fields.
-func (x *Bytes) Set(exists bool, value []byte) {
-	x.exists = exists
-	x.value = value
-}
-
-// Encode returns the SCALE encoded optional
-func (x *Bytes) Encode() ([]byte, error) {
-	if x == nil || !x.exists {
-		return []byte{0}, nil
-	}
-
-	value, err := scale2.Marshal(x.value)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{1}, value...), nil
-}
-
-// Decode return an optional Bytes from scale encoded data
-func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
-	exists, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if exists > 1 {
-		return nil, ErrInvalidOptional
-	}
-
-	x.exists = (exists != 0)
-
-	if x.exists {
-		sd := scale.Decoder{Reader: r}
-		value, err := sd.DecodeByteArray()
-		if err != nil {
-			return nil, err
-		}
-		x.value = value
-	}
-
-	return x, nil
 }
 
 // FixedSizeBytes represents an optional FixedSizeBytes type. It does not length-encode the value when encoding.

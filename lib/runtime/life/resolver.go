@@ -817,10 +817,9 @@ func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 
 	id := memory[keyTypeID : keyTypeID+4]
 	seedBytes := asMemorySlice(memory, seedSpan)
-	buf := &bytes.Buffer{}
-	buf.Write(seedBytes)
 
-	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
 		return 0
@@ -828,8 +827,8 @@ func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 
 	var kp crypto.Keypair
 
-	if seed.Exists() {
-		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	if seed != nil {
+		kp, err = ed25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
 		kp, err = ed25519.GenerateKeypair()
 	}
@@ -999,20 +998,18 @@ func ext_crypto_sr25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 	memory := vm.Memory
 
 	id := memory[keyTypeID : keyTypeID+4]
-
 	seedBytes := asMemorySlice(memory, seedSpan)
-	buf := &bytes.Buffer{}
-	buf.Write(seedBytes)
 
-	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warn("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
 		return 0
 	}
 
 	var kp crypto.Keypair
-	if seed.Exists() {
-		kp, err = sr25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	if seed != nil {
+		kp, err = sr25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
 		kp, err = sr25519.GenerateKeypair()
 	}
