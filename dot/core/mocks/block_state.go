@@ -225,6 +225,29 @@ func (_m *MockBlockState) GetBlockByHash(_a0 common.Hash) (*types.Block, error) 
 	return r0, r1
 }
 
+// GetBlockStateRoot provides a mock function with given fields: bhash
+func (_m *MockBlockState) GetBlockStateRoot(bhash common.Hash) (common.Hash, error) {
+	ret := _m.Called(bhash)
+
+	var r0 common.Hash
+	if rf, ok := ret.Get(0).(func(common.Hash) common.Hash); ok {
+		r0 = rf(bhash)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(common.Hash)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
+		r1 = rf(bhash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetFinalisedHash provides a mock function with given fields: _a0, _a1
 func (_m *MockBlockState) GetFinalisedHash(_a0 uint64, _a1 uint64) (common.Hash, error) {
 	ret := _m.Called(_a0, _a1)

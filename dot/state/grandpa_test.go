@@ -30,7 +30,7 @@ import (
 var (
 	kr, _     = keystore.NewEd25519Keyring()
 	testAuths = []types.GrandpaVoter{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 )
 
@@ -57,16 +57,12 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	testAuths2 := []types.GrandpaVoter{
-		{Key: kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
-	}
-
-	err = gs.SetNextChange(testAuths2, big.NewInt(1))
+	err = gs.SetNextChange(testAuths, big.NewInt(1))
 	require.NoError(t, err)
 
 	auths, err := gs.GetAuthorities(genesisSetID + 1)
 	require.NoError(t, err)
-	require.Equal(t, testAuths2, auths)
+	require.Equal(t, testAuths, auths)
 
 	atBlock, err := gs.GetSetIDChange(genesisSetID + 1)
 	require.NoError(t, err)
@@ -91,11 +87,7 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	testAuths2 := []types.GrandpaVoter{
-		{Key: kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
-	}
-
-	err = gs.SetNextChange(testAuths2, big.NewInt(100))
+	err = gs.SetNextChange(testAuths, big.NewInt(100))
 	require.NoError(t, err)
 
 	setID, err := gs.GetSetIDByBlockNumber(big.NewInt(50))

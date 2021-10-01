@@ -49,9 +49,9 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 func TestHandleNetworkMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	just := []*SignedVote{
+	just := []SignedVote{
 		{
-			Vote:        testVote,
+			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
