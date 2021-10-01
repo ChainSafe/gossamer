@@ -42,16 +42,6 @@ func NewBytes(exists bool, value []byte) *Bytes {
 	}
 }
 
-// Exists returns true if the value is Some, false if it is None.
-func (x *Bytes) Exists() bool {
-	return x.exists
-}
-
-// Value returns the []byte value. It returns nil if it is None.
-func (x *Bytes) Value() []byte {
-	return x.value
-}
-
 // String returns the value as a string.
 func (x *Bytes) String() string {
 	if !x.exists {
