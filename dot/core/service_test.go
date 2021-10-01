@@ -374,10 +374,9 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 		transactionState: ts,
 	}
 
-	err := s.maintainTransactionPool(&types.Block{
+	s.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]types.Extrinsic{}),
 	})
-	require.NoError(t, err)
 
 	res := make([]*transaction.ValidTransaction, len(txs))
 	for i := range txs {
@@ -420,10 +419,9 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		transactionState: ts,
 	}
 
-	err := s.maintainTransactionPool(&types.Block{
+	s.maintainTransactionPool(&types.Block{
 		Body: types.Body([]types.Extrinsic{txs[0].Extrinsic}),
 	})
-	require.NoError(t, err)
 
 	res := []*transaction.ValidTransaction{}
 	for {
