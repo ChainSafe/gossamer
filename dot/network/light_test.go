@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 	"time"
 
@@ -8,6 +9,47 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
+//
+//func TestEncoding(t *testing.T) {
+//	testLightRequest := NewLightRequest()
+//	testLightRequestNew := NewLightRequestNew()
+//
+//	enc1, err := scaleOld.Encode(testLightRequest.RmtCallRequest)
+//	require.NoError(t, err)
+//
+//	enc2, err := scale.Marshal(testLightRequestNew.RmtCallRequest)
+//	require.NoError(t, err)
+//	require.Equal(t, enc1, enc2)
+//
+//	enc1, err = scaleOld.Encode(testLightRequest.RmtReadRequest)
+//	require.NoError(t, err)
+//
+//	enc2, err = scale.Marshal(testLightRequestNew.RmtReadRequest)
+//	require.NoError(t, err)
+//	require.Equal(t, enc1, enc2)
+//
+//	enc1, err = scaleOld.Encode(testLightRequest.RmtHeaderRequest)
+//	require.NoError(t, err)
+//
+//	enc2, err = scale.Marshal(testLightRequestNew.RmtHeaderRequest)
+//	require.NoError(t, err)
+//	require.Equal(t, enc1, enc2)
+//
+//	enc1, err = scaleOld.Encode(testLightRequest.RmtReadChildRequest)
+//	require.NoError(t, err)
+//
+//	enc2, err = scale.Marshal(testLightRequestNew.RmtReadChildRequest)
+//	require.NoError(t, err)
+//	require.Equal(t, enc1, enc2)
+//
+//	enc1, err = scaleOld.Encode(testLightRequest.RmtChangesRequest)
+//	require.NoError(t, err)
+//
+//	enc2, err = scale.Marshal(testLightRequestNew.RmtChangesRequest)
+//	require.NoError(t, err)
+//	require.Equal(t, enc1, enc2)
+//}
+
 
 func TestDecodeLightMessage(t *testing.T) {
 	s := &Service{
@@ -19,8 +61,16 @@ func TestDecodeLightMessage(t *testing.T) {
 	testLightRequest := NewLightRequest()
 	testLightResponse := NewLightResponse()
 
+	testLightRequestNew := NewLightRequestNew()
+
 	reqEnc, err := testLightRequest.Encode()
 	require.NoError(t, err)
+
+	reqEncNew, err := scale.Marshal(*testLightRequestNew)
+	require.NoError(t, err)
+
+	//expReq := common.MustHexToBytes("0x000000000000000000000000")
+	require.Equal(t, reqEnc, reqEncNew)
 
 	msg, err := s.decodeLightMessage(reqEnc, testPeer, true)
 	require.NoError(t, err)

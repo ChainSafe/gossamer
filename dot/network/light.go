@@ -23,6 +23,15 @@ type LightRequest struct {
 	RmtChangesRequest   *RemoteChangesRequest
 }
 
+// LightRequest is all possible light client related requests.
+type LightRequestNew struct {
+	RmtCallRequest      RemoteCallRequest
+	RmtReadRequest      RemoteReadRequest
+	RmtHeaderRequest    RemoteHeaderRequest
+	RmtReadChildRequest RemoteReadChildRequest
+	RmtChangesRequest   RemoteChangesRequestNew
+}
+
 // NewLightRequest returns a new LightRequest
 func NewLightRequest() *LightRequest {
 	return &LightRequest{
@@ -31,6 +40,16 @@ func NewLightRequest() *LightRequest {
 		RmtHeaderRequest:    new(RemoteHeaderRequest),
 		RmtReadChildRequest: new(RemoteReadChildRequest),
 		RmtChangesRequest:   NewRemoteChangesRequest(),
+	}
+}
+
+func NewLightRequestNew() *LightRequestNew {
+	return &LightRequestNew{
+		RmtCallRequest:      RemoteCallRequest{},
+		RmtReadRequest:      RemoteReadRequest{},
+		RmtHeaderRequest:    RemoteHeaderRequest{},
+		RmtReadChildRequest: RemoteReadChildRequest{},
+		RmtChangesRequest:   NewRemoteChangesRequestNew(),
 	}
 }
 
@@ -151,6 +170,15 @@ type RemoteChangesRequest struct {
 	key        []byte
 }
 
+type RemoteChangesRequestNew struct {
+	FirstBlock *common.Hash
+	LastBlock  *common.Hash
+	Min        []byte
+	Max        []byte
+	StorageKey *[]byte
+	key        []byte
+}
+
 // NewRemoteChangesRequest returns a new RemoteChangesRequest
 func NewRemoteChangesRequest() *RemoteChangesRequest {
 	return &RemoteChangesRequest{
@@ -159,6 +187,16 @@ func NewRemoteChangesRequest() *RemoteChangesRequest {
 		Min:        []byte{},
 		Max:        []byte{},
 		StorageKey: optional.NewBytes(false, nil),
+	}
+}
+
+func NewRemoteChangesRequestNew() RemoteChangesRequestNew {
+	return RemoteChangesRequestNew{
+		FirstBlock: nil,
+		LastBlock:  nil,
+		Min:        []byte{},
+		Max:        []byte{},
+		StorageKey: nil,
 	}
 }
 
@@ -259,7 +297,7 @@ func (rr *RemoteReadResponse) String() string {
 
 // String formats a RemoteHeaderResponse as a string
 func (rh *RemoteHeaderResponse) String() string {
-	return fmt.Sprintf("Header =%s Proof =%s", rh.Header, string(rh.proof))
+	return fmt.Sprintf("Header =%+v Proof =%s", rh.Header, string(rh.proof))
 }
 
 func remoteCallResp(req *RemoteCallRequest) (*RemoteCallResponse, error) {

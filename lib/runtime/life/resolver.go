@@ -1373,14 +1373,27 @@ func toWasmMemory(memory, data []byte) (int64, error) {
 
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptionalUint32(memory []byte, data *uint32) (int64, error) {
-	var opt *optional.Uint32
+	//var opt *optional.Uint32
+	//if data == nil {
+	//	opt = optional.NewUint32(false, 0)
+	//} else {
+	//	opt = optional.NewUint32(true, *data)
+	//}
+	//
+	//enc := opt.Encode()
+	//return toWasmMemory(memory, enc)
+
+	var opt *uint32
 	if data == nil {
-		opt = optional.NewUint32(false, 0)
+		opt = nil
 	} else {
-		opt = optional.NewUint32(true, *data)
+		opt = data
 	}
 
-	enc := opt.Encode()
+	enc, err := pscale.Marshal(opt)
+	if err != nil {
+		return int64(0), err
+	}
 	return toWasmMemory(memory, enc)
 }
 
