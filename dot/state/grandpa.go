@@ -17,7 +17,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"math/big"
@@ -101,12 +100,6 @@ func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaV
 // GetAuthorities returns the authorities for the given setID
 func (s *GrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoter, error) {
 	enc, err := s.db.Get(authoritiesKey(setID))
-	if err != nil {
-		return nil, err
-	}
-
-	r := &bytes.Buffer{}
-	_, err = r.Write(enc)
 	if err != nil {
 		return nil, err
 	}
