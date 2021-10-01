@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
-	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -221,17 +221,17 @@ func TestWSConn_HandleComm(t *testing.T) {
 	var fCh chan<- *types.FinalisationInfo
 	mockedJust := grandpa.Justification{
 		Round: 1,
-		Commit: &grandpa.Commit{
+		Commit: grandpa.Commit{
 			Hash:       common.Hash{},
 			Number:     1,
 			Precommits: nil,
 		},
 	}
 
-	mockedJustBytes, err := mockedJust.Encode()
+	mockedJustBytes, err := scale.Marshal(mockedJust)
 	require.NoError(t, err)
 
-	BlockAPI := new(modulesmocks.MockBlockAPI)
+	BlockAPI := new(mocks.MockBlockAPI)
 	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)

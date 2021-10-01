@@ -28,6 +28,12 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+//StateGetReadProofRequest json fields
+type StateGetReadProofRequest struct {
+	Keys []string
+	Hash common.Hash
+}
+
 // StateCallRequest holds json fields
 type StateCallRequest struct {
 	Method string       `json:"method"`
@@ -128,6 +134,12 @@ type StateStorageKeysResponse []string
 //TODO: Determine actual type
 type StateMetadataResponse string
 
+//StateGetReadProofResponse holds the response format
+type StateGetReadProofResponse struct {
+	At    common.Hash `json:"at"`
+	Proof []string    `json:"proof"`
+}
+
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
 	Block   *common.Hash `json:"block"`
@@ -168,7 +180,7 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 }
 
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
-func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *StatePairResponse) error {
+func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *StatePairResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	var (
 		stateRootHash *common.Hash
@@ -209,38 +221,38 @@ func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *Sta
 }
 
 // Call isn't implemented properly yet.
-func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) error {
+func (sm *StateModule) Call(_ *http.Request, _ *StateCallRequest, _ *StateCallResponse) error {
 	_ = sm.networkAPI
 	_ = sm.storageAPI
 	return nil
 }
 
 // GetChildKeys isn't implemented properly yet.
-func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) error {
+func (*StateModule) GetChildKeys(_ *http.Request, _ *StateChildStorageRequest, _ *StateKeysResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
 
 // GetChildStorage isn't implemented properly yet.
-func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) error {
+func (*StateModule) GetChildStorage(_ *http.Request, _ *StateChildStorageRequest, _ *StateStorageDataResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
 
 // GetChildStorageHash isn't implemented properly yet.
-func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageResponse) error {
+func (*StateModule) GetChildStorageHash(_ *http.Request, _ *StateChildStorageRequest, _ *StateChildStorageResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
 
 // GetChildStorageSize isn't implemented properly yet.
-func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageSizeResponse) error {
+func (*StateModule) GetChildStorageSize(_ *http.Request, _ *StateChildStorageRequest, _ *StateChildStorageSizeResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
 
 // GetKeysPaged Returns the keys with prefix with pagination support.
-func (sm *StateModule) GetKeysPaged(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
+func (sm *StateModule) GetKeysPaged(_ *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
 	if req.Prefix == "" {
 		req.Prefix = "0x"
 	}
@@ -266,7 +278,7 @@ func (sm *StateModule) GetKeysPaged(r *http.Request, req *StateStorageKeyRequest
 }
 
 // GetMetadata calls runtime Metadata_metadata function
-func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *StateMetadataResponse) error {
+func (sm *StateModule) GetMetadata(_ *http.Request, req *StateRuntimeMetadataQuery, res *StateMetadataResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	metadata, err := sm.coreAPI.GetMetadata(req.Bhash)
 	if err != nil {
@@ -279,10 +291,40 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 	return err
 }
 
+// GetReadProof returns the proof to the received storage keys
+func (sm *StateModule) GetReadProof(_ *http.Request, req *StateGetReadProofRequest, res *StateGetReadProofResponse) error {
+	keys := make([][]byte, len(req.Keys))
+	for i, hexKey := range req.Keys {
+		bKey, err := common.HexToBytes(hexKey)
+		if err != nil {
+			return err
+		}
+
+		keys[i] = bKey
+	}
+
+	block, proofs, err := sm.coreAPI.GetReadProofAt(req.Hash, keys)
+	if err != nil {
+		return err
+	}
+
+	var decProof []string
+	for _, p := range proofs {
+		decProof = append(decProof, common.BytesToHex(p))
+	}
+
+	*res = StateGetReadProofResponse{
+		At:    block,
+		Proof: decProof,
+	}
+
+	return nil
+}
+
 // GetRuntimeVersion Get the runtime version at a given block.
 //  If no block hash is provided, the latest version gets returned.
 // TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
-func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateRuntimeVersionRequest, res *StateRuntimeVersionResponse) error {
+func (sm *StateModule) GetRuntimeVersion(_ *http.Request, req *StateRuntimeVersionRequest, res *StateRuntimeVersionResponse) error {
 	rtVersion, err := sm.coreAPI.GetRuntimeVersion(req.Bhash)
 	if err != nil {
 		return err
@@ -300,7 +342,7 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateRuntimeVersi
 }
 
 // GetStorage Returns a storage entry at a specific block's state. If not block hash is provided, the latest value is returned.
-func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res *StateStorageResponse) error {
+func (sm *StateModule) GetStorage(_ *http.Request, req *StateStorageRequest, res *StateStorageResponse) error {
 	var (
 		item []byte
 		err  error
@@ -330,7 +372,7 @@ func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res
 // GetStorageHash returns the hash of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is returned.
 //  TODO implement change storage trie so that block hash parameter works (See issue #834)
-func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageHashRequest, res *StateStorageHashResponse) error {
+func (sm *StateModule) GetStorageHash(_ *http.Request, req *StateStorageHashRequest, res *StateStorageHashResponse) error {
 	var (
 		item []byte
 		err  error
@@ -360,7 +402,7 @@ func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageHashRequ
 // GetStorageSize returns the size of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is used.
 // TODO implement change storage trie so that block hash parameter works (See issue #834)
-func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequest, res *StateStorageSizeResponse) error {
+func (sm *StateModule) GetStorageSize(_ *http.Request, req *StateStorageSizeRequest, res *StateStorageSizeResponse) error {
 	var (
 		item []byte
 		err  error
@@ -388,7 +430,7 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 }
 
 // QueryStorage isn't implemented properly yet.
-func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
+func (sm *StateModule) QueryStorage(_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
 	if req.StartBlock == common.EmptyHash {
 		return errors.New("the start block hash cannot be an empty value")
 	}
@@ -419,7 +461,7 @@ func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRange
 
 // SubscribeRuntimeVersion isn't implemented properly yet.
 // TODO make this actually a subscription that pushes data
-func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) error {
+func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, _ *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return sm.GetRuntimeVersion(r, nil, res)
 }
@@ -427,7 +469,7 @@ func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorag
 // SubscribeStorage Storage subscription. If storage keys are specified, it creates a message for each block which
 //  changes the specified storage keys. If none are specified, then it creates a message for every block.
 //  This endpoint communicates over the Websocket protocol, but this func should remain here so it's added to rpc_methods list
-func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
+func (*StateModule) SubscribeStorage(_ *http.Request, _ *StateStorageQueryRangeRequest, _ *StorageChangeSetResponse) error {
 	return nil
 }
 
