@@ -1098,10 +1098,11 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
 	require.NoError(t, err)
-	require.Equal(t, []byte{0, 0, 0, 0}, res)
+	require.Equal(t, []byte{1, 0, 0, 0}, res)
 
-	child, _ = inst.ctx.Storage.GetChild(testChildKey)
-	require.Nil(t, child)
+	child, err = inst.ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(child.Entries()))
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {
