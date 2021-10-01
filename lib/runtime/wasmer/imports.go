@@ -112,7 +112,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	pscale "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -1944,7 +1943,7 @@ func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int
 		opt = data
 	}
 
-	enc, err := pscale.Marshal(opt)
+	enc, err := scale.Marshal(opt)
 	if err != nil {
 		return int64(0), err
 	}

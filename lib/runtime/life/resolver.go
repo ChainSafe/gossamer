@@ -1380,7 +1380,7 @@ func toWasmMemoryOptionalUint32(memory []byte, data *uint32) (int64, error) {
 		opt = data
 	}
 
-	enc, err := pscale.Marshal(opt)
+	enc, err := scale.Marshal(opt)
 	if err != nil {
 		return int64(0), err
 	}
