@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -100,6 +102,15 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	return newInstance(code, cfg)
 }
 
+// FuncCallerFileHandler returns a Handler that adds the name of the calling function to the context with key "func"
+//  and the line number and file of the calling function to the context with key "caller".
+func FuncCallerFileHandler(h log.Handler) log.Handler {
+	return log.FuncHandler(func(r *log.Record) error {
+		r.Ctx = append(r.Ctx, "func", strings.TrimLeft(filepath.Ext(r.Call.Frame().Function), "."), "caller", fmt.Sprint(r.Call))
+		return h.Log(r)
+	})
+}
+
 func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
@@ -108,7 +119,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	// if cfg.LogLvl set to < 0, then don't change package log level
 	if cfg.LogLvl >= 0 {
 		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-		h = log.CallerFileHandler(h)
+		h = FuncCallerFileHandler(h)
 		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	}
 
