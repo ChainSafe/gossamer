@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	pscale "github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/perlin-network/life/exec"
@@ -424,26 +423,22 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	if len(valueCurr) == 0 {
 		valueRes = valueToAppend
 	} else {
-		// remove length prefix from existing value
-		r := &bytes.Buffer{}
-		_, _ = r.Write(valueCurr)
-		dec := &scale.Decoder{Reader: r}
-		currLength, err := dec.DecodeBigInt() //nolint
-
+		var currLength *big.Int
+		err := pscale.Unmarshal(valueCurr, &currLength)
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
 			return nil
 		}
 
-		// append new item
-		valueRes = append(r.Bytes(), valueToAppend...)
+		// append new item, pop off first byte now, since we're not using old scale.Decoder
+		valueRes = append(valueCurr[1:], valueToAppend...)
 
 		// increase length by 1
 		nextLength = big.NewInt(0).Add(currLength, big.NewInt(1))
 	}
 
-	lengthEnc, err := scale.Encode(nextLength)
+	lengthEnc, err := pscale.Marshal(nextLength)
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
 		return err
@@ -481,16 +476,15 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 	data := asMemorySlice(memory, dataSpan)
 
 	t := trie.NewEmptyTrie()
-	v, err := scale.Decode(data, [][]byte{})
+	var v [][]byte
+	err := pscale.Unmarshal(data, &v)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
 		return 0
 	}
 
-	values := v.([][]byte)
-
-	for i, val := range values {
-		key, err := scale.Encode(big.NewInt(int64(i))) //nolint
+	for i, val := range v {
+		key, err := pscale.Marshal(big.NewInt(int64(i))) //nolint
 		if err != nil {
 			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 			return 0

@@ -3,13 +3,12 @@ package life
 import (
 	"bytes"
 	"fmt"
-	"io"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
@@ -24,8 +23,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	}
 
 	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	_, err = scale.Decode(ret[1:], v)
-
+	err = scale.Unmarshal(ret[1:], v)
 	return v, err
 }
 
@@ -38,7 +36,8 @@ func (in *Instance) Version() (runtime.Version, error) {
 
 	version := &runtime.VersionData{}
 	err = version.Decode(res)
-	if err == io.EOF {
+	// error comes from scale now, so do a string check
+	if strings.Contains(fmt.Sprintf("%s", err), "EOF") {
 		// TODO: kusama seems to use the legacy version format
 		lversion := &runtime.LegacyVersionData{}
 		err = lversion.Decode(res)
@@ -63,7 +62,7 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	}
 
 	bc := new(types.BabeConfiguration)
-	_, err = scale.Decode(data, bc)
+	err = scale.Unmarshal(data, bc)
 	if err != nil {
 		return nil, err
 	}
@@ -78,17 +77,18 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 		return nil, err
 	}
 
-	adr, err := scale.Decode(ret, []types.GrandpaAuthoritiesRaw{})
+	var gar []types.GrandpaAuthoritiesRaw
+	err = scale.Unmarshal(ret, &gar)
 	if err != nil {
 		return nil, err
 	}
 
-	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]types.GrandpaAuthoritiesRaw))
+	return types.GrandpaAuthoritiesRawToAuthorities(gar)
 }
 
 // InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
-	encodedHeader, err := scale2.Marshal(*header)
+	encodedHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
@@ -116,7 +116,7 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	}
 
 	bh := types.NewEmptyHeader()
-	err = scale2.Unmarshal(data, bh)
+	err = scale.Unmarshal(data, bh)
 	if err != nil {
 		return nil, err
 	}
