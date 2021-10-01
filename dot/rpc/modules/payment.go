@@ -1,7 +1,6 @@
 package modules
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -47,7 +46,9 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 		return err
 	}
 
-	fmt.Println(encQueryInfo)
+	if encQueryInfo != nil {
+		*res = encQueryInfo.PartialFee
+	}
 
 	return nil
 }

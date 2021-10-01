@@ -41,3 +41,11 @@ const (
 	// for instance received over the network or RPC.
 	TxnExternal
 )
+
+// TransactionPaymentQueryInfo represents the basic information of a given encoded extrinsic
+type TransactionPaymentQueryInfo struct {
+	Weight uint64
+	// Class could be Normal (0), Operational (1), Mandatory (2)
+	Class      int
+	PartialFee uint
+}
