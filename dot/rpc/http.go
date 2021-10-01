@@ -54,6 +54,7 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
+	SyncStateAPI        modules.SyncStateAPI
 	NodeStorage         *runtime.NodeStorage
 	RPC                 bool
 	RPCExternal         bool

@@ -119,3 +119,7 @@ type RuntimeStorageAPI interface {
 	GetLocal(k []byte) ([]byte, error)
 	GetPersistent(k []byte) ([]byte, error)
 }
+
+type SyncStateAPI interface {
+	GenSyncSpec(raw bool) ([]byte, error)
+}
