@@ -163,6 +163,16 @@ func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	return in.Exec(runtime.DecodeSessionKeys, enc)
 }
 
+// PaymentQueryInfo returns information of a given extrinsic
+func (in *Instance) PaymentQueryInfo(ext []byte) ([]byte, error) {
+	encLen, err := scale2.Marshal(uint32(len(ext)))
+	if err != nil {
+		return nil, err
+	}
+
+	return in.Exec(runtime.TransactionPaymentApiQueryInfo, append(ext, encLen...))
+}
+
 func (in *Instance) CheckInherents()      {} //nolint
 func (in *Instance) RandomSeed()          {} //nolint
 func (in *Instance) OffchainWorker()      {} //nolint
