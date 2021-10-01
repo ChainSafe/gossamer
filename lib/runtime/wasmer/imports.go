@@ -1371,8 +1371,7 @@ func ext_offchain_local_storage_clear_version_1(context unsafe.Pointer, kind C.i
 	storageKey := asMemorySlice(instanceContext, key)
 
 	memory := instanceContext.Memory().Data()
-
-	kindInt := binary.LittleEndian.Uint32(memory[kind:kind+4])
+	kindInt := binary.LittleEndian.Uint32(memory[kind : kind+4])
 
 	var err error
 
