@@ -645,8 +645,10 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	mnemonic, err := crypto.NewBIP39Mnemonic()
 	require.NoError(t, err)
 
-	data := optional.NewBytes(true, []byte(mnemonic))
-	seedData, err := data.Encode()
+	mnemonicBytes := []byte(mnemonic)
+	var data *[]byte
+	data = &mnemonicBytes
+	seedData, err := scale.Marshal(data)
 	require.NoError(t, err)
 
 	params := append(idData, seedData...)
@@ -777,8 +779,10 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 	mnemonic, err := crypto.NewBIP39Mnemonic()
 	require.NoError(t, err)
 
-	data := optional.NewBytes(true, []byte(mnemonic))
-	seedData, err := data.Encode()
+	mnemonicBytes := []byte(mnemonic)
+	var data *[]byte
+	data = &mnemonicBytes
+	seedData, err := scale.Marshal(data)
 	require.NoError(t, err)
 
 	params := append(idData, seedData...)
