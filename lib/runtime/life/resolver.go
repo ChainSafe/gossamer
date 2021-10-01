@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	pscale "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/perlin-network/life/exec"
 )
 
@@ -424,7 +424,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		valueRes = valueToAppend
 	} else {
 		var currLength *big.Int
-		err := pscale.Unmarshal(valueCurr, &currLength)
+		err := scale.Unmarshal(valueCurr, &currLength)
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
@@ -438,7 +438,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		nextLength = big.NewInt(0).Add(currLength, big.NewInt(1))
 	}
 
-	lengthEnc, err := pscale.Marshal(nextLength)
+	lengthEnc, err := scale.Marshal(nextLength)
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
 		return err
@@ -477,14 +477,14 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 
 	t := trie.NewEmptyTrie()
 	var v [][]byte
-	err := pscale.Unmarshal(data, &v)
+	err := scale.Unmarshal(data, &v)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
 		return 0
 	}
 
 	for i, val := range v {
-		key, err := pscale.Marshal(big.NewInt(int64(i))) //nolint
+		key, err := scale.Marshal(big.NewInt(int64(i))) //nolint
 		if err != nil {
 			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 			return 0
@@ -786,7 +786,7 @@ func ext_crypto_ed25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
 		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	prefix, err := pscale.Marshal(big.NewInt(int64(len(keys))))
+	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ := toWasmMemory(memory, []byte{0})
@@ -969,7 +969,7 @@ func ext_crypto_sr25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
 		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	prefix, err := pscale.Marshal(big.NewInt(int64(len(keys))))
+	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ := toWasmMemory(memory, []byte{0})
@@ -1279,7 +1279,7 @@ func ext_trie_blake2_256_root_version_1(vm *exec.VirtualMachine) int64 {
 
 	// this function is expecting an array of (key, value) tuples
 	var kvs [][]byte
-	err := pscale.Unmarshal(data, &kvs)
+	err := scale.Unmarshal(data, &kvs)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
 		return 0
