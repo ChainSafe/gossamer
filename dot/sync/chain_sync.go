@@ -591,11 +591,9 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 
 	if req.Direction == network.Descending {
 		// reverse blocks before pre-validating and placing in ready queue
-		tmp := make([]*types.BlockData, len(resp.BlockData))
-		for i, bd := range resp.BlockData {
-			tmp[len(tmp)-1-i] = bd
+		for i, j := 0, len(resp.BlockData)-1; i < j; i, j = i+1, j-1 {
+			resp.BlockData[i], resp.BlockData[j] = resp.BlockData[j], resp.BlockData[i]
 		}
-		resp.BlockData = tmp
 	}
 
 	// perform some pre-validation of response, error if failure
