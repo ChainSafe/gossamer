@@ -24,7 +24,7 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
+	//"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -76,11 +76,11 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create and store blocktree from genesis block
-	bt := blocktree.NewBlockTreeFromRoot(header, db)
-	err = bt.Store()
-	if err != nil {
-		return fmt.Errorf("failed to write blocktree to database: %s", err)
-	}
+	//bt := blocktree.NewBlockTreeFromRoot(header, db)
+	// err = bt.Store()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to write blocktree to database: %s", err)
+	// }
 
 	// create block state from genesis block
 	blockState, err := NewBlockStateFromGenesis(db, header)
@@ -159,15 +159,15 @@ func (s *Service) storeInitialValues(data *genesis.Data, header *types.Header, t
 		return fmt.Errorf("failed to write trie to database: %s", err)
 	}
 
-	// write storage hash to database
-	if err := s.Base.StoreLatestStorageHash(t.MustHash()); err != nil {
-		return fmt.Errorf("failed to write storage hash to database: %s", err)
-	}
+	// // write storage hash to database
+	// if err := s.Base.StoreLatestStorageHash(t.MustHash()); err != nil {
+	// 	return fmt.Errorf("failed to write storage hash to database: %s", err)
+	// }
 
-	// write best block hash to state database
-	if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
-		return fmt.Errorf("failed to write best block hash to database: %s", err)
-	}
+	// // write best block hash to state database
+	// if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
+	// 	return fmt.Errorf("failed to write best block hash to database: %s", err)
+	// }
 
 	// write genesis data to state database
 	if err := s.Base.StoreGenesisData(data); err != nil {

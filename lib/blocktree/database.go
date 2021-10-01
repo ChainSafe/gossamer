@@ -9,6 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// TODO: remove this file!!!!
+
 // Store stores the blocktree in the underlying db
 func (bt *BlockTree) Store() error {
 	if bt.db == nil {
@@ -52,8 +54,8 @@ func encodeRecursive(n *node, enc []byte) ([]byte, error) {
 	// encode hash and arrival time
 	enc = append(enc, n.hash[:]...)
 	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, n.arrivalTime)
-	enc = append(enc, buf...)
+	// binary.LittleEndian.PutUint64(buf, n.arrivalTime)
+	// enc = append(enc, buf...)
 
 	binary.LittleEndian.PutUint64(buf, uint64(len(n.children)))
 	enc = append(enc, buf...)
@@ -81,21 +83,21 @@ func (bt *BlockTree) Decode(in []byte) error {
 	if err != nil {
 		return err
 	}
-	arrivalTime, err := common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
+	// arrivalTime, err := common.ReadUint64(r)
+	// if err != nil {
+	// 	return err
+	// }
 	numChildren, err := common.ReadUint64(r)
 	if err != nil {
 		return err
 	}
 
 	bt.head = &node{
-		hash:        hash,
-		parent:      nil,
-		children:    make([]*node, numChildren),
-		depth:       big.NewInt(0),
-		arrivalTime: arrivalTime,
+		hash:     hash,
+		parent:   nil,
+		children: make([]*node, numChildren),
+		depth:    big.NewInt(0),
+		//arrivalTime: arrivalTime,
 	}
 
 	bt.leaves = newLeafMap(bt.head)
@@ -110,21 +112,21 @@ func (bt *BlockTree) decodeRecursive(r io.Reader, parent *node) error {
 		if err != nil {
 			return err
 		}
-		arrivalTime, err := common.ReadUint64(r)
-		if err != nil {
-			return err
-		}
+		// arrivalTime, err := common.ReadUint64(r)
+		// if err != nil {
+		// 	return err
+		// }
 		numChildren, err := common.ReadUint64(r)
 		if err != nil {
 			return err
 		}
 
 		parent.children[i] = &node{
-			hash:        hash,
-			parent:      parent,
-			children:    make([]*node, numChildren),
-			depth:       big.NewInt(0).Add(parent.depth, big.NewInt(1)),
-			arrivalTime: arrivalTime,
+			hash:     hash,
+			parent:   parent,
+			children: make([]*node, numChildren),
+			depth:    big.NewInt(0).Add(parent.depth, big.NewInt(1)),
+			//arrivalTime: arrivalTime,
 		}
 
 		bt.leaves.replace(parent, parent.children[i])

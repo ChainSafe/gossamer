@@ -122,18 +122,19 @@ func (s *Service) Start() error {
 	}
 
 	// retrieve latest header
-	bestHash, err := s.Base.LoadBestBlockHash()
+	bestHeader, err := s.Block.GetHighestFinalisedHeader()
 	if err != nil {
 		return fmt.Errorf("failed to get best block hash: %w", err)
 	}
 
+	bestHash := bestHeader.Hash()
 	logger.Trace("start", "best block hash", bestHash)
 
 	// load blocktree
-	bt := blocktree.NewEmptyBlockTree(db)
-	if err = bt.Load(); err != nil {
-		return fmt.Errorf("failed to load blocktree: %w", err)
-	}
+	bt := blocktree.NewBlockTreeFromRoot(bestHeader, db)
+	// if err = bt.Load(); err != nil {
+	// 	return fmt.Errorf("failed to load blocktree: %w", err)
+	// }
 
 	// create block state
 	s.Block, err = NewBlockState(db, bt)
@@ -166,14 +167,15 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
 
-	stateRoot, err := s.Base.LoadLatestStorageHash()
-	if err != nil {
-		return fmt.Errorf("cannot load latest storage root: %w", err)
-	}
+	// stateRoot, err := s.Base.LoadLatestStorageHash()
+	// if err != nil {
+	// 	return fmt.Errorf("cannot load latest storage root: %w", err)
+	// }
 
+	stateRoot := bestHeader.StateRoot
 	logger.Debug("start", "latest state root", stateRoot)
 
-	// load current storage state
+	// load current storage state trie into memory
 	_, err = s.Storage.LoadFromDB(stateRoot)
 	if err != nil {
 		return fmt.Errorf("failed to load storage trie from database: %w", err)
@@ -232,6 +234,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
+	// TODO: this is broken, need to rewind to most recently finalised at this point
 	err = s.Block.SetFinalisedHash(header.Hash(), 0, 0)
 	if err != nil {
 		return err
@@ -261,49 +264,53 @@ func (s *Service) Rewind(toBlock int64) error {
 		}
 	}
 
-	return s.Base.StoreBestBlockHash(newHead)
+	//return s.Base.StoreBestBlockHash(newHead)
+	return nil
 }
 
 // Stop closes each state database
 func (s *Service) Stop() error {
-	head, err := s.Block.BestBlockStateRoot()
+	// head, err := s.Block.BestBlockStateRoot()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// st, has := s.Storage.tries.Load(head)
+	// if !has {
+	// 	return errTrieDoesNotExist(head)
+	// }
+
+	// t := st.(*trie.Trie)
+
+	// if err = s.Base.StoreLatestStorageHash(head); err != nil {
+	// 	return err
+	// }
+
+	// logger.Debug("storing latest storage trie", "root", head)
+
+	// if err = t.Store(s.Storage.db); err != nil {
+	// 	return err
+	// }
+
+	// if err = s.Block.bt.Store(); err != nil {
+	// 	return err
+	// }
+
+	hash, err := s.Block.GetHighestFinalisedHash()
 	if err != nil {
 		return err
 	}
+	// if err = s.Base.StoreBestBlockHash(hash); err != nil {
+	// 	return err
+	// }
 
-	st, has := s.Storage.tries.Load(head)
-	if !has {
-		return errTrieDoesNotExist(head)
-	}
-
-	t := st.(*trie.Trie)
-
-	if err = s.Base.StoreLatestStorageHash(head); err != nil {
-		return err
-	}
-
-	logger.Debug("storing latest storage trie", "root", head)
-
-	if err = t.Store(s.Storage.db); err != nil {
-		return err
-	}
-
-	if err = s.Block.bt.Store(); err != nil {
-		return err
-	}
-
-	hash := s.Block.BestBlockHash()
-	if err = s.Base.StoreBestBlockHash(hash); err != nil {
-		return err
-	}
-
-	thash, err := t.Hash()
-	if err != nil {
-		return err
-	}
+	// thash, err := t.Hash()
+	// if err != nil {
+	// 	return err
+	// }
 	close(s.closeCh)
 
-	logger.Debug("stop", "best block hash", hash, "latest state root", thash)
+	logger.Debug("stop", "best finalised hash", hash)
 
 	if err = s.db.Flush(); err != nil {
 		return err
@@ -362,9 +369,9 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
 
-	if err := s.Base.StoreLatestStorageHash(root); err != nil {
-		return err
-	}
+	// if err := s.Base.StoreLatestStorageHash(root); err != nil {
+	// 	return err
+	// }
 
 	logger.Info("importing storage trie...", "basepath", s.dbPath, "root", root)
 
@@ -372,20 +379,28 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	bt := blocktree.NewBlockTreeFromRoot(header, s.db)
-	if err := bt.Store(); err != nil {
-		return err
-	}
+	//bt := blocktree.NewBlockTreeFromRoot(header, s.db)
+	// if err := bt.Store(); err != nil {
+	// 	return err
+	// }
 
-	if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
-		return err
-	}
+	// if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
+	// 	return err
+	// }
 
+	// TODO this is broken, need to know round and setID for the header as well
+	hash := header.Hash()
 	if err := block.SetHeader(header); err != nil {
 		return err
 	}
+	if err := block.db.Put(finalisedHashKey(0, 0), hash[:]); err != nil {
+		return err
+	}
+	if err := block.setHighestRoundAndSetID(0, 0); err != nil {
+		return err
+	}
 
-	logger.Debug("Import", "best block hash", header.Hash(), "latest state root", root)
+	logger.Debug("Import", "best block hash", hash, "latest state root", root)
 	if err := s.db.Flush(); err != nil {
 		return err
 	}

@@ -19,6 +19,7 @@ package blocktree
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/disiqueira/gotree"
@@ -29,8 +30,8 @@ type node struct {
 	hash        common.Hash // Block hash
 	parent      *node       // Parent Node
 	children    []*node     // Nodes of children blocks
-	depth       *big.Int    // Depth within the tree
-	arrivalTime uint64      // Arrival time of the block
+	depth       *big.Int    // Depth within the tree // TODO: rename to number, as it corresponds to block number
+	arrivalTime time.Time   // Arrival time of the block
 }
 
 // addChild appends Node to n's list of children

@@ -139,10 +139,13 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	// if nothing was previously finalised, set the first slot of the network to the
 	// slot number of block 1, which is now being set as final
 	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
-		err := bs.setFirstSlotOnFinalisation()
-		if err != nil {
+		if err := bs.setFirstSlotOnFinalisation(); err != nil {
 			return err
 		}
+	}
+
+	if err := bs.handleFinalisedBlock(hash); err != nil {
+		return fmt.Errorf("failed to set number->hash mapping on finalisation: %w", err)
 	}
 
 	if round > 0 {
@@ -151,6 +154,8 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
+		bs.deleteUnfinalisedBlock(hash)
+
 		header, err := bs.GetHeader(hash)
 		if err != nil {
 			logger.Debug("failed to get pruned header", "hash", hash, "error", err)
@@ -176,6 +181,62 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	return bs.setHighestRoundAndSetID(round, setID)
+}
+
+func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
+	if curr.Equal(bs.lastFinalised) {
+		return nil
+	}
+
+	prev, err := bs.GetHighestFinalisedHash()
+	if err != nil {
+		return err
+	}
+
+	if prev.Equal(curr) {
+		return nil
+	}
+
+	subchain, err := bs.SubChain(prev, curr)
+	if err != nil {
+		return err
+	}
+
+	batch := bs.db.NewBatch()
+	for _, hash := range subchain {
+		// header, err := bs.GetHeader(hash)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to get header in subchain: %w", err)
+		// }
+
+		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
+		if !has {
+			return fmt.Errorf("failed to find block in unfinalised block map, block=%s", hash)
+		}
+
+		if err = bs.SetHeader(&block.Header); err != nil {
+			return err
+		}
+
+		if err = bs.SetBlockBody(hash, &block.Body); err != nil {
+			return err
+		}
+
+		arrivalTime, err := bs.bt.GetArrivalTime(hash)
+		if err != nil {
+			return err
+		}
+
+		if err = bs.setArrivalTime(hash, arrivalTime); err != nil {
+			return err
+		}
+
+		if err = batch.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes()); err != nil {
+			return err
+		}
+	}
+
+	return batch.Flush()
 }
 
 func (bs *BlockState) setFirstSlotOnFinalisation() error {
