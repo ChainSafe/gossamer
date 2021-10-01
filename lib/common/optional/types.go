@@ -18,7 +18,6 @@ package optional
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,66 +28,6 @@ import (
 )
 
 const none = "None"
-
-// Uint32 represents an optional uint32 type.
-type Uint32 struct {
-	exists bool
-	value  uint32
-}
-
-// NewUint32 returns a new optional.Uint32
-func NewUint32(exists bool, value uint32) *Uint32 {
-	return &Uint32{
-		exists: exists,
-		value:  value,
-	}
-}
-
-// Exists returns true if the value is Some, false if it is None.
-func (x *Uint32) Exists() bool {
-	if x == nil {
-		return false
-	}
-
-	return x.exists
-}
-
-// Value returns the uint32 value. It returns 0 if it is None.
-func (x *Uint32) Value() uint32 {
-	if x == nil {
-		return 0
-	}
-
-	return x.value
-}
-
-// String returns the value as a string.
-func (x *Uint32) String() string {
-	if x == nil {
-		return ""
-	}
-	if !x.exists {
-		return none
-	}
-	return fmt.Sprintf("%d", x.value)
-}
-
-// Set sets the exists and value fields.
-func (x *Uint32) Set(exists bool, value uint32) {
-	x.exists = exists
-	x.value = value
-}
-
-// Encode returns the SCALE encoding of the optional.Uint32
-func (x *Uint32) Encode() []byte {
-	if !x.exists {
-		return []byte{0}
-	}
-
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, x.value)
-	return append([]byte{1}, buf...)
-}
 
 // Bytes represents an optional Bytes type.
 type Bytes struct {

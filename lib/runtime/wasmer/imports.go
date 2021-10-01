@@ -112,6 +112,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	pscale "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -1936,14 +1937,17 @@ func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error
 
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int64, error) {
-	var opt *optional.Uint32
+	var opt *uint32
 	if data == nil {
-		opt = optional.NewUint32(false, 0)
+		opt = nil
 	} else {
-		opt = optional.NewUint32(true, *data)
+		opt = data
 	}
 
-	enc := opt.Encode()
+	enc, err := pscale.Marshal(opt)
+	if err != nil {
+		return int64(0), err
+	}
 	return toWasmMemory(context, enc)
 }
 
