@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -127,6 +128,61 @@ func TestGetStorageHash(t *testing.T) {
 		if test.expect != "" {
 			require.Equal(t, test.expect, res)
 		}
+	}
+}
+
+func TestGetChildStorage(t *testing.T) {
+	mod, blockHash := setupChildStateStorage(t)
+	randomHash, err := common.HexToHash(RandomHash)
+	require.NoError(t, err)
+
+	testCases := []struct {
+		params   []string
+		expected []byte
+		errMsg   string
+	}{
+		{params: []string{":child_storage_key", ""}, expected: nil},
+		{params: []string{":child_storage_key", ":child_first"}, expected: []byte(":child_first_value")},
+		// ??? trie with given root does not exist: 0xa5eb26ce5a6131f0737afbafa33ac3b9677a4fdb014d584862fe5da9d7d4539b
+		// {params: []string{":child_storage_key", ":child_first", blockHash.String()}, expected: []byte(":child_first_value")},
+		{params: []string{":child_storage_key", ":child_first", randomHash.String()}, errMsg: "trie with given root does not exist"},
+	}
+
+	for _, test := range testCases {
+		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
+			var res StateStorageResponse
+			var req ChildStateStorageRequest
+
+			if test.params[0] != "" {
+				req.ChildStorageKey = []byte(test.params[0])
+			}
+
+			if test.params[1] != "" {
+				req.Key = []byte(test.params[1])
+			}
+
+			if len(test.params) > 2 && test.params[2] != "" {
+				req.Block = &common.Hash{}
+				*req.Block, err = common.HexToHash(test.params[2])
+				require.NoError(t, err)
+			}
+
+			err = mod.GetStorage(nil, &req, &res)
+			// Handle error cases.
+			if test.errMsg != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.errMsg)
+				return
+			}
+
+			// Verify expected values.
+			require.NoError(t, err)
+			if test.expected != nil {
+				// Convert human-readable result value to hex.
+				expectedVal := "0x" + hex.EncodeToString(test.expected)
+				require.Equal(t, StateStorageResponse(expectedVal), res)
+			}
+		})
 	}
 }
 
