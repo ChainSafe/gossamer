@@ -51,11 +51,10 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	imported                       map[byte]chan<- *types.Block
+	imported                       map[chan *types.Block]struct{}
 	finalised                      map[byte]chan<- *types.FinalisationInfo
-	importedLock                   sync.RWMutex
 	finalisedLock                  sync.RWMutex
-	importedBytePool               *common.BytePool
+	importedLock                   sync.RWMutex
 	finalisedBytePool              *common.BytePool
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
@@ -74,7 +73,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[byte]chan<- *types.Block),
+		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -91,7 +90,6 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
 
-	bs.importedBytePool = common.NewBytePool256()
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
@@ -102,7 +100,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[byte]chan<- *types.Block),
+		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -135,7 +133,6 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	bs.importedBytePool = common.NewBytePool256()
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
@@ -544,6 +541,16 @@ func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
 	header, err := bs.GetHeader(bs.BestBlockHash())
 	if err != nil {
 		return common.Hash{}, err
+	}
+
+	return header.StateRoot, nil
+}
+
+// GetBlockStateRoot returns the state root of the given block hash
+func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (common.Hash, error) {
+	header, err := bs.GetHeader(bhash)
+	if err != nil {
+		return common.EmptyHash, err
 	}
 
 	return header.StateRoot, nil

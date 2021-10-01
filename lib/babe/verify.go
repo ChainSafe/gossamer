@@ -314,8 +314,9 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	header.Digest = h
 	defer func() {
-		err = header.Digest.Add(sealItem.Value())
-		logger.Error("Error adding item to digest", "error", err)
+		if err = header.Digest.Add(sealItem.Value()); err != nil {
+			logger.Error("failed to re-add seal to digest", "error", err)
+		}
 	}()
 
 	encHeader, err := scale.Marshal(*header)

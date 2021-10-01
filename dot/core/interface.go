@@ -38,12 +38,13 @@ type BlockState interface {
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
-	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
-	UnregisterImportedChannel(id byte)
+	GetImportedBlockNotifierChannel() chan *types.Block
+	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
@@ -62,6 +63,7 @@ type StorageState interface {
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
+	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	sync.Locker
 }
 

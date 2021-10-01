@@ -35,7 +35,9 @@ package wasmer
 // extern int32_t ext_crypto_ed25519_verify_version_1(void *context, int32_t a, int64_t b, int32_t c);
 // extern int32_t ext_crypto_finish_batch_verify_version_1(void *context);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_version_1(void *context, int32_t a, int32_t b);
+// extern int64_t ext_crypto_secp256k1_ecdsa_recover_version_2(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(void *context, int32_t a, int32_t b);
+// extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(void *context, int32_t a, int32_t b);
 // extern int32_t ext_crypto_sr25519_generate_version_1(void *context, int32_t a, int64_t b);
 // extern int64_t ext_crypto_sr25519_public_keys_version_1(void *context, int32_t a);
 // extern int64_t ext_crypto_sr25519_sign_version_1(void *context, int32_t a, int32_t b, int64_t c);
@@ -135,7 +137,7 @@ import (
 )
 
 //export ext_logging_log_version_1
-func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData C.int64_t, msgData C.int64_t) {
+func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData, msgData C.int64_t) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
@@ -321,7 +323,7 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 }
 
 //export ext_crypto_ed25519_sign_version_1
-func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
+func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
 	logger.Debug("[ext_crypto_ed25519_sign_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -420,14 +422,6 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
 
-	if signature[64] == 27 {
-		signature[64] = 0
-	}
-
-	if signature[64] == 28 {
-		signature[64] = 1
-	}
-
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
@@ -451,6 +445,12 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	return C.int64_t(ret)
 }
 
+//export ext_crypto_secp256k1_ecdsa_recover_version_2
+func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_2] executing...")
+	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
+}
+
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
 func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
@@ -462,14 +462,6 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 	// recovery id as the last element
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
-
-	if signature[64] == 27 {
-		signature[64] = 0
-	}
-
-	if signature[64] == 28 {
-		signature[64] = 1
-	}
 
 	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
 	if err != nil {
@@ -487,6 +479,12 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 	}
 
 	return C.int64_t(ret)
+}
+
+//export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_2] executing...")
+	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context, sig, msg)
 }
 
 //export ext_crypto_sr25519_generate_version_1
@@ -874,7 +872,7 @@ func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 }
 
 //export ext_misc_print_num_version_1
-func ext_misc_print_num_version_1(context unsafe.Pointer, data C.int64_t) {
+func ext_misc_print_num_version_1(_ unsafe.Pointer, data C.int64_t) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
 
 	logger.Debug("[ext_misc_print_num_version_1]", "num", fmt.Sprintf("%d", int64(data)))
@@ -934,7 +932,7 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 }
 
 //export ext_default_child_storage_read_version_1
-func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t, valueOut C.int64_t, offset C.int32_t) C.int64_t {
+func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStorageKey, key, valueOut C.int64_t, offset C.int32_t) C.int64_t {
 	logger.Debug("[ext_default_child_storage_read_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -981,7 +979,7 @@ func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStor
 }
 
 //export ext_default_child_storage_clear_prefix_version_1
-func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefixSpan C.int64_t) {
+func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey, prefixSpan C.int64_t) {
 	logger.Debug("[ext_default_child_storage_clear_prefix_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -998,7 +996,7 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_exists_version_1
-func ext_default_child_storage_exists_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int32_t {
+func ext_default_child_storage_exists_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int32_t {
 	logger.Debug("[ext_default_child_storage_exists_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1038,7 +1036,7 @@ func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorag
 }
 
 //export ext_default_child_storage_next_key_version_1
-func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int64_t {
+func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int64_t {
 	logger.Debug("[ext_default_child_storage_next_key_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1350,7 +1348,18 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 //export ext_offchain_index_set_version_1
 func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
-	logger.Warn("[ext_offchain_index_set_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	storageKey := asMemorySlice(instanceContext, keySpan)
+	newValue := asMemorySlice(instanceContext, valueSpan)
+	cp := make([]byte, len(newValue))
+	copy(cp, newValue)
+
+	err := runtimeCtx.NodeStorage.BaseDB.Put(storageKey, cp)
+	if err != nil {
+		logger.Error("[ext_offchain_index_set_version_1] failed to set value in raw storage", "error", err)
+	}
 }
 
 //export ext_offchain_local_storage_clear_version_1
@@ -1585,14 +1594,14 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		nextLength = big.NewInt(0).Add(currLength, big.NewInt(1))
 	}
 
-	lengthEnc, err := scale.Encode(nextLength)
+	finalVal, err := scale.Encode(nextLength)
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
 		return err
 	}
 
 	// append new length prefix to start of items array
-	finalVal := append(lengthEnc, valueRes...)
+	finalVal = append(finalVal, valueRes...)
 	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", finalVal))
 	storage.Set(key, finalVal)
 	return nil
@@ -1806,7 +1815,7 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 }
 
 //export ext_storage_set_version_1
-func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueSpan C.int64_t) {
+func ext_storage_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
 	logger.Trace("[ext_storage_set_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1993,7 +2002,15 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_version_2", ext_crypto_secp256k1_ecdsa_recover_version_2, C.ext_crypto_secp256k1_ecdsa_recover_version_2)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1", ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2", ext_crypto_secp256k1_ecdsa_recover_compressed_version_2, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_2)
 	if err != nil {
 		return nil, err
 	}

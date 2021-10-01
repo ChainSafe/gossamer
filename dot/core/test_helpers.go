@@ -18,19 +18,21 @@ package core
 
 import (
 	"io/ioutil"
+	"path/filepath"
 	"testing"
 
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
-
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -104,6 +106,17 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 		require.NoError(t, err)
+
+		nodeStorage := runtime.NodeStorage{}
+
+		if stateSrvc != nil {
+			nodeStorage.BaseDB = stateSrvc.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
+		}
+
+		rtCfg.NodeStorage = nodeStorage
 
 		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 		require.NoError(t, err)

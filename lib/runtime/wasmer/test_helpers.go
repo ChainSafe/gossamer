@@ -71,6 +71,7 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl,
 	ns := runtime.NodeStorage{
 		LocalStorage:      runtime.NewInMemoryDB(t),
 		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 	cfg := &Config{
 		Imports: ImportsNodeRuntime,

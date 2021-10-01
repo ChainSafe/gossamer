@@ -41,8 +41,8 @@ type BlockState interface {
 	BestBlockHash() common.Hash
 	Leaves() []common.Hash
 	BlocktreeAsString() string
-	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
-	UnregisterImportedChannel(id byte)
+	GetImportedBlockNotifierChannel() chan *types.Block
+	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	SetJustification(hash common.Hash, data []byte) error
@@ -60,10 +60,10 @@ type GrandpaState interface { //nolint
 	GetSetIDByBlockNumber(num *big.Int) (uint64, error)
 	SetLatestRound(round uint64) error
 	GetLatestRound() (uint64, error)
-	SetPrevotes(round, setID uint64, data []*SignedVote) error
-	SetPrecommits(round, setID uint64, data []*SignedVote) error
-	GetPrevotes(round, setID uint64) ([]*SignedVote, error)
-	GetPrecommits(round, setID uint64) ([]*SignedVote, error)
+	SetPrevotes(round, setID uint64, data []SignedVote) error
+	SetPrecommits(round, setID uint64, data []SignedVote) error
+	GetPrevotes(round, setID uint64) ([]SignedVote, error)
+	GetPrecommits(round, setID uint64) ([]SignedVote, error)
 }
 
 // DigestHandler is the interface required by GRANDPA for the digest handler
