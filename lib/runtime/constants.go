@@ -40,11 +40,9 @@ const (
 	POLKADOT_RUNTIME_URL = "https://github.com/noot/polkadot/blob/noot/v0.8.25/polkadot_runtime.wasm?raw=true"
 
 	// v0.8 test API wasm
-	HOST_API_TEST_RUNTIME    = "hostapi_runtime"
-	HOST_API_TEST_RUNTIME_FP = "hostapi_runtime.compact.wasm"
-	//HOST_API_TEST_RUNTIME_URL = "https://github.com/noot/polkadot-spec/blob/master/test/hostapi_runtime.compact.wasm?raw=true"
-	// todo (ed) use above URL once ed/add_rtm_ext_default_child_storage_storage_kill_version_2 has been merged to master
-	HOST_API_TEST_RUNTIME_URL = "https://github.com/noot/polkadot-spec/blob/ed/impl_rtm_ext_offchain_local_storage_clear_version_1/test/hostapi_runtime.compact.wasm?raw=true"
+	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
+	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
+	HOST_API_TEST_RUNTIME_URL = "https://github.com/noot/polkadot-spec/blob/master/test/hostapi_runtime.compact.wasm?raw=true"
 
 	// v0.8 substrate runtime with modified name and babe C=(1, 1)
 	DEV_RUNTIME     = "dev_runtime"
