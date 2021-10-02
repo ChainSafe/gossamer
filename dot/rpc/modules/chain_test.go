@@ -332,6 +332,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 
