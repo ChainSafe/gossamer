@@ -1,25 +1,135 @@
 package modules
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 )
 
 func TestPaymentQueryInfo(t *testing.T) {
-	// Was made with @polkadot/api on https://github.com/danforbes/polkadot-js-scripts/tree/create-signed-tx
-	validEncodedExtrinsic := "0xd1018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01bc2b6e35929aabd5b8bc4e5b0168c9bee59e2bb9d6098769f6683ecf73e44c776652d947a270d59f3d37eb9f9c8c17ec1b4cc473f2f9928ffdeef0f3abd43e85d502000000012844616e20466f72626573"
-
 	state := newTestStateService(t)
-	mod := &PaymentModule{
-		blockAPI: state.Block,
-	}
+	bestBlockHash := state.Block.BestBlockHash()
 
-	var req PaymentQueryInfoRequest
-	req.Ext = validEncodedExtrinsic
-	req.Hash = nil
+	t.Run("When there is no errors", func(t *testing.T) {
+		mockedQueryInfo := &types.TransactionPaymentQueryInfo{
+			Weight:     0,
+			Class:      0,
+			PartialFee: 100,
+		}
 
-	var res uint
-	err := mod.QueryInfo(nil, &req, &res)
-	require.NoError(t, err)
+		runtimeMock := new(mocksruntime.MockInstance)
+		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(mockedQueryInfo, nil)
+
+		blockAPIMock := new(mocks.MockBlockAPI)
+		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
+
+		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
+
+		mod := &PaymentModule{
+			blockAPI: blockAPIMock,
+		}
+
+		var req PaymentQueryInfoRequest
+		req.Ext = "0x0001"
+		req.Hash = nil
+
+		var res uint
+		err := mod.QueryInfo(nil, &req, &res)
+
+		require.NoError(t, err)
+		require.Equal(t, mockedQueryInfo.PartialFee, res)
+
+		// should be called because req.Hash is nil
+		blockAPIMock.AssertCalled(t, "BestBlockHash")
+		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
+		runtimeMock.AssertCalled(t, "PaymentQueryInfo", mock.AnythingOfType("[]uint8"))
+	})
+
+	t.Run("When could not get runtime", func(t *testing.T) {
+		blockAPIMock := new(mocks.MockBlockAPI)
+		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
+
+		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).
+			Return(nil, errors.New("mocked problems"))
+
+		mod := &PaymentModule{
+			blockAPI: blockAPIMock,
+		}
+
+		var req PaymentQueryInfoRequest
+		req.Ext = "0x0011"
+		req.Hash = nil
+
+		var res uint
+		err := mod.QueryInfo(nil, &req, &res)
+
+		require.Error(t, err)
+		require.Equal(t, res, uint(0x0))
+
+		blockAPIMock.AssertCalled(t, "BestBlockHash")
+		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
+	})
+
+	t.Run("When PaymentQueryInfo returns error", func(t *testing.T) {
+		runtimeMock := new(mocksruntime.MockInstance)
+		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("mocked error"))
+
+		blockAPIMock := new(mocks.MockBlockAPI)
+		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
+
+		mod := &PaymentModule{
+			blockAPI: blockAPIMock,
+		}
+
+		mockedHash := common.NewHash([]byte{0x01, 0x02})
+		var req PaymentQueryInfoRequest
+		req.Ext = "0x0000"
+		req.Hash = &mockedHash
+
+		var res uint
+		err := mod.QueryInfo(nil, &req, &res)
+
+		require.Error(t, err)
+		require.Equal(t, res, uint(0x0))
+
+		// should be called because req.Hash is nil
+		blockAPIMock.AssertNotCalled(t, "BestBlockHash")
+		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
+		runtimeMock.AssertCalled(t, "PaymentQueryInfo", mock.AnythingOfType("[]uint8"))
+	})
+
+	t.Run("When PaymentQueryInfo returns a nil info", func(t *testing.T) {
+		runtimeMock := new(mocksruntime.MockInstance)
+		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, nil)
+
+		blockAPIMock := new(mocks.MockBlockAPI)
+		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
+
+		mod := &PaymentModule{
+			blockAPI: blockAPIMock,
+		}
+
+		mockedHash := common.NewHash([]byte{0x01, 0x02})
+		var req PaymentQueryInfoRequest
+		req.Ext = "0x0020"
+		req.Hash = &mockedHash
+
+		var res uint
+		err := mod.QueryInfo(nil, &req, &res)
+
+		require.NoError(t, err)
+		require.Equal(t, res, uint(0x0))
+
+		// should be called because req.Hash is nil
+		blockAPIMock.AssertNotCalled(t, "BestBlockHash")
+		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
+		runtimeMock.AssertCalled(t, "PaymentQueryInfo", mock.AnythingOfType("[]uint8"))
+	})
 }

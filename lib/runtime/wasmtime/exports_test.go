@@ -109,12 +109,12 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 		{
 			// incomplete extrinsic
 			ext: "0x4ccde39a5684e7a56da23b22d4d9fbadb023baa19c56495432884d0640000000000000000000000000000000",
-			err: errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."),
+			err: errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint
 		},
 		{
 			// incomplete extrinsic
 			extB: nil,
-			err:  errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."),
+			err:  errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint
 		},
 	}
 
