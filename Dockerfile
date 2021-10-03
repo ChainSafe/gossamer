@@ -7,13 +7,11 @@ RUN apt-get update && \
     apt-get install -y \
     gcc \
     cmake \
-    wget \
-    npm \
-    # Install nodejs for polkadotjs tests
-    nodejs
+    wget
 
 # Install node source for polkadotjs tests
-RUN wget -qO- https://deb.nodesource.com/setup_14.x | bash -
+RUN wget -qO- https://deb.nodesource.com/setup_14.x | bash - && \
+    apt-get install -y nodejs
 
 # Install subkey
 RUN wget -O /usr/local/bin/subkey https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0 && \
