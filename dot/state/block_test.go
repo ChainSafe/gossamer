@@ -17,7 +17,6 @@
 package state
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -26,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,9 +37,7 @@ var testGenesisHeader = &types.Header{
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
 	db := NewInMemoryDB(t)
 	if header == nil {
-		return &BlockState{
-			db: chaindb.NewTable(db, blockPrefix),
-		}
+		header = testGenesisHeader
 	}
 
 	bs, err := NewBlockStateFromGenesis(db, header)
@@ -270,42 +266,6 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	if resBlock.Header.Hash() != newBlock.Header.Hash() {
 		t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), newBlock.Header.Hash(), newBlock.Header.Number)
 	}
-}
-
-func TestFinalizedHash(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
-	h, err := bs.GetFinalisedHash(0, 0)
-	require.NoError(t, err)
-	require.Equal(t, testGenesisHeader.Hash(), h)
-	fmt.Println("got finalised hash")
-
-	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	require.NoError(t, err)
-	header := &types.Header{
-		ParentHash: testGenesisHeader.Hash(),
-		Number:     big.NewInt(1),
-		Digest:     digest,
-	}
-
-	testhash := header.Hash()
-	err = bs.db.Put(headerKey(testhash), []byte{})
-	require.NoError(t, err)
-
-	err = bs.AddBlock(&types.Block{
-		Header: *header,
-		Body:   types.Body{},
-	})
-	require.NoError(t, err)
-	fmt.Println("AddBlock")
-
-	err = bs.SetFinalisedHash(testhash, 1, 1)
-	require.NoError(t, err)
-	fmt.Println("SetFinalisedHash")
-
-	h, err = bs.GetFinalisedHash(1, 1)
-	require.NoError(t, err)
-	require.Equal(t, testhash, h)
 }
 
 func TestFinalization_DeleteBlock(t *testing.T) {

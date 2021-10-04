@@ -17,7 +17,10 @@
 package state
 
 import (
+	"math/big"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/stretchr/testify/require"
 )
@@ -68,4 +71,37 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), round)
 	require.Equal(t, uint64(1), setID)
+}
+
+func TestBlockState_SetFinalisedHash(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+	h, err := bs.GetFinalisedHash(0, 0)
+	require.NoError(t, err)
+	require.Equal(t, testGenesisHeader.Hash(), h)
+
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
+	header := &types.Header{
+		ParentHash: testGenesisHeader.Hash(),
+		Number:     big.NewInt(1),
+		Digest:     digest,
+	}
+
+	testhash := header.Hash()
+	err = bs.db.Put(headerKey(testhash), []byte{})
+	require.NoError(t, err)
+
+	err = bs.AddBlock(&types.Block{
+		Header: *header,
+		Body:   types.Body{},
+	})
+	require.NoError(t, err)
+
+	err = bs.SetFinalisedHash(testhash, 1, 1)
+	require.NoError(t, err)
+
+	h, err = bs.GetFinalisedHash(1, 1)
+	require.NoError(t, err)
+	require.Equal(t, testhash, h)
 }

@@ -140,12 +140,20 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	// slot number of block 1, which is now being set as final
 	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
 		if err := bs.setFirstSlotOnFinalisation(); err != nil {
-			return err
+			return fmt.Errorf("failed to set first slot on finalisation: %w", err)
 		}
 	}
 
 	if err := bs.handleFinalisedBlock(hash); err != nil {
 		return fmt.Errorf("failed to set number->hash mapping on finalisation: %w", err)
+	}
+
+	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
+		return fmt.Errorf("failed to set finalised hash key: %w", err)
+	}
+
+	if err := bs.setHighestRoundAndSetID(round, setID); err != nil {
+		return fmt.Errorf("failed to set highest round and set ID: %w", err)
 	}
 
 	if round > 0 {
@@ -154,33 +162,28 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
-		bs.deleteUnfinalisedBlock(hash)
+		block, _ := bs.getAndDeleteUnfinalisedBlock(hash)
 
-		header, err := bs.GetHeader(hash)
-		if err != nil {
-			logger.Debug("failed to get pruned header", "hash", hash, "error", err)
-			continue
-		}
+		// header, err := bs.GetHeader(hash)
+		// if err != nil {
+		// 	logger.Debug("failed to get pruned header", "hash", hash, "error", err)
+		// 	continue
+		// }
 
-		err = bs.DeleteBlock(hash)
-		if err != nil {
-			logger.Debug("failed to delete block", "hash", hash, "error", err)
-			continue
-		}
+		// err = bs.DeleteBlock(hash)
+		// if err != nil {
+		// 	logger.Debug("failed to delete block", "hash", hash, "error", err)
+		// 	continue
+		// }
 
-		logger.Trace("pruned block", "hash", hash, "number", header.Number)
+		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
 		go func(header *types.Header) {
 			bs.pruneKeyCh <- header
-		}(header)
+		}(&block.Header)
 	}
 
 	bs.lastFinalised = hash
-
-	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
-		return err
-	}
-
-	return bs.setHighestRoundAndSetID(round, setID)
+	return nil
 }
 
 func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
@@ -204,6 +207,10 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 	batch := bs.db.NewBatch()
 	for _, hash := range subchain {
+		if hash.Equal(bs.genesisHash) {
+			continue
+		}
+
 		// header, err := bs.GetHeader(hash)
 		// if err != nil {
 		// 	return fmt.Errorf("failed to get header in subchain: %w", err)

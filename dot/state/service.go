@@ -17,7 +17,6 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"os"
@@ -99,10 +98,11 @@ func (s *Service) DB() chaindb.Database {
 
 // Start initialises the Storage database and the Block database.
 func (s *Service) Start() error {
-	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
-		return nil
-	}
+	// if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
+	// 	return nil
+	// }
 
+	var err error
 	db := s.db
 
 	if !s.isMemDB {
@@ -121,40 +121,20 @@ func (s *Service) Start() error {
 		s.Base = NewBaseState(db)
 	}
 
+	// create block state
+	s.Block, err = NewBlockState(db)
+	if err != nil {
+		return fmt.Errorf("failed to create block state: %w", err)
+	}
+
 	// retrieve latest header
 	bestHeader, err := s.Block.GetHighestFinalisedHeader()
 	if err != nil {
 		return fmt.Errorf("failed to get best block hash: %w", err)
 	}
 
-	bestHash := bestHeader.Hash()
-	logger.Trace("start", "best block hash", bestHash)
-
-	// load blocktree
-	bt := blocktree.NewBlockTreeFromRoot(bestHeader)
-	// if err = bt.Load(); err != nil {
-	// 	return fmt.Errorf("failed to load blocktree: %w", err)
-	// }
-
-	// create block state
-	s.Block, err = NewBlockState(db, bt)
-	if err != nil {
-		return fmt.Errorf("failed to create block state: %w", err)
-	}
-
-	// if blocktree head isn't "best hash", then the node shutdown abnormally.
-	// restore state from last finalised hash.
-	btHead := bt.DeepestBlockHash()
-	if !bytes.Equal(btHead[:], bestHash[:]) {
-		logger.Info("detected abnormal node shutdown, restoring from last finalised block")
-
-		lastFinalised, err := s.Block.GetFinalisedHeader(0, 0) //nolint
-		if err != nil {
-			return fmt.Errorf("failed to get latest finalised block: %w", err)
-		}
-
-		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised)
-	}
+	stateRoot := bestHeader.StateRoot
+	logger.Debug("start", "latest state root", stateRoot)
 
 	pr, err := s.Base.loadPruningData()
 	if err != nil {
@@ -166,14 +146,6 @@ func (s *Service) Start() error {
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
-
-	// stateRoot, err := s.Base.LoadLatestStorageHash()
-	// if err != nil {
-	// 	return fmt.Errorf("cannot load latest storage root: %w", err)
-	// }
-
-	stateRoot := bestHeader.StateRoot
-	logger.Debug("start", "latest state root", stateRoot)
 
 	// load current storage state trie into memory
 	_, err = s.Storage.LoadFromDB(stateRoot)
@@ -196,7 +168,11 @@ func (s *Service) Start() error {
 	}
 
 	num, _ := s.Block.BestBlockNumber()
-	logger.Info("created state service", "head", s.Block.BestBlockHash(), "highest number", num)
+	logger.Info("created state service",
+		"head", s.Block.BestBlockHash(),
+		"highest number", num,
+		"genesis hash", s.Block.genesisHash,
+	)
 
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)

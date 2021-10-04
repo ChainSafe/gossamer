@@ -64,13 +64,9 @@ type BlockState struct {
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, error) {
-	if bt == nil {
-		return nil, fmt.Errorf("block tree is nil")
-	}
-
+func NewBlockState(db chaindb.Database) (*BlockState, error) {
+	fmt.Println("NewBlockState")
 	bs := &BlockState{
-		bt:                         bt,
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
@@ -81,17 +77,20 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
-	genesisBlock, err := bs.GetBlockByNumber(big.NewInt(0))
+	gh, err := bs.db.Get(headerHashKey(0))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get genesis header: %w", err)
+		return nil, fmt.Errorf("cannot get block 0: %w", err)
+	}
+	genesisHash := common.NewHash(gh)
+
+	header, err := bs.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get last finalised header: %w", err)
 	}
 
-	bs.genesisHash = genesisBlock.Header.Hash()
-	bs.lastFinalised, err = bs.GetFinalisedHash(0, 0)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
-	}
-
+	bs.genesisHash = genesisHash
+	bs.lastFinalised = header.Hash()
+	bs.bt = blocktree.NewBlockTreeFromRoot(header)
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
@@ -192,6 +191,15 @@ func (bs *BlockState) deleteUnfinalisedBlock(hash common.Hash) {
 	bs.unfinalisedBlocks.Delete(hash)
 }
 
+func (bs *BlockState) getUnfinalisedHeader(hash common.Hash) (*types.Header, bool) {
+	block, has := bs.unfinalisedBlocks.Load(hash)
+	if !has {
+		return nil, false
+	}
+
+	return &block.(*types.Block).Header, true
+}
+
 func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {
 	block, has := bs.unfinalisedBlocks.Load(hash)
 	if !has {
@@ -257,6 +265,11 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 
 // GetHeader returns a BlockHeader for a given hash
 func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
+	header, has := bs.getUnfinalisedHeader(hash)
+	if has {
+		return header, nil
+	}
+
 	result := types.NewEmptyHeader()
 
 	if bs.db == nil {
@@ -294,7 +307,7 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 	if err == nil {
 		return hash, nil
 	} else if !errors.Is(err, blocktree.ErrNumLowerThanRoot) {
-		return common.Hash{}, err
+		return common.Hash{}, fmt.Errorf("failed to get hash from blocktree: %w", err)
 	}
 
 	// if error is ErrNumLowerThanRoot, number has already been finalised, so check db
