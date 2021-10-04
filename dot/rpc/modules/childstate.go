@@ -40,7 +40,7 @@ type GetStorageHash struct {
 type GetChildStorageRequest struct {
 	KeyChild []byte
 	EntryKey []byte
-	Hash     common.Hash
+	Hash     *common.Hash
 }
 
 // ChildStateModule is the module responsible to implement all the childstate RPC calls
@@ -89,11 +89,15 @@ func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[
 
 // GetStorageSize returns the size of a child storage entry.
 func (cs *ChildStateModule) GetStorageSize(_ *http.Request, req *GetChildStorageRequest, res *uint64) error {
-	if req.Hash == common.EmptyHash {
-		req.Hash = cs.blockAPI.BestBlockHash()
+	var hash common.Hash
+
+	if req.Hash == nil {
+		hash = cs.blockAPI.BestBlockHash()
+	} else {
+		hash = *req.Hash
 	}
 
-	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&req.Hash)
+	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&hash)
 	if err != nil {
 		return err
 	}
