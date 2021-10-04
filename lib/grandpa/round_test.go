@@ -28,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -64,9 +63,10 @@ func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
 	gmsg, err := decodeMessage(cm)
 	require.NoError(n.t, err)
 
-	if gmsg.Type() == commitType {
+	switch gmsg.(type) {
+	case *CommitMessage:
 		n.finalised <- gmsg
-	} else {
+	default:
 		n.out <- gmsg
 	}
 }
@@ -150,7 +150,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
 		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: pv,
+			Vote: *pv,
 		})
 	}
 
@@ -163,7 +163,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
 		precommits.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: pc,
+			Vote: *pc,
 		})
 		err = gs.finalise()
 		require.NoError(t, err)
@@ -201,7 +201,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
 		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: pv,
+			Vote: *pv,
 		})
 	}
 
@@ -213,7 +213,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 			err = gs.validateVote(pv)
 			if err == nil {
 				gs.prevotes.Store(k, &SignedVote{
-					Vote: pv,
+					Vote: *pv,
 				})
 			}
 			return true
@@ -224,7 +224,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
 		precommits.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: pc,
+			Vote: *pc,
 		})
 		err = gs.finalise()
 		require.NoError(t, err)
@@ -328,10 +328,10 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	for _, fb := range finalised {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
-		finalised[0].Precommits = []*Vote{}
-		finalised[0].AuthData = []*AuthData{}
-		fb.Precommits = []*Vote{}
-		fb.AuthData = []*AuthData{}
+		finalised[0].Precommits = []Vote{}
+		finalised[0].AuthData = []AuthData{}
+		fb.Precommits = []Vote{}
+		fb.AuthData = []AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -430,10 +430,10 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
 		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
-		finalised[0].Precommits = []*Vote{}
-		finalised[0].AuthData = []*AuthData{}
-		fb.Precommits = []*Vote{}
-		fb.AuthData = []*AuthData{}
+		finalised[0].Precommits = []Vote{}
+		finalised[0].AuthData = []AuthData{}
+		fb.Precommits = []Vote{}
+		fb.AuthData = []AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -533,10 +533,10 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
 		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
-		finalised[0].Precommits = []*Vote{}
-		finalised[0].AuthData = []*AuthData{}
-		fb.Precommits = []*Vote{}
-		fb.AuthData = []*AuthData{}
+		finalised[0].Precommits = []Vote{}
+		finalised[0].AuthData = []AuthData{}
+		fb.Precommits = []Vote{}
+		fb.AuthData = []AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -619,10 +619,10 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 			require.Equal(t, head, fb.Vote.Hash)
 			require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
 			require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
-			finalised[0].Precommits = []*Vote{}
-			finalised[0].AuthData = []*AuthData{}
-			fb.Precommits = []*Vote{}
-			fb.AuthData = []*AuthData{}
+			finalised[0].Precommits = []Vote{}
+			finalised[0].AuthData = []AuthData{}
+			fb.Precommits = []Vote{}
+			fb.AuthData = []AuthData{}
 			require.Equal(t, finalised[0], fb)
 		}
 

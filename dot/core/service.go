@@ -627,3 +627,23 @@ func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyVa
 
 	return changes, nil
 }
+
+// GetReadProofAt will return an array with the proofs for the keys passed as params
+// based on the block hash passed as param as well, if block hash is nil then the current state will take place
+func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error) {
+	if common.EmptyHash.Equal(block) {
+		block = s.blockState.BestBlockHash()
+	}
+
+	stateRoot, err := s.blockState.GetBlockStateRoot(block)
+	if err != nil {
+		return common.EmptyHash, nil, err
+	}
+
+	proofForKeys, err := s.storageState.GenerateTrieProof(stateRoot, keys)
+	if err != nil {
+		return common.EmptyHash, nil, err
+	}
+
+	return block, proofForKeys, nil
+}
