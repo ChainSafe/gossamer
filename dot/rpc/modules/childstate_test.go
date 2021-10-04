@@ -71,44 +71,45 @@ func TestChildStateGetKeys(t *testing.T) {
 
 func TestChildStateGetStorageSize(t *testing.T) {
 	mod, blockHash := setupChildStateStorage(t)
+	invalidHash := common.BytesToHash([]byte("invalid block hash"))
 
 	tests := []struct {
 		expect   uint64
 		err      error
-		hash     common.Hash
+		hash     *common.Hash
 		keyChild []byte
 		entry    []byte
 	}{
 		{
 			err:      nil,
 			expect:   uint64(len([]byte(":child_first_value"))),
-			hash:     common.EmptyHash,
+			hash:     nil,
 			entry:    []byte(":child_first"),
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
 			err:      nil,
 			expect:   uint64(len([]byte(":child_second_value"))),
-			hash:     blockHash,
+			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
 			err:      nil,
 			expect:   0,
-			hash:     common.EmptyHash,
+			hash:     nil,
 			entry:    []byte(":not_found_so_size_0"),
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
 			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
-			hash:     blockHash,
+			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
 		},
 		{
 			err:  chaindb.ErrKeyNotFound,
-			hash: common.BytesToHash([]byte("invalid block hash")),
+			hash: &invalidHash,
 		},
 	}
 
