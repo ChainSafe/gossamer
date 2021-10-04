@@ -362,6 +362,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return err
 	}
 
+	fmt.Println(subchain)
+
 	// subchain contains the ancestor as well so we need to remove it.
 	if len(subchain) > 0 {
 		subchain = subchain[1:]

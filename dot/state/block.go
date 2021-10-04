@@ -201,24 +201,17 @@ func (bs *BlockState) getUnfinalisedHeader(hash common.Hash) (*types.Header, boo
 }
 
 func (bs *BlockState) getUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {
-	if bs.unfinalisedBlocks == nil {
-		panic("bs.unfinalisedBlocks is nil")
-	}
-
-	if bs == nil {
-		panic("bs is nil")
-	}
-
-	fmt.Println("getUnfinalisedBlock before")
-	fmt.Println(bs.unfinalisedBlocks)
-	fmt.Println(hash)
-
 	block, has := bs.unfinalisedBlocks.Load(hash)
 	if !has {
 		return nil, false
 	}
 
-	fmt.Println("getUnfinalisedBlock", block)
+	fmt.Println("getUnfinalisedBlock", block.(*types.Block).Header)
+	if block.(*types.Block).Body == nil {
+		panic("body is nil")
+	}
+
+	fmt.Println("getUnfinalisedBlock", block.(*types.Block).Body)
 	return block.(*types.Block), true
 }
 
@@ -278,9 +271,6 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 
 // GetHashByNumber returns the block hash on our best chain with the given number
 func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
-	// bs.RLock()
-	// defer bs.RUnlock()
-
 	hash, err := bs.bt.GetHashByNumber(num)
 	if err == nil {
 		return hash, nil
@@ -371,14 +361,10 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 	bs.RLock()
 	defer bs.RUnlock()
 
-	fmt.Println("GetBlockBody")
-
 	block, has := bs.getUnfinalisedBlock(hash)
-	if has && block != nil && block.Body != nil {
-		fmt.Println("got unfinalised block", block)
+	if has {
 		return &block.Body, nil
 	}
-	fmt.Println("after GetBlockBody")
 
 	data, err := bs.db.Get(blockBodyKey(hash))
 	if err != nil {
@@ -432,6 +418,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		return err
 	}
 
+	fmt.Println(bs.bt)
 	bs.storeUnfinalisedBlock(block)
 	go bs.notifyImported(block)
 	return nil

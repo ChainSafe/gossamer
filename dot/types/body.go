@@ -95,6 +95,17 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 	return &body, nil
 }
 
+func (b *Body) String() string {
+	fmt.Println("body.String")
+	if b == nil {
+		return "nil"
+	}
+
+	fmt.Println("body", *b)
+
+	return common.BytesToHex(*b)
+}
+
 // AsExtrinsics decodes the body into an array of extrinsics
 func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
 	exts := [][]byte{}
