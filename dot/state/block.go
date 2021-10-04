@@ -381,27 +381,20 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	return &types.Block{Header: *header, Body: *blockBody}, nil
 }
 
-// GetBlockHash returns block hash for a given blockNumber
-func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
-	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
-	}
-
-	return common.NewHash(byteHash), nil
+// GetBlockHash returns block hash for a given block number
+// TODO: remove in favour of GetHashByNumber
+func (bs *BlockState) GetBlockHash(num *big.Int) (common.Hash, error) {
+	return bs.GetHashByNumber(num)
 }
 
 // SetHeader will set the header into DB
 func (bs *BlockState) SetHeader(header *types.Header) error {
-	hash := header.Hash()
-	// Write the encoded header
 	bh, err := scale.Marshal(*header)
 	if err != nil {
 		return err
 	}
 
-	err = bs.db.Put(headerKey(hash), bh)
-	if err != nil {
+	if err = bs.db.Put(headerKey(header.Hash()), bh); err != nil {
 		return err
 	}
 
@@ -410,11 +403,20 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 
 // HasBlockBody returns true if the db contains the block body
 func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
+	if bs.hasUnfinalisedBlock(hash) {
+		return true, nil
+	}
+
 	return bs.db.Has(blockBodyKey(hash))
 }
 
 // GetBlockBody will return Body for a given hash
 func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
+	block, has := bs.getUnfinalisedBlock(hash)
+	if has {
+		return &block.Body, nil
+	}
+
 	data, err := bs.db.Get(blockBodyKey(hash))
 	if err != nil {
 		return nil, err

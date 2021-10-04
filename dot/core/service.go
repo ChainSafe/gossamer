@@ -375,6 +375,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
+		fmt.Println("checking block for exts", hash)
+
 		body, err := s.blockState.GetBlockBody(hash)
 		if err != nil {
 			continue
@@ -385,15 +387,14 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			continue
 		}
 
-		// TODO: decode extrinsic and make sure it's not an inherent.
-		// currently we are attempting to re-add inherents, causing lots of "'Bad input data provided to validate_transaction" errors.
 		for _, ext := range exts {
-			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Info("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
 			}
 
+			// decode extrinsic and make sure it's not an inherent.
 			decExt := &types.ExtrinsicData{}
 			err = decExt.DecodeVersion(encExt)
 			if err != nil {
