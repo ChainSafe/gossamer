@@ -39,7 +39,7 @@ func (bs *BlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
 
 // NumberIsFinalised checks if a block number is finalised or not
 func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
-	header, err := bs.GetFinalisedHeader(0, 0)
+	header, err := bs.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, err
 	}
@@ -145,7 +145,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	if err := bs.handleFinalisedBlock(hash); err != nil {
-		return fmt.Errorf("failed to set number->hash mapping on finalisation: %w", err)
+		return fmt.Errorf("failed to set finalised subchain in db on finalisation: %w", err)
 	}
 
 	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {

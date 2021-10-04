@@ -195,10 +195,9 @@ func (s *Service) Rewind(toBlock int64) error {
 	}
 
 	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header)
-	newHead := s.Block.BestBlockHash()
-
+	s.Block.lastFinalised = s.Block.BestBlockHash()
 	header, _ := s.Block.BestBlockHeader()
-	logger.Info("rewinding state...", "new height", header.Number, "best block hash", newHead)
+	logger.Info("rewinding state...", "new height", header.Number, "best block hash", header.Hash())
 
 	epoch, err := s.Epoch.GetEpochForBlock(header)
 	if err != nil {
@@ -210,7 +209,8 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
-	// TODO: this is broken, need to rewind to most recently finalised at this point
+	// TODO: this is broken, need to set correct round and setID, but there is no reverse
+	// lookup from finalised hash -> (round, setID)
 	err = s.Block.SetFinalisedHash(header.Hash(), 0, 0)
 	if err != nil {
 		return err
