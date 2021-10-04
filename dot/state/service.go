@@ -131,7 +131,7 @@ func (s *Service) Start() error {
 	logger.Trace("start", "best block hash", bestHash)
 
 	// load blocktree
-	bt := blocktree.NewBlockTreeFromRoot(bestHeader, db)
+	bt := blocktree.NewBlockTreeFromRoot(bestHeader)
 	// if err = bt.Load(); err != nil {
 	// 	return fmt.Errorf("failed to load blocktree: %w", err)
 	// }
@@ -153,7 +153,7 @@ func (s *Service) Start() error {
 			return fmt.Errorf("failed to get latest finalised block: %w", err)
 		}
 
-		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised, db)
+		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised)
 	}
 
 	pr, err := s.Base.loadPruningData()
@@ -218,7 +218,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
-	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header, s.db)
+	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header)
 	newHead := s.Block.BestBlockHash()
 
 	header, _ := s.Block.BestBlockHeader()

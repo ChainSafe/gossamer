@@ -41,7 +41,7 @@ func (n *node) addChild(node *node) {
 
 // string returns stringified hash and depth of node
 func (n *node) string() string {
-	return fmt.Sprintf("{hash: %s, depth: %s, arrivalTime: %d}", n.hash.String(), n.depth, n.arrivalTime)
+	return fmt.Sprintf("{hash: %s, depth: %s, arrivalTime: %s}", n.hash.String(), n.depth, n.arrivalTime)
 }
 
 // createTree adds all the nodes children to the existing printable tree.

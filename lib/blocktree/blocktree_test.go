@@ -19,10 +19,11 @@ package blocktree
 import (
 	"bytes"
 	"math/big"
+	"math/rand"
 	"reflect"
 	"testing"
+	"time"
 
-	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
@@ -35,16 +36,77 @@ var testHeader = &types.Header{
 	Digest:     types.NewDigest(),
 }
 
-func newBlockTreeFromNode(head *node, db database.Database) *BlockTree {
+type testBranch struct {
+	hash  Hash
+	depth *big.Int
+}
+
+func newBlockTreeFromNode(head *node) *BlockTree {
 	return &BlockTree{
 		head:   head,
 		leaves: newLeafMap(head),
-		db:     db,
 	}
 }
 
+func createTestBlockTree(header *types.Header, depth int) (*BlockTree, []testBranch) {
+	bt := NewBlockTreeFromRoot(header)
+	previousHash := header.Hash()
+
+	// branch tree randomly
+	branches := []testBranch{}
+	r := *rand.New(rand.NewSource(rand.Int63()))
+
+	// create base tree
+	for i := 1; i <= depth; i++ {
+		header := &types.Header{
+			ParentHash: previousHash,
+			Number:     big.NewInt(int64(i)),
+			Digest:     types.NewDigest(),
+		}
+
+		hash := header.Hash()
+		bt.AddBlock(header, time.Unix(0, 0))
+		previousHash = hash
+
+		isBranch := r.Intn(2)
+		if isBranch == 1 {
+			branches = append(branches, testBranch{
+				hash:  hash,
+				depth: bt.getNode(hash).depth,
+			})
+		}
+	}
+
+	// create tree branches
+	for _, branch := range branches {
+		previousHash = branch.hash
+
+		for i := int(branch.depth.Uint64()); i <= depth; i++ {
+			digest := types.NewDigest()
+			err := digest.Add(types.ConsensusDigest{
+				ConsensusEngineID: types.BabeEngineID,
+				Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+			})
+			if err != nil {
+				return nil, nil
+			}
+			header := &types.Header{
+				ParentHash: previousHash,
+				Number:     big.NewInt(int64(i)),
+				Digest:     digest,
+			}
+
+			hash := header.Hash()
+			bt.AddBlock(header, time.Unix(0, 0))
+			previousHash = hash
+		}
+	}
+
+	return bt, branches
+}
+
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
-	bt := NewBlockTreeFromRoot(testHeader, nil)
+	bt := NewBlockTreeFromRoot(testHeader)
 	require.NotNil(t, bt)
 
 	previousHash := bt.head.hash
@@ -60,7 +122,7 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 		hash := header.Hash()
 		hashes = append(hashes, hash)
 
-		err := bt.AddBlock(header, 0)
+		err := bt.AddBlock(header, time.Unix(0, 0))
 		require.Nil(t, err)
 		previousHash = hash
 	}
@@ -73,7 +135,7 @@ func TestNewBlockTreeFromNode(t *testing.T) {
 	var branches []testBranch
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		bt, branches = createTestBlockTree(testHeader, 5)
 		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
 			break
 		}
@@ -82,7 +144,7 @@ func TestNewBlockTreeFromNode(t *testing.T) {
 	testNode := bt.getNode(branches[0].hash).children[0]
 	leaves := testNode.getLeaves(nil)
 
-	newBt := newBlockTreeFromNode(testNode, nil)
+	newBt := newBlockTreeFromNode(testNode)
 	require.ElementsMatch(t, leaves, newBt.leaves.nodes())
 }
 
@@ -109,7 +171,7 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	}
 
 	hash := header.Hash()
-	err := bt.AddBlock(header, 0)
+	err := bt.AddBlock(header, time.Unix(0, 0))
 	require.Nil(t, err)
 
 	node := bt.getNode(hash)
@@ -151,7 +213,7 @@ func TestBlockTree_LongestPath(t *testing.T) {
 	}
 
 	header.Hash()
-	err := bt.AddBlock(header, 0)
+	err := bt.AddBlock(header, time.Unix(0, 0))
 	require.NotNil(t, err)
 
 	longestPath := bt.longestPath()
@@ -175,7 +237,7 @@ func TestBlockTree_Subchain(t *testing.T) {
 	}
 
 	extraBlock.Hash()
-	err := bt.AddBlock(extraBlock, 0)
+	err := bt.AddBlock(extraBlock, time.Unix(0, 0))
 	require.NotNil(t, err)
 
 	subChain, err := bt.subChain(hashes[1], hashes[3])
@@ -191,22 +253,22 @@ func TestBlockTree_Subchain(t *testing.T) {
 }
 
 func TestBlockTree_DeepestLeaf(t *testing.T) {
-	arrivalTime := uint64(256)
+	arrivalTime := int64(256)
 	var expected Hash
 
-	bt, _ := createTestBlockTree(testHeader, 8, nil)
+	bt, _ := createTestBlockTree(testHeader, 8)
 
 	deepest := big.NewInt(0)
 
 	for leaf, node := range bt.leaves.toMap() {
-		node.arrivalTime = arrivalTime
+		node.arrivalTime = time.Unix(0, arrivalTime)
 		arrivalTime--
 		if node.depth.Cmp(deepest) >= 0 {
 			deepest = node.depth
 			expected = leaf
 		}
 
-		t.Logf("leaf=%s depth=%d arrivalTime=%d", leaf, node.depth, node.arrivalTime)
+		t.Logf("leaf=%s depth=%d arrivalTime=%s", leaf, node.depth, node.arrivalTime)
 	}
 
 	deepestLeaf := bt.deepestLeaf()
@@ -216,7 +278,7 @@ func TestBlockTree_DeepestLeaf(t *testing.T) {
 }
 
 func TestBlockTree_GetNode(t *testing.T) {
-	bt, branches := createTestBlockTree(testHeader, 16, nil)
+	bt, branches := createTestBlockTree(testHeader, 16)
 
 	for _, branch := range branches {
 		header := &types.Header{
@@ -225,13 +287,13 @@ func TestBlockTree_GetNode(t *testing.T) {
 			StateRoot:  Hash{0x1},
 		}
 
-		err := bt.AddBlock(header, 0)
+		err := bt.AddBlock(header, time.Unix(0, 0))
 		require.Nil(t, err)
 	}
 }
 
 func TestBlockTree_GetNodeCache(t *testing.T) {
-	bt, branches := createTestBlockTree(testHeader, 16, nil)
+	bt, branches := createTestBlockTree(testHeader, 16)
 
 	for _, branch := range branches {
 		header := &types.Header{
@@ -240,7 +302,7 @@ func TestBlockTree_GetNodeCache(t *testing.T) {
 			StateRoot:  Hash{0x1},
 		}
 
-		err := bt.AddBlock(header, 0)
+		err := bt.AddBlock(header, time.Unix(0, 0))
 		require.Nil(t, err)
 	}
 
@@ -256,7 +318,7 @@ func TestBlockTree_GetNodeCache(t *testing.T) {
 }
 
 func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
-	bt, _ := createTestBlockTree(testHeader, 8, nil)
+	bt, _ := createTestBlockTree(testHeader, 8)
 	hashes := bt.head.getNodesWithDepth(big.NewInt(10), []common.Hash{})
 
 	expected := []common.Hash{}
@@ -289,7 +351,7 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 		}
 
 		hash := header.Hash()
-		bt.AddBlock(header, 0)
+		bt.AddBlock(header, time.Unix(0, 0))
 		previousHash = hash
 
 		if i == desiredDepth-1 {
@@ -314,7 +376,7 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 		}
 
 		hash := header.Hash()
-		bt.AddBlock(header, 0)
+		bt.AddBlock(header, time.Unix(0, 0))
 		previousHash = hash
 
 		if i == desiredDepth-1 {
@@ -348,7 +410,7 @@ func TestBlockTree_HighestCommonAncestor(t *testing.T) {
 	var branches []testBranch
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 8, nil)
+		bt, branches = createTestBlockTree(testHeader, 8)
 		leaves = bt.Leaves()
 		if len(leaves) == 2 {
 			break
@@ -366,7 +428,7 @@ func TestBlockTree_HighestCommonAncestor(t *testing.T) {
 }
 
 func TestBlockTree_HighestCommonAncestor_SameNode(t *testing.T) {
-	bt, _ := createTestBlockTree(testHeader, 8, nil)
+	bt, _ := createTestBlockTree(testHeader, 8)
 	leaves := bt.Leaves()
 
 	a := leaves[0]
@@ -377,7 +439,7 @@ func TestBlockTree_HighestCommonAncestor_SameNode(t *testing.T) {
 }
 
 func TestBlockTree_HighestCommonAncestor_SameChain(t *testing.T) {
-	bt, _ := createTestBlockTree(testHeader, 8, nil)
+	bt, _ := createTestBlockTree(testHeader, 8)
 	leaves := bt.Leaves()
 
 	a := leaves[0]
@@ -394,7 +456,7 @@ func TestBlockTree_Prune(t *testing.T) {
 	var branches []testBranch
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		bt, branches = createTestBlockTree(testHeader, 5)
 		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
 			break
 		}
@@ -429,7 +491,7 @@ func TestBlockTree_PruneCache(t *testing.T) {
 	var branches []testBranch
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		bt, branches = createTestBlockTree(testHeader, 5)
 		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
 			break
 		}
@@ -452,8 +514,6 @@ func TestBlockTree_DeepCopy(t *testing.T) {
 	bt, _ := createFlatTree(t, 8)
 
 	btCopy := bt.DeepCopy()
-
-	require.Equal(t, bt.db, btCopy.db)
 	for hash := range bt.nodeCache {
 		b, ok := btCopy.nodeCache[hash]
 		b2 := bt.nodeCache[hash]
@@ -513,7 +573,7 @@ func TestBlockTree_Rewind(t *testing.T) {
 	rewind := 6
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 12, nil)
+		bt, branches = createTestBlockTree(testHeader, 12)
 		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
 			break
 		}

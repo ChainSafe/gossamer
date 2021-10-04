@@ -49,7 +49,7 @@ type BlockState struct {
 	sync.RWMutex
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
-	unfinalisedBlocks map[common.Hash]*types.Block
+	unfinalisedBlocks *sync.Map // map[common.Hash]*types.Block
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
@@ -74,7 +74,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		unfinalisedBlocks:          make(map[common.Hash]*types.Block),
+		unfinalisedBlocks:          new(sync.Map),
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
@@ -99,10 +99,10 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
-		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
+		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		unfinalisedBlocks:          make(map[common.Hash]*types.Block),
+		unfinalisedBlocks:          new(sync.Map),
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
@@ -185,27 +185,21 @@ func (bs *BlockState) GenesisHash() common.Hash {
 }
 
 func (bs *BlockState) addUnfinalisedBlock(block *types.Block) {
-	bs.Lock()
-	defer bs.Unlock()
-	bs.unfinalisedBlocks[block.Header.Hash()] = block
+	bs.unfinalisedBlocks.Store(block.Header.Hash(), block)
 }
 
 func (bs *BlockState) deleteUnfinalisedBlock(hash common.Hash) {
-	bs.Lock()
-	defer bs.Unlock()
-	delete(bs.unfinalisedBlocks, hash)
+	bs.unfinalisedBlocks.Delete(hash)
 }
 
 func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {
-	bs.Lock()
-	defer bs.Unlock()
-	block, has := bs.unfinalisedBlocks[hash]
+	block, has := bs.unfinalisedBlocks.Load(hash)
 	if !has {
 		return nil, false
 	}
 
-	delete(bs.unfinalisedBlocks, hash)
-	return block, true
+	bs.unfinalisedBlocks.Delete(hash)
+	return block.(*types.Block), true
 }
 
 // DeleteBlock deletes all instances of the block and its related data in the database
@@ -293,8 +287,8 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 
 // GetHashByNumber returns the block hash on our best chain with the given number
 func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
-	bs.RLock()
-	defer bs.RUnlock()
+	// bs.RLock()
+	// defer bs.RUnlock()
 
 	hash, err := bs.bt.GetHashByNumber(num)
 	if err == nil {

@@ -17,6 +17,7 @@
 package state
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -276,6 +277,7 @@ func TestFinalizedHash(t *testing.T) {
 	h, err := bs.GetFinalisedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
+	fmt.Println("got finalised hash")
 
 	digest := types.NewDigest()
 	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
@@ -295,9 +297,11 @@ func TestFinalizedHash(t *testing.T) {
 		Body:   types.Body{},
 	})
 	require.NoError(t, err)
+	fmt.Println("AddBlock")
 
 	err = bs.SetFinalisedHash(testhash, 1, 1)
 	require.NoError(t, err)
+	fmt.Println("SetFinalisedHash")
 
 	h, err = bs.GetFinalisedHash(1, 1)
 	require.NoError(t, err)

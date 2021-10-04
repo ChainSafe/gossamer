@@ -22,7 +22,6 @@ import (
 	"sync"
 	"time"
 
-	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -36,18 +35,16 @@ type Hash = common.Hash
 type BlockTree struct {
 	head   *node // root node TODO: rename this!!
 	leaves *leafMap
-	db     database.Database
 	sync.RWMutex
 	nodeCache map[Hash]*node
 	runtime   *sync.Map
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
-func NewEmptyBlockTree(db database.Database) *BlockTree {
+func NewEmptyBlockTree() *BlockTree {
 	return &BlockTree{
 		head:      nil,
 		leaves:    newEmptyLeafMap(),
-		db:        db,
 		nodeCache: make(map[Hash]*node),
 		runtime:   &sync.Map{}, // map[Hash]runtime.Instance
 	}
@@ -55,7 +52,7 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 
 // NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
 // finalised block (ie the genesis block if the node is just starting.)
-func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
+func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 	head := &node{
 		hash:        root.Hash(),
 		parent:      nil,
@@ -67,7 +64,6 @@ func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 	return &BlockTree{
 		head:      head,
 		leaves:    newLeafMap(head),
-		db:        db,
 		nodeCache: make(map[Hash]*node),
 		runtime:   &sync.Map{},
 	}
@@ -435,7 +431,6 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	defer bt.RUnlock()
 
 	btCopy := &BlockTree{
-		db:        bt.db,
 		nodeCache: make(map[Hash]*node),
 	}
 
