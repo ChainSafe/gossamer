@@ -1,7 +1,6 @@
 module github.com/ChainSafe/gossamer
 
 require (
-	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/ChainSafe/chaindb v0.1.5-0.20210608140454-9606fe8c3985
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20210318173838-ccb5cd955283
 	github.com/ChainSafe/log15 v1.0.0
@@ -24,7 +23,6 @@ require (
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/ipfs/go-ds-badger2 v0.1.0
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
@@ -36,26 +34,17 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.11.1
 	github.com/libp2p/go-libp2p-peerstore v0.2.7
 	github.com/libp2p/go-libp2p-secio v0.2.2
-	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
-	github.com/onsi/ginkgo v1.16.1 // indirect
-	github.com/onsi/gomega v1.11.0 // indirect
 	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
-	github.com/shirou/gopsutil v3.21.6+incompatible // indirect
 	github.com/stretchr/testify v1.7.0
-	github.com/tklauser/go-sysconf v0.3.6 // indirect
 	github.com/urfave/cli v1.22.1
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
-	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/tools v0.1.6-0.20210908145159-e5f719fbe6d5 // indirect
-	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.26.0-rc.1
-	honnef.co/go/tools v0.2.0 // indirect
 )
 
 go 1.16

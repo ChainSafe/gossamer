@@ -9,6 +9,7 @@ then
     exit 1
 fi
 
+# Note: this won't detect unneeded `// indirect` commented dependencies
 go mod tidy
 git diff --exit-code -- go.mod go.sum >/dev/null
 if [ $? -ne 0 ]
