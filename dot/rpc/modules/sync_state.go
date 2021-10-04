@@ -18,8 +18,27 @@ package modules
 
 import (
 	"io/ioutil"
+	"net/http"
 	"path/filepath"
 )
+
+type SyncStateModule struct {
+	SyncStateAPI SyncStateAPI
+}
+
+func NewSyncStateModule(s SyncStateAPI) *SyncStateModule {
+	return &SyncStateModule{SyncStateAPI: s}
+}
+
+func (ss *SyncStateModule) GenSyncSpec(_ *http.Request, req *bool, res *[]byte) error {
+	genesis, err := ss.SyncStateAPI.GenSyncSpec(*req)
+	if err != nil {
+		return err
+	}
+
+	*res = genesis
+	return nil
+}
 
 type SyncState struct {
 	GenesisFilePath string
