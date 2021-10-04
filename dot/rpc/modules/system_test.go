@@ -308,7 +308,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	require.NoError(t, err)
 	err = chain.Block.AddBlock(&types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(1),
+			Number:     big.NewInt(3),
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
 		},

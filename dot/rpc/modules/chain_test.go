@@ -303,11 +303,15 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 
 	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	header := &types.Header{
-		Number: big.NewInt(1),
-		Digest: digest,
+	header := types.Header{
+		ParentHash: genesisHeader.Hash(),
+		Number:     big.NewInt(1),
+		Digest:     digest,
 	}
-	err = state.Block.SetHeader(header)
+	err = state.Block.AddBlock(&types.Block{
+		Header: header,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
 
 	testhash := header.Hash()
@@ -351,42 +355,12 @@ func newTestStateService(t *testing.T) *state.Service {
 }
 
 func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
-	// Create header
-	header0 := &types.Header{
-		Number:     big.NewInt(0),
+	header1 := &types.Header{
+		Number:     big.NewInt(1),
 		Digest:     types.NewDigest(),
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
-	// Create blockHash
-	blockHash0 := header0.Hash()
-	// BlockBody with fake extrinsics
-	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
-	block0 := &types.Block{
-		Header: *header0,
-		Body:   blockBody0,
-	}
-
-	err := bs.AddBlock(block0)
-	if err != nil {
-		return err
-	}
-
-	bs.StoreRuntime(block0.Header.Hash(), rt)
-
-	// Create header & blockData for block 1
-	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	require.NoError(t, err)
-	header1 := &types.Header{
-		Number:     big.NewInt(1),
-		Digest:     digest,
-		ParentHash: blockHash0,
-		StateRoot:  trie.EmptyHash,
-	}
-
-	// Create Block with fake extrinsics
 	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	block1 := &types.Block{
@@ -394,13 +368,30 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		Body:   blockBody1,
 	}
 
-	// Add the block1 to the DB
-	err = bs.AddBlock(block1)
-	if err != nil {
-		return err
+	err := bs.AddBlock(block1)
+	require.NoError(t, err)
+	bs.StoreRuntime(header1.Hash(), rt)
+
+	// Create header & blockData for block 1
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
+
+	header2 := &types.Header{
+		Number:     big.NewInt(2),
+		Digest:     digest,
+		ParentHash: header1.Hash(),
+		StateRoot:  trie.EmptyHash,
 	}
 
-	bs.StoreRuntime(block1.Header.Hash(), rt)
+	block2 := &types.Block{
+		Header: *header2,
+		Body:   blockBody1,
+	}
 
+	// Add the block1 to the DB
+	err = bs.AddBlock(block2)
+	require.NoError(t, err)
+	bs.StoreRuntime(header2.Hash(), rt)
 	return nil
 }

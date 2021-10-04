@@ -376,16 +376,23 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		fmt.Println("checking block for exts", hash)
+		if s.blockState == nil {
+			panic("s.blockState is nil")
+		}
 
 		body, err := s.blockState.GetBlockBody(hash)
 		if err != nil {
 			continue
 		}
 
+		fmt.Println("got body", body)
+
 		exts, err := body.AsExtrinsics()
 		if err != nil {
 			continue
 		}
+
+		fmt.Println("got extrinsics", exts)
 
 		for _, ext := range exts {
 			logger.Info("validating transaction on re-org chain", "extrinsic", ext)

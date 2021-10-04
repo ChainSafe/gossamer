@@ -136,14 +136,6 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		return fmt.Errorf("cannot finalise unknown block %s", hash)
 	}
 
-	// if nothing was previously finalised, set the first slot of the network to the
-	// slot number of block 1, which is now being set as final
-	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
-		if err := bs.setFirstSlotOnFinalisation(); err != nil {
-			return fmt.Errorf("failed to set first slot on finalisation: %w", err)
-		}
-	}
-
 	if err := bs.handleFinalisedBlock(hash); err != nil {
 		return fmt.Errorf("failed to set finalised subchain in db on finalisation: %w", err)
 	}
@@ -170,6 +162,14 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		}(&block.Header)
 	}
 
+	// if nothing was previously finalised, set the first slot of the network to the
+	// slot number of block 1, which is now being set as final
+	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
+		if err := bs.setFirstSlotOnFinalisation(); err != nil {
+			return fmt.Errorf("failed to set first slot on finalisation: %w", err)
+		}
+	}
+
 	bs.lastFinalised = hash
 	return nil
 }
@@ -194,7 +194,9 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 	}
 
 	batch := bs.db.NewBatch()
-	for _, hash := range subchain {
+
+	// root of subchain is previously finalised block, which has already been stored in the db
+	for _, hash := range subchain[1:] {
 		if hash.Equal(bs.genesisHash) {
 			continue
 		}

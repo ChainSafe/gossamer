@@ -36,11 +36,21 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
-var blockPrefix = "block"
-
 const pruneKeyBufferSize = 1000
 
-// BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
+var (
+	blockPrefix         = "block"
+	headerPrefix        = []byte("hdr") // headerPrefix + hash -> header
+	blockBodyPrefix     = []byte("blb") // blockBodyPrefix + hash -> body
+	headerHashPrefix    = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
+	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
+	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
+	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
+	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
+)
+
+// BlockState contains the historical block data of the blockchain, including block headers and bodies.
+// It wraps the blocktree (which contains unfinalised blocks) and the database (which contains finalised blocks).
 type BlockState struct {
 	bt        *blocktree.BlockTree
 	baseState *BaseState
@@ -140,17 +150,6 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 	return bs, nil
 }
 
-var (
-	// Data prefixes
-	headerPrefix        = []byte("hdr") // headerPrefix + hash -> header
-	blockBodyPrefix     = []byte("blb") // blockBodyPrefix + hash -> body
-	headerHashPrefix    = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
-	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
-	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
-	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
-	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
-)
-
 // encodeBlockNumber encodes a block number as big endian uint64
 func encodeBlockNumber(number uint64) []byte {
 	enc := make([]byte, 8) // encoding results in 8 bytes
@@ -183,7 +182,7 @@ func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
 }
 
-func (bs *BlockState) addUnfinalisedBlock(block *types.Block) {
+func (bs *BlockState) storeUnfinalisedBlock(block *types.Block) {
 	bs.unfinalisedBlocks.Store(block.Header.Hash(), block)
 }
 
@@ -202,11 +201,24 @@ func (bs *BlockState) getUnfinalisedHeader(hash common.Hash) (*types.Header, boo
 }
 
 func (bs *BlockState) getUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {
+	if bs.unfinalisedBlocks == nil {
+		panic("bs.unfinalisedBlocks is nil")
+	}
+
+	if bs == nil {
+		panic("bs is nil")
+	}
+
+	fmt.Println("getUnfinalisedBlock before")
+	fmt.Println(bs.unfinalisedBlocks)
+	fmt.Println(hash)
+
 	block, has := bs.unfinalisedBlocks.Load(hash)
 	if !has {
 		return nil, false
 	}
 
+	fmt.Println("getUnfinalisedBlock", block)
 	return block.(*types.Block), true
 }
 
@@ -356,10 +368,17 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 
 // GetBlockBody will return Body for a given hash
 func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
+	bs.RLock()
+	defer bs.RUnlock()
+
+	fmt.Println("GetBlockBody")
+
 	block, has := bs.getUnfinalisedBlock(hash)
-	if has {
+	if has && block != nil && block.Body != nil {
+		fmt.Println("got unfinalised block", block)
 		return &block.Body, nil
 	}
+	fmt.Println("after GetBlockBody")
 
 	data, err := bs.db.Get(blockBodyKey(hash))
 	if err != nil {
@@ -404,95 +423,19 @@ func (bs *BlockState) AddBlock(block *types.Block) error {
 
 // AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
 func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
-	// if 	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime); err != nil {
-	// 	return err
-	// }
-
-	//prevHead := bs.bt.DeepestBlockHash()
+	if block.Body == nil {
+		return errors.New("block body is nil")
+	}
 
 	// add block to blocktree
 	if err := bs.bt.AddBlock(&block.Header, arrivalTime); err != nil {
 		return err
 	}
 
-	bs.addUnfinalisedBlock(block)
-
-	// // add the header to the DB
-	// err = bs.SetHeader(&block.Header)
-	// if err != nil {
-	// 	return err
-	// }
-	//hash := block.Header.Hash()
-
-	// set best block key if this is the highest block we've seen
-	// if hash == bs.BestBlockHash() {
-	// 	err = bs.setBestBlockHashKey(hash)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	// only set number->hash mapping for our current chain
-	// var onChain bool
-	// if onChain, err = bs.isBlockOnCurrentChain(&block.Header); onChain && err == nil {
-	// 	err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	// err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body))
-	// if err != nil {
-	// 	return err
-	// }
-
-	// check if there was a re-org, if so, re-set the canonical number->hash mapping
-	// err = bs.handleAddedBlock(prevHead, bs.bt.DeepestBlockHash())
-	// if err != nil {
-	// 	return err
-	// }
-
+	bs.storeUnfinalisedBlock(block)
 	go bs.notifyImported(block)
 	return nil
-	//return bs.db.Flush()
 }
-
-// handleAddedBlock re-sets the canonical number->hash mapping if there was a chain re-org.
-// prev is the previous best block hash before the new block was added to the blocktree.
-// curr is the current best blogetck hash.
-// func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
-// 	ancestor, err := bs.HighestCommonAncestor(prev, curr)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// if the highest common ancestor of the previous chain head and current chain head is the previous chain head,
-// 	// then the current chain head is the descendant of the previous and thus are on the same chain
-// 	if ancestor == prev {
-// 		return nil
-// 	}
-
-// 	subchain, err := bs.SubChain(ancestor, curr)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	batch := bs.db.NewBatch()
-// 	for _, hash := range subchain {
-// 		// TODO: set number from ancestor.Number + i ?
-// 		header, err := bs.GetHeader(hash)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to get header in subchain: %w", err)
-// 		}
-
-// 		err = batch.Put(headerHashKey(header.Number.Uint64()), hash.ToBytes())
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return batch.Flush()
-// }
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
 // TODO: remove this func
@@ -500,12 +443,12 @@ func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 	bs.Lock()
 	defer bs.Unlock()
 
-	// arrivalTime, err := bs.GetArrivalTime(header.Hash())
-	// if err != nil {
-	// 	arrivalTime = time.Now()
-	// }
+	arrivalTime, err := bs.GetArrivalTime(header.Hash())
+	if err != nil {
+		arrivalTime = time.Now()
+	}
 
-	return bs.bt.AddBlock(header, time.Now())
+	return bs.bt.AddBlock(header, arrivalTime)
 }
 
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
@@ -632,15 +575,6 @@ func (bs *BlockState) Leaves() []common.Hash {
 func (bs *BlockState) BlocktreeAsString() string {
 	return bs.bt.String()
 }
-
-// func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
-// 	return bs.baseState.StoreBestBlockHash(hash)
-// }
-
-// // HasArrivalTime returns true if the db contains the block's arrival time
-// func (bs *BlockState) HasArrivalTime(hash common.Hash) (bool, error) {
-// 	return bs.db.Has(arrivalTimeKey(hash))
-// }
 
 // GetArrivalTime returns the arrival time in nanoseconds since the Unix epoch of a block given its hash
 func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
