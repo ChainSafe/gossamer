@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
-	//"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -71,16 +70,9 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// write initial genesis values to database
-	if err = s.storeInitialValues(gen.GenesisData(), header, t); err != nil {
+	if err = s.storeInitialValues(gen.GenesisData(), t); err != nil {
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
-
-	// create and store blocktree from genesis block
-	//bt := blocktree.NewBlockTreeFromRoot(header, db)
-	// err = bt.Store()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to write blocktree to database: %s", err)
-	// }
 
 	// create block state from genesis block
 	blockState, err := NewBlockStateFromGenesis(db, header)
@@ -153,21 +145,11 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(data *genesis.Data, header *types.Header, t *trie.Trie) error {
+func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 	// write genesis trie to database
 	if err := t.Store(chaindb.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
 	}
-
-	// // write storage hash to database
-	// if err := s.Base.StoreLatestStorageHash(t.MustHash()); err != nil {
-	// 	return fmt.Errorf("failed to write storage hash to database: %s", err)
-	// }
-
-	// // write best block hash to state database
-	// if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
-	// 	return fmt.Errorf("failed to write best block hash to database: %s", err)
-	// }
 
 	// write genesis data to state database
 	if err := s.Base.StoreGenesisData(data); err != nil {

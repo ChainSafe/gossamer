@@ -413,6 +413,7 @@ func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
 	}
 }
 
+// GetArrivalTime returns the arrival time of a block
 func (bt *BlockTree) GetArrivalTime(hash common.Hash) (time.Time, error) {
 	bt.RLock()
 	defer bt.RUnlock()

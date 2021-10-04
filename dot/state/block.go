@@ -187,10 +187,6 @@ func (bs *BlockState) addUnfinalisedBlock(block *types.Block) {
 	bs.unfinalisedBlocks.Store(block.Header.Hash(), block)
 }
 
-func (bs *BlockState) deleteUnfinalisedBlock(hash common.Hash) {
-	bs.unfinalisedBlocks.Delete(hash)
-}
-
 func (bs *BlockState) hasUnfinalisedBlock(hash common.Hash) bool {
 	_, has := bs.unfinalisedBlocks.Load(hash)
 	return has
@@ -222,54 +218,6 @@ func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Blo
 
 	bs.unfinalisedBlocks.Delete(hash)
 	return block.(*types.Block), true
-}
-
-// DeleteBlock deletes all instances of the block and its related data in the database
-// TODO: when would this be used? maybe can remove
-func (bs *BlockState) DeleteBlock(hash common.Hash) error {
-	if has, _ := bs.HasHeader(hash); has {
-		err := bs.db.Del(headerKey(hash))
-		if err != nil {
-			return err
-		}
-	}
-
-	if has, _ := bs.HasBlockBody(hash); has {
-		err := bs.db.Del(blockBodyKey(hash))
-		if err != nil {
-			return err
-		}
-	}
-
-	// if has, _ := bs.HasArrivalTime(hash); has {
-	// 	err := bs.db.Del(arrivalTimeKey(hash))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	if has, _ := bs.HasReceipt(hash); has {
-		err := bs.db.Del(prefixKey(hash, receiptPrefix))
-		if err != nil {
-			return err
-		}
-	}
-
-	if has, _ := bs.HasMessageQueue(hash); has {
-		err := bs.db.Del(prefixKey(hash, messageQueuePrefix))
-		if err != nil {
-			return err
-		}
-	}
-
-	if has, _ := bs.HasJustification(hash); has {
-		err := bs.db.Del(prefixKey(hash, justificationPrefix))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // HasHeader returns if the db contains a header with the given hash
@@ -394,11 +342,7 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 		return err
 	}
 
-	if err = bs.db.Put(headerKey(header.Hash()), bh); err != nil {
-		return err
-	}
-
-	return nil
+	return bs.db.Put(headerKey(header.Hash()), bh)
 }
 
 // HasBlockBody returns true if the db contains the block body

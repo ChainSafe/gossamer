@@ -98,11 +98,10 @@ func (s *Service) DB() chaindb.Database {
 
 // Start initialises the Storage database and the Block database.
 func (s *Service) Start() error {
-	// if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
-	// 	return nil
-	// }
+	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
+		return nil
+	}
 
-	var err error
 	db := s.db
 
 	if !s.isMemDB {
@@ -120,6 +119,8 @@ func (s *Service) Start() error {
 		s.db = db
 		s.Base = NewBaseState(db)
 	}
+
+	var err error
 
 	// create block state
 	s.Block, err = NewBlockState(db)

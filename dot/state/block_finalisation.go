@@ -163,20 +163,8 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
 		block, _ := bs.getAndDeleteUnfinalisedBlock(hash)
-
-		// header, err := bs.GetHeader(hash)
-		// if err != nil {
-		// 	logger.Debug("failed to get pruned header", "hash", hash, "error", err)
-		// 	continue
-		// }
-
-		// err = bs.DeleteBlock(hash)
-		// if err != nil {
-		// 	logger.Debug("failed to delete block", "hash", hash, "error", err)
-		// 	continue
-		// }
-
 		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
+
 		go func(header *types.Header) {
 			bs.pruneKeyCh <- header
 		}(&block.Header)
@@ -210,11 +198,6 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		if hash.Equal(bs.genesisHash) {
 			continue
 		}
-
-		// header, err := bs.GetHeader(hash)
-		// if err != nil {
-		// 	return fmt.Errorf("failed to get header in subchain: %w", err)
-		// }
 
 		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
 		if !has {
