@@ -93,7 +93,7 @@ func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
 func (bs *BlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
 	b, err := bs.db.Get(highestRoundAndSetIDKey)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("failed to get highest round and setID: %w", err)
 	}
 
 	round := binary.LittleEndian.Uint64(b[:8])
@@ -190,7 +190,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 	prev, err := bs.GetHighestFinalisedHash()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get highest finalised hash: %w", err)
 	}
 
 	if prev.Equal(curr) {

@@ -109,9 +109,9 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
-	// if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
-	// 	return nil, err
-	// }
+	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
+		return nil, err
+	}
 
 	if err := bs.SetHeader(header); err != nil {
 		return nil, err
@@ -126,6 +126,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 	}
 
 	bs.genesisHash = header.Hash()
+	bs.lastFinalised = header.Hash()
 
 	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
