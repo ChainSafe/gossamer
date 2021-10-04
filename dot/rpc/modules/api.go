@@ -12,11 +12,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // StorageAPI is the interface for the storage state
 type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
+	GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error)
+	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
 	GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
@@ -85,6 +88,7 @@ type CoreAPI interface {
 	GetMetadata(bhash *common.Hash) ([]byte, error)
 	QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
+	GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service
