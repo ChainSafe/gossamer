@@ -35,7 +35,9 @@ package wasmer
 // extern int32_t ext_crypto_ed25519_verify_version_1(void *context, int32_t a, int64_t b, int32_t c);
 // extern int32_t ext_crypto_finish_batch_verify_version_1(void *context);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_version_1(void *context, int32_t a, int32_t b);
+// extern int64_t ext_crypto_secp256k1_ecdsa_recover_version_2(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(void *context, int32_t a, int32_t b);
+// extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(void *context, int32_t a, int32_t b);
 // extern int32_t ext_crypto_sr25519_generate_version_1(void *context, int32_t a, int64_t b);
 // extern int64_t ext_crypto_sr25519_public_keys_version_1(void *context, int32_t a);
 // extern int64_t ext_crypto_sr25519_sign_version_1(void *context, int32_t a, int32_t b, int64_t c);
@@ -418,14 +420,6 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
 
-	if signature[64] == 27 {
-		signature[64] = 0
-	}
-
-	if signature[64] == 28 {
-		signature[64] = 1
-	}
-
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
@@ -449,6 +443,12 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	return C.int64_t(ret)
 }
 
+//export ext_crypto_secp256k1_ecdsa_recover_version_2
+func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_2] executing...")
+	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
+}
+
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
 func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
@@ -460,14 +460,6 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 	// recovery id as the last element
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
-
-	if signature[64] == 27 {
-		signature[64] = 0
-	}
-
-	if signature[64] == 28 {
-		signature[64] = 1
-	}
 
 	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
 	if err != nil {
@@ -485,6 +477,12 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 	}
 
 	return C.int64_t(ret)
+}
+
+//export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_2] executing...")
+	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context, sig, msg)
 }
 
 //export ext_crypto_sr25519_generate_version_1
@@ -1992,7 +1990,15 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_version_2", ext_crypto_secp256k1_ecdsa_recover_version_2, C.ext_crypto_secp256k1_ecdsa_recover_version_2)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1", ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2", ext_crypto_secp256k1_ecdsa_recover_compressed_version_2, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_2)
 	if err != nil {
 		return nil, err
 	}
