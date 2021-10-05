@@ -32,6 +32,9 @@ const PrivateKeyLength = 32
 // SignatureLength is the fixed Signature Length
 const SignatureLength = 64
 
+// SignatureLengthRecovery is the length of a secp256k1 signature with recovery byte (used for ecrecover)
+const SignatureLengthRecovery = 65
+
 // MessageLength is the fixed Message Length
 const MessageLength = 32
 
@@ -48,11 +51,21 @@ type PublicKey struct {
 
 // RecoverPublicKey returns the 64-byte uncompressed public key that created the given signature.
 func RecoverPublicKey(msg, sig []byte) ([]byte, error) {
+	// update recovery bit
+	if sig[64] >= 27 {
+		sig[64] -= 27
+	}
+
 	return secp256k1.Ecrecover(msg, sig)
 }
 
 // RecoverPublicKeyCompressed returns the 33-byte compressed public key that signed the given message.
 func RecoverPublicKeyCompressed(msg, sig []byte) ([]byte, error) {
+	// update recovery bit
+	if sig[64] >= 27 {
+		sig[64] -= 27
+	}
+
 	pub, err := secp256k1.SigToPub(msg, sig)
 	if err != nil {
 		return nil, err
