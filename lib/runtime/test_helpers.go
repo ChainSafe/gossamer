@@ -57,6 +57,8 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 		return GetAbsolutePath(NODE_RUNTIME_FP), NODE_RUNTIME_URL
 	case NODE_RUNTIME_v098:
 		return GetAbsolutePath(NODE_RUNTIME_FP_v098), NODE_RUNTIME_URL_v098
+	case POLKADOT_RUNTIME_v0910:
+		return GetAbsolutePath(POLKADOT_RUNTIME_FP_v0910), POLKADOT_RUNTIME_URL_v0910
 	case POLKADOT_RUNTIME:
 		return GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
 	case HOST_API_TEST_RUNTIME:
