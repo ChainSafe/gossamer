@@ -51,12 +51,9 @@ type PublicKey struct {
 
 // RecoverPublicKey returns the 64-byte uncompressed public key that created the given signature.
 func RecoverPublicKey(msg, sig []byte) ([]byte, error) {
-	if sig[64] == 27 {
-		sig[64] = 0
-	}
-
-	if sig[64] == 28 {
-		sig[64] = 1
+	// update recovery bit
+	if sig[64] >= 27 {
+		sig[64] -= 27
 	}
 
 	return secp256k1.Ecrecover(msg, sig)
