@@ -362,8 +362,6 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return err
 	}
 
-	fmt.Println(subchain)
-
 	// subchain contains the ancestor as well so we need to remove it.
 	if len(subchain) > 0 {
 		subchain = subchain[1:]
@@ -388,7 +386,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range exts {
-			logger.Info("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
