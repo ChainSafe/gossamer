@@ -86,7 +86,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
 
-	epochState, err := NewEpochStateFromGenesis(db, babeCfg)
+	epochState, err := NewEpochStateFromGenesis(db, blockState, babeCfg)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %s", err)
 	}

@@ -204,6 +204,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	if err != nil {
 		return fmt.Errorf("failed to create new BABE verifier: %w", err)
 	}
+	fmt.Println("before verifyAuthorshipRight")
 
 	return verifier.verifyAuthorshipRight(header)
 }

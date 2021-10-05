@@ -128,6 +128,10 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
 
+	if s.Block.unfinalisedBlocks == nil {
+		panic("unfinalisedBlocks is nil")
+	}
+
 	// retrieve latest header
 	bestHeader, err := s.Block.GetHighestFinalisedHeader()
 	if err != nil {

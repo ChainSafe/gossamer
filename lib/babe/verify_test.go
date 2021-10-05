@@ -18,7 +18,6 @@ package babe
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -55,13 +54,13 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 
 	err = dbSrv.Start()
 	require.NoError(t, err)
-	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), genCfg)
+	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
 	require.NoError(t, err)
 
 	logger = log.New("pkg", "babe")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(defaultTestLogLvl, h))
+	logger.SetHandler(log.LvlFilterHandler(log.LvlTrace, h))
 
 	vm, err := NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
 	require.NoError(t, err)
@@ -91,8 +90,6 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
-
-	fmt.Println("Finished creating test service")
 
 	vm := newTestVerificationManager(t, nil)
 	vm.epochInfo[testEpochIndex] = &verifierInfo{
@@ -223,7 +220,6 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	vm := newTestVerificationManager(t, cfg)
 
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
-
 	err = vm.VerifyBlock(&block.Header)
 	require.NoError(t, err)
 }
