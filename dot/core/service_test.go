@@ -127,7 +127,7 @@ func TestAnnounceBlock(t *testing.T) {
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},
-		Body: *types.NewBody([]byte{}),
+		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
 	expected := &network.BlockAnnounceMessage{
@@ -303,8 +303,6 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// build "re-org" chain
-	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{tx})
-	require.NoError(t, err)
 
 	digest := types.NewDigest()
 	block := &types.Block{
@@ -313,7 +311,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
 			Digest:     digest,
 		},
-		Body: *body,
+		Body: types.Body([]types.Extrinsic{tx}),
 	}
 
 	s.blockState.StoreRuntime(block.Header.Hash(), rt)
@@ -376,10 +374,9 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 		transactionState: ts,
 	}
 
-	err := s.maintainTransactionPool(&types.Block{
-		Body: *types.NewBody([]byte{}),
+	s.maintainTransactionPool(&types.Block{
+		Body: *types.NewBody([]types.Extrinsic{}),
 	})
-	require.NoError(t, err)
 
 	res := make([]*transaction.ValidTransaction, len(txs))
 	for i := range txs {
@@ -422,13 +419,9 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		transactionState: ts,
 	}
 
-	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{txs[0].Extrinsic})
-	require.NoError(t, err)
-
-	err = s.maintainTransactionPool(&types.Block{
-		Body: *body,
+	s.maintainTransactionPool(&types.Block{
+		Body: types.Body([]types.Extrinsic{txs[0].Extrinsic}),
 	})
-	require.NoError(t, err)
 
 	res := []*transaction.ValidTransaction{}
 	for {
@@ -514,7 +507,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 			ParentHash: hash,
 			Number:     big.NewInt(1),
 			Digest:     types.NewDigest()},
-		Body: *types.NewBody([]byte("Old Runtime")),
+		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
 
 	newBlockRTUpdate := &types.Block{
@@ -523,7 +516,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
-		Body: *types.NewBody([]byte("Updated Runtime")),
+		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
 	ts, err := s.storageState.TrieState(nil) // Pass genesis root
@@ -598,13 +591,14 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	codeHashBefore := parentRt.GetCodeHash()
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
 
+	body := types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")})
 	newBlock := &types.Block{
 		Header: types.Header{
 			ParentHash: blockHash,
 			Number:     big.NewInt(1),
 			Digest:     types.NewDigest(),
 		},
-		Body: *types.NewBody([]byte("Updated Runtime")),
+		Body: *body,
 	}
 
 	err = s.handleCodeSubstitution(blockHash)
@@ -647,7 +641,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 
 	testBlock := &types.Block{
 		Header: *header,
-		Body:   *types.NewBody([]byte{}),
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -677,7 +671,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 
 	testBlock := &types.Block{
 		Header: *header,
-		Body:   *types.NewBody([]byte{}),
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -702,7 +696,7 @@ func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 
 	testBlock := &types.Block{
 		Header: *header,
-		Body:   *types.NewBody([]byte{}),
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -787,7 +781,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 
 	testBlock := &types.Block{
 		Header: *header,
-		Body:   *types.NewBody([]byte{}),
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)

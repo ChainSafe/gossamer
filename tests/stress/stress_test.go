@@ -467,8 +467,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		logger.Debug("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
 
 		if block.Body != nil {
-			resExts, err = block.Body.AsExtrinsics()
-			require.NoError(t, err, block.Body)
+			resExts = block.Body
 
 			logger.Debug("extrinsics", "exts", resExts)
 			if len(resExts) >= 2 {
