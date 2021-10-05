@@ -77,7 +77,6 @@ type BlockState struct {
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
 func NewBlockState(db chaindb.Database) (*BlockState, error) {
-	fmt.Println("NewBlockState")
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
@@ -199,7 +198,7 @@ func (bs *BlockState) getUnfinalisedHeader(hash common.Hash) (*types.Header, boo
 		return nil, false
 	}
 
-	return &block.(*types.Block).Header, true
+	return &(block.(*types.Block).Header), true
 }
 
 func (bs *BlockState) getUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {

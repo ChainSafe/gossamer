@@ -168,7 +168,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
-	err = digest.Add(predigest)
+	err = digest.Add(*predigest)
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
@@ -180,7 +180,6 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	}
 
 	arrivalTime := time.Now().UnixNano() - slot.duration.Nanoseconds()
-
 	err = babeService.blockState.(*state.BlockState).AddBlockWithArrivalTime(block, time.Unix(0, arrivalTime))
 	require.NoError(t, err)
 

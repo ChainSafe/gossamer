@@ -195,7 +195,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Version: 1,
 		Round:   2,
 		SetID:   3,
-		Number:  2,
+		Number:  1,
 	}
 	_, err := h.handleMessage("", msg)
 	require.NoError(t, err)
@@ -205,7 +205,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(2),
+			Number:     big.NewInt(1),
 			ParentHash: st.Block.GenesisHash(),
 			Digest:     digest,
 		},
@@ -222,7 +222,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	// check if request for justification was sent out
 	expected := &testJustificationRequest{
 		to:  "",
-		num: 2,
+		num: 1,
 	}
 	require.Equal(t, expected, gs.network.(*testNetwork).justificationRequest)
 }
@@ -354,7 +354,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(2),
+			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
 		Body: types.Body{},
