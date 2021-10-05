@@ -563,7 +563,7 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Ha
 
 	return &types.Block{
 		Header: *res,
-		Body:   *types.NewBody(inherentExts),
+		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 }
 
@@ -715,7 +715,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0x9a87f6af64ef97aff2d31bebfdd59f8fe2ef6019278b634b2515a38f1c4c2420"),
 			Digest:         digest,
 		},
-		Body: *types.NewBody(body),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
@@ -766,7 +766,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0xa35fb7f7616f5c979d48222b3d2fa7cb2331ef73954726714d91ca945cc34fd8"),
 			Digest:         digest,
 		},
-		Body: *types.NewBody(body),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
@@ -812,7 +812,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0x52b7d4852fc648cb8f908901e1e36269593c25050c31718454bca74b69115d12"),
 			Digest:         digest,
 		},
-		Body: *types.NewBody(body),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
@@ -858,7 +858,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0x13483a4c148fff5f072e86b5af52bf031556514e9c87ea19f9e31e7b13c0c414"),
 			Digest:         digest,
 		},
-		Body: *types.NewBody(body),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
@@ -904,7 +904,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0x7f3ea0ed63b4053d9b75e7ee3e5b3f6ce916e8f59b7b6c5e966b7a56ea0a563a"),
 			Digest:         digest,
 		},
-		Body: *types.NewBody(body),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
@@ -951,7 +951,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0xdf5da95780b77e83ad0bf820d5838f07a0d5131aa95a75f8dfbd01fbccb300bd"),
 			Digest:         digest,
 		},
-		Body: *types.NewBody(body),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
@@ -995,7 +995,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0x5d887e118ee6320aca38e49cbd98adc25472c6efbf77a695ab0d6c476a4ec6e9"),
 			Digest:         digest,
 		},
-		Body: *types.NewBody(body),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
@@ -1040,7 +1040,7 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 			ExtrinsicsRoot: common.MustHexToHash("0x950173af1d9fdcd0be5428fc3eaf05d5f34376bd3882d9a61b348fa2dc641012"),
 			Digest:         digest,
 		},
-		Body: *types.NewBody(body),
+		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
 	_, err = instance.ExecuteBlock(block)
