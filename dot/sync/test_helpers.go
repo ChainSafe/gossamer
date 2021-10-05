@@ -19,12 +19,12 @@ package sync
 import (
 	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/ChainSafe/gossamer/dot/state"
+	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -34,11 +34,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
 // NewMockFinalityGadget create and return sync FinalityGadget interface mock
@@ -100,6 +100,16 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 		require.NoError(t, err)
 
+		nodeStorage := runtime.NodeStorage{}
+		if stateSrvc != nil {
+			nodeStorage.BaseDB = stateSrvc.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
+		}
+
+		rtCfg.NodeStorage = nodeStorage
+
 		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
 		cfg.Runtime = instance
@@ -140,22 +150,23 @@ func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*ge
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }
 
 // BuildBlock ...
 func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
+	digest := types.NewDigest()
+	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Digest:     digest,
 	}
 
-	err := instance.InitializeBlock(header)
+	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
 	idata := types.NewInherentsData()
@@ -212,7 +223,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	res.Number = header.Number
 
 	return &types.Block{
-		Header: res,
-		Body:   body,
+		Header: *res,
+		Body:   *body,
 	}
 }

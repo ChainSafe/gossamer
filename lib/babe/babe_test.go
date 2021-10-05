@@ -21,12 +21,14 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -34,11 +36,10 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -52,6 +53,7 @@ var (
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{
 		Number: big.NewInt(0),
+		Digest: types.NewDigest(),
 	}
 
 	genesisBABEConfig = &types.BabeConfiguration{
@@ -59,7 +61,7 @@ var (
 		EpochLength:        200,
 		C1:                 1,
 		C2:                 4,
-		GenesisAuthorities: []*types.AuthorityRaw{},
+		GenesisAuthorities: []types.AuthorityRaw{},
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
 	}
@@ -70,6 +72,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	genesisHeader = genHeader
+
 	var err error
 
 	if cfg == nil {
@@ -87,26 +90,28 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	if cfg.AuthData == nil {
-		auth := &types.Authority{
+		auth := types.Authority{
 			Key:    cfg.Keypair.Public().(*sr25519.PublicKey),
 			Weight: 1,
 		}
-		cfg.AuthData = []*types.Authority{auth}
+		cfg.AuthData = []types.Authority{auth}
 	}
 
 	if cfg.TransactionState == nil {
 		cfg.TransactionState = state.NewTransactionState()
 	}
 
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
+
+	var dbSrv *state.Service
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
-		testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
 		require.NoError(t, err)
 
 		config := state.Config{
 			Path:     testDatadirPath,
 			LogLevel: log.LvlInfo,
 		}
-		dbSrv := state.NewService(config)
+		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
 
 		if cfg.EpochLength > 0 {
@@ -137,6 +142,16 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		storageState := cfg.StorageState.(core.StorageState)
 		rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
 		require.NoError(t, err)
+
+		nodeStorage := runtime.NodeStorage{}
+		if dbSrv != nil {
+			nodeStorage.BaseDB = dbSrv.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
+		}
+
+		rtCfg.NodeStorage = nodeStorage
 
 		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 		require.NoError(t, err)
@@ -321,7 +336,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 	babeService := createTestService(t, nil)
 
 	babeService.epochData.authorityIndex = 0
-	babeService.epochData.authorities = []*types.Authority{
+	babeService.epochData.authorities = []types.Authority{
 		{Key: nil, Weight: 1},
 		{Key: nil, Weight: 1},
 		{Key: nil, Weight: 1},
@@ -349,7 +364,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 	pubA := kpA.Public().(*sr25519.PublicKey)
 	pubB := kpB.Public().(*sr25519.PublicKey)
 
-	authData := []*types.Authority{
+	authData := []types.Authority{
 		{Key: pubA, Weight: 1},
 		{Key: pubB, Weight: 1},
 	}

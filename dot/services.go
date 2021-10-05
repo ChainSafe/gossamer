@@ -99,6 +99,7 @@ func createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {
 	return &runtime.NodeStorage{
 		LocalStorage:      localStorage,
 		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
+		BaseDB:            st.Base,
 	}, nil
 }
 

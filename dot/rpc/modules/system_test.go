@@ -307,12 +307,12 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	err = chain.Block.AddBlock(&types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	})
 	require.NoError(t, err)
 
@@ -363,7 +363,7 @@ func TestSyncState(t *testing.T) {
 		Number: big.NewInt(int64(49)),
 	}
 
-	blockapiMock := new(mocks.BlockAPI)
+	blockapiMock := new(mocks.MockBlockAPI)
 	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
 

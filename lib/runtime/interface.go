@@ -40,7 +40,7 @@ type Instance interface {
 	Version() (Version, error)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
-	GrandpaAuthorities() ([]*types.Authority, error)
+	GrandpaAuthorities() ([]types.Authority, error)
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 	InitializeBlock(header *types.Header) error
 	InherentExtrinsics(data []byte) ([]byte, error)

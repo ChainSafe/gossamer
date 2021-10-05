@@ -193,12 +193,11 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, err
 	}
 
-	for _, d := range header.Digest {
-		if d.Type() != types.PreRuntimeDigestType {
+	for _, d := range header.Digest.Types {
+		predigest, ok := d.Value().(types.PreRuntimeDigest)
+		if !ok {
 			continue
 		}
-
-		predigest := d.(*types.PreRuntimeDigest)
 
 		r := &bytes.Buffer{}
 		_, _ = r.Write(predigest.Data)

@@ -144,9 +144,9 @@ func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
 			return i, err
 		}
 
-		if bd.Justification != nil && bd.Justification.Exists() {
+		if bd.Justification != nil {
 			logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
-			s.handleJustification(header, bd.Justification.Value())
+			s.handleJustification(header, *bd.Justification)
 		}
 	}
 
@@ -170,6 +170,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
+
 		if hasHeader && hasBody {
 			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
@@ -181,15 +182,15 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 				return i, err
 			}
 
-			err = s.blockState.AddBlockToBlockTree(block.Header)
+			err = s.blockState.AddBlockToBlockTree(&block.Header)
 			if err != nil && !errors.Is(err, blocktree.ErrBlockExists) {
 				logger.Warn("failed to add block to blocktree", "hash", bd.Hash, "error", err)
 				return i, err
 			}
 
-			if bd.Justification != nil && bd.Justification.Exists() {
+			if bd.Justification != nil {
 				logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
-				s.handleJustification(block.Header, bd.Justification.Value())
+				s.handleJustification(&block.Header, *bd.Justification)
 			}
 
 			// TODO: this is probably unnecessary, since the state is already in the database
@@ -210,11 +211,8 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 
 		var header *types.Header
 
-		if bd.Header.Exists() && !hasHeader {
-			header, err = types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return i, err
-			}
+		if bd.Header != nil && !hasHeader {
+			header = bd.Header
 
 			logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
 
@@ -226,11 +224,8 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			logger.Trace("header processed", "hash", bd.Hash)
 		}
 
-		if bd.Body.Exists() && !hasBody {
-			body, err := types.NewBodyFromOptional(bd.Body) //nolint
-			if err != nil {
-				return i, err
-			}
+		if bd.Body != nil && !hasBody {
+			body := bd.Body //nolint
 
 			logger.Trace("processing body", "hash", bd.Hash)
 
@@ -242,20 +237,13 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			logger.Trace("body processed", "hash", bd.Hash)
 		}
 
-		if bd.Header.Exists() && bd.Body.Exists() {
-			header, err = types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return i, err
-			}
-
-			body, err := types.NewBodyFromOptional(bd.Body)
-			if err != nil {
-				return i, err
-			}
+		if bd.Header != nil && bd.Body != nil {
+			header = bd.Header
+			body := bd.Body
 
 			block := &types.Block{
-				Header: header,
-				Body:   body,
+				Header: *header,
+				Body:   *body,
 			}
 
 			logger.Debug("processing block", "hash", bd.Hash)
@@ -269,9 +257,9 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			logger.Debug("block processed", "hash", bd.Hash)
 		}
 
-		if bd.Justification != nil && bd.Justification.Exists() && header != nil {
+		if bd.Justification != nil && header != nil {
 			logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
-			s.handleJustification(header, bd.Justification.Value())
+			s.handleJustification(header, *bd.Justification)
 		}
 	}
 
@@ -306,7 +294,7 @@ func (s *Service) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
-	if block == nil || block.Header == nil || block.Body == nil {
+	if block == nil || block.Empty() || block.Header.Empty() {
 		return errors.New("block, header, or body is nil")
 	}
 

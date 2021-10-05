@@ -222,60 +222,6 @@ func TestStateModule_GetStorage(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetChildStorage(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
-	randomHash, err := common.HexToHash(RandomHash)
-	require.NoError(t, err)
-
-	testCases := []struct {
-		params   []string
-		expected []byte
-		errMsg   string
-	}{
-		{params: []string{":child1", ""}, expected: nil},
-		{params: []string{":child1", ":key1"}, expected: []byte("value1")},
-		{params: []string{":child1", ":key1", hash.String()}, expected: []byte("value1")},
-		{params: []string{":child1", ":key1", randomHash.String()}, errMsg: "Key not found"},
-	}
-
-	for _, test := range testCases {
-		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
-			var res StateStorageDataResponse
-			var req StateChildStorageRequest
-
-			if test.params[0] != "" {
-				req.ChildStorageKey = []byte(test.params[0])
-			}
-
-			if test.params[1] != "" {
-				req.Key = []byte(test.params[1])
-			}
-
-			if len(test.params) > 2 && test.params[2] != "" {
-				req.Block = &common.Hash{}
-				*req.Block, err = common.HexToHash(test.params[2])
-				require.NoError(t, err)
-			}
-
-			err = sm.GetChildStorage(nil, &req, &res)
-			// Handle error cases.
-			if test.errMsg != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), test.errMsg)
-				return
-			}
-
-			// Verify expected values.
-			require.NoError(t, err)
-			if test.expected != nil {
-				// Convert human-readable result value to hex.
-				expectedVal := "0x" + hex.EncodeToString(test.expected)
-				require.Equal(t, StateStorageResponse(expectedVal), res)
-			}
-		})
-	}
-}
-
 func TestStateModule_GetStorageHash(t *testing.T) {
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
@@ -530,6 +476,53 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 	}
 }
 
+func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
+	coreAPIMock := new(mocks.MockCoreAPI)
+	coreAPIMock.
+		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
+		Return(common.EmptyHash, nil, errors.New("mocked error"))
+
+	sm := new(StateModule)
+	sm.coreAPI = coreAPIMock
+
+	req := &StateGetReadProofRequest{
+		Keys: []string{},
+		Hash: common.EmptyHash,
+	}
+	err := sm.GetReadProof(nil, req, nil)
+	require.Error(t, err, "mocked error")
+}
+
+func TestGetReadProof_WhenReturnsProof(t *testing.T) {
+	expectedBlock := common.BytesToHash([]byte("random hash"))
+	mockedProof := [][]byte{[]byte("proof-1"), []byte("proof-2")}
+
+	coreAPIMock := new(mocks.MockCoreAPI)
+	coreAPIMock.
+		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
+		Return(expectedBlock, mockedProof, nil)
+
+	sm := new(StateModule)
+	sm.coreAPI = coreAPIMock
+
+	req := &StateGetReadProofRequest{
+		Keys: []string{},
+		Hash: common.EmptyHash,
+	}
+
+	res := new(StateGetReadProofResponse)
+	err := sm.GetReadProof(nil, req, res)
+	require.NoError(t, err)
+	require.Equal(t, res.At, expectedBlock)
+
+	expectedProof := []string{
+		common.BytesToHex([]byte("proof-1")),
+		common.BytesToHex([]byte("proof-2")),
+	}
+
+	require.Equal(t, res.Proof, expectedProof)
+}
+
 func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	// setup service
 	net := newNetworkService(t)
@@ -548,12 +541,12 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	require.NoError(t, err)
 
 	b := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
 			Number:     big.NewInt(2),
 			StateRoot:  sr1,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *types.NewBody([]byte{}),
 	}
 
 	err = chain.Block.AddBlock(b)

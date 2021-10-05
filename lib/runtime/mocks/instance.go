@@ -27,10 +27,8 @@ func (_m *MockInstance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func(types.Extrinsic) []byte); ok {
 		r0 = rf(data)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]byte)
 	}
 
 	var r1 error
@@ -50,10 +48,9 @@ func (_m *MockInstance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	var r0 *types.BabeConfiguration
 	if rf, ok := ret.Get(0).(func() *types.BabeConfiguration); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.BabeConfiguration)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*types.BabeConfiguration)
+
 	}
 
 	var r1 error
@@ -78,10 +75,8 @@ func (_m *MockInstance) CheckRuntimeVersion(_a0 []byte) (runtime.Version, error)
 	var r0 runtime.Version
 	if rf, ok := ret.Get(0).(func([]byte) runtime.Version); ok {
 		r0 = rf(_a0)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Version)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(runtime.Version)
 	}
 
 	var r1 error
@@ -101,10 +96,8 @@ func (_m *MockInstance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func([]byte) []byte); ok {
 		r0 = rf(enc)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]byte)
 	}
 
 	var r1 error
@@ -124,10 +117,8 @@ func (_m *MockInstance) Exec(function string, data []byte) ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func(string, []byte) []byte); ok {
 		r0 = rf(function, data)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]byte)
 	}
 
 	var r1 error
@@ -147,10 +138,8 @@ func (_m *MockInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func(*types.Block) []byte); ok {
 		r0 = rf(block)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]byte)
 	}
 
 	var r1 error
@@ -170,10 +159,8 @@ func (_m *MockInstance) FinalizeBlock() (*types.Header, error) {
 	var r0 *types.Header
 	if rf, ok := ret.Get(0).(func() *types.Header); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Header)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*types.Header)
 	}
 
 	var r1 error
@@ -198,26 +185,22 @@ func (_m *MockInstance) GetCodeHash() common.Hash {
 	var r0 common.Hash
 	if rf, ok := ret.Get(0).(func() common.Hash); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(common.Hash)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(common.Hash)
 	}
 
 	return r0
 }
 
 // GrandpaAuthorities provides a mock function with given fields:
-func (_m *MockInstance) GrandpaAuthorities() ([]*types.Authority, error) {
+func (_m *MockInstance) GrandpaAuthorities() ([]types.Authority, error) {
 	ret := _m.Called()
 
-	var r0 []*types.Authority
-	if rf, ok := ret.Get(0).(func() []*types.Authority); ok {
+	var r0 []types.Authority
+	if rf, ok := ret.Get(0).(func() []types.Authority); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Authority)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]types.Authority)
 	}
 
 	var r1 error
@@ -237,10 +220,8 @@ func (_m *MockInstance) InherentExtrinsics(data []byte) ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func([]byte) []byte); ok {
 		r0 = rf(data)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]byte)
 	}
 
 	var r1 error
@@ -274,10 +255,8 @@ func (_m *MockInstance) Keystore() *keystore.GlobalKeystore {
 	var r0 *keystore.GlobalKeystore
 	if rf, ok := ret.Get(0).(func() *keystore.GlobalKeystore); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*keystore.GlobalKeystore)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*keystore.GlobalKeystore)
 	}
 
 	return r0
@@ -290,10 +269,8 @@ func (_m *MockInstance) Metadata() ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func() []byte); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]byte)
 	}
 
 	var r1 error
@@ -313,10 +290,8 @@ func (_m *MockInstance) NetworkService() runtime.BasicNetwork {
 	var r0 runtime.BasicNetwork
 	if rf, ok := ret.Get(0).(func() runtime.BasicNetwork); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.BasicNetwork)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(runtime.BasicNetwork)
 	}
 
 	return r0
@@ -377,10 +352,8 @@ func (_m *MockInstance) ValidateTransaction(e types.Extrinsic) (*transaction.Val
 	var r0 *transaction.Validity
 	if rf, ok := ret.Get(0).(func(types.Extrinsic) *transaction.Validity); ok {
 		r0 = rf(e)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*transaction.Validity)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*transaction.Validity)
 	}
 
 	var r1 error
@@ -414,10 +387,8 @@ func (_m *MockInstance) Version() (runtime.Version, error) {
 	var r0 runtime.Version
 	if rf, ok := ret.Get(0).(func() runtime.Version); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Version)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(runtime.Version)
 	}
 
 	var r1 error

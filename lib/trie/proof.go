@@ -17,9 +17,7 @@
 package trie
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -28,117 +26,38 @@ import (
 var (
 	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
-
-	// ErrEmptyNibbles occurs when trying to prove or valid a proof to an empty key
-	ErrEmptyNibbles = errors.New("empty nibbles provided from key")
 )
 
-// GenerateProof constructs the merkle-proof for key. The result contains all encoded nodes
-// on the path to the key. Returns the amount of nodes of the path and error if could not found the key
-func (t *Trie) GenerateProof(key []byte, db chaindb.Writer) (int, error) {
-	key = keyToNibbles(key)
-	if len(key) == 0 {
-		return 0, ErrEmptyNibbles
-	}
+// GenerateProof receive the keys to proof, the trie root and a reference to database
+// will
+func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
+	trackedProofs := make(map[string][]byte)
 
-	var nodes []node
-	currNode := t.root
+	for _, k := range keys {
+		nk := keyToNibbles(k)
 
-proveLoop:
-	for {
-		switch n := currNode.(type) {
-		case nil:
-			return 0, errors.New("no more paths to follow")
+		lookup := newLookup(root, db)
+		recorder := new(recorder)
 
-		case *leaf:
-			nodes = append(nodes, n)
-
-			if bytes.Equal(n.key, key) {
-				break proveLoop
-			}
-
-			return 0, errors.New("leaf node doest not match the key")
-
-		case *branch:
-			nodes = append(nodes, n)
-			if bytes.Equal(n.key, key) || len(key) == 0 {
-				break proveLoop
-			}
-
-			length := lenCommonPrefix(n.key, key)
-			currNode = n.children[key[length]]
-			key = key[length+1:]
-		}
-	}
-
-	for _, n := range nodes {
-		var (
-			hashNode    []byte
-			encHashNode []byte
-			err         error
-		)
-
-		if encHashNode, hashNode, err = n.encodeAndHash(); err != nil {
-			return 0, fmt.Errorf("problems while encoding and hashing the node: %w", err)
-		}
-
-		if err = db.Put(hashNode, encHashNode); err != nil {
-			return len(nodes), err
-		}
-	}
-
-	return len(nodes), nil
-}
-
-// VerifyProof checks merkle proofs given an proof
-func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) (bool, error) {
-	key = keyToNibbles(key)
-	if len(key) == 0 {
-		return false, ErrEmptyNibbles
-	}
-
-	var wantedHash []byte
-	wantedHash = rootHash.ToBytes()
-
-	for {
-		enc, err := db.Get(wantedHash)
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
-			return false, nil
-		} else if err != nil {
-			return false, nil
-		}
-
-		currNode, err := decodeBytes(enc)
+		_, err := lookup.find(nk, recorder)
 		if err != nil {
-			return false, fmt.Errorf("could not decode node bytes: %w", err)
+			return nil, err
 		}
 
-		switch n := currNode.(type) {
-		case nil:
-			return false, nil
-		case *leaf:
-			if bytes.Equal(n.key, key) {
-				return true, nil
+		for !recorder.isEmpty() {
+			recNode := recorder.next()
+			nodeHashHex := common.BytesToHex(recNode.hash)
+			if _, ok := trackedProofs[nodeHashHex]; !ok {
+				trackedProofs[nodeHashHex] = recNode.rawData
 			}
-
-			return false, nil
-		case *branch:
-			if bytes.Equal(n.key, key) {
-				return true, nil
-			}
-
-			if len(key) == 0 {
-				return false, nil
-			}
-
-			length := lenCommonPrefix(n.key, key)
-			next := n.children[key[length]]
-			if next == nil {
-				return false, nil
-			}
-
-			key = key[length+1:]
-			wantedHash = next.getHash()
 		}
 	}
+
+	proofs := make([][]byte, 0)
+
+	for _, p := range trackedProofs {
+		proofs = append(proofs, p)
+	}
+
+	return proofs, nil
 }

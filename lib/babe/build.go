@@ -113,7 +113,12 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewDigest(preDigest))
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	if err != nil {
+		return nil, err
+	}
+	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +159,10 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 		return nil, err
 	}
 
-	header.Digest = append(header.Digest, seal)
+	err = header.Digest.Add(*seal)
+	if err != nil {
+		return nil, err
+	}
 
 	logger.Trace("built block seal")
 
@@ -164,8 +172,8 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	}
 
 	block := &types.Block{
-		Header: header,
-		Body:   body,
+		Header: *header,
+		Body:   *body,
 	}
 
 	return block, nil
@@ -174,7 +182,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 // buildBlockSeal creates the seal for the block header.
 // the seal consists of the ConsensusEngineID and a signature of the encoded block header.
 func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
-	encHeader, err := header.Encode()
+	encHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return nil, err
 	}
