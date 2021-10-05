@@ -95,12 +95,11 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 
 // AsExtrinsics decodes the body into an array of extrinsics
 func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
-	dec := [][]byte{}
-
 	if len(*b) == 0 {
 		return []Extrinsic{}, nil
 	}
 
+	dec := [][]byte{}
 	err := scale.Unmarshal(*b, &dec)
 	if err != nil {
 		return nil, err
