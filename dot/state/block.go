@@ -40,7 +40,8 @@ var blockPrefix = "block"
 
 const pruneKeyBufferSize = 1000
 
-// BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
+// BlockState defines fields for manipulating the state of blocks, such as BlockTree,
+// BlockDB and Header
 type BlockState struct {
 	bt        *blocktree.BlockTree
 	baseState *BaseState
@@ -118,7 +119,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	if err := bs.SetBlockBody(header.Hash(), types.NewBody([]byte{})); err != nil {
+	if err := bs.SetBlockBody(header.Hash(), types.NewBody([]types.Extrinsic{})); err != nil {
 		return nil, err
 	}
 
@@ -354,12 +355,17 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 		return nil, err
 	}
 
-	return types.NewBody(data), nil
+	return types.NewBodyFromBytes(data)
 }
 
 // SetBlockBody will add a block body to the db
 func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
-	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
+	encodedBody, err := scale.Marshal(*body)
+	if err != nil {
+		return err
+	}
+
+	return bs.db.Put(blockBodyKey(hash), encodedBody)
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
@@ -429,7 +435,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		}
 	}
 
-	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body))
+	err = bs.SetBlockBody(block.Header.Hash(), &block.Body)
 	if err != nil {
 		return err
 	}
