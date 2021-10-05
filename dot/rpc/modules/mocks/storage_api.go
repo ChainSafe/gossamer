@@ -154,6 +154,29 @@ func (_m *MockStorageAPI) GetStorageChild(root *common.Hash, keyToChild []byte) 
 	return r0, r1
 }
 
+// GetStorageFromChild provides a mock function with given fields: root, keyToChild, key
+func (_m *MockStorageAPI) GetStorageFromChild(root *common.Hash, keyToChild []byte, key []byte) ([]byte, error) {
+	ret := _m.Called(root, keyToChild, key)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func(*common.Hash, []byte, []byte) []byte); ok {
+		r0 = rf(root, keyToChild, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*common.Hash, []byte, []byte) error); ok {
+		r1 = rf(root, keyToChild, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // RegisterStorageObserver provides a mock function with given fields: observer
 func (_m *MockStorageAPI) RegisterStorageObserver(observer state.Observer) {
 	_m.Called(observer)
