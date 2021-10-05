@@ -61,12 +61,9 @@ func RecoverPublicKey(msg, sig []byte) ([]byte, error) {
 
 // RecoverPublicKeyCompressed returns the 33-byte compressed public key that signed the given message.
 func RecoverPublicKeyCompressed(msg, sig []byte) ([]byte, error) {
-	if sig[64] == 27 {
-		sig[64] = 0
-	}
-
-	if sig[64] == 28 {
-		sig[64] = 1
+	// update recovery bit
+	if sig[64] >= 27 {
+		sig[64] -= 27
 	}
 
 	pub, err := secp256k1.SigToPub(msg, sig)
