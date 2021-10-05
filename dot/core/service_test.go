@@ -236,7 +236,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	err = bs.AddBlock(block31)
 	require.NoError(t, err)
 
-	nonce := uint64(1)
+	nonce := uint64(0)
 
 	// Add extrinsic to block `block41`
 	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)

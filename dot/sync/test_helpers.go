@@ -225,6 +225,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	res, err := instance.FinalizeBlock()
 	require.NoError(t, err)
 	res.Number = header.Number
+	res.Hash()
 
 	return &types.Block{
 		Header: *res,
