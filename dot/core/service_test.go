@@ -289,6 +289,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	// create extrinsic
 	enc, err := scale.Marshal([]byte("nootwashere"))
 	require.NoError(t, err)
+	// we prefix with []byte{2} here since that's the enum index for the old IncludeDataExt extrinsic
 	tx := append([]byte{2}, enc...)
 
 	bhash := s.blockState.BestBlockHash()

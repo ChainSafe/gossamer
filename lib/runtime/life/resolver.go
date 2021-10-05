@@ -431,8 +431,13 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 			return nil
 		}
 
-		// append new item, pop off first byte now, since we're not using old scale.Decoder
-		valueRes = append(valueCurr[1:], valueToAppend...)
+		lengthBytes, err := scale.Marshal(currLength)
+		if err != nil {
+			return err
+		}
+		// append new item, pop off number of bytes required for length encoding,
+		// since we're not using old scale.Decoder
+		valueRes = append(valueCurr[len(lengthBytes):], valueToAppend...)
 
 		// increase length by 1
 		nextLength = big.NewInt(0).Add(currLength, big.NewInt(1))

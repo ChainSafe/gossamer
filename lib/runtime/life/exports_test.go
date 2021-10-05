@@ -237,11 +237,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	// block data is received from querying a polkadot node
 	body := []byte{8, 40, 4, 2, 0, 11, 144, 17, 14, 179, 110, 1, 16, 4, 20, 0, 0}
 	var exts [][]byte
-<<<<<<< HEAD
-	err = scale2.Unmarshal(body, &exts)
-=======
 	err = scale.Unmarshal(body, &exts)
->>>>>>> d2357261 (lib/runtime/life updates)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(exts))
 
@@ -291,11 +287,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	// block data is received from querying a polkadot node
 	body := []byte{8, 40, 4, 3, 0, 11, 80, 149, 160, 81, 114, 1, 16, 4, 20, 0, 0}
 	var exts [][]byte
-<<<<<<< HEAD
-	err = scale2.Unmarshal(body, &exts)
-=======
 	err = scale.Unmarshal(body, &exts)
->>>>>>> d2357261 (lib/runtime/life updates)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(exts))
 

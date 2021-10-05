@@ -37,12 +37,13 @@ func (in *Instance) Version() (runtime.Version, error) {
 	version := &runtime.VersionData{}
 	err = version.Decode(res)
 	// error comes from scale now, so do a string check
-	if strings.Contains(fmt.Sprintf("%s", err), "EOF") {
-		// TODO: kusama seems to use the legacy version format
-		lversion := &runtime.LegacyVersionData{}
-		err = lversion.Decode(res)
-		return lversion, err
-	} else if err != nil {
+	if err != nil {
+		if strings.Contains(err.Error(), "EOF") {
+			// TODO: kusama seems to use the legacy version format
+			lversion := &runtime.LegacyVersionData{}
+			err = lversion.Decode(res)
+			return lversion, err
+		}
 		return nil, err
 	}
 
