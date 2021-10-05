@@ -214,8 +214,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	header := types.NewEmptyHeader()
 	exts := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	body, err := types.NewBodyFromExtrinsics(exts)
-	require.NoError(t, err)
+	body := types.NewBody(exts)
 
 	block := &types.Block{
 		Header: *header,

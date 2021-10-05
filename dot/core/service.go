@@ -333,9 +333,8 @@ func (s *Service) handleBlocksAsync() {
 				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
 
-			if err := s.maintainTransactionPool(block); err != nil {
-				logger.Warn("failed to maintain transaction pool", "error", err)
-			}
+			s.maintainTransactionPool(block)
+
 		case <-s.ctx.Done():
 			return
 		}
@@ -380,14 +379,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			continue
 		}
 
-		exts, err := body.AsExtrinsics()
-		if err != nil {
-			continue
-		}
-
 		// TODO: decode extrinsic and make sure it's not an inherent.
 		// currently we are attempting to re-add inherents, causing lots of "'Bad input data provided to validate_transaction" errors.
-		for _, ext := range exts {
+		for _, ext := range *body {
 			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
@@ -423,14 +417,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 // maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
 // and moves them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
-func (s *Service) maintainTransactionPool(block *types.Block) error {
-	exts, err := block.Body.AsExtrinsics()
-	if err != nil {
-		return err
-	}
-
+func (s *Service) maintainTransactionPool(block *types.Block) {
 	// remove extrinsics included in a block
-	for _, ext := range exts {
+	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
 
@@ -457,8 +446,6 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
 		logger.Trace("moved transaction to queue", "hash", h)
 	}
-
-	return nil
 }
 
 // InsertKey inserts keypair into the account keystore

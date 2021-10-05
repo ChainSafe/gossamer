@@ -236,13 +236,16 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Has
 		parent = &bb
 	}
 
+	body, err := types.NewBodyFromBytes([]byte{})
+	require.NoError(t, err)
+
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: *parent,
 			Number:     big.NewInt(bNum),
 			StateRoot:  trieStateRoot,
 		},
-		Body: *types.NewBody([]byte{}),
+		Body: *body,
 	}
 	return block, trieState
 }

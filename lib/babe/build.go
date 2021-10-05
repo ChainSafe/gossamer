@@ -371,10 +371,5 @@ func ExtrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (
 		extrinsics = append(extrinsics, decExt)
 	}
 
-	enc, err := scale.Marshal(extrinsics)
-	if err != nil {
-		return nil, err
-	}
-	body := types.Body(enc)
-	return &body, nil
+	return types.NewBody(extrinsics), nil
 }
