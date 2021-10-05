@@ -65,7 +65,7 @@ type ExtrinsicOrHashRequest []ExtrinsicOrHash
 // KeyInsertResponse []byte
 type KeyInsertResponse []byte
 
-// PendingExtrinsicsResponse is a bi-dimensional array of bytes for allocating the pending extrisics
+// PendingExtrinsicsResponse is a bi-dimensional array of bytes for allocating the pending extrinsics
 type PendingExtrinsicsResponse []string
 
 // RemoveExtrinsicsResponse is a array of hash used to Remove extrinsics

@@ -26,17 +26,16 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
+
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -200,26 +199,21 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
-	body := types.Body(inherentExts)
+	body := types.Body(types.BytesArrayToExtrinsics(inExts))
 
 	if ext != nil {
 		// validate and apply extrinsic
-		var (
-			txn *transaction.Validity
-			ret []byte
-		)
+		var ret []byte
 
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-		txn, err = instance.ValidateTransaction(externalExt)
+		_, err = instance.ValidateTransaction(externalExt)
 		require.NoError(t, err)
 
-		vtx := transaction.NewValidTransaction(ext, txn)
 		ret, err = instance.ApplyExtrinsic(ext)
 		require.NoError(t, err)
 		require.Equal(t, ret, []byte{0, 0})
 
-		body, err = babe.ExtrinsicsToBody(inExts, []*transaction.ValidTransaction{vtx})
-		require.NoError(t, err)
+		body = append(body, ext)
 	}
 
 	res, err := instance.FinalizeBlock()
