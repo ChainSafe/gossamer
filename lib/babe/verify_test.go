@@ -60,7 +60,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	logger = log.New("pkg", "babe")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(log.LvlTrace, h))
+	logger.SetHandler(log.LvlFilterHandler(defaultTestLogLvl, h))
 
 	vm, err := NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
 	require.NoError(t, err)
