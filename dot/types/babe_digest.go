@@ -76,17 +76,17 @@ func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput
 }
 
 // ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
-func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
+func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 	digest := NewBabeDigest()
 	err := digest.Set(*d)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	enc, err := scale.Marshal(digest)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return NewBABEPreRuntimeDigest(enc)
+	return NewBABEPreRuntimeDigest(enc), nil
 }
 
 // Index Returns VDT index
@@ -127,17 +127,17 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 }
 
 // ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
-func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
+func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 	digest := NewBabeDigest()
 	err := digest.Set(*d)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	enc, err := scale.Marshal(digest)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return NewBABEPreRuntimeDigest(enc)
+	return NewBABEPreRuntimeDigest(enc), nil
 }
 
 // Index Returns VDT index

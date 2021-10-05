@@ -252,9 +252,10 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 func TestSyncer_HandleJustification(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
-	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
 	digest := types.NewDigest()
-	err := digest.Add(*d)
+	err = digest.Add(*d)
 	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
@@ -288,7 +289,9 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 
 	block := BuildBlock(t, rt, parent, nil)
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 	block.Header.Digest = digest
 

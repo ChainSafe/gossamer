@@ -49,7 +49,9 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 
 	for i := 1; i <= depth; i++ {
 		digest := types.NewDigest()
-		err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest())
+		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest()
+		require.NoError(t, err)
+		err = digest.Add(*prd)
 		require.NoError(t, err)
 
 		block := &types.Block{
