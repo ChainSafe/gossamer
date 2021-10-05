@@ -58,4 +58,4 @@ require (
 	honnef.co/go/tools v0.2.0 // indirect
 )
 
-go 1.16
+go 1.17
