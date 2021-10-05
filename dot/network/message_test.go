@@ -179,8 +179,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	require.NoError(t, err)
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
-	body, err := types.NewBodyFromBytes(exts)
-	require.NoError(t, err)
+	body := types.NewBody(types.BytesArrayToExtrinsics(exts))
 
 	bd := &types.BlockData{
 		Hash:          hash,
@@ -226,8 +225,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 	require.NoError(t, err)
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
-	body, err := types.NewBodyFromBytes(exts)
-	require.NoError(t, err)
+	body := types.NewBody(types.BytesArrayToExtrinsics(exts))
 
 	bd := &types.BlockData{
 		Hash:          hash,

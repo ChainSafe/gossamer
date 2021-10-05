@@ -52,16 +52,15 @@ func TestEmptyBlock(t *testing.T) {
 	isEmpty = block.Empty()
 	require.False(t, isEmpty)
 
-	block = NewBlock(*NewEmptyHeader(), *NewBody([]byte{4, 1}))
+	block = NewBlock(*NewEmptyHeader(), *NewBody([]Extrinsic{[]byte{4, 1}}))
 	isEmpty = block.Empty()
 	require.False(t, isEmpty)
 }
 
 func TestEncodeAndDecodeBlock(t *testing.T) {
-	expected := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69,
-		4, 39, 71, 171, 124, 13, 195, 139, 127, 42, 251, 168, 43, 213, 226, 214, 172, 239, 140, 49, 224, 152, 0,
-		246, 96, 183, 94, 200, 74, 112, 5, 9, 159, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19,
-		154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 8, 4, 1}
+	// SCALE encoding of the block, NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
+	expected, err := common.HexToBytes("0x4545454545454545454545454545454545454545454545454545454545454545042747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140004080401")
+	require.NoError(t, err)
 
 	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	require.NoError(t, err)
@@ -75,9 +74,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigest())
 	require.NoError(t, err)
 
-	body := NewBody([]byte{4, 1})
-
-	block := NewBlock(*header, *body)
+	block := NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
 
 	enc, err := scale.Marshal(block)
 	require.NoError(t, err)
@@ -111,13 +108,15 @@ func TestDeepCopyBlock(t *testing.T) {
 func TestMustEncodeBlock(t *testing.T) {
 	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
 	require.NoError(t, err)
-	b1 := NewBlock(*h1, *NewBody([]byte{}))
+
+	b1 := NewBlock(*h1, *NewBody([]Extrinsic{[]byte{4, 1}}))
 	enc, err := b1.Encode()
 	require.NoError(t, err)
 
 	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
 	require.NoError(t, err)
-	b2 := NewBlock(*h2, *NewBody([]byte{0xa, 0xb}))
+
+	b2 := NewBlock(*h2, *NewBody([]Extrinsic{[]byte{0xa, 0xb}}))
 	enc2, err := b2.Encode()
 	require.NoError(t, err)
 

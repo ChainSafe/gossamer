@@ -57,13 +57,16 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
+	body, err := types.NewBodyFromBytes([]byte{})
+	require.NoError(t, err)
+
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
 			StateRoot:  root,
 		},
-		Body: *types.NewBody([]byte{}),
+		Body: *body,
 	}
 	err = storage.blockState.AddBlock(block)
 	require.NoError(t, err)

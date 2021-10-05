@@ -38,6 +38,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// test data
+var (
+	sampleBodyBytes = *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+	// sampleBodyString is string conversion of sampleBodyBytes
+	sampleBodyString = []string{"0x2800010203040506070809"}
+)
+
 func TestChainGetHeader_Genesis(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
@@ -144,7 +151,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	expected := &ChainBlockResponse{
 		Block: ChainBlock{
 			Header: *expectedHeader,
-			Body:   nil,
+			Body:   sampleBodyString,
 		},
 	}
 
@@ -183,7 +190,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	expected := &ChainBlockResponse{
 		Block: ChainBlock{
 			Header: *expectedHeader,
-			Body:   nil,
+			Body:   sampleBodyString,
 		},
 	}
 
@@ -381,12 +388,9 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 	}
 	// Create blockHash
 	blockHash0 := header0.Hash()
-	// BlockBody with fake extrinsics
-	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
 	block0 := &types.Block{
 		Header: *header0,
-		Body:   blockBody0,
+		Body:   sampleBodyBytes,
 	}
 
 	err := bs.AddBlock(block0)
@@ -407,11 +411,14 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		StateRoot:  trie.EmptyHash,
 	}
 
+<<<<<<< HEAD
 	// Create Block with fake extrinsics
 	blockBody1 := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
+=======
+>>>>>>> development
 	block1 := &types.Block{
 		Header: *header1,
-		Body:   blockBody1,
+		Body:   sampleBodyBytes,
 	}
 
 	// Add the block1 to the DB

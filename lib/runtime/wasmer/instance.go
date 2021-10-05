@@ -108,7 +108,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	// if cfg.LogLvl set to < 0, then don't change package log level
 	if cfg.LogLvl >= 0 {
 		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-		h = log.CallerFileHandler(h)
+		h = runtime.CustomFileHandler(h)
 		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	}
 

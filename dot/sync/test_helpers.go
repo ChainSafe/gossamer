@@ -205,7 +205,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		require.NoError(t, err)
 
 	} else {
-		body = types.NewBody(inherentExts)
+		body = types.NewBody(types.BytesArrayToExtrinsics(exts))
 	}
 
 	// apply each inherent extrinsic
