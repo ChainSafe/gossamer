@@ -2,6 +2,7 @@ package modules
 
 import (
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
@@ -21,7 +22,13 @@ func TestPaymentQueryInfo(t *testing.T) {
 		mockedQueryInfo := &types.TransactionPaymentQueryInfo{
 			Weight:     0,
 			Class:      0,
-			PartialFee: 100,
+			PartialFee: *common.Uint128FromBigInt(big.NewInt(100)),
+		}
+
+		expected := PaymentQueryInfoResponse{
+			Weight:     0,
+			Class:      0,
+			PartialFee: (*common.Uint128FromBigInt(big.NewInt(100))).String(),
 		}
 
 		runtimeMock := new(mocksruntime.MockInstance)
@@ -40,11 +47,11 @@ func TestPaymentQueryInfo(t *testing.T) {
 		req.Ext = "0x0001"
 		req.Hash = nil
 
-		var res uint
+		var res PaymentQueryInfoResponse
 		err := mod.QueryInfo(nil, &req, &res)
 
 		require.NoError(t, err)
-		require.Equal(t, mockedQueryInfo.PartialFee, res)
+		require.Equal(t, expected, res)
 
 		// should be called because req.Hash is nil
 		blockAPIMock.AssertCalled(t, "BestBlockHash")
@@ -67,11 +74,11 @@ func TestPaymentQueryInfo(t *testing.T) {
 		req.Ext = "0x0011"
 		req.Hash = nil
 
-		var res uint
+		var res PaymentQueryInfoResponse
 		err := mod.QueryInfo(nil, &req, &res)
 
 		require.Error(t, err)
-		require.Equal(t, res, uint(0x0))
+		require.Equal(t, res, PaymentQueryInfoResponse{})
 
 		blockAPIMock.AssertCalled(t, "BestBlockHash")
 		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
@@ -93,11 +100,11 @@ func TestPaymentQueryInfo(t *testing.T) {
 		req.Ext = "0x0000"
 		req.Hash = &mockedHash
 
-		var res uint
+		var res PaymentQueryInfoResponse
 		err := mod.QueryInfo(nil, &req, &res)
 
 		require.Error(t, err)
-		require.Equal(t, res, uint(0x0))
+		require.Equal(t, res, PaymentQueryInfoResponse{})
 
 		// should be called because req.Hash is nil
 		blockAPIMock.AssertNotCalled(t, "BestBlockHash")
@@ -121,11 +128,11 @@ func TestPaymentQueryInfo(t *testing.T) {
 		req.Ext = "0x0020"
 		req.Hash = &mockedHash
 
-		var res uint
+		var res PaymentQueryInfoResponse
 		err := mod.QueryInfo(nil, &req, &res)
 
 		require.NoError(t, err)
-		require.Equal(t, res, uint(0x0))
+		require.Equal(t, res, PaymentQueryInfoResponse{})
 
 		// should be called because req.Hash is nil
 		blockAPIMock.AssertNotCalled(t, "BestBlockHash")

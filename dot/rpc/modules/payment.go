@@ -14,6 +14,12 @@ type PaymentQueryInfoRequest struct {
 	Hash *common.Hash
 }
 
+type PaymentQueryInfoResponse struct {
+	Weight     uint64 `json:"weight"`
+	Class      int    `json:"class"`
+	PartialFee string `json:"partialFee"`
+}
+
 // PaymentModule holds all the RPC implementation of polkadot payment rpc api
 type PaymentModule struct {
 	blockAPI BlockAPI
@@ -27,7 +33,7 @@ func NewPaymentModule(blockAPI BlockAPI) *PaymentModule {
 }
 
 // QueryInfo query the known data about the fee of an extrinsic at the given block
-func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest, res *uint) error {
+func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest, res *PaymentQueryInfoResponse) error {
 	var hash common.Hash
 	if req.Hash == nil {
 		hash = p.blockAPI.BestBlockHash()
@@ -51,7 +57,11 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	}
 
 	if encQueryInfo != nil {
-		*res = encQueryInfo.PartialFee
+		*res = PaymentQueryInfoResponse{
+			Weight:     encQueryInfo.Weight,
+			Class:      encQueryInfo.Class,
+			PartialFee: encQueryInfo.PartialFee.String(),
+		}
 	}
 
 	return nil

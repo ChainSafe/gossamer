@@ -1085,7 +1085,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 			expect: &types.TransactionPaymentQueryInfo{
 				Weight:     1973000,
 				Class:      0,
-				PartialFee: 18,
+				PartialFee: *common.Uint128FromBigInt(big.NewInt(18)),
 			},
 		},
 		{

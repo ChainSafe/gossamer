@@ -16,6 +16,8 @@
 
 package types
 
+import "github.com/ChainSafe/gossamer/lib/common"
+
 // TransactionSource represents source of Transaction
 type TransactionSource uint8
 
@@ -47,5 +49,5 @@ type TransactionPaymentQueryInfo struct {
 	Weight uint64
 	// Class could be Normal (0), Operational (1), Mandatory (2)
 	Class      int
-	PartialFee uint
+	PartialFee common.Uint128
 }
