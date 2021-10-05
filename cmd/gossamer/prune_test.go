@@ -54,9 +54,6 @@ func TestPruneState(t *testing.T) {
 			numStorageKeys++
 			return
 		}
-		if strings.HasPrefix(key, "block") {
-			val, _ := item.ValueCopy([]byte{})
-		}
 		nonStorageKeys[key] = nil
 	}
 	iterateDB(inputDB, getKeysInputDB)
