@@ -144,21 +144,3 @@ func (cs *ChildStateModule) GetStorage(r *http.Request, req *ChildStateStorageRe
 
 	return nil
 }
-
-// GetChildKeys isn't implemented properly yet.
-func (cs *ChildStateModule) GetChildKeys(_ *http.Request, _ *ChildStateStorageRequest, _ *StateKeysResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	return nil
-}
-
-// GetChildStorageHash isn't implemented properly yet.
-func (cs *ChildStateModule) GetChildStorageHash(_ *http.Request, _ *ChildStateStorageRequest, _ *StateChildStorageResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	return nil
-}
-
-// GetChildStorageSize isn't implemented properly yet.
-func (cs *ChildStateModule) GetChildStorageSize(_ *http.Request, _ *ChildStateStorageRequest, _ *StateChildStorageSizeResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	return nil
-}
