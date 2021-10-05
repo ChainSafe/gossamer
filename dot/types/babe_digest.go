@@ -61,14 +61,14 @@ func DecodeBabePreDigest(in []byte) (BabePreRuntimeDigest, error) {
 type BabePrimaryPreDigest struct {
 	AuthorityIndex uint32
 	SlotNumber     uint64
-	VrfOutput      [sr25519.VrfOutputLength]byte
+	VRFOutput      [sr25519.VRFOutputLength]byte
 	VrfProof       [sr25519.VrfProofLength]byte
 }
 
 // NewBabePrimaryPreDigest returns a new BabePrimaryPreDigest
-func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabePrimaryPreDigest {
+func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabePrimaryPreDigest {
 	return &BabePrimaryPreDigest{
-		VrfOutput:      vrfOutput,
+		VRFOutput:      vrfOutput,
 		VrfProof:       vrfProof,
 		AuthorityIndex: authorityIndex,
 		SlotNumber:     slotNumber,
@@ -103,8 +103,8 @@ func (d BabePrimaryPreDigest) GetSlotNumber() uint64 {
 }
 
 // GetVrfOutput returns the digest's VRF output
-func (d BabePrimaryPreDigest) GetVrfOutput() [sr25519.VrfOutputLength]byte {
-	return d.VrfOutput
+func (d BabePrimaryPreDigest) GetVrfOutput() [sr25519.VRFOutputLength]byte {
+	return d.VRFOutput
 }
 
 // GetVrfProof returns the digest's VRF proof
@@ -157,12 +157,12 @@ func (d BabeSecondaryPlainPreDigest) GetSlotNumber() uint64 {
 type BabeSecondaryVRFPreDigest struct {
 	AuthorityIndex uint32
 	SlotNumber     uint64
-	VrfOutput      [sr25519.VrfOutputLength]byte
+	VrfOutput      [sr25519.VRFOutputLength]byte
 	VrfProof       [sr25519.VrfProofLength]byte
 }
 
 // NewBabeSecondaryVRFPreDigest returns a new NewBabeSecondaryVRFPreDigest
-func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabeSecondaryVRFPreDigest {
+func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabeSecondaryVRFPreDigest {
 	return &BabeSecondaryVRFPreDigest{
 		VrfOutput:      vrfOutput,
 		VrfProof:       vrfProof,
@@ -185,7 +185,7 @@ func (d BabeSecondaryVRFPreDigest) GetSlotNumber() uint64 {
 }
 
 // GetVrfOutput returns the digest's VRF output
-func (d BabeSecondaryVRFPreDigest) GetVrfOutput() [sr25519.VrfOutputLength]byte {
+func (d BabeSecondaryVRFPreDigest) GetVrfOutput() [sr25519.VRFOutputLength]byte {
 	return d.VrfOutput
 }
 

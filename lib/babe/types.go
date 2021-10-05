@@ -31,7 +31,7 @@ type Randomness = [types.RandomnessLength]byte
 
 // VrfOutputAndProof represents the fields for VRF output and proof
 type VrfOutputAndProof struct {
-	output [sr25519.VrfOutputLength]byte
+	output [sr25519.VRFOutputLength]byte
 	proof  [sr25519.VrfProofLength]byte
 }
 

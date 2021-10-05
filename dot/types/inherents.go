@@ -54,7 +54,7 @@ func (d *InherentsData) String() string {
 	return str
 }
 
-// SetInt64Inherent set the Int64 scale.Marshal for a given data
+// SetInt64Inherent set an inherent of type uint64
 func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	if len(key) != 8 {
 		return errors.New("inherent key must be 8 bytes")
