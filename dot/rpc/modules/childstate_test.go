@@ -17,9 +17,11 @@
 package modules
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -32,7 +34,7 @@ func TestChildStateGetKeys(t *testing.T) {
 	req := &GetKeysRequest{
 		Key:    []byte(":child_storage_key"),
 		Prefix: []byte{},
-		Hash:   common.EmptyHash,
+		Hash:   nil,
 	}
 
 	res := make([]string, 0)
@@ -51,7 +53,7 @@ func TestChildStateGetKeys(t *testing.T) {
 	req = &GetKeysRequest{
 		Key:    []byte(":child_storage_key"),
 		Prefix: []byte(":child_"),
-		Hash:   currBlockHash,
+		Hash:   &currBlockHash,
 	}
 
 	err = childStateModule.GetKeys(nil, req, &res)
@@ -64,6 +66,131 @@ func TestChildStateGetKeys(t *testing.T) {
 		require.Contains(t, []string{
 			":child_first", ":child_second",
 		}, string(b))
+	}
+}
+
+func TestChildStateGetStorageSize(t *testing.T) {
+	mod, blockHash := setupChildStateStorage(t)
+	invalidHash := common.BytesToHash([]byte("invalid block hash"))
+
+	tests := []struct {
+		expect   uint64
+		err      error
+		hash     *common.Hash
+		keyChild []byte
+		entry    []byte
+	}{
+		{
+			err:      nil,
+			expect:   uint64(len([]byte(":child_first_value"))),
+			hash:     nil,
+			entry:    []byte(":child_first"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   uint64(len([]byte(":child_second_value"))),
+			hash:     &blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   0,
+			hash:     nil,
+			entry:    []byte(":not_found_so_size_0"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			hash:     &blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":not_exist"),
+		},
+		{
+			err:  chaindb.ErrKeyNotFound,
+			hash: &invalidHash,
+		},
+	}
+
+	for _, test := range tests {
+		var req GetChildStorageRequest
+		var res uint64
+
+		req.Hash = test.hash
+		req.EntryKey = test.entry
+		req.KeyChild = test.keyChild
+
+		err := mod.GetStorageSize(nil, &req, &res)
+
+		if test.err != nil {
+			require.Error(t, err)
+			require.Equal(t, err, test.err)
+		} else {
+			require.NoError(t, err)
+		}
+
+		require.Equal(t, test.expect, res)
+	}
+}
+
+func TestGetStorageHash(t *testing.T) {
+	mod, blockHash := setupChildStateStorage(t)
+	invalidBlockHash := common.BytesToHash([]byte("invalid block hash"))
+
+	tests := []struct {
+		expect   string
+		err      error
+		hash     *common.Hash
+		keyChild []byte
+		entry    []byte
+	}{
+		{
+			err:      nil,
+			expect:   common.BytesToHash([]byte(":child_first_value")).String(),
+			hash:     nil,
+			entry:    []byte(":child_first"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   common.BytesToHash([]byte(":child_second_value")).String(),
+			hash:     &blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			hash:     &blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":not_exist"),
+		},
+		{
+			err:  chaindb.ErrKeyNotFound,
+			hash: &invalidBlockHash,
+		},
+	}
+
+	for _, test := range tests {
+		var req GetStorageHash
+		var res string
+
+		req.Hash = test.hash
+		req.EntryKey = test.entry
+		req.KeyChild = test.keyChild
+
+		err := mod.GetStorageHash(nil, &req, &res)
+
+		if test.err != nil {
+			require.Error(t, err)
+			require.Equal(t, err, test.err)
+		} else {
+			require.NoError(t, err)
+		}
+
+		if test.expect != "" {
+			require.Equal(t, test.expect, res)
+		}
 	}
 }
 
@@ -101,7 +228,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 			Number:     big.NewInt(0).Add(big.NewInt(1), bb.Header.Number),
 			StateRoot:  stateRoot,
 		},
-		Body: []byte{},
+		Body: types.Body{},
 	}
 
 	err = st.Block.AddBlock(b)
