@@ -17,26 +17,33 @@
 package modules
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+
+	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
 type SyncStateModule struct {
 	SyncStateAPI SyncStateAPI
 }
 
+type BoolRequest struct {
+	Raw bool
+}
+
 func NewSyncStateModule(s SyncStateAPI) *SyncStateModule {
 	return &SyncStateModule{SyncStateAPI: s}
 }
 
-func (ss *SyncStateModule) GenSyncSpec(_ *http.Request, req *bool, res *[]byte) error {
-	genesis, err := ss.SyncStateAPI.GenSyncSpec(*req)
+func (ss *SyncStateModule) GenSyncSpec(_ *http.Request, req *BoolRequest, res *genesis.Genesis) error {
+	genesis, err := ss.SyncStateAPI.GenSyncSpec(req.Raw)
 	if err != nil {
 		return err
 	}
 
-	*res = genesis
+	*res = *genesis
 	return nil
 }
 
@@ -46,7 +53,7 @@ type SyncState struct {
 
 // GenSyncSpec returns the JSON serialized chain specification running the node
 // (i.e. the current state), with a sync state.
-func (s SyncState) GenSyncSpec(raw bool) ([]byte, error) {
+func (s SyncState) GenSyncSpec(raw bool) (*genesis.Genesis, error) {
 	fp, err := filepath.Abs(s.GenesisFilePath)
 	if err != nil {
 		return nil, err
@@ -56,5 +63,18 @@ func (s SyncState) GenSyncSpec(raw bool) ([]byte, error) {
 		return nil, err
 	}
 
-	return data, nil
+	g := new(genesis.Genesis)
+	err = json.Unmarshal(data, g)
+	if err != nil {
+		return nil, err
+	}
+
+	if raw {
+		err = g.ToRaw()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return g, nil
 }

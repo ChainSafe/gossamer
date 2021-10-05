@@ -138,7 +138,6 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		}
 
 		err := h.rpcServer.RegisterService(srvc, mod)
-
 		if err != nil {
 			h.logger.Warn("Failed to register module", "mod", mod, "err", err)
 		}
