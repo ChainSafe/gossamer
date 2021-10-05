@@ -207,12 +207,7 @@ func (bs *BlockState) getUnfinalisedBlock(hash common.Hash) (*types.Block, bool)
 		return nil, false
 	}
 
-	fmt.Println("getUnfinalisedBlock", block.(*types.Block).Header)
-	if block.(*types.Block).Body == nil {
-		panic("body is nil")
-	}
-	// TODO: tx re-org test seems to abort here
-	fmt.Println("getUnfinalisedBlock", block.(*types.Block).Body)
+	// TODO: dot/core tx re-org test seems to abort here due to block body being invalid?
 	return block.(*types.Block), true
 }
 

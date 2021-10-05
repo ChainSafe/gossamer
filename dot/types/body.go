@@ -95,15 +95,12 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 	return &body, nil
 }
 
-func (b *Body) String() string {
-	fmt.Println("body.String")
+func (b Body) String() string {
 	if b == nil {
-		return "nil"
+		return ""
 	}
 
-	fmt.Println("body", *b)
-
-	return common.BytesToHex(*b)
+	return common.BytesToHex(b)
 }
 
 // AsExtrinsics decodes the body into an array of extrinsics
