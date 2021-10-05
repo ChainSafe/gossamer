@@ -37,6 +37,8 @@ const (
 	// MAX_WORKERS is the maximum number of parallel sync workers
 	// TODO: determine ideal value
 	MAX_WORKERS = 12
+
+	finalisedChSize = 128
 )
 
 var _ ChainSync = &chainSync{}
@@ -48,8 +50,8 @@ const (
 	tip
 )
 
-func chainSyncStateString(mode chainSyncState) string {
-	switch mode {
+func (s chainSyncState) String() string {
+	switch s {
 	case bootstrap:
 		return "bootstrap"
 	case tip:
@@ -160,7 +162,7 @@ type chainSync struct {
 }
 
 func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet) (*chainSync, error) {
-	finalisedCh := make(chan *types.FinalisationInfo, 128)
+	finalisedCh := make(chan *types.FinalisationInfo, finalisedChSize)
 	id, err := bs.RegisterFinalizedChannel(finalisedCh)
 	if err != nil {
 		return nil, err
@@ -417,10 +419,6 @@ func (cs *chainSync) sync() {
 					cs.ignorePeer(res.err.who)
 					continue
 				}
-
-				// if errors.Is(res.err.err, io.EOF) {
-				// 	time.Sleep(time.Millisecond * 250)
-				// }
 			}
 
 			worker, err := cs.handler.handleWorkerResult(res)
@@ -497,7 +495,7 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 	}
 
 	cs.state = mode
-	logger.Debug("switched sync mode", "mode", chainSyncStateString(mode))
+	logger.Debug("switched sync mode", "mode", mode)
 }
 
 // getTarget takes the average of all peer heads
@@ -692,10 +690,6 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
 		block := pendingBlocks.getBlock(bd.Hash)
-		if block.header == nil {
-			panic("block isn't ready! header is unknown!")
-		}
-
 		bd.Header = block.header
 	}
 

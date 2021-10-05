@@ -55,9 +55,7 @@ func TestPruneState(t *testing.T) {
 			return
 		}
 		if strings.HasPrefix(key, "block") {
-			fmt.Println("found key!!!!")
 			val, _ := item.ValueCopy([]byte{})
-			fmt.Printf("key=%s value=%x\n", key, val)
 		}
 		nonStorageKeys[key] = nil
 	}
