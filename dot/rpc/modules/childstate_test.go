@@ -143,7 +143,6 @@ func TestGetChildStorage(t *testing.T) {
 	}{
 		{params: []string{":child_storage_key", ""}, expected: nil},
 		{params: []string{":child_storage_key", ":child_first"}, expected: []byte(":child_first_value")},
-		// ??? trie with given root does not exist: 0xa5eb26ce5a6131f0737afbafa33ac3b9677a4fdb014d584862fe5da9d7d4539b
 		{params: []string{":child_storage_key", ":child_first", blockHash.String()}, expected: []byte(":child_first_value")},
 		{params: []string{":child_storage_key", ":child_first", randomHash.String()}, errMsg: "Key not found"},
 	}
