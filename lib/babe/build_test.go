@@ -206,10 +206,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, *preDigest, block.Header.Digest.Types[0].Value())
 
 	// confirm block body is correct
-	extsRes, err := block.Body.AsExtrinsics()
-	require.NoError(t, err)
-
-	extsBytes := types.ExtrinsicsArrayToBytesArray(extsRes)
+	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
 	require.Equal(t, 1, len(extsBytes))
 }
 
@@ -457,11 +454,7 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 	body, err := ExtrinsicsToBody(inh, []*transaction.ValidTransaction{vtx})
 	require.Nil(t, err)
 	require.NotNil(t, body)
-
-	bodyext, err := body.AsExtrinsics()
-	require.Nil(t, err)
-	require.NotNil(t, bodyext)
-	require.Len(t, bodyext, 3)
+	require.Len(t, *body, 3)
 
 	contains, err := body.HasExtrinsic(ext)
 	require.Nil(t, err)
