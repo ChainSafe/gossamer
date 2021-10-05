@@ -18,7 +18,6 @@ package rpc
 
 import (
 	"fmt"
-	"net/http"
 	"reflect"
 	"strings"
 	"unicode"
@@ -44,8 +43,7 @@ func (s *Service) Methods() []string {
 
 var (
 	// Precompute the reflect.Type of error and http.Request
-	typeOfError   = reflect.TypeOf((*error)(nil)).Elem()
-	typeOfRequest = reflect.TypeOf((*http.Request)(nil)).Elem()
+	typeOfError = reflect.TypeOf((*error)(nil)).Elem()
 )
 
 // BuildMethodNames takes receiver interface and populates rpcMethods array with available

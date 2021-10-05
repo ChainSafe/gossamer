@@ -14,6 +14,7 @@ type PaymentQueryInfoRequest struct {
 	Hash *common.Hash
 }
 
+// PaymentQueryInfoResponse holds the response fields to the query info RPC method
 type PaymentQueryInfoResponse struct {
 	Weight     uint64 `json:"weight"`
 	Class      int    `json:"class"`

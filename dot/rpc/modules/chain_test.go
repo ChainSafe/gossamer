@@ -411,11 +411,6 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		StateRoot:  trie.EmptyHash,
 	}
 
-<<<<<<< HEAD
-	// Create Block with fake extrinsics
-	blockBody1 := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
-=======
->>>>>>> development
 	block1 := &types.Block{
 		Header: *header1,
 		Body:   sampleBodyBytes,
