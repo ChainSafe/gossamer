@@ -37,12 +37,6 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retain
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	// base := NewBaseState(db)
-	// bestHash, err := base.LoadBestBlockHash()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get best block hash: %w", err)
-	// }
-
 	// create blockState state
 	blockState, err := NewBlockState(db)
 	if err != nil {

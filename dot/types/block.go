@@ -44,6 +44,7 @@ func NewEmptyBlock() Block {
 	}
 }
 
+// String returns the formatted Block string
 func (b *Block) String() string {
 	return fmt.Sprintf("header: %v\nbody: %v",
 		&b.Header,

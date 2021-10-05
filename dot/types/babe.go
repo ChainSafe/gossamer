@@ -100,7 +100,6 @@ type ConfigData struct {
 
 // GetSlotFromHeader returns the BABE slot from the given header
 func GetSlotFromHeader(header *Header) (uint64, error) {
-	fmt.Println(header.Digest)
 	if len(header.Digest.Types) == 0 {
 		return 0, fmt.Errorf("chain head missing digest")
 	}

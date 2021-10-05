@@ -18,6 +18,7 @@ package blocktree
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -37,8 +38,9 @@ var testHeader = &types.Header{
 }
 
 type testBranch struct {
-	hash  Hash
-	depth *big.Int
+	hash        Hash
+	depth       *big.Int
+	arrivalTime int64
 }
 
 func newBlockTreeFromNode(head *node) *BlockTree {
@@ -56,6 +58,8 @@ func createTestBlockTree(t *testing.T, header *types.Header, depth int) (*BlockT
 	branches := []testBranch{}
 	r := *rand.New(rand.NewSource(rand.Int63()))
 
+	at := int64(0)
+
 	// create base tree
 	for i := 1; i <= depth; i++ {
 		header := &types.Header{
@@ -65,21 +69,25 @@ func createTestBlockTree(t *testing.T, header *types.Header, depth int) (*BlockT
 		}
 
 		hash := header.Hash()
-		err := bt.AddBlock(header, time.Unix(0, 0))
+		err := bt.AddBlock(header, time.Unix(0, at))
 		require.NoError(t, err)
 		previousHash = hash
 
 		isBranch := r.Intn(2)
 		if isBranch == 1 {
 			branches = append(branches, testBranch{
-				hash:  hash,
-				depth: bt.getNode(hash).depth,
+				hash:        hash,
+				depth:       bt.getNode(hash).depth,
+				arrivalTime: at,
 			})
 		}
+
+		at += int64(r.Intn(8))
 	}
 
 	// create tree branches
 	for _, branch := range branches {
+		at := branch.arrivalTime
 		previousHash = branch.hash
 
 		for i := int(branch.depth.Uint64()); i <= depth; i++ {
@@ -91,9 +99,10 @@ func createTestBlockTree(t *testing.T, header *types.Header, depth int) (*BlockT
 			}
 
 			hash := header.Hash()
-			err := bt.AddBlock(header, time.Unix(0, 0))
+			err := bt.AddBlock(header, time.Unix(0, at))
 			require.NoError(t, err)
 			previousHash = hash
+			at += int64(r.Intn(8))
 		}
 	}
 
@@ -484,7 +493,30 @@ func TestBlockTree_PruneCache(t *testing.T) {
 		require.False(t, ok)
 		require.Nil(t, block)
 	}
+}
 
+func TestBlockTree_GetHashByNumber(t *testing.T) {
+	bt, _ := createTestBlockTree(t, testHeader, 8)
+	best := bt.DeepestBlockHash()
+	bn := bt.nodeCache[best]
+
+	fmt.Println(bt)
+	fmt.Println(best)
+
+	for i := int64(0); i < bn.depth.Int64(); i++ {
+		hash, err := bt.GetHashByNumber(big.NewInt(i))
+		require.NoError(t, err)
+		require.Equal(t, big.NewInt(i), bt.nodeCache[hash].depth)
+		desc, err := bt.IsDescendantOf(hash, best)
+		require.NoError(t, err)
+		require.True(t, desc, fmt.Sprintf("index %d failed, got hash=%s", i, hash))
+	}
+
+	_, err := bt.GetHashByNumber(big.NewInt(-1))
+	require.Error(t, err)
+
+	_, err = bt.GetHashByNumber(big.NewInt(0).Add(bn.depth, big.NewInt(1)))
+	require.Error(t, err)
 }
 
 func TestBlockTree_DeepCopy(t *testing.T) {
@@ -502,7 +534,7 @@ func TestBlockTree_DeepCopy(t *testing.T) {
 
 	}
 	require.True(t, equalNodeValue(bt.head, btCopy.head), "BlockTree heads not equal")
-	require.True(t, equalLeave(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
+	require.True(t, equalLeaves(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
 
 	btCopy.head = &node{}
 	require.NotEqual(t, bt.head, btCopy.head)
@@ -533,7 +565,7 @@ func equalNodeValue(nd *node, ndCopy *node) bool {
 	return true
 }
 
-func equalLeave(lm *leafMap, lmCopy *leafMap) bool {
+func equalLeaves(lm *leafMap, lmCopy *leafMap) bool {
 	lmm := lm.toMap()
 	lmCopyM := lmCopy.toMap()
 	for key, val := range lmm {
@@ -541,24 +573,4 @@ func equalLeave(lm *leafMap, lmCopy *leafMap) bool {
 		return equalNodeValue(val, lmCopyVal)
 	}
 	return true
-}
-
-func TestBlockTree_Rewind(t *testing.T) {
-	var bt *BlockTree
-	var branches []testBranch
-
-	rewind := 6
-
-	for {
-		bt, branches = createTestBlockTree(t, testHeader, 12)
-		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
-			break
-		}
-	}
-
-	start := bt.leaves.deepestLeaf()
-
-	bt.Rewind(rewind)
-	deepest := bt.leaves.deepestLeaf()
-	require.Equal(t, start.depth.Int64()-int64(rewind), deepest.depth.Int64())
 }

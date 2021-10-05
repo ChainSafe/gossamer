@@ -114,27 +114,6 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 	return nil
 }
 
-// Rewind rewinds the block tree by the given height. If the blocktree is less than the given height,
-// it will only rewind until the blocktree has one node.
-// TODO: remove?
-func (bt *BlockTree) Rewind(numBlocks int) {
-	bt.Lock()
-	defer bt.Unlock()
-
-	for i := 0; i < numBlocks; i++ {
-		deepest := bt.leaves.deepestLeaf()
-
-		for _, leaf := range bt.leaves.nodes() {
-			if leaf.parent == nil || leaf.depth.Cmp(deepest.depth) < 0 {
-				continue
-			}
-
-			bt.leaves.replace(leaf, leaf.parent)
-			leaf.parent.deleteChild(leaf)
-		}
-	}
-}
-
 // GetAllBlocksAtDepth will return all blocks hashes with the depth of the given hash plus one.
 // To find all blocks at a depth matching a certain block, pass in that block's parent hash
 func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {

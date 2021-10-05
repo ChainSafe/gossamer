@@ -47,6 +47,8 @@ var (
 	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
 	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
 	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
+
+	errNilBlockBody = errors.New("block body is nil")
 )
 
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
@@ -210,7 +212,7 @@ func (bs *BlockState) getUnfinalisedBlock(hash common.Hash) (*types.Block, bool)
 	if block.(*types.Block).Body == nil {
 		panic("body is nil")
 	}
-
+	// TODO: tx re-org test seems to abort here
 	fmt.Println("getUnfinalisedBlock", block.(*types.Block).Body)
 	return block.(*types.Block), true
 }
@@ -314,6 +316,9 @@ func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 
 // GetBlockByHash returns a block for a given hash
 func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
+	bs.RLock()
+	defer bs.RUnlock()
+
 	block, has := bs.getUnfinalisedBlock(hash)
 	if has {
 		return block, nil
@@ -349,6 +354,9 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 
 // HasBlockBody returns true if the db contains the block body
 func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
+	bs.RLock()
+	defer bs.RUnlock()
+
 	if bs.hasUnfinalisedBlock(hash) {
 		return true, nil
 	}
@@ -410,7 +418,7 @@ func (bs *BlockState) AddBlock(block *types.Block) error {
 // AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
 func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
 	if block.Body == nil {
-		return errors.New("block body is nil")
+		return errNilBlockBody
 	}
 
 	// add block to blocktree
@@ -418,14 +426,13 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		return err
 	}
 
-	fmt.Println(bs.bt)
 	bs.storeUnfinalisedBlock(block)
 	go bs.notifyImported(block)
 	return nil
 }
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
-// TODO: remove this func
+// TODO: remove this func and usage from sync (after sync refactor?)
 func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 	bs.Lock()
 	defer bs.Unlock()

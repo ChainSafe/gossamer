@@ -247,45 +247,12 @@ func (s *Service) Rewind(toBlock int64) error {
 
 // Stop closes each state database
 func (s *Service) Stop() error {
-	// head, err := s.Block.BestBlockStateRoot()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// st, has := s.Storage.tries.Load(head)
-	// if !has {
-	// 	return errTrieDoesNotExist(head)
-	// }
-
-	// t := st.(*trie.Trie)
-
-	// if err = s.Base.StoreLatestStorageHash(head); err != nil {
-	// 	return err
-	// }
-
-	// logger.Debug("storing latest storage trie", "root", head)
-
-	// if err = t.Store(s.Storage.db); err != nil {
-	// 	return err
-	// }
-
-	// if err = s.Block.bt.Store(); err != nil {
-	// 	return err
-	// }
+	close(s.closeCh)
 
 	hash, err := s.Block.GetHighestFinalisedHash()
 	if err != nil {
 		return err
 	}
-	// if err = s.Base.StoreBestBlockHash(hash); err != nil {
-	// 	return err
-	// }
-
-	// thash, err := t.Hash()
-	// if err != nil {
-	// 	return err
-	// }
-	close(s.closeCh)
 
 	logger.Debug("stop", "best finalised hash", hash)
 
@@ -346,30 +313,18 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
 
-	// if err := s.Base.StoreLatestStorageHash(root); err != nil {
-	// 	return err
-	// }
-
 	logger.Info("importing storage trie...", "basepath", s.dbPath, "root", root)
 
 	if err := t.Store(storage.db); err != nil {
 		return err
 	}
 
-	//bt := blocktree.NewBlockTreeFromRoot(header, s.db)
-	// if err := bt.Store(); err != nil {
-	// 	return err
-	// }
-
-	// if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
-	// 	return err
-	// }
-
-	// TODO this is broken, need to know round and setID for the header as well
 	hash := header.Hash()
 	if err := block.SetHeader(header); err != nil {
 		return err
 	}
+
+	// TODO: this is broken, need to know round and setID for the header as well
 	if err := block.db.Put(finalisedHashKey(0, 0), hash[:]); err != nil {
 		return err
 	}
