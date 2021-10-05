@@ -139,8 +139,6 @@ type chainSync struct {
 	// a new worker with start=(current best head), which results in the blocks in the queue
 	// getting re-requested (as they have not been processed yet)
 	// to fix this, we track the blocks that are in the queue
-	//readyBlocksCh chan<- *types.BlockData
-	//readyBlocks map[common.Hash]struct{}
 	readyBlocks *blockQueue
 
 	// disjoint set of blocks which are known but not ready to be processed

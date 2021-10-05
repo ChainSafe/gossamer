@@ -101,7 +101,7 @@ func TestPendingBlock_toBlockData(t *testing.T) {
 		header: &types.Header{
 			Number: big.NewInt(1),
 		},
-		body: &types.Body{0x1, 0x2, 0x3},
+		body: &types.Body{{0x1, 0x2, 0x3}},
 	}
 
 	expected := &types.BlockData{
