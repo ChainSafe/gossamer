@@ -169,9 +169,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return err
 		}
 
-		if err = s.handleBody(bd.Body); err != nil {
-			return err
-		}
+		s.handleBody(bd.Body)
 
 		block := &types.Block{
 			Header: *bd.Header,
@@ -207,17 +205,10 @@ func (s *chainProcessor) handleHeader(header *types.Header) error {
 }
 
 // handleHeader handles block bodies included in BlockResponses
-func (s *chainProcessor) handleBody(body *types.Body) error {
-	exts, err := body.AsExtrinsics()
-	if err != nil {
-		return fmt.Errorf("cannot parse body as extrinsics: %w", err)
-	}
-
-	for _, ext := range exts {
+func (s *chainProcessor) handleBody(body *types.Body) {
+	for _, ext := range *body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
-
-	return err
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses

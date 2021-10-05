@@ -29,6 +29,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var sampleBlockBody = *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
@@ -93,7 +95,7 @@ func TestGetBlockByNumber(t *testing.T) {
 
 	block := &types.Block{
 		Header: *blockHeader,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	// AddBlock also sets mapping [blockNumber : hash] in DB
@@ -116,12 +118,9 @@ func TestAddBlock(t *testing.T) {
 	}
 	// Create blockHash
 	blockHash0 := header0.Hash()
-	// BlockBody with fake extrinsics
-	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
 	block0 := &types.Block{
 		Header: *header0,
-		Body:   blockBody0,
+		Body:   sampleBlockBody,
 	}
 
 	// Add the block0 to the DB
@@ -136,12 +135,9 @@ func TestAddBlock(t *testing.T) {
 	}
 	blockHash1 := header1.Hash()
 
-	// Create Block with fake extrinsics
-	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
 	block1 := &types.Block{
 		Header: *header1,
-		Body:   blockBody1,
+		Body:   sampleBlockBody,
 	}
 
 	// Add the block1 to the DB
@@ -391,7 +387,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 	block := &types.Block{
 		Header: *header,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block)
@@ -411,9 +407,10 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
+	blockbody1a := types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
 	block1a := &types.Block{
 		Header: *header1a,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   *blockbody1a,
 	}
 
 	err := bs.AddBlock(block1a)
@@ -432,7 +429,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block1b := &types.Block{
 		Header: *header1b,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block1b)
@@ -452,7 +449,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block2b := &types.Block{
 		Header: *header2b,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block2b)
@@ -475,7 +472,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block2a := &types.Block{
 		Header: *header2a,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block2a)
@@ -489,7 +486,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block3a := &types.Block{
 		Header: *header3a,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block3a)

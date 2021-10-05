@@ -72,7 +72,7 @@ func TestDisjointBlockSet(t *testing.T) {
 
 	block := &types.Block{
 		Header: *header2,
-		Body:   types.Body{0xc, 0xd},
+		Body:   types.Body{{0xa}},
 	}
 	s.addBlock(block)
 	require.Equal(t, 3, s.size())

@@ -153,12 +153,8 @@ func TestChainProcessor_handleBody_ShouldRemoveIncludedExtrinsics(t *testing.T) 
 	_, err := syncer.chainProcessor.(*chainProcessor).transactionState.(*state.TransactionState).Push(tx)
 	require.NoError(t, err)
 
-	exts := []types.Extrinsic{ext}
-	body, err := types.NewBodyFromExtrinsics(exts)
-	require.NoError(t, err)
-
-	err = syncer.chainProcessor.(*chainProcessor).handleBody(body)
-	require.NoError(t, err)
+	body := types.NewBody([]types.Extrinsic{ext})
+	syncer.chainProcessor.(*chainProcessor).handleBody(body)
 
 	inQueue := syncer.chainProcessor.(*chainProcessor).transactionState.(*state.TransactionState).Pop()
 	require.Nil(t, inQueue, "queue should be empty")
