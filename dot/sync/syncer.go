@@ -153,8 +153,9 @@ func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
 	return 0, nil
 }
 
-// ProcessBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
-// or the index of the block data that errored on failure.
+// ProcessBlockData processes the BlockData from a BlockResponse and returns the
+// index of the last BlockData it handled on success, or the index of the block data
+// that errored on failure.
 func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 	if len(data) == 0 {
 		return 0, ErrNilBlockData
@@ -229,10 +230,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 
 			logger.Trace("processing body", "hash", bd.Hash)
 
-			err = s.handleBody(body)
-			if err != nil {
-				return i, err
-			}
+			s.handleBody(body)
 
 			logger.Trace("body processed", "hash", bd.Hash)
 		}
@@ -277,22 +275,14 @@ func (s *Service) handleHeader(header *types.Header) error {
 	return nil
 }
 
-// handleHeader handles block bodies included in BlockResponses
-func (s *Service) handleBody(body *types.Body) error {
-	exts, err := body.AsExtrinsics()
-	if err != nil {
-		logger.Error("cannot parse body as extrinsics", "error", err)
-		return err
-	}
-
-	for _, ext := range exts {
+// handleBody handles block bodies included in BlockResponses
+func (s *Service) handleBody(body *types.Body) {
+	for _, ext := range *body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
-
-	return err
 }
 
-// handleHeader handles blocks (header+body) included in BlockResponses
+// handleBlock handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
 	if block == nil || block.Empty() || block.Header.Empty() {
 		return errors.New("block, header, or body is nil")

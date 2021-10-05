@@ -126,13 +126,13 @@ func TestBlockDataEncodeAndDecodeHeader(t *testing.T) {
 }
 
 func TestBlockDataEncodeAndDecodeBody(t *testing.T) {
-	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000001100a0b0c0d000000")
+	expected, err := common.HexToBytes("0x0000000000000000000000000000000000000000000000000000000000000000000104100a0b0c0d000000")
 	require.NoError(t, err)
 
 	bd := BlockData{
 		Hash:          common.NewHash([]byte{0}),
 		Header:        nil,
-		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
+		Body:          NewBody([]Extrinsic{[]byte{0xa, 0xb, 0xc, 0xd}}),
 		Receipt:       nil,
 		MessageQueue:  nil,
 		Justification: nil,
@@ -156,12 +156,11 @@ func TestBlockDataEncodeAndDecodeBody(t *testing.T) {
 }
 
 func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
-	expected, err := common.HexToBytes("0x7d0000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f0806424142450c0102030542414245100405060701100a0b0c0d010401010402010403")
+	expected, err := common.HexToBytes("0x7d0000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f0806424142450c010203054241424510040506070104100a0b0c0d010401010402010403")
 	require.NoError(t, err)
 
 	hash := common.NewHash([]byte{125})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-	body := NewBody([]byte{0xa, 0xb, 0xc, 0xd})
 
 	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
 	require.NoError(t, err)
@@ -169,7 +168,7 @@ func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
 	bd := BlockData{
 		Hash:          hash,
 		Header:        headerVdt,
-		Body:          body,
+		Body:          NewBody([]Extrinsic{[]byte{0xa, 0xb, 0xc, 0xd}}),
 		Receipt:       &[]byte{1},
 		MessageQueue:  &[]byte{2},
 		Justification: &[]byte{3},
