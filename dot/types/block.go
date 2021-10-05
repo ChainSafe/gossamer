@@ -38,7 +38,7 @@ func NewBlock(header Header, body Body) Block {
 func NewEmptyBlock() Block {
 	return Block{
 		Header: *NewEmptyHeader(),
-		Body:   *NewBody(nil),
+		Body:   Body(nil),
 	}
 }
 
@@ -54,8 +54,12 @@ func (b *Block) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	// block body is already SCALE encoded
-	return append(enc, []byte(b.Body)...), nil
+	// get a SCALE encoded block body
+	encodedBody, err := scale.Marshal(b.Body)
+	if err != nil {
+		return nil, err
+	}
+	return append(enc, encodedBody...), nil
 }
 
 // MustEncode returns the SCALE encoded block and panics if it fails to encode
@@ -69,14 +73,12 @@ func (b *Block) MustEncode() []byte {
 
 // DeepCopy returns a copy of the block
 func (b *Block) DeepCopy() (Block, error) {
-	bc := make([]byte, len(b.Body))
-	copy(bc, b.Body)
 	head, err := b.Header.DeepCopy()
 	if err != nil {
 		return Block{}, err
 	}
 	return Block{
 		Header: *head,
-		Body:   *NewBody(bc),
+		Body:   b.Body.DeepCopy(),
 	}, nil
 }
