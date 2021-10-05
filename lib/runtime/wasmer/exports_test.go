@@ -94,6 +94,37 @@ func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
+func TestInstance_Version_PolkadotRuntime_v0910(t *testing.T) {
+	expected := runtime.NewVersionData(
+		[]byte("polkadot"),
+		[]byte("parity-polkadot"),
+		0,
+		9100,
+		0,
+		nil,
+		8,
+	)
+
+	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0910)
+	version, err := instance.Version()
+	require.NoError(t, err)
+
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
+
+	require.Equal(t, 14, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+}
+
 func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	expected := runtime.NewVersionData(
 		[]byte("polkadot"),
