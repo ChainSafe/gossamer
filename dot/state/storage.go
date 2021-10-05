@@ -265,7 +265,7 @@ func (s *StorageState) StorageRoot() (common.Hash, error) {
 }
 
 // EnumeratedTrieRoot not implemented
-func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
+func (*StorageState) EnumeratedTrieRoot(_ [][]byte) {
 	//TODO
 	panic("not implemented")
 }
@@ -323,6 +323,11 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 	}
 
 	return common.Blake2bHash(code)
+}
+
+// GenerateTrieProof returns the proofs related to the keys on the state root trie
+func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
+	return trie.GenerateProof(stateRoot[:], keys, s.db)
 }
 
 // GetBalance gets the balance for an account with the given public key
