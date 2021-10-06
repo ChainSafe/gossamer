@@ -19,6 +19,7 @@ package sync
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -34,9 +35,9 @@ import (
 )
 
 const (
-	// MAX_WORKERS is the maximum number of parallel sync workers
+	// maxWorkers is the maximum number of parallel sync workers
 	// TODO: determine ideal value
-	MAX_WORKERS = 12
+	maxWorkers = 12
 
 	finalisedChSize = 128
 )
@@ -406,17 +407,19 @@ func (cs *chainSync) sync() {
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
 			// TODO: periodically clear out ignore list, currently is done if (ignore list >= peer list)
-			switch res.err.err {
-			case context.DeadlineExceeded:
-				cs.ignorePeer(res.err.who)
-			case context.Canceled:
+
+			switch {
+			case errors.Is(res.err.err, context.Canceled):
 				return
+			case errors.Is(res.err.err, context.DeadlineExceeded):
+				cs.ignorePeer(res.err.who)
+			case strings.Contains(res.err.err.Error(), "dial backoff"):
+				cs.ignorePeer(res.err.who)
+				continue
+			case res.err.err.Error() == "protocol not supported":
+				cs.ignorePeer(res.err.who)
+				continue
 			default:
-				// TODO: using these errs in the switch requires upgrading libp2p versions
-				if strings.Contains(res.err.err.Error(), "dial backoff") || res.err.err.Error() == "protocol not supported" {
-					cs.ignorePeer(res.err.who)
-					continue
-				}
 			}
 
 			worker, err := cs.handler.handleWorkerResult(res)
@@ -542,7 +545,7 @@ func (cs *chainSync) handleWork(ps *peerState) error {
 
 func (cs *chainSync) tryDispatchWorker(w *worker) {
 	// if we already have the maximum number of workers, don't dispatch another
-	if len(cs.workerState.workers) >= MAX_WORKERS {
+	if len(cs.workerState.workers) >= maxWorkers {
 		logger.Trace("reached max workers, ignoring potential work")
 		return
 	}
@@ -704,7 +707,8 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
 func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
-	var peers []peer.ID
+	peers := make([]peer.ID, 0, len(cs.peerState))
+
 	cs.RLock()
 	defer cs.RUnlock()
 
