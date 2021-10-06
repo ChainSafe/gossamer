@@ -1,7 +1,6 @@
 package subscription
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -218,7 +217,6 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
 
-	var fCh chan<- *types.FinalisationInfo
 	mockedJust := grandpa.Justification{
 		Round: 1,
 		Commit: grandpa.Commit{
@@ -232,15 +230,12 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 
 	BlockAPI := new(mocks.MockBlockAPI)
-	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
-		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.FinalisationInfo)
-			fCh = ch
-		}).
-		Return(uint8(4), nil)
+
+	fCh := make(chan *types.FinalisationInfo, 5)
+	BlockAPI.On("GetFinalisedNotifierChannel").Return(fCh)
 
 	BlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
 	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
@@ -291,26 +286,11 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	wsconn.BlockAPI = mockBlockAPI
 
-	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block)).Once()
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
-		Return(uint8(0), errors.New("failed")).Once()
-
-	_, err = wsconn.initAllBlocksListerner(1, nil)
-	require.Error(t, err, "could not register finalised channel")
-	c.ReadMessage()
-
-	finalizedChanID := uint8(11)
-
-	var fCh chan<- *types.FinalisationInfo
 	iCh := make(chan *types.Block)
 	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(iCh).Once()
 
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
-		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.FinalisationInfo)
-			fCh = ch
-		}).
-		Return(finalizedChanID, nil).Once()
+	fCh := make(chan *types.FinalisationInfo)
+	mockBlockAPI.On("GetFinalisedNotifierChannel").Return(fCh).Once()
 
 	l, err := wsconn.initAllBlocksListerner(1, nil)
 	require.NoError(t, err)
@@ -369,9 +349,8 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.Equal(t, []byte(expected+"\n"), msg)
 
 	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-	mockBlockAPI.On("UnregisterFinalisedChannel", finalizedChanID)
+	mockBlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	require.NoError(t, l.Stop())
 	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-	mockBlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", finalizedChanID)
 }
