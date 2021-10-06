@@ -79,7 +79,6 @@ type Service struct {
 	// channels for communication with other services
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
-	finalisedChID    byte
 	neighbourMessage *NeighbourMessage // cached neighbour message
 }
 
@@ -139,11 +138,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	finalisedCh := make(chan *types.FinalisationInfo, 16)
-	fid, err := cfg.BlockState.RegisterFinalizedChannel(finalisedCh)
-	if err != nil {
-		return nil, err
-	}
+	finalisedCh := cfg.BlockState.GetFinalisedNotifierChannel()
 
 	round, err := cfg.GrandpaState.GetLatestRound()
 	if err != nil {
@@ -171,7 +166,6 @@ func NewService(cfg *Config) (*Service, error) {
 		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
-		finalisedChID:      fid,
 	}
 
 	s.messageHandler = NewMessageHandler(s, s.blockState)
@@ -212,8 +206,7 @@ func (s *Service) Stop() error {
 
 	s.cancel()
 
-	s.blockState.UnregisterFinalisedChannel(s.finalisedChID)
-	close(s.finalisedCh)
+	s.blockState.FreeFinalisedNotifierChannel(s.finalisedCh)
 
 	if !s.authority {
 		return nil

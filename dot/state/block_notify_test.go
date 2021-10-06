@@ -59,11 +59,9 @@ func TestFreeImportedBlockNotifierChannel(t *testing.T) {
 func TestFinalizedChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	ch := make(chan *types.FinalisationInfo, 3)
-	id, err := bs.RegisterFinalizedChannel(ch)
-	require.NoError(t, err)
+	ch := bs.GetFinalisedNotifierChannel()
 
-	defer bs.UnregisterFinalisedChannel(id)
+	defer bs.FreeFinalisedNotifierChannel(ch)
 
 	chain, _ := AddBlocksToState(t, bs, 3)
 
@@ -118,13 +116,9 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 
 	num := 5
 	chs := make([]chan *types.FinalisationInfo, num)
-	ids := make([]byte, num)
 
-	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.FinalisationInfo)
-		ids[i], err = bs.RegisterFinalizedChannel(chs[i])
-		require.NoError(t, err)
+		chs[i] = bs.GetFinalisedNotifierChannel()
 	}
 
 	chain, _ := AddBlocksToState(t, bs, 1)
@@ -149,8 +143,8 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	bs.SetFinalisedHash(chain[0].Hash(), 1, 0)
 	wg.Wait()
 
-	for _, id := range ids {
-		bs.UnregisterFinalisedChannel(id)
+	for _, ch := range chs {
+		bs.FreeFinalisedNotifierChannel(ch)
 	}
 }
 
