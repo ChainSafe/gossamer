@@ -39,22 +39,16 @@ func (bs *BlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 	return ch
 }
 
-// RegisterFinalizedChannel registers a channel for block notification upon block finalisation.
-// It returns the channel ID (used for unregistering the channel)
-func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
-	bs.finalisedLock.RLock()
-
-	id, err := bs.finalisedBytePool.Get()
-	if err != nil {
-		return 0, err
-	}
-
-	bs.finalisedLock.RUnlock()
-
+//nolint
+// GetFinalisedNotifierChannel function to retrieve a finalized block notifier channel
+func (bs *BlockState) GetFinalisedNotifierChannel() chan *types.FinalisationInfo {
 	bs.finalisedLock.Lock()
-	bs.finalised[id] = ch
-	bs.finalisedLock.Unlock()
-	return id, nil
+	defer bs.finalisedLock.Unlock()
+
+	ch := make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE)
+	bs.finalised[ch] = struct{}{}
+
+	return ch
 }
 
 // FreeImportedBlockNotifierChannel to free imported block notifier channel
@@ -64,17 +58,13 @@ func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	delete(bs.imported, ch)
 }
 
-// UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
-// A channel must be unregistered before closing it.
-func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
+//nolint
+// FreeFinalisedNotifierChannel to free finalized notifier channel
+func (bs *BlockState) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
 	bs.finalisedLock.Lock()
 	defer bs.finalisedLock.Unlock()
 
-	delete(bs.finalised, id)
-	err := bs.finalisedBytePool.Put(id)
-	if err != nil {
-		logger.Error("failed to unregister finalised channel", "error", err)
-	}
+	delete(bs.finalised, ch)
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
@@ -117,8 +107,8 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 		SetID:  setID,
 	}
 
-	for _, ch := range bs.finalised {
-		go func(ch chan<- *types.FinalisationInfo) {
+	for ch := range bs.finalised {
+		go func(ch chan *types.FinalisationInfo) {
 			select {
 			case ch <- info:
 			default:
