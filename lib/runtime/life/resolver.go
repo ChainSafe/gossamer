@@ -1393,6 +1393,9 @@ func toWasmMemoryFixedSizeOptional(memory, data []byte) (int64, error) {
 		opt = optional.NewFixedSizeBytes(true, data)
 	}
 
+
+
+
 	enc, err := opt.Encode()
 	if err != nil {
 		return 0, err

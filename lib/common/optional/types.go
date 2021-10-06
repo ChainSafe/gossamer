@@ -17,10 +17,12 @@
 package optional
 
 import (
+	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"io"
 	"io/ioutil"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 const none = "None"
@@ -80,7 +82,7 @@ func (x *FixedSizeBytes) Decode(r io.Reader) (*FixedSizeBytes, error) {
 	}
 
 	if exists > 1 {
-		return nil, ErrInvalidOptional
+		return nil, errors.New("decoding failed, invalid optional")
 	}
 
 	x.exists = exists != 0

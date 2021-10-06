@@ -646,8 +646,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	mnemonicBytes := []byte(mnemonic)
-	var data *[]byte
-	data = &mnemonicBytes
+	var data = &mnemonicBytes
 	seedData, err := scale.Marshal(data)
 	require.NoError(t, err)
 
@@ -780,8 +779,7 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	mnemonicBytes := []byte(mnemonic)
-	var data *[]byte
-	data = &mnemonicBytes
+	var data = &mnemonicBytes
 	seedData, err := scale.Marshal(data)
 	require.NoError(t, err)
 

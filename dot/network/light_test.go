@@ -1,12 +1,13 @@
 package network
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
@@ -71,7 +72,7 @@ func TestDecodeLightMessage(t *testing.T) {
 
 	msg, err = s.decodeLightMessage(respEnc, testPeer, true)
 	require.NoError(t, err)
-	resp, ok := msg.(*LightResponseNew)
+	resp, ok := msg.(*LightResponse)
 	require.True(t, ok)
 	resEnc, err = resp.Encode()
 	require.NoError(t, err)

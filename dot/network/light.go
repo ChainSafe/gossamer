@@ -2,6 +2,7 @@ package network
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -95,15 +96,15 @@ func (l LightRequest) String() string {
 }
 
 // LightResponse is all possible light client response messages.
-// TODO Utilize custom VDT types in the header or this won't decode correctly
-type LightResponseNew struct {
+// TODO Utilise custom VDT types in the header or this won't decode correctly
+type LightResponse struct {
 	RmtCallResponse   *RemoteCallResponse
 	RmtReadResponse   *RemoteReadResponse
 	RmtHeaderResponse *RemoteHeaderResponse
 	RmtChangeResponse *RemoteChangesResponse
 }
 
-// LightResponse is all possible light client response messages.
+// Response is a scale compatible struct containing all possible light client related responses.
 type Response struct {
 	RmtCallResponse   RemoteCallResponse
 	RmtReadResponse   RemoteReadResponse
@@ -112,8 +113,8 @@ type Response struct {
 }
 
 // NewLightResponse returns a new LightResponse
-func NewLightResponse() *LightResponseNew {
-	return &LightResponseNew{
+func NewLightResponse() *LightResponse {
+	return &LightResponse{
 		RmtCallResponse:   newRemoteCallResponse(),
 		RmtReadResponse:   newRemoteReadResponse(),
 		RmtHeaderResponse: newRemoteHeaderResponse(),
@@ -131,12 +132,12 @@ func newResponse() *Response {
 }
 
 // SubProtocol returns the light sub-protocol
-func (l *LightResponseNew) SubProtocol() string {
+func (l *LightResponse) SubProtocol() string {
 	return lightID
 }
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
-func (l *LightResponseNew) Encode() ([]byte, error) {
+func (l *LightResponse) Encode() ([]byte, error) {
 	response := Response{
 		RmtCallResponse:   *l.RmtCallResponse,
 		RmtReadResponse:   *l.RmtReadResponse,
@@ -147,7 +148,7 @@ func (l *LightResponseNew) Encode() ([]byte, error) {
 }
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
-func (l *LightResponseNew) Decode(in []byte) error {
+func (l *LightResponse) Decode(in []byte) error {
 	msg := newResponse()
 	err := scale.Unmarshal(in, msg)
 	if err != nil {
@@ -162,7 +163,7 @@ func (l *LightResponseNew) Decode(in []byte) error {
 }
 
 // String formats a RemoteReadRequest as a string
-func (l LightResponseNew) String() string {
+func (l LightResponse) String() string {
 	return fmt.Sprintf(
 		"RemoteCallResponse=%s RemoteReadResponse=%s RemoteHeaderResponse=%s RemoteChangesResponse=%s",
 		l.RmtCallResponse, l.RmtReadResponse, l.RmtHeaderResponse, l.RmtChangeResponse)
@@ -175,11 +176,11 @@ type RemoteCallRequest struct {
 	Data   []byte
 }
 
-func newRemoteCallRequest() *RemoteCallRequest{
+func newRemoteCallRequest() *RemoteCallRequest {
 	return &RemoteCallRequest{
-		Block: []byte{},
+		Block:  []byte{},
 		Method: "",
-		Data: []byte{},
+		Data:   []byte{},
 	}
 }
 
@@ -189,7 +190,7 @@ type RemoteReadRequest struct {
 	Keys  [][]byte
 }
 
-func newRemoteReadRequest() *RemoteReadRequest{
+func newRemoteReadRequest() *RemoteReadRequest {
 	return &RemoteReadRequest{
 		Block: []byte{},
 	}
@@ -202,9 +203,9 @@ type RemoteReadChildRequest struct {
 	Keys       [][]byte
 }
 
-func newRemoteReadChildRequest() *RemoteReadChildRequest{
+func newRemoteReadChildRequest() *RemoteReadChildRequest {
 	return &RemoteReadChildRequest{
-		Block: []byte{},
+		Block:      []byte{},
 		StorageKey: []byte{},
 	}
 }
@@ -214,7 +215,7 @@ type RemoteHeaderRequest struct {
 	Block []byte
 }
 
-func newRemoteHeaderRequest() *RemoteHeaderRequest{
+func newRemoteHeaderRequest() *RemoteHeaderRequest {
 	return &RemoteHeaderRequest{
 		Block: []byte{},
 	}
@@ -245,7 +246,7 @@ type RemoteCallResponse struct {
 	Proof []byte
 }
 
-func newRemoteCallResponse() *RemoteCallResponse{
+func newRemoteCallResponse() *RemoteCallResponse {
 	return &RemoteCallResponse{
 		Proof: []byte{},
 	}
@@ -256,7 +257,7 @@ type RemoteReadResponse struct {
 	Proof []byte
 }
 
-func newRemoteReadResponse() *RemoteReadResponse{
+func newRemoteReadResponse() *RemoteReadResponse {
 	return &RemoteReadResponse{
 		Proof: []byte{},
 	}
@@ -268,7 +269,7 @@ type RemoteHeaderResponse struct {
 	proof  []byte
 }
 
-func newRemoteHeaderResponse() *RemoteHeaderResponse{
+func newRemoteHeaderResponse() *RemoteHeaderResponse {
 	return &RemoteHeaderResponse{
 		Header: nil,
 	}
@@ -282,9 +283,9 @@ type RemoteChangesResponse struct {
 	RootsProof []byte
 }
 
-func newRemoteChangesResponse() *RemoteChangesResponse{
+func newRemoteChangesResponse() *RemoteChangesResponse {
 	return &RemoteChangesResponse{
-		Max: []byte{},
+		Max:        []byte{},
 		RootsProof: []byte{},
 	}
 }
