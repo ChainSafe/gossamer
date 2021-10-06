@@ -45,8 +45,8 @@ type BlockState interface {
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
-	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalisedChannel(id byte)
+	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
+	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
