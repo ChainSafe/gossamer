@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"testing"
 	"time"
@@ -22,6 +23,23 @@ func TestEncodeLightRequest(t *testing.T) {
 	err = testLightRequest2.Decode(enc)
 	require.NoError(t, err)
 	require.Equal(t, testLightRequest, testLightRequest2)
+}
+
+func TestEncodeLightResponse(t *testing.T) {
+	exp := common.MustHexToBytes("0x00000000000000")
+
+	testLightResponse := NewLightResponse()
+	enc, err := testLightResponse.Encode()
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
+
+	testLightResponse2 := NewLightResponse()
+	for i := range testLightResponse.RmtHeaderResponse.Header {
+		testLightResponse.RmtHeaderResponse.Header[i] = types.NewEmptyHeader()
+	}
+	err = testLightResponse2.Decode(enc)
+	require.NoError(t, err)
+	require.Equal(t, testLightResponse, testLightResponse2)
 }
 
 func TestDecodeLightMessage(t *testing.T) {
@@ -53,7 +71,7 @@ func TestDecodeLightMessage(t *testing.T) {
 
 	msg, err = s.decodeLightMessage(respEnc, testPeer, true)
 	require.NoError(t, err)
-	resp, ok := msg.(*LightResponse)
+	resp, ok := msg.(*LightResponseNew)
 	require.True(t, ok)
 	resEnc, err = resp.Encode()
 	require.NoError(t, err)
@@ -112,7 +130,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	// Testing remoteChangeResp()
 	msg = &LightRequest{
-		RmtChangesRequest: &RemoteChangesRequestNew{},
+		RmtChangesRequest: &RemoteChangesRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())

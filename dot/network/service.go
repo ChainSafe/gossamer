@@ -618,7 +618,7 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 		return nil
 	}
 
-	var resp LightResponse
+	resp := NewLightResponse()
 	var err error
 	switch {
 	case lr.RmtCallRequest != nil:
@@ -626,7 +626,7 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	case lr.RmtHeaderRequest != nil:
 		resp.RmtHeaderResponse, err = remoteHeaderResp(lr.RmtHeaderRequest)
 	case lr.RmtChangesRequest != nil:
-		resp.RmtChangeResponse, err = remoteChangeRespNew(lr.RmtChangesRequest)
+		resp.RmtChangeResponse, err = remoteChangeResp(lr.RmtChangesRequest)
 	case lr.RmtReadRequest != nil:
 		resp.RmtReadResponse, err = remoteReadResp(lr.RmtReadRequest)
 	case lr.RmtReadChildRequest != nil:
@@ -644,7 +644,7 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage.
 	logger.Debug("LightResponse", "msg", resp.String())
 
-	err = s.host.writeToStream(stream, &resp)
+	err = s.host.writeToStream(stream, resp)
 	if err != nil {
 		logger.Warn("failed to send LightResponse message", "peer", stream.Conn().RemotePeer(), "err", err)
 	}

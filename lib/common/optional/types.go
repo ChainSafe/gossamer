@@ -17,38 +17,13 @@
 package optional
 
 import (
-	"bytes"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"io"
 	"io/ioutil"
-	"math/big"
-
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 const none = "None"
-
-// Bytes represents an optional Bytes type.
-type Bytes struct {
-	exists bool
-	value  []byte
-}
-
-// NewBytes returns a new optional.Bytes
-func NewBytes(exists bool, value []byte) *Bytes {
-	return &Bytes{
-		exists: exists,
-		value:  value,
-	}
-}
-
-// String returns the value as a string.
-func (x *Bytes) String() string {
-	if !x.exists {
-		return none
-	}
-	return fmt.Sprintf("%x", x.value)
-}
 
 // FixedSizeBytes represents an optional FixedSizeBytes type. It does not length-encode the value when encoding.
 type FixedSizeBytes struct {
@@ -119,81 +94,4 @@ func (x *FixedSizeBytes) Decode(r io.Reader) (*FixedSizeBytes, error) {
 	}
 
 	return x, nil
-}
-
-// TODO Seems to only be used with light clients
-// Hash represents an optional Hash type.
-type Hash struct {
-	exists bool
-	value  common.Hash
-}
-
-// NewHash returns a new optional.Hash
-func NewHash(exists bool, value common.Hash) *Hash {
-	return &Hash{
-		exists: exists,
-		value:  value,
-	}
-}
-
-// Exists returns true if the value is Some, false if it is None.
-func (x *Hash) Exists() bool {
-	if x == nil {
-		return false
-	}
-	return x.exists
-}
-
-// Value returns Hash Value
-func (x *Hash) Value() common.Hash {
-	if x == nil {
-		return common.Hash{}
-	}
-	return x.value
-}
-
-// String returns the value as a string.
-func (x *Hash) String() string {
-	if x == nil {
-		return ""
-	}
-
-	if !x.exists {
-		return none
-	}
-
-	return x.value.String()
-}
-
-// Set sets the exists and value fields.
-func (x *Hash) Set(exists bool, value common.Hash) {
-	x.exists = exists
-	x.value = value
-}
-
-// Digest is the interface implemented by the block digest
-type Digest interface {
-	Encode() ([]byte, error)
-	Decode(buf *bytes.Buffer) error // Decode assumes the type byte (first byte) has been removed from the encoding.
-}
-
-// CoreHeader is a state block header
-// This is copied from core/types since core/types imports this package, we cannot import core/types.
-type CoreHeader struct {
-	ParentHash     common.Hash `json:"parentHash"`
-	Number         *big.Int    `json:"number"`
-	StateRoot      common.Hash `json:"stateRoot"`
-	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
-	Digest         Digest      `json:"digest"`
-}
-
-func (h *CoreHeader) String() string {
-	return fmt.Sprintf("ParentHash=%s Number=%d StateRoot=%s ExtrinsicsRoot=%s Digest=%v",
-		h.ParentHash, h.Number, h.StateRoot, h.ExtrinsicsRoot, h.Digest)
-}
-
-// Header represents an optional header type
-type Header struct {
-	exists bool
-	value  *CoreHeader
 }
