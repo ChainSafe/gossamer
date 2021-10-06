@@ -17,7 +17,6 @@
 package sync
 
 import (
-	"errors"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -28,7 +27,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -138,18 +136,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 		// store block in database
 		err = stateSrvc.Block.AddBlock(block)
-		switch {
-		case errors.Is(err, blocktree.ErrParentNotFound):
-			if block.Header.Number.Cmp(big.NewInt(0)) != 0 {
-				return err
-			}
-		case errors.Is(err, blocktree.ErrBlockExists):
-			break
-		case block.Header.Number.Cmp(big.NewInt(0)) == 0:
-			break
-		default:
-			return err
-		}
+		require.NoError(t, err)
 
 		stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
 		logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", ts.MustRoot())
