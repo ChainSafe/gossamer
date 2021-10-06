@@ -1118,7 +1118,7 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan C.int64_t, lim C.int64_t) C.int32_t {
+func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan, lim C.int64_t) C.int32_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_2] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
