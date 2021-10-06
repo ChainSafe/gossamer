@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/ChainSafe/gossamer/lib/common"
 	"testing"
 	"time"
 
@@ -10,14 +11,17 @@ import (
 )
 
 func TestEncodeLightRequest(t *testing.T) {
-	testLightRequest := NewLightRequestNew()
+	exp := common.MustHexToBytes("0x0000000000000000000000000000")
+
+	testLightRequest := NewLightRequest()
 	enc, err := testLightRequest.Encode()
 	require.NoError(t, err)
+	require.Equal(t, exp, enc)
 
-	dec := NewLightRequestNew()
-	err = dec.Decode(enc)
+	testLightRequest2 := NewLightRequest()
+	err = testLightRequest2.Decode(enc)
 	require.NoError(t, err)
-	require.Equal(t, *testLightRequest, dec)
+	require.Equal(t, testLightRequest, testLightRequest2)
 }
 
 func TestDecodeLightMessage(t *testing.T) {
@@ -85,7 +89,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+lightID)
 	require.NoError(t, err)
 
-	// Testing empty request
+	// Testing empty Request
 	msg := &LightRequest{}
 	err = s.handleLightMsg(stream, msg)
 	require.NoError(t, err)
@@ -108,7 +112,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	// Testing remoteChangeResp()
 	msg = &LightRequest{
-		RmtChangesRequest: &RemoteChangesRequest{},
+		RmtChangesRequest: &RemoteChangesRequestNew{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())

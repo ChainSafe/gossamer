@@ -101,7 +101,7 @@ func TestGossip(t *testing.T) {
 
 	if hasSeenB, ok := nodeB.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenB.(bool) == false {
 		t.Error(
-			"node B did not receive block request message from node A",
+			"node B did not receive block Request message from node A",
 			"\nreceived:", hasSeenB,
 			"\nexpected:", true,
 		)
@@ -109,7 +109,7 @@ func TestGossip(t *testing.T) {
 
 	if hasSeenC, ok := nodeC.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenC.(bool) == false {
 		t.Error(
-			"node C did not receive block request message from node B",
+			"node C did not receive block Request message from node B",
 			"\nreceived:", hasSeenC,
 			"\nexpected:", true,
 		)
@@ -117,7 +117,7 @@ func TestGossip(t *testing.T) {
 
 	if hasSeenA, ok := nodeA.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenA.(bool) == false {
 		t.Error(
-			"node A did not receive block request message from node C",
+			"node A did not receive block Request message from node C",
 			"\nreceived:", hasSeenA,
 			"\nexpected:", true,
 		)
