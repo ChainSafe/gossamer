@@ -29,7 +29,6 @@ import (
 	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
@@ -236,7 +235,6 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
 	bfl := &BlockFinalizedListener{
-		channel:       make(chan *types.FinalisationInfo),
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
@@ -248,11 +246,7 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Liste
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	var err error
-	bfl.chanID, err = c.BlockAPI.RegisterFinalizedChannel(bfl.channel)
-	if err != nil {
-		return nil, err
-	}
+	bfl.channel = c.BlockAPI.GetFinalisedNotifierChannel()
 
 	c.mu.Lock()
 
@@ -276,13 +270,7 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 	}
 
 	listener.importedChan = c.BlockAPI.GetImportedBlockNotifierChannel()
-
-	var err error
-	listener.finalizedChanID, err = c.BlockAPI.RegisterFinalizedChannel(listener.finalizedChan)
-	if err != nil {
-		c.safeSendError(reqID, nil, "could not register finalised channel")
-		return nil, fmt.Errorf("could not register finalised channel")
-	}
+	listener.finalizedChan = c.BlockAPI.GetFinalisedNotifierChannel()
 
 	c.mu.Lock()
 	listener.subID = atomic.AddUint32(&c.qtyListeners, 1)
@@ -309,10 +297,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	esl.importedChan = c.BlockAPI.GetImportedBlockNotifierChannel()
 
-	esl.finalisedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalisedChan)
-	if err != nil {
-		return nil, err
-	}
+	esl.finalisedChan = c.BlockAPI.GetFinalisedNotifierChannel()
 
 	c.mu.Lock()
 
@@ -377,15 +362,10 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		wsconn:        c,
-		finalisedCh:   make(chan *types.FinalisationInfo, 1),
 		cancelTimeout: defaultCancelTimeout,
 	}
 
-	var err error
-	jl.finalisedChID, err = c.BlockAPI.RegisterFinalizedChannel(jl.finalisedCh)
-	if err != nil {
-		return nil, err
-	}
+	jl.finalisedCh = c.BlockAPI.GetFinalisedNotifierChannel()
 
 	c.mu.Lock()
 
