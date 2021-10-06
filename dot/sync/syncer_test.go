@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -110,15 +111,14 @@ func newTestSyncer(t *testing.T) *Service {
 	rtCfg := &wasmer.Config{}
 	rtCfg.Storage = genState
 	rtCfg.LogLvl = 3
+	rtCfg.NodeStorage = runtime.NodeStorage{}
 
-	nodeStorage := runtime.NodeStorage{}
 	if stateSrvc != nil {
-		nodeStorage.BaseDB = stateSrvc.Base
+		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
 	} else {
-		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 		require.NoError(t, err)
 	}
-	rtCfg.NodeStorage = nodeStorage
 
 	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
@@ -137,14 +137,18 @@ func newTestSyncer(t *testing.T) *Service {
 		}
 
 		// store block in database
-		if err = stateSrvc.Block.AddBlock(block); err != nil {
-			if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
-				return err
-			} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
-				// this is fine
-			} else {
+		err = stateSrvc.Block.AddBlock(block)
+		switch {
+		case errors.Is(err, blocktree.ErrParentNotFound):
+			if block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 				return err
 			}
+		case errors.Is(err, blocktree.ErrBlockExists):
+			break
+		case block.Header.Number.Cmp(big.NewInt(0)) == 0:
+			break
+		default:
+			return err
 		}
 
 		stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)

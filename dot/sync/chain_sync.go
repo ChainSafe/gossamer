@@ -18,6 +18,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -32,9 +33,9 @@ import (
 )
 
 const (
-	// MAX_WORKERS is the maximum number of parallel sync workers
+	// maxWorkers is the maximum number of parallel sync workers
 	// TODO: determine ideal value
-	MAX_WORKERS = 4
+	maxWorkers = 4
 )
 
 var _ ChainSync = &chainSync{}
@@ -379,14 +380,14 @@ func (cs *chainSync) sync() {
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
 			// TODO: periodically clear out ignore list, currently is done if (ignore list >= peer list)
-			switch res.err.err {
-			case context.DeadlineExceeded:
+			switch {
+			case errors.Is(res.err.err, context.DeadlineExceeded):
 				if res.err.who != peer.ID("") {
 					cs.Lock()
 					cs.ignorePeers[res.err.who] = struct{}{}
 					cs.Unlock()
 				}
-			case context.Canceled:
+			case errors.Is(res.err.err, context.Canceled):
 				return
 			}
 
@@ -486,7 +487,7 @@ func (cs *chainSync) handleWork(ps *peerState) error {
 
 func (cs *chainSync) tryDispatchWorker(w *worker) {
 	// if we already have the maximum number of workers, don't dispatch another
-	if len(cs.workerState.workers) >= MAX_WORKERS {
+	if len(cs.workerState.workers) >= maxWorkers {
 		logger.Trace("reached max workers, ignoring potential work")
 		return
 	}
@@ -620,7 +621,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
 // TODO: implement this
 func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
-	var peers []peer.ID
+	peers := make([]peer.ID, 0, len(cs.peerState))
 
 	cs.RLock()
 	defer cs.RUnlock()
