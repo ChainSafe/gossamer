@@ -113,7 +113,6 @@ func TestNewNode(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 
 	node, err := NewNode(cfg, ks, nil)
@@ -180,7 +179,6 @@ func TestStartNode(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 
 	node, err := NewNode(cfg, ks, nil)

@@ -241,13 +241,19 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash
-func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error) {
-	header, err := s.blockState.GetHeader(bhash)
-	if err != nil {
-		return nil, err
+func (s *StorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
+	var root *common.Hash
+
+	if bhash != nil {
+		header, err := s.blockState.GetHeader(*bhash)
+		if err != nil {
+			return nil, err
+		}
+
+		*root = header.StateRoot
 	}
 
-	return s.GetStorage(&header.StateRoot, key)
+	return s.GetStorage(root, key)
 }
 
 // GetStateRootFromBlock returns the state root hash of a given block hash

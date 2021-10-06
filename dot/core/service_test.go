@@ -44,40 +44,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
-	_ = addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
-}
-
-func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
-	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
-	require.NoError(t, err)
-	previousNum := prevHeader.Number
-
-	var headers []*types.Header
-	rt, err := blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: types.Header{
-				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest:     types.NewDigest(),
-			},
-			Body: types.Body{},
-		}
-
-		previousHash = block.Header.Hash()
-
-		blockState.StoreRuntime(block.Header.Hash(), rt)
-		err := blockState.AddBlock(block)
-		require.NoError(t, err)
-		headers = append(headers, &block.Header)
-	}
-
-	return headers
-}
-
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
@@ -94,12 +60,10 @@ func TestMain(m *testing.M) {
 
 func TestStartService(t *testing.T) {
 	s := NewTestService(t, nil)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, s)
 
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = s.Stop()
 	require.NoError(t, err)
@@ -185,7 +149,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 
 func TestHandleChainReorg_NoReorg(t *testing.T) {
 	s := NewTestService(t, nil)
-	addTestBlocksToState(t, 4, s.blockState.(*state.BlockState))
+	state.AddBlocksToState(t, s.blockState.(*state.BlockState), 4, false)
 
 	head, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -284,7 +248,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	s := NewTestService(t, cfg)
 	height := 5
 	branch := 3
-	addTestBlocksToState(t, height, s.blockState.(*state.BlockState))
+	state.AddBlocksToState(t, s.blockState.(*state.BlockState), height, false)
 
 	// create extrinsic
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
@@ -338,7 +302,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	// TODO" update these to real extrinsics on update to v0.8
+	// TODO: update these to real extrinsics on update to v0.8
 	txs := []*transaction.ValidTransaction{
 		{
 			Extrinsic: []byte("a"),

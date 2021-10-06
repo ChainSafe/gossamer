@@ -35,7 +35,7 @@ var kr, _ = keystore.NewEd25519Keyring()
 func TestGrandpaProveFinality(t *testing.T) {
 	testStateService := newTestStateService(t)
 
-	state.AddBlocksToState(t, testStateService.Block, 3)
+	state.AddBlocksToState(t, testStateService.Block, 3, false)
 	bestBlock, err := testStateService.Block.BestBlock()
 
 	if err != nil {

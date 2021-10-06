@@ -48,8 +48,6 @@ func TestCreateStateService(t *testing.T) {
 
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, stateSrvc)
 }
 
@@ -63,7 +61,6 @@ func TestCreateCoreService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
@@ -164,8 +161,6 @@ func TestCreateNetworkService(t *testing.T) {
 
 	networkSrvc, err := createNetworkService(cfg, stateSrvc)
 	require.NoError(t, err)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, networkSrvc)
 }
 
@@ -179,7 +174,6 @@ func TestCreateRPCService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
@@ -224,7 +218,6 @@ func TestCreateBABEService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Init.Genesis = genFile.Name()
 
@@ -264,7 +257,6 @@ func TestCreateGrandpaService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.AuthorityRole
 	cfg.Init.Genesis = genFile.Name()
 

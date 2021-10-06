@@ -33,20 +33,14 @@ import (
 // TestNewConfig tests the NewTestConfig method
 func TestNewConfig(t *testing.T) {
 	cfg := NewTestConfig(t)
-
 	defer utils.RemoveTestDir(t)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, cfg)
 }
 
 // TestNewConfigAndFile tests the NewTestConfigWithFile method
 func TestNewConfigAndFile(t *testing.T) {
 	testCfg, testCfgFile := NewTestConfigWithFile(t)
-
 	defer utils.RemoveTestDir(t)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 }

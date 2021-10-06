@@ -157,8 +157,6 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 func NewTestConfig(t *testing.T) *Config {
 	dir := utils.NewTestDir(t)
 
-	// TODO: use default config instead of gssmr config for test config #776
-
 	cfg := &Config{
 		Global: GlobalConfig{
 			Name:     GssmrConfig().Global.Name,

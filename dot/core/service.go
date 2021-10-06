@@ -379,8 +379,6 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			continue
 		}
 
-		// TODO: decode extrinsic and make sure it's not an inherent.
-		// currently we are attempting to re-add inherents, causing lots of "'Bad input data provided to validate_transaction" errors.
 		for _, ext := range *body {
 			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
@@ -388,6 +386,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				return err
 			}
 
+			// decode extrinsic and make sure it's not an inherent.
 			decExt := &types.ExtrinsicData{}
 			err = decExt.DecodeVersion(encExt)
 			if err != nil {
