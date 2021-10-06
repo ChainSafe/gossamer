@@ -10,7 +10,7 @@ import (
 const GssmrGenesisPath = "../../../chain/gssmr/genesis.json"
 
 func TestSyncStateModule(t *testing.T) {
-	module := NewSyncStateModule(SyncState{GenesisFilePath: GssmrGenesisPath})
+	module := NewSyncStateModule(GssmrGenesisPath)
 
 	req := BoolRequest{
 		Raw: true,

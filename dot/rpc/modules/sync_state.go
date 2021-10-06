@@ -17,64 +17,29 @@
 package modules
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
-	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
 type SyncStateModule struct {
-	SyncStateAPI SyncStateAPI
+	GenesisFilePath string
 }
 
 type BoolRequest struct {
 	Raw bool
 }
 
-func NewSyncStateModule(s SyncStateAPI) *SyncStateModule {
-	return &SyncStateModule{SyncStateAPI: s}
+func NewSyncStateModule(s string) *SyncStateModule {
+	return &SyncStateModule{GenesisFilePath: s}
 }
 
 func (ss *SyncStateModule) GenSyncSpec(_ *http.Request, req *BoolRequest, res *genesis.Genesis) error {
-	genesis, err := ss.SyncStateAPI.GenSyncSpec(req.Raw)
+	g, err := genesis.GenSyncSpec(req.Raw, ss.GenesisFilePath)
 	if err != nil {
 		return err
 	}
 
-	*res = *genesis
+	*res = *g
 	return nil
-}
-
-type SyncState struct {
-	GenesisFilePath string
-}
-
-// GenSyncSpec returns the JSON serialized chain specification running the node
-// (i.e. the current state), with a sync state.
-func (s SyncState) GenSyncSpec(raw bool) (*genesis.Genesis, error) {
-	fp, err := filepath.Abs(s.GenesisFilePath)
-	if err != nil {
-		return nil, err
-	}
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
-	if err != nil {
-		return nil, err
-	}
-
-	g := new(genesis.Genesis)
-	err = json.Unmarshal(data, g)
-	if err != nil {
-		return nil, err
-	}
-
-	if raw {
-		err = g.ToRaw()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return g, nil
 }

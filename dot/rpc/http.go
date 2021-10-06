@@ -54,7 +54,7 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
-	SyncStateAPI        modules.SyncStateAPI
+	GenesisFilePath     string
 	NodeStorage         *runtime.NodeStorage
 	RPC                 bool
 	RPCExternal         bool
@@ -131,7 +131,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "childstate":
 			srvc = modules.NewChildStateModule(h.serverConfig.StorageAPI, h.serverConfig.BlockAPI)
 		case "syncstate":
-			srvc = modules.NewSyncStateModule(h.serverConfig.SyncStateAPI)
+			srvc = modules.NewSyncStateModule(h.serverConfig.GenesisFilePath)
 		default:
 			h.logger.Warn("Unrecognised module", "module", mod)
 			continue

@@ -17,6 +17,10 @@
 package genesis
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -105,6 +109,34 @@ func (g *Genesis) ToRaw() error {
 	g.Genesis.Raw = make(map[string]map[string]string)
 	g.Genesis.Raw["top"] = res
 	return nil
+}
+
+// GenSyncSpec returns the JSON serialized chain specification running the node
+// (i.e. the current state), with a sync state.
+func GenSyncSpec(raw bool, GenesisFilePath string) (*Genesis, error) {
+	fp, err := filepath.Abs(GenesisFilePath)
+	if err != nil {
+		return nil, err
+	}
+	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	if err != nil {
+		return nil, err
+	}
+
+	g := new(Genesis)
+	err = json.Unmarshal(data, g)
+	if err != nil {
+		return nil, err
+	}
+
+	if raw {
+		err = g.ToRaw()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return g, nil
 }
 
 func interfaceToTelemetryEndpoint(endpoints []interface{}) []*TelemetryEndpoint {
