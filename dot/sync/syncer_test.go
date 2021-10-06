@@ -157,12 +157,8 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 	_, err := syncer.transactionState.(*state.TransactionState).Push(tx)
 	require.NoError(t, err)
 
-	exts := []types.Extrinsic{ext}
-	body, err := types.NewBodyFromExtrinsics(exts)
-	require.NoError(t, err)
-
 	bd := &types.BlockData{
-		Body: body,
+		Body: types.NewBody([]types.Extrinsic{ext}),
 	}
 
 	msg := &network.BlockResponseMessage{
