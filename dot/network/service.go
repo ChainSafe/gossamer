@@ -373,7 +373,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 	}
 }
 
-func (s *Service) handleConn(conn libp2pnetwork.Conn) {
+func (*Service) handleConn(conn libp2pnetwork.Conn) {
 	// TODO: update this for scoring
 }
 
@@ -728,13 +728,13 @@ func (s *Service) CollectGauge() map[string]int64 {
 }
 
 // HighestBlock returns the highest known block number
-func (s *Service) HighestBlock() int64 {
+func (*Service) HighestBlock() int64 {
 	// TODO: refactor this to get the data from the sync service
 	return 0
 }
 
 // StartingBlock return the starting block number that's currently being synced
-func (s *Service) StartingBlock() int64 {
+func (*Service) StartingBlock() int64 {
 	// TODO: refactor this to get the data from the sync service
 	return 0
 }

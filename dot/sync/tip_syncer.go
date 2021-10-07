@@ -109,7 +109,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	}, nil
 }
 
-func (s *tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
+func (*tipSyncer) hasCurrentWorker(_ *worker, _ map[uint64]*worker) bool {
 	// TODO
 	return false
 }

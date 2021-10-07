@@ -310,11 +310,6 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	return nil
 }
 
-// closePeer closes the peer connection
-func (h *host) closePeer(peer peer.ID) error { //nolint
-	return h.h.Network().ClosePeer(peer)
-}
-
 // id returns the host id
 func (h *host) id() peer.ID {
 	return h.h.ID()

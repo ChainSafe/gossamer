@@ -99,11 +99,11 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	}, nil
 }
 
-func (s *bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker) bool {
+func (*bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker) bool {
 	// we're in bootstrap mode, and there already is a worker, we don't need to dispatch another
 	return len(workers) != 0
 }
 
-func (s *bootstrapSyncer) handleTick() ([]*worker, error) {
+func (*bootstrapSyncer) handleTick() ([]*worker, error) {
 	return nil, nil
 }
