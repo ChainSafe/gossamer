@@ -87,8 +87,8 @@ func (h *Handler) Incoming(setID int, peerID peer.ID) {
 	}
 }
 
-// GetMessageChan return message chan.
-func (h *Handler) GetMessageChan() chan interface{} {
+// GetMessages return message chan.
+func (h *Handler) GetMessages() chan interface{} {
 	return h.peerSet.resultMsgCh
 }
 

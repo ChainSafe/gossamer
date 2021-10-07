@@ -19,10 +19,11 @@ package network
 import (
 	"math/big"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // BlockState interface for block state methods
@@ -60,7 +61,7 @@ type TransactionHandler interface {
 type PeerSetHandler interface {
 	ReportPeer(peer.ID, peerset.ReputationChange)
 	Incoming(int, peer.ID)
-	GetMessageChan() chan interface{}
+	GetMessages() chan interface{}
 	AddReservedPeer(int, peer.ID)
 	AddToPeerSet(int, peer.ID)
 	RemoveReservedPeer(int, peer.ID)

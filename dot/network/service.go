@@ -25,16 +25,17 @@ import (
 	"sync"
 	"time"
 
-	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/services"
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/metrics"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+
+	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/services"
 )
 
 const (
@@ -767,7 +768,7 @@ func (s *Service) startPeerSetHandler() {
 }
 
 func (s *Service) processMessage() {
-	msgCh := s.host.cm.peerSetHandler.GetMessageChan()
+	msgCh := s.host.cm.peerSetHandler.GetMessages()
 	for m := range msgCh {
 		msg, ok := m.(peerset.Message)
 		if !ok {
