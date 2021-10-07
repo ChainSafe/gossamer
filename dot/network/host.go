@@ -257,6 +257,7 @@ func (h *host) bootstrap() {
 	allNodes = append(allNodes, h.persistentPeers...)
 	for _, addrInfo := range allNodes {
 		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
+		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 		h.cm.peerSetHandler.AddToPeerSet(0, addrInfo.ID)
 	}
 }

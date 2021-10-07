@@ -9,7 +9,7 @@ import (
 const (
 
 	// GoodTransactionValue is the reputation change value for good transaction
-	GoodTransactionValue = (1 << 7)
+	GoodTransactionValue = 1 << 7
 	// GoodTransactionReason is the reason for reputation change value for good transaction
 	GoodTransactionReason = "Good Transaction"
 

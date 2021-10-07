@@ -13,7 +13,7 @@ var (
 	reservedPeer2 = peer.ID("testReservedPeer2")
 	discovered1   = peer.ID("testDiscovered1")
 	discovered2   = peer.ID("testDiscovered2")
-	incoming      = peer.ID("testIncoming")
+	incomingPeer  = peer.ID("testIncoming")
 	incoming2     = peer.ID("testIncoming2")
 	incoming3     = peer.ID("testIncoming3")
 
@@ -37,6 +37,8 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.
 	handler, err := NewPeerSetHandler(con)
 	require.NoError(t, err)
 
+	handler.Start()
+
 	return handler
 }
 
@@ -50,4 +52,10 @@ func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState { // nolin
 	require.NoError(t, err)
 
 	return state
+}
+
+func checkMessage(t *testing.T, m interface{}, expectedStatus MessageStatus) {
+	msg, ok := m.(Message)
+	require.True(t, ok)
+	require.Equal(t, msg.messageStatus, expectedStatus)
 }

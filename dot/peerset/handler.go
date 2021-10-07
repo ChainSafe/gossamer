@@ -16,8 +16,6 @@ func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
 		return nil, err
 	}
 
-	go ps.start()
-
 	h := &Handler{
 		actionQueue: actionCh,
 		peerSet:     ps,
@@ -29,7 +27,7 @@ func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
 // AddReservedPeer adds reserved peerStatus into peerSet.
 func (h *Handler) AddReservedPeer(setID int, peerID peer.ID) {
 	h.actionQueue <- Action{
-		actionCall: AddReservedPeer,
+		actionCall: addReservedPeer,
 		setID:      setID,
 		peerID:     peerID,
 	}
@@ -38,16 +36,16 @@ func (h *Handler) AddReservedPeer(setID int, peerID peer.ID) {
 // RemoveReservedPeer remove reserved peerStatus from peerSet.
 func (h *Handler) RemoveReservedPeer(setID int, peerID peer.ID) {
 	h.actionQueue <- Action{
-		actionCall: RemoveReservedPeer,
+		actionCall: removeReservedPeer,
 		setID:      setID,
 		peerID:     peerID,
 	}
 }
 
-// SetReservedPeer sets the reserve peerStatus into peerSet
+// SetReservedPeer set the reserve peerStatus into peerSet
 func (h *Handler) SetReservedPeer(setID int, peerIDs map[peer.ID]struct{}) {
 	h.actionQueue <- Action{
-		actionCall: SetReservedPeers,
+		actionCall: setReservedPeers,
 		setID:      setID,
 		peerIds:    peerIDs,
 	}
@@ -56,7 +54,7 @@ func (h *Handler) SetReservedPeer(setID int, peerIDs map[peer.ID]struct{}) {
 // AddToPeerSet adds peerStatus to peerSet.
 func (h *Handler) AddToPeerSet(setID int, peerID peer.ID) {
 	h.actionQueue <- Action{
-		actionCall: AddToPeerSet,
+		actionCall: addToPeerSet,
 		setID:      setID,
 		peerID:     peerID,
 	}
@@ -65,7 +63,7 @@ func (h *Handler) AddToPeerSet(setID int, peerID peer.ID) {
 // RemoveFromPeerSet removes peerStatus from peerSet.
 func (h *Handler) RemoveFromPeerSet(setID int, peerID peer.ID) {
 	h.actionQueue <- Action{
-		actionCall: RemoveFromPeerSet,
+		actionCall: removeFromPeerSet,
 		setID:      setID,
 		peerID:     peerID,
 	}
@@ -74,25 +72,33 @@ func (h *Handler) RemoveFromPeerSet(setID int, peerID peer.ID) {
 // ReportPeer reports peerStatus for the reputation change.
 func (h *Handler) ReportPeer(peerID peer.ID, rep ReputationChange) {
 	h.actionQueue <- Action{
-		actionCall: ReportPeer,
+		actionCall: reportPeer,
 		reputation: rep,
 		peerID:     peerID,
 	}
 }
 
 // Incoming calls for an incoming connection from peerStatus.
-func (h *Handler) Incoming(setID int, peerID peer.ID, incomingIndex uint64) (Message, error) {
-	return h.peerSet.incoming(setID, peerID, incomingIndex)
+func (h *Handler) Incoming(setID int, peerID peer.ID) {
+	h.actionQueue <- Action{
+		actionCall: incoming,
+		peerID:     peerID,
+		setID:      setID,
+	}
 }
 
-// GetMessageQueue returns message of the peerSet
-func (h *Handler) GetMessageQueue() []Message {
-	return h.peerSet.getMessageQueue()
+// GetMessageChan return message chan.
+func (h *Handler) GetMessageChan() chan interface{} {
+	return h.peerSet.resultMsgCh
 }
 
-// Dropped calls for dropping a connection.
-func (h *Handler) Dropped(setID int, peerID peer.ID, reason DropReason) error {
-	return h.peerSet.dropped(setID, peerID, reason)
+// DisconnectPeer calls to disconnect a connection from peer.
+func (h *Handler) DisconnectPeer(setID int, peerID peer.ID) {
+	h.actionQueue <- Action{
+		actionCall: disconnect,
+		setID:      setID,
+		peerID:     peerID,
+	}
 }
 
 // GetReputation returns the reputation of the peer.ID.
@@ -102,4 +108,20 @@ func (h *Handler) GetReputation(peerID peer.ID) (int32, error) {
 		return 0, err
 	}
 	return node.getReputation(), nil
+}
+
+// Start starts peerSet processing
+func (h *Handler) Start() {
+	h.peerSet.start()
+}
+
+// GetSortedPeers return chan for sorted connected peer in the peer set.
+func (h *Handler) GetSortedPeers() chan interface{} {
+	resultPeersCh := make(chan interface{}, 1)
+	h.actionQueue <- Action{
+		actionCall:    sortedPeers,
+		resultPeersCh: resultPeersCh,
+	}
+
+	return resultPeersCh
 }

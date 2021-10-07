@@ -210,8 +210,12 @@ func (d *discovery) findPeers(ctx context.Context) {
 
 			logger.Trace("found new peer via DHT", "peer", peer.ID)
 
-			d.handler.AddToPeerSet(0, peer.ID)
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+			d.handler.AddToPeerSet(0, peer.ID)
 		}
 	}
+}
+
+func (d *discovery) findPeer(peerID peer.ID) (peer.AddrInfo, error) {
+	return d.dht.FindPeer(d.ctx, peerID)
 }

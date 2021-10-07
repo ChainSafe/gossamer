@@ -21,14 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	ma "github.com/multiformats/go-multiaddr"
-
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/stretchr/testify/require"
 )
@@ -437,7 +436,9 @@ func Test_AddReservedPeers(t *testing.T) {
 	nodeBPeerAddr := nodeB.host.multiaddrs()[0].String()
 	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
 	require.NoError(t, err)
-	time.Sleep(200 * time.Millisecond)
+
+	time.Sleep(100 * time.Millisecond)
+
 	require.Equal(t, 1, nodeA.host.peerCount())
 	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
 	require.True(t, isProtected)
@@ -470,13 +471,16 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
 	require.NoError(t, err)
 
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+
 	require.Equal(t, 1, nodeA.host.peerCount())
 	pID := nodeB.host.addrInfo().ID.String()
 
 	err = nodeA.host.removeReservedPeers(pID)
 	require.NoError(t, err)
-	time.Sleep(200 * time.Millisecond)
+
+	time.Sleep(100 * time.Millisecond)
+
 	require.Equal(t, 1, nodeA.host.peerCount())
 	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
 	require.False(t, isProtected)
@@ -566,7 +570,8 @@ func TestPsmConnect(t *testing.T) {
 	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddToPeerSet(0, addrInfoB.ID)
 
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+
 	require.Equal(t, 1, nodeA.host.peerCount())
 	require.Equal(t, 1, nodeB.host.peerCount())
 }
@@ -605,20 +610,23 @@ func TestPsmBannedPeer(t *testing.T) {
 	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddToPeerSet(0, addrInfoB.ID)
 
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+
 	require.Equal(t, 1, nodeA.host.peerCount())
 	require.Equal(t, 1, nodeB.host.peerCount())
-	time.Sleep(200 * time.Millisecond)
+
 	nodeA.host.cm.peerSetHandler.ReportPeer(addrInfoB.ID, peerset.ReputationChange{
 		Value:  peerset.BannedThreshold - 1,
 		Reason: "Banned",
 	})
 
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+
 	require.Equal(t, 0, nodeA.host.peerCount())
 	require.Equal(t, 0, nodeB.host.peerCount())
 
-	time.Sleep(2000 * time.Millisecond)
+	time.Sleep(3 * time.Second)
+
 	require.Equal(t, 1, nodeA.host.peerCount())
 	require.Equal(t, 1, nodeB.host.peerCount())
 }
@@ -657,15 +665,17 @@ func TestPsmReputation(t *testing.T) {
 	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddToPeerSet(0, addrInfoB.ID)
 
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+
 	require.Equal(t, 1, nodeA.host.peerCount())
 	require.Equal(t, 1, nodeB.host.peerCount())
-	time.Sleep(200 * time.Millisecond)
+
 	nodeA.host.cm.peerSetHandler.ReportPeer(addrInfoB.ID, peerset.ReputationChange{
 		Value:  state.GoodTransactionValue,
 		Reason: state.GoodTransactionReason,
 	})
-	time.Sleep(200 * time.Millisecond)
+
+	time.Sleep(100 * time.Millisecond)
 
 	rep, err := nodeA.host.cm.peerSetHandler.GetReputation(addrInfoB.ID)
 	require.NoError(t, nil, err)

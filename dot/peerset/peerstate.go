@@ -3,6 +3,7 @@ package peerset
 import (
 	"errors"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -21,7 +22,7 @@ const (
 type MembershipState int
 
 const (
-	// notMember Node isn't part of that set.
+	// notMember node isn't part of that set.
 	notMember MembershipState = iota
 	// ingoing node is connected through an ingoing connection.
 	ingoing
@@ -60,14 +61,14 @@ type Info struct {
 	noSlotNodes map[peer.ID]interface{}
 }
 
-// Node represents state of a single node that we know about
-type Node struct {
+// node represents state of a single node that we know about
+type node struct {
 	// List of Set the node belongs to.
 	// always has a fixed size equal to the one of PeersState Set. The various possible Set
 	// are indices into this Set.
 	// TODO check why we are using slice for Set, how multiple Set need to be managed?
 
-	sets []MembershipState
+	state []MembershipState
 	// When we were last connected to the node, or if we were never connected when we
 	// discovered it.
 	lastConnected []time.Time
@@ -78,7 +79,7 @@ type Node struct {
 }
 
 // newNode method to create a node with 0 reputation at starting.
-func newNode(len int) *Node {
+func newNode(len int) *node {
 	now := time.Now()
 	sets := make([]MembershipState, len)
 	lastConnected := make([]time.Time, len)
@@ -87,18 +88,18 @@ func newNode(len int) *Node {
 		lastConnected[i] = now
 	}
 
-	return &Node{
-		sets:          sets,
+	return &node{
+		state:         sets,
 		lastConnected: lastConnected,
 		reputation:    0,
 	}
 }
 
-func (n *Node) getReputation() int32 {
+func (n *node) getReputation() int32 {
 	return n.reputation
 }
 
-func (n *Node) addReputation(modifier int32) int32 {
+func (n *node) addReputation(modifier int32) int32 {
 	n.reputation = addInt32(n.reputation, modifier)
 	return n.reputation
 }
@@ -131,7 +132,7 @@ func subInt32(left, right int32) int32 {
 	return left - right
 }
 
-func (n *Node) setReputation(modifier int32) {
+func (n *node) setReputation(modifier int32) {
 	n.reputation = modifier
 }
 
@@ -139,14 +140,14 @@ func (n *Node) setReputation(modifier int32) {
 // has a reputation and is either connected to us or not
 type PeersState struct {
 	// List of nodes that we know about.
-	nodes map[peer.ID]*Node
+	nodes map[peer.ID]*node
 	// Configuration of each set. The size of this Info is never modified.
 	// since, single Info can also manage the flow.
 	// TODO Why we have slice for Info, How we are managing multiple Info?
 	sets []Info
 }
 
-func (ps *PeersState) getNode(p peer.ID) (*Node, error) {
+func (ps *PeersState) getNode(p peer.ID) (*node, error) {
 	if n, ok := ps.nodes[p]; ok {
 		return n, nil
 	}
@@ -154,7 +155,7 @@ func (ps *PeersState) getNode(p peer.ID) (*Node, error) {
 	return nil, errors.New("peer doesn't exist")
 }
 
-func (ps *PeersState) setNode(p peer.ID, n *Node) {
+func (ps *PeersState) setNode(p peer.ID, n *node) {
 	ps.nodes[p] = n
 }
 
@@ -177,7 +178,7 @@ func NewPeerState(set []*config) (*PeersState, error) {
 	}
 
 	peerState := &PeersState{
-		nodes: make(map[peer.ID]*Node),
+		nodes: make(map[peer.ID]*node),
 		sets:  infoSet,
 	}
 
@@ -195,7 +196,7 @@ func (ps *PeersState) peerStatus(set int, peerID peer.ID) string {
 		return unknownPeer
 	}
 
-	switch node.sets[set] {
+	switch node.state[set] {
 	case ingoing, outgoing:
 		return connectedPeer
 	case notConnected:
@@ -215,35 +216,51 @@ func (ps *PeersState) peers() []peer.ID {
 }
 
 // TODO this will be used once set reserved peers implemented
-// connectedPeers returns the list of peers we are connected to ingoing the context of a specific set.
-func (ps *PeersState) connectedPeers(set int) []peer.ID { // nolint
-	var peerIDs []peer.ID
-	if len(ps.sets) < set {
-		return nil
+// sortedConnectedPeers returns the list of peers we are connected to of a specific set.
+func (ps *PeersState) sortedConnectedPeers(idx int, peersCh chan interface{}) { // nolint
+	var peerIDs peer.IDSlice
+	if len(ps.sets) < idx {
+		logger.Error("peer state doesn't have info for the provided index")
+		return
 	}
 
-	for k := range ps.nodes {
-		state := ps.nodes[k].sets[set]
+	type kv struct {
+		peerID peer.ID
+		Node   *node
+	}
+
+	var ss []kv
+	for k, v := range ps.nodes {
+		state := v.state[idx]
 		if isConnected(state) {
-			peerIDs = append(peerIDs, k)
+			ss = append(ss, kv{k, v})
 		}
 	}
 
-	return peerIDs
+	sort.Slice(ss, func(i, j int) bool {
+		return ss[i].Node.reputation > ss[j].Node.reputation
+	})
+
+	for _, kv := range ss {
+		peerIDs = append(peerIDs, kv.peerID)
+	}
+
+	peersCh <- peerIDs
 }
 
 // highestNotConnectedPeer returns the peerStatus with the highest reputation and that we are not connected to.
 func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 	var maxRep = math.MinInt32
 	var peerID peer.ID
-	for id := range ps.nodes {
-		node := ps.nodes[id]
-		if node.sets[set] == notConnected {
-			val := int(node.reputation)
-			if val >= maxRep {
-				maxRep = val
-				peerID = id
-			}
+	for id, node := range ps.nodes {
+		if node.state[set] != notConnected {
+			continue
+		}
+
+		val := int(node.reputation)
+		if val >= maxRep {
+			maxRep = val
+			peerID = id
 		}
 	}
 
@@ -275,9 +292,10 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) {
 		return
 	}
 
-	if node.sets[idx] == ingoing {
+	logger.Info("addNoSlotNode", "state", node.state[idx])
+	if node.state[idx] == ingoing {
 		ps.sets[idx].numIn--
-	} else if node.sets[idx] == outgoing {
+	} else if node.state[idx] == outgoing {
 		ps.sets[idx].numOut--
 	}
 
@@ -285,33 +303,35 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) {
 }
 
 func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) {
-	if _, ok := ps.sets[idx].noSlotNodes[peerID]; ok {
-		delete(ps.sets[idx].noSlotNodes, peerID)
-		if _, ok := ps.nodes[peerID]; ok {
-			if ps.nodes[peerID].sets[idx] == ingoing {
-				ps.sets[idx].numIn++
-			} else if ps.nodes[peerID].sets[idx] == outgoing {
-				ps.sets[idx].numOut++
-			}
-		}
-	} else {
-		// TODO: add log
+	if _, ok := ps.sets[idx].noSlotNodes[peerID]; !ok {
 		return
+	}
+
+	delete(ps.sets[idx].noSlotNodes, peerID)
+	n, ok := ps.nodes[peerID]
+	if !ok {
+		return
+	}
+
+	switch n.state[idx] {
+	case ingoing:
+		ps.sets[idx].numIn++
+	case outgoing:
+		ps.sets[idx].numOut++
 	}
 }
 
 // disconnect method updates the node status to notConnected state it should be called only when the node is ingoing connected state.
 func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	info := ps.sets[idx]
-	node, err := ps.getNode(peerID)
+	n, err := ps.getNode(peerID)
 	if err != nil {
 		return err
 	}
 
 	// check for if it's isNoSlotOccupy is true or false.
-	_, ok := info.noSlotNodes[peerID]
-	if !ok {
-		switch node.sets[idx] {
+	if _, ok := info.noSlotNodes[peerID]; !ok {
+		switch n.state[idx] {
 		case ingoing:
 			if info.numIn > 0 {
 				info.numIn--
@@ -326,8 +346,8 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	}
 
 	// set node state to notConnected.
-	node.sets[idx] = notConnected
-	node.lastConnected[idx] = time.Now()
+	n.state[idx] = notConnected
+	n.lastConnected[idx] = time.Now()
 
 	ps.sets[idx] = info
 	return nil
@@ -339,14 +359,14 @@ func (ps *PeersState) discover(set int, peerID peer.ID) {
 	numSet := len(ps.sets)
 	if _, ok := ps.nodes[peerID]; !ok {
 		n := newNode(numSet)
-		n.sets[set] = notConnected
+		n.state[set] = notConnected
 		ps.nodes[peerID] = n
 	}
 }
 
 func (ps *PeersState) lastConnectedAndDiscovered(set int, peerID peer.ID) time.Time {
 	node, err := ps.getNode(peerID)
-	if err != nil && node.sets[set] == notConnected {
+	if err != nil && node.state[set] == notConnected {
 		return node.lastConnected[set]
 	}
 	// else return now time
@@ -360,14 +380,14 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 		return err
 	}
 
-	if node.sets[set] != notMember {
-		node.sets[set] = notMember
+	if node.state[set] != notMember {
+		node.state[set] = notMember
 	}
 
 	if node.getReputation() == 0 {
 		// Remove the peerStatus from ps nodes entirely if it isn't a member of any set.
 		remove := true
-		for _, state := range node.sets {
+		for _, state := range node.state {
 			if state != notMember {
 				remove = false
 				break
@@ -396,13 +416,14 @@ func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 		return errors.New("not enough outgoing slots")
 	}
 
-	if _, ok := ps.nodes[peerID]; ok {
-		ps.nodes[peerID].sets[setID] = outgoing
-		if !isNoSlotOccupied {
-			ps.sets[setID].numOut++
-		}
-	} else {
+	node, ok := ps.nodes[peerID]
+	if !ok {
 		return errors.New("state inconsistency: tryOutgoing on an unknown node")
+	}
+
+	node.state[setID] = outgoing
+	if !isNoSlotOccupied {
+		ps.sets[setID].numOut++
 	}
 
 	return nil
@@ -430,7 +451,7 @@ func (ps *PeersState) tryAcceptIncoming(setID int, peerID peer.ID) error {
 		return err
 	}
 
-	node.sets[setID] = ingoing
+	node.state[setID] = ingoing
 	if !isNoSlotOccupied {
 		// This need to be added as incoming connection allocate slot.
 		ps.sets[setID].numIn++

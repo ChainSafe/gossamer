@@ -107,13 +107,16 @@ func TestPersistentPeers(t *testing.T) {
 	}
 	nodeB := createTestService(t, configB)
 
+	time.Sleep(time.Millisecond * 600)
 	// B should have connected to A during bootstrap
 	conns := nodeB.host.h.Network().ConnsToPeer(nodeA.host.id())
 	require.NotEqual(t, 0, len(conns))
 
 	// if A disconnects from B, B should reconnect
-	nodeA.host.h.Network().ClosePeer(nodeB.host.id())
-	time.Sleep(time.Millisecond * 500)
+	nodeA.host.cm.peerSetHandler.DisconnectPeer(0, nodeB.host.id())
+
+	time.Sleep(time.Millisecond * 100)
+
 	conns = nodeB.host.h.Network().ConnsToPeer(nodeA.host.id())
 	require.NotEqual(t, 0, len(conns))
 }

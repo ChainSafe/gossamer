@@ -20,7 +20,7 @@ func TestPeerSetBanned(t *testing.T) {
 
 	// We ban a node by setting its reputation under the threshold.
 	action := Action{
-		actionCall: ReportPeer,
+		actionCall: reportPeer,
 		setID:      0,
 		reputation: newReputationChange(BannedThreshold-1, ""),
 		peerID:     peer1,
@@ -31,21 +31,20 @@ func TestPeerSetBanned(t *testing.T) {
 	handler.actionQueue <- action
 	time.Sleep(time.Millisecond * 100)
 
-	require.Equal(t, len(ps.messageQueue), 1)
-	require.Equal(t, Drop, ps.messageQueue[0].messageStatus)
+	checkMessage(t, <-ps.resultMsgCh, Drop)
 
 	// Check that an incoming connection from that node gets refused.
-	m, err := ps.incoming(0, peer1, 0)
+	err = ps.incoming(0, peer1)
 	require.NoError(t, err)
-	require.Equal(t, Reject, m.messageStatus)
+	checkMessage(t, <-ps.resultMsgCh, Reject)
 
 	// Wait a bit for the node's reputation to go above the threshold.
 	time.Sleep(time.Millisecond * 1200)
 
 	// Try again. This time the node should be accepted.
-	m, err = ps.incoming(0, peer1, 0)
+	err = ps.incoming(0, peer1)
 	require.NoError(t, err)
-	require.Equal(t, Accept, m.messageStatus)
+	checkMessage(t, <-ps.resultMsgCh, Accept)
 }
 
 func TestAddReservedPeers(t *testing.T) {
@@ -53,13 +52,13 @@ func TestAddReservedPeers(t *testing.T) {
 	ps := handler.peerSet
 
 	handler.actionQueue <- Action{
-		actionCall: AddReservedPeer,
+		actionCall: addReservedPeer,
 		setID:      0,
 		peerID:     reservedPeer,
 	}
 
 	handler.actionQueue <- Action{
-		actionCall: AddReservedPeer,
+		actionCall: addReservedPeer,
 		setID:      0,
 		peerID:     reservedPeer2,
 	}
@@ -67,53 +66,39 @@ func TestAddReservedPeers(t *testing.T) {
 	time.Sleep(time.Millisecond * 200)
 
 	expectedMsgs := []Message{
+		{messageStatus: Connect, setID: 0, peerID: bootNode},
 		{messageStatus: Connect, setID: 0, peerID: reservedPeer},
 		{messageStatus: Connect, setID: 0, peerID: reservedPeer2},
 	}
 
 	require.Equal(t, uint32(1), ps.peerState.sets[0].numOut)
 
-	checkMessage(t, ps.messageQueue, expectedMsgs)
+	for i := 0; i < len(ps.resultMsgCh); i++ {
+		m := <-ps.resultMsgCh
+		msg, ok := m.(Message)
+		require.True(t, ok)
+		require.Equal(t, msg, expectedMsgs[i])
+	}
 }
 
 func TestPeerSetIncoming(t *testing.T) {
-	ii2 := uint64(2)
-	ii3 := uint64(3)
-	ii4 := uint64(3)
-
 	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode}, []peer.ID{})
 	ps := handler.peerSet
 
 	// Connect message will be added ingoing queue for bootnode.
-	require.Equal(t, Connect, ps.messageQueue[0].messageStatus)
+	checkMessage(t, <-ps.resultMsgCh, Connect)
 
-	m, err := ps.incoming(0, incoming, ii4)
+	err := ps.incoming(0, incomingPeer)
 	require.NoError(t, err)
-	require.Equal(t, Accept, m.messageStatus)
+	checkMessage(t, <-ps.resultMsgCh, Accept)
 
-	m, err = ps.incoming(0, incoming2, ii2)
+	err = ps.incoming(0, incoming2)
 	require.NoError(t, err)
-	require.Equal(t, Accept, m.messageStatus)
+	checkMessage(t, <-ps.resultMsgCh, Accept)
 
-	m, err = ps.incoming(0, incoming3, ii3)
+	err = ps.incoming(0, incoming3)
 	require.NoError(t, err)
-	require.Equal(t, Reject, m.messageStatus)
-}
-
-func checkMessage(t *testing.T, actualMsgs []Message, expectedMsgs []Message) {
-	for _, msg := range expectedMsgs {
-		require.True(t, contains(actualMsgs, msg))
-	}
-}
-
-func contains(expectedMsgs []Message, actualMsg Message) bool {
-	for _, msg := range expectedMsgs {
-		if msg == actualMsg {
-			return true
-		}
-	}
-
-	return false
+	checkMessage(t, <-ps.resultMsgCh, Reject)
 }
 
 // TestPeerSetDiscovered tests the addition of discovered peers to the PeerSet as connected.
@@ -123,13 +108,13 @@ func TestPeerSetDiscovered(t *testing.T) {
 	ps := handler.peerSet
 
 	action1 := Action{
-		actionCall: AddToPeerSet,
+		actionCall: addToPeerSet,
 		setID:      0,
 		peerID:     discovered1,
 	}
 
 	action2 := Action{
-		actionCall: AddToPeerSet,
+		actionCall: addToPeerSet,
 		setID:      0,
 		peerID:     discovered2,
 	}
@@ -140,16 +125,17 @@ func TestPeerSetDiscovered(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 
-	require.Equal(t, Connect, ps.messageQueue[0].messageStatus)
-	require.Equal(t, Connect, ps.messageQueue[1].messageStatus)
-	require.Equal(t, Connect, ps.messageQueue[2].messageStatus)
+	require.Equal(t, 3, len(ps.resultMsgCh))
+	for i := 0; i < len(ps.resultMsgCh); i++ {
+		checkMessage(t, <-ps.resultMsgCh, Connect)
+	}
 }
 
 func TestReAllocAfterBanned(t *testing.T) {
 	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{})
 
 	ps := handler.peerSet
-	// messageQueue length before allocate slot.
+	// resultMsgCh length before allocate slot.
 	mqLen := 1
 	// Adding peer1 with incoming slot.
 	if ps.peerState.peerStatus(0, peer1) == unknownPeer {
@@ -160,7 +146,7 @@ func TestReAllocAfterBanned(t *testing.T) {
 
 	// We ban a node by setting its reputation under the threshold.
 	action := Action{
-		actionCall: ReportPeer,
+		actionCall: reportPeer,
 		setID:      0,
 		reputation: newReputationChange(BannedThreshold-1, ""),
 		peerID:     peer1,
@@ -170,20 +156,20 @@ func TestReAllocAfterBanned(t *testing.T) {
 	handler.actionQueue <- action
 	time.Sleep(time.Millisecond * 100)
 
-	require.Equal(t, len(ps.messageQueue), 1)
-	require.Equal(t, Drop, ps.messageQueue[0].messageStatus)
+	require.Equal(t, len(ps.resultMsgCh), 1)
+	checkMessage(t, <-ps.resultMsgCh, Drop)
 
 	// Check that an incoming connection from that node gets refused.
-	m, err := ps.incoming(0, peer1, 0)
+	err := ps.incoming(0, peer1)
 	require.NoError(t, err)
-	require.Equal(t, Reject, m.messageStatus)
-	require.Equal(t, len(ps.messageQueue), 1)
+	checkMessage(t, <-ps.resultMsgCh, Reject)
 
 	for {
-		if len(ps.messageQueue) == mqLen {
+		if len(ps.resultMsgCh) == mqLen {
 			continue
 		}
 		break
 	}
-	require.Equal(t, Connect, ps.messageQueue[1].messageStatus)
+
+	checkMessage(t, <-ps.resultMsgCh, Connect)
 }
