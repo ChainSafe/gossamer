@@ -410,7 +410,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_offline_index_set_version_1(t *testing.T) {
-	// TODO this currently fails with error could nat find exported function, determine how else to test this
+	// TODO this currently fails with error could not find exported function, determine how else to test this
 	t.Skip()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 

@@ -319,7 +319,7 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	offset, length := int64ToPointerAndSize(res.ToI64())
+	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
 	return in.load(offset, length), nil
 }
 
@@ -349,14 +349,4 @@ func (in *Instance) Keystore() *keystore.GlobalKeystore {
 // Validator returns the context's Validator
 func (in *Instance) Validator() bool {
 	return in.ctx.Validator
-}
-
-// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
-func int64ToPointerAndSize(in int64) (ptr, length int32) {
-	return int32(in), int32(in >> 32)
-}
-
-// pointerAndSizeToInt64 converts int32 pointer and size to a int64
-func pointerAndSizeToInt64(ptr, size int32) int64 {
-	return int64(ptr) | (int64(size) << 32)
 }

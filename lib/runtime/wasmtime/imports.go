@@ -19,17 +19,14 @@ package wasmtime
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
-// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
-func int64ToPointerAndSize(in int64) (ptr, length int32) {
-	return int32(in), int32(in >> 32)
-}
-
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(memory []byte, span int64) []byte {
-	ptr, size := int64ToPointerAndSize(span)
+	ptr, size := runtime.Int64ToPointerAndSize(span)
 	return memory[ptr : ptr+size]
 }
 

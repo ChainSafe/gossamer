@@ -188,7 +188,6 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 		0,
 	)
 
-	// TODO: why does kusama seem to use the old runtime version format?
 	version, err := instance.(*Instance).Version()
 	require.NoError(t, err)
 
