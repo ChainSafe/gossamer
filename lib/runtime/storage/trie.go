@@ -17,7 +17,6 @@
 package storage
 
 import (
-	"encoding/binary"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -228,36 +227,36 @@ func (s *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 	return child.GetKeysWithPrefix(prefix), nil
 }
 
-// TODO: remove functions below
+// // TODO: remove functions below
 
-// SetBalance sets the balance for a given public key
-func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return err
-	}
+// // SetBalance sets the balance for a given public key
+// func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
+// 	skey, err := common.BalanceKey(key)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	bb := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bb, balance)
+// 	bb := make([]byte, 8)
+// 	binary.LittleEndian.PutUint64(bb, balance)
 
-	s.Set(skey, bb)
-	return nil
-}
+// 	s.Set(skey, bb)
+// 	return nil
+// }
 
-// GetBalance returns the balance for a given public key
-func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return 0, err
-	}
+// // GetBalance returns the balance for a given public key
+// func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
+// 	skey, err := common.BalanceKey(key)
+// 	if err != nil {
+// 		return 0, err
+// 	}
 
-	bal := s.Get(skey)
-	if len(bal) != 8 {
-		return 0, nil
-	}
+// 	bal := s.Get(skey)
+// 	if len(bal) != 8 {
+// 		return 0, nil
+// 	}
 
-	return binary.LittleEndian.Uint64(bal), nil
-}
+// 	return binary.LittleEndian.Uint64(bal), nil
+// }
 
 // LoadCode returns the runtime code (located at :code)
 func (s *TrieState) LoadCode() []byte {

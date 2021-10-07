@@ -312,6 +312,14 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	require.Equal(t, expectedRoot, stateRoot)
 }
 
+// balanceKey returns the storage trie key for the balance of the account with the given public key
+func balanceKey(t *testing.T, key [32]byte) []byte {
+	accKey := append([]byte("balance:"), key[:]...)
+	hash, err := common.Blake2bHash(accKey)
+	require.NoError(t, err)
+	return hash[:]
+}
+
 func TestInitNode_LoadBalances(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -353,7 +361,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	kr, _ := keystore.NewSr25519Keyring()
 	alice := kr.Alice().Public().(*sr25519.PublicKey).AsBytes()
 
-	bal, err := stateSrv.Storage.GetBalance(nil, alice)
+	bal, err := stateSrv.Storage.GetStorage(nil, balanceKey(t, alice))
 	require.NoError(t, err)
 
 	genbal := "0x0000000000000001"

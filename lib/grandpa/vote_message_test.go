@@ -45,7 +45,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -128,7 +128,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	var branches []*types.Header
 	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
+		_, branches = state.AddBlocksToState(t, st.Block, 8, false)
 		if len(branches) > 1 {
 			break
 		}
@@ -188,7 +188,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -221,7 +221,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -254,7 +254,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -291,7 +291,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	var branches []*types.Header
 	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
+		_, branches = state.AddBlocksToState(t, st.Block, 8, false)
 		if len(branches) != 0 {
 			break
 		}
@@ -336,7 +336,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 	gs.tracker = newTracker(st.Block, gs.messageHandler)
 
 	fake := &types.Header{
@@ -374,7 +374,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	var branches []*types.Header
 	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
+		_, branches = state.AddBlocksToState(t, st.Block, 8, false)
 		if len(branches) != 0 {
 			break
 		}

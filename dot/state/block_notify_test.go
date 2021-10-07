@@ -36,7 +36,7 @@ func TestImportChannel(t *testing.T) {
 
 	defer bs.FreeImportedBlockNotifierChannel(ch)
 
-	AddBlocksToState(t, bs, 3)
+	AddBlocksToState(t, bs, 3, false)
 
 	for i := 0; i < 3; i++ {
 		select {
@@ -63,7 +63,7 @@ func TestFinalizedChannel(t *testing.T) {
 
 	defer bs.FreeFinalisedNotifierChannel(ch)
 
-	chain, _ := AddBlocksToState(t, bs, 3)
+	chain, _ := AddBlocksToState(t, bs, 3, false)
 
 	for _, b := range chain {
 		bs.SetFinalisedHash(b.Hash(), 1, 0)
@@ -106,7 +106,7 @@ func TestImportChannel_Multi(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 10)
-	AddBlocksToState(t, bs, 1)
+	AddBlocksToState(t, bs, 1, false)
 	wg.Wait()
 
 }
@@ -121,7 +121,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 		chs[i] = bs.GetFinalisedNotifierChannel()
 	}
 
-	chain, _ := AddBlocksToState(t, bs, 1)
+	chain, _ := AddBlocksToState(t, bs, 1, false)
 
 	var wg sync.WaitGroup
 	wg.Add(num)
