@@ -75,8 +75,6 @@ type DigestHandler interface { // TODO: remove, use GrandpaState
 type Network interface {
 	GossipMessage(msg network.NotificationsMessage)
 	SendMessage(to peer.ID, msg NotificationsMessage) error
-	SendBlockReqestByHash(hash common.Hash)
-	SendJustificationRequest(to peer.ID, num uint32)
 	RegisterNotificationsProtocol(sub protocol.ID,
 		messageID byte,
 		handshakeGetter network.HandshakeGetter,

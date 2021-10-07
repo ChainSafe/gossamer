@@ -294,7 +294,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 
-	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, coreSrvc)
+	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
@@ -303,6 +303,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		networkSrvc.SetSyncer(syncer)
 		networkSrvc.SetTransactionHandler(coreSrvc)
 	}
+	nodeSrvcs = append(nodeSrvcs, syncer)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	if err != nil {
