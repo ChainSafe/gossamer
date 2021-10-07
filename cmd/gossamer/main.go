@@ -449,12 +449,12 @@ func pruneState(ctx *cli.Context) error {
 
 	err = pruner.SetBloomFilter()
 	if err != nil {
-		return fmt.Errorf("failed to set keys into bloom filter %w", err)
+		return fmt.Errorf("failed to set keys into bloom filter: %w", err)
 	}
 
 	err = pruner.Prune()
 	if err != nil {
-		return fmt.Errorf("failed to prune %w", err)
+		return fmt.Errorf("failed to prune: %w", err)
 	}
 
 	return nil
