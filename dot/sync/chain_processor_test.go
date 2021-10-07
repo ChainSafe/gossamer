@@ -20,14 +20,14 @@ import (
 	"errors"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-
-	"github.com/ChainSafe/chaindb"
 
 	"github.com/stretchr/testify/require"
 )
@@ -137,7 +137,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	for _, bd := range resp.BlockData {
 		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
-		require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
+		require.True(t, errors.Is(err, errFailedToGetParent))
 	}
 }
 
@@ -242,4 +242,24 @@ func TestChainProcessor_HandleJustification(t *testing.T) {
 	res, err := syncer.blockState.GetJustification(header.Hash())
 	require.NoError(t, err)
 	require.Equal(t, just, res)
+}
+
+func TestChainProcessor_processReadyBlocks_errFailedToGetParent(t *testing.T) {
+	syncer := newTestSyncer(t)
+	processor := syncer.chainProcessor.(*chainProcessor)
+	processor.start()
+	defer processor.cancel()
+
+	header := &types.Header{
+		ParentHash: common.EmptyHash,
+		Number:     big.NewInt(1),
+	}
+
+	processor.readyBlocks.push(&types.BlockData{
+		Header: header,
+		Body:   &types.Body{},
+	})
+
+	time.Sleep(time.Millisecond * 100)
+	require.True(t, processor.pendingBlocks.hasBlock(header.Hash()))
 }

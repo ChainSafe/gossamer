@@ -17,72 +17,176 @@
 package sync
 
 import (
+	"errors"
+	"math/big"
+
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var _ workHandler = &tipSyncer{}
 
 // tipSyncer handles workers when syncing at the tip of the chain
-// WIP
 type tipSyncer struct {
 	blockState    BlockState
 	pendingBlocks DisjointBlockSet
-	workerState   *workerState
+	readyBlocks   *blockQueue
 }
 
-func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, workerState *workerState) *tipSyncer {
+func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue) *tipSyncer {
 	return &tipSyncer{
 		blockState:    blockState,
 		pendingBlocks: pendingBlocks,
-		workerState:   workerState,
+		readyBlocks:   readyBlocks,
 	}
 }
 
 func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
-	return nil, nil
+	fin, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	if ps.number.Cmp(fin.Number) <= 0 {
+		return nil, nil
+	}
+
+	return &worker{
+		startHash:    ps.hash,
+		startNumber:  ps.number,
+		targetHash:   ps.hash,
+		targetNumber: ps.number,
+		requestData:  bootstrapRequestData,
+	}, nil
 }
 
 func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
-	// TODO: if the worker succeeded, potentially remove some blocks from the pending block set and move them into the ready queue
-	return nil, nil
+	if res.err == nil {
+		return nil, nil
+	}
+
+	if errors.Is(res.err.err, errUnknownParent) {
+		// handleTick will handle the errUnknownParent case
+		return nil, nil
+	}
+
+	fin, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	// don't retry if we're requesting blocks lower than finalised
+	switch res.direction {
+	case network.Ascending:
+		if res.targetNumber.Cmp(fin.Number) <= 0 {
+			return nil, nil
+		}
+
+		// if start is lower than finalised, increase it to finalised+1
+		if res.startNumber.Cmp(fin.Number) <= 0 {
+			res.startNumber = big.NewInt(0).Add(fin.Number, big.NewInt(1))
+			res.startHash = common.Hash{}
+		}
+	case network.Descending:
+		if res.startNumber.Cmp(fin.Number) <= 0 {
+			return nil, nil
+		}
+
+		// if target is lower than finalised, increase it to finalised+1
+		if res.targetNumber.Cmp(fin.Number) <= 0 {
+			res.targetNumber = big.NewInt(0).Add(fin.Number, big.NewInt(1))
+			res.targetHash = common.Hash{}
+		}
+	}
+
+	return &worker{
+		startHash:    res.startHash,
+		startNumber:  res.startNumber,
+		targetHash:   res.targetHash,
+		targetNumber: res.targetNumber,
+		direction:    res.direction,
+		requestData:  res.requestData,
+	}, nil
 }
 
 func (s *tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
+	// TODO
 	return false
 }
 
 // handleTick traverses the pending blocks set to find which forks still need to be requested
-func (s *tipSyncer) handleTick() (*worker, error) {
+func (s *tipSyncer) handleTick() ([]*worker, error) {
 	if s.pendingBlocks.size() == 0 {
 		return nil, nil
 	}
 
+	fin, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, err
+	}
+
 	// cases for each block in pending set:
-	// 1. only hash and number are known; in this case, request the full block
+	// 1. only hash and number are known; in this case, request the full block (and ancestor chain)
 	// 2. only header is known; in this case, request the block body
 	// 3. entire block is known; in this case, check if we have become aware of the parent
+	// if we have, move it to the ready blocks queue; otherwise, request the chain of ancestors
+
+	var workers []*worker
 
 	for _, block := range s.pendingBlocks.getBlocks() {
+		if block.number.Cmp(fin.Number) <= 0 {
+			// TODO: delete from pending set (this should not happen, it should have already been deleted)
+			s.pendingBlocks.removeBlock(block.hash)
+			continue
+		}
+
 		if block.header == nil {
 			// case 1
-			return &worker{
-				startHash:  block.hash,
-				targetHash: block.hash,
-			}, nil
+			workers = append(workers, &worker{
+				startHash:    block.hash,
+				startNumber:  block.number,
+				targetHash:   fin.Hash(),
+				targetNumber: fin.Number,
+				direction:    network.Descending,
+				requestData:  bootstrapRequestData,
+			})
+			continue
 		}
 
 		if block.body == nil {
 			// case 2
-			return &worker{
-				startHash:   block.hash,
-				targetHash:  block.hash,
-				requestData: network.RequestedDataBody,
-			}, nil
+			workers = append(workers, &worker{
+				startHash:    block.hash,
+				startNumber:  block.number,
+				targetHash:   block.hash,
+				targetNumber: block.number,
+				requestData:  network.RequestedDataBody + network.RequestedDataJustification,
+			})
+			continue
 		}
 
 		// case 3
-		// WIP
+		has, err := s.blockState.HasHeader(block.header.ParentHash)
+		if err != nil {
+			return nil, err
+		}
+
+		if has || s.readyBlocks.has(block.header.ParentHash) {
+			// block is ready, as parent is known!
+			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
+			handleReadyBlock(block.toBlockData(), s.pendingBlocks, s.readyBlocks)
+			continue
+		}
+
+		// request descending chain from (parent of pending block) -> (last finalised block)
+		workers = append(workers, &worker{
+			startHash:    block.header.ParentHash,
+			startNumber:  big.NewInt(0).Sub(block.number, big.NewInt(1)),
+			targetNumber: fin.Number,
+			direction:    network.Descending,
+			requestData:  bootstrapRequestData,
+		})
 	}
 
-	return nil, nil
+	return workers, nil
 }

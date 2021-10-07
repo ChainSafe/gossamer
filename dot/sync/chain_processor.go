@@ -40,7 +40,11 @@ type chainProcessor struct {
 
 	// blocks that are ready for processing. ie. their parent is known, or their parent is ahead
 	// of them within this channel and thus will be processed first
-	readyBlocks <-chan *types.BlockData
+	readyBlocks *blockQueue
+
+	// set of block not yet ready to be processed.
+	// blocks are placed here if they fail to be processed due to missing parent block
+	pendingBlocks DisjointBlockSet
 
 	blockState         BlockState
 	storageState       StorageState
@@ -50,13 +54,14 @@ type chainProcessor struct {
 	blockImportHandler BlockImportHandler
 }
 
-func newChainProcessor(readyBlocks <-chan *types.BlockData, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
+func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
 		ctx:                ctx,
 		cancel:             cancel,
 		readyBlocks:        readyBlocks,
+		pendingBlocks:      pendingBlocks,
 		blockState:         blockState,
 		storageState:       storageState,
 		transactionState:   transactionState,
@@ -77,15 +82,28 @@ func (s *chainProcessor) stop() {
 func (s *chainProcessor) processReadyBlocks() {
 	for {
 		select {
-		case bd := <-s.readyBlocks:
-			err := s.processBlockData(bd)
-			if err != nil {
-				logger.Error("ready block failed", "hash", bd.Hash)
-				// TODO: we probably want to relay this error to the chainSync module so the block can be retried
-				// depending on the error, we might want to save this block for later
-			}
 		case <-s.ctx.Done():
 			return
+		default:
+		}
+
+		bd := s.readyBlocks.pop()
+		if bd == nil {
+			continue
+		}
+
+		if err := s.processBlockData(bd); err != nil {
+			logger.Error("ready block failed", "hash", bd.Hash, "error", err)
+
+			// depending on the error, we might want to save this block for later
+			if errors.Is(err, errFailedToGetParent) {
+				if err := s.pendingBlocks.addBlock(&types.Block{
+					Header: *bd.Header,
+					Body:   *bd.Body,
+				}); err != nil {
+					logger.Debug("failed to re-add block to pending blocks", "error", err)
+				}
+			}
 		}
 	}
 }
@@ -201,7 +219,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
-		return fmt.Errorf("failed to get parent hash: %w", err)
+		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
 	}
 
 	s.storageState.Lock()

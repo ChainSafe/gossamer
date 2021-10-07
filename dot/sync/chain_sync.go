@@ -18,9 +18,11 @@ package sync
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,7 +37,9 @@ import (
 const (
 	// maxWorkers is the maximum number of parallel sync workers
 	// TODO: determine ideal value
-	maxWorkers = 4
+	maxWorkers = 12
+
+	finalisedChSize = 128
 )
 
 var _ ChainSync = &chainSync{}
@@ -46,6 +50,20 @@ const (
 	bootstrap chainSyncState = iota
 	tip
 )
+
+func (s chainSyncState) String() string {
+	switch s {
+	case bootstrap:
+		return "bootstrap"
+	case tip:
+		return "tip"
+	default:
+		return "unknown"
+	}
+}
+
+// TODO: determine ideal limit for pending blocks set
+var pendingBlocksLimit = maxResponseSize * 32
 
 // peerState tracks our peers's best reported blocks
 type peerState struct {
@@ -73,7 +91,7 @@ type workHandler interface {
 	hasCurrentWorker(*worker, map[uint64]*worker) bool
 
 	// handleTick handles a timer tick
-	handleTick() (*worker, error)
+	handleTick() ([]*worker, error)
 }
 
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
@@ -113,16 +131,16 @@ type chainSync struct {
 	// current workers that are attempting to obtain blocks
 	workerState *workerState
 
-	// blocks which are ready to be processed are put into this channel
+	// blocks which are ready to be processed are put into this queue
 	// the `chainProcessor` will read from this channel and process the blocks
 	// note: blocks must not be put into this channel unless their parent is known
-	// TODO: channel or queue data structure?
+	//
 	// there is a case where we request and process "duplicate" blocks, which is where there
-	// are some blocks in this channel, and at the same time, the bootstrap worker errors and dispatches
+	// are some blocks in this queue, and at the same time, the bootstrap worker errors and dispatches
 	// a new worker with start=(current best head), which results in the blocks in the queue
 	// getting re-requested (as they have not been processed yet)
-	// fix: either make this a readable queue, or track the highest block we've put into the queue
-	readyBlocks chan<- *types.BlockData
+	// to fix this, we track the blocks that are in the queue
+	readyBlocks *blockQueue
 
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
@@ -137,9 +155,18 @@ type chainSync struct {
 	handler workHandler
 
 	benchmarker *syncBenchmarker
+
+	finalisedCh   <-chan *types.FinalisationInfo
+	finalisedChID byte
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks chan<- *types.BlockData) *chainSync {
+func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet) (*chainSync, error) {
+	finalisedCh := make(chan *types.FinalisationInfo, finalisedChSize)
+	id, err := bs.RegisterFinalizedChannel(finalisedCh)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainSync{
@@ -153,11 +180,13 @@ func newChainSync(bs BlockState, net Network, readyBlocks chan<- *types.BlockDat
 		ignorePeers:   make(map[peer.ID]struct{}),
 		workerState:   newWorkerState(),
 		readyBlocks:   readyBlocks,
-		pendingBlocks: newDisjointBlockSet(),
+		pendingBlocks: pendingBlocks,
 		state:         bootstrap,
 		handler:       newBootstrapSyncer(bs),
 		benchmarker:   newSyncBenchmarker(),
-	}
+		finalisedCh:   finalisedCh,
+		finalisedChID: id,
+	}, nil
 }
 
 func (cs *chainSync) start() {
@@ -178,6 +207,7 @@ func (cs *chainSync) start() {
 }
 
 func (cs *chainSync) stop() {
+	cs.blockState.UnregisterFinalisedChannel(cs.finalisedChID)
 	cs.cancel()
 }
 
@@ -197,9 +227,11 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 		return nil
 	}
 
-	cs.pendingBlocks.addHeader(header)
+	if err = cs.pendingBlocks.addHeader(header); err != nil {
+		return err
+	}
 
-	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors??
+	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors?
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
@@ -224,7 +256,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
-		ourHash, err := cs.blockState.GetHashByNumber(ps.number)
+		ourHash, err := cs.blockState.GetHashByNumber(ps.number) //nolint
 		if err != nil {
 			return err
 		}
@@ -265,7 +297,9 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 
 	// the peer has a higher best block than us, or they are on some fork we are not aware of
 	// add it to the disjoint block set
-	cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number)
+	if err = cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number); err != nil {
+		return err
+	}
 
 	cs.workQueue <- ps
 	logger.Debug("set peer head", "peer", p, "hash", hash, "number", number)
@@ -301,13 +335,13 @@ func (cs *chainSync) logSyncSpeed() {
 			continue
 		}
 
+		after, err := cs.blockState.BestBlockHeader()
+		if err != nil {
+			continue
+		}
+
 		switch cs.state {
 		case bootstrap:
-			after, err := cs.blockState.BestBlockHeader()
-			if err != nil {
-				continue
-			}
-
 			cs.benchmarker.end(after.Number.Uint64())
 			target := cs.getTarget()
 
@@ -326,8 +360,8 @@ func (cs *chainSync) logSyncSpeed() {
 		case tip:
 			logger.Info("💤 node waiting",
 				"peer count", len(cs.network.Peers()),
-				"head", before.Number,
-				"hash", before.Hash(),
+				"head", after.Number,
+				"hash", after.Hash(),
 				"finalised", finalised.Number,
 				"hash", finalised.Hash(),
 			)
@@ -335,31 +369,25 @@ func (cs *chainSync) logSyncSpeed() {
 	}
 }
 
+func (cs *chainSync) ignorePeer(who peer.ID) {
+	if err := who.Validate(); err != nil {
+		return
+	}
+
+	cs.Lock()
+	cs.ignorePeers[who] = struct{}{}
+	cs.Unlock()
+}
+
 func (cs *chainSync) sync() {
-	// set to slot time * 2
+	// set to slot time
 	// TODO: make configurable
-	ticker := time.NewTicker(time.Second * 12)
+	ticker := time.NewTicker(time.Second * 6)
 
 	for {
 		select {
 		case ps := <-cs.workQueue:
-			head, err := cs.blockState.BestBlockHeader()
-			if err != nil {
-				logger.Error("failed to get best block header", "error", err)
-				continue
-			}
-
-			target := cs.getTarget()
-			if big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) == -1 {
-				// we are 128 blocks or more behind the target, switch to bootstrap mode
-				logger.Debug("switching to bootstrap sync mode...")
-				cs.setMode(bootstrap)
-			} else {
-				// bootstrap complete, switch state to tip if not already
-				// and begin near-head fork-sync
-				logger.Debug("switching to tip sync mode...")
-				cs.setMode(tip)
-			}
+			cs.maybeSwitchMode()
 
 			if err := cs.handleWork(ps); err != nil {
 				logger.Error("failed to handle chain sync work", "error", err)
@@ -370,25 +398,28 @@ func (cs *chainSync) sync() {
 
 			// handle results from worker
 			// if there is an error, potentially retry the worker
-			if res.err == nil {
-				// TODO: log worker time
+			if res.err == nil || res.ctx.Err() != nil {
 				continue
 			}
 
-			logger.Error("worker error", "error", res.err.err)
+			logger.Debug("worker error", "error", res.err.err)
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
 			// TODO: periodically clear out ignore list, currently is done if (ignore list >= peer list)
+
 			switch {
-			case errors.Is(res.err.err, context.DeadlineExceeded):
-				if res.err.who != peer.ID("") {
-					cs.Lock()
-					cs.ignorePeers[res.err.who] = struct{}{}
-					cs.Unlock()
-				}
 			case errors.Is(res.err.err, context.Canceled):
 				return
+			case errors.Is(res.err.err, context.DeadlineExceeded):
+				cs.ignorePeer(res.err.who)
+			case strings.Contains(res.err.err.Error(), "dial backoff"):
+				cs.ignorePeer(res.err.who)
+				continue
+			case res.err.err.Error() == "protocol not supported":
+				cs.ignorePeer(res.err.who)
+				continue
+			default:
 			}
 
 			worker, err := cs.handler.handleWorkerResult(res)
@@ -403,20 +434,45 @@ func (cs *chainSync) sync() {
 
 			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
-			worker, err := cs.handler.handleTick()
+			cs.maybeSwitchMode()
+
+			workers, err := cs.handler.handleTick()
 			if err != nil {
 				logger.Error("failed to handle tick", "error", err)
 				continue
 			}
 
-			if worker == nil {
-				continue
+			for _, worker := range workers {
+				cs.tryDispatchWorker(worker)
 			}
-
-			cs.tryDispatchWorker(worker)
+		case fin := <-cs.finalisedCh:
+			// on finalised block, call pendingBlocks.removeLowerBlocks() to remove blocks on
+			// invalid forks from the pending blocks set
+			cs.pendingBlocks.removeLowerBlocks(fin.Header.Number)
 		case <-cs.ctx.Done():
 			return
 		}
+	}
+}
+
+func (cs *chainSync) maybeSwitchMode() {
+	head, err := cs.blockState.BestBlockHeader()
+	if err != nil {
+		logger.Error("failed to get best block header", "error", err)
+		return
+	}
+
+	target := cs.getTarget()
+	switch {
+	case big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) < 0:
+		// we are at least 128 blocks behind the head, switch to bootstrap
+		cs.setMode(bootstrap)
+	case head.Number.Cmp(target) >= 0:
+		// bootstrap complete, switch state to tip if not already
+		// and begin near-head fork-sync
+		cs.setMode(tip)
+	default:
+		// head is between (target-128, target), and we don't want to switch modes.
 	}
 }
 
@@ -435,10 +491,11 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 	case bootstrap:
 		cs.handler = newBootstrapSyncer(cs.blockState)
 	case tip:
-		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.workerState)
+		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.readyBlocks)
 	}
 
 	cs.state = mode
+	logger.Debug("switched sync mode", "mode", mode)
 }
 
 // getTarget takes the average of all peer heads
@@ -507,8 +564,13 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
 	logger.Debug("dispatching sync worker",
+		"id", w.id,
+		"start number", w.startNumber,
+		"start hash", w.startHash,
 		"target hash", w.targetHash,
 		"target number", w.targetNumber,
+		"request data", w.requestData,
+		"direction", w.direction,
 	)
 
 	if w.targetNumber == nil || w.startNumber == nil {
@@ -523,7 +585,11 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	defer func() {
 		end := time.Now()
 		w.duration = end.Sub(start)
-		logger.Debug("sync worker complete", "success?", w.err == nil)
+		logger.Debug("sync worker complete",
+			"id", w.id,
+			"success?", w.err == nil,
+			"duration", w.duration,
+		)
 		cs.resultQueue <- w
 	}()
 
@@ -539,8 +605,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 
 	for _, req := range reqs {
 		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time
-		err := cs.doSync(req)
-		if err != nil {
+		if err := cs.doSync(req); err != nil {
 			// failed to sync, set worker error and put into result queue
 			w.err = err
 			return
@@ -573,8 +638,9 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	// send out request and potentially receive response, error if timeout
 	logger.Trace("sending out block request", "request", req)
 
-	// TODO: either randomly sort or use scoring to determine what peer to try to sync from
-	who := peers[0]
+	// TODO: use scoring to determine what peer to try to sync from first
+	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
+	who := peers[idx.Int64()]
 	resp, err := cs.network.DoBlockRequest(who, req)
 	if err != nil {
 		return &workerError{
@@ -610,21 +676,40 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	// response was validated! place into ready block queue
 	for _, bd := range resp.BlockData {
 		// block is ready to be processed!
-		logger.Trace("new ready block", "hash", bd.Hash, "number", bd.Header.Number)
-		cs.pendingBlocks.removeBlock(bd.Hash)
-		cs.readyBlocks <- bd
+		handleReadyBlock(bd, cs.pendingBlocks, cs.readyBlocks)
 	}
 
 	return nil
 }
 
-// determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
-// TODO: implement this
-func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
-	peers := make([]peer.ID, 0, len(cs.peerState))
+func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue) {
+	// see if there are any descendents in the pending queue that are now ready to be processed,
+	// as we have just become aware of their parent block
 
+	// if header was not requested, get it from the pending set
+	// if we're expecting headers, validate should ensure we have a header
+	if bd.Header == nil {
+		block := pendingBlocks.getBlock(bd.Hash)
+		bd.Header = block.header
+	}
+
+	logger.Trace("new ready block", "hash", bd.Hash, "number", bd.Header.Number)
+
+	ready := []*types.BlockData{bd}
+	ready = pendingBlocks.getReadyDescendants(bd.Hash, ready)
+
+	for _, rb := range ready {
+		pendingBlocks.removeBlock(rb.Hash)
+		readyBlocks.push(rb)
+	}
+}
+
+// determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
+func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
 	cs.RLock()
 	defer cs.RUnlock()
+
+	peers := make([]peer.ID, 0, len(cs.peerState))
 
 	for p := range cs.peerState {
 		if _, has := cs.ignorePeers[p]; has {
@@ -664,15 +749,42 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 		if headerRequested {
 			curr = bd.Header
 		} else {
-			// TODO: if this is a justification-only request, make sure we have the block for the justification
+			// if this is a justification-only request, make sure we have the block for the justification
+			if err = cs.validateJustification(bd); err != nil {
+				return err
+			}
 			continue
 		}
 
 		// check that parent of first block in response is known (either in our db or in the ready queue)
 		if i == 0 {
-			// TODO
 			prev = curr
-			continue
+
+			// check that we know the parent of the first block (or it's in the ready queue)
+			has, _ := cs.blockState.HasHeader(curr.ParentHash)
+			if has {
+				continue
+			}
+
+			if cs.readyBlocks.has(curr.ParentHash) {
+				continue
+			}
+
+			// parent unknown, add to pending blocks
+			if err := cs.pendingBlocks.addBlock(&types.Block{
+				Header: *curr,
+				Body:   *bd.Body,
+			}); err != nil {
+				return err
+			}
+
+			if bd.Justification != nil {
+				if err := cs.pendingBlocks.addJustification(bd.Hash, *bd.Justification); err != nil {
+					return err
+				}
+			}
+
+			return errUnknownParent
 		}
 
 		// otherwise, check that this response forms a chain
@@ -680,10 +792,18 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 		if !prev.Hash().Equal(curr.ParentHash) || curr.Number.Cmp(big.NewInt(0).Add(prev.Number, big.NewInt(1))) != 0 {
 			// the response is missing some blocks, place blocks from curr onwards into pending blocks set
 			for _, bd := range resp.BlockData[i:] {
-				cs.pendingBlocks.addBlock(&types.Block{
+				if err := cs.pendingBlocks.addBlock(&types.Block{
 					Header: *curr,
 					Body:   *bd.Body,
-				})
+				}); err != nil {
+					return err
+				}
+
+				if bd.Justification != nil {
+					if err := cs.pendingBlocks.addJustification(bd.Hash, *bd.Justification); err != nil {
+						return err
+					}
+				}
 			}
 			return errResponseIsNotChain
 		}
@@ -713,6 +833,25 @@ func validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData) er
 	return nil
 }
 
+func (cs *chainSync) validateJustification(bd *types.BlockData) error {
+	if bd == nil {
+		return errNilBlockData
+	}
+
+	// this is ok, since the remote peer doesn't need to provide the info we request from them
+	// especially with justifications, it's common that they don't have them.
+	if bd.Justification == nil {
+		return nil
+	}
+
+	has, _ := cs.blockState.HasHeader(bd.Hash)
+	if !has {
+		return errUnknownBlockForJustification
+	}
+
+	return nil
+}
+
 func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 	// worker must specify a start number
 	// empty start hash is ok (eg. in the case of bootstrap, start hash is unknown)
@@ -733,6 +872,11 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 
 	if diff.Int64() > 0 && w.direction != network.Ascending {
 		return nil, errInvalidDirection
+	}
+
+	// start and end block are the same, just request 1 block
+	if diff.Cmp(big.NewInt(0)) == 0 {
+		diff = big.NewInt(1)
 	}
 
 	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,

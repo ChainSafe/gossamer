@@ -18,6 +18,7 @@ package sync
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -56,7 +57,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(startBlock)) //nolint
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get start block %d for request: %w", startBlock, err)
 		}
 
 		startHeader = &block.Header
@@ -65,7 +66,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		startHash = startBlock
 		startHeader, err = s.blockState.GetHeader(startHash)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get start block %s for request: %w", startHash, err)
 		}
 	default:
 		return nil, ErrInvalidBlockRequest
@@ -75,13 +76,13 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		endHash = *blockRequest.EndBlockHash
 		endHeader, err = s.blockState.GetHeader(endHash)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get end block %s for request: %w", endHash, err)
 		}
 	} else {
 		endNumber := big.NewInt(0).Add(startHeader.Number, big.NewInt(int64(respSize-1)))
 		bestBlockNumber, err := s.blockState.BestBlockNumber()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get best block %d for request: %w", bestBlockNumber, err)
 		}
 
 		if endNumber.Cmp(bestBlockNumber) == 1 {
@@ -90,7 +91,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 		endBlock, err := s.blockState.GetBlockByNumber(endNumber)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get end block %d for request: %w", endNumber, err)
 		}
 		endHeader = &endBlock.Header
 		endHash = endHeader.Hash()
@@ -142,16 +143,16 @@ func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDa
 	}
 
 	if (requestedData & network.RequestedDataHeader) == 1 {
-		retData, err := s.blockState.GetHeader(hash)
-		if err == nil && retData != nil {
-			blockData.Header = retData
+		blockData.Header, err = s.blockState.GetHeader(hash)
+		if err != nil {
+			logger.Debug("failed to get header for block", "number", num, "hash", hash, "error", err)
 		}
 	}
 
 	if (requestedData&network.RequestedDataBody)>>1 == 1 {
-		retData, err := s.blockState.GetBlockBody(hash)
-		if err == nil && retData != nil {
-			blockData.Body = retData
+		blockData.Body, err = s.blockState.GetBlockBody(hash)
+		if err != nil {
+			logger.Debug("failed to get body for block", "number", num, "hash", hash, "error", err)
 		}
 	}
 

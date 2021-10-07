@@ -32,8 +32,12 @@ func newTestBootstrapSyncer(t *testing.T) *bootstrapSyncer {
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(100), types.NewDigest())
 	require.NoError(t, err)
 
+	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(200), types.NewDigest())
+	require.NoError(t, err)
+
 	bs := new(syncmocks.MockBlockState)
 	bs.On("BestBlockHeader").Return(header, nil)
+	bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
 
 	return newBootstrapSyncer(bs)
 }
@@ -112,6 +116,33 @@ func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
 	}
 
 	w, err = s.handleWorkerResult(res)
+	require.NoError(t, err)
+	require.Equal(t, expected, w)
+}
+
+func TestBootstrapSyncer_handleWorkerResult_errUnknownParent(t *testing.T) {
+	s := newTestBootstrapSyncer(t)
+
+	// if there was a worker error, this should return a worker with
+	// startNumber = bestBlockNumber + 1 and the same target as previously
+	expected := &worker{
+		requestData:  bootstrapRequestData,
+		startHash:    common.EmptyHash,
+		startNumber:  big.NewInt(200),
+		targetHash:   common.NewHash([]byte{1}),
+		targetNumber: big.NewInt(300),
+	}
+
+	res := &worker{
+		requestData:  bootstrapRequestData,
+		targetHash:   common.NewHash([]byte{1}),
+		targetNumber: big.NewInt(300),
+		err: &workerError{
+			err: errUnknownParent,
+		},
+	}
+
+	w, err := s.handleWorkerResult(res)
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
 }

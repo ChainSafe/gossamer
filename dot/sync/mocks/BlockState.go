@@ -394,6 +394,27 @@ func (_m *MockBlockState) HasHeader(hash common.Hash) (bool, error) {
 	return r0, r1
 }
 
+// RegisterFinalizedChannel provides a mock function with given fields: ch
+func (_m *MockBlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
+	ret := _m.Called(ch)
+
+	var r0 byte
+	if rf, ok := ret.Get(0).(func(chan<- *types.FinalisationInfo) byte); ok {
+		r0 = rf(ch)
+	} else {
+		r0 = ret.Get(0).(byte)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(chan<- *types.FinalisationInfo) error); ok {
+		r1 = rf(ch)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SetFinalisedHash provides a mock function with given fields: hash, round, setID
 func (_m *MockBlockState) SetFinalisedHash(hash common.Hash, round uint64, setID uint64) error {
 	ret := _m.Called(hash, round, setID)
@@ -462,4 +483,9 @@ func (_m *MockBlockState) SubChain(start common.Hash, end common.Hash) ([]common
 	}
 
 	return r0, r1
+}
+
+// UnregisterFinalisedChannel provides a mock function with given fields: id
+func (_m *MockBlockState) UnregisterFinalisedChannel(id byte) {
+	_m.Called(id)
 }

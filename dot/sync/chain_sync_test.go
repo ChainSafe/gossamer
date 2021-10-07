@@ -38,18 +38,22 @@ import (
 
 var testTimeout = time.Second * 5
 
-func newTestChainSync(t *testing.T) (*chainSync, <-chan *types.BlockData) { //nolint
+func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	bs := new(syncmocks.MockBlockState)
 	bs.On("BestBlockHeader").Return(header, nil)
+	bs.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).Return(byte(0), nil)
+	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	net := new(syncmocks.MockNetwork)
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
-	readyBlocks := make(chan *types.BlockData, maxResponseSize)
-	return newChainSync(bs, net, readyBlocks), readyBlocks
+	readyBlocks := newBlockQueue(maxResponseSize)
+	cs, err := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit))
+	require.NoError(t, err)
+	return cs, readyBlocks
 }
 
 func TestChainSync_SetPeerHead(t *testing.T) {
@@ -176,6 +180,7 @@ func TestChainSync_sync_tip(t *testing.T) {
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.MockBlockState).On("BestBlockHeader").Return(header, nil)
+	cs.blockState.(*syncmocks.MockBlockState).On("GetHighestFinalisedHeader").Return(header, nil)
 
 	go cs.sync()
 	defer cs.cancel()
@@ -241,6 +246,7 @@ func TestWorkerToRequests(t *testing.T) {
 		max128 = uint32(128)
 		max9   = uint32(9)
 		max64  = uint32(64)
+		max1   = uint32(1)
 	)
 
 	testCases := []testCase{
@@ -380,6 +386,22 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(10),
+				targetNumber: big.NewInt(10),
+				direction:    network.Ascending,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*network.BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint64OrHash(10),
+					Direction:     network.Ascending,
+					Max:           &max1,
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
@@ -450,6 +472,10 @@ func TestChainSync_validateResponse(t *testing.T) {
 	parent := (&types.Header{
 		Number: big.NewInt(1),
 	}).Hash()
+	header3 := &types.Header{
+		ParentHash: parent,
+		Number:     big.NewInt(3),
+	}
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
@@ -459,11 +485,10 @@ func TestChainSync_validateResponse(t *testing.T) {
 				Body: &types.Body{},
 			},
 			{
-				Header: &types.Header{
-					ParentHash: parent,
-					Number:     big.NewInt(3),
-				},
-				Body: &types.Body{},
+				Hash:          header3.Hash(),
+				Header:        header3,
+				Body:          &types.Body{},
+				Justification: &[]byte{0},
 			},
 		},
 	}
@@ -475,6 +500,8 @@ func TestChainSync_validateResponse(t *testing.T) {
 	err = cs.validateResponse(req, resp)
 	require.Equal(t, errResponseIsNotChain, err)
 	require.True(t, cs.pendingBlocks.hasBlock(hash))
+	bd := cs.pendingBlocks.getBlock(hash)
+	require.NotNil(t, bd.justification)
 	cs.pendingBlocks.removeBlock(hash)
 
 	parent = (&types.Header{
@@ -501,6 +528,58 @@ func TestChainSync_validateResponse(t *testing.T) {
 	err = cs.validateResponse(req, resp)
 	require.NoError(t, err)
 	require.False(t, cs.pendingBlocks.hasBlock(hash))
+
+	req = &network.BlockRequestMessage{
+		RequestedData: network.RequestedDataJustification,
+	}
+	resp = &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Hash:          common.EmptyHash,
+				Justification: &[]byte{0},
+			},
+		},
+	}
+
+	err = cs.validateResponse(req, resp)
+	require.NoError(t, err)
+	require.False(t, cs.pendingBlocks.hasBlock(hash))
+}
+
+func TestChainSync_validateResponse_firstBlock(t *testing.T) {
+	cs, _ := newTestChainSync(t)
+	bs := new(syncmocks.MockBlockState)
+	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
+	cs.blockState = bs
+
+	req := &network.BlockRequestMessage{
+		RequestedData: bootstrapRequestData,
+	}
+
+	header := &types.Header{
+		Number: big.NewInt(2),
+	}
+
+	resp := &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Hash: header.Hash(),
+				Header: &types.Header{
+					Number: big.NewInt(2),
+				},
+				Body:          &types.Body{},
+				Justification: &[]byte{0},
+			},
+		},
+	}
+
+	err := cs.validateResponse(req, resp)
+	require.True(t, errors.Is(err, errUnknownParent))
+	require.True(t, cs.pendingBlocks.hasBlock(header.Hash()))
+	bd := cs.pendingBlocks.getBlock(header.Hash())
+	require.NotNil(t, bd.header)
+	require.NotNil(t, bd.body)
+	require.NotNil(t, bd.justification)
 }
 
 func TestChainSync_doSync(t *testing.T) {
@@ -543,12 +622,9 @@ func TestChainSync_doSync(t *testing.T) {
 
 	workerErr = cs.doSync(req)
 	require.Nil(t, workerErr)
-	select {
-	case bd := <-readyBlocks:
-		require.Equal(t, resp.BlockData[0], bd)
-	default:
-		t.Fatal("expected ready block")
-	}
+	bd := readyBlocks.pop()
+	require.NotNil(t, bd)
+	require.Equal(t, resp.BlockData[0], bd)
 
 	parent := (&types.Header{
 		Number: big.NewInt(2),
@@ -578,17 +654,65 @@ func TestChainSync_doSync(t *testing.T) {
 	workerErr = cs.doSync(req)
 	require.Nil(t, workerErr)
 
-	select {
-	case bd := <-readyBlocks:
-		require.Equal(t, resp.BlockData[0], bd)
-	default:
-		t.Fatal("expected ready block")
+	bd = readyBlocks.pop()
+	require.NotNil(t, bd)
+	require.Equal(t, resp.BlockData[0], bd)
+
+	bd = readyBlocks.pop()
+	require.NotNil(t, bd)
+	require.Equal(t, resp.BlockData[1], bd)
+}
+
+func TestHandleReadyBlock(t *testing.T) {
+	cs, readyBlocks := newTestChainSync(t)
+
+	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
+	header1 := &types.Header{
+		Number: big.NewInt(1),
+	}
+	block1 := &types.Block{
+		Header: *header1,
+		Body:   types.Body{},
 	}
 
-	select {
-	case bd := <-readyBlocks:
-		require.Equal(t, resp.BlockData[1], bd)
-	default:
-		t.Fatal("expected ready block")
+	header2 := &types.Header{
+		ParentHash: header1.Hash(),
+		Number:     big.NewInt(2),
 	}
+	block2 := &types.Block{
+		Header: *header2,
+		Body:   types.Body{},
+	}
+	cs.pendingBlocks.addBlock(block2)
+
+	header3 := &types.Header{
+		ParentHash: header2.Hash(),
+		Number:     big.NewInt(3),
+	}
+	block3 := &types.Block{
+		Header: *header3,
+		Body:   types.Body{},
+	}
+	cs.pendingBlocks.addBlock(block3)
+
+	header2NotDescendant := &types.Header{
+		ParentHash: common.Hash{0xff},
+		Number:     big.NewInt(2),
+	}
+	block2NotDescendant := &types.Block{
+		Header: *header2NotDescendant,
+		Body:   types.Body{},
+	}
+	cs.pendingBlocks.addBlock(block2NotDescendant)
+
+	handleReadyBlock(block1.ToBlockData(), cs.pendingBlocks, cs.readyBlocks)
+
+	require.False(t, cs.pendingBlocks.hasBlock(header1.Hash()))
+	require.False(t, cs.pendingBlocks.hasBlock(header2.Hash()))
+	require.False(t, cs.pendingBlocks.hasBlock(header3.Hash()))
+	require.True(t, cs.pendingBlocks.hasBlock(header2NotDescendant.Hash()))
+
+	require.Equal(t, block1.ToBlockData(), readyBlocks.pop())
+	require.Equal(t, block2.ToBlockData(), readyBlocks.pop())
+	require.Equal(t, block3.ToBlockData(), readyBlocks.pop())
 }
