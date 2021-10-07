@@ -38,8 +38,6 @@ const (
 	// maxWorkers is the maximum number of parallel sync workers
 	// TODO: determine ideal value
 	maxWorkers = 12
-
-	finalisedChSize = 128
 )
 
 var _ ChainSync = &chainSync{}
@@ -156,19 +154,11 @@ type chainSync struct {
 
 	benchmarker *syncBenchmarker
 
-	finalisedCh   <-chan *types.FinalisationInfo
-	finalisedChID byte
+	finalisedCh <-chan *types.FinalisationInfo
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet) (*chainSync, error) {
-	finalisedCh := make(chan *types.FinalisationInfo, finalisedChSize)
-	id, err := bs.RegisterFinalizedChannel(finalisedCh)
-	if err != nil {
-		return nil, err
-	}
-
+func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
-
 	return &chainSync{
 		ctx:           ctx,
 		cancel:        cancel,
@@ -184,9 +174,8 @@ func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBl
 		state:         bootstrap,
 		handler:       newBootstrapSyncer(bs),
 		benchmarker:   newSyncBenchmarker(),
-		finalisedCh:   finalisedCh,
-		finalisedChID: id,
-	}, nil
+		finalisedCh:   bs.GetFinalisedNotifierChannel(),
+	}
 }
 
 func (cs *chainSync) start() {
@@ -207,7 +196,6 @@ func (cs *chainSync) start() {
 }
 
 func (cs *chainSync) stop() {
-	cs.blockState.UnregisterFinalisedChannel(cs.finalisedChID)
 	cs.cancel()
 }
 

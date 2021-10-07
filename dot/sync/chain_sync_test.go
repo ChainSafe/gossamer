@@ -44,15 +44,14 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 
 	bs := new(syncmocks.MockBlockState)
 	bs.On("BestBlockHeader").Return(header, nil)
-	bs.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).Return(byte(0), nil)
+	bs.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 128), nil)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	net := new(syncmocks.MockNetwork)
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
 	readyBlocks := newBlockQueue(maxResponseSize)
-	cs, err := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit))
-	require.NoError(t, err)
+	cs := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit))
 	return cs, readyBlocks
 }
 

@@ -54,8 +54,7 @@ type BlockState interface {
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
-	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalisedChannel(id byte)
+	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 }
 
 // StorageState is the interface for the storage state
