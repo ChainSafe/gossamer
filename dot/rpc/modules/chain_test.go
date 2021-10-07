@@ -310,6 +310,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 
 	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+
 	header := types.Header{
 		ParentHash: genesisHeader.Hash(),
 		Number:     big.NewInt(1),

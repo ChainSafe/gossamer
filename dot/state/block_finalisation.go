@@ -148,6 +148,10 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		return fmt.Errorf("failed to set highest round and set ID: %w", err)
 	}
 
+	if err := bs.handleFinalisedBlock(hash); err != nil {
+		return fmt.Errorf("failed to set number->hash mapping on finalisation: %w", err)
+	}
+
 	if round > 0 {
 		bs.notifyFinalized(hash, round, setID)
 	}

@@ -117,6 +117,8 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		genesisHash:                header.Hash(),
+		lastFinalised:              header.Hash(),
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
@@ -261,7 +263,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	}
 
 	result.Hash()
-	return result, err
+	return result, nil
 }
 
 // GetHashByNumber returns the block hash on our best chain with the given number
