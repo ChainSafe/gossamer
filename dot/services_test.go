@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -140,7 +141,7 @@ func TestCreateSyncService(t *testing.T) {
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	_, err = newSyncService(cfg, stateSrvc, nil, ver, coreSrvc)
+	_, err = newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{})
 	require.NoError(t, err)
 }
 

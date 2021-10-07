@@ -85,7 +85,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
-	bs.lastFinalised, err = bs.GetFinalisedHash(0, 0)
+	bs.lastFinalised, err = bs.GetHighestFinalisedHash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
@@ -103,6 +103,8 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		genesisHash:                header.Hash(),
+		lastFinalised:              header.Hash(),
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
@@ -120,8 +122,6 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 	if err := bs.SetBlockBody(header.Hash(), types.NewBody([]types.Extrinsic{})); err != nil {
 		return nil, err
 	}
-
-	bs.genesisHash = header.Hash()
 
 	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
@@ -257,7 +257,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	}
 
 	result.Hash()
-	return result, err
+	return result, nil
 }
 
 // GetHashByNumber returns the block hash given the number
@@ -449,7 +449,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 // handleAddedBlock re-sets the canonical number->hash mapping if there was a chain re-org.
 // prev is the previous best block hash before the new block was added to the blocktree.
-// curr is the current best blogetck hash.
+// curr is the current best block hash.
 func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 	ancestor, err := bs.HighestCommonAncestor(prev, curr)
 	if err != nil {

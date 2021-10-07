@@ -63,12 +63,23 @@ const (
 
 var _ Message = &BlockRequestMessage{}
 
+// SyncDirection is the direction of data in a block response
+type SyncDirection byte
+
+const (
+	// Ascending is used when block response data is in ascending order (ie parent to child)
+	Ascending SyncDirection = iota
+
+	// Descending is used when block response data is in descending order (ie child to parent)
+	Descending
+)
+
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
 	RequestedData byte
 	StartingBlock variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
 	EndBlockHash  *common.Hash
-	Direction     byte // 0 = ascending, 1 = descending
+	Direction     SyncDirection // 0 = ascending, 1 = descending
 	Max           *uint32
 }
 
@@ -183,7 +194,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	bm.RequestedData = byte(msg.Fields >> 24)
 	bm.StartingBlock = *startingBlock
 	bm.EndBlockHash = endBlockHash
-	bm.Direction = byte(msg.Direction)
+	bm.Direction = SyncDirection(byte(msg.Direction))
 	bm.Max = max
 
 	return nil
@@ -194,22 +205,6 @@ var _ Message = &BlockResponseMessage{}
 // BlockResponseMessage is sent in response to a BlockRequestMessage
 type BlockResponseMessage struct {
 	BlockData []*types.BlockData
-}
-
-func (bm *BlockResponseMessage) getStartAndEnd() (int64, int64, error) {
-	if len(bm.BlockData) == 0 {
-		return 0, 0, errors.New("no BlockData in BlockResponseMessage")
-	}
-
-	if startExists := bm.BlockData[0].Header.Exists(); !startExists {
-		return 0, 0, errors.New("first BlockData in BlockResponseMessage does not contain header")
-	}
-
-	if endExists := bm.BlockData[len(bm.BlockData)-1].Header.Exists(); !endExists {
-		return 0, 0, errors.New("last BlockData in BlockResponseMessage does not contain header")
-	}
-
-	return bm.BlockData[0].Header.Number.Int64(), bm.BlockData[len(bm.BlockData)-1].Header.Number.Int64(), nil
 }
 
 // SubProtocol returns the sync sub-protocol

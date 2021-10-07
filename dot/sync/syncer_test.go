@@ -17,22 +17,28 @@
 package sync
 
 import (
-	"errors"
+	"io/ioutil"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
+
+	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
 func TestMain(m *testing.M) {
@@ -49,261 +55,114 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestHandleBlockResponse(t *testing.T) {
-	if testing.Short() {
-		t.Skip() // this test takes around 4min to run
+func newMockFinalityGadget() *syncmocks.FinalityGadget {
+	m := new(syncmocks.FinalityGadget)
+	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
+	m.On("VerifyBlockJustification", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil)
+	return m
+}
+
+func newMockVerifier() *syncmocks.MockVerifier {
+	m := new(syncmocks.MockVerifier)
+	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
+	return m
+}
+
+func newMockNetwork() *syncmocks.MockNetwork {
+	m := new(syncmocks.MockNetwork)
+	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
+	return m
+}
+
+func newTestSyncer(t *testing.T) *Service {
+	wasmer.DefaultTestLogLvl = 3
+
+	cfg := &Config{}
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+
+	scfg := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(scfg)
+	stateSrvc.UseMemDB()
+
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.NoError(t, err)
+
+	if cfg.BlockState == nil {
+		cfg.BlockState = stateSrvc.Block
 	}
 
-	syncer := NewTestSyncer(t, false)
-	syncer.highestSeenBlock = big.NewInt(132)
+	if cfg.StorageState == nil {
+		cfg.StorageState = stateSrvc.Storage
+	}
 
-	responder := NewTestSyncer(t, false)
-	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
+	// initialise runtime
+	genState, err := rtstorage.NewTrieState(genTrie) //nolint
 	require.NoError(t, err)
 
-	rt, err := responder.blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	rtCfg := &wasmer.Config{}
+	rtCfg.Storage = genState
+	rtCfg.LogLvl = 3
+	rtCfg.NodeStorage = runtime.NodeStorage{}
 
-	for i := 0; i < 130; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = responder.blockState.AddBlock(block)
+	if stateSrvc != nil {
+		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
+	} else {
+		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 		require.NoError(t, err)
-		parent = &block.Header
 	}
 
-	startNum := 1
-	start, err := variadic.NewUint64OrHash(startNum)
+	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
 
-	req := &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-	}
-
-	resp, err := responder.CreateBlockResponse(req)
+	instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 	require.NoError(t, err)
 
-	_, err = syncer.ProcessBlockData(resp.BlockData)
-	require.NoError(t, err)
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 
-	resp2, err := responder.CreateBlockResponse(req)
-	require.NoError(t, err)
-	_, err = syncer.ProcessBlockData(resp2.BlockData)
-	require.NoError(t, err)
-	// response should contain blocks 13 to 20, and we should be synced
-	require.True(t, syncer.synced)
-}
+	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
+	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
+		// store updates state trie nodes in database
+		if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
+			logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
+			return err
+		}
 
-func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-	syncer.highestSeenBlock = big.NewInt(20)
-
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
-	require.NoError(t, err)
-
-	rt, err := syncer.blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	for i := 0; i < 4; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = syncer.blockState.AddBlock(block)
+		// store block in database
+		err = stateSrvc.Block.AddBlock(block)
 		require.NoError(t, err)
-		parent = &block.Header
-	}
 
-	responder := NewTestSyncer(t, false)
-
-	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
-	require.NoError(t, err)
-
-	rt, err = responder.blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	for i := 0; i < 16; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = responder.blockState.AddBlock(block)
-		require.NoError(t, err)
-		parent = &block.Header
-	}
-
-	startNum := 15
-	start, err := variadic.NewUint64OrHash(startNum)
-	require.NoError(t, err)
-
-	req := &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-	}
-
-	// resp contains blocks 16 + (16 + maxResponseSize)
-	resp, err := responder.CreateBlockResponse(req)
-	require.NoError(t, err)
-
-	// request should start from block 5 (best block number + 1)
-	syncer.synced = false
-	_, err = syncer.ProcessBlockData(resp.BlockData)
-	require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
-}
-
-func TestRemoveIncludedExtrinsics(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-
-	ext := []byte("nootwashere")
-	tx := &transaction.ValidTransaction{
-		Extrinsic: ext,
-		Validity:  &transaction.Validity{Priority: 1},
-	}
-
-	_, err := syncer.transactionState.(*state.TransactionState).Push(tx)
-	require.NoError(t, err)
-
-	bd := &types.BlockData{
-		Body: types.NewBody([]types.Extrinsic{ext}),
-	}
-
-	msg := &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{bd},
-	}
-
-	_, err = syncer.ProcessBlockData(msg.BlockData)
-	require.NoError(t, err)
-
-	inQueue := syncer.transactionState.(*state.TransactionState).Pop()
-	require.Nil(t, inQueue, "queue should be empty")
-}
-
-func TestHandleBlockResponse_NoBlockData(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-	_, err := syncer.ProcessBlockData(nil)
-	require.Equal(t, ErrNilBlockData, err)
-}
-
-func TestHandleBlockResponse_BlockData(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-
-	rt, err := syncer.blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
-	require.NoError(t, err)
-
-	_, err = scale.Marshal(*parent)
-	require.NoError(t, err)
-
-	block := BuildBlock(t, rt, parent, nil)
-
-	bd := []*types.BlockData{{
-		Hash:          block.Header.Hash(),
-		Header:        &block.Header,
-		Body:          &block.Body,
-		Receipt:       nil,
-		MessageQueue:  nil,
-		Justification: nil,
-	}}
-
-	_, err = syncer.ProcessBlockData(bd)
-	require.Nil(t, err)
-}
-
-func TestSyncer_ExecuteBlock_Prev(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
-	require.NoError(t, err)
-
-	rt, err := syncer.blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	block := BuildBlock(t, rt, parent, nil)
-
-	// reset parentState
-	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
-	require.NoError(t, err)
-	rt.SetContextStorage(parentState)
-
-	_, err = rt.ExecuteBlock(block)
-	require.NoError(t, err)
-}
-
-func TestSyncer_ExecuteBlock(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
-	require.NoError(t, err)
-
-	rt, err := syncer.blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	block := BuildBlock(t, rt, parent, nil)
-
-	// reset parentState
-	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
-	require.NoError(t, err)
-	rt.SetContextStorage(parentState)
-
-	_, err = rt.ExecuteBlock(block)
-	require.NoError(t, err)
-}
-
-func TestSyncer_HandleJustification(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-
-	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	digest := types.NewDigest()
-	err := digest.Add(*d)
-	require.NoError(t, err)
-	header := &types.Header{
-		ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
-		Number:     big.NewInt(1),
-		Digest:     digest,
-	}
-
-	just := []byte("testjustification")
-
-	err = syncer.blockState.AddBlock(&types.Block{
-		Header: *header,
-		Body:   types.Body{},
+		stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
+		logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", ts.MustRoot())
+		return nil
 	})
-	require.NoError(t, err)
 
-	syncer.handleJustification(header, just)
+	cfg.TransactionState = stateSrvc.Transaction
+	cfg.BabeVerifier = newMockVerifier()
+	cfg.LogLvl = log.LvlTrace
+	cfg.FinalityGadget = newMockFinalityGadget()
+	cfg.Network = newMockNetwork()
 
-	res, err := syncer.blockState.GetJustification(header.Hash())
+	syncer, err := NewService(cfg)
 	require.NoError(t, err)
-	require.Equal(t, just, res)
+	return syncer
 }
 
-func TestSyncer_ProcessJustification(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	fp := "../../chain/gssmr/genesis.json"
+	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
-	rt, err := syncer.blockState.GetRuntime(nil)
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
-	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
-	block.Header.Digest = digest
-
-	err = syncer.blockState.(*state.BlockState).AddBlock(block)
-	require.NoError(t, err)
-
-	just := []byte("testjustification")
-
-	data := []*types.BlockData{
-		{
-			Hash:          syncer.blockState.BestBlockHash(),
-			Justification: &just,
-		},
-	}
-
-	_, err = syncer.ProcessJustification(data)
-	require.NoError(t, err)
-
-	res, err := syncer.blockState.GetJustification(syncer.blockState.BestBlockHash())
-	require.NoError(t, err)
-	require.Equal(t, just, res)
+	return gen, genTrie, genesisHeader
 }
