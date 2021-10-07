@@ -131,7 +131,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 	// 3. entire block is known; in this case, check if we have become aware of the parent
 	// if we have, move it to the ready blocks queue; otherwise, request the chain of ancestors
 
-	workers := []*worker{}
+	var workers []*worker
 
 	for _, block := range s.pendingBlocks.getBlocks() {
 		if block.number.Cmp(fin.Number) <= 0 {
@@ -166,7 +166,11 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 		}
 
 		// case 3
-		has, _ := s.blockState.HasHeader(block.header.ParentHash)
+		has, err := s.blockState.HasHeader(block.header.ParentHash)
+		if err != nil {
+			return nil, err
+		}
+
 		if has || s.readyBlocks.has(block.header.ParentHash) {
 			// block is ready, as parent is known!
 			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue

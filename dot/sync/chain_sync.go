@@ -370,7 +370,7 @@ func (cs *chainSync) logSyncSpeed() {
 }
 
 func (cs *chainSync) ignorePeer(who peer.ID) {
-	if who == peer.ID("") {
+	if err := who.Validate(); err != nil {
 		return
 	}
 
@@ -439,10 +439,6 @@ func (cs *chainSync) sync() {
 			workers, err := cs.handler.handleTick()
 			if err != nil {
 				logger.Error("failed to handle tick", "error", err)
-				continue
-			}
-
-			if workers == nil {
 				continue
 			}
 
@@ -707,10 +703,10 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
 func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
-	peers := make([]peer.ID, 0, len(cs.peerState))
-
 	cs.RLock()
 	defer cs.RUnlock()
+
+	peers := make([]peer.ID, 0, len(cs.peerState))
 
 	for p := range cs.peerState {
 		if _, has := cs.ignorePeers[p]; has {
