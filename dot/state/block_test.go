@@ -542,26 +542,32 @@ func TestNumberIsFinalised(t *testing.T) {
 	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
 	require.NoError(t, err)
 
-	header1 := &types.Header{
+	header1 := types.Header{
 		Number:     big.NewInt(1),
 		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	header100 := &types.Header{
-		Number:     big.NewInt(100),
+	header2 := types.Header{
+		Number:     big.NewInt(2),
 		Digest:     digest2,
-		ParentHash: testGenesisHeader.Hash(),
+		ParentHash: header1.Hash(),
 	}
 
-	err = bs.SetHeader(header1)
+	err = bs.AddBlock(&types.Block{
+		Header: header1,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
 	err = bs.db.Put(headerHashKey(header1.Number.Uint64()), header1.Hash().ToBytes())
 	require.NoError(t, err)
 
-	err = bs.SetHeader(header100)
+	err = bs.AddBlock(&types.Block{
+		Header: header2,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
-	err = bs.SetFinalisedHash(header100.Hash(), 0, 0)
+	err = bs.SetFinalisedHash(header2.Hash(), 0, 0)
 	require.NoError(t, err)
 
 	fin, err = bs.NumberIsFinalised(big.NewInt(0))
@@ -572,9 +578,13 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, fin)
 
-	fin, err = bs.NumberIsFinalised(big.NewInt(100))
+	fin, err = bs.NumberIsFinalised(big.NewInt(2))
 	require.NoError(t, err)
 	require.True(t, fin)
+
+	fin, err = bs.NumberIsFinalised(big.NewInt(3))
+	require.NoError(t, err)
+	require.False(t, fin)
 }
 
 func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
@@ -588,28 +598,32 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
 	require.NoError(t, err)
 
-	header1 := &types.Header{
+	header1 := types.Header{
 		Number:     big.NewInt(1),
 		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	header100 := &types.Header{
-		Number:     big.NewInt(100),
+	header2 := types.Header{
+		Number:     big.NewInt(2),
 		Digest:     digest2,
-		ParentHash: testGenesisHeader.Hash(),
+		ParentHash: header1.Hash(),
 	}
 
-	err = bs.SetHeader(header1)
-	require.NoError(t, err)
-	err = bs.db.Put(headerHashKey(header1.Number.Uint64()), header1.Hash().ToBytes())
+	err = bs.AddBlock(&types.Block{
+		Header: header1,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
 
-	err = bs.SetHeader(header100)
+	err = bs.AddBlock(&types.Block{
+		Header: header2,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
-	err = bs.SetFinalisedHash(header100.Hash(), 0, 0)
+	err = bs.SetFinalisedHash(header2.Hash(), 0, 0)
 	require.NoError(t, err)
-	require.Equal(t, header100.Hash(), bs.lastFinalised)
+	require.Equal(t, header2.Hash(), bs.lastFinalised)
 
 	res, err := bs.baseState.loadFirstSlot()
 	require.NoError(t, err)
