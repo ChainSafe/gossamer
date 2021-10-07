@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -535,13 +534,15 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	err = scale.Unmarshal(res, &out)
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(out)
-
-	value, err := new(optional.FixedSizeBytes).Decode(buf)
+	var val *[64]byte
+	err = scale.Unmarshal(out, &val)
 	require.NoError(t, err)
+	require.NotNil(t, val)
 
-	ok, err := kp.Public().Verify(msgData, value.Value())
+	value := make([]byte, 64)
+	copy(value[:], val[:])
+
+	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
@@ -757,14 +758,15 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	err = scale.Unmarshal(res, &out)
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(out)
-
-	value, err := new(optional.FixedSizeBytes).Decode(buf)
+	var val *[64]byte
+	err = scale.Unmarshal(out, &val)
 	require.NoError(t, err)
-	require.True(t, value.Exists())
+	require.NotNil(t, val)
 
-	ok, err := kp.Public().Verify(msgData, value.Value())
+	value := make([]byte, 64)
+	copy(value[:], val[:])
+
+	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
 	require.True(t, ok)
 }

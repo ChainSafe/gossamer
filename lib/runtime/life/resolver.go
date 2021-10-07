@@ -9,7 +9,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -1386,21 +1385,12 @@ func toWasmMemoryOptionalUint32(memory []byte, data *uint32) (int64, error) {
 
 // Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryFixedSizeOptional(memory, data []byte) (int64, error) {
-	var opt *optional.FixedSizeBytes
-	if data == nil {
-		opt = optional.NewFixedSizeBytes(false, nil)
-	} else {
-		opt = optional.NewFixedSizeBytes(true, data)
-	}
-
-
-
-
-	enc, err := opt.Encode()
+	var opt [64]byte
+	copy(opt[:], data[:])
+	enc, err := scale.Marshal(&opt)
 	if err != nil {
 		return 0, err
 	}
-
 	return toWasmMemory(memory, enc)
 }
 
