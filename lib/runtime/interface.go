@@ -49,8 +49,9 @@ type Instance interface {
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 
+	CheckInherents() // TODO: use this in block building process
+
 	// TODO: parameters and return values for these are undefined in the spec
-	CheckInherents()
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
@@ -75,6 +76,7 @@ type Storage interface {
 	BeginStorageTransaction()
 	CommitStorageTransaction()
 	RollbackStorageTransaction()
+	LoadCode() []byte
 }
 
 // BasicNetwork interface for functions used by runtime network state function

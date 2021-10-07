@@ -39,7 +39,7 @@ func (in *Instance) Version() (runtime.Version, error) {
 	version := &runtime.VersionData{}
 	err = version.Decode(res)
 	if err == io.EOF {
-		// TODO: kusama seems to use the legacy version format
+		// kusama seems to use the legacy version format
 		lversion := &runtime.LegacyVersionData{}
 		err = lversion.Decode(res)
 		return lversion, err
@@ -131,21 +131,24 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	b.Header.Digest = types.NewDigest()
 
-	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
-		// remove seal digest only
-		for _, d := range block.Header.Digest.Types {
-			switch d.Value().(type) {
-			case types.SealDigest:
-				continue
-			default:
-				err = b.Header.Digest.Add(d.Value())
-				if err != nil {
-					return nil, err
-				}
+	// remove seal digest only
+	for _, d := range block.Header.Digest.Types {
+		// hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
+		// with type prefix (ie Primary, Secondary...)
+		if bytes.Equal(in.version.SpecName(), []byte("node")) {
+			break
+		}
+
+		switch d.Value().(type) {
+		case types.SealDigest:
+			continue
+		default:
+			err = b.Header.Digest.Add(d.Value())
+			if err != nil {
+				return nil, err
 			}
 		}
 	}

@@ -32,7 +32,7 @@ func newInstanceFromGenesis(t *testing.T) runtime.Instance {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 	return instance
 }
@@ -231,7 +231,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
@@ -281,7 +281,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 5
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
