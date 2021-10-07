@@ -127,7 +127,6 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
-
 	addAuthorshipProof(t, babeService, slotNumber, epoch)
 
 	for _, ext := range exts {
@@ -148,17 +147,9 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 	require.NoError(t, err)
 
 	// build block
-	var block *types.Block
-	for i := 0; i < 1; i++ { // retry if error
-		block, err = babeService.buildBlock(parent, slot, rt)
-		if err == nil {
-			babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
-			return block, slot
-		}
-	}
-
+	block, err := babeService.buildBlock(parent, slot, rt)
 	require.NoError(t, err)
-
+	babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
 	return block, slot
 }
 

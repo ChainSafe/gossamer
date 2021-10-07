@@ -132,3 +132,19 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }
+
+// NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
+func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
+	gen, err := NewGenesisFromJSONRaw("../../chain/dev/genesis.json")
+	if err != nil {
+		gen, err = NewGenesisFromJSONRaw("../../../chain/dev/genesis.json")
+		require.NoError(t, err)
+	}
+
+	genTrie, err := NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
+}
