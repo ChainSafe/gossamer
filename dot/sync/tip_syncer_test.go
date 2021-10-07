@@ -234,7 +234,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 
 	w, err := s.handleTick()
 	require.NoError(t, err)
-	require.Equal(t, []*worker{}, w)
+	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
 	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
 
@@ -274,7 +274,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	})
 	w, err = s.handleTick()
 	require.NoError(t, err)
-	require.Equal(t, []*worker{}, w)
+	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
 	s.readyBlocks.pop() // first pop will remove parent
 	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
