@@ -463,13 +463,16 @@ func (cs *chainSync) maybeSwitchMode() {
 	}
 
 	target := cs.getTarget()
-	if big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) == -1 {
-		// we are 128 blocks or more behind the target, switch to bootstrap mode
+	switch {
+	case big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) == -1:
+		// we are at least 128 blocks behind the head, switch to bootstrap
 		cs.setMode(bootstrap)
-	} else if head.Number.Cmp(target) >= 0 {
+	case head.Number.Cmp(target) >= 0:
 		// bootstrap complete, switch state to tip if not already
 		// and begin near-head fork-sync
 		cs.setMode(tip)
+	default:
+		// head is between (target-128, target), and we don't want to switch modes.
 	}
 }
 
