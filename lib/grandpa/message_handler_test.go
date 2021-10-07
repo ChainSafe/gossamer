@@ -222,13 +222,6 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	out, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 	require.Nil(t, out)
-
-	// check if request for justification was sent out
-	expected := &testJustificationRequest{
-		to:  "",
-		num: 2,
-	}
-	require.Equal(t, expected, gs.network.(*testNetwork).justificationRequest)
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {

@@ -83,14 +83,14 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retain
 // SetBloomFilter loads keys with storage prefix of last `retainBlockNum` blocks into the bloom filter
 func (p *OfflinePruner) SetBloomFilter() error {
 	defer p.inputDB.Close() // nolint: errcheck
-	finalisedHash, err := p.blockState.GetFinalisedHash(0, 0)
+	finalisedHash, err := p.blockState.GetHighestFinalisedHash()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get highest finalised hash: %w", err)
 	}
 
 	header, err := p.blockState.GetHeader(finalisedHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get highest finalised header: %w", err)
 	}
 
 	latestBlockNum := header.Number.Int64()
