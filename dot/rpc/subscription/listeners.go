@@ -178,7 +178,6 @@ func (l *BlockListener) Stop() error {
 type BlockFinalizedListener struct {
 	channel       chan *types.FinalisationInfo
 	wsconn        *WSConn
-	chanID        byte
 	subID         uint32
 	done          chan struct{}
 	cancel        chan struct{}
@@ -189,7 +188,7 @@ type BlockFinalizedListener struct {
 func (l *BlockFinalizedListener) Listen() {
 	go func() {
 		defer func() {
-			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.chanID)
+			l.wsconn.BlockAPI.FreeFinalisedNotifierChannel(l.channel)
 			close(l.done)
 		}()
 
@@ -229,12 +228,11 @@ type AllBlocksListener struct {
 	finalizedChan chan *types.FinalisationInfo
 	importedChan  chan *types.Block
 
-	wsconn          *WSConn
-	finalizedChanID byte
-	subID           uint32
-	done            chan struct{}
-	cancel          chan struct{}
-	cancelTimeout   time.Duration
+	wsconn        *WSConn
+	subID         uint32
+	done          chan struct{}
+	cancel        chan struct{}
+	cancelTimeout time.Duration
 }
 
 func newAllBlockListener(conn *WSConn) *AllBlocksListener {
@@ -243,7 +241,6 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
 		wsconn:        conn,
-		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
 	}
 }
 
@@ -252,9 +249,8 @@ func (l *AllBlocksListener) Listen() {
 	go func() {
 		defer func() {
 			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.importedChan)
-			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalizedChanID)
+			l.wsconn.BlockAPI.FreeFinalisedNotifierChannel(l.finalizedChan)
 
-			close(l.finalizedChan)
 			close(l.done)
 		}()
 
@@ -307,16 +303,15 @@ func (l *AllBlocksListener) Stop() error {
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
-	wsconn          *WSConn
-	subID           uint32
-	extrinsic       types.Extrinsic
-	importedChan    chan *types.Block
-	importedHash    common.Hash
-	finalisedChan   chan *types.FinalisationInfo
-	finalisedChanID byte
-	done            chan struct{}
-	cancel          chan struct{}
-	cancelTimeout   time.Duration
+	wsconn        *WSConn
+	subID         uint32
+	extrinsic     types.Extrinsic
+	importedChan  chan *types.Block
+	importedHash  common.Hash
+	finalisedChan chan *types.FinalisationInfo
+	done          chan struct{}
+	cancel        chan struct{}
+	cancelTimeout time.Duration
 }
 
 // NewExtrinsicSubmitListener constructor to build new ExtrinsicSubmitListener
@@ -338,7 +333,7 @@ func (l *ExtrinsicSubmitListener) Listen() {
 	go func() {
 		defer func() {
 			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.importedChan)
-			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalisedChanID)
+			l.wsconn.BlockAPI.FreeFinalisedNotifierChannel(l.finalisedChan)
 			close(l.done)
 			close(l.finalisedChan)
 		}()
@@ -459,7 +454,6 @@ type GrandpaJustificationListener struct {
 	done          chan struct{}
 	wsconn        *WSConn
 	subID         uint32
-	finalisedChID byte
 	finalisedCh   chan *types.FinalisationInfo
 }
 
@@ -468,7 +462,7 @@ func (g *GrandpaJustificationListener) Listen() {
 	// listen for finalised headers
 	go func() {
 		defer func() {
-			g.wsconn.BlockAPI.UnregisterFinalisedChannel(g.finalisedChID)
+			g.wsconn.BlockAPI.FreeFinalisedNotifierChannel(g.finalisedCh)
 			close(g.done)
 		}()
 

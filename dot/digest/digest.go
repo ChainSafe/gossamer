@@ -47,9 +47,8 @@ type Handler struct {
 	grandpaState GrandpaState
 
 	// block notification channels
-	imported    chan *types.Block
-	finalised   chan *types.FinalisationInfo
-	finalisedID byte
+	imported  chan *types.Block
+	finalised chan *types.FinalisationInfo
 
 	// GRANDPA changes
 	grandpaScheduledChange *grandpaChange
@@ -75,12 +74,7 @@ type resume struct {
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()
 
-	finalised := make(chan *types.FinalisationInfo, 16)
-
-	fid, err := blockState.RegisterFinalizedChannel(finalised)
-	if err != nil {
-		return nil, err
-	}
+	finalised := blockState.GetFinalisedNotifierChannel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -92,7 +86,6 @@ func NewHandler(blockState BlockState, epochState EpochState, grandpaState Grand
 		grandpaState: grandpaState,
 		imported:     imported,
 		finalised:    finalised,
-		finalisedID:  fid,
 	}, nil
 }
 
@@ -107,8 +100,7 @@ func (h *Handler) Start() error {
 func (h *Handler) Stop() error {
 	h.cancel()
 	h.blockState.FreeImportedBlockNotifierChannel(h.imported)
-	h.blockState.UnregisterFinalisedChannel(h.finalisedID)
-	close(h.finalised)
+	h.blockState.FreeFinalisedNotifierChannel(h.finalised)
 	return nil
 }
 

@@ -40,8 +40,8 @@ type BlockAPI interface {
 	GetJustification(hash common.Hash) ([]byte, error)
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
-	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalisedChannel(id byte)
+	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
+	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
