@@ -464,7 +464,7 @@ func (cs *chainSync) maybeSwitchMode() {
 
 	target := cs.getTarget()
 	switch {
-	case big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) == -1:
+	case big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) < 0:
 		// we are at least 128 blocks behind the head, switch to bootstrap
 		cs.setMode(bootstrap)
 	case head.Number.Cmp(target) >= 0:
