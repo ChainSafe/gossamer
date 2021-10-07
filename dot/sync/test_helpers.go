@@ -17,143 +17,18 @@
 package sync
 
 import (
-	"io/ioutil"
 	"math/big"
-	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/mock"
+
 	"github.com/stretchr/testify/require"
 )
-
-// NewMockFinalityGadget create and return sync FinalityGadget interface mock
-func NewMockFinalityGadget() *syncmocks.FinalityGadget {
-	m := new(syncmocks.FinalityGadget)
-	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
-	m.On("VerifyBlockJustification", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil)
-	return m
-}
-
-// NewMockVerifier create and return sync Verifier interface mock
-func NewMockVerifier() *syncmocks.MockVerifier {
-	m := new(syncmocks.MockVerifier)
-	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
-	return m
-}
-
-// NewTestSyncer ...
-func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
-	wasmer.DefaultTestLogLvl = 3
-
-	cfg := &Config{}
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-
-	scfg := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
-	}
-	stateSrvc := state.NewService(scfg)
-	stateSrvc.UseMemDB()
-
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
-	require.NoError(t, err)
-
-	err = stateSrvc.Start()
-	require.NoError(t, err)
-
-	if cfg.BlockState == nil {
-		cfg.BlockState = stateSrvc.Block
-	}
-
-	if cfg.StorageState == nil {
-		cfg.StorageState = stateSrvc.Storage
-	}
-
-	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
-	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
-
-	if cfg.Runtime == nil {
-		// set state to genesis state
-		genState, err := rtstorage.NewTrieState(genTrie) //nolint
-		require.NoError(t, err)
-
-		rtCfg := &wasmer.Config{}
-		rtCfg.Storage = genState
-		rtCfg.LogLvl = 3
-
-		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
-		require.NoError(t, err)
-
-		nodeStorage := runtime.NodeStorage{}
-		if stateSrvc != nil {
-			nodeStorage.BaseDB = stateSrvc.Base
-		} else {
-			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-			require.NoError(t, err)
-		}
-
-		rtCfg.NodeStorage = nodeStorage
-
-		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
-		require.NoError(t, err)
-		cfg.Runtime = instance
-
-		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
-	}
-
-	if cfg.TransactionState == nil {
-		cfg.TransactionState = stateSrvc.Transaction
-	}
-
-	if cfg.Verifier == nil {
-		cfg.Verifier = NewMockVerifier()
-	}
-
-	if cfg.LogLvl == 0 {
-		cfg.LogLvl = log.LvlInfo
-	}
-
-	if cfg.FinalityGadget == nil {
-		cfg.FinalityGadget = NewMockFinalityGadget()
-	}
-
-	syncer, err := NewService(cfg)
-	require.NoError(t, err)
-	return syncer
-}
-
-func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	fp := "../../chain/gssmr/genesis.json"
-	if usePolkadotGenesis {
-		fp = "../../chain/polkadot/genesis.json"
-	}
-
-	gen, err := genesis.NewGenesisFromJSONRaw(fp)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
-	require.NoError(t, err)
-	return gen, genTrie, genesisHeader
-}
 
 // BuildBlock ...
 func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
