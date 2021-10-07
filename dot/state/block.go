@@ -36,10 +36,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
-const pruneKeyBufferSize = 1000
+const (
+	pruneKeyBufferSize = 1000
+	blockPrefix        = "block"
+)
 
 var (
-	blockPrefix         = "block"
 	headerPrefix        = []byte("hdr") // headerPrefix + hash -> header
 	blockBodyPrefix     = []byte("blb") // blockBodyPrefix + hash -> body
 	headerHashPrefix    = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
