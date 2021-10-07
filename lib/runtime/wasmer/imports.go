@@ -1118,19 +1118,33 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int32_t {
+func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan, lim C.int64_t) C.int32_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_2] executing...")
-	logger.Warn("[ext_default_child_storage_storage_kill_version_2] somewhat unimplemented")
-	// TODO: need to use `limit` parameter
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
-
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
-	storage.DeleteChild(childStorageKey)
 
-	// note: this function always returns `KillStorageResult::AllRemoved`, which is 0
+	limitBytes := asMemorySlice(instanceContext, lim)
+	buf := &bytes.Buffer{}
+	buf.Write(limitBytes)
+
+	limit, err := optional.NewBytes(true, nil).Decode(buf)
+	if err != nil {
+		logger.Warn("[ext_default_child_storage_storage_kill_version_2] cannot generate limit", "error", err)
+		return 0
+	}
+
+	_, all, err := storage.DeleteChildLimit(childStorageKey, limit)
+	if err != nil {
+		logger.Warn("[ext_default_child_storage_storage_kill_version_2] cannot get child storage", "error", err)
+	}
+
+	if all {
+		return 1
+	}
+
 	return 0
 }
 
