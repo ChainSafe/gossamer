@@ -18,8 +18,8 @@ RUN apt-get update && \
     nodejs
 
 # Install Go
-RUN wget https://dl.google.com/go/go1.15.5.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.15.5.linux-amd64.tar.gz
+RUN wget https://golang.org/dl/go1.17.1.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.17.1.linux-amd64.tar.gz
 
 # Install subkey
 RUN wget -P /usr/local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
