@@ -18,13 +18,13 @@ package wasmtime
 
 import (
 	"errors"
-	"math/big"
 	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
@@ -102,9 +102,12 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 			ext: "0xd1018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01bc2b6e35929aabd5b8bc4e5b0168c9bee59e2bb9d6098769f6683ecf73e44c776652d947a270d59f3d37eb9f9c8c17ec1b4cc473f2f9928ffdeef0f3abd43e85d502000000012844616e20466f72626573",
 			err: nil,
 			expect: &types.TransactionPaymentQueryInfo{
-				Weight:     1973000,
-				Class:      0,
-				PartialFee: *common.Uint128FromBigInt(big.NewInt(18)),
+				Weight: 1973000,
+				Class:  0,
+				PartialFee: &scale.Uint128{
+					Upper: 0,
+					Lower: uint64(1180126973000),
+				},
 			},
 		},
 		{

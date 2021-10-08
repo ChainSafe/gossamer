@@ -1,8 +1,6 @@
 package modules
 
 import (
-	"fmt"
-	"math/big"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -60,12 +58,10 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	}
 
 	if encQueryInfo != nil {
-		fee := fmt.Sprintf("%d", big.NewInt(0).SetBytes(encQueryInfo.PartialFee.Bytes()))
-
 		*res = PaymentQueryInfoResponse{
 			Weight:     encQueryInfo.Weight,
 			Class:      encQueryInfo.Class,
-			PartialFee: fee,
+			PartialFee: encQueryInfo.PartialFee.String(),
 		}
 	}
 

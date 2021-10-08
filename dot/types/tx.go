@@ -51,5 +51,5 @@ type TransactionPaymentQueryInfo struct {
 	Weight uint64
 	// Class could be Normal (0), Operational (1), Mandatory (2)
 	Class      int
-	PartialFee scale.Uint128
+	PartialFee *scale.Uint128
 }
