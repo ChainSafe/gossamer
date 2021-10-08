@@ -113,7 +113,7 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 		return 0, fmt.Errorf("cannot decode BabePreDigest from pre-digest: %s", err)
 	}
 
-	slotNumber := types.BabePreDigestSlotNumber(digest)
+	slotNumber := BabePreDigestSlotNumber(digest)
 
 	return slotNumber, nil
 }
