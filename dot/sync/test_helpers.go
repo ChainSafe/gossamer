@@ -73,7 +73,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		require.NoError(t, err)
 
 		vtx := transaction.NewValidTransaction(ext, txn)
-		ret, err = instance.ApplyExtrinsic(ext)
+		ret, err := instance.ApplyExtrinsic(ext) //nolint
 		require.NoError(t, err)
 		require.Equal(t, ret, []byte{0, 0})
 

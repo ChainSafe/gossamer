@@ -23,7 +23,7 @@ import (
 )
 
 // Resolver resolves the imports for life
-type Resolver struct{} // TODO: move context inside resolver
+type Resolver struct{} // TODO: move context inside resolver (#1875)
 
 // ResolveFunc ...
 func (*Resolver) ResolveFunc(module, field string) exec.FunctionImport { // nolint
@@ -301,7 +301,7 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 	key := asMemorySlice(vm.Memory, keySpan)
 	value := asMemorySlice(vm.Memory, valueSpan)
 
-	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
+	logger.Info("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
 
 	cp := make([]byte, len(value))
 	copy(cp, value)
@@ -587,7 +587,7 @@ func ext_default_child_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
 		return 0
 	}
-	// todo(ed) what is this supposed to return?
+
 	return 0
 }
 

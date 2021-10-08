@@ -717,7 +717,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 
-	// TODO: fix and re-enable signature verification
+	// TODO: fix and re-enable signature verification (#1405)
 	// beginBatchVerify(context)
 }
 
@@ -737,7 +737,7 @@ func beginBatchVerify(context unsafe.Pointer) { //nolint
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
 
-	// TODO: fix and re-enable signature verification
+	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
 	return 1
 }
@@ -1117,7 +1117,7 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int32_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_2] executing...")
 	logger.Warn("[ext_default_child_storage_storage_kill_version_2] somewhat unimplemented")
-	// TODO: need to use `limit` parameter
+	// TODO: need to use `limit` parameter (#1793)
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -1132,7 +1132,7 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int64_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_3] executing...")
 	logger.Warn("[ext_default_child_storage_storage_kill_version_3] somewhat unimplemented")
-	// TODO: need to use `limit` parameter
+	// TODO: need to use `limit` parameter (#1793)
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -1656,7 +1656,7 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, _ C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_clear_prefix_version_2] executing...")
 	logger.Warn("[ext_storage_clear_prefix_version_2] somewhat unimplemented")
-	// TODO: need to use unused `limit` parameter
+	// TODO: need to use unused `limit` parameter (#1792)
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)

@@ -119,7 +119,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	// Provide importable memory for newer runtimes
-	// TODO: determine memory descriptor size that the runtime wants from the wasm.
+	// TODO: determine memory descriptor size that the runtime wants from the wasm. (#1268)
 	// should be doable w/ wasmer 1.0.0.
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
@@ -138,7 +138,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
 	// Assume imported memory is used if runtime does not export any
@@ -221,7 +221,7 @@ func (in *Instance) setupInstanceVM(code []byte) error {
 	}
 
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
-	// should be doable w/ wasmer 1.0.0.
+	// should be doable w/ wasmer 1.0.0. (#1268)
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
 		return err
@@ -244,7 +244,7 @@ func (in *Instance) setupInstanceVM(code []byte) error {
 	}
 
 	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
 	in.ctx.Allocator = runtime.NewAllocator(in.vm.Memory, heapBase)

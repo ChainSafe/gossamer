@@ -53,7 +53,7 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 }
 
 func TestInstance_Version_NodeRuntime(t *testing.T) {
-	t.Skip() // TODO: currently fails, returns all 0
+	t.Skip() // TODO: currently fails, returns all 0 (#1658)
 
 	expected := runtime.NewVersionData(
 		[]byte("node"),

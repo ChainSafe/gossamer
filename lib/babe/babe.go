@@ -54,7 +54,7 @@ type Service struct {
 	blockImportHandler BlockImportHandler
 
 	// BABE authority keypair
-	keypair *sr25519.Keypair // TODO: change to BABE keystore
+	keypair *sr25519.Keypair // TODO: change to BABE keystore (#1864)
 
 	// Epoch configuration data
 	slotDuration time.Duration

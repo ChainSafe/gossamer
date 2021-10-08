@@ -116,7 +116,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		memory: instance.Memory,
 	}
 
-	// TODO: use __heap_base
+	// TODO: use __heap_base (#1874)
 	allocator := runtime.NewAllocator(memory, 0)
 
 	runtimeCtx := &runtime.Context{

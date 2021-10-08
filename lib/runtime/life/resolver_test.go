@@ -307,17 +307,16 @@ func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
 func Test_ext_storage_root_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	// TODO determine why this fails when commented below is un-commented
-	//testkey := []byte("noot")
-	//testvalue := []byte("washere")
-	//
-	//encKey, err := scale.Encode(testkey)
-	//require.NoError(t, err)
-	//encValue, err := scale.Encode(testvalue)
-	//require.NoError(t, err)
-	//
-	//_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
-	//require.NoError(t, err)
+	testkey := []byte("noot")
+	testvalue := []byte("washere")
+
+	encKey, err := scale.Encode(testkey)
+	require.NoError(t, err)
+	encValue, err := scale.Encode(testvalue)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
+	require.NoError(t, err)
 
 	ret, err := inst.Exec("rtm_ext_storage_root_version_1", []byte{})
 	require.NoError(t, err)
@@ -325,7 +324,10 @@ func Test_ext_storage_root_version_1(t *testing.T) {
 	hash, err := scale.Decode(ret, []byte{})
 	require.NoError(t, err)
 
-	expected := trie.EmptyHash
+	tt := trie.NewEmptyTrie()
+	tt.Put([]byte("noot"), []byte("washere"))
+
+	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
 }
 

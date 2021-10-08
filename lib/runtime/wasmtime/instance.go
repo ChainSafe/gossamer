@@ -108,7 +108,7 @@ func newInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg
 		return nil, err
 	}
 
-	// TODO: use __heap_base
+	// TODO: use __heap_base (#1658)
 	allocator := gssmrruntime.NewAllocator(Memory{mem}, 0)
 
 	ctx = gssmrruntime.Context{

@@ -309,5 +309,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: fix
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
 }

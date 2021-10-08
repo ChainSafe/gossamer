@@ -234,7 +234,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	finalised := gss[0].head
 
 	for i, gs := range gss {
-		// TODO: this can be changed to equal once attemptToFinalizeRound is implemented (needs check for >=2/3 precommits)
+		// TODO: this can be changed to equal once attemptToFinalizeRound is implemented
+		// (needs check for >=2/3 precommits) (#1026)
 		headOk := onSameChain(gss[0].blockState, finalised.Hash(), gs.head.Hash())
 		finalisedOK := onSameChain(gs.blockState, finalised.Hash(), gs.head.Hash())
 		require.True(t, headOk || finalisedOK, "node %d did not match: %s", i, gs.blockState.BlocktreeAsString())

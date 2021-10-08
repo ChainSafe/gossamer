@@ -71,7 +71,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
 	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
 	require.NoError(t, err)
 

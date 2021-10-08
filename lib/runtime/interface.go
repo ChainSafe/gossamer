@@ -49,9 +49,9 @@ type Instance interface {
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 
-	CheckInherents() // TODO: use this in block building process
+	CheckInherents() // TODO: use this in block verification process (#1873)
 
-	// TODO: parameters and return values for these are undefined in the spec
+	// parameters and return values for these are undefined in the spec
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()

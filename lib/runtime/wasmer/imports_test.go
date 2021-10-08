@@ -345,7 +345,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 	read, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
 	val := read.Value()
-	require.Equal(t, len(testvalue)-int(testoffset), len(val)) // TODO: fix
+	require.Equal(t, len(testvalue)-int(testoffset), len(val))
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
 }
 
@@ -410,7 +410,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_offline_index_set_version_1(t *testing.T) {
-	// TODO this currently fails with error could not find exported function, determine how else to test this
+	// TODO this currently fails with error could not find exported function, add rtm_ func to tester wasm (#1026)
 	t.Skip()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -462,7 +462,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	mem := inst.vm.Memory.Data()
-	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
+	// this SCALE encoded, but it should just be a 32 byte buffer. may be due to way test runtime is written.
 	pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
 	require.NoError(t, err)

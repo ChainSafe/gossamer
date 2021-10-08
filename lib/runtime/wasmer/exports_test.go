@@ -586,7 +586,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
-	t.Skip() // TODO: fix timestamping issue
+	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
 
@@ -615,7 +615,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 }
 
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
-	t.Skip() // fails with "'Bad input data provided to validate_transaction: Codec error"
+	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
 
@@ -638,8 +638,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
-	// TODO: where did this hash come from??
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	parentHash := common.Hash{}
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 	err = instance.InitializeBlock(header)
