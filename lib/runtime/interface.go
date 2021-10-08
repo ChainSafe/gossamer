@@ -19,6 +19,7 @@ package runtime
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -66,6 +67,7 @@ type Storage interface {
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte)
 	DeleteChild(keyToChild []byte)
+	DeleteChildLimit(keyToChild []byte, limit *optional.Bytes) (uint32, bool, error)
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
