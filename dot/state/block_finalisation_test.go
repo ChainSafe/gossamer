@@ -77,13 +77,19 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	digest := types.NewDigest()
-	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	val, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*val)
 	require.NoError(t, err)
 	digest2 := types.NewDigest()
-	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 2).ToPreRuntimeDigest())
+	val, err = types.NewBabeSecondaryPlainPreDigest(0, 2).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest2.Add(*val)
 	require.NoError(t, err)
 	digest3 := types.NewDigest()
-	err = digest3.Add(*types.NewBabeSecondaryPlainPreDigest(0, 200).ToPreRuntimeDigest())
+	val, err = types.NewBabeSecondaryPlainPreDigest(0, 200).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest3.Add(*val)
 	require.NoError(t, err)
 
 	header1 := types.Header{
