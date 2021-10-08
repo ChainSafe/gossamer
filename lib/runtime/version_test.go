@@ -7,7 +7,7 @@ import (
 )
 
 func TestVersionData(t *testing.T) {
-	testAPIItem := &APIItem{
+	testAPIItem := APIItem{
 		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
 		Ver:  99,
 	}
@@ -18,7 +18,7 @@ func TestVersionData(t *testing.T) {
 		0,
 		25,
 		0,
-		[]*APIItem{testAPIItem},
+		[]APIItem{testAPIItem},
 		5,
 	)
 
@@ -32,7 +32,7 @@ func TestVersionData(t *testing.T) {
 }
 
 func TestLegacyVersionData(t *testing.T) {
-	testAPIItem := &APIItem{
+	testAPIItem := APIItem{
 		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
 		Ver:  99,
 	}
@@ -43,7 +43,7 @@ func TestLegacyVersionData(t *testing.T) {
 		0,
 		25,
 		0,
-		[]*APIItem{testAPIItem},
+		[]APIItem{testAPIItem},
 	)
 
 	b, err := version.Encode()
