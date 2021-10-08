@@ -133,6 +133,7 @@ func newTestSyncer(t *testing.T) *Service {
 			logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
 			return err
 		}
+		
 		// store block in database
 		err = stateSrvc.Block.AddBlock(block)
 		require.NoError(t, err)
