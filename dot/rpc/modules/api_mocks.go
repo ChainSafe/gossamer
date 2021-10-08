@@ -12,6 +12,7 @@ import (
 func NewMockStorageAPI() *modulesmocks.MockStorageAPI {
 	m := new(modulesmocks.MockStorageAPI)
 	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
+	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
 	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("RegisterStorageObserver", mock.Anything)
