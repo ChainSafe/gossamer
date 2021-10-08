@@ -443,7 +443,7 @@ func (*StateModule) SubscribeStorage(_ *http.Request, _ *StateStorageQueryRangeR
 }
 
 // ConvertAPIs runtime.APIItems to []interface
-func ConvertAPIs(in []*runtime.APIItem) []interface{} {
+func ConvertAPIs(in []runtime.APIItem) []interface{} {
 	ret := make([]interface{}, 0)
 	for _, item := range in {
 		encStr := hex.EncodeToString(item.Name[:])
