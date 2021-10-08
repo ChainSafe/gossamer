@@ -19,14 +19,19 @@ var (
 	ErrIncompleteProof       = errors.New("incomplete proof")
 	ErrNoMoreItemsOnIterable = errors.New("items iterable exhausted")
 	ErrExhaustedNibbles      = errors.New("exhausted nibbles key")
+	ErrExhaustedStack        = errors.New("no more itens to pop from stack")
 	ErrValueMatchNotFound    = errors.New("value match not found")
+	ErrExtraneousNode        = errors.New("the proof contains at least one extraneous node")
+	ErrRootMismatch          = errors.New("computed root does not match with the given one")
 )
 
 type stackItem struct {
-	value   []byte
-	node    node
-	rawNode []byte
-	path    []byte
+	value      []byte
+	node       node
+	rawNode    []byte
+	path       []byte
+	childIndex int
+	children   [16]node
 }
 
 func newStackItem(path, raw []byte) (*stackItem, error) {
@@ -35,11 +40,47 @@ func newStackItem(path, raw []byte) (*stackItem, error) {
 		return nil, err
 	}
 
-	return &stackItem{nil, decoded, raw, path}, nil
+	return &stackItem{nil, decoded, raw, path, 0, [16]node{}}, nil
 }
 
-func (i *stackItem) advanceChildIndex(d []byte, prooI *proofIter) (*stackItem, error) {
+func (i *stackItem) advanceChildIndex(path []byte, proofI *proofIter) (*stackItem, error) {
+	switch node := i.node.(type) {
+	case *branch:
+		if len(node.children) <= 0 {
+			return nil, errors.New("branch node must to has children nodes")
+		}
 
+		if len(path) <= 0 {
+			return nil, errors.New("descend node key is empty")
+		}
+
+		childIndex := (int)(path[len(path)-1])
+
+		for i.childIndex < childIndex {
+			child := node.children[i.childIndex]
+			if child != nil {
+				i.children[i.childIndex] = child
+			}
+			i.childIndex += 1
+		}
+
+		child := node.children[i.childIndex]
+		return i.makeChildEntry(proofI, child, path)
+	default:
+		return nil, errors.New("node must be a branch node")
+	}
+}
+
+func (i *stackItem) makeChildEntry(proofI *proofIter, child node, path []byte) (*stackItem, error) {
+	if child == nil {
+		return newStackItem(path, proofI.next())
+	}
+	encoded, err := encodeAndHash(child)
+	if err != nil {
+		return nil, err
+	}
+
+	return newStackItem(path, encoded)
 }
 
 func (i *stackItem) advanceItem(it *pairListIter) ([]byte, error) {
@@ -117,6 +158,16 @@ func (s *stack) push(si *stackItem) {
 	*s = append(*s, si)
 }
 
+func (s *stack) pop() *stackItem {
+	if len(*s) == 0 {
+		return nil
+	}
+
+	i := (*s)[len(*s)-1]
+	*s = (*s)[:len(*s)-1]
+	return i
+}
+
 type pair struct{ key, value []byte }
 type PairList []*pair
 
@@ -161,8 +212,9 @@ type proofIter struct {
 
 func (p *proofIter) next() []byte {
 	if p.hasNext() {
-		return p.proof[p.idx]
+		i := p.proof[p.idx]
 		p.idx += 1
+		return i
 	}
 	return nil
 }
@@ -206,7 +258,23 @@ func VerifyProof(root common.Hash, proof [][]byte, items PairList) (bool, error)
 		descend, err := lastEntry.advanceItem(itemsI)
 
 		if errors.Is(err, ErrNoMoreItemsOnIterable) {
-			// TODO: implement the unwind stack
+			entry := st.pop()
+			if entry == nil {
+				if proofI.next() != nil {
+					return false, ErrExtraneousNode
+				}
+
+				computedRoot := lastEntry.node.getHash()
+				if !root.Equal(common.BytesToHash(computedRoot)) {
+					return false, ErrRootMismatch
+				}
+				break
+			}
+
+			lastEntry = entry
+			lastEntry.children[lastEntry.childIndex] = lastEntry.node
+			lastEntry.childIndex += 1
+
 		} else if err != nil {
 			return false, err
 		}
@@ -215,7 +283,6 @@ func VerifyProof(root common.Hash, proof [][]byte, items PairList) (bool, error)
 		if err != nil {
 			return false, err
 		}
-
 		st.push(lastEntry)
 		lastEntry = nextEntry
 	}
