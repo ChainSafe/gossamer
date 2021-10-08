@@ -110,7 +110,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 }
 
 func (*tipSyncer) hasCurrentWorker(_ *worker, _ map[uint64]*worker) bool {
-	// TODO
+	// TODO (#1659)
 	return false
 }
 
@@ -135,7 +135,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 
 	for _, block := range s.pendingBlocks.getBlocks() {
 		if block.number.Cmp(fin.Number) <= 0 {
-			// TODO: delete from pending set (this should not happen, it should have already been deleted)
+			// delete from pending set (this should not happen, it should have already been deleted)
 			s.pendingBlocks.removeBlock(block.hash)
 			continue
 		}

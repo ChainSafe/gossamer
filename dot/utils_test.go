@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
@@ -77,12 +76,6 @@ func TestNewTestGenesisFile(t *testing.T) {
 
 	// values from raw genesis file should equal values generated from human readable genesis file
 	require.Equal(t, genRaw.Genesis.Raw["top"], genHR.Genesis.Raw["top"])
-}
-
-func TestNewRuntimeFromGenesis(t *testing.T) {
-	gen := NewTestGenesis(t)
-	_, err := wasmer.NewRuntimeFromGenesis(gen, &wasmer.Config{})
-	require.NoError(t, err)
 }
 
 func TestDeepCopyVsSnapshot(t *testing.T) {

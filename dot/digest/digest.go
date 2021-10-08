@@ -33,7 +33,7 @@ var maxUint64 = uint64(math.MaxUint64)
 
 var (
 	_      services.Service = &Handler{}
-	logger log.Logger       = log.New("pkg", "digest") // TODO: add to config options
+	logger log.Logger       = log.New("pkg", "digest") // TODO: add to config options (#1851)
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA

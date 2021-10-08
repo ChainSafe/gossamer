@@ -30,7 +30,7 @@ import (
 )
 
 // TODO: update config to have toml rules and perhaps un-export some fields, since we don't want to expose all
-// the internal config options, also type conversions might be needed from toml -> internal types
+// the internal config options, also type conversions might be needed from toml -> internal types (#1848)
 
 // Config is a collection of configurations throughout the system
 type Config struct {
@@ -77,8 +77,8 @@ type InitConfig struct {
 
 // AccountConfig is to marshal/unmarshal account config vars
 type AccountConfig struct {
-	Key    string // TODO: change to array
-	Unlock string // TODO: change to array
+	Key    string
+	Unlock string // TODO: change to []int (#1849)
 }
 
 // NetworkConfig is to marshal/unmarshal toml network config vars

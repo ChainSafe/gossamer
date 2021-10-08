@@ -105,7 +105,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 	if s.syncing {
 		// keep only the trie at the head of the chain when syncing
-		// TODO: probably remove this when memory usage improves
+		// TODO: probably remove this when memory usage improves (#1494)
 		s.tries.Range(func(k, _ interface{}) bool {
 			s.tries.Delete(k)
 			return true
@@ -281,12 +281,6 @@ func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, 
 // StorageRoot returns the root hash of the current storage trie
 func (s *StorageState) StorageRoot() (common.Hash, error) {
 	return s.blockState.BestBlockStateRoot()
-}
-
-// EnumeratedTrieRoot not implemented
-func (*StorageState) EnumeratedTrieRoot(_ [][]byte) {
-	//TODO
-	panic("not implemented")
 }
 
 // Entries returns Entries from the trie with the given state root

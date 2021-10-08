@@ -463,8 +463,8 @@ func (sm *StateModule) QueryStorage(_ *http.Request, req *StateStorageQueryRange
 	return nil
 }
 
-// SubscribeRuntimeVersion isn't implemented properly yet.
-// TODO make this actually a subscription that pushes data
+// SubscribeRuntimeVersion initialised a runtime version subscription and returns the current version
+// See dot/rpc/subscription
 func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, _ *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) error {
 	return sm.GetRuntimeVersion(r, nil, res)
 }

@@ -150,20 +150,24 @@ func uint64ToLEB128(in uint64) []byte {
 	return out
 }
 
-func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, error) {
+func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
 	if len(buf) == 0 {
-		return 0, errors.New("buffer has length 0")
+		return 0, 0, errors.New("buffer has length 0")
 	}
 
 	var out uint64
 	var shift uint
 
 	maxSize := 10 // Max bytes in LEB128 encoding of uint64 is 10.
+	bytesRead := 0
+
 	for {
-		_, err := r.Read(buf[:1])
+		n, err := r.Read(buf[:1])
 		if err != nil {
-			return 0, err
+			return 0, bytesRead, err
 		}
+
+		bytesRead += n
 
 		b := buf[0]
 		out |= uint64(0x7F&b) << shift
@@ -173,12 +177,12 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, error) {
 
 		maxSize--
 		if maxSize == 0 {
-			return 0, fmt.Errorf("invalid LEB128 encoded data")
+			return 0, bytesRead, fmt.Errorf("invalid LEB128 encoded data")
 		}
 
 		shift += 7
 	}
-	return out, nil
+	return out, bytesRead, nil
 }
 
 // readStream reads from the stream into the given buffer, returning the number of bytes read
@@ -191,9 +195,9 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		tot int
 	)
 
-	length, err := readLEB128ToUint64(stream, buf[:1])
+	length, bytesRead, err := readLEB128ToUint64(stream, buf[:1])
 	if err != nil {
-		return 0, fmt.Errorf("failed to read length: %w", err) // TODO: return bytes read from readLEB128ToUint64
+		return bytesRead, fmt.Errorf("failed to read length: %w", err)
 	}
 
 	if length == 0 {

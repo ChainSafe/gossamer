@@ -151,7 +151,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 		rtCfg.NodeStorage = nodeStorage
 
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
