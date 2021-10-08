@@ -126,7 +126,7 @@ func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 	return header, nil
 }
 
-// SetFinalisedHash sets the latest finalised block header
+// SetFinalisedHash sets the latest finalised block hash
 func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
 	bs.Lock()
 	defer bs.Unlock()

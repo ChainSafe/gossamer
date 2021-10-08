@@ -20,6 +20,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -111,6 +112,12 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 		go func(ch chan *types.FinalisationInfo) {
 			select {
 			case ch <- info:
+				telemetry.GetInstance().SendMessage(
+					telemetry.NewNotifyFinalizedTM(
+						info.Header.Hash(),
+						info.Header.Number,
+					),
+				)
 			default:
 			}
 		}(ch)
