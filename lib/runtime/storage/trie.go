@@ -18,9 +18,11 @@ package storage
 
 import (
 	"encoding/binary"
+	"sort"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -176,6 +178,43 @@ func (s *TrieState) DeleteChild(key []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.DeleteChild(key)
+}
+
+// DeleteChildLimit deletes up to limit of database entries by lexicographic order, return number
+//  deleted, true if all delete otherwise false
+func (s *TrieState) DeleteChildLimit(key []byte, limit *optional.Bytes) (uint32, bool, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	tr, err := s.t.GetChild(key)
+	if err != nil {
+		return 0, false, err
+	}
+	qtyEntries := uint32(len(tr.Entries()))
+	if limit == nil || !limit.Exists() {
+		s.t.DeleteChild(key)
+		return qtyEntries, true, nil
+	}
+	limitUint := binary.LittleEndian.Uint32(limit.Value())
+
+	keys := make([]string, 0, len(tr.Entries()))
+	for k := range tr.Entries() {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	deleted := uint32(0)
+	for _, k := range keys {
+		tr.Delete([]byte(k))
+		deleted++
+		if deleted == limitUint {
+			break
+		}
+	}
+
+	if deleted == qtyEntries {
+		return deleted, true, nil
+	}
+
+	return deleted, false, nil
 }
 
 // ClearChildStorage removes the child storage entry from the trie

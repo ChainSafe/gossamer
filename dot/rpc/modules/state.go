@@ -41,13 +41,6 @@ type StateCallRequest struct {
 	Block  *common.Hash `json:"block"`
 }
 
-// StateChildStorageRequest holds json fields
-type StateChildStorageRequest struct {
-	ChildStorageKey []byte       `json:"childStorageKey"`
-	Key             []byte       `json:"key"`
-	Block           *common.Hash `json:"block"`
-}
-
 // StateStorageKeyRequest holds json fields
 type StateStorageKeyRequest struct {
 	Prefix   string       `json:"prefix"`
@@ -224,30 +217,6 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 func (sm *StateModule) Call(_ *http.Request, _ *StateCallRequest, _ *StateCallResponse) error {
 	_ = sm.networkAPI
 	_ = sm.storageAPI
-	return nil
-}
-
-// GetChildKeys isn't implemented properly yet.
-func (*StateModule) GetChildKeys(_ *http.Request, _ *StateChildStorageRequest, _ *StateKeysResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	return nil
-}
-
-// GetChildStorage isn't implemented properly yet.
-func (*StateModule) GetChildStorage(_ *http.Request, _ *StateChildStorageRequest, _ *StateStorageDataResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	return nil
-}
-
-// GetChildStorageHash isn't implemented properly yet.
-func (*StateModule) GetChildStorageHash(_ *http.Request, _ *StateChildStorageRequest, _ *StateChildStorageResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	return nil
-}
-
-// GetChildStorageSize isn't implemented properly yet.
-func (*StateModule) GetChildStorageSize(_ *http.Request, _ *StateChildStorageRequest, _ *StateChildStorageSizeResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return nil
 }
 

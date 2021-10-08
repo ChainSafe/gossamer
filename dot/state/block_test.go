@@ -30,6 +30,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var sampleBlockBody = *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
@@ -94,7 +96,7 @@ func TestGetBlockByNumber(t *testing.T) {
 
 	block := &types.Block{
 		Header: *blockHeader,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	// AddBlock also sets mapping [blockNumber : hash] in DB
@@ -117,12 +119,9 @@ func TestAddBlock(t *testing.T) {
 	}
 	// Create blockHash
 	blockHash0 := header0.Hash()
-	// BlockBody with fake extrinsics
-	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
 	block0 := &types.Block{
 		Header: *header0,
-		Body:   blockBody0,
+		Body:   sampleBlockBody,
 	}
 
 	// Add the block0 to the DB
@@ -137,12 +136,9 @@ func TestAddBlock(t *testing.T) {
 	}
 	blockHash1 := header1.Hash()
 
-	// Create Block with fake extrinsics
-	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
 	block1 := &types.Block{
 		Header: *header1,
-		Body:   blockBody1,
+		Body:   sampleBlockBody,
 	}
 
 	// Add the block1 to the DB
@@ -395,7 +391,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 	block := &types.Block{
 		Header: *header,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block)
@@ -415,9 +411,10 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
+	blockbody1a := types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
 	block1a := &types.Block{
 		Header: *header1a,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   *blockbody1a,
 	}
 
 	err := bs.AddBlock(block1a)
@@ -436,7 +433,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block1b := &types.Block{
 		Header: *header1b,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block1b)
@@ -456,7 +453,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block2b := &types.Block{
 		Header: *header2b,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block2b)
@@ -479,7 +476,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block2a := &types.Block{
 		Header: *header2a,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block2a)
@@ -493,7 +490,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	block3a := &types.Block{
 		Header: *header3a,
-		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		Body:   sampleBlockBody,
 	}
 
 	err = bs.AddBlock(block3a)
@@ -549,26 +546,32 @@ func TestNumberIsFinalised(t *testing.T) {
 	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
 	require.NoError(t, err)
 
-	header1 := &types.Header{
+	header1 := types.Header{
 		Number:     big.NewInt(1),
 		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	header100 := &types.Header{
-		Number:     big.NewInt(100),
+	header2 := types.Header{
+		Number:     big.NewInt(2),
 		Digest:     digest2,
-		ParentHash: testGenesisHeader.Hash(),
+		ParentHash: header1.Hash(),
 	}
 
-	err = bs.SetHeader(header1)
+	err = bs.AddBlock(&types.Block{
+		Header: header1,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
 	err = bs.db.Put(headerHashKey(header1.Number.Uint64()), header1.Hash().ToBytes())
 	require.NoError(t, err)
 
-	err = bs.SetHeader(header100)
+	err = bs.AddBlock(&types.Block{
+		Header: header2,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
-	err = bs.SetFinalisedHash(header100.Hash(), 0, 0)
+	err = bs.SetFinalisedHash(header2.Hash(), 0, 0)
 	require.NoError(t, err)
 
 	fin, err = bs.NumberIsFinalised(big.NewInt(0))
@@ -579,9 +582,13 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, fin)
 
-	fin, err = bs.NumberIsFinalised(big.NewInt(100))
+	fin, err = bs.NumberIsFinalised(big.NewInt(2))
 	require.NoError(t, err)
 	require.True(t, fin)
+
+	fin, err = bs.NumberIsFinalised(big.NewInt(3))
+	require.NoError(t, err)
+	require.False(t, fin)
 }
 
 func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
@@ -595,28 +602,32 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
 	require.NoError(t, err)
 
-	header1 := &types.Header{
+	header1 := types.Header{
 		Number:     big.NewInt(1),
 		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	header100 := &types.Header{
-		Number:     big.NewInt(100),
+	header2 := types.Header{
+		Number:     big.NewInt(2),
 		Digest:     digest2,
-		ParentHash: testGenesisHeader.Hash(),
+		ParentHash: header1.Hash(),
 	}
 
-	err = bs.SetHeader(header1)
-	require.NoError(t, err)
-	err = bs.db.Put(headerHashKey(header1.Number.Uint64()), header1.Hash().ToBytes())
+	err = bs.AddBlock(&types.Block{
+		Header: header1,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
 
-	err = bs.SetHeader(header100)
+	err = bs.AddBlock(&types.Block{
+		Header: header2,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
-	err = bs.SetFinalisedHash(header100.Hash(), 0, 0)
+	err = bs.SetFinalisedHash(header2.Hash(), 0, 0)
 	require.NoError(t, err)
-	require.Equal(t, header100.Hash(), bs.lastFinalised)
+	require.Equal(t, header2.Hash(), bs.lastFinalised)
 
 	res, err := bs.baseState.loadFirstSlot()
 	require.NoError(t, err)

@@ -43,8 +43,8 @@ type BlockState interface {
 	BlocktreeAsString() string
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
-	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalisedChannel(id byte)
+	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
+	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 	SetJustification(hash common.Hash, data []byte) error
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
@@ -75,8 +75,6 @@ type DigestHandler interface { // TODO: remove, use GrandpaState
 type Network interface {
 	GossipMessage(msg network.NotificationsMessage)
 	SendMessage(to peer.ID, msg NotificationsMessage) error
-	SendBlockReqestByHash(hash common.Hash)
-	SendJustificationRequest(to peer.ID, num uint32)
 	RegisterNotificationsProtocol(sub protocol.ID,
 		messageID byte,
 		handshakeGetter network.HandshakeGetter,

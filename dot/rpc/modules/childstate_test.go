@@ -17,12 +17,12 @@
 package modules
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -67,6 +67,71 @@ func TestChildStateGetKeys(t *testing.T) {
 		require.Contains(t, []string{
 			":child_first", ":child_second",
 		}, string(b))
+	}
+}
+
+func TestChildStateGetStorageSize(t *testing.T) {
+	mod, blockHash := setupChildStateStorage(t)
+	invalidHash := common.BytesToHash([]byte("invalid block hash"))
+
+	tests := []struct {
+		expect   uint64
+		err      error
+		hash     *common.Hash
+		keyChild []byte
+		entry    []byte
+	}{
+		{
+			err:      nil,
+			expect:   uint64(len([]byte(":child_first_value"))),
+			hash:     nil,
+			entry:    []byte(":child_first"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   uint64(len([]byte(":child_second_value"))),
+			hash:     &blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   0,
+			hash:     nil,
+			entry:    []byte(":not_found_so_size_0"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			hash:     &blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":not_exist"),
+		},
+		{
+			err:  chaindb.ErrKeyNotFound,
+			hash: &invalidHash,
+		},
+	}
+
+	for _, test := range tests {
+		var req GetChildStorageRequest
+		var res uint64
+
+		req.Hash = test.hash
+		req.EntryKey = test.entry
+		req.KeyChild = test.keyChild
+
+		err := mod.GetStorageSize(nil, &req, &res)
+
+		if test.err != nil {
+			require.Error(t, err)
+			require.Equal(t, err, test.err)
+		} else {
+			require.NoError(t, err)
+		}
+
+		require.Equal(t, test.expect, res)
 	}
 }
 
@@ -130,6 +195,60 @@ func TestGetStorageHash(t *testing.T) {
 	}
 }
 
+func TestGetChildStorage(t *testing.T) {
+	mod, blockHash := setupChildStateStorage(t)
+	randomHash, err := common.HexToHash(RandomHash)
+	require.NoError(t, err)
+
+	testCases := []struct {
+		params   []string
+		expected []byte
+		errMsg   string
+	}{
+		{params: []string{":child_storage_key", ""}, expected: nil},
+		{params: []string{":child_storage_key", ":child_first"}, expected: []byte(":child_first_value")},
+		{params: []string{":child_storage_key", ":child_first", blockHash.String()}, expected: []byte(":child_first_value")},
+		{params: []string{":child_storage_key", ":child_first", randomHash.String()}, errMsg: "Key not found"},
+	}
+
+	for _, test := range testCases {
+		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
+			var res StateStorageResponse
+			var req ChildStateStorageRequest
+
+			if test.params[0] != "" {
+				req.ChildStorageKey = []byte(test.params[0])
+			}
+
+			if test.params[1] != "" {
+				req.Key = []byte(test.params[1])
+			}
+
+			if len(test.params) > 2 && test.params[2] != "" {
+				req.Hash = &common.Hash{}
+				*req.Hash, err = common.HexToHash(test.params[2])
+				require.NoError(t, err)
+			}
+
+			err = mod.GetStorage(nil, &req, &res)
+			// Handle error cases.
+			if test.errMsg != "" {
+				require.Error(t, err)
+				require.Equal(t, err.Error(), test.errMsg)
+				return
+			}
+
+			// Verify expected values.
+			require.NoError(t, err)
+			if test.expected != nil {
+				// Convert human-readable result value to hex.
+				expectedVal := "0x" + hex.EncodeToString(test.expected)
+				require.Equal(t, StateStorageResponse(expectedVal), res)
+			}
+		})
+	}
+}
+
 func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	t.Helper()
 
@@ -164,7 +283,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 			Number:     big.NewInt(0).Add(big.NewInt(1), bb.Header.Number),
 			StateRoot:  stateRoot,
 		},
-		Body: []byte{},
+		Body: types.Body{},
 	}
 
 	err = st.Block.AddBlock(b)
