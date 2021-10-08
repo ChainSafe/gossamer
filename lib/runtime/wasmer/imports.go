@@ -117,7 +117,6 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
@@ -127,9 +126,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -303,7 +302,7 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
+	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
@@ -564,7 +563,7 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
+	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
@@ -772,13 +771,13 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	data[0] = data[0] << 1
 
 	// this function is expecting an array of (key, value) tuples
-	kvs, err := scale.Decode(data, [][]byte{})
+	var keyValues [][]byte
+	err := scale.Unmarshal(data, &keyValues)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
 		return 0
 	}
 
-	keyValues := kvs.([][]byte)
 	if len(keyValues)%2 != 0 { // TODO: this can be removed when we have decoding of slices of structs
 		logger.Warn("[ext_trie_blake2_256_root_version_1] odd number of input key-values, skipping last value")
 		keyValues = keyValues[:len(keyValues)-1]
@@ -816,16 +815,15 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	t := trie.NewEmptyTrie()
-	v, err := scale.Decode(data, [][]byte{})
+	var values [][]byte
+	err := scale.Unmarshal(data, &values)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
 		return 0
 	}
 
-	values := v.([][]byte)
-
 	for i, val := range values {
-		key, err := scale.Encode(big.NewInt(int64(i))) //nolint
+		key, err := scale.Marshal(big.NewInt(int64(i))) //nolint
 		if err != nil {
 			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 			return 0
@@ -1494,7 +1492,7 @@ func ext_offchain_network_state_version_1(context unsafe.Pointer) C.int64_t {
 		return 0
 	}
 
-	nsEnc, err := scale.Encode(runtimeCtx.Network.NetworkState())
+	nsEnc, err := scale.Marshal(runtimeCtx.Network.NetworkState())
 	if err != nil {
 		logger.Error("[ext_offchain_network_state_version_1] failed at encoding network state", "error", err)
 		return 0
@@ -1539,13 +1537,11 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 	instanceContext := wasm.IntoInstanceContext(context)
 	extBytes := asMemorySlice(instanceContext, data)
 
-	var decExt interface{}
-	decExt, err := scale.Decode(extBytes, decExt)
+	var extrinsic []byte
+	err := scale.Unmarshal(extBytes, &extrinsic)
 	if err != nil {
 		logger.Error("[ext_offchain_submit_transaction_version_1] failed to decode extrinsic data", "error", err)
 	}
-
-	extrinsic := types.Extrinsic(decExt.([]byte))
 
 	// validate the transaction
 	txv := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
@@ -1575,37 +1571,40 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
 	valueCurr := storage.Get(key)
+
 	if len(valueCurr) == 0 {
 		valueRes = valueToAppend
 	} else {
-		// remove length prefix from existing value
-		r := &bytes.Buffer{}
-		_, _ = r.Write(valueCurr)
-		dec := &scale.Decoder{Reader: r}
-		currLength, err := dec.DecodeBigInt() //nolint
+		var currLength *big.Int
+		err := scale.Unmarshal(valueCurr, &currLength)
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
 			return nil
 		}
 
-		// append new item
-		valueRes = append(r.Bytes(), valueToAppend...)
+		lengthBytes, err := scale.Marshal(currLength)
+		if err != nil {
+			return err
+		}
+		// append new item, pop off number of bytes required for length encoding,
+		// since we're not using old scale.Decoder
+		valueRes = append(valueCurr[len(lengthBytes):], valueToAppend...)
 
 		// increase length by 1
 		nextLength = big.NewInt(0).Add(currLength, big.NewInt(1))
 	}
 
-	finalVal, err := scale.Encode(nextLength)
+	lengthEnc, err := scale.Marshal(nextLength)
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
 		return err
 	}
 
 	// append new length prefix to start of items array
-	finalVal = append(finalVal, valueRes...)
-	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", finalVal))
-	storage.Set(key, finalVal)
+	lengthEnc = append(lengthEnc, valueRes...)
+	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", lengthEnc))
+	storage.Set(key, lengthEnc)
 	return nil
 }
 
