@@ -166,7 +166,7 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	babeDigest := types.NewBabeDigest()
 	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
-	data, err := scale2.Marshal(babeDigest)
+	data, err := scale.Marshal(babeDigest)
 	require.NoError(t, err)
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
