@@ -41,7 +41,7 @@ func (in *Instance) Version() (runtime.Version, error) {
 
 	version := new(runtime.VersionData)
 	if err == io.EOF {
-		// TODO: kusama seems to use the legacy version format
+		// kusama seems to use the legacy version format
 		lversion := &runtime.LegacyVersionData{}
 		err = lversion.Decode(res)
 		return lversion, err

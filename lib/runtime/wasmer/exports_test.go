@@ -175,7 +175,7 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	expected := runtime.NewVersionData(
@@ -299,7 +299,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
 	cfg.NodeStorage = nodeStorage
 
-	rt, err := NewRuntimeFromGenesis(gen, cfg)
+	rt, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	alicePub := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
@@ -601,7 +601,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 	block := buildBlockVdt(t, instance, common.Hash{})
 
@@ -630,7 +630,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// reset state back to parent state before executing
@@ -688,7 +688,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 5
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
@@ -739,7 +739,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node

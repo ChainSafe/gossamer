@@ -23,7 +23,6 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -61,13 +60,16 @@ type Instance struct {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) { // TODO: simplify, get :code from storage
-	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
+func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
+	if cfg.Storage == nil {
+		return nil, errors.New("storage is nil")
 	}
 
-	code := common.MustHexToBytes(codeStr)
+	code := cfg.Storage.LoadCode()
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in state")
+	}
+
 	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
@@ -96,7 +98,6 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg *Config) (*Instance, error) {
-	// TODO: verify that v0.8 specific funcs are available
 	return newInstance(code, cfg)
 }
 
