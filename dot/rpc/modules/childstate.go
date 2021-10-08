@@ -29,6 +29,13 @@ type GetKeysRequest struct {
 	Hash   *common.Hash
 }
 
+// ChildStateStorageRequest holds json fields
+type ChildStateStorageRequest struct {
+	ChildStorageKey []byte       `json:"childStorageKey"`
+	Key             []byte       `json:"key"`
+	Hash            *common.Hash `json:"block"`
+}
+
 // GetStorageHash the request to get the entry child storage hash
 type GetStorageHash struct {
 	KeyChild []byte
@@ -136,6 +143,37 @@ func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash,
 
 	if item != nil {
 		*res = common.BytesToHash(item).String()
+	}
+
+	return nil
+}
+
+// GetStorage returns a child storage entry.
+func (cs *ChildStateModule) GetStorage(_ *http.Request, req *ChildStateStorageRequest, res *StateStorageResponse) error {
+	var (
+		item []byte
+		err  error
+		hash common.Hash
+	)
+
+	if req.Hash == nil {
+		hash = cs.blockAPI.BestBlockHash()
+	} else {
+		hash = *req.Hash
+	}
+
+	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&hash)
+	if err != nil {
+		return err
+	}
+
+	item, err = cs.storageAPI.GetStorageFromChild(stateRoot, req.ChildStorageKey, req.Key)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = StateStorageResponse(common.BytesToHex(item))
 	}
 
 	return nil
