@@ -1095,7 +1095,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
 
-	optLimit, err := optional.NewBytes(true, testLimitBytes).Encode()
+	optLimit, err := scale.Marshal(&testLimitBytes)
 	require.NoError(t, err)
 
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
@@ -1128,7 +1128,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
 
-	optLimit, err := optional.NewBytes(true, testLimitBytes).Encode()
+	optLimit, err := scale.Marshal(&testLimitBytes)
 	require.NoError(t, err)
 
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
@@ -1157,7 +1157,8 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
-	optLimit, err := optional.NewBytes(false, nil).Encode()
+	var val *[]byte
+	optLimit, err := scale.Marshal(&val)
 	require.NoError(t, err)
 
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
