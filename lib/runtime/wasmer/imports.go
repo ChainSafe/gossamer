@@ -62,7 +62,7 @@ package wasmer
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
 // extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
-// extern int64_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
+// extern int32_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
 // extern void ext_default_child_storage_clear_prefix_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_default_child_storage_exists_version_1(void *context, int64_t a, int64_t b);
 //
@@ -87,6 +87,7 @@ package wasmer
 // extern int32_t ext_offchain_random_seed_version_1(void *context);
 // extern int64_t ext_offchain_submit_transaction_version_1(void *context, int64_t a);
 // extern int64_t ext_offchain_timestamp_version_1(void *context);
+// extern void ext_offchain_sleep_until_version_1(void *context, int64_t a);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
@@ -1146,21 +1147,66 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 	return 0
 }
 
+type NoneRemain uint32
+type SomeRemain uint32
+
+func (nr NoneRemain) Index() uint {
+	return 0
+}
+func (sr SomeRemain) Index() uint {
+	return 1
+}
+
 //export ext_default_child_storage_storage_kill_version_3
-func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int64_t {
-	logger.Debug("[ext_default_child_storage_storage_kill_version_3] executing...")
-	logger.Warn("[ext_default_child_storage_storage_kill_version_3] somewhat unimplemented")
-	// TODO: need to use `limit` parameter
+func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, lim C.int64_t) C.int32_t {
+	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
-
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
-	storage.DeleteChild(childStorageKey)
 
-	// TODO: this function returns a `KillStorageResult` which may be `AllRemoved` (0) or `SomeRemaining` (1)
-	return 0
+	limitBytes := asMemorySlice(instanceContext, lim)
+	buf := &bytes.Buffer{}
+	buf.Write(limitBytes)
+
+	limit, err := optional.NewBytes(true, nil).Decode(buf)
+	if err != nil {
+		logger.Warn("cannot generate limit", "error", err)
+	}
+
+	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
+	if err != nil {
+		logger.Warn("cannot get child storage", "error", err)
+		return 0
+	}
+
+	vdt, err := scale.NewVaryingDataType(NoneRemain(0), SomeRemain(0))
+	if err != nil {
+		logger.Warn("cannot create new varying data type", "error", err)
+	}
+
+	if all {
+		err = vdt.Set(NoneRemain(deleted))
+	} else {
+		err = vdt.Set(SomeRemain(deleted))
+	}
+	if err != nil {
+		logger.Warn("cannot set varying data type", "error", err)
+	}
+
+	encoded, err := scale.Marshal(vdt)
+	if err != nil {
+		logger.Warn("problem marshaling varying data type", "error", err)
+	}
+
+	out, err := toWasmMemorySized(instanceContext, encoded, 5)
+	if err != nil {
+		logger.Warn("failed to allocate", "error", err)
+		return 0
+	}
+
+	return C.int32_t(out)
 }
 
 //export ext_allocator_free_version_1
@@ -1562,6 +1608,12 @@ func ext_offchain_timestamp_version_1(context unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_offchain_timestamp_version_1] executing...")
 	logger.Warn("[ext_offchain_timestamp_version_1] unimplemented")
 	return 0
+}
+
+//export ext_offchain_sleep_until_version_1
+func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
+	logger.Trace("executing...")
+	logger.Warn("unimplemented")
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
@@ -2179,7 +2231,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
-
+	_, err = imports.Append("ext_offchain_sleep_until_version_1", ext_offchain_sleep_until_version_1, C.ext_offchain_sleep_until_version_1)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1, C.ext_sandbox_instance_teardown_version_1)
 	if err != nil {
 		return nil, err
