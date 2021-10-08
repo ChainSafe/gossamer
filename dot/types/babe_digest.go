@@ -37,11 +37,7 @@ func DecodeBabePreDigest(in []byte) (scale.VaryingDataTypeValue, error) {
 	}
 
 	switch msg := babeDigest.Value().(type) {
-	case BabePrimaryPreDigest:
-		return msg, nil
-	case BabeSecondaryPlainPreDigest:
-		return msg, nil
-	case BabeSecondaryVRFPreDigest:
+	case BabePrimaryPreDigest, BabeSecondaryPlainPreDigest, BabeSecondaryVRFPreDigest:
 		return msg, nil
 	}
 
@@ -134,3 +130,29 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfO
 
 // Index Returns VDT index
 func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }
+
+func BabePreDigestAuthorityIndex(babePreDigest scale.VaryingDataTypeValue) uint32 {
+	var authIdx uint32
+	switch d := babePreDigest.(type) {
+	case BabePrimaryPreDigest:
+		authIdx = d.AuthorityIndex
+	case BabeSecondaryVRFPreDigest:
+		authIdx = d.AuthorityIndex
+	case BabeSecondaryPlainPreDigest:
+		authIdx = d.AuthorityIndex
+	}
+	return authIdx
+}
+
+func BabePreDigestSlotNumber(babePreDigest scale.VaryingDataTypeValue) uint64 {
+	var slotNumber uint64
+	switch d := babePreDigest.(type) {
+	case BabePrimaryPreDigest:
+		slotNumber = d.SlotNumber
+	case BabeSecondaryVRFPreDigest:
+		slotNumber = d.SlotNumber
+	case BabeSecondaryPlainPreDigest:
+		slotNumber = d.SlotNumber
+	}
+	return slotNumber
+}
