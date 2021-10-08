@@ -1101,7 +1101,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 	require.NoError(t, err)
 	require.NotNil(t, child)
 
-	encChildKey, err := scale.Encode(testChildKey)
+	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
 	testLimit := uint32(2)
@@ -1134,7 +1134,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 	require.NoError(t, err)
 	require.NotNil(t, child)
 
-	encChildKey, err := scale.Encode(testChildKey)
+	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
 	testLimit := uint32(1)
@@ -1167,7 +1167,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	require.NoError(t, err)
 	require.NotNil(t, child)
 
-	encChildKey, err := scale.Encode(testChildKey)
+	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
 	optLimit, err := optional.NewBytes(false, nil).Encode()
