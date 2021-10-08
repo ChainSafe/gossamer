@@ -18,6 +18,7 @@ package rpc
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"unicode"
@@ -43,7 +44,8 @@ func (s *Service) Methods() []string {
 
 var (
 	// Precompute the reflect.Type of error and http.Request
-	typeOfError = reflect.TypeOf((*error)(nil)).Elem()
+	typeOfError   = reflect.TypeOf((*error)(nil)).Elem()
+	typeOfRequest = reflect.TypeOf((*http.Request)(nil)).Elem()
 )
 
 // BuildMethodNames takes receiver interface and populates rpcMethods array with available
@@ -59,6 +61,12 @@ func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 		}
 		// Method needs four ins: receiver, *http.Request, *args, *reply.
 		if mtype.NumIn() != 4 {
+			continue
+		}
+
+		// First argument must be a pointer and must be http.Request.
+		reqType := mtype.In(1)
+		if reqType.Kind() != reflect.Ptr || reqType.Elem() != typeOfRequest {
 			continue
 		}
 
