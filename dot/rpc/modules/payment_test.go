@@ -2,11 +2,13 @@ package modules
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -22,13 +24,14 @@ func TestPaymentQueryInfo(t *testing.T) {
 		mockedQueryInfo := &types.TransactionPaymentQueryInfo{
 			Weight:     0,
 			Class:      0,
-			PartialFee: *common.Uint128FromBigInt(big.NewInt(100)),
+			PartialFee: *scale.MaxUint128,
 		}
 
+		fee := fmt.Sprintf("%d", big.NewInt(0).SetBytes(scale.MaxUint128.Bytes()))
 		expected := PaymentQueryInfoResponse{
 			Weight:     0,
 			Class:      0,
-			PartialFee: (*common.Uint128FromBigInt(big.NewInt(100))).String(),
+			PartialFee: fee,
 		}
 
 		runtimeMock := new(mocksruntime.MockInstance)
