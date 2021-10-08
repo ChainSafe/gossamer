@@ -161,7 +161,7 @@ func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 
 // PaymentQueryInfo returns information of a given extrinsic
 func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error) {
-	encLen, err := scale2.Marshal(uint32(len(ext)))
+	encLen, err := scale.Marshal(uint32(len(ext)))
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQuery
 	}
 
 	i := new(types.TransactionPaymentQueryInfo)
-	if err = scale2.Unmarshal(resBytes, i); err != nil {
+	if err = scale.Unmarshal(resBytes, i); err != nil {
 		return nil, err
 	}
 
