@@ -83,7 +83,7 @@ func verifySecondarySlotVRF(digest *types.BabeSecondaryVRFPreDigest,
 		"expected index", expected,
 	)
 
-	if digest.GetAuthorityIndex() != expected {
+	if digest.AuthorityIndex != expected {
 		return false, ErrBadSecondarySlotClaim
 	}
 

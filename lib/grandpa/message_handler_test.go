@@ -206,13 +206,17 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 	err = digest.Add(prd)
 	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
 	block := &types.Block{
 		Header: types.Header{
 			Number:     big.NewInt(2),
 			ParentHash: st.Block.GenesisHash(),
 			Digest:     digest,
 		},
-		Body: types.Body{0},
+		Body: *body,
 	}
 
 	err = st.Block.AddBlock(block)
@@ -221,13 +225,6 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	out, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 	require.Nil(t, out)
-
-	// check if request for justification was sent out
-	expected := &testJustificationRequest{
-		to:  "",
-		num: 2,
-	}
-	require.Equal(t, expected, gs.network.(*testNetwork).justificationRequest)
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
@@ -539,9 +536,12 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
 	require.NoError(t, err)
 
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
 	block := &types.Block{
 		Header: *testHeader,
-		Body:   types.Body{0},
+		Body:   *body,
 	}
 
 	err = st.Block.AddBlock(block)

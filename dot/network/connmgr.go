@@ -238,10 +238,6 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	// TODO: if number of peers falls below the min desired peer count, we should try to connect to previously discovered peers
 }
 
-func (cm *ConnManager) registerDisconnectHandler(cb func(peer.ID)) {
-	cm.disconnectHandler = cb
-}
-
 // OpenedStream is called when a stream opened
 func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
 	logger.Trace(

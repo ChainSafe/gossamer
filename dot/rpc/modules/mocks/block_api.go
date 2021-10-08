@@ -34,6 +34,11 @@ func (_m *MockBlockAPI) BestBlockHash() common.Hash {
 	return r0
 }
 
+// FreeFinalisedNotifierChannel provides a mock function with given fields: ch
+func (_m *MockBlockAPI) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
+	_m.Called(ch)
+}
+
 // FreeImportedBlockNotifierChannel provides a mock function with given fields: ch
 func (_m *MockBlockAPI) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	_m.Called(ch)
@@ -106,6 +111,22 @@ func (_m *MockBlockAPI) GetFinalisedHash(_a0 uint64, _a1 uint64) (common.Hash, e
 	}
 
 	return r0, r1
+}
+
+// GetFinalisedNotifierChannel provides a mock function with given fields:
+func (_m *MockBlockAPI) GetFinalisedNotifierChannel() chan *types.FinalisationInfo {
+	ret := _m.Called()
+
+	var r0 chan *types.FinalisationInfo
+	if rf, ok := ret.Get(0).(func() chan *types.FinalisationInfo); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.FinalisationInfo)
+		}
+	}
+
+	return r0
 }
 
 // GetHeader provides a mock function with given fields: hash
@@ -214,27 +235,6 @@ func (_m *MockBlockAPI) HasJustification(hash common.Hash) (bool, error) {
 	return r0, r1
 }
 
-// RegisterFinalizedChannel provides a mock function with given fields: ch
-func (_m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
-	ret := _m.Called(ch)
-
-	var r0 byte
-	if rf, ok := ret.Get(0).(func(chan<- *types.FinalisationInfo) byte); ok {
-		r0 = rf(ch)
-	} else {
-		r0 = ret.Get(0).(byte)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- *types.FinalisationInfo) error); ok {
-		r1 = rf(ch)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // RegisterRuntimeUpdatedChannel provides a mock function with given fields: ch
 func (_m *MockBlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
 	ret := _m.Called(ch)
@@ -277,11 +277,6 @@ func (_m *MockBlockAPI) SubChain(start common.Hash, end common.Hash) ([]common.H
 	}
 
 	return r0, r1
-}
-
-// UnregisterFinalisedChannel provides a mock function with given fields: id
-func (_m *MockBlockAPI) UnregisterFinalisedChannel(id byte) {
-	_m.Called(id)
 }
 
 // UnregisterRuntimeUpdatedChannel provides a mock function with given fields: id

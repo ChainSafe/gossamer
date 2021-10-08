@@ -62,30 +62,6 @@ func TestStateRPCResponseValidation(t *testing.T) {
 			skip:        true,
 		},
 		{
-			description: "Test state_getChildKeys",
-			method:      "state_getChildKeys",
-			params:      `["","","0x579deccea7183c2afedbdaea59ad23e970458186afc4d57d5577842d4a219925"]`,
-			expected:    modules.StateKeysResponse{},
-		},
-		{
-			description: "Test state_getChildStorage",
-			method:      "state_getChildStorage",
-			params:      `["","","0x579deccea7183c2afedbdaea59ad23e970458186afc4d57d5577842d4a219925"]`,
-			expected:    modules.StateStorageDataResponse(""),
-		},
-		{
-			description: "Test state_getChildStorageHash",
-			method:      "state_getChildStorageHash",
-			params:      `["","","0x579deccea7183c2afedbdaea59ad23e970458186afc4d57d5577842d4a219925"]`,
-			expected:    modules.StateChildStorageResponse(""),
-		},
-		{
-			description: "Test state_getChildStorageSize",
-			method:      "state_getChildStorageSize",
-			params:      `["","","0x579deccea7183c2afedbdaea59ad23e970458186afc4d57d5577842d4a219925"]`,
-			expected:    modules.StateChildStorageSizeResponse(0),
-		},
-		{
 			description: "Test state_queryStorage",
 			method:      "state_queryStorage",
 			params:      fmt.Sprintf(`[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "%s", null]`, blockHash),

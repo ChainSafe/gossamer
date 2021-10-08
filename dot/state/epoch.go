@@ -203,11 +203,13 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
 		}
 
-		if digest.GetSlotNumber() < firstSlot {
+		slotNumber := types.BabePreDigestSlotNumber(digest)
+
+		if slotNumber < firstSlot {
 			return 0, nil
 		}
 
-		return (digest.GetSlotNumber() - firstSlot) / s.epochLength, nil
+		return (slotNumber - firstSlot) / s.epochLength, nil
 	}
 
 	return 0, errors.New("header does not contain pre-runtime digest")

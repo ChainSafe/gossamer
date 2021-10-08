@@ -23,22 +23,13 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var _ BabePreRuntimeDigest = &BabePrimaryPreDigest{}
-var _ BabePreRuntimeDigest = &BabeSecondaryPlainPreDigest{}
-
-// BabePreRuntimeDigest must be implemented by all BABE pre-runtime digest types
-type BabePreRuntimeDigest interface {
-	GetAuthorityIndex() uint32
-	GetSlotNumber() uint64
-}
-
 // NewBabeDigest returns a new VaryingDataType to represent a BabeDigest
 func NewBabeDigest() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(BabePrimaryPreDigest{}, BabeSecondaryPlainPreDigest{}, BabeSecondaryVRFPreDigest{})
 }
 
 // DecodeBabePreDigest decodes the input into a BabePreRuntimeDigest
-func DecodeBabePreDigest(in []byte) (BabePreRuntimeDigest, error) {
+func DecodeBabePreDigest(in []byte) (scale.VaryingDataTypeValue, error) {
 	babeDigest := NewBabeDigest()
 	err := scale.Unmarshal(in, &babeDigest)
 	if err != nil {
@@ -46,11 +37,7 @@ func DecodeBabePreDigest(in []byte) (BabePreRuntimeDigest, error) {
 	}
 
 	switch msg := babeDigest.Value().(type) {
-	case BabePrimaryPreDigest:
-		return msg, nil
-	case BabeSecondaryPlainPreDigest:
-		return msg, nil
-	case BabeSecondaryVRFPreDigest:
+	case BabePrimaryPreDigest, BabeSecondaryPlainPreDigest, BabeSecondaryVRFPreDigest:
 		return msg, nil
 	}
 
@@ -92,26 +79,6 @@ func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 // Index Returns VDT index
 func (d BabePrimaryPreDigest) Index() uint { return 1 }
 
-// GetAuthorityIndex returns the digest's authority index
-func (d BabePrimaryPreDigest) GetAuthorityIndex() uint32 {
-	return d.AuthorityIndex
-}
-
-// GetSlotNumber returns the digest's slot number
-func (d BabePrimaryPreDigest) GetSlotNumber() uint64 {
-	return d.SlotNumber
-}
-
-// GetVrfOutput returns the digest's VRF output
-func (d BabePrimaryPreDigest) GetVrfOutput() [sr25519.VRFOutputLength]byte {
-	return d.VRFOutput
-}
-
-// GetVrfProof returns the digest's VRF proof
-func (d BabePrimaryPreDigest) GetVrfProof() [sr25519.VrfProofLength]byte {
-	return d.VrfProof
-}
-
 // BabeSecondaryPlainPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryPlainPreDigest struct {
 	AuthorityIndex uint32
@@ -143,16 +110,6 @@ func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, e
 // Index Returns VDT index
 func (d BabeSecondaryPlainPreDigest) Index() uint { return 2 }
 
-// GetAuthorityIndex returns the digest's authority index
-func (d BabeSecondaryPlainPreDigest) GetAuthorityIndex() uint32 {
-	return d.AuthorityIndex
-}
-
-// GetSlotNumber returns the digest's slot number
-func (d BabeSecondaryPlainPreDigest) GetSlotNumber() uint64 {
-	return d.SlotNumber
-}
-
 // BabeSecondaryVRFPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryVRFPreDigest struct {
 	AuthorityIndex uint32
@@ -174,22 +131,30 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfO
 // Index Returns VDT index
 func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }
 
-// GetAuthorityIndex returns the digest's authority index
-func (d BabeSecondaryVRFPreDigest) GetAuthorityIndex() uint32 {
-	return d.AuthorityIndex
+// BabePreDigestAuthorityIndex returns the AuthorityIndex of the given babePreDigest
+func BabePreDigestAuthorityIndex(babePreDigest scale.VaryingDataTypeValue) uint32 {
+	var authIdx uint32
+	switch d := babePreDigest.(type) {
+	case BabePrimaryPreDigest:
+		authIdx = d.AuthorityIndex
+	case BabeSecondaryVRFPreDigest:
+		authIdx = d.AuthorityIndex
+	case BabeSecondaryPlainPreDigest:
+		authIdx = d.AuthorityIndex
+	}
+	return authIdx
 }
 
-// GetSlotNumber returns the digest's slot number
-func (d BabeSecondaryVRFPreDigest) GetSlotNumber() uint64 {
-	return d.SlotNumber
-}
-
-// GetVrfOutput returns the digest's VRF output
-func (d BabeSecondaryVRFPreDigest) GetVrfOutput() [sr25519.VRFOutputLength]byte {
-	return d.VrfOutput
-}
-
-// GetVrfProof returns the digest's VRF proof
-func (d BabeSecondaryVRFPreDigest) GetVrfProof() [sr25519.VrfProofLength]byte {
-	return d.VrfProof
+//BabePreDigestSlotNumber returns the SlotNumber of the given babePreDigest
+func BabePreDigestSlotNumber(babePreDigest scale.VaryingDataTypeValue) uint64 {
+	var slotNumber uint64
+	switch d := babePreDigest.(type) {
+	case BabePrimaryPreDigest:
+		slotNumber = d.SlotNumber
+	case BabeSecondaryVRFPreDigest:
+		slotNumber = d.SlotNumber
+	case BabeSecondaryPlainPreDigest:
+		slotNumber = d.SlotNumber
+	}
+	return slotNumber
 }

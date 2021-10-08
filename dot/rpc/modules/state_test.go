@@ -533,6 +533,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	ts.Set([]byte(`:key2`), []byte(`value2`))
 	ts.Set([]byte(`:key1`), []byte(`value1`))
+	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)
@@ -545,7 +546,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 			Number:     big.NewInt(2),
 			StateRoot:  sr1,
 		},
-		Body: *types.NewBody([]byte{}),
+		Body: *types.NewBody([]types.Extrinsic{[]byte{}}),
 	}
 
 	err = chain.Block.AddBlock(b)

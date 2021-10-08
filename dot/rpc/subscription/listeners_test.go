@@ -146,7 +146,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	defer cancel()
 
 	BlockAPI := new(mocks.MockBlockAPI)
-	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
 
@@ -165,7 +165,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	defer func() {
 		require.NoError(t, bfl.Stop())
 		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+		BlockAPI.AssertCalled(t, "FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	}()
 
 	notifyChan <- &types.FinalisationInfo{
@@ -198,7 +198,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 	BlockAPI := new(mocks.MockBlockAPI)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
 
@@ -214,8 +214,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	header := types.NewEmptyHeader()
 	exts := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	body, err := types.NewBodyFromExtrinsics(exts)
-	require.NoError(t, err)
+	body := types.NewBody(exts)
 
 	block := &types.Block{
 		Header: *header,
@@ -228,7 +227,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 
 		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-		BlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+		BlockAPI.AssertCalled(t, "FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	}()
 
 	notifyImportedChan <- block
@@ -273,7 +272,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 
 		blockStateMock := new(mocks.MockBlockAPI)
 		blockStateMock.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-		blockStateMock.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+		blockStateMock.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 		wsconn.BlockAPI = blockStateMock
 
 		finchannel := make(chan *types.FinalisationInfo)
