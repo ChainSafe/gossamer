@@ -110,6 +110,10 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 }
 
 func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
+	if w == nil || w.startNumber == nil || w.targetNumber == nil {
+		return true
+	}
+
 	for _, curr := range workers {
 		if w.direction != curr.direction || w.requestData != curr.requestData {
 			continue
