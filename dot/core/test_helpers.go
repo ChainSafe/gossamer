@@ -125,7 +125,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.Network == nil {
 		net := new(coremocks.MockNetwork)
-		net.On("GossipMessage")
+		net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
 		net.On("IsSynced").Return(true)
 		cfg.Network = net
 	}
