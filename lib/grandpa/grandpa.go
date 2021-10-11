@@ -590,7 +590,7 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		if bfc.Number < uint32(s.head.Number.Int64()) || pc < s.state.threshold() {
+		if bfc.Number < uint32(s.head.Number.Int64()) || pc <= s.state.threshold() {
 			continue
 		}
 
@@ -751,7 +751,7 @@ func (s *Service) isFinalisable(round uint64) (bool, error) {
 		return false, errors.New("cannot find best final candidate for previous round")
 	}
 
-	if bfc.Number <= pvb.Number && (s.state.round == 0 || prevBfc.Number <= bfc.Number) && pc >= s.state.threshold() {
+	if bfc.Number <= pvb.Number && (s.state.round == 0 || prevBfc.Number <= bfc.Number) && pc > s.state.threshold() {
 		return true, nil
 	}
 
@@ -937,7 +937,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 // isCompletable returns true if the round is completable, false otherwise
 func (s *Service) isCompletable() (bool, error) {
 	// haven't received enough votes, not completable
-	if uint64(s.lenVotes(precommit)+len(s.pcEquivocations)) < s.state.threshold() {
+	if uint64(s.lenVotes(precommit)+len(s.pcEquivocations)) <= s.state.threshold() {
 		return false, nil
 	}
 
@@ -971,7 +971,7 @@ func (s *Service) isCompletable() (bool, error) {
 			return false, err
 		}
 
-		if uint64(len(votes)-len(s.pcEquivocations))-c < s.state.threshold() {
+		if uint64(len(votes)-len(s.pcEquivocations))-c <= s.state.threshold() {
 			// round isn't completable
 			return false, nil
 		}
