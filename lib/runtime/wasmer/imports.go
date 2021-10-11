@@ -1150,10 +1150,10 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 type NoneRemain uint32
 type SomeRemain uint32
 
-func (nr NoneRemain) Index() uint {
+func (NoneRemain) Index() uint {
 	return 0
 }
-func (sr SomeRemain) Index() uint {
+func (SomeRemain) Index() uint {
 	return 1
 }
 
