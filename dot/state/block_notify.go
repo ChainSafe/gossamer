@@ -112,12 +112,15 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 		go func(ch chan *types.FinalisationInfo) {
 			select {
 			case ch <- info:
-				telemetry.GetInstance().SendMessage(
+				err := telemetry.GetInstance().SendMessage(
 					telemetry.NewNotifyFinalizedTM(
 						info.Header.Hash(),
 						info.Header.Number,
 					),
 				)
+				if err != nil {
+					logger.Error("could not send 'notify.finalized' telemetry message", "error", err)
+				}
 			default:
 			}
 		}(ch)
