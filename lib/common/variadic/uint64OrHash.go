@@ -49,6 +49,17 @@ func NewUint64OrHash(value interface{}) (*Uint64OrHash, error) {
 	}
 }
 
+// MustNewUint64OrHash returns a new variadic.Uint64OrHash given an int, uint64, or Hash
+// It panics if the input value is invalid
+func MustNewUint64OrHash(value interface{}) *Uint64OrHash {
+	val, err := NewUint64OrHash(value)
+	if err != nil {
+		panic(err)
+	}
+
+	return val
+}
+
 // NewUint64OrHashFromBytes returns a new variadic.Uint64OrHash from an encoded variadic uint64 or hash
 func NewUint64OrHashFromBytes(data []byte) *Uint64OrHash {
 	firstByte := data[0]

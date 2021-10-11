@@ -37,7 +37,7 @@ func TestMessageCache(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 
-	time.Sleep(750 * time.Millisecond)
+	time.Sleep(time.Millisecond * 500)
 
 	ok = msgCache.exists(peerID, msg)
 	require.True(t, ok)

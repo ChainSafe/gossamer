@@ -147,7 +147,7 @@ func (s *Service) Start() error {
 	if !bytes.Equal(btHead[:], bestHash[:]) {
 		logger.Info("detected abnormal node shutdown, restoring from last finalised block")
 
-		lastFinalised, err := s.Block.GetFinalisedHeader(0, 0) //nolint
+		lastFinalised, err := s.Block.GetHighestFinalisedHeader() //nolint
 		if err != nil {
 			return fmt.Errorf("failed to get latest finalised block: %w", err)
 		}
@@ -232,6 +232,11 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
+	s.Block.lastFinalised = header.Hash()
+
+	// TODO: this is broken, it needs to set the latest finalised header after
+	// rewinding to some block number, but there is no reverse lookup function
+	// for best block -> best finalised before that block
 	err = s.Block.SetFinalisedHash(header.Hash(), 0, 0)
 	if err != nil {
 		return err

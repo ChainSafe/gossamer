@@ -20,10 +20,13 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // BlockState is the interface for the block state
@@ -50,6 +53,8 @@ type BlockState interface {
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
+	GetHighestFinalisedHeader() (*types.Header, error)
+	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 }
 
 // StorageState is the interface for the storage state
@@ -71,8 +76,8 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 }
 
-// Verifier deals with block verification
-type Verifier interface {
+// BabeVerifier deals with BABE block verification
+type BabeVerifier interface {
 	VerifyBlock(header *types.Header) error
 }
 
@@ -84,4 +89,13 @@ type FinalityGadget interface {
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
 	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
+}
+
+// Network is the interface for the network
+type Network interface {
+	// DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
+	DoBlockRequest(to peer.ID, req *network.BlockRequestMessage) (*network.BlockResponseMessage, error)
+
+	// Peers returns a list of currently connected peers
+	Peers() []common.PeerInfo
 }

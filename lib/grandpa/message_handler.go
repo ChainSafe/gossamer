@@ -65,7 +65,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case *CommitMessage:
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourMessage:
-		return nil, h.handleNeighbourMessage(from, msg)
+		return nil, h.handleNeighbourMessage(msg)
 	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
@@ -75,7 +75,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMessage) error {
+func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	}
 
 	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
-	h.grandpa.network.SendJustificationRequest(from, msg.Number)
+	// TODO: should we send a justification request here? potentially re-connect this to sync package?
 	return nil
 }
 
@@ -112,8 +112,6 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	// check justification here
 	if err := h.verifyCommitMessageJustification(msg); err != nil {
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
-			// TODO: make this synchronous
-			go h.grandpa.network.SendBlockReqestByHash(msg.Vote.Hash)
 			h.grandpa.tracker.addCommit(msg)
 		}
 		return err
