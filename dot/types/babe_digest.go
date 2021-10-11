@@ -49,14 +49,14 @@ type BabePrimaryPreDigest struct {
 	AuthorityIndex uint32
 	SlotNumber     uint64
 	VRFOutput      [sr25519.VRFOutputLength]byte
-	VrfProof       [sr25519.VrfProofLength]byte
+	VRFProof       [sr25519.VRFProofLength]byte
 }
 
 // NewBabePrimaryPreDigest returns a new BabePrimaryPreDigest
-func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabePrimaryPreDigest {
+func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VRFProofLength]byte) *BabePrimaryPreDigest {
 	return &BabePrimaryPreDigest{
 		VRFOutput:      vrfOutput,
-		VrfProof:       vrfProof,
+		VRFProof:       vrfProof,
 		AuthorityIndex: authorityIndex,
 		SlotNumber:     slotNumber,
 	}
@@ -115,11 +115,11 @@ type BabeSecondaryVRFPreDigest struct {
 	AuthorityIndex uint32
 	SlotNumber     uint64
 	VrfOutput      [sr25519.VRFOutputLength]byte
-	VrfProof       [sr25519.VrfProofLength]byte
+	VrfProof       [sr25519.VRFProofLength]byte
 }
 
 // NewBabeSecondaryVRFPreDigest returns a new NewBabeSecondaryVRFPreDigest
-func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabeSecondaryVRFPreDigest {
+func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VRFProofLength]byte) *BabeSecondaryVRFPreDigest {
 	return &BabeSecondaryVRFPreDigest{
 		VrfOutput:      vrfOutput,
 		VrfProof:       vrfProof,

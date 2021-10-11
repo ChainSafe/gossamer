@@ -383,7 +383,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 
 	switch d := babePreDigest.(type) {
 	case types.BabePrimaryPreDigest:
-		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex, d.SlotNumber, d.VRFOutput, d.VrfProof)
+		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex, d.SlotNumber, d.VRFOutput, d.VRFProof)
 	case types.BabeSecondaryVRFPreDigest:
 		pub := b.authorities[d.AuthorityIndex].Key
 		var pk *sr25519.PublicKey
@@ -411,7 +411,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 }
 
 // verifyPrimarySlotWinner verifies the claim for a slot
-func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
+func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VRFProofLength]byte) (bool, error) {
 	pub := b.authorities[authorityIndex].Key
 
 	pk, err := sr25519.NewPublicKey(pub.Encode())

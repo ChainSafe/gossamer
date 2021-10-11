@@ -34,7 +34,7 @@ const (
 	PrivateKeyLength int = 32
 	SignatureLength  int = 64
 	VRFOutputLength  int = 32
-	VrfProofLength   int = 64
+	VRFProofLength   int = 64
 )
 
 // SigningContext is the context for signatures used or created with substrate
@@ -203,7 +203,7 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 }
 
 // VrfSign creates a VRF output and proof from a message and private key
-func (kp *Keypair) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VrfProofLength]byte, error) {
+func (kp *Keypair) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VRFProofLength]byte, error) {
 	return kp.private.VrfSign(t)
 }
 
@@ -222,7 +222,7 @@ func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 }
 
 // VrfSign creates a VRF output and proof from a message and private key
-func (k *PrivateKey) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VrfProofLength]byte, error) {
+func (k *PrivateKey) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VRFProofLength]byte, error) {
 	inout, proof, err := k.key.VrfSign(t)
 	if err != nil {
 		return [32]byte{}, [64]byte{}, err
@@ -331,7 +331,7 @@ func (k *PublicKey) VerifyDeprecated(msg, sig []byte) (bool, error) {
 }
 
 // VrfVerify confirms that the output and proof are valid given a message and public key
-func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VRFOutputLength]byte, proof [VrfProofLength]byte) (bool, error) {
+func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VRFOutputLength]byte, proof [VRFProofLength]byte) (bool, error) {
 	o := new(sr25519.VrfOutput)
 	err := o.Decode(out)
 	if err != nil {
