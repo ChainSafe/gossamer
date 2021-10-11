@@ -108,7 +108,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+lightID)
 	require.NoError(t, err)
 
-	// Testing empty Request
+	// Testing empty request
 	msg := &LightRequest{}
 	err = s.handleLightMsg(stream, msg)
 	require.NoError(t, err)

@@ -23,8 +23,7 @@ type LightRequest struct {
 	RmtChangesRequest   *RemoteChangesRequest
 }
 
-// Request is a scale compatible struct containing all possible light client related requests.
-type Request struct {
+type request struct {
 	RmtCallRequest      RemoteCallRequest
 	RmtReadRequest      RemoteReadRequest
 	RmtHeaderRequest    RemoteHeaderRequest
@@ -44,8 +43,8 @@ func NewLightRequest() *LightRequest {
 	}
 }
 
-func newRequest() *Request {
-	return &Request{
+func newRequest() *request {
+	return &request{
 		RmtCallRequest:      *newRemoteCallRequest(),
 		RmtReadRequest:      *newRemoteReadRequest(),
 		RmtHeaderRequest:    *newRemoteHeaderRequest(),
@@ -61,7 +60,7 @@ func (l *LightRequest) SubProtocol() string {
 
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
 func (l *LightRequest) Encode() ([]byte, error) {
-	req := Request{
+	req := request{
 		RmtCallRequest:      *l.RmtCallRequest,
 		RmtReadRequest:      *l.RmtReadRequest,
 		RmtHeaderRequest:    *l.RmtHeaderRequest,
@@ -104,8 +103,7 @@ type LightResponse struct {
 	RmtChangeResponse *RemoteChangesResponse
 }
 
-// Response is a scale compatible struct containing all possible light client related responses.
-type Response struct {
+type response struct {
 	RmtCallResponse   RemoteCallResponse
 	RmtReadResponse   RemoteReadResponse
 	RmtHeaderResponse RemoteHeaderResponse
@@ -122,8 +120,8 @@ func NewLightResponse() *LightResponse {
 	}
 }
 
-func newResponse() *Response {
-	return &Response{
+func newResponse() *response {
+	return &response{
 		RmtCallResponse:   *newRemoteCallResponse(),
 		RmtReadResponse:   *newRemoteReadResponse(),
 		RmtHeaderResponse: *newRemoteHeaderResponse(),
@@ -138,7 +136,7 @@ func (l *LightResponse) SubProtocol() string {
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
 func (l *LightResponse) Encode() ([]byte, error) {
-	response := Response{
+	response := response{
 		RmtCallResponse:   *l.RmtCallResponse,
 		RmtReadResponse:   *l.RmtReadResponse,
 		RmtHeaderResponse: *l.RmtHeaderResponse,

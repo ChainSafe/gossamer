@@ -80,7 +80,7 @@ type Service struct {
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
 
-	lightRequest   map[peer.ID]struct{} // set if we have sent a light Request message to the given peer
+	lightRequest   map[peer.ID]struct{} // set if we have sent a light request message to the given peer
 	lightRequestMu sync.RWMutex
 
 	// Service interfaces
@@ -632,7 +632,7 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	case lr.RmtReadChildRequest != nil:
 		resp.RmtReadResponse, err = remoteReadChildResp(lr.RmtReadChildRequest)
 	default:
-		logger.Warn("ignoring LightRequest without Request data")
+		logger.Warn("ignoring LightRequest without request data")
 		return nil
 	}
 

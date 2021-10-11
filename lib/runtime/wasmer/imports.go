@@ -1120,10 +1120,6 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 
 	limitBytes := asMemorySlice(instanceContext, lim)
-	//buf := &bytes.Buffer{}
-	//buf.Write(limitBytes)
-	//
-	//limit, err := optional.NewBytes(true, nil).Decode(buf)
 
 	var limit *[]byte
 	err := scale.Unmarshal(limitBytes, &limit)
@@ -1901,9 +1897,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
 	var opt *[]byte
-	if data == nil {
-		opt = nil
-	} else {
+	if data != nil {
 		opt = &data
 	}
 
@@ -1935,9 +1929,7 @@ func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int64, error) {
 	var opt *uint32
-	if data == nil {
-		opt = nil
-	} else {
+	if data != nil {
 		opt = data
 	}
 
