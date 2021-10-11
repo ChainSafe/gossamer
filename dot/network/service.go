@@ -738,3 +738,7 @@ func (*Service) StartingBlock() int64 {
 	// TODO: refactor this to get the data from the sync service
 	return 0
 }
+
+func (s *Service) IsSynced() bool {
+	return s.syncer.IsSynced()
+}
