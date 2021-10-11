@@ -104,7 +104,7 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 	return root, proof, items
 }
 
-func TestVerifyProofCorrectly(t *testing.T) {
+func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	entries := []Pair{
 		{Key: []byte("alpha"), Value: make([]byte, 32)},
 		{Key: []byte("bravo"), Value: []byte("bravo")},

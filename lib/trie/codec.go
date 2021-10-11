@@ -16,25 +16,6 @@
 
 package trie
 
-import (
-	"bytes"
-	"fmt"
-)
-
-type Nibbles []byte
-
-func (n *Nibbles) contains(in []byte, offset uint) bool {
-	if len(*n) < len(in) {
-		return false
-	}
-
-	compareWith := (*n)[offset:len(in)]
-
-	fmt.Printf("Current Nibbles: 0x%x | Offset: %v\n", *n, offset)
-	fmt.Printf("Comp: 0x%x\n", in)
-	return bytes.Equal(compareWith, in)
-}
-
 // keyToNibbles turns bytes into nibbles
 // does not rearrange the nibbles; assumes they are already ordered in LE
 func keyToNibbles(in []byte) []byte {
