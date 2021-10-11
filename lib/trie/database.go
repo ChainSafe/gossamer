@@ -79,7 +79,7 @@ func (t *Trie) store(db chaindb.Batch, curr node) error {
 
 // LoadFromProof create a trie based on the proof slice.
 func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
-	mappedNodes := make(map[common.Hash]node)
+	mappedNodes := make(map[string]node)
 
 	// map all the proofs hash -> decoded node
 	// and takes the loop to indentify the root node
@@ -101,7 +101,7 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 			return err
 		}
 
-		mappedNodes[common.BytesToHash(computedRoot)] = decNode
+		mappedNodes[common.BytesToHex(computedRoot)] = decNode
 
 		if bytes.Equal(computedRoot, root) {
 			t.root = decNode
@@ -112,12 +112,13 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 		return ErrIncompleteProof
 	}
 
-	return t.loadFromProof(mappedNodes, t.root)
+	t.loadFromProof(mappedNodes, t.root)
+	return nil
 }
 
 // loadFromProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting by the root
-func (t *Trie) loadFromProof(proof map[common.Hash]node, curr node) error {
+func (t *Trie) loadFromProof(proof map[string]node, curr node) {
 	switch c := curr.(type) {
 	case *branch:
 		for i, child := range c.children {
@@ -125,20 +126,15 @@ func (t *Trie) loadFromProof(proof map[common.Hash]node, curr node) error {
 				continue
 			}
 
-			proofNode, ok := proof[common.BytesToHash(child.getHash())]
+			proofNode, ok := proof[common.BytesToHex(child.getHash())]
 			if !ok {
 				continue
 			}
 
 			c.children[i] = proofNode
-			err := t.loadFromProof(proof, proofNode)
-			if err != nil {
-				return err
-			}
+			t.loadFromProof(proof, proofNode)
 		}
 	}
-
-	return nil
 }
 
 // Load reconstructs the trie from the database from the given root hash. Used when restarting the node to load the current state trie.
