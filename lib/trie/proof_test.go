@@ -17,6 +17,7 @@
 package trie
 
 import (
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -34,10 +35,12 @@ func TestProofGeneration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	expectedValue := rand32Bytes()
+
 	trie := NewEmptyTrie()
 	trie.Put([]byte("cat"), rand32Bytes())
 	trie.Put([]byte("catapulta"), rand32Bytes())
-	trie.Put([]byte("catapora"), rand32Bytes())
+	trie.Put([]byte("catapora"), expectedValue)
 	trie.Put([]byte("dog"), rand32Bytes())
 	trie.Put([]byte("doguinho"), rand32Bytes())
 
@@ -52,4 +55,87 @@ func TestProofGeneration(t *testing.T) {
 
 	// TODO: use the verify_proof function to assert the tests
 	require.Equal(t, 5, len(proof))
+
+	pl := []Pair{
+		{Key: []byte("catapora"), Value: expectedValue},
+	}
+
+	v, err := VerifyProof(proof, hash.ToBytes(), pl)
+	require.True(t, v)
+	require.NoError(t, err)
+}
+
+func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][]byte, []Pair) {
+	t.Helper()
+
+	tmp, err := ioutil.TempDir("", "*-test-trie")
+	require.NoError(t, err)
+
+	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
+		InMemory: true,
+		DataDir:  tmp,
+	})
+	require.NoError(t, err)
+
+	trie := NewEmptyTrie()
+	for _, e := range entries {
+		trie.Put(e.Key, e.Value)
+	}
+
+	err = trie.Store(memdb)
+	require.NoError(t, err)
+
+	root := trie.root.getHash()
+	proof, err := GenerateProof(root, keys, memdb)
+	require.NoError(t, err)
+
+	items := make([]Pair, 0)
+	for _, i := range keys {
+		value := trie.Get(i)
+		require.NotNil(t, value)
+
+		itemFromDB := Pair{
+			Key:   i,
+			Value: value,
+		}
+		items = append(items, itemFromDB)
+	}
+
+	return root, proof, items
+}
+
+func TestVerifyProofCorrectly(t *testing.T) {
+	entries := []Pair{
+		{Key: []byte("alpha"), Value: make([]byte, 32)},
+		{Key: []byte("bravo"), Value: []byte("bravo")},
+		{Key: []byte("do"), Value: []byte("verb")},
+		{Key: []byte("dog"), Value: []byte("puppy")},
+		{Key: []byte("doge"), Value: make([]byte, 32)},
+		{Key: []byte("horse"), Value: []byte("stallion")},
+		{Key: []byte("house"), Value: []byte("building")},
+	}
+
+	keys := [][]byte{
+		[]byte("do"),
+		[]byte("dog"),
+		[]byte("doge"),
+	}
+
+	root, proof, _ := testGenerateProof(t, entries, keys)
+
+	fmt.Printf("ROOT: 0x%x\n", root)
+	fmt.Println("PROOF")
+	for _, p := range proof {
+		fmt.Printf("0x%x\n", p)
+	}
+
+	pl := []Pair{
+		{Key: []byte("do"), Value: []byte("verb")},
+		{Key: []byte("dog"), Value: []byte("puppy")},
+		{Key: []byte("doge"), Value: make([]byte, 32)},
+	}
+
+	v, err := VerifyProof(proof, root, pl)
+	require.True(t, v)
+	require.NoError(t, err)
 }

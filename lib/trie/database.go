@@ -18,11 +18,24 @@ package trie
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/chaindb"
+)
+
+var (
+	ErrDuplicateKeys         = errors.New("duplicate keys on verify proof")
+	ErrIncompleteProof       = errors.New("incomplete proof")
+	ErrNoMoreItemsOnIterable = errors.New("items iterable exhausted")
+	ErrExhaustedNibbles      = errors.New("exhausted nibbles key")
+	ErrExhaustedStack        = errors.New("no more itens to pop from stack")
+	ErrValueMatchNotFound    = errors.New("value match not found")
+	ErrExtraneousNode        = errors.New("the proof contains at least one extraneous node")
+	ErrRootMismatch          = errors.New("computed root does not match with the given one")
+	ErrValueMismatch         = errors.New("expected value not found in the trie")
 )
 
 // Store stores each trie node in the database, where the key is the hash of the encoded node and the value is the encoded node.
@@ -68,6 +81,66 @@ func (t *Trie) store(db chaindb.Batch, curr node) error {
 
 	if curr.isDirty() {
 		curr.setDirty(false)
+	}
+
+	return nil
+}
+
+// LoadFromProof create a trie based on the proof slice.
+func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
+	mappedNodes := make(map[common.Hash]node)
+
+	// map all the proofs hash -> decoded node
+	// and takes the loop to indentify the root node
+	for _, rawNode := range proof {
+		var (
+			decNode node
+			err     error
+		)
+
+		if decNode, err = decodeBytes(rawNode); err != nil {
+			return err
+		}
+
+		decNode.setDirty(false)
+		decNode.setEncodingAndHash(rawNode, nil)
+
+		_, computedRoot, err := decNode.encodeAndHash()
+		if err != nil {
+			return err
+		}
+
+		mappedNodes[common.BytesToHash(computedRoot)] = decNode
+
+		if bytes.Equal(computedRoot, root) {
+			t.root = decNode
+		}
+	}
+
+	return t.loadFromProof(mappedNodes, t.root)
+}
+
+// loadFromProof is a recursive function that will create all the trie paths based
+// on the mapped proofs slice starting by the root
+func (t *Trie) loadFromProof(proof map[common.Hash]node, curr node) error {
+	switch c := curr.(type) {
+	case *branch:
+		for i, child := range c.children {
+			if child == nil {
+				continue
+			}
+
+			proofNode, ok := proof[common.BytesToHash(child.getHash())]
+			if !ok {
+				continue
+			}
+
+			c.children[i] = proofNode
+			err := t.loadFromProof(proof, proofNode)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

@@ -17,6 +17,7 @@
 package trie
 
 import (
+	"bytes"
 	"errors"
 
 	"github.com/ChainSafe/chaindb"
@@ -33,16 +34,17 @@ var (
 func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
 	trackedProofs := make(map[string][]byte)
 
+	proofTrie := NewEmptyTrie()
+	err := proofTrie.Load(db, common.BytesToHash(root))
+	if err != nil {
+		return nil, err
+	}
+
 	for _, k := range keys {
 		nk := keyToNibbles(k)
 
-		lookup := newLookup(root, db)
 		recorder := new(recorder)
-
-		_, err := lookup.find(nk, recorder)
-		if err != nil {
-			return nil, err
-		}
+		findAndRecord(proofTrie, nk, recorder)
 
 		for !recorder.isEmpty() {
 			recNode := recorder.next()
@@ -54,10 +56,31 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 	}
 
 	proofs := make([][]byte, 0)
-
 	for _, p := range trackedProofs {
 		proofs = append(proofs, p)
 	}
 
 	return proofs, nil
+}
+
+// Pair holds the key and value to check while verifying the proof
+type Pair struct{ Key, Value []byte }
+
+// VerifyProof ensure a given key is inside a proof by creating a proof trie based on the proof slice
+// this function ignores the order of proofs
+func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
+	proofTrie := NewEmptyTrie()
+	err := proofTrie.LoadFromProof(proof, root)
+	if err != nil {
+		return false, err
+	}
+
+	for _, i := range items {
+		recValue := proofTrie.Get(i.Key)
+		if !bytes.Equal(i.Value, recValue) {
+			return false, ErrValueMismatch
+		}
+	}
+
+	return true, nil
 }
