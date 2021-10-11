@@ -95,7 +95,6 @@ func (l LightRequest) String() string {
 }
 
 // LightResponse is all possible light client response messages.
-// TODO Utilise custom VDT types in the header or this won't decode correctly
 type LightResponse struct {
 	RmtCallResponse   *RemoteCallResponse
 	RmtReadResponse   *RemoteReadResponse
