@@ -194,10 +194,10 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 	require.NoError(t, err)
 
 	kind := int32(1)
-	encKind, err := scale.Encode(kind)
+	encKind, err := scale.Marshal(kind)
 	require.NoError(t, err)
 
-	encKey, err := scale.Encode(testkey)
+	encKey, err := scale.Marshal(testkey)
 	require.NoError(t, err)
 
 	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
@@ -216,10 +216,10 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 	require.NoError(t, err)
 
 	kind := int32(2)
-	encKind, err := scale.Encode(kind)
+	encKind, err := scale.Marshal(kind)
 	require.NoError(t, err)
 
-	encKey, err := scale.Encode(testkey)
+	encKey, err := scale.Marshal(testkey)
 	require.NoError(t, err)
 
 	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
