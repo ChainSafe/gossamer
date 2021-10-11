@@ -1178,7 +1178,7 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, ch
 	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
 	if err != nil {
 		logger.Warn("cannot get child storage", "error", err)
-		return 0
+		return C.int32_t(0)
 	}
 
 	vdt, err := scale.NewVaryingDataType(NoneRemain(0), SomeRemain(0))
@@ -1193,11 +1193,13 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, ch
 	}
 	if err != nil {
 		logger.Warn("cannot set varying data type", "error", err)
+		return C.int32_t(0)
 	}
 
 	encoded, err := scale.Marshal(vdt)
 	if err != nil {
 		logger.Warn("problem marshaling varying data type", "error", err)
+		return C.int32_t(0)
 	}
 
 	out, err := toWasmMemorySized(instanceContext, encoded, 5)
