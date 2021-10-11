@@ -207,7 +207,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	rtCfg := &wasmer.Config{}
 	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
-	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	genCfg, err := rt.BabeConfiguration()
