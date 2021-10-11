@@ -33,12 +33,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -287,9 +287,10 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	addTestBlocksToState(t, height, s.blockState.(*state.BlockState))
 
 	// create extrinsic
-	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
-	tx, err := ext.Encode()
+	enc, err := scale.Marshal([]byte("nootwashere"))
 	require.NoError(t, err)
+	// we prefix with []byte{2} here since that's the enum index for the old IncludeDataExt extrinsic
+	tx := append([]byte{2}, enc...)
 
 	bhash := s.blockState.BestBlockHash()
 	rt, err := s.blockState.GetRuntime(&bhash)

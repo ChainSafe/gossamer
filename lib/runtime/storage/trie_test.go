@@ -18,10 +18,12 @@ package storage
 
 import (
 	"bytes"
+	"encoding/binary"
 	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -196,4 +198,51 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 
 	val := ts.Get([]byte(testCases[0]))
 	require.Equal(t, []byte(testCases[0]), val)
+}
+
+func TestTrieState_DeleteChildLimit(t *testing.T) {
+	ts := newTestTrieState(t)
+	child := trie.NewEmptyTrie()
+
+	keys := []string{
+		"key3",
+		"key1",
+		"key2",
+	}
+
+	for i, key := range keys {
+		child.Put([]byte(key), []byte{byte(i)})
+	}
+
+	keyToChild := []byte("keytochild")
+
+	err := ts.SetChild(keyToChild, child)
+	require.NoError(t, err)
+
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
+	optLimit2 := optional.NewBytes(true, testLimitBytes)
+
+	testCases := []struct {
+		key             []byte
+		limit           *optional.Bytes
+		expectedDeleted uint32
+		expectedDelAll  bool
+		errMsg          string
+	}{
+		{key: []byte("fakekey"), limit: optLimit2, expectedDeleted: 0, expectedDelAll: false, errMsg: "child trie does not exist at key :child_storage:default:fakekey"},
+		{key: []byte("keytochild"), limit: optLimit2, expectedDeleted: 2, expectedDelAll: false},
+		{key: []byte("keytochild"), limit: nil, expectedDeleted: 1, expectedDelAll: true},
+	}
+	for _, test := range testCases {
+		deleted, all, err := ts.DeleteChildLimit(test.key, test.limit)
+		if test.errMsg != "" {
+			require.Error(t, err)
+			require.EqualError(t, err, test.errMsg)
+			continue
+		}
+		require.NoError(t, err)
+		require.Equal(t, test.expectedDeleted, deleted)
+		require.Equal(t, test.expectedDelAll, all)
+	}
 }

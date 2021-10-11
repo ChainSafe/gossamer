@@ -26,6 +26,9 @@ var (
 	errNilStorageState       = errors.New("cannot have nil StorageState")
 	errNilVerifier           = errors.New("cannot have nil Verifier")
 	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
+	errNilNetwork            = errors.New("cannot have nil Network")
+	errNilFinalityGadget     = errors.New("cannot have nil FinalityGadget")
+	errNilTransactionState   = errors.New("cannot have nil TransactionState")
 
 	// ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData
 	ErrNilBlockData = errors.New("got nil BlockData")
@@ -38,6 +41,22 @@ var (
 
 	// ErrInvalidBlockRequest is returned when an invalid block request is received
 	ErrInvalidBlockRequest = errors.New("invalid block request")
+
+	// chainSync errors
+	errEmptyBlockData               = errors.New("empty block data")
+	errNilBlockData                 = errors.New("block data is nil")
+	errNilResponse                  = errors.New("block response is nil")
+	errNilHeaderInResponse          = errors.New("expected header, received none")
+	errNilBodyInResponse            = errors.New("expected body, received none")
+	errNoPeers                      = errors.New("no peers to sync with")
+	errResponseIsNotChain           = errors.New("block response does not form a chain")
+	errPeerOnInvalidFork            = errors.New("peer is on an invalid fork")
+	errWorkerMissingStartNumber     = errors.New("worker has nil start block number")
+	errWorkerMissingTargetNumber    = errors.New("worker has nil target block number")
+	errInvalidDirection             = errors.New("direction of request does not match specified start and target")
+	errUnknownParent                = errors.New("parent of first block in block response is unknown")
+	errUnknownBlockForJustification = errors.New("received justification for unknown block")
+	errFailedToGetParent            = errors.New("failed to get parent header")
 )
 
 // ErrNilChannel is returned if a channel is nil
