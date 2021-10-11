@@ -26,17 +26,8 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-var (
-	ErrDuplicateKeys         = errors.New("duplicate keys on verify proof")
-	ErrIncompleteProof       = errors.New("incomplete proof")
-	ErrNoMoreItemsOnIterable = errors.New("items iterable exhausted")
-	ErrExhaustedNibbles      = errors.New("exhausted nibbles key")
-	ErrExhaustedStack        = errors.New("no more itens to pop from stack")
-	ErrValueMatchNotFound    = errors.New("value match not found")
-	ErrExtraneousNode        = errors.New("the proof contains at least one extraneous node")
-	ErrRootMismatch          = errors.New("computed root does not match with the given one")
-	ErrValueMismatch         = errors.New("expected value not found in the trie")
-)
+// ErrIncompleteProof indicates the proof slice is empty
+var ErrIncompleteProof = errors.New("incomplete proof")
 
 // Store stores each trie node in the database, where the key is the hash of the encoded node and the value is the encoded node.
 // Generally, this will only be used for the genesis trie.
@@ -115,6 +106,10 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 		if bytes.Equal(computedRoot, root) {
 			t.root = decNode
 		}
+	}
+
+	if len(mappedNodes) == 0 {
+		return ErrIncompleteProof
 	}
 
 	return t.loadFromProof(mappedNodes, t.root)

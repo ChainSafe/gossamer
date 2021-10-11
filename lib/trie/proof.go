@@ -27,6 +27,12 @@ import (
 var (
 	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
+
+	// ErrValueMismatch indicates that a returned verify proof value doesnt match with the expected value on items array
+	ErrValueMismatch = errors.New("expected value not found in the trie")
+
+	// ErrDuplicateKeys not allowed to verify proof with duplicate keys
+	ErrDuplicateKeys = errors.New("duplicate keys on verify proof")
 )
 
 // GenerateProof receive the keys to proof, the trie root and a reference to database
@@ -69,6 +75,12 @@ type Pair struct{ Key, Value []byte }
 // VerifyProof ensure a given key is inside a proof by creating a proof trie based on the proof slice
 // this function ignores the order of proofs
 func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
+	for i := 1; i < len(items); i++ {
+		if bytes.Equal(items[i-1].Key, items[i].Key) {
+			return false, ErrDuplicateKeys
+		}
+	}
+
 	proofTrie := NewEmptyTrie()
 	err := proofTrie.LoadFromProof(proof, root)
 	if err != nil {
