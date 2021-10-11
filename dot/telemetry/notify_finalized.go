@@ -23,7 +23,7 @@ import (
 )
 
 type NotifyFinalizedTM struct {
-	Best *common.Hash `json:"best"`
+	Best common.Hash `json:"best"`
 	// Height is same as block.Header.Number
 	Height *big.Int `json:"height"`
 	Msg    string   `json:"msg"`
@@ -31,7 +31,7 @@ type NotifyFinalizedTM struct {
 
 func NewNotifyFinalizedTM(best common.Hash, height *big.Int) *NotifyFinalizedTM {
 	return &NotifyFinalizedTM{
-		Best:   &best,
+		Best:   best,
 		Height: height,
 		Msg:    "notify.finalized",
 	}
