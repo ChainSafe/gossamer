@@ -17,8 +17,9 @@
 package wasmer
 
 import (
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	wasm "github.com/wasmerio/wasmer-go/wasmer"
+
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 // ImportsNodeRuntime returns the imported objects needed for v0.8 of the runtime API
@@ -302,6 +303,26 @@ func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Con
 		wasm.NewValueTypes(),
 		wasm.NewValueTypes(),
 	), ctx, ext_storage_commit_transaction_version_1)
+
+	importsMap["ext_offchain_timestamp_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_offchain_timestamp_version_1)
+
+	importsMap["ext_offchain_sleep_until_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_offchain_sleep_until_version_1)
+
+	importsMap["ext_default_child_storage_storage_kill_version_2"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_default_child_storage_storage_kill_version_2)
+
+	importsMap["ext_default_child_storage_storage_kill_version_3"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_default_child_storage_storage_kill_version_3)
 
 	imports := wasm.NewImportObject()
 	imports.Register("env", importsMap)

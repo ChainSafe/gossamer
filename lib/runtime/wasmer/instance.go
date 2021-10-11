@@ -207,8 +207,12 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		imports: cfg.Imports,
 	}
 
-	inst.version, _ = inst.Version()
-	logger.Info("instatiated runtime", "name", inst.version.SpecName(), "specification version", inst.version.SpecVersion())
+	inst.version, err = inst.Version()
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("instantiated runtime", "name", inst.version.SpecName(), "specification version", inst.version.SpecVersion())
 	return inst, nil
 }
 
@@ -219,6 +223,7 @@ func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 		Imports: in.imports,
 	}
 	cfg.LogLvl = -1
+	cfg.Storage = in.ctx.Storage
 
 	tmp, err := newInstance(code, cfg)
 	if err != nil {

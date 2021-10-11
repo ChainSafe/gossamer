@@ -8,6 +8,10 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/ChainSafe/log15"
+	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -16,9 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	log "github.com/ChainSafe/log15"
-	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
-	"github.com/stretchr/testify/require"
 )
 
 func TestInstance_Version_PolkadotRuntime(t *testing.T) {
@@ -69,7 +70,7 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = genState
-	cfg.LogLvl = 5
+	cfg.LogLvl = log.LvlInfo
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
@@ -468,7 +469,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
@@ -496,7 +497,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
@@ -552,7 +553,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = genState
-	cfg.LogLvl = 5
+	cfg.LogLvl = log.LvlInfo
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
@@ -602,7 +603,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
@@ -647,7 +648,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = state3783
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
+	cfg.Imports = ImportsNodeRuntime
 
 	instance, err := NewInstanceFromTrie(gossTrie3783, cfg)
 	require.NoError(t, err)
@@ -692,7 +694,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = state901441
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
+	cfg.Imports = ImportsNodeRuntime
 
 	instance, err := NewInstanceFromTrie(ksmTrie901441, cfg)
 	require.NoError(t, err)
@@ -737,7 +740,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
+	cfg.Imports = ImportsNodeRuntime
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -782,7 +786,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
+	cfg.Imports = ImportsNodeRuntime
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -831,7 +836,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
+	cfg.Imports = ImportsNodeRuntime
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -874,7 +880,8 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg.LogLvl = log.LvlInfo
+	cfg.Imports = ImportsNodeRuntime
 
 	instance, err := NewInstanceFromTrie(dotTrie, cfg)
 	require.NoError(t, err)

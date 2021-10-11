@@ -16,6 +16,7 @@
 
 package wasmer
 
+import "C"
 import (
 	"bytes"
 	"crypto/rand"
@@ -72,6 +73,30 @@ func ext_logging_log_version_1(env interface{}, args []wasm.Value) ([]wasm.Value
 		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", target, "message", msg)
 	}
 
+	return nil, nil
+}
+
+func ext_offchain_timestamp_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
+	logger.Trace("[ext_offchain_timestamp_version_1] executing...")
+	logger.Warn("[ext_offchain_timestamp_version_1] unimplemented")
+	return nil, nil
+}
+
+func ext_offchain_sleep_until_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
+	logger.Trace("[ext_offchain_sleep_until_version_1] executing...")
+	logger.Warn("[ext_offchain_sleep_until_version_1] unimplemented")
+	return nil, nil
+}
+
+func ext_default_child_storage_storage_kill_version_2(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
+	logger.Trace("[ext_default_child_storage_storage_kill_version_2] executing...")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_2] unimplemented")
+	return nil, nil
+}
+
+func ext_default_child_storage_storage_kill_version_3(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
+	logger.Trace("[ext_default_child_storage_storage_kill_version_3] executing...")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_3] unimplemented")
 	return nil, nil
 }
 
