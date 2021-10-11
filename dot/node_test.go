@@ -25,6 +25,9 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -34,14 +37,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 func Test_NewRuntime(t *testing.T) {

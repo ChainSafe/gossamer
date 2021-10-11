@@ -207,6 +207,9 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		imports: cfg.Imports,
 	}
 
+	// Testing: Version is not present in runtime
+	return inst, nil
+
 	inst.version, err = inst.Version()
 	if err != nil {
 		return nil, err

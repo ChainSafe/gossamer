@@ -18,12 +18,97 @@ package wasmer
 
 import (
 	"io/ioutil"
+	"path"
 	"path/filepath"
+	r "runtime"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	wasm "github.com/wasmerio/wasmer-go/wasmer"
+
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 )
+
+
+func testGetBytes(moduleFileName string) []byte {
+	_, filename, _, _ := r.Caller(0)
+	modulePath := path.Join(path.Dir(filename), "test_data", moduleFileName)
+	bytes, _ := ioutil.ReadFile(modulePath)
+
+	return bytes
+}
+
+
+func TestFoo(t *testing.T) {
+	engine := wasm.NewEngine()
+	store := wasm.NewStore(engine)
+	module, err := wasm.NewModule(store, testGetBytes("test_wasm.wasm"))
+	assert.NoError(t, err)
+
+	limits, _ := wasm.NewLimits(16, 18)
+	memory := wasm.NewMemory(store, wasm.NewMemoryType(limits))
+
+	f1 := wasm.NewFunction(
+		store,
+		wasm.NewFunctionType(
+			wasm.NewValueTypes(wasm.I64),
+			wasm.NewValueTypes(),
+		),
+		func(args []wasm.Value) ([]wasm.Value, error) {
+			return []wasm.Value{}, nil
+		},
+	)
+
+	f2 := wasm.NewFunction(
+		store,
+		wasm.NewFunctionType(
+			wasm.NewValueTypes(wasm.I64),
+			wasm.NewValueTypes(wasm.I32),
+		),
+		func(args []wasm.Value) ([]wasm.Value, error) {
+			return []wasm.Value{wasm.NewI32(0)}, nil
+		},
+	)
+
+	importObject := wasm.NewImportObject()
+	importObject.Register(
+		"env",
+		map[string]wasm.IntoExtern{
+			"memory":                           memory,
+			"ext_misc_print_utf8_version_1":    f1,
+			"ext_hashing_blake2_256_version_1": f2,
+		},
+	)
+
+	_, err = wasm.NewInstance(module, importObject)
+	assert.NoError(t, err)
+}
+
+func Test_NewRuntime(t *testing.T) {
+	code := testGetBytes("test_wasm.wasm")
+
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	rtCfg := &Config{}
+	rtCfg.LogLvl = 5
+	rtCfg.Imports = ImportsNodeRuntime
+	rtCfg.Storage = genState
+
+	rt, err := NewInstance(code, rtCfg)
+	require.NoError(t, err)
+	require.NotNil(t, rt)
+}
 
 // test used for ensuring runtime exec calls can me made concurrently
 func TestConcurrentRuntimeCalls(t *testing.T) {
