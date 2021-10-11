@@ -22,9 +22,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Metadata calls runtime function Metadata_metadata
@@ -59,12 +58,13 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 		return nil, err
 	}
 
-	cfg, err := scale.Decode(ret, new(types.BabeConfiguration))
+	var cfg types.BabeConfiguration
+	err = scale.Unmarshal(ret, &cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return cfg.(*types.BabeConfiguration), nil
+	return &cfg, nil
 }
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
@@ -73,13 +73,13 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	adr, err := scale.Decode(ret, []*types.GrandpaAuthoritiesRaw{})
+	var gar []types.GrandpaAuthoritiesRaw
+	err = scale.Unmarshal(ret, &gar)
 	if err != nil {
 		return nil, err
 	}
 
-	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]types.GrandpaAuthoritiesRaw))
+	return types.GrandpaAuthoritiesRawToAuthorities(gar)
 }
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
@@ -94,7 +94,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	}
 
 	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	_, err = scale.Decode(ret[1:], v)
+	err = scale.Unmarshal(ret[1:], v)
 
 	return v, err
 }
@@ -102,7 +102,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 //nolint
 // InitializeBlock calls runtime API function Core_initialize_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
-	encodedHeader, err := scale2.Marshal(*header)
+	encodedHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
@@ -130,7 +130,7 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	}
 
 	bh := types.NewEmptyHeader()
-	err = scale2.Unmarshal(data, bh)
+	err = scale.Unmarshal(data, bh)
 	if err != nil {
 		return nil, err
 	}

@@ -107,7 +107,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	err = srvc.Start()
 	require.NoError(t, err)
-	srvc.syncQueue.stop()
 
 	t.Cleanup(func() {
 		srvc.Stop()
@@ -334,15 +333,6 @@ func TestHandleConn(t *testing.T) {
 		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
-
-	time.Sleep(time.Second)
-
-	bScore, ok := nodeA.syncQueue.peerScore.Load(nodeB.host.id())
-	require.True(t, ok)
-	require.Equal(t, 1, bScore)
-	aScore, ok := nodeB.syncQueue.peerScore.Load(nodeA.host.id())
-	require.True(t, ok)
-	require.Equal(t, 1, aScore)
 }
 
 func TestSerivceIsMajorSyncMetrics(t *testing.T) {

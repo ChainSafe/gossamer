@@ -190,9 +190,6 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 
 	err = s.validateVote(vote)
 	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrDescendantNotFound) || errors.Is(err, blocktree.ErrEndNodeNotFound) || errors.Is(err, blocktree.ErrStartNodeNotFound) {
-		// TODO: cancel if block is imported; if we refactor the syncing this will likely become cleaner
-		// as we can have an API to synchronously sync and import a block
-		go s.network.SendBlockReqestByHash(vote.Hash)
 		s.tracker.addVote(&networkVoteMessage{
 			from: from,
 			msg:  m,

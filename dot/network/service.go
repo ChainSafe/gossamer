@@ -54,7 +54,7 @@ const (
 var (
 	_        services.Service = &Service{}
 	logger                    = log.New("pkg", "network")
-	maxReads                  = 16
+	maxReads                  = 256
 )
 
 type (
@@ -74,7 +74,6 @@ type Service struct {
 	host          *host
 	mdns          *mdns
 	gossip        *gossip
-	syncQueue     *syncQueue
 	bufPool       *sizedBufferPool
 	streamManager *streamManager
 
@@ -98,6 +97,9 @@ type Service struct {
 	// telemetry
 	telemetryInterval time.Duration
 	closeCh           chan interface{}
+
+	blockResponseBuf   []byte
+	blockResponseBufMu sync.Mutex
 
 	batchSize int
 }
@@ -173,10 +175,10 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
+		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		batchSize:              100,
 	}
 
-	network.syncQueue = newSyncQueue(network)
 	return network, err
 }
 
@@ -203,11 +205,6 @@ func (s *Service) Start() error {
 	if s.IsStopped() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
-
-	connMgr := s.host.h.ConnManager().(*ConnManager)
-	connMgr.registerDisconnectHandler(func(p peer.ID) {
-		s.syncQueue.peerScore.Delete(p)
-	})
 
 	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
@@ -273,7 +270,6 @@ func (s *Service) Start() error {
 	time.Sleep(time.Millisecond * 500)
 
 	logger.Info("started network service", "supported protocols", s.host.protocols())
-	s.syncQueue.start()
 
 	if s.cfg.PublishMetrics {
 		go s.collectNetworkMetrics()
@@ -377,17 +373,14 @@ func (s *Service) sentBlockIntervalTelemetry() {
 	}
 }
 
-func (s *Service) handleConn(conn libp2pnetwork.Conn) {
-	// give new peers a slight weight
-	// TODO: do this once handshake is received
-	s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
+func (*Service) handleConn(conn libp2pnetwork.Conn) {
+	// TODO: update this for scoring
 }
 
 // Stop closes running instances of the host and network services as well as
 // the message channel from the network service to the core service (services that
 // are dependent on the host instance should be closed first)
 func (s *Service) Stop() error {
-	s.syncQueue.stop()
 	s.cancel()
 
 	// close mDNS discovery service
@@ -583,7 +576,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		if errors.Is(err, io.EOF) {
 			return
 		} else if err != nil {
-			logger.Trace("failed to read from stream", "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
+			logger.Trace("failed to read from stream", "id", stream.ID(), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
 		}
@@ -593,7 +586,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
-			logger.Trace("failed to decode message from peer", "protocol", stream.Protocol(), "err", err)
+			logger.Trace("failed to decode message from peer", "id", stream.ID(), "protocol", stream.Protocol(), "err", err)
 			continue
 		}
 
@@ -606,7 +599,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 		err = handler(stream, msg)
 		if err != nil {
-			logger.Debug("failed to handle message from stream", "message", msg, "error", err)
+			logger.Trace("failed to handle message from stream", "id", stream.ID(), "message", msg, "error", err)
 			_ = stream.Close()
 			return
 		}
@@ -735,11 +728,13 @@ func (s *Service) CollectGauge() map[string]int64 {
 }
 
 // HighestBlock returns the highest known block number
-func (s *Service) HighestBlock() int64 {
-	return s.syncQueue.goal
+func (*Service) HighestBlock() int64 {
+	// TODO: refactor this to get the data from the sync service
+	return 0
 }
 
 // StartingBlock return the starting block number that's currently being synced
-func (s *Service) StartingBlock() int64 {
-	return s.syncQueue.currStart
+func (*Service) StartingBlock() int64 {
+	// TODO: refactor this to get the data from the sync service
+	return 0
 }
