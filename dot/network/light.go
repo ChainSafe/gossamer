@@ -136,13 +136,13 @@ func (l *LightResponse) SubProtocol() string {
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
 func (l *LightResponse) Encode() ([]byte, error) {
-	response := response{
+	resp := response{
 		RmtCallResponse:   *l.RmtCallResponse,
 		RmtReadResponse:   *l.RmtReadResponse,
 		RmtHeaderResponse: *l.RmtHeaderResponse,
 		RmtChangeResponse: *l.RmtChangeResponse,
 	}
-	return scale.Marshal(response)
+	return scale.Marshal(resp)
 }
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
