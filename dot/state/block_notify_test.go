@@ -182,8 +182,8 @@ func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
 }
 
 // NewMockVersion creates and returns an runtime Version interface mock
-func NewMockVersion(specVer uint32) *runtimemocks.MockVersion {
-	m := new(runtimemocks.MockVersion)
+func NewMockVersion(specVer uint32) *runtimemocks.Version {
+	m := new(runtimemocks.Version)
 	m.On("SpecName").Return([]byte(`mock-spec`))
 	m.On("ImplName").Return(nil)
 	m.On("AuthoringVersion").Return(uint32(0))
