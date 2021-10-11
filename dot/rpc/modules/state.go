@@ -209,13 +209,14 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 		return nil
 	}
 
-	for _, key := range keys {
+	*res = make([]interface{}, 0, len(keys))
+	for i, key := range keys {
 		val, err := sm.storageAPI.GetStorage(stateRootHash, key)
 		if err != nil {
 			return err
 		}
 
-		*res = append(*res, []string{common.BytesToHex(key), common.BytesToHex(val)})
+		(*res)[i] = []string{common.BytesToHex(key), common.BytesToHex(val)}
 	}
 
 	return nil

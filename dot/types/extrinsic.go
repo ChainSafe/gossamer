@@ -73,9 +73,5 @@ func (e *ExtrinsicData) DecodeVersion(encExt Extrinsic) error {
 		return err
 	}
 
-	err = decoder.Decode(&e.Version)
-	if err != nil {
-		return err
-	}
-	return nil
+	return decoder.Decode(&e.Version)
 }

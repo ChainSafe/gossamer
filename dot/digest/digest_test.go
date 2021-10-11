@@ -35,7 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolint
+func newTestHandler(t *testing.T) *Handler {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
@@ -59,7 +59,7 @@ func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolin
 }
 
 func TestHandler_GrandpaScheduledChange(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -116,7 +116,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 }
 
 func TestHandler_GrandpaForcedChange(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -165,7 +165,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 }
 
 func TestHandler_GrandpaPauseAndResume(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -228,7 +228,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 }
 
 func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -268,7 +268,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 }
 
 func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -341,7 +341,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 }
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
-	handler := newTestHandler(t, true, false)
+	handler := newTestHandler(t)
 	header := &types.Header{
 		Number: big.NewInt(1),
 	}
@@ -383,7 +383,7 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 func TestHandler_HandleNextEpochData(t *testing.T) {
 	expData := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000")
 
-	handler := newTestHandler(t, true, false)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -436,7 +436,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 }
 
 func TestHandler_HandleNextConfigData(t *testing.T) {
-	handler := newTestHandler(t, true, false)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 

@@ -58,16 +58,15 @@ type testBranch struct {
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
 func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranches bool) ([]*types.Header, []*types.Header) {
-	previousHash := blockState.BestBlockHash()
-
-	branches := []testBranch{}
+	var (
+		currentChain, branchChains []*types.Header
+		branches                   []testBranch
+	)
 
 	arrivalTime := time.Now()
-	currentChain := []*types.Header{}
-	branchChains := []*types.Header{}
-
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
+	previousHash := head.Hash()
 
 	// create base tree
 	startNum := int(head.Number.Int64())
