@@ -589,7 +589,7 @@ func (s *Service) attemptToFinalize() error {
 				"threshold", s.state.threshold(),
 				"prev finalised", s.head.Number,
 			)
-			time.Sleep(time.Millisecond * 500)
+			//time.Sleep(time.Millisecond * 500)
 			continue
 		}
 

@@ -168,6 +168,12 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 			if err = s.network.SendMessage(from, msg); err != nil {
 				logger.Warn("failed to send CommitMessage", "error", err)
 			}
+		} else {
+			// round is higher than ours, perhaps we are behind. store vote in tracker for now
+			s.tracker.addVote(&networkVoteMessage{
+				from: from,
+				msg:  m,
+			})
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up?

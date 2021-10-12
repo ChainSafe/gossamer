@@ -335,8 +335,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		// only when they are for already finalised rounds; currently this causes issues
 		// because a vote might be received slightly too early, causing a round mismatch err,
 		// causing grandpa to discard the vote.
-		_, isConsensusMsg := msg.(*ConsensusMessage)
-		if !added && !isConsensusMsg {
+		//_, isConsensusMsg := msg.(*ConsensusMessage)
+		if !added /*&& !isConsensusMsg*/ {
 			return
 		}
 	}
