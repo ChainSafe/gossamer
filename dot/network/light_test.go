@@ -117,35 +117,35 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	// Testing remoteCallResp()
 	msg = &LightRequest{
-		RmtCallRequest: &RemoteCallRequest{},
+		RemoteCallRequest: &RemoteCallRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteHeaderResp()
 	msg = &LightRequest{
-		RmtHeaderRequest: &RemoteHeaderRequest{},
+		RemoteHeaderRequest: &RemoteHeaderRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteChangeResp()
 	msg = &LightRequest{
-		RmtChangesRequest: &RemoteChangesRequest{},
+		RemoteChangesRequest: &RemoteChangesRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteReadResp()
 	msg = &LightRequest{
-		RmtReadRequest: &RemoteReadRequest{},
+		RemoteReadRequest: &RemoteReadRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteReadChildResp()
 	msg = &LightRequest{
-		RmtReadChildRequest: &RemoteReadChildRequest{},
+		RemoteReadChildRequest: &RemoteReadChildRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())

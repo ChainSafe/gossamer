@@ -16,40 +16,40 @@ type Pair struct {
 
 // LightRequest is all possible light client related requests.
 type LightRequest struct {
-	RmtCallRequest      *RemoteCallRequest
-	RmtReadRequest      *RemoteReadRequest
-	RmtHeaderRequest    *RemoteHeaderRequest
-	RmtReadChildRequest *RemoteReadChildRequest
-	RmtChangesRequest   *RemoteChangesRequest
+	*RemoteCallRequest
+	*RemoteReadRequest
+	*RemoteHeaderRequest
+	*RemoteReadChildRequest
+	*RemoteChangesRequest
 }
 
 type request struct {
-	RmtCallRequest      RemoteCallRequest
-	RmtReadRequest      RemoteReadRequest
-	RmtHeaderRequest    RemoteHeaderRequest
-	RmtReadChildRequest RemoteReadChildRequest
-	RmtChangesRequest   RemoteChangesRequest
+	RemoteCallRequest
+	RemoteReadRequest
+	RemoteHeaderRequest
+	RemoteReadChildRequest
+	RemoteChangesRequest
 }
 
 // NewLightRequest returns a new LightRequest
 func NewLightRequest() *LightRequest {
 	rcr := newRemoteChangesRequest()
 	return &LightRequest{
-		RmtCallRequest:      newRemoteCallRequest(),
-		RmtReadRequest:      newRemoteReadRequest(),
-		RmtHeaderRequest:    newRemoteHeaderRequest(),
-		RmtReadChildRequest: newRemoteReadChildRequest(),
-		RmtChangesRequest:   &rcr,
+		RemoteCallRequest:      newRemoteCallRequest(),
+		RemoteReadRequest:      newRemoteReadRequest(),
+		RemoteHeaderRequest:    newRemoteHeaderRequest(),
+		RemoteReadChildRequest: newRemoteReadChildRequest(),
+		RemoteChangesRequest:   &rcr,
 	}
 }
 
 func newRequest() *request {
 	return &request{
-		RmtCallRequest:      *newRemoteCallRequest(),
-		RmtReadRequest:      *newRemoteReadRequest(),
-		RmtHeaderRequest:    *newRemoteHeaderRequest(),
-		RmtReadChildRequest: *newRemoteReadChildRequest(),
-		RmtChangesRequest:   newRemoteChangesRequest(),
+		RemoteCallRequest:      *newRemoteCallRequest(),
+		RemoteReadRequest:      *newRemoteReadRequest(),
+		RemoteHeaderRequest:    *newRemoteHeaderRequest(),
+		RemoteReadChildRequest: *newRemoteReadChildRequest(),
+		RemoteChangesRequest:   newRemoteChangesRequest(),
 	}
 }
 
@@ -61,11 +61,11 @@ func (l *LightRequest) SubProtocol() string {
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
 func (l *LightRequest) Encode() ([]byte, error) {
 	req := request{
-		RmtCallRequest:      *l.RmtCallRequest,
-		RmtReadRequest:      *l.RmtReadRequest,
-		RmtHeaderRequest:    *l.RmtHeaderRequest,
-		RmtReadChildRequest: *l.RmtReadChildRequest,
-		RmtChangesRequest:   *l.RmtChangesRequest,
+		RemoteCallRequest:      *l.RemoteCallRequest,
+		RemoteReadRequest:      *l.RemoteReadRequest,
+		RemoteHeaderRequest:    *l.RemoteHeaderRequest,
+		RemoteReadChildRequest: *l.RemoteReadChildRequest,
+		RemoteChangesRequest:   *l.RemoteChangesRequest,
 	}
 	return scale.Marshal(req)
 }
@@ -78,11 +78,11 @@ func (l *LightRequest) Decode(in []byte) error {
 		return err
 	}
 
-	l.RmtCallRequest = &msg.RmtCallRequest
-	l.RmtReadRequest = &msg.RmtReadRequest
-	l.RmtHeaderRequest = &msg.RmtHeaderRequest
-	l.RmtReadChildRequest = &msg.RmtReadChildRequest
-	l.RmtChangesRequest = &msg.RmtChangesRequest
+	l.RemoteCallRequest = &msg.RemoteCallRequest
+	l.RemoteReadRequest = &msg.RemoteReadRequest
+	l.RemoteHeaderRequest = &msg.RemoteHeaderRequest
+	l.RemoteReadChildRequest = &msg.RemoteReadChildRequest
+	l.RemoteChangesRequest = &msg.RemoteChangesRequest
 	return nil
 }
 
@@ -91,7 +91,7 @@ func (l LightRequest) String() string {
 	return fmt.Sprintf(
 		"RemoteCallRequest=%s RemoteReadRequest=%s RemoteHeaderRequest=%s "+
 			"RemoteReadChildRequest=%s RemoteChangesRequest=%s",
-		l.RmtCallRequest, l.RmtReadRequest, l.RmtHeaderRequest, l.RmtReadChildRequest, l.RmtChangesRequest)
+		l.RemoteCallRequest, l.RemoteReadRequest, l.RemoteHeaderRequest, l.RemoteReadChildRequest, l.RemoteChangesRequest)
 }
 
 // LightResponse is all possible light client response messages.
