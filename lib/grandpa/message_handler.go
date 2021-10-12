@@ -112,6 +112,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	// check justification here
 	if err := h.verifyCommitMessageJustification(msg); err != nil {
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
+			// we haven't synced the committed block yet, add this to the tracker for later processing
 			h.grandpa.tracker.addCommit(msg)
 		}
 		return err
