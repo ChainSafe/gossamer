@@ -51,14 +51,6 @@ const (
 	maxMessageSize = 1024 * 63 // 63kb for now
 
 	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
-
-	gossipSuccessValue  = 1 << 4
-	gossipSuccessReason = "SuccessFull gossip"
-
-	// duplicateGossipValue and duplicateGossipReason reputation change value and message when a peer
-	// sends us a gossip message that we already knew about.
-	duplicateGossipValue  = -(1 << 2)
-	duplicateGossipReason = "Duplicate gossip"
 )
 
 var (
@@ -278,7 +270,6 @@ func (s *Service) Start() error {
 	}
 
 	time.Sleep(time.Millisecond * 500)
-	go s.startPeerSetHandler()
 	logger.Info("started network service", "supported protocols", s.host.protocols())
 
 	if s.cfg.PublishMetrics {
@@ -288,6 +279,7 @@ func (s *Service) Start() error {
 	go s.logPeerCount()
 	go s.publishNetworkTelemetry(s.closeCh)
 	go s.sentBlockIntervalTelemetry()
+	go s.startPeerSetHandler()
 	s.streamManager.start()
 
 	return nil
@@ -384,10 +376,8 @@ func (s *Service) sentBlockIntervalTelemetry() {
 }
 
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
-	// TODO: setID currently is 0 change when we have multiple set.
-	if conn.Stat().Direction == libp2pnetwork.DirInbound {
-		s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
-	}
+	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
+	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -407,6 +397,8 @@ func (s *Service) Stop() error {
 	if err != nil {
 		logger.Error("Failed to close host", "error", err)
 	}
+
+	s.host.cm.peerSetHandler.Stop()
 
 	// check if closeCh is closed, if not, close it.
 mainloop:
@@ -757,58 +749,70 @@ func (s *Service) IsSynced() bool {
 	return s.syncer.IsSynced()
 }
 
-// ReportPeer reports peerStatus for the reputation change
-func (s *Service) ReportPeer(p peer.ID, change peerset.ReputationChange) {
-	s.host.cm.peerSetHandler.ReportPeer(p, change)
+// ReportPeer reports ReputationChange according to the peer behaviour.
+func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
+	s.host.cm.peerSetHandler.ReportPeer(change, p)
 }
 
 func (s *Service) startPeerSetHandler() {
-	go s.host.cm.peerSetHandler.Start()
+	s.host.cm.peerSetHandler.Start()
 	go s.processMessage()
 }
 
 func (s *Service) processMessage() {
-	msgCh := s.host.cm.peerSetHandler.GetMessages()
-	for m := range msgCh {
-		msg, ok := m.(peerset.Message)
-		if !ok {
-			logger.Error("failed to get message from peerset")
-		}
+	msgCh := s.host.cm.peerSetHandler.Messages()
 
-		peerID := msg.GetPeerID()
-		switch msg.GetStatus() {
+	processMessage := func(msg peerset.Message) {
+		peerID := msg.PeerID
+		switch msg.Status {
 		case peerset.Connect:
 			addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
 			if addrInfo.Addrs == nil || len(addrInfo.Addrs) == 0 {
 				var err error
 				addrInfo, err = s.host.discovery.findPeer(peerID)
 				if err != nil {
-					logger.Error("failed to find peer ", "peer", peerID, "error", err)
-					continue
+					logger.Debug("failed to find peer", "peer", peerID, "error", err)
+					return
 				}
 			}
 
 			err := s.host.connect(addrInfo)
 			if err != nil {
-				logger.Error("failed to open connection with ", "peer", peerID, "error", err)
-				continue
+				logger.Debug("failed to open connection", "peer", peerID, "error", err)
+				return
 			}
-			logger.Info("Connected to ", "peer", peerID)
+			logger.Debug("connection successful ", "peer", peerID)
 		case peerset.Drop:
 			err := s.host.closePeer(peerID)
 			if err != nil {
-				logger.Error("failed to close connection for ", "peer", peerID, "error", err)
-				continue
+				logger.Debug("failed to close connection", "peer", peerID, "error", err)
+				return
 			}
-			logger.Info("Connection dropped successfully ", "peer", peerID)
+			logger.Debug("connection dropped successfully ", "peer", peerID)
 		case peerset.Reject:
 			conns := s.host.h.Network().ConnsToPeer(peerID)
 			for _, c := range conns {
 				err := c.Close()
 				if err != nil {
-					logger.Error("Failed to close connection ", "peer", peerID)
+					logger.Debug("failed to close connection ", "peer", peerID)
+					return
 				}
 			}
+		}
+	}
+
+messageLoop:
+	for {
+		select {
+		case <-s.ctx.Done():
+			break messageLoop
+		case m := <-msgCh:
+			msg, ok := m.(peerset.Message)
+			if !ok {
+				logger.Error("failed to get message from peerSet")
+				continue
+			}
+			processMessage(msg)
 		}
 	}
 }

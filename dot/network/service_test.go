@@ -333,8 +333,6 @@ func TestHandleConn(t *testing.T) {
 		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
-
-	// TODO: load peer reputation from peerSet
 }
 
 func TestSerivceIsMajorSyncMetrics(t *testing.T) {

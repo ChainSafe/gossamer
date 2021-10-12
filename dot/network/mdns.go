@@ -109,5 +109,5 @@ func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 
 	n.host.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	// connect to found peer
-	n.host.cm.peerSetHandler.AddToPeerSet(0, p.ID)
+	n.host.cm.peerSetHandler.AddPeer(0, p.ID)
 }

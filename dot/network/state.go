@@ -59,15 +59,16 @@ type TransactionHandler interface {
 
 // PeerSetHandler is the interface used by the connection manager to handle peerset.
 type PeerSetHandler interface {
-	ReportPeer(peer.ID, peerset.ReputationChange)
-	Incoming(int, peer.ID)
-	GetMessages() chan interface{}
-	AddReservedPeer(int, peer.ID)
-	AddToPeerSet(int, peer.ID)
-	RemoveReservedPeer(int, peer.ID)
-	RemoveFromPeerSet(int, peer.ID)
-	DisconnectPeer(int, peer.ID)
-	GetReputation(peer.ID) (int32, error)
-	GetSortedPeers() chan interface{}
+	ReportPeer(peerset.ReputationChange, ...peer.ID)
+	Incoming(int, ...peer.ID)
+	Messages() chan interface{}
+	AddReservedPeer(int, ...peer.ID)
+	AddPeer(int, ...peer.ID)
+	RemoveReservedPeer(int, ...peer.ID)
+	RemovePeer(int, ...peer.ID)
+	DisconnectPeer(int, ...peer.ID)
+	PeerReputation(peer.ID) (peerset.Reputation, error)
+	SortedPeers() chan interface{}
 	Start()
+	Stop()
 }

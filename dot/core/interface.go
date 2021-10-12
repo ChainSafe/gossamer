@@ -83,7 +83,7 @@ type TransactionState interface {
 type Network interface {
 	GossipMessage(network.NotificationsMessage)
 	IsSynced() bool
-	ReportPeer(p peer.ID, change peerset.ReputationChange)
+	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
 
 // EpochState is the interface for state.EpochState

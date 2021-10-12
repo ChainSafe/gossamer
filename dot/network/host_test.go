@@ -21,13 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
+
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -440,8 +440,6 @@ func Test_AddReservedPeers(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
-	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
-	require.True(t, isProtected)
 }
 
 func Test_RemoveReservedPeers(t *testing.T) {
@@ -538,7 +536,7 @@ func TestStreamCloseEOF(t *testing.T) {
 }
 
 // Test to check the nodes connection by peer set manager
-func TestPsmConnect(t *testing.T) {
+func TestPeerConnect(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -568,7 +566,7 @@ func TestPsmConnect(t *testing.T) {
 
 	addrInfoB := nodeB.host.addrInfo()
 	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
-	nodeA.host.cm.peerSetHandler.AddToPeerSet(0, addrInfoB.ID)
+	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -577,7 +575,7 @@ func TestPsmConnect(t *testing.T) {
 }
 
 // Test to check banned peer disconnection by peer set manager
-func TestPsmBannedPeer(t *testing.T) {
+func TestBannedPeer(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
@@ -608,17 +606,17 @@ func TestPsmBannedPeer(t *testing.T) {
 
 	addrInfoB := nodeB.host.addrInfo()
 	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
-	nodeA.host.cm.peerSetHandler.AddToPeerSet(0, addrInfoB.ID)
+	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
 	require.Equal(t, 1, nodeB.host.peerCount())
 
-	nodeA.host.cm.peerSetHandler.ReportPeer(addrInfoB.ID, peerset.ReputationChange{
-		Value:  peerset.BannedThreshold - 1,
-		Reason: "Banned",
-	})
+	nodeA.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+		Value:  peerset.BannedThresholdValue - 1,
+		Reason: peerset.BannedReason,
+	}, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -632,7 +630,7 @@ func TestPsmBannedPeer(t *testing.T) {
 }
 
 // Test to check reputation updated by peer set manager
-func TestPsmReputation(t *testing.T) {
+func TestPeerReputation(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
@@ -655,7 +653,7 @@ func TestPsmReputation(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
-		MaxPeers:    2,
+		MaxPeers:    3,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -663,21 +661,21 @@ func TestPsmReputation(t *testing.T) {
 
 	addrInfoB := nodeB.host.addrInfo()
 	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
-	nodeA.host.cm.peerSetHandler.AddToPeerSet(0, addrInfoB.ID)
+	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
 	require.Equal(t, 1, nodeB.host.peerCount())
 
-	nodeA.host.cm.peerSetHandler.ReportPeer(addrInfoB.ID, peerset.ReputationChange{
-		Value:  state.GoodTransactionValue,
-		Reason: state.GoodTransactionReason,
-	})
+	nodeA.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+		Value:  peerset.GoodTransactionValue,
+		Reason: peerset.GoodTransactionReason,
+	}, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
 
-	rep, err := nodeA.host.cm.peerSetHandler.GetReputation(addrInfoB.ID)
+	rep, err := nodeA.host.cm.peerSetHandler.PeerReputation(addrInfoB.ID)
 	require.NoError(t, nil, err)
 	require.Greater(t, rep, int32(0))
 }

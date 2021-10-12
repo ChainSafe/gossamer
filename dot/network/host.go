@@ -50,7 +50,10 @@ var privateCIDRs = []string{
 	"169.254.0.0/16",
 }
 
-var connectTimeout = time.Second * 5
+const (
+	peerSetSlotAllocTime = time.Second * 2
+	connectTimeout       = time.Second * 5
+)
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
@@ -109,7 +112,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		rNodePeers[idx] = n.ID
 	}
 
-	peerCfgSet := peerset.NewConfigSet(uint32(cfg.MaxPeers-cfg.MinPeers), uint32(cfg.MinPeers), bNodePeers, rNodePeers, false)
+	peerCfgSet := peerset.NewConfigSet(uint32(cfg.MaxPeers-cfg.MinPeers), uint32(cfg.MinPeers), bNodePeers, rNodePeers, false, peerSetSlotAllocTime)
 	// create connection manager
 	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 
@@ -258,7 +261,7 @@ func (h *host) bootstrap() {
 	for _, addrInfo := range allNodes {
 		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
 		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
-		h.cm.peerSetHandler.AddToPeerSet(0, addrInfo.ID)
+		h.cm.peerSetHandler.AddPeer(0, addrInfo.ID)
 	}
 }
 
@@ -337,12 +340,8 @@ func (h *host) addReservedPeers(addrs ...string) error {
 		if err != nil {
 			return err
 		}
+		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 		h.cm.peerSetHandler.AddReservedPeer(0, addrInfo.ID)
-
-		h.h.ConnManager().Protect(addrInfo.ID, "")
-		if err := h.connect(*addrInfo); err != nil {
-			return err
-		}
 	}
 
 	return nil

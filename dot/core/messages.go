@@ -19,7 +19,6 @@ package core
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -67,10 +66,10 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 			val, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				s.net.ReportPeer(peerID, peerset.ReputationChange{
-					Value:  state.BadTransactionValue,
-					Reason: state.BadTransactionReason,
-				})
+				s.net.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadTransactionValue,
+					Reason: peerset.BadTransactionReason,
+				}, peerID)
 				logger.Debug("failed to validate transaction", "err", err)
 				return nil
 			}
@@ -95,10 +94,10 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		}
 	}
 
-	s.net.ReportPeer(peerID, peerset.ReputationChange{
-		Value:  state.GoodTransactionValue,
-		Reason: state.GoodTransactionReason,
-	})
+	s.net.ReportPeer(peerset.ReputationChange{
+		Value:  peerset.GoodTransactionValue,
+		Reason: peerset.GoodTransactionReason,
+	}, peerID)
 
 	msg.Extrinsics = toPropagate
 	return len(msg.Extrinsics) > 0, nil

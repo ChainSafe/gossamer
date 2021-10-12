@@ -2,6 +2,7 @@ package peerset
 
 import (
 	"testing"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
@@ -16,20 +17,21 @@ var (
 	incomingPeer  = peer.ID("testIncoming")
 	incoming2     = peer.ID("testIncoming2")
 	incoming3     = peer.ID("testIncoming3")
-
-	peer1 = peer.ID("testPeer1")
-	peer2 = peer.ID("testPeer2")
+	peer1         = peer.ID("testPeer1")
+	peer2         = peer.ID("testPeer2")
 )
 
 func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.ID) *Handler {
+	t.Helper()
 	con := &ConfigSet{
 		Set: []*config{
 			{
-				inPeers:       in,
-				outPeers:      out,
-				bootNodes:     bootNode,
-				reservedNodes: reservedPeer,
-				reservedOnly:  false,
+				inPeers:           in,
+				outPeers:          out,
+				bootNodes:         bootNode,
+				reservedNodes:     reservedPeer,
+				reservedOnly:      false,
+				periodicAllocTime: time.Second * 2,
 			},
 		},
 	}
@@ -42,7 +44,8 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.
 	return handler
 }
 
-func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState { // nolint
+func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState { //nolint
+	t.Helper()
 	state, err := NewPeerState([]*config{
 		{
 			inPeers:  maxIn,
@@ -54,8 +57,9 @@ func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState { // nolin
 	return state
 }
 
-func checkMessage(t *testing.T, m interface{}, expectedStatus MessageStatus) {
+func checkMessage(t *testing.T, m interface{}, expectedStatus Status) {
+	t.Helper()
 	msg, ok := m.(Message)
 	require.True(t, ok)
-	require.Equal(t, msg.messageStatus, expectedStatus)
+	require.Equal(t, expectedStatus, msg.Status)
 }

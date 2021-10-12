@@ -14,8 +14,8 @@ type MockNetwork struct {
 	mock.Mock
 }
 
-func (_m *MockNetwork) ReportPeer(_a0 peer.ID, _a1 peerset.ReputationChange) {
-	_m.Called(_a0, _a1)
+func (_m *MockNetwork) ReportPeer(_a0 peerset.ReputationChange, _a1 peer.ID) {
+	return // TODO: figure how to implement here
 }
 
 // GossipMessage provides a mock function with given fields: _a0

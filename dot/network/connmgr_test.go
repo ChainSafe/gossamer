@@ -21,10 +21,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 func TestMaxPeers(t *testing.T) {
@@ -64,8 +65,13 @@ func TestMaxPeers(t *testing.T) {
 }
 
 func TestProtectUnprotectPeer(t *testing.T) {
-	min, max := 1, 4
-	peerCfgSet := peerset.NewConfigSet(uint32(max-min), uint32(max), nil, nil, false)
+	const (
+		min                = 1
+		max                = 4
+		slotAllocationTime = time.Second * 2
+	)
+
+	peerCfgSet := peerset.NewConfigSet(uint32(max-min), uint32(max), nil, nil, false, slotAllocationTime)
 	cm := newConnManager(min, max, peerCfgSet)
 
 	p1 := peer.ID("a")

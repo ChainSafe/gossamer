@@ -134,35 +134,35 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer1))
 
 	state.discover(0, peer1)
-	node, err := state.getNode(peer1)
+	n, err := state.getNode(peer1)
 	require.NoError(t, err)
-	node.setReputation(50)
-	state.setNode(peer1, node)
+	n.setReputation(50)
+	state.nodes[peer1] = n
 
-	require.Equal(t, int32(50), state.nodes[peer1].getReputation())
+	require.Equal(t, Reputation(50), state.nodes[peer1].getReputation())
 
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer2))
 
 	state.discover(0, peer2)
-	node, err = state.getNode(peer2)
+	n, err = state.getNode(peer2)
 	require.NoError(t, err)
-	node.setReputation(25)
-	state.setNode(peer2, node)
+	n.setReputation(25)
+	state.nodes[peer2] = n
 
 	// peer1 still has the highest reputation
 	require.Equal(t, peer1, state.highestNotConnectedPeer(0))
-	require.Equal(t, int32(25), state.nodes[peer2].getReputation())
+	require.Equal(t, Reputation(25), state.nodes[peer2].getReputation())
 
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 
-	node, err = state.getNode(peer2)
+	n, err = state.getNode(peer2)
 	require.NoError(t, err)
 
-	node.setReputation(75)
-	state.setNode(peer2, node)
+	n.setReputation(75)
+	state.nodes[peer2] = n
 
 	require.Equal(t, peer2, state.highestNotConnectedPeer(0))
-	require.Equal(t, int32(75), state.nodes[peer2].getReputation())
+	require.Equal(t, Reputation(75), state.nodes[peer2].getReputation())
 
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 	err = state.tryAcceptIncoming(0, peer2)
@@ -175,10 +175,10 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer1))
-	node, err = state.getNode(peer1)
+	n, err = state.getNode(peer1)
 	require.NoError(t, err)
-	node.setReputation(100)
-	state.setNode(peer1, node)
+	n.setReputation(100)
+	state.nodes[peer1] = n
 
 	require.Equal(t, peer1, state.highestNotConnectedPeer(0))
 }
