@@ -300,7 +300,15 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	logger.Trace("verified block BABE pre-runtime digest", "block", header.Hash())
 
-	authIdx := types.BabePreDigestAuthorityIndex(babePreDigest)
+	var authIdx uint32
+	switch d := babePreDigest.(type) {
+	case types.BabePrimaryPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryVRFPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryPlainPreDigest:
+		authIdx = d.AuthorityIndex
+	}
 
 	authorPub := b.authorities[authIdx].Key
 
@@ -354,7 +362,15 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			continue
 		}
 
-		existingBlockProducerIndex := types.BabePreDigestAuthorityIndex(babePreDigest)
+		var existingBlockProducerIndex uint32
+		switch d := babePreDigest.(type) {
+		case types.BabePrimaryPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		case types.BabeSecondaryVRFPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		case types.BabeSecondaryPlainPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		}
 
 		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
 			return ErrProducerEquivocated
@@ -370,7 +386,15 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 		return nil, err
 	}
 
-	authIdx := types.BabePreDigestAuthorityIndex(babePreDigest)
+	var authIdx uint32
+	switch d := babePreDigest.(type) {
+	case types.BabePrimaryPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryVRFPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryPlainPreDigest:
+		authIdx = d.AuthorityIndex
+	}
 
 	if len(b.authorities) <= int(authIdx) {
 		logger.Trace("verifyPreRuntimeDigest", "invalid auth index", authIdx, "our auths", len(b.authorities))
@@ -462,7 +486,15 @@ func getAuthorityIndex(header *types.Header) (uint32, error) {
 		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
-	authIdx := types.BabePreDigestAuthorityIndex(babePreDigest)
+	var authIdx uint32
+	switch d := babePreDigest.(type) {
+	case types.BabePrimaryPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryVRFPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryPlainPreDigest:
+		authIdx = d.AuthorityIndex
+	}
 
 	return authIdx, nil
 }

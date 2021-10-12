@@ -203,7 +203,15 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
 		}
 
-		slotNumber := types.BabePreDigestSlotNumber(digest)
+		var slotNumber uint64
+		switch d := digest.(type) {
+		case types.BabePrimaryPreDigest:
+			slotNumber = d.SlotNumber
+		case types.BabeSecondaryVRFPreDigest:
+			slotNumber = d.SlotNumber
+		case types.BabeSecondaryPlainPreDigest:
+			slotNumber = d.SlotNumber
+		}
 
 		if slotNumber < firstSlot {
 			return 0, nil
