@@ -46,7 +46,7 @@ func (s *Service) receiveMessages(ctx context.Context) {
 				return
 			}
 
-			logger.Trace("received vote message", "msg", msg)
+			logger.Trace("received vote message", "msg", msg.msg, "from", msg.from)
 			vm := msg.msg
 
 			v, err := s.validateMessage(msg.from, vm)
