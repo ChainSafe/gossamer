@@ -17,11 +17,7 @@
 package runtime
 
 import (
-	"bytes"
-	"math/big"
-
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Version represents the data returned by runtime call core_version
@@ -31,7 +27,7 @@ type Version interface {
 	AuthoringVersion() uint32
 	SpecVersion() uint32
 	ImplVersion() uint32
-	APIItems() []*APIItem
+	APIItems() []APIItem
 	TransactionVersion() uint32
 	Encode() ([]byte, error)
 }
@@ -49,11 +45,11 @@ type LegacyVersionData struct {
 	authoringVersion uint32
 	specVersion      uint32
 	implVersion      uint32
-	apiItems         []*APIItem
+	apiItems         []APIItem
 }
 
 // NewLegacyVersionData returns a new LegacyVersionData
-func NewLegacyVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []*APIItem) *LegacyVersionData {
+func NewLegacyVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []APIItem) *LegacyVersionData {
 	return &LegacyVersionData{
 		specName:         specName,
 		implName:         implName,
@@ -65,131 +61,81 @@ func NewLegacyVersionData(specName, implName []byte, authoringVersion, specVersi
 }
 
 // SpecName returns the spec name
-func (v *LegacyVersionData) SpecName() []byte {
-	return v.specName
+func (lvd *LegacyVersionData) SpecName() []byte {
+	return lvd.specName
 }
 
 // ImplName returns the implementation name
-func (v *LegacyVersionData) ImplName() []byte {
-	return v.implName
+func (lvd *LegacyVersionData) ImplName() []byte {
+	return lvd.implName
 }
 
 // AuthoringVersion returns the authoring version
-func (v *LegacyVersionData) AuthoringVersion() uint32 {
-	return v.authoringVersion
+func (lvd *LegacyVersionData) AuthoringVersion() uint32 {
+	return lvd.authoringVersion
 }
 
 // SpecVersion returns the spec version
-func (v *LegacyVersionData) SpecVersion() uint32 {
-	return v.specVersion
+func (lvd *LegacyVersionData) SpecVersion() uint32 {
+	return lvd.specVersion
 }
 
 // ImplVersion returns the implementation version
-func (v *LegacyVersionData) ImplVersion() uint32 {
-	return v.implVersion
+func (lvd *LegacyVersionData) ImplVersion() uint32 {
+	return lvd.implVersion
 }
 
 // APIItems returns the API items
-func (v *LegacyVersionData) APIItems() []*APIItem {
-	return v.apiItems
+func (lvd *LegacyVersionData) APIItems() []APIItem {
+	return lvd.apiItems
 }
 
 // TransactionVersion returns the transaction version
-func (v *LegacyVersionData) TransactionVersion() uint32 {
+func (lvd *LegacyVersionData) TransactionVersion() uint32 {
 	return 0
 }
 
+type legacyVersionData struct {
+	SpecName         []byte
+	ImplName         []byte
+	AuthoringVersion uint32
+	SpecVersion      uint32
+	ImplVersion      uint32
+	APIItems         []APIItem
+}
+
 // Encode returns the SCALE encoding of the Version
-func (v *LegacyVersionData) Encode() ([]byte, error) {
-	info := &struct {
-		SpecName         []byte
-		ImplName         []byte
-		AuthoringVersion uint32
-		SpecVersion      uint32
-		ImplVersion      uint32
-	}{
-		SpecName:         v.specName,
-		ImplName:         v.implName,
-		AuthoringVersion: v.authoringVersion,
-		SpecVersion:      v.specVersion,
-		ImplVersion:      v.implVersion,
+func (lvd *LegacyVersionData) Encode() ([]byte, error) {
+	info := legacyVersionData{
+		SpecName:         lvd.specName,
+		ImplName:         lvd.implName,
+		AuthoringVersion: lvd.authoringVersion,
+		SpecVersion:      lvd.specVersion,
+		ImplVersion:      lvd.implVersion,
+		APIItems:         lvd.apiItems,
 	}
 
-	enc, err := scale.Encode(info)
+	enc, err := scale.Marshal(info)
 	if err != nil {
 		return nil, err
 	}
-
-	b, err := scale.Encode(big.NewInt(int64(len(v.apiItems))))
-	if err != nil {
-		return nil, err
-	}
-	enc = append(enc, b...)
-
-	for _, apiItem := range v.apiItems {
-		enc = append(enc, apiItem.Name[:]...)
-
-		b, err = scale.Encode(apiItem.Ver)
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, b...)
-	}
-
 	return enc, nil
 }
 
 // Decode to scale decode []byte to VersionAPI struct
-func (v *LegacyVersionData) Decode(in []byte) error {
-	r := &bytes.Buffer{}
-	_, err := r.Write(in)
-	if err != nil {
-		return err
-	}
-	sd := scale.Decoder{Reader: r}
-
-	type Info struct {
-		SpecName         []byte
-		ImplName         []byte
-		AuthoringVersion uint32
-		SpecVersion      uint32
-		ImplVersion      uint32
-	}
-
-	ret, err := sd.Decode(new(Info))
+func (lvd *LegacyVersionData) Decode(in []byte) error {
+	var info legacyVersionData
+	err := scale.Unmarshal(in, &info)
 	if err != nil {
 		return err
 	}
 
-	info := ret.(*Info)
-
-	v.specName = info.SpecName
-	v.implName = info.ImplName
-	v.authoringVersion = info.AuthoringVersion
-	v.specVersion = info.SpecVersion
-	v.implVersion = info.ImplVersion
-
-	numApis, err := sd.DecodeInteger()
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < int(numApis); i++ {
-		name, err := common.Read8Bytes(r) //nolint
-		if err != nil {
-			return err
-		}
-
-		version, err := common.ReadUint32(r)
-		if err != nil {
-			return err
-		}
-
-		v.apiItems = append(v.apiItems, &APIItem{
-			Name: name,
-			Ver:  version,
-		})
-	}
+	lvd.specName = info.SpecName
+	lvd.implName = info.ImplName
+	lvd.authoringVersion = info.AuthoringVersion
+	lvd.specVersion = info.SpecVersion
+	lvd.implVersion = info.ImplVersion
+	lvd.apiItems = info.APIItems
 
 	return nil
 }
@@ -201,12 +147,12 @@ type VersionData struct {
 	authoringVersion   uint32
 	specVersion        uint32
 	implVersion        uint32
-	apiItems           []*APIItem
+	apiItems           []APIItem
 	transactionVersion uint32
 }
 
 // NewVersionData returns a new VersionData
-func NewVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []*APIItem, transactionVersion uint32) *VersionData {
+func NewVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []APIItem, transactionVersion uint32) *VersionData {
 	return &VersionData{
 		specName:           specName,
 		implName:           implName,
@@ -219,138 +165,84 @@ func NewVersionData(specName, implName []byte, authoringVersion, specVersion, im
 }
 
 // SpecName returns the spec name
-func (v *VersionData) SpecName() []byte {
-	return v.specName
+func (vd *VersionData) SpecName() []byte {
+	return vd.specName
 }
 
 // ImplName returns the implementation name
-func (v *VersionData) ImplName() []byte {
-	return v.implName
+func (vd *VersionData) ImplName() []byte {
+	return vd.implName
 }
 
 // AuthoringVersion returns the authoring version
-func (v *VersionData) AuthoringVersion() uint32 {
-	return v.authoringVersion
+func (vd *VersionData) AuthoringVersion() uint32 {
+	return vd.authoringVersion
 }
 
 // SpecVersion returns the spec version
-func (v *VersionData) SpecVersion() uint32 {
-	return v.specVersion
+func (vd *VersionData) SpecVersion() uint32 {
+	return vd.specVersion
 }
 
 // ImplVersion returns the implementation version
-func (v *VersionData) ImplVersion() uint32 {
-	return v.implVersion
+func (vd *VersionData) ImplVersion() uint32 {
+	return vd.implVersion
 }
 
 // APIItems returns the API items
-func (v *VersionData) APIItems() []*APIItem {
-	return v.apiItems
+func (vd *VersionData) APIItems() []APIItem {
+	return vd.apiItems
 }
 
 // TransactionVersion returns the transaction version
-func (v *VersionData) TransactionVersion() uint32 {
-	return v.transactionVersion
+func (vd *VersionData) TransactionVersion() uint32 {
+	return vd.transactionVersion
+}
+
+type versionData struct {
+	SpecName           []byte
+	ImplName           []byte
+	AuthoringVersion   uint32
+	SpecVersion        uint32
+	ImplVersion        uint32
+	APIItems           []APIItem
+	TransactionVersion uint32
 }
 
 // Encode returns the SCALE encoding of the Version
-func (v *VersionData) Encode() ([]byte, error) {
-	info := &struct {
-		SpecName         []byte
-		ImplName         []byte
-		AuthoringVersion uint32
-		SpecVersion      uint32
-		ImplVersion      uint32
-	}{
-		SpecName:         v.specName,
-		ImplName:         v.implName,
-		AuthoringVersion: v.authoringVersion,
-		SpecVersion:      v.specVersion,
-		ImplVersion:      v.implVersion,
+func (vd *VersionData) Encode() ([]byte, error) {
+	info := versionData{
+		SpecName:           vd.specName,
+		ImplName:           vd.implName,
+		AuthoringVersion:   vd.authoringVersion,
+		SpecVersion:        vd.specVersion,
+		ImplVersion:        vd.implVersion,
+		APIItems:           vd.apiItems,
+		TransactionVersion: vd.transactionVersion,
 	}
 
-	enc, err := scale.Encode(info)
+	enc, err := scale.Marshal(info)
 	if err != nil {
 		return nil, err
 	}
-
-	b, err := scale.Encode(big.NewInt(int64(len(v.apiItems))))
-	if err != nil {
-		return nil, err
-	}
-	enc = append(enc, b...)
-
-	for _, apiItem := range v.apiItems {
-		enc = append(enc, apiItem.Name[:]...)
-
-		b, err = scale.Encode(apiItem.Ver)
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, b...)
-	}
-
-	b, err = scale.Encode(v.transactionVersion)
-	if err != nil {
-		return nil, err
-	}
-	enc = append(enc, b...)
-
 	return enc, nil
 }
 
 // Decode to scale decode []byte to VersionAPI struct
-func (v *VersionData) Decode(in []byte) error {
-	r := &bytes.Buffer{}
-	_, err := r.Write(in)
-	if err != nil {
-		return err
-	}
-	sd := scale.Decoder{Reader: r}
-
-	type Info struct {
-		SpecName         []byte
-		ImplName         []byte
-		AuthoringVersion uint32
-		SpecVersion      uint32
-		ImplVersion      uint32
-	}
-
-	ret, err := sd.Decode(new(Info))
+func (vd *VersionData) Decode(in []byte) error {
+	var info versionData
+	err := scale.Unmarshal(in, &info)
 	if err != nil {
 		return err
 	}
 
-	info := ret.(*Info)
+	vd.specName = info.SpecName
+	vd.implName = info.ImplName
+	vd.authoringVersion = info.AuthoringVersion
+	vd.specVersion = info.SpecVersion
+	vd.implVersion = info.ImplVersion
+	vd.apiItems = info.APIItems
+	vd.transactionVersion = info.TransactionVersion
 
-	v.specName = info.SpecName
-	v.implName = info.ImplName
-	v.authoringVersion = info.AuthoringVersion
-	v.specVersion = info.SpecVersion
-	v.implVersion = info.ImplVersion
-
-	numApis, err := sd.DecodeInteger()
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < int(numApis); i++ {
-		name, err := common.Read8Bytes(r) //nolint
-		if err != nil {
-			return err
-		}
-
-		version, err := common.ReadUint32(r)
-		if err != nil {
-			return err
-		}
-
-		v.apiItems = append(v.apiItems, &APIItem{
-			Name: name,
-			Ver:  version,
-		})
-	}
-
-	v.transactionVersion, err = common.ReadUint32(r)
-	return err
+	return nil
 }
