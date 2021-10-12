@@ -112,15 +112,14 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 		return ErrIncompleteProof
 	}
 
-	t.loadFromProof(mappedNodes, t.root)
+	t.loadProof(mappedNodes, t.root)
 	return nil
 }
 
 // loadFromProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting by the root
-func (t *Trie) loadFromProof(proof map[string]node, curr node) {
-	switch c := curr.(type) {
-	case *branch:
+func (t *Trie) loadProof(proof map[string]node, curr node) {
+	if c, ok := curr.(*branch); ok {
 		for i, child := range c.children {
 			if child == nil {
 				continue
@@ -132,7 +131,7 @@ func (t *Trie) loadFromProof(proof map[string]node, curr node) {
 			}
 
 			c.children[i] = proofNode
-			t.loadFromProof(proof, proofNode)
+			t.loadProof(proof, proofNode)
 		}
 	}
 }
