@@ -194,12 +194,12 @@ func (bs *BlockState) hasUnfinalisedBlock(hash common.Hash) bool {
 }
 
 func (bs *BlockState) getUnfinalisedHeader(hash common.Hash) (*types.Header, bool) {
-	block, has := bs.unfinalisedBlocks.Load(hash)
+	block, has := bs.getUnfinalisedBlock(hash)
 	if !has {
 		return nil, false
 	}
 
-	return &(block.(*types.Block).Header), true
+	return &block.Header, true
 }
 
 func (bs *BlockState) getUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {
@@ -213,12 +213,11 @@ func (bs *BlockState) getUnfinalisedBlock(hash common.Hash) (*types.Block, bool)
 }
 
 func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {
-	block, has := bs.unfinalisedBlocks.Load(hash)
+	block, has := bs.unfinalisedBlocks.LoadAndDelete(hash)
 	if !has {
 		return nil, false
 	}
 
-	bs.unfinalisedBlocks.Delete(hash)
 	return block.(*types.Block), true
 }
 
