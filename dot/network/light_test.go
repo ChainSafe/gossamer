@@ -35,8 +35,8 @@ func TestEncodeLightResponse(t *testing.T) {
 	require.Equal(t, exp, enc)
 
 	testLightResponse2 := NewLightResponse()
-	for i := range testLightResponse.RmtHeaderResponse.Header {
-		testLightResponse.RmtHeaderResponse.Header[i] = types.NewEmptyHeader()
+	for i := range testLightResponse.RemoteHeaderResponse.Header {
+		testLightResponse.RemoteHeaderResponse.Header[i] = types.NewEmptyHeader()
 	}
 	err = testLightResponse2.Decode(enc)
 	require.NoError(t, err)

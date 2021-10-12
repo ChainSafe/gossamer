@@ -96,35 +96,35 @@ func (l LightRequest) String() string {
 
 // LightResponse is all possible light client response messages.
 type LightResponse struct {
-	RmtCallResponse   *RemoteCallResponse
-	RmtReadResponse   *RemoteReadResponse
-	RmtHeaderResponse *RemoteHeaderResponse
-	RmtChangeResponse *RemoteChangesResponse
+	*RemoteCallResponse
+	*RemoteReadResponse
+	*RemoteHeaderResponse
+	*RemoteChangesResponse
 }
 
 type response struct {
-	RmtCallResponse   RemoteCallResponse
-	RmtReadResponse   RemoteReadResponse
-	RmtHeaderResponse RemoteHeaderResponse
-	RmtChangeResponse RemoteChangesResponse
+	RemoteCallResponse
+	RemoteReadResponse
+	RemoteHeaderResponse
+	RemoteChangesResponse
 }
 
 // NewLightResponse returns a new LightResponse
 func NewLightResponse() *LightResponse {
 	return &LightResponse{
-		RmtCallResponse:   newRemoteCallResponse(),
-		RmtReadResponse:   newRemoteReadResponse(),
-		RmtHeaderResponse: newRemoteHeaderResponse(),
-		RmtChangeResponse: newRemoteChangesResponse(),
+		RemoteCallResponse:   newRemoteCallResponse(),
+		RemoteReadResponse:   newRemoteReadResponse(),
+		RemoteHeaderResponse: newRemoteHeaderResponse(),
+		RemoteChangesResponse: newRemoteChangesResponse(),
 	}
 }
 
 func newResponse() *response {
 	return &response{
-		RmtCallResponse:   *newRemoteCallResponse(),
-		RmtReadResponse:   *newRemoteReadResponse(),
-		RmtHeaderResponse: *newRemoteHeaderResponse(),
-		RmtChangeResponse: *newRemoteChangesResponse(),
+		RemoteCallResponse:   *newRemoteCallResponse(),
+		RemoteReadResponse:   *newRemoteReadResponse(),
+		RemoteHeaderResponse: *newRemoteHeaderResponse(),
+		RemoteChangesResponse: *newRemoteChangesResponse(),
 	}
 }
 
@@ -136,10 +136,10 @@ func (l *LightResponse) SubProtocol() string {
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
 func (l *LightResponse) Encode() ([]byte, error) {
 	resp := response{
-		RmtCallResponse:   *l.RmtCallResponse,
-		RmtReadResponse:   *l.RmtReadResponse,
-		RmtHeaderResponse: *l.RmtHeaderResponse,
-		RmtChangeResponse: *l.RmtChangeResponse,
+		RemoteCallResponse:   *l.RemoteCallResponse,
+		RemoteReadResponse:   *l.RemoteReadResponse,
+		RemoteHeaderResponse: *l.RemoteHeaderResponse,
+		RemoteChangesResponse: *l.RemoteChangesResponse,
 	}
 	return scale.Marshal(resp)
 }
@@ -152,10 +152,10 @@ func (l *LightResponse) Decode(in []byte) error {
 		return err
 	}
 
-	l.RmtCallResponse = &msg.RmtCallResponse
-	l.RmtReadResponse = &msg.RmtReadResponse
-	l.RmtHeaderResponse = &msg.RmtHeaderResponse
-	l.RmtChangeResponse = &msg.RmtChangeResponse
+	l.RemoteCallResponse = &msg.RemoteCallResponse
+	l.RemoteReadResponse = &msg.RemoteReadResponse
+	l.RemoteHeaderResponse = &msg.RemoteHeaderResponse
+	l.RemoteChangesResponse = &msg.RemoteChangesResponse
 	return nil
 }
 
@@ -163,7 +163,7 @@ func (l *LightResponse) Decode(in []byte) error {
 func (l LightResponse) String() string {
 	return fmt.Sprintf(
 		"RemoteCallResponse=%s RemoteReadResponse=%s RemoteHeaderResponse=%s RemoteChangesResponse=%s",
-		l.RmtCallResponse, l.RmtReadResponse, l.RmtHeaderResponse, l.RmtChangeResponse)
+		l.RemoteCallResponse, l.RemoteReadResponse, l.RemoteHeaderResponse, l.RemoteChangesResponse)
 }
 
 // RemoteCallRequest ...

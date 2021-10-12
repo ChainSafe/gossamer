@@ -622,15 +622,15 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	var err error
 	switch {
 	case lr.RemoteCallRequest != nil:
-		resp.RmtCallResponse, err = remoteCallResp(lr.RemoteCallRequest)
+		resp.RemoteCallResponse, err = remoteCallResp(lr.RemoteCallRequest)
 	case lr.RemoteHeaderRequest != nil:
-		resp.RmtHeaderResponse, err = remoteHeaderResp(lr.RemoteHeaderRequest)
+		resp.RemoteHeaderResponse, err = remoteHeaderResp(lr.RemoteHeaderRequest)
 	case lr.RemoteChangesRequest != nil:
-		resp.RmtChangeResponse, err = remoteChangeResp(lr.RemoteChangesRequest)
+		resp.RemoteChangesResponse, err = remoteChangeResp(lr.RemoteChangesRequest)
 	case lr.RemoteReadRequest != nil:
-		resp.RmtReadResponse, err = remoteReadResp(lr.RemoteReadRequest)
+		resp.RemoteReadResponse, err = remoteReadResp(lr.RemoteReadRequest)
 	case lr.RemoteReadChildRequest != nil:
-		resp.RmtReadResponse, err = remoteReadChildResp(lr.RemoteReadChildRequest)
+		resp.RemoteReadResponse, err = remoteReadChildResp(lr.RemoteReadChildRequest)
 	default:
 		logger.Warn("ignoring LightRequest without request data")
 		return nil
