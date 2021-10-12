@@ -1263,28 +1263,6 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	require.Equal(t, block, pv)
 }
 
-func TestGrandpa_NonAuthority(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	gs, st := newTestService(t)
-	gs.authority = false
-	err := gs.Start()
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 100)
-
-	state.AddBlocksToState(t, st.Block, 8)
-	head := st.Block.BestBlockHash()
-	err = st.Block.SetFinalisedHash(head, gs.state.round, gs.state.setID)
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 100)
-
-	require.Equal(t, uint64(2), gs.state.round)
-	require.Equal(t, uint64(0), gs.state.setID)
-}
 func TestFinalRoundGaugeMetric(t *testing.T) {
 	gs, _ := newTestService(t)
 	ethmetrics.Enabled = true
