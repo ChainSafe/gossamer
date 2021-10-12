@@ -1247,8 +1247,6 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 		}
 	}
 
-	t.Log(st.Block.BlocktreeAsString())
-
 	// expected block is that with the most votes ie. block 3
 	expected, err := st.Block.GetBlockHash(big.NewInt(3))
 	require.NoError(t, err)

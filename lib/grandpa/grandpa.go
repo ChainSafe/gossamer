@@ -444,6 +444,8 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
 	logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
+	start := time.Now()
+
 	ctx, cancel := context.WithCancel(s.ctx)
 	defer cancel()
 
@@ -506,12 +508,12 @@ func (s *Service) playGrandpaRound() error {
 	// continue to send precommit messages until round is done
 	go s.sendVoteMessage(precommit, pcm, roundComplete)
 
-	err = s.attemptToFinalize()
-	if err != nil {
+	if err = s.attemptToFinalize(); err != nil {
 		logger.Error("failed to finalise", "error", err)
 		return err
 	}
 
+	logger.Debug("round completed", "duration", time.Since(start))
 	return nil
 }
 
@@ -581,11 +583,17 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		if bfc.Number < uint32(s.head.Number.Int64()) || pc <= s.state.threshold() {
+			logger.Info("attemptToFinalize",
+				"bfc", bfc,
+				"precommits for bfc", pc,
+				"threshold", s.state.threshold(),
+				"prev finalised", s.head.Number,
+			)
+			time.Sleep(time.Millisecond * 500)
 			continue
 		}
 
-		err = s.finalise()
-		if err != nil {
+		if err = s.finalise(); err != nil {
 			return err
 		}
 
@@ -1026,10 +1034,11 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 			return Vote{}, err
 		}
 
-		threshold--
 		if len(blocks) > 0 || threshold == 0 {
 			break
 		}
+
+		threshold--
 	}
 
 	if len(blocks) == 0 {
