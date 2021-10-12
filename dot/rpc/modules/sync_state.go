@@ -22,24 +22,52 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
-type SyncStateModule struct {
-	GenesisFilePath string
-}
-
-type BoolRequest struct {
+// GenSyncSpecRequest represents request to get chain specification.
+type GenSyncSpecRequest struct {
 	Raw bool
 }
 
-func NewSyncStateModule(s string) *SyncStateModule {
-	return &SyncStateModule{GenesisFilePath: s}
+// SyncStateModule is an RPC module to interact with sync state methods.
+type SyncStateModule struct {
+	syncStateAPI SyncStateAPI
 }
 
-func (ss *SyncStateModule) GenSyncSpec(_ *http.Request, req *BoolRequest, res *genesis.Genesis) error {
-	g, err := genesis.GenSyncSpec(req.Raw, ss.GenesisFilePath)
+// NewSyncStateModule creates an instance of SyncStateModule given SyncStateAPI.
+func NewSyncStateModule(syncStateAPI SyncStateAPI) *SyncStateModule {
+	return &SyncStateModule{syncStateAPI: syncStateAPI}
+}
+
+// GenSyncSpec returns the JSON serialised chain specification running the node
+// (i.e. the current state state), with a sync state.
+func (ss *SyncStateModule) GenSyncSpec(_ *http.Request, req *GenSyncSpecRequest, res *genesis.Genesis) error {
+	g, err := ss.syncStateAPI.GenSyncSpec(req.Raw)
 	if err != nil {
 		return err
 	}
 
 	*res = *g
 	return nil
+}
+
+// SyncState implements SyncStateAPI.
+type SyncState struct {
+	chainSpecification *genesis.Genesis
+}
+
+// NewStateSync creates an instance of SyncStateAPI given a chain specification.
+func NewStateSync(chainSpecification *genesis.Genesis) SyncStateAPI {
+	return SyncState{chainSpecification: chainSpecification}
+}
+
+// GenSyncSpec returns the JSON serialised chain specification running the node
+// (i.e. the current state), with a sync state.
+func (s SyncState) GenSyncSpec(raw bool) (*genesis.Genesis, error) {
+	if raw {
+		err := s.chainSpecification.ToRaw()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s.chainSpecification, nil
 }

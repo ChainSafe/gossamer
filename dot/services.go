@@ -335,6 +335,9 @@ func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Ser
 	)
 	rpcService := rpc.NewService()
 
+	buildSpec, _ := BuildFromDB(cfg.Global.BasePath)
+	syncStateSrvc := modules.NewStateSync(buildSpec.genesis)
+
 	rpcConfig := &rpc.HTTPServerConfig{
 		LogLvl:              cfg.Log.RPCLvl,
 		BlockAPI:            stateSrvc.Block,
@@ -346,7 +349,7 @@ func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Ser
 		BlockFinalityAPI:    finSrvc,
 		TransactionQueueAPI: stateSrvc.Transaction,
 		RPCAPI:              rpcService,
-		GenesisFilePath:     cfg.Init.Genesis,
+		SyncStateAPI:        syncStateSrvc,
 		SystemAPI:           sysSrvc,
 		RPC:                 cfg.RPC.Enabled,
 		RPCExternal:         cfg.RPC.External,
