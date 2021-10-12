@@ -49,19 +49,19 @@ func (ss *SyncStateModule) GenSyncSpec(_ *http.Request, req *GenSyncSpecRequest,
 	return nil
 }
 
-// SyncState implements SyncStateAPI.
-type SyncState struct {
+// syncState implements SyncStateAPI.
+type syncState struct {
 	chainSpecification *genesis.Genesis
 }
 
 // NewStateSync creates an instance of SyncStateAPI given a chain specification.
 func NewStateSync(chainSpecification *genesis.Genesis) SyncStateAPI {
-	return SyncState{chainSpecification: chainSpecification}
+	return syncState{chainSpecification: chainSpecification}
 }
 
 // GenSyncSpec returns the JSON serialised chain specification running the node
 // (i.e. the current state), with a sync state.
-func (s SyncState) GenSyncSpec(raw bool) (*genesis.Genesis, error) {
+func (s syncState) GenSyncSpec(raw bool) (*genesis.Genesis, error) {
 	if raw {
 		err := s.chainSpecification.ToRaw()
 		if err != nil {
