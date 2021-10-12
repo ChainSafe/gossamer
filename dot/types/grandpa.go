@@ -57,13 +57,14 @@ func GrandpaAuthoritiesRawToAuthorities(adr []GrandpaAuthoritiesRaw) ([]Authorit
 	return ad, nil
 }
 
-// Voter represents a scale compatible GRANDPA voter
-type Voter struct {
+// voter represents a scale compatible GRANDPA voter
+type voter struct {
 	Key [32]byte
 	ID  uint64
 }
 
-func (sv *Voter) toGrandpaVoter() (GrandpaVoter, error) {
+// GrandpaVoter converts a voter to a GrandpaVoter
+func (sv *voter) GrandpaVoter() (GrandpaVoter, error) {
 	key, err := ed25519.NewPublicKey(sv.Key[:])
 	if err != nil {
 		return GrandpaVoter{}, err
@@ -140,9 +141,9 @@ func (v GrandpaVoters) String() string {
 
 // EncodeGrandpaVoters returns an encoded GrandpaVoters
 func EncodeGrandpaVoters(voters GrandpaVoters) ([]byte, error) {
-	sv := make([]Voter, len(voters))
+	sv := make([]voter, len(voters))
 	for i := range voters {
-		sv[i] = Voter{
+		sv[i] = voter{
 			Key: voters[i].Key.AsBytes(),
 			ID:  voters[i].ID,
 		}
@@ -157,7 +158,7 @@ func EncodeGrandpaVoters(voters GrandpaVoters) ([]byte, error) {
 
 // DecodeGrandpaVoters returns a decoded GrandpaVoters
 func DecodeGrandpaVoters(in []byte) (GrandpaVoters, error) {
-	dec := []Voter{}
+	dec := []voter{}
 	err := scale.Unmarshal(in, &dec)
 	if err != nil {
 		return nil, err
@@ -165,7 +166,7 @@ func DecodeGrandpaVoters(in []byte) (GrandpaVoters, error) {
 
 	gv := make(GrandpaVoters, len(dec))
 	for i := range dec {
-		gv[i], err = dec[i].toGrandpaVoter()
+		gv[i], err = dec[i].GrandpaVoter()
 		if err != nil {
 			return nil, err
 		}
