@@ -82,3 +82,12 @@ func (b *Block) DeepCopy() (Block, error) {
 		Body:   b.Body.DeepCopy(),
 	}, nil
 }
+
+// ToBlockData converts a Block to BlockData
+func (b *Block) ToBlockData() *BlockData {
+	return &BlockData{
+		Hash:   b.Header.Hash(),
+		Header: &b.Header,
+		Body:   &b.Body,
+	}
+}

@@ -311,10 +311,14 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.Header{
-		Number: big.NewInt(1),
-		Digest: digest,
+		ParentHash: genesisHeader.Hash(),
+		Number:     big.NewInt(1),
+		Digest:     digest,
 	}
-	err = state.Block.SetHeader(header)
+	err = state.Block.AddBlock(&types.Block{
+		Header: *header,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
 
 	testhash := header.Hash()

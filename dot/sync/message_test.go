@@ -37,7 +37,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 }
 
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
-	s := NewTestSyncer(t, false)
+	s := newTestSyncer(t)
 	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	start, err := variadic.NewUint64OrHash(uint64(1))
@@ -57,7 +57,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 
-	max := maxResponseSize + 100
+	max := uint32(maxResponseSize + 100)
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
@@ -74,7 +74,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
-	s := NewTestSyncer(t, false)
+	s := newTestSyncer(t)
 	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
@@ -99,7 +99,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_Descending(t *testing.T) {
-	s := NewTestSyncer(t, false)
+	s := newTestSyncer(t)
 	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
@@ -125,7 +125,7 @@ func TestService_CreateBlockResponse_Descending(t *testing.T) {
 
 // tests the ProcessBlockRequestMessage method
 func TestService_CreateBlockResponse(t *testing.T) {
-	s := NewTestSyncer(t, false)
+	s := newTestSyncer(t)
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()

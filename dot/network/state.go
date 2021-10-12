@@ -21,6 +21,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // BlockState interface for block state methods
@@ -35,22 +37,17 @@ type BlockState interface {
 
 // Syncer is implemented by the syncing service
 type Syncer interface {
-	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
-	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
-
-	ProcessJustification(data []*types.BlockData) (int, error)
-
-	// ProcessBlockData is called to process BlockData received in a BlockResponseMessage
-	ProcessBlockData(data []*types.BlockData) (int, error)
+	HandleBlockAnnounceHandshake(from peer.ID, msg *BlockAnnounceHandshake) error
 
 	// HandleBlockAnnounce is called upon receipt of a BlockAnnounceMessage to process it.
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
-	HandleBlockAnnounce(*BlockAnnounceMessage) error
+	HandleBlockAnnounce(from peer.ID, msg *BlockAnnounceMessage) error
 
 	// IsSynced exposes the internal synced state // TODO: use syncQueue for this
 	IsSynced() bool
 
-	SetSyncing(bool)
+	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
+	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 }
 
 // TransactionHandler is the interface used by the transactions sub-protocol

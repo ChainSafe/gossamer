@@ -12,6 +12,7 @@ import (
 func NewMockStorageAPI() *modulesmocks.MockStorageAPI {
 	m := new(modulesmocks.MockStorageAPI)
 	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
+	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
 	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("RegisterStorageObserver", mock.Anything)
@@ -32,9 +33,8 @@ func NewMockBlockAPI() *modulesmocks.MockBlockAPI {
 	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil)
 	m.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block, 5))
 	m.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-	m.On("UnregisterImportedChannel", mock.AnythingOfType("uint8"))
-	m.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).Return(byte(0), nil)
-	m.On("UnregisterFinalizedChannel", mock.AnythingOfType("uint8"))
+	m.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 5))
+	m.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil)
 	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
 	m.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(make([]common.Hash, 0), nil)
@@ -56,8 +56,8 @@ func NewMockCoreAPI() *modulesmocks.MockCoreAPI {
 }
 
 // NewMockVersion creates and returns an runtime Version interface mock
-func NewMockVersion() *runtimemocks.MockVersion {
-	m := new(runtimemocks.MockVersion)
+func NewMockVersion() *runtimemocks.Version {
+	m := new(runtimemocks.Version)
 	m.On("SpecName").Return([]byte(`mock-spec`))
 	m.On("ImplName").Return(nil)
 	m.On("AuthoringVersion").Return(uint32(0))

@@ -145,6 +145,10 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		}
 	}
 
+	if err := bs.handleFinalisedBlock(hash); err != nil {
+		return fmt.Errorf("failed to set number->hash mapping on finalisation: %w", err)
+	}
+
 	if round > 0 {
 		bs.notifyFinalized(hash, round, setID)
 	}
@@ -176,6 +180,41 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	return bs.setHighestRoundAndSetID(round, setID)
+}
+
+func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
+	if curr.Equal(bs.lastFinalised) {
+		return nil
+	}
+
+	prev, err := bs.GetHighestFinalisedHash()
+	if err != nil {
+		return err
+	}
+
+	if prev.Equal(curr) {
+		return nil
+	}
+
+	subchain, err := bs.SubChain(prev, curr)
+	if err != nil {
+		return err
+	}
+
+	batch := bs.db.NewBatch()
+	for _, hash := range subchain {
+		header, err := bs.GetHeader(hash)
+		if err != nil {
+			return fmt.Errorf("failed to get header in subchain: %w", err)
+		}
+
+		err = batch.Put(headerHashKey(header.Number.Uint64()), hash.ToBytes())
+		if err != nil {
+			return err
+		}
+	}
+
+	return batch.Flush()
 }
 
 func (bs *BlockState) setFirstSlotOnFinalisation() error {
