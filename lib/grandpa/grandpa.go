@@ -378,8 +378,6 @@ func (s *Service) waitForFirstBlock() {
 			return
 		}
 	}
-
-	return
 }
 
 func (s *Service) handleIsPrimary() (bool, error) {

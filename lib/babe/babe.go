@@ -254,7 +254,6 @@ func (b *Service) waitForFirstBlock() {
 	for {
 		select {
 		case block := <-ch:
-			logger.Info("block imported", "block", block)
 			if block != nil && block.Header.Number.Int64() > 0 {
 				return
 			}
@@ -262,8 +261,6 @@ func (b *Service) waitForFirstBlock() {
 			return
 		}
 	}
-
-	return
 }
 
 // SlotDuration returns the current service slot duration in milliseconds
@@ -395,7 +392,7 @@ func (b *Service) invokeBlockAuthoring() error {
 			return err
 		}
 
-		logger.Info("initiated epoch",
+		logger.Debug("initiated epoch",
 			"threshold", b.epochData.threshold,
 			"randomness", b.epochData.randomness,
 			"authorities", b.epochData.authorities,
@@ -437,8 +434,6 @@ func (b *Service) invokeBlockAuthoring() error {
 		}
 
 		nextEpochStartTime := getSlotStartTime(nextEpochStart, b.slotDuration)
-
-		logger.Info("nextEpochStartTime", "time", nextEpochStartTime)
 		epochDoneCtx, cancel := context.WithDeadline(context.Background(), nextEpochStartTime)
 		defer cancel()
 
@@ -448,6 +443,8 @@ func (b *Service) invokeBlockAuthoring() error {
 		}
 
 		for i := 0; i < int(b.epochLength-intoEpoch); i++ {
+			done := false
+
 			select {
 			case <-b.ctx.Done():
 				return nil
@@ -468,7 +465,10 @@ func (b *Service) invokeBlockAuthoring() error {
 					continue
 				}
 			case <-epochDoneCtx.Done():
-				logger.Info("epoch done!!!!!")
+				done = true
+			}
+
+			if done {
 				break
 			}
 		}
@@ -579,7 +579,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		"epoch", epoch,
 		"slot", slotNum,
 	)
-	logger.Debug("built block",
+	logger.Trace("built block",
 		"header", block.Header,
 		"body", block.Body,
 		"parent", parent.Hash(),

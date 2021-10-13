@@ -97,22 +97,6 @@ func (*testNetwork) RegisterNotificationsProtocol(
 
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
-func onSameChain(blockState BlockState, a, b common.Hash) bool {
-	descendant, err := blockState.IsDescendantOf(a, b)
-	if err != nil {
-		return false
-	}
-
-	if !descendant {
-		descendant, err = blockState.IsDescendantOf(b, a)
-		if err != nil {
-			return false
-		}
-	}
-
-	return descendant
-}
-
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
