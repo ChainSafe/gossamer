@@ -6,7 +6,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// PaymentQueryInfoRequest represents the request to get the fee of a extrinsic in a given block
+// PaymentQueryInfoRequest represents the request to get the fee of an extrinsic in a given block
 type PaymentQueryInfoRequest struct {
 	// hex SCALE encoded extrinsic
 	Ext string

@@ -359,16 +359,12 @@ func newTestStateService(t *testing.T) *state.Service {
 	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	nodeStorage := runtime.NodeStorage{}
-
 	if stateSrvc != nil {
-		nodeStorage.BaseDB = stateSrvc.Base
+		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
 	} else {
-		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 		require.NoError(t, err)
 	}
-
-	rtCfg.NodeStorage = nodeStorage
 
 	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 	require.NoError(t, err)
