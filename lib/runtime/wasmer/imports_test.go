@@ -1200,8 +1200,9 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 		key      []byte
 		limit    *optional.Bytes
 		expected []byte
+		errMsg   string
 	}{
-		{key: []byte(`fakekey`), limit: optLimit2, expected: []byte{0, 0, 0, 0, 0}},
+		{key: []byte(`fakekey`), limit: optLimit2, expected: []byte{0, 0, 0, 0, 0}, errMsg: "Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function."},
 		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
 		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
 	}
@@ -1212,12 +1213,20 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 		encOptLimit, err := test.limit.Encode()
 		require.NoError(t, err)
 		res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_3", append(encChildKey, encOptLimit...))
+		if test.errMsg != "" {
+			require.Error(t, err)
+			require.EqualError(t, err, test.errMsg)
+			continue
+		}
+
 		require.NoError(t, err)
 
-		ptr := binary.LittleEndian.Uint32(res)
-		mem := inst.vm.Memory.Data()[ptr : ptr+5]
+		buf := &bytes.Buffer{}
+		buf.Write(res)
 
-		require.Equal(t, test.expected, mem)
+		read, err := new(optional.Bytes).Decode(buf)
+		require.NoError(t, err)
+		require.Equal(t, test.expected, read.Value())
 	}
 }
 

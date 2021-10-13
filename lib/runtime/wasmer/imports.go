@@ -62,7 +62,7 @@ package wasmer
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
 // extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
-// extern int32_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
+// extern int64_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
 // extern void ext_default_child_storage_clear_prefix_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_default_child_storage_exists_version_1(void *context, int64_t a, int64_t b);
 //
@@ -1158,9 +1158,8 @@ func (SomeRemain) Index() uint {
 }
 
 //export ext_default_child_storage_storage_kill_version_3
-func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, lim C.int64_t) C.int32_t {
+func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, lim C.int64_t) C.int64_t {
 	logger.Debug("executing...")
-
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
@@ -1178,7 +1177,7 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, ch
 	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
 	if err != nil {
 		logger.Warn("cannot get child storage", "error", err)
-		return C.int32_t(0)
+		return C.int64_t(0)
 	}
 
 	vdt, err := scale.NewVaryingDataType(NoneRemain(0), SomeRemain(0))
@@ -1193,22 +1192,22 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, ch
 	}
 	if err != nil {
 		logger.Warn("cannot set varying data type", "error", err)
-		return C.int32_t(0)
+		return C.int64_t(0)
 	}
 
 	encoded, err := scale.Marshal(vdt)
 	if err != nil {
 		logger.Warn("problem marshaling varying data type", "error", err)
-		return C.int32_t(0)
+		return C.int64_t(0)
 	}
 
-	out, err := toWasmMemorySized(instanceContext, encoded, 5)
+	out, err := toWasmMemoryOptional(instanceContext, encoded)
 	if err != nil {
 		logger.Warn("failed to allocate", "error", err)
 		return 0
 	}
 
-	return C.int32_t(out)
+	return C.int64_t(out)
 }
 
 //export ext_allocator_free_version_1
