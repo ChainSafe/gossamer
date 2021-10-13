@@ -69,11 +69,11 @@ type node struct {
 }
 
 // newNode method to create a node with 0 Reputation at starting.
-func newNode(len int) *node {
+func newNode(n int) *node {
 	now := time.Now()
-	sets := make([]MembershipState, len)
-	lastConnected := make([]time.Time, len)
-	for i := 0; i < len; i++ {
+	sets := make([]MembershipState, n)
+	lastConnected := make([]time.Time, n)
+	for i := 0; i < n; i++ {
 		sets[i] = notMember
 		lastConnected[i] = now
 	}

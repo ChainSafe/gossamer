@@ -481,21 +481,7 @@ func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
 		return err
 	}
 
-	if err := ps.removeReservedPeers(setID, toRemove...); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// TODO: Not used yet, require implementing RPC call to get all the reserved peers.
-// reservedPeers returns the list of reserved peers.
-func (ps *PeerSet) reservedPeers() []peer.ID { // nolint
-	reservedPeerList := make([]peer.ID, 0, len(ps.reservedNode))
-	for node := range ps.reservedNode {
-		reservedPeerList = append(reservedPeerList, node)
-	}
-	return reservedPeerList
+	return ps.removeReservedPeers(setID, toRemove...)
 }
 
 func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
