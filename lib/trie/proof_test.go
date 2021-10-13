@@ -17,7 +17,6 @@
 package trie
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"testing"
@@ -128,12 +127,6 @@ func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	}
 
 	root, proof, _ := testGenerateProof(t, entries, keys)
-
-	fmt.Printf("ROOT: 0x%x\n", root)
-	fmt.Println("PROOF")
-	for _, p := range proof {
-		fmt.Printf("0x%x\n", p)
-	}
 
 	pl := []Pair{
 		{Key: []byte("do"), Value: []byte("verb")},
