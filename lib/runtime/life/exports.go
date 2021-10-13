@@ -2,6 +2,7 @@ package life
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -166,22 +167,8 @@ func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 
 // PaymentQueryInfo returns information of a given extrinsic
 func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error) {
-	encLen, err := scale.Marshal(uint32(len(ext)))
-	if err != nil {
-		return nil, err
-	}
-
-	resBytes, err := in.Exec(runtime.TransactionPaymentApiQueryInfo, append(ext, encLen...))
-	if err != nil {
-		return nil, err
-	}
-
-	i := new(types.TransactionPaymentQueryInfo)
-	if err = scale.Unmarshal(resBytes, i); err != nil {
-		return nil, err
-	}
-
-	return i, nil
+	// TODO: implement the payment query info (see issue #1892)
+	return nil, errors.New("not implemented yet")
 }
 
 func (in *Instance) CheckInherents()      {} //nolint
