@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -54,6 +55,7 @@ type GlobalConfig struct {
 	PublishMetrics bool
 	MetricsPort    uint32
 	NoTelemetry    bool
+	TelemetryURLs  []genesis.TelemetryEndpoint
 	RetainBlocks   int64
 	Pruning        pruner.Mode
 }
@@ -148,13 +150,14 @@ func networkServiceEnabled(cfg *Config) bool {
 func GssmrConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:         gssmr.DefaultName,
-			ID:           gssmr.DefaultID,
-			BasePath:     gssmr.DefaultBasePath,
-			LogLvl:       gssmr.DefaultLvl,
-			MetricsPort:  gssmr.DefaultMetricsPort,
-			RetainBlocks: gssmr.DefaultRetainBlocks,
-			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
+			Name:          gssmr.DefaultName,
+			ID:            gssmr.DefaultID,
+			BasePath:      gssmr.DefaultBasePath,
+			LogLvl:        gssmr.DefaultLvl,
+			MetricsPort:   gssmr.DefaultMetricsPort,
+			RetainBlocks:  gssmr.DefaultRetainBlocks,
+			Pruning:       pruner.Mode(gssmr.DefaultPruningMode),
+			TelemetryURLs: gssmr.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
