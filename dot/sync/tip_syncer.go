@@ -129,7 +129,7 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 				continue
 			}
 
-			// worker start is less than than existing worker's start
+			// worker start is less than existing worker's start
 			if startDiff < 0 {
 				continue
 			}
@@ -139,7 +139,7 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 				continue
 			}
 
-			// worker start is greater than than existing worker's start
+			// worker start is greater than existing worker's start
 			if startDiff > 0 {
 				continue
 			}
