@@ -158,7 +158,11 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
-		block, _ := bs.getAndDeleteUnfinalisedBlock(hash)
+		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
+		if !has {
+			continue
+		}
+
 		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
 
 		go func(header *types.Header) {
