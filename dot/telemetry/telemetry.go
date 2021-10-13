@@ -91,20 +91,27 @@ func (h *Handler) Initialise(e bool) {
 		})
 }
 
+var maxRetries = 5
+var retryDelay = time.Millisecond * 100
+
 // AddConnections adds the given telemetry endpoint as listeners that will receive telemetry data
 func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 	for _, v := range conns {
-		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
-		if err != nil {
-			// todo (ed) try reconnecting if there is an error connecting
-			h.log.Debug("issue adding telemetry connection", "error", err)
-			continue
+		for connAttempts := 0; connAttempts < maxRetries; {
+			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
+			if err != nil {
+				h.log.Debug("issue adding telemetry connection", "error", err)
+				connAttempts++
+				time.Sleep(retryDelay)
+			} else {
+				tConn := &telemetryConnection{
+					wsconn:    c,
+					verbosity: v.Verbosity,
+				}
+				h.connections = append(h.connections, tConn)
+				break
+			}
 		}
-		tConn := &telemetryConnection{
-			wsconn:    c,
-			verbosity: v.Verbosity,
-		}
-		h.connections = append(h.connections, tConn)
 	}
 }
 
