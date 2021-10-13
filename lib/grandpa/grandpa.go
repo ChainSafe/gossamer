@@ -580,13 +580,6 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		if bfc.Number < uint32(s.head.Number.Int64()) || pc <= s.state.threshold() {
-			logger.Info("attemptToFinalize",
-				"bfc", bfc,
-				"precommits for bfc", pc,
-				"threshold", s.state.threshold(),
-				"prev finalised", s.head.Number,
-			)
-			time.Sleep(time.Millisecond * 500)
 			continue
 		}
 
@@ -689,8 +682,6 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	logger.Debug("determinePreCommit", "pre-voted block", pvb)
 
 	s.mapLock.Lock()
 	s.preVotedBlock[s.state.round] = &pvb
