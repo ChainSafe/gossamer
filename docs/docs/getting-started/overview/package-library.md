@@ -92,7 +92,7 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `lib/runtime`
 
-- the **runtime package** contains various wasm interpreters used to interpret the runtime. It currently contains `life`, `wasmer`, and `wasmtime`; however, `wasmer` is the only interpreter that is fully supported at the moment. In the future, all interpreters will be fully supported.
+- the **runtime package** contains various wasm interpreters used to interpret the runtime. It currently contains `life` and `wasmer`; however, `wasmer` is the only interpreter that is fully supported at the moment. In the future, all interpreters will be fully supported.
 
 #### `lib/scale`
 
