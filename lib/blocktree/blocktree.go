@@ -57,7 +57,7 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 		hash:        root.Hash(),
 		parent:      nil,
 		children:    []*node{},
-		depth:       root.Number,
+		number:      root.Number,
 		arrivalTime: time.Now(), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
 	}
 
@@ -93,10 +93,10 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 		return ErrBlockExists
 	}
 
-	depth := big.NewInt(0)
-	depth.Add(parent.depth, big.NewInt(1))
+	number := big.NewInt(0)
+	number.Add(parent.number, big.NewInt(1))
 
-	if depth.Cmp(header.Number) != 0 {
+	if number.Cmp(header.Number) != 0 {
 		return errUnexpectedNumber
 	}
 
@@ -104,7 +104,7 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 		hash:        header.Hash(),
 		parent:      parent,
 		children:    []*node{},
-		depth:       depth,
+		number:      number,
 		arrivalTime: arrivalTime,
 	}
 	parent.addChild(n)
@@ -114,8 +114,8 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 	return nil
 }
 
-// GetAllBlocksAtDepth will return all blocks hashes with the depth of the given hash plus one.
-// To find all blocks at a depth matching a certain block, pass in that block's parent hash
+// GetAllBlocksAtDepth will return all blocks hashes with the number of the given hash plus one.
+// To find all blocks at a number matching a certain block, pass in that block's parent hash
 func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	bt.RLock()
 	defer bt.RUnlock()
@@ -126,14 +126,14 @@ func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 		return hashes
 	}
 
-	depth := big.NewInt(0).Add(bt.getNode(hash).depth, big.NewInt(1))
+	number := big.NewInt(0).Add(bt.getNode(hash).number, big.NewInt(1))
 
-	if bt.head.depth.Cmp(depth) == 0 {
+	if bt.head.number.Cmp(number) == 0 {
 		hashes = append(hashes, bt.head.hash)
 		return hashes
 	}
 
-	return bt.head.getNodesWithDepth(depth, hashes)
+	return bt.head.getNodesWithnumber(number, hashes)
 }
 
 func (bt *BlockTree) setInCache(b *node) {
@@ -362,19 +362,19 @@ func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
 	defer bt.RUnlock()
 
 	deepest := bt.leaves.deepestLeaf()
-	if deepest.depth.Cmp(num) == -1 {
+	if deepest.number.Cmp(num) == -1 {
 		return common.Hash{}, ErrNumGreaterThanHighest
 	}
 
-	if deepest.depth.Cmp(num) == 0 {
+	if deepest.number.Cmp(num) == 0 {
 		return deepest.hash, nil
 	}
 
-	if bt.head.depth.Cmp(num) == 1 {
+	if bt.head.number.Cmp(num) == 1 {
 		return common.Hash{}, ErrNumLowerThanRoot
 	}
 
-	if bt.head.depth.Cmp(num) == 0 {
+	if bt.head.number.Cmp(num) == 0 {
 		return bt.head.hash, nil
 	}
 
@@ -384,7 +384,7 @@ func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
 			return common.Hash{}, ErrNodeNotFound
 		}
 
-		if curr.depth.Cmp(num) == 0 {
+		if curr.number.Cmp(num) == 0 {
 			return curr.hash, nil
 		}
 
