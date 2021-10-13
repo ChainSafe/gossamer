@@ -19,6 +19,7 @@ package sync
 import (
 	"math/big"
 	"os"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -46,6 +47,8 @@ type Config struct {
 	TransactionState   TransactionState
 	BlockImportHandler BlockImportHandler
 	BabeVerifier       BabeVerifier
+	MinPeers           int
+	SlotDuration       time.Duration
 }
 
 // NewService returns a new *sync.Service
@@ -84,7 +87,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
-	chainSync := newChainSync(cfg.BlockState, cfg.Network, readyBlocks, pendingBlocks)
+	chainSync := newChainSync(cfg.BlockState, cfg.Network, readyBlocks, pendingBlocks, cfg.MinPeers, cfg.SlotDuration)
 	chainProcessor := newChainProcessor(readyBlocks, pendingBlocks, cfg.BlockState, cfg.StorageState, cfg.TransactionState, cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler)
 
 	return &Service{
