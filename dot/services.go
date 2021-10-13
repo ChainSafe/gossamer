@@ -407,6 +407,11 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 }
 
 func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service, net *network.Service) (*sync.Service, error) {
+	slotDuration, err := st.Epoch.GetSlotDuration()
+	if err != nil {
+		return nil, err
+	}
+
 	syncCfg := &sync.Config{
 		LogLvl:             cfg.Log.SyncLvl,
 		Network:            net,
@@ -416,6 +421,8 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 		FinalityGadget:     fg,
 		BabeVerifier:       verifier,
 		BlockImportHandler: cs,
+		MinPeers:           cfg.Network.MinPeers,
+		SlotDuration:       slotDuration,
 	}
 
 	return sync.NewService(syncCfg)
