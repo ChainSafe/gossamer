@@ -247,11 +247,11 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return err
 	}
 
-	// check if block production epoch transitioned
-	if err := s.handleCurrentSlot(&block.Header); err != nil {
-		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
-		return err
-	}
+	// // check if block production epoch transitioned
+	// if err := s.handleCurrentSlot(&block.Header); err != nil {
+	// 	logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
+	// 	return err
+	// }
 
 	go func() {
 		s.Lock()
