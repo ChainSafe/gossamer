@@ -112,18 +112,18 @@ type response struct {
 // NewLightResponse returns a new LightResponse
 func NewLightResponse() *LightResponse {
 	return &LightResponse{
-		RemoteCallResponse:   newRemoteCallResponse(),
-		RemoteReadResponse:   newRemoteReadResponse(),
-		RemoteHeaderResponse: newRemoteHeaderResponse(),
+		RemoteCallResponse:    newRemoteCallResponse(),
+		RemoteReadResponse:    newRemoteReadResponse(),
+		RemoteHeaderResponse:  newRemoteHeaderResponse(),
 		RemoteChangesResponse: newRemoteChangesResponse(),
 	}
 }
 
 func newResponse() *response {
 	return &response{
-		RemoteCallResponse:   *newRemoteCallResponse(),
-		RemoteReadResponse:   *newRemoteReadResponse(),
-		RemoteHeaderResponse: *newRemoteHeaderResponse(),
+		RemoteCallResponse:    *newRemoteCallResponse(),
+		RemoteReadResponse:    *newRemoteReadResponse(),
+		RemoteHeaderResponse:  *newRemoteHeaderResponse(),
 		RemoteChangesResponse: *newRemoteChangesResponse(),
 	}
 }
@@ -136,9 +136,9 @@ func (l *LightResponse) SubProtocol() string {
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
 func (l *LightResponse) Encode() ([]byte, error) {
 	resp := response{
-		RemoteCallResponse:   *l.RemoteCallResponse,
-		RemoteReadResponse:   *l.RemoteReadResponse,
-		RemoteHeaderResponse: *l.RemoteHeaderResponse,
+		RemoteCallResponse:    *l.RemoteCallResponse,
+		RemoteReadResponse:    *l.RemoteReadResponse,
+		RemoteHeaderResponse:  *l.RemoteHeaderResponse,
 		RemoteChangesResponse: *l.RemoteChangesResponse,
 	}
 	return scale.Marshal(resp)
