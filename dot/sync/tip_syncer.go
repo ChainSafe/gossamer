@@ -109,8 +109,49 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	}, nil
 }
 
-func (*tipSyncer) hasCurrentWorker(_ *worker, _ map[uint64]*worker) bool {
-	// TODO
+func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
+	if w == nil || w.startNumber == nil || w.targetNumber == nil {
+		return true
+	}
+
+	for _, curr := range workers {
+		if w.direction != curr.direction || w.requestData != curr.requestData {
+			continue
+		}
+
+		targetDiff := w.targetNumber.Cmp(curr.targetNumber)
+		startDiff := w.startNumber.Cmp(curr.startNumber)
+
+		switch w.direction {
+		case network.Ascending:
+			// worker target is greater than existing worker's target
+			if targetDiff > 0 {
+				continue
+			}
+
+			// worker start is less than existing worker's start
+			if startDiff < 0 {
+				continue
+			}
+		case network.Descending:
+			// worker target is less than existing worker's target
+			if targetDiff < 0 {
+				continue
+			}
+
+			// worker start is greater than existing worker's start
+			if startDiff > 0 {
+				continue
+			}
+		}
+
+		// worker (start, end) is within curr (start, end), if hashes are equal then the request is either
+		// for the same data or some subset of data that is covered by curr
+		if w.startHash.Equal(curr.startHash) || w.targetHash.Equal(curr.targetHash) {
+			return true
+		}
+	}
+
 	return false
 }
 
