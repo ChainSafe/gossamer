@@ -201,6 +201,7 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 		SlotDuration:       cfg.Core.SlotDuration, // TODO: remove this, should only be modified via runtime constant
 		Authority:          cfg.Core.BabeAuthority,
 		IsDev:              cfg.Global.ID == "dev",
+		Lead:               cfg.Core.BABELead,
 	}
 
 	if cfg.Core.BabeAuthority {

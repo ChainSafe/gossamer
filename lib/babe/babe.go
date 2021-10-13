@@ -27,7 +27,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	log "github.com/ChainSafe/log15"
@@ -44,9 +43,10 @@ type Service struct {
 	cancel    context.CancelFunc
 	authority bool
 	dev       bool
-	lead      bool // lead is used when setting up a new network from genesis.
-	//  the "lead" node is the node that is builds block 1, after which the rest of the nodes will sync it
-	// and determine the first slot of the network based on that block
+	// lead is used when setting up a new network from genesis.
+	// the "lead" node is the node that is designated to build block 1, after which the rest of the nodes
+	// will sync it and determine the first slot of the network based on that block
+	lead bool
 
 	// Storage interfaces
 	blockState       BlockState
@@ -87,6 +87,7 @@ type ServiceConfig struct {
 	SlotDuration         uint64 // for development purposes; in milliseconds
 	EpochLength          uint64 // for development purposes; in slots
 	Authority            bool
+	Lead                 bool
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -128,6 +129,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
+		lead:               cfg.Lead,
 	}
 
 	epoch, err := cfg.EpochState.GetCurrentEpoch()
@@ -135,16 +137,8 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	err = babeService.setupParameters(cfg)
-	if err != nil {
+	if err = babeService.setupParameters(cfg); err != nil {
 		return nil, err
-	}
-
-	kr, _ := keystore.NewSr25519Keyring()
-	alice := kr.Alice().Public().Hex()
-
-	if cfg.Keypair.Public().Hex() == alice {
-		babeService.lead = true
 	}
 
 	logger.Debug("created service",
@@ -157,6 +151,11 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		"threshold", babeService.epochData.threshold,
 		"randomness", babeService.epochData.randomness,
 	)
+
+	if cfg.Lead {
+		logger.Debug("node designated to build block 1")
+	}
+
 	return babeService, nil
 }
 

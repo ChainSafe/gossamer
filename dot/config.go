@@ -98,6 +98,7 @@ type NetworkConfig struct {
 type CoreConfig struct {
 	Roles            byte
 	BabeAuthority    bool
+	BABELead         bool
 	GrandpaAuthority bool
 	SlotDuration     uint64
 	EpochLength      uint64
