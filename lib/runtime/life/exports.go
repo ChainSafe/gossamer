@@ -166,7 +166,7 @@ func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 }
 
 // PaymentQueryInfo returns information of a given extrinsic
-func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error) {
+func (*Instance) PaymentQueryInfo([]byte) (*types.TransactionPaymentQueryInfo, error) {
 	// TODO: implement the payment query info (see issue #1892)
 	return nil, errors.New("not implemented yet")
 }
