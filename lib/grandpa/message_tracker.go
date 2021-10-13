@@ -51,7 +51,6 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 }
 
 func (t *tracker) start() {
-	// TODO: periodically clear tracker of previous rounds's messages
 	go t.handleBlocks()
 }
 
