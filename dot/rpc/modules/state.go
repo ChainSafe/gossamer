@@ -209,7 +209,7 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 		return nil
 	}
 
-	*res = make([]interface{}, 0, len(keys))
+	*res = make([]interface{}, len(keys))
 	for i, key := range keys {
 		val, err := sm.storageAPI.GetStorage(stateRootHash, key)
 		if err != nil {
