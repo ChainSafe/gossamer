@@ -399,7 +399,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range *body {
-			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Info("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
@@ -420,7 +420,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Debug("failed to validate transaction", "error", err, "extrinsic", ext)
+				logger.Info("failed to validate transaction", "error", err, "extrinsic", ext)
 				continue
 			}
 
