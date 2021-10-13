@@ -848,11 +848,10 @@ var (
 			want: []byte{0x00, 0x01, 0x01, 0x00},
 		},
 	}
-	primitiveTests = newTests(fixedWidthIntegerTests, variableWidthIntegerTests, stringTests,
-		boolTests, structTests, sliceTests, arrayTests,
-	)
+
 	allTests = newTests(
-		primitiveTests,
+		fixedWidthIntegerTests, variableWidthIntegerTests, stringTests,
+		boolTests, structTests, sliceTests, arrayTests,
 		varyingDataTypeTests,
 	)
 )

@@ -258,7 +258,7 @@ func Test_Decoder_Decode(t *testing.T) {
 	}
 }
 
-func Test_Decoder_MultipleDedoce(t *testing.T) {
+func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 	tests := []struct {
 		name    string
 		ins     []interface{}
