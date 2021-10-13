@@ -55,8 +55,37 @@ type syncState struct {
 }
 
 // NewStateSync creates an instance of SyncStateAPI given a chain specification.
-func NewStateSync(chainSpecification *genesis.Genesis) SyncStateAPI {
-	return syncState{chainSpecification: chainSpecification}
+func NewStateSync(gData *genesis.Data, storageAPI StorageAPI) (SyncStateAPI, error) {
+	tmpGen := &genesis.Genesis{
+		Name:       "",
+		ID:         "",
+		Bootnodes:  nil,
+		ProtocolID: "",
+		Genesis: genesis.Fields{
+			Runtime: nil,
+		},
+	}
+	tmpGen.Genesis.Raw = make(map[string]map[string]string)
+	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
+
+	// set genesis fields data
+	ent, err := storageAPI.Entries(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = genesis.BuildFromMap(ent, tmpGen)
+	if err != nil {
+		return nil, err
+	}
+
+	tmpGen.Name = gData.Name
+	tmpGen.ID = gData.ID
+	// todo figure out how to assign bootnodes (see issue #1030)
+	//tmpGen.Bootnodes = gData.(*genesis.Data).Bootnodes
+	tmpGen.ProtocolID = gData.ProtocolID
+
+	return syncState{chainSpecification: tmpGen}, nil
 }
 
 // GenSyncSpec returns the JSON serialised chain specification running the node

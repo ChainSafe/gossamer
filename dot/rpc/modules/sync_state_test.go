@@ -23,7 +23,7 @@ func TestSyncStateModule(t *testing.T) {
 	err = json.Unmarshal(data, g)
 	require.NoError(t, err)
 
-	module := NewSyncStateModule(NewStateSync(g))
+	module := NewSyncStateModule(syncState{chainSpecification: g})
 
 	req := GenSyncSpecRequest{
 		Raw: true,
