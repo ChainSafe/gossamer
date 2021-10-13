@@ -278,7 +278,9 @@ func TestFinalizedHash(t *testing.T) {
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
@@ -539,11 +541,15 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.False(t, fin)
 
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
-	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
+	prd, err = types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest2.Add(*prd)
 	require.NoError(t, err)
 
 	header1 := types.Header{
@@ -596,10 +602,15 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	firstSlot := uint64(42069)
 
 	digest := types.NewDigest()
-	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest()
 	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	digest2 := types.NewDigest()
-	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
+	prd, err = types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest2.Add(*prd)
 	require.NoError(t, err)
 
 	header1 := types.Header{

@@ -74,7 +74,9 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	for i := startNum + 1; i <= depth; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
 		digest := types.NewDigest()
-		_ = digest.Add(*d.ToPreRuntimeDigest())
+		prd, err := d.ToPreRuntimeDigest()
+		require.NoError(t, err)
+		_ = digest.Add(*prd)
 
 		block := &types.Block{
 			Header: types.Header{
@@ -89,7 +91,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		currentChain = append(currentChain, &block.Header)
 
 		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
 
 		previousHash = hash

@@ -49,7 +49,10 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	require.NoError(t, err)
 
 	di := types.NewDigestItem()
-	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = di.Set(*prd)
+	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
 	require.NoError(t, err)
@@ -82,7 +85,10 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	require.NoError(t, err)
 
 	di := types.NewDigestItem()
-	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = di.Set(*prd)
+	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
 	require.NoError(t, err)
@@ -127,7 +133,10 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	require.NoError(t, err)
 
 	di := types.NewDigestItem()
-	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = di.Set(*prd)
+	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
 	require.NoError(t, err)
@@ -168,7 +177,10 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	require.NoError(t, err)
 
 	di := types.NewDigestItem()
-	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = di.Set(*prd)
+	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
 	require.NoError(t, err)
@@ -309,7 +321,10 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
 	digest := types.NewDigest()
-	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: genesisHeader.Hash(),
 		Number:     big.NewInt(1),
@@ -386,7 +401,9 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 
 	// Create header & blockData for block 1
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
