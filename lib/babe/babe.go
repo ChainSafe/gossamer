@@ -236,12 +236,13 @@ func (b *Service) Start() error {
 		return nil
 	}
 
-	// if we aren't leading node, wait for first block
-	if !b.lead {
-		b.waitForFirstBlock()
-	}
-
-	go b.initiate()
+	go func() {
+		// if we aren't leading node, wait for first block
+		if !b.lead {
+			b.waitForFirstBlock()
+		}
+		b.initiate()
+	}()
 	return nil
 }
 
@@ -253,6 +254,7 @@ func (b *Service) waitForFirstBlock() {
 	for {
 		select {
 		case block := <-ch:
+			logger.Info("block imported", "block", block)
 			if block != nil && block.Header.Number.Int64() > 0 {
 				return
 			}
