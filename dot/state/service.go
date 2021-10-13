@@ -195,12 +195,13 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
+	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header)
+
 	header, err := s.Block.BestBlockHeader()
 	if err != nil {
 		return err
 	}
 
-	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header)
 	s.Block.lastFinalised = header.Hash()
 	logger.Info("rewinding state...", "new height", header.Number, "best block hash", header.Hash())
 
