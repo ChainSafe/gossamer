@@ -526,8 +526,7 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 			return
 		}
 
-		err := s.sendMessage(msg)
-		if err != nil {
+		if err := s.sendMessage(msg); err != nil {
 			logger.Warn("could not send message", "stage", stage, "error", err)
 		}
 

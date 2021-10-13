@@ -57,11 +57,12 @@ func (s *Service) receiveMessages(ctx context.Context) {
 
 			logger.Debug("validated vote message",
 				"vote", v,
+				"from", vm.Message.AuthorityID,
 				"round", vm.Round,
 				"subround", vm.Message.Stage,
 				"prevote count", s.lenVotes(prevote),
 				"precommit count", s.lenVotes(precommit),
-				"votes needed", s.state.threshold(),
+				"votes needed", s.state.threshold()+1,
 			)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
