@@ -19,6 +19,7 @@ package modules
 import (
 	"net/http"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
@@ -81,8 +82,7 @@ func NewStateSync(gData *genesis.Data, storageAPI StorageAPI) (SyncStateAPI, err
 
 	tmpGen.Name = gData.Name
 	tmpGen.ID = gData.ID
-	// todo figure out how to assign bootnodes (see issue #1030)
-	//tmpGen.Bootnodes = gData.(*genesis.Data).Bootnodes
+	tmpGen.Bootnodes = common.BytesToStringArray(gData.Bootnodes)
 	tmpGen.ProtocolID = gData.ProtocolID
 
 	return syncState{chainSpecification: tmpGen}, nil
