@@ -36,9 +36,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const defaultMinPeers = 1
-
-var (
+const (
+	defaultMinPeers     = 1
 	testTimeout         = time.Second * 5
 	defaultSlotDuration = time.Second * 6
 )

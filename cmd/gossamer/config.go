@@ -33,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	log "github.com/ChainSafe/log15"
@@ -597,8 +596,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	switch tomlCfg.WasmInterpreter {
 	case wasmer.Name:
 		cfg.WasmInterpreter = wasmer.Name
-	case wasmtime.Name:
-		cfg.WasmInterpreter = wasmtime.Name
 	case life.Name:
 		cfg.WasmInterpreter = life.Name
 	case "":
