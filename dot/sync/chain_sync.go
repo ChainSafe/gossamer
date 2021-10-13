@@ -155,9 +155,12 @@ type chainSync struct {
 	benchmarker *syncBenchmarker
 
 	finalisedCh <-chan *types.FinalisationInfo
+
+	minPeers     int
+	slotDuration time.Duration
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet) *chainSync {
+func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, minPeers int, slotDuration time.Duration) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &chainSync{
 		ctx:           ctx,
@@ -175,17 +178,18 @@ func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBl
 		handler:       newBootstrapSyncer(bs),
 		benchmarker:   newSyncBenchmarker(),
 		finalisedCh:   bs.GetFinalisedNotifierChannel(),
+		minPeers:      minPeers,
+		slotDuration:  slotDuration,
 	}
 }
 
 func (cs *chainSync) start() {
-	// wait until we have received 1+ peer heads
-	// TODO: this should be based off our min/max peers
+	// wait until we have received at least `minPeers` peer heads
 	for {
 		cs.RLock()
 		n := len(cs.peerState)
 		cs.RUnlock()
-		if n >= 1 {
+		if n >= cs.minPeers {
 			break
 		}
 		time.Sleep(time.Millisecond * 100)
@@ -369,8 +373,7 @@ func (cs *chainSync) ignorePeer(who peer.ID) {
 
 func (cs *chainSync) sync() {
 	// set to slot time
-	// TODO: make configurable
-	ticker := time.NewTicker(time.Second * 6)
+	ticker := time.NewTicker(cs.slotDuration)
 
 	for {
 		select {

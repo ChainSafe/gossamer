@@ -124,15 +124,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	if cfg.Network == nil {
-		config := &network.Config{
-			BasePath:           testDatadirPath,
-			Port:               7001,
-			NoBootstrap:        true,
-			NoMDNS:             true,
-			BlockState:         stateSrvc.Block,
-			TransactionHandler: network.NewMockTransactionHandler(),
-		}
-		cfg.Network = createTestNetworkService(t, config)
+		net := new(coremocks.MockNetwork)
+		net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
+		net.On("IsSynced").Return(true)
+		cfg.Network = net
 	}
 
 	if cfg.CodeSubstitutes == nil {
@@ -159,27 +154,4 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	return s
-}
-
-// helper method to create and start a new network service
-func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
-	if cfg.LogLvl == 0 {
-		cfg.LogLvl = 3
-	}
-
-	if cfg.Syncer == nil {
-		cfg.Syncer = network.NewMockSyncer()
-	}
-
-	srvc, err := network.NewService(cfg)
-	require.NoError(t, err)
-
-	err = srvc.Start()
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		err := srvc.Stop()
-		require.NoError(t, err)
-	})
-	return srvc
 }
