@@ -63,7 +63,6 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 }
 
 func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
-	// todo ed, this fails with new branch, determine why
 	expected := runtime.NewVersionData(
 		[]byte("node"),
 		[]byte("substrate-node"),
@@ -74,12 +73,7 @@ func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
 		2,
 	)
 
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098) // original
-	//instance := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	//instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0910 )
-	//instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME )
-	//instance := NewTestInstance(t, runtime.NODE_RUNTIME )
-	//instance := NewTestInstance(t, runtime.DEV_RUNTIME )
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 
 	version, err := instance.Version()
 	require.Nil(t, err)
@@ -1054,8 +1048,6 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 }
 
 func TestInstance_DecodeSessionKeys(t *testing.T) {
-	// todo ed, remove skip when wasm blob works
-	//t.Skip()
 	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
 	pubkeys, err := common.HexToBytes(keys)
 	require.NoError(t, err)
