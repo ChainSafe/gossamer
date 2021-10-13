@@ -148,14 +148,10 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 	require.NoError(t, err)
 
 	// build block
-	var block *types.Block
-	for i := 0; i < 1; i++ { // retry if error
-		block, err = babeService.buildBlock(parent, slot, rt)
-		require.NoError(t, err)
+	block, err := babeService.buildBlock(parent, slot, rt)
+	require.NoError(t, err)
 
-		babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
-	}
-
+	babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
 	return block, slot
 }
 
