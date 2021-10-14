@@ -73,7 +73,7 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 				return nil, fmt.Errorf("failed to set cli flag: %T, err: %s", flags[i], err)
 			}
 		case []string:
-			for _, str := range cli.StringSlice(values[i].([]string)) {
+			for _, str := range values[i].([]string) {
 				err := ctx.Set(flags[i], str)
 				if err != nil {
 					return nil, fmt.Errorf("failed to set cli flag: %T, err: %s", flags[i], err)

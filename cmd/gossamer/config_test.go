@@ -721,6 +721,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
 			MetricsPort:    testCfg.Global.MetricsPort,
+			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,
@@ -774,6 +775,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
 			MetricsPort:    testCfg.Global.MetricsPort,
+			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,
@@ -823,6 +825,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
 			MetricsPort:    testCfg.Global.MetricsPort,
+			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,
