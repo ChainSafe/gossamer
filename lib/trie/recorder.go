@@ -9,7 +9,7 @@ type nodeRecord struct {
 // recorder keeps the list of nodes find by Lookup.Find
 type recorder []nodeRecord
 
-// record insert a node insede the recorded list
+// record insert a node inside the recorded list
 func (r *recorder) record(h, rd []byte) {
 	*r = append(*r, nodeRecord{rawData: rd, hash: h})
 }

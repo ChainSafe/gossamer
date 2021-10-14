@@ -94,16 +94,16 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 	proof, err := GenerateProof(root, keys, memdb)
 	require.NoError(t, err)
 
-	items := make([]Pair, 0)
-	for _, i := range keys {
-		value := trie.Get(i)
+	items := make([]Pair, len(keys))
+	for idx, key := range keys {
+		value := trie.Get(key)
 		require.NotNil(t, value)
 
 		itemFromDB := Pair{
-			Key:   i,
+			Key:   key,
 			Value: value,
 		}
-		items = append(items, itemFromDB)
+		items[idx] = itemFromDB
 	}
 
 	return root, proof, items
@@ -137,67 +137,4 @@ func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	v, err := VerifyProof(proof, root, pl)
 	require.True(t, v)
 	require.NoError(t, err)
-}
-
-func Benchmark_GenerateAndVerifyAllKeys(b *testing.B) {
-	tmp, err := ioutil.TempDir("", "*-test-trie")
-	require.NoError(b, err)
-	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-		DataDir:  tmp,
-	})
-	require.NoError(b, err)
-
-	trie, keys, toProve := generateTrie(b, b.N*10)
-	trie.Store(memdb)
-
-	root := trie.root.getHash()
-	proof, err := GenerateProof(root, keys, memdb)
-	require.NoError(b, err)
-
-	v, err := VerifyProof(proof, root, *toProve)
-	require.True(b, v)
-	require.NoError(b, err)
-}
-
-func Benchmark_GenerateAndVerifyAllKeys_ShuffleProof(b *testing.B) {
-	tmp, err := ioutil.TempDir("", "*-test-trie")
-	require.NoError(b, err)
-	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-		DataDir:  tmp,
-	})
-	require.NoError(b, err)
-
-	trie, keys, toProve := generateTrie(b, b.N*10)
-	trie.Store(memdb)
-
-	root := trie.root.getHash()
-	proof, err := GenerateProof(root, keys, memdb)
-	require.NoError(b, err)
-
-	for i := len(proof) - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
-		proof[i], proof[j] = proof[j], proof[i]
-	}
-	v, err := VerifyProof(proof, root, *toProve)
-	require.True(b, v)
-	require.NoError(b, err)
-}
-
-func generateTrie(t *testing.B, nodes int) (*Trie, [][]byte, *[]Pair) {
-	t.Helper()
-
-	pairs := make([]Pair, 0)
-	keys := make([][]byte, 0)
-
-	trie := NewEmptyTrie()
-	for i := 0; i < nodes; i++ {
-		key, value := rand32Bytes(), rand32Bytes()
-		trie.Put(key, value)
-		pairs = append(pairs, Pair{key, value})
-		keys = append(keys, key)
-	}
-
-	return trie, keys, &pairs
 }

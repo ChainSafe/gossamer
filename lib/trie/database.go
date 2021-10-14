@@ -119,20 +119,27 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 // loadFromProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting by the root
 func (t *Trie) loadProof(proof map[string]node, curr node) {
-	if c, ok := curr.(*branch); ok {
-		for i, child := range c.children {
-			if child == nil {
-				continue
-			}
+	var (
+		c  *branch
+		ok bool
+	)
 
-			proofNode, ok := proof[common.BytesToHex(child.getHash())]
-			if !ok {
-				continue
-			}
+	if c, ok = curr.(*branch); ok {
+		return
+	}
 
-			c.children[i] = proofNode
-			t.loadProof(proof, proofNode)
+	for i, child := range c.children {
+		if child == nil {
+			continue
 		}
+
+		proofNode, ok := proof[common.BytesToHex(child.getHash())]
+		if !ok {
+			continue
+		}
+
+		c.children[i] = proofNode
+		t.loadProof(proof, proofNode)
 	}
 }
 

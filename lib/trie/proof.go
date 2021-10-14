@@ -41,8 +41,7 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 	trackedProofs := make(map[string][]byte)
 
 	proofTrie := NewEmptyTrie()
-	err := proofTrie.Load(db, common.BytesToHash(root))
-	if err != nil {
+	if err := proofTrie.Load(db, common.BytesToHash(root)); err != nil {
 		return nil, err
 	}
 
@@ -82,8 +81,7 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 	}
 
 	proofTrie := NewEmptyTrie()
-	err := proofTrie.LoadFromProof(proof, root)
-	if err != nil {
+	if err := proofTrie.LoadFromProof(proof, root); err != nil {
 		return false, err
 	}
 
