@@ -366,12 +366,11 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
 	leaves := gs.blockState.Leaves()
 
-	h, err := st.Block.BestBlockHeader()
+	gs.head, err = gs.blockState.GetHeader(leaves[0])
 	require.NoError(t, err)
-	gs.head = h
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	vote, err := NewVoteFromHash(leaves[0], gs.blockState)
+	vote, err := NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
 
 	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
