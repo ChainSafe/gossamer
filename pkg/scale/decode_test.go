@@ -282,7 +282,7 @@ func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 			buf := bytes.NewBuffer(tt.want)
 			d := NewDecoder(buf)
 
-			for i, _ := range tt.ins {
+			for i := range tt.ins {
 				in := tt.ins[i]
 				dst := reflect.New(reflect.TypeOf(in)).Elem().Interface()
 				var wantErr bool
