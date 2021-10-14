@@ -17,8 +17,8 @@ type MockNetwork struct {
 	mock.Mock
 }
 
-func (_m *MockNetwork) ReportPeer(_a0 peerset.ReputationChange, _a1 peer.ID) {
-	return // TODO: figure out how to implement here.
+func (_m *MockNetwork) ReportPeer(change peerset.ReputationChange, peer peer.ID) {
+	_m.Called(change, peer)
 }
 
 // DoBlockRequest provides a mock function with given fields: to, req

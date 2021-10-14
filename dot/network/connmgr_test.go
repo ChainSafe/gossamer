@@ -71,7 +71,7 @@ func TestProtectUnprotectPeer(t *testing.T) {
 		slotAllocationTime = time.Second * 2
 	)
 
-	peerCfgSet := peerset.NewConfigSet(uint32(max-min), uint32(max), nil, nil, false, slotAllocationTime)
+	peerCfgSet := peerset.NewConfigSet(uint32(max-min), uint32(max), false, slotAllocationTime)
 	cm := newConnManager(min, max, peerCfgSet)
 
 	p1 := peer.ID("a")

@@ -28,8 +28,6 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.
 			{
 				inPeers:           in,
 				outPeers:          out,
-				bootNodes:         bootNode,
-				reservedNodes:     reservedPeer,
 				reservedOnly:      false,
 				periodicAllocTime: time.Second * 2,
 			},
@@ -40,6 +38,10 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.
 	require.NoError(t, err)
 
 	handler.Start()
+
+	time.Sleep(time.Millisecond * 100)
+	handler.AddPeer(0, bootNode...)
+	handler.AddReservedPeer(0, reservedPeer...)
 
 	return handler
 }

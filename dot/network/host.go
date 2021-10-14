@@ -96,23 +96,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	bNodePeers := make([]peer.ID, len(bns))
-	for idx, n := range bns {
-		bNodePeers[idx] = n.ID
-	}
-
 	// format persistent peers
 	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
 	if err != nil {
 		return nil, err
 	}
 
-	rNodePeers := make([]peer.ID, len(pps))
-	for idx, n := range pps {
-		rNodePeers[idx] = n.ID
-	}
-
-	peerCfgSet := peerset.NewConfigSet(uint32(cfg.MaxPeers-cfg.MinPeers), uint32(cfg.MinPeers), bNodePeers, rNodePeers, false, peerSetSlotAllocTime)
+	peerCfgSet := peerset.NewConfigSet(uint32(cfg.MaxPeers-cfg.MinPeers), uint32(cfg.MinPeers), false, peerSetSlotAllocTime)
 	// create connection manager
 	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 
@@ -255,10 +245,12 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
-	var allNodes []peer.AddrInfo
-	allNodes = append(allNodes, h.bootnodes...)
-	allNodes = append(allNodes, h.persistentPeers...)
-	for _, addrInfo := range allNodes {
+	for _, info := range h.persistentPeers {
+		h.h.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+		h.cm.peerSetHandler.AddReservedPeer(0, info.ID)
+	}
+
+	for _, addrInfo := range h.bootnodes {
 		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
 		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 		h.cm.peerSetHandler.AddPeer(0, addrInfo.ID)

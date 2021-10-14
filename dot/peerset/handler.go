@@ -6,22 +6,19 @@ import "github.com/libp2p/go-libp2p-core/peer"
 type Handler struct {
 	actionQueue chan<- Action
 	peerSet     *PeerSet
+	closeCh     chan interface{}
 }
 
 // NewPeerSetHandler initiates peerSetHandler.
 func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
-	actionCh := make(chan Action, msgChanSize)
-	ps, err := newPeerSet(cfg, actionCh)
+	ps, err := newPeerSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	h := &Handler{
-		actionQueue: actionCh,
-		peerSet:     ps,
-	}
-
-	return h, nil
+	return &Handler{
+		peerSet: ps,
+	}, nil
 }
 
 // AddReservedPeer adds reserved peer into peerSet.
@@ -112,7 +109,10 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 
 // Start starts peerSet processing
 func (h *Handler) Start() {
-	go h.peerSet.start()
+	actionCh := make(chan Action, msgChanSize)
+	h.closeCh = make(chan interface{})
+	h.actionQueue = actionCh
+	go h.peerSet.start(actionCh)
 }
 
 // SortedPeers return chan for sorted connected peer in the peerSet.
@@ -128,6 +128,11 @@ func (h *Handler) SortedPeers() chan interface{} {
 
 // Stop closes the actionQueue and result message chan.
 func (h *Handler) Stop() {
-	close(h.actionQueue)
-	close(h.peerSet.resultMsgCh)
+	select {
+	case <-h.closeCh:
+	default:
+		close(h.closeCh)
+		close(h.actionQueue)
+		h.peerSet.stop()
+	}
 }

@@ -24,9 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var TestProtocolID = "/gossamer/test/0"

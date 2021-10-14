@@ -252,9 +252,7 @@ func (s *Service) Start() error {
 		logger.Info("Started listening", "address", addr)
 	}
 
-	if !s.noBootstrap {
-		s.host.bootstrap()
-	}
+	s.startPeerSetHandler()
 
 	if !s.noMDNS {
 		s.mdns.start()
@@ -279,7 +277,6 @@ func (s *Service) Start() error {
 	go s.logPeerCount()
 	go s.publishNetworkTelemetry(s.closeCh)
 	go s.sentBlockIntervalTelemetry()
-	go s.startPeerSetHandler()
 	s.streamManager.start()
 
 	return nil
@@ -756,6 +753,12 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 
 func (s *Service) startPeerSetHandler() {
 	s.host.cm.peerSetHandler.Start()
+	// wait for peerSetHandler to start.
+	time.Sleep(time.Millisecond * 100)
+	if !s.noBootstrap {
+		s.host.bootstrap()
+	}
+
 	go s.processMessage()
 }
 

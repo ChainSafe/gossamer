@@ -53,6 +53,7 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 
 	net := new(syncmocks.MockNetwork)
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
+	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 
 	readyBlocks := newBlockQueue(maxResponseSize)
 	cs := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit), defaultMinPeers, defaultSlotDuration)

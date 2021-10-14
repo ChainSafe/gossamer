@@ -145,16 +145,6 @@ type config struct {
 	// maximum number of slot occupying nodes for outgoing connections.
 	outPeers uint32
 
-	// list of bootstrap nodes to initialise the set.
-	// keep in mind that the networking has to know an address for these nodes,
-	// otherwise it will not be able to connect to them.
-	bootNodes []peer.ID
-
-	// lists of nodes we should always be connected to.
-	// keep in mind that the networking has to know an address for these nodes,
-	// otherwise it will not be able to connect to them.
-	reservedNodes []peer.ID
-
 	// TODO Use in future for reserved only peers
 	// if true, we only accept reservedNodes.
 	reservedOnly bool
@@ -169,12 +159,10 @@ type ConfigSet struct {
 }
 
 // NewConfigSet creates a new config set for the peerSet
-func NewConfigSet(in, out uint32, bootNodes, reservedNodes []peer.ID, reservedOnly bool, allocTime time.Duration) *ConfigSet {
+func NewConfigSet(in, out uint32, reservedOnly bool, allocTime time.Duration) *ConfigSet {
 	set := &config{
 		inPeers:           in,
 		outPeers:          out,
-		bootNodes:         bootNodes,
-		reservedNodes:     reservedNodes,
 		reservedOnly:      reservedOnly,
 		periodicAllocTime: allocTime,
 	}
@@ -182,7 +170,7 @@ func NewConfigSet(in, out uint32, bootNodes, reservedNodes []peer.ID, reservedOn
 	return &ConfigSet{[]*config{set}}
 }
 
-func newPeerSet(cfg *ConfigSet, actionCh <-chan Action) (*PeerSet, error) {
+func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 	now := time.Now()
 
 	if len(cfg.Set) == 0 {
@@ -196,33 +184,13 @@ func newPeerSet(cfg *ConfigSet, actionCh <-chan Action) (*PeerSet, error) {
 
 	// TODO: currently we only have one set, change this once we have more.
 	cfgSet := cfg.Set[0]
-	reservedNodes := make(map[peer.ID]struct{}, len(cfgSet.reservedNodes))
-	for _, peerID := range cfgSet.reservedNodes {
-		reservedNodes[peerID] = struct{}{}
-		peerState.addNoSlotNode(0, peerID)
-	}
-
 	ps := &PeerSet{
 		peerState:              peerState,
-		reservedNode:           reservedNodes,
+		reservedNode:           make(map[peer.ID]struct{}),
 		isReservedOnly:         cfgSet.reservedOnly,
-		resultMsgCh:            make(chan interface{}, msgChanSize),
 		created:                now,
 		latestTimeUpdate:       now,
 		nextPeriodicAllocSlots: cfgSet.periodicAllocTime,
-		actionQueue:            actionCh,
-	}
-
-	for _, n := range cfgSet.bootNodes {
-		if ps.peerState.peerStatus(0, n) == unknownPeer {
-			peerState.discover(0, n)
-		}
-	}
-
-	for i := 0; i < len(ps.peerState.sets); i++ {
-		if err = ps.allocSlots(i); err != nil {
-			return nil, err
-		}
 	}
 
 	return ps, nil
@@ -404,6 +372,8 @@ func (ps *PeerSet) allocSlots(setIDX int) error {
 			setID:  uint64(setIDX),
 			PeerID: peerID,
 		}
+
+		logger.Debug("Sent connect message", "peer", peerID)
 	}
 	return nil
 }
@@ -623,7 +593,10 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 }
 
 // start handles all the action for the peerSet.
-func (ps *PeerSet) start() {
+func (ps *PeerSet) start(aq chan Action) {
+	ps.resultMsgCh = make(chan interface{}, msgChanSize)
+	ps.actionQueue = aq
+
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
 	defer ticker.Stop()
 	var err error
@@ -674,4 +647,8 @@ actionLoop:
 			}
 		}
 	}
+}
+
+func (ps *PeerSet) stop() {
+	close(ps.resultMsgCh)
 }

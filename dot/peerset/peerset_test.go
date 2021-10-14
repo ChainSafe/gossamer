@@ -60,7 +60,7 @@ func TestAddReservedPeers(t *testing.T) {
 		m := <-ps.resultMsgCh
 		msg, ok := m.(Message)
 		require.True(t, ok)
-		require.Equal(t, msg, expectedMsgs[i])
+		require.Equal(t, expectedMsgs[i], msg)
 	}
 }
 
