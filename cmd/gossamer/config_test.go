@@ -151,6 +151,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
+				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -164,6 +165,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
+				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -177,6 +179,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
+				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -190,6 +193,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
+				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -203,6 +207,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
+				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -216,6 +221,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: true,
 				MetricsPort:    testCfg.Global.MetricsPort,
+				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -229,6 +235,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    uint32(9871),
+				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -243,6 +250,29 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 				NoTelemetry:    true,
+				TelemetryURLs:  []genesis.TelemetryEndpoint{},
+			},
+		},
+		{
+			"Test gossamer --telemetry-url",
+			[]string{"config", "telemetry-url", "name"},
+			[]interface{}{
+				testCfgFile.Name(),
+				[]string{"ws://localhost:8001/submit 0", "ws://foo/bar 0"},
+				testCfg.Global.Name,
+			},
+			dot.GlobalConfig{
+				Name:           testCfg.Global.Name,
+				ID:             testCfg.Global.ID,
+				BasePath:       testCfg.Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    testCfg.Global.MetricsPort,
+				NoTelemetry:    false,
+				TelemetryURLs: []genesis.TelemetryEndpoint{
+					{Endpoint: "ws://localhost:8001/submit", Verbosity: 0},
+					{Endpoint: "ws://foo/bar", Verbosity: 0},
+				},
 			},
 		},
 	}

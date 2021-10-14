@@ -493,7 +493,8 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 
 	telemetryEndpoints := []genesis.TelemetryEndpoint{}
-	for _, telemetryURL := range ctx.StringSlice("telemetry-url") {
+	for _, telemetryURL := range ctx.GlobalStringSlice(TelemetryURLFlag.Name) {
+		fmt.Printf("\ntelemetryURL: %s\n", telemetryURL)
 		splits := strings.Split(telemetryURL, " ")
 		if len(splits) != 2 {
 			return fmt.Errorf("%s must be in the format 'URL VERBOSITY'", TelemetryURLFlag.Name)
