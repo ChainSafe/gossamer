@@ -1147,13 +1147,13 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 	return 0
 }
 
-type NoneRemain uint32
-type SomeRemain uint32
+type noneRemain uint32
+type someRemain uint32
 
-func (NoneRemain) Index() uint {
+func (noneRemain) Index() uint {
 	return 0
 }
-func (SomeRemain) Index() uint {
+func (someRemain) Index() uint {
 	return 1
 }
 
@@ -1180,15 +1180,15 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, ch
 		return C.int64_t(0)
 	}
 
-	vdt, err := scale.NewVaryingDataType(NoneRemain(0), SomeRemain(0))
+	vdt, err := scale.NewVaryingDataType(noneRemain(0), someRemain(0))
 	if err != nil {
 		logger.Warn("cannot create new varying data type", "error", err)
 	}
 
 	if all {
-		err = vdt.Set(NoneRemain(deleted))
+		err = vdt.Set(noneRemain(deleted))
 	} else {
-		err = vdt.Set(SomeRemain(deleted))
+		err = vdt.Set(someRemain(deleted))
 	}
 	if err != nil {
 		logger.Warn("cannot set varying data type", "error", err)
