@@ -126,27 +126,21 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8, false)
-		if len(branches) > 1 {
-			break
-		}
-	}
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
+	leaves := gs.blockState.Leaves()
 
-	h, err := st.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	vote := NewVoteFromHeader(h)
+	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
-		Vote: *vote,
+		Vote: *vote1,
 	})
 
-	vote2 := NewVoteFromHeader(branches[0])
+	vote2, err := NewVoteFromHash(leaves[0], gs.blockState)
 	require.NoError(t, err)
 
 	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
@@ -157,8 +151,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
-	vote3 := NewVoteFromHeader(branches[1])
-	require.NoError(t, err)
+	vote3 := vote1
 
 	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote3,
