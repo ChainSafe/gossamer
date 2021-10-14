@@ -282,15 +282,11 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8, false)
-		if len(branches) != 0 {
-			break
-		}
-	}
-
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
 	leaves := gs.blockState.Leaves()
+
 	voteA, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
 	voteB, err := NewVoteFromHash(leaves[1], st.Block)
@@ -365,20 +361,20 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8, false)
-		if len(branches) != 0 {
-			break
-		}
-	}
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
+	leaves := gs.blockState.Leaves()
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 	gs.head = h
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(branches[0]), prevote)
+	vote, err := NewVoteFromHash(leaves[0], gs.blockState)
+	require.NoError(t, err)
+
+	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
