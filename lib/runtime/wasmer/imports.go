@@ -661,7 +661,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
 		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to validate signature", "error", err)
-		// Tthis fails at block 3876, which seems to be expected, based on discussions
+		// this fails at block 3876, which seems to be expected, based on discussions
 		return 1
 	}
 
