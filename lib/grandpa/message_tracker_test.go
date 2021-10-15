@@ -34,7 +34,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
-	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
+	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	fake := &types.Header{
@@ -60,7 +60,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
-	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
+	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 	gs.tracker.start()
 	defer gs.tracker.stop()
@@ -105,7 +105,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
-	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
+	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
 	err = gs.Start()
 	require.NoError(t, err)
 
@@ -153,7 +153,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	require.NoError(t, err)
 
 	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
-	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
+	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	header := &types.Header{

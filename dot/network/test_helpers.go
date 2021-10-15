@@ -133,10 +133,7 @@ func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Messa
 }
 
 func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
-	var (
-		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
-		msgBytes              = make([]byte, maxMessageSize)
-	)
+	msgBytes := make([]byte, maxBlockResponseSize)
 
 	defer func() {
 		s.exit = true

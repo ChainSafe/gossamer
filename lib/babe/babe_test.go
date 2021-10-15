@@ -32,11 +32,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+
 	log "github.com/ChainSafe/log15"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -46,6 +48,8 @@ var (
 	defaultTestLogLvl = log.LvlInfo
 	emptyHash         = trie.EmptyHash
 	testEpochIndex    = uint64(0)
+
+	keyring, _ = keystore.NewSr25519Keyring()
 
 	maxThreshold = common.MaxUint128
 	minThreshold = &common.Uint128{}
@@ -70,7 +74,7 @@ var (
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
 	genesisHeader = genHeader
 
 	var err error
@@ -85,8 +89,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Keypair == nil {
-		cfg.Keypair, err = sr25519.GenerateKeypair()
-		require.NoError(t, err)
+		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
 	}
 
 	if cfg.AuthData == nil {
@@ -102,21 +105,16 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
+	require.NoError(t, err)
 
 	var dbSrv *state.Service
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
-		require.NoError(t, err)
-
 		config := state.Config{
 			Path:     testDatadirPath,
 			LogLevel: log.LvlInfo,
 		}
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
-
-		if cfg.EpochLength > 0 {
-			genesisBABEConfig.EpochLength = cfg.EpochLength
-		}
 
 		err = dbSrv.Initialise(gen, genHeader, genTrie)
 		require.NoError(t, err)
@@ -153,7 +151,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 		rtCfg.NodeStorage = nodeStorage
 
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
@@ -209,7 +207,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	rtCfg := &wasmer.Config{}
 	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
-	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	genCfg, err := rt.BabeConfiguration()
@@ -309,15 +307,6 @@ func TestService_setupParameters_configData(t *testing.T) {
 	require.Equal(t, data.Authorities, s.epochData.authorities)
 	require.Equal(t, data.Randomness, s.epochData.randomness)
 	require.Equal(t, threshold, s.epochData.threshold)
-}
-
-func TestService_RunEpochLengthConfig(t *testing.T) {
-	cfg := &ServiceConfig{
-		EpochLength: 5,
-	}
-
-	babeService := createTestService(t, cfg)
-	require.Equal(t, uint64(5), babeService.epochLength)
 }
 
 func TestService_SlotDuration(t *testing.T) {

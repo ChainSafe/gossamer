@@ -334,7 +334,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		// TODO: ensure grandpa stores *all* previously received votes and discards them
 		// only when they are for already finalised rounds; currently this causes issues
 		// because a vote might be received slightly too early, causing a round mismatch err,
-		// causing grandpa to discard the vote.
+		// causing grandpa to discard the vote. (#1855)
 		_, isConsensusMsg := msg.(*ConsensusMessage)
 		if !added && !isConsensusMsg {
 			return

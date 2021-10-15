@@ -50,6 +50,6 @@ func TestProofGeneration(t *testing.T) {
 	proof, err := GenerateProof(hash.ToBytes(), [][]byte{[]byte("catapulta"), []byte("catapora")}, memdb)
 	require.NoError(t, err)
 
-	// TODO: use the verify_proof function to assert the tests
+	// TODO: use the verify_proof function to assert the tests (#1790)
 	require.Equal(t, 5, len(proof))
 }

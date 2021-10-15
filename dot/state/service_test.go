@@ -132,7 +132,7 @@ func TestService_BlockTree(t *testing.T) {
 	require.NoError(t, err)
 
 	// add blocks to state
-	AddBlocksToState(t, stateA.Block, 10)
+	AddBlocksToState(t, stateA.Block, 10, false)
 
 	err = stateA.Stop()
 	require.NoError(t, err)
@@ -307,7 +307,7 @@ func TestService_Rewind(t *testing.T) {
 	err = serv.Grandpa.setSetIDChangeAtBlock(3, big.NewInt(10))
 	require.NoError(t, err)
 
-	AddBlocksToState(t, serv.Block, 12)
+	AddBlocksToState(t, serv.Block, 12, false)
 	err = serv.Rewind(6)
 	require.NoError(t, err)
 

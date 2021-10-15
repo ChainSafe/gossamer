@@ -41,7 +41,8 @@ const (
 )
 
 var (
-	interval = time.Second // TODO: make this configurable; currently 1s is same as substrate; total round length is interval * 2
+	// TODO: make this configurable; currently 1s is same as substrate; total round length is interval * 2 (#1869)
+	interval = time.Second
 	logger   = log.New("pkg", "grandpa")
 )
 
@@ -53,7 +54,7 @@ type Service struct {
 	blockState     BlockState
 	grandpaState   GrandpaState
 	digestHandler  DigestHandler
-	keypair        *ed25519.Keypair // TODO: change to grandpa keystore
+	keypair        *ed25519.Keypair // TODO: change to grandpa keystore (#1870)
 	mapLock        sync.Mutex
 	chanLock       sync.Mutex
 	roundLock      sync.Mutex
@@ -176,10 +177,8 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	// TODO: determine if we need to send a catch-up request
-
-	err := s.registerProtocol()
-	if err != nil {
+	// TODO: determine if we need to send a catch-up request (#1531)
+	if err := s.registerProtocol(); err != nil {
 		return err
 	}
 
@@ -192,8 +191,7 @@ func (s *Service) Start() error {
 	s.tracker.start()
 
 	go func() {
-		err := s.initiate()
-		if err != nil {
+		if err := s.initiate(); err != nil {
 			logger.Crit("failed to initiate", "error", err)
 		}
 	}()
@@ -826,7 +824,7 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 		spc = s.precommits
 	}
 
-	// TODO: use equivacatory votes to create justification as well
+	// TODO: use equivacatory votes to create justification as well (#1667)
 	spc.Range(func(_, value interface{}) bool {
 		pc := value.(*SignedVote)
 		var isDescendant bool
@@ -872,7 +870,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 
 	// if there are no blocks with >2/3 pre-commits, just return the pre-voted block
 	// TODO: is this correct? the spec implies that it should return nil, but discussions have suggested
-	// that we return the prevoted block.
+	// that we return the prevoted block. (#1815)
 	if len(blocks) == 0 {
 		return &prevoted, nil
 	}
@@ -974,7 +972,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 		return Vote{}, err
 	}
 
-	// TODO: if there are no blocks with >2/3 voters, then just pick the highest voted block
+	// if there are no blocks with >=2/3 voters, then just pick the highest voted block
 	if len(blocks) == 0 {
 		return s.getGrandpaGHOST()
 	}
