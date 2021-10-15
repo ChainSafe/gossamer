@@ -9,7 +9,6 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/btcsuite/btcutil v1.0.2
-	github.com/bytecodealliance/wasmtime-go v0.20.0
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.0
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
