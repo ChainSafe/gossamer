@@ -113,8 +113,6 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 		Roles:            dcfg.Core.Roles,
 		BabeAuthority:    dcfg.Core.BabeAuthority,
 		GrandpaAuthority: dcfg.Core.GrandpaAuthority,
-		EpochLength:      dcfg.Core.EpochLength,
-		SlotDuration:     dcfg.Core.SlotDuration,
 	}
 
 	cfg.Network = ctoml.NetworkConfig{

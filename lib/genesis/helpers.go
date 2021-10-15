@@ -300,7 +300,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 				return err
 			}
 		case string:
-			// todo check to confirm it's an address
+			// TODO: check to confirm it's an address (#1865)
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 			kv.iVal = append(kv.iVal, tba)
@@ -379,7 +379,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 			return nil, err
 		}
 	case [][]interface{}:
-		// TODO: for members field in phragmenElection struct figure out the correct format for encoding value
+		// TODO: for members field in phragmenElection struct figure out the correct format for encoding value (#1866)
 		for _, data := range t {
 			for _, v := range data {
 				var accAddr accountAddr
@@ -403,7 +403,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("errror")
+		return nil, fmt.Errorf("invalid value type")
 	}
 	return encode, nil
 }
@@ -413,6 +413,7 @@ func generateContractKeyValue(c *contracts, prefixKey string, res map[string]str
 		key string
 		err error
 	)
+
 	// First field of contract is the storage key
 	val := reflect.ValueOf(c)
 	if k := reflect.Indirect(val).Type().Field(0).Name; k == currentSchedule {
@@ -426,6 +427,7 @@ func generateContractKeyValue(c *contracts, prefixKey string, res map[string]str
 	if err != nil {
 		return err
 	}
+
 	res[key] = common.BytesToHex(encode)
 	return nil
 }
@@ -433,20 +435,24 @@ func generateContractKeyValue(c *contracts, prefixKey string, res map[string]str
 func generateKeyValue(s interface{}, prefixKey string, res map[string]string) error {
 	val := reflect.ValueOf(s)
 	n := reflect.Indirect(val).NumField()
+
 	for i := 0; i < n; i++ {
 		val := reflect.ValueOf(s)
 		storageKey := reflect.Indirect(val).Type().Field(i).Name
-		if storageKey == phantom { //TODO: figure out what to do with Phantom as its value is null
+		if storageKey == phantom { // ignore Phantom as its value is null
 			continue
 		}
+
 		key, err := generateStorageKey(prefixKey, storageKey)
 		if err != nil {
 			return err
 		}
+
 		value, err := generateStorageValue(s, i)
 		if err != nil {
 			return err
 		}
+
 		res[key] = common.BytesToHex(value)
 	}
 	return nil

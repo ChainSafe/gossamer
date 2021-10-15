@@ -34,7 +34,7 @@ type Hash = common.Hash
 
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
-	head   *node // root node TODO: rename this!!
+	root   *node
 	leaves *leafMap
 	db     database.Database
 	sync.RWMutex
@@ -45,7 +45,7 @@ type BlockTree struct {
 // NewEmptyBlockTree creates a BlockTree with a nil head
 func NewEmptyBlockTree(db database.Database) *BlockTree {
 	return &BlockTree{
-		head:      nil,
+		root:      nil,
 		leaves:    newEmptyLeafMap(),
 		db:        db,
 		nodeCache: make(map[Hash]*node),
@@ -56,17 +56,17 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 // NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
 // finalised block (ie the genesis block if the node is just starting.)
 func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
-	head := &node{
+	n := &node{
 		hash:        root.Hash(),
 		parent:      nil,
 		children:    []*node{},
 		depth:       big.NewInt(0),
-		arrivalTime: uint64(time.Now().Unix()), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
+		arrivalTime: uint64(time.Now().Unix()),
 	}
 
 	return &BlockTree{
-		head:      head,
-		leaves:    newLeafMap(head),
+		root:      n,
+		leaves:    newLeafMap(n),
 		db:        db,
 		nodeCache: make(map[Hash]*node),
 		runtime:   &sync.Map{},
@@ -77,7 +77,7 @@ func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 func (bt *BlockTree) GenesisHash() Hash {
 	bt.RLock()
 	defer bt.RUnlock()
-	return bt.head.hash
+	return bt.root.hash
 }
 
 // AddBlock inserts the block as child of its parent node
@@ -148,12 +148,12 @@ func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 
 	depth := big.NewInt(0).Add(bt.getNode(hash).depth, big.NewInt(1))
 
-	if bt.head.depth.Cmp(depth) == 0 {
-		hashes = append(hashes, bt.head.hash)
+	if bt.root.depth.Cmp(depth) == 0 {
+		hashes = append(hashes, bt.root.hash)
 		return hashes
 	}
 
-	return bt.head.getNodesWithDepth(depth, hashes)
+	return bt.root.getNodesWithDepth(depth, hashes)
 }
 
 func (bt *BlockTree) setInCache(b *node) {
@@ -174,8 +174,8 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 		return b
 	}
 
-	if bt.head.hash == h {
-		return bt.head
+	if bt.root.hash == h {
+		return bt.root
 	}
 
 	for _, leaf := range bt.leaves.nodes() {
@@ -184,7 +184,7 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 		}
 	}
 
-	for _, child := range bt.head.children {
+	for _, child := range bt.root.children {
 		if n := child.getNode(h); n != nil {
 			return n
 		}
@@ -205,7 +205,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		}
 	}()
 
-	if finalised == bt.head.hash {
+	if finalised == bt.root.hash {
 		return pruned
 	}
 
@@ -214,8 +214,8 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		return pruned
 	}
 
-	pruned = bt.head.prune(n, nil)
-	bt.head = n
+	pruned = bt.root.prune(n, nil)
+	bt.root = n
 	leaves := n.getLeaves(nil)
 	bt.leaves = newEmptyLeafMap()
 	for _, leaf := range leaves {
@@ -231,9 +231,9 @@ func (bt *BlockTree) String() string {
 	defer bt.RUnlock()
 
 	// Construct tree
-	tree := gotree.New(bt.head.string())
+	tree := gotree.New(bt.root.string())
 
-	for _, child := range bt.head.children {
+	for _, child := range bt.root.children {
 		sub := tree.Add(child.string())
 		child.createTree(sub)
 	}
@@ -371,7 +371,7 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	return bt.head.getAllDescendants(nil)
+	return bt.root.getAllDescendants(nil)
 }
 
 // DeepCopy returns a copy of the BlockTree
@@ -384,11 +384,11 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 		nodeCache: make(map[Hash]*node),
 	}
 
-	if bt.head == nil {
+	if bt.root == nil {
 		return btCopy
 	}
 
-	btCopy.head = bt.head.deepCopy(nil)
+	btCopy.root = bt.root.deepCopy(nil)
 
 	if bt.leaves != nil {
 		btCopy.leaves = newEmptyLeafMap()

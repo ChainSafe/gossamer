@@ -45,7 +45,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -126,27 +126,21 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
-		if len(branches) > 1 {
-			break
-		}
-	}
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
+	leaves := gs.blockState.Leaves()
 
-	h, err := st.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	vote := NewVoteFromHeader(h)
+	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
-		Vote: *vote,
+		Vote: *vote1,
 	})
 
-	vote2 := NewVoteFromHeader(branches[0])
+	vote2, err := NewVoteFromHash(leaves[0], gs.blockState)
 	require.NoError(t, err)
 
 	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
@@ -157,8 +151,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
-	vote3 := NewVoteFromHeader(branches[1])
-	require.NoError(t, err)
+	vote3 := vote1
 
 	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote3,
@@ -188,7 +181,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -221,7 +214,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -254,7 +247,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -289,15 +282,11 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
-		if len(branches) != 0 {
-			break
-		}
-	}
-
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
 	leaves := gs.blockState.Leaves()
+
 	voteA, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
 	voteB, err := NewVoteFromHash(leaves[1], st.Block)
@@ -336,7 +325,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 	gs.tracker = newTracker(st.Block, gs.messageHandler)
 
 	fake := &types.Header{
@@ -372,20 +361,19 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
-		if len(branches) != 0 {
-			break
-		}
-	}
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
+	leaves := gs.blockState.Leaves()
 
-	h, err := st.Block.BestBlockHeader()
+	gs.head, err = gs.blockState.GetHeader(leaves[0])
 	require.NoError(t, err)
-	gs.head = h
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(branches[0]), prevote)
+	vote, err := NewVoteFromHash(leaves[1], gs.blockState)
+	require.NoError(t, err)
+
+	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
