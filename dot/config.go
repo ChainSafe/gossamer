@@ -92,6 +92,7 @@ type NetworkConfig struct {
 	MaxPeers          int
 	PersistentPeers   []string
 	DiscoveryInterval time.Duration
+	GrandpaInterval   time.Duration
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -185,6 +186,7 @@ func GssmrConfig() *Config {
 			NoBootstrap:       gssmr.DefaultNoBootstrap,
 			NoMDNS:            gssmr.DefaultNoMDNS,
 			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
+			GrandpaInterval:   gssmr.DefaultGrandpaInterval,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,

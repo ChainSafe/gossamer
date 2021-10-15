@@ -85,6 +85,9 @@ var (
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Second * 10
 
+	// DefaultGrandpaInterval
+	DefaultGrandpaInterval = time.Second
+
 	// RPCConfig
 
 	// DefaultRPCHTTPHost rpc host

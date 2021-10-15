@@ -72,6 +72,7 @@ type NetworkConfig struct {
 	MaxPeers          int      `toml:"max-peers,omitempty"`
 	PersistentPeers   []string `toml:"persistent-peers,omitempty"`
 	DiscoveryInterval int      `toml:"discovery-interval,omitempty"`
+	GrandpaInterval   int      `toml:"grandpa-interval,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

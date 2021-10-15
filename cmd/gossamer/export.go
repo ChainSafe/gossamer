@@ -124,6 +124,7 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 		NoBootstrap:       dcfg.Network.NoBootstrap,
 		NoMDNS:            dcfg.Network.NoMDNS,
 		DiscoveryInterval: int(dcfg.Network.DiscoveryInterval / time.Second),
+		GrandpaInterval:   int(dcfg.Network.GrandpaInterval / time.Second),
 	}
 
 	cfg.RPC = ctoml.RPCConfig{

@@ -631,6 +631,12 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.DiscoveryInterval = 0
 	}
 
+	if tomlCfg.GrandpaInterval > 0 {
+		cfg.GrandpaInterval = time.Second * time.Duration(tomlCfg.GrandpaInterval)
+	} else {
+		cfg.GrandpaInterval = 0
+	}
+
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
 		cfg.Port = uint32(port)
@@ -676,6 +682,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		"maxpeers", cfg.MaxPeers,
 		"persistent-peers", cfg.PersistentPeers,
 		"discovery-interval", cfg.DiscoveryInterval,
+		"grandpa-interval", cfg.GrandpaInterval,
 	)
 }
 

@@ -388,6 +388,7 @@ func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks
 		Voters:        voters,
 		Authority:     cfg.Core.GrandpaAuthority,
 		Network:       net,
+		Interval:      cfg.Network.GrandpaInterval,
 	}
 
 	if cfg.Core.GrandpaAuthority {

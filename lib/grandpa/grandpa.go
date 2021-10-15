@@ -41,8 +41,7 @@ const (
 )
 
 var (
-	interval = time.Second // TODO: make this configurable; currently 1s is same as substrate; total round length is interval * 2
-	logger   = log.New("pkg", "grandpa")
+	logger = log.New("pkg", "grandpa")
 )
 
 // Service represents the current state of the grandpa protocol
@@ -62,6 +61,7 @@ type Service struct {
 	resumed        chan struct{} // this channel will be closed when the service resumes
 	messageHandler *MessageHandler
 	network        Network
+	interval       time.Duration
 
 	// current state information
 	state           *State                                   // current state
@@ -92,6 +92,7 @@ type Config struct {
 	Voters        []Voter
 	Keypair       *ed25519.Keypair
 	Authority     bool
+	Interval      time.Duration
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -166,6 +167,7 @@ func NewService(cfg *Config) (*Service, error) {
 		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
+		interval:           cfg.Interval,
 	}
 
 	s.messageHandler = NewMessageHandler(s, s.blockState)
@@ -464,7 +466,7 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debug("receiving pre-vote messages...")
 	go s.receiveMessages(ctx)
-	time.Sleep(interval)
+	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
@@ -493,7 +495,7 @@ func (s *Service) playGrandpaRound() error {
 	go s.sendVoteMessage(prevote, vm, roundComplete)
 
 	logger.Debug("receiving pre-commit messages...")
-	time.Sleep(interval)
+	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
@@ -526,7 +528,7 @@ func (s *Service) playGrandpaRound() error {
 }
 
 func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplete <-chan struct{}) {
-	ticker := time.NewTicker(interval * 4)
+	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
 	for {
@@ -550,7 +552,7 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 
 // attemptToFinalize loops until the round is finalisable
 func (s *Service) attemptToFinalize() error {
-	ticker := time.NewTicker(interval / 100)
+	ticker := time.NewTicker(s.interval / 100)
 
 	for {
 		select {
