@@ -366,7 +366,7 @@ func newTestStateService(t *testing.T) *state.Service {
 		require.NoError(t, err)
 	}
 
-	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	err = loadTestBlocks(t, genesisHeader.Hash(), stateSrvc.Block, rt)
