@@ -59,7 +59,7 @@ var (
 	errNilEpochState         = errors.New("cannot have nil EpochState")
 	errInvalidResult         = errors.New("invalid error value")
 	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
-	errFirstBlockTimeout = errors.New("timed out waiting for first block")
+	errFirstBlockTimeout     = errors.New("timed out waiting for first block")
 
 	other         Other
 	invalidCustom InvalidCustom

@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	logger log.Logger
+	logger            log.Logger
 	firstBlockTimeout = time.Minute
 )
 
