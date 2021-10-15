@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	//"fmt"
 	"math/rand"
 	"sync"
 	"testing"
@@ -576,21 +577,30 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 		wg.Wait()
 
-		head := gss[0].blockState.(*state.BlockState).BestBlockHash()
 		for _, fb := range finalised {
 			require.NotNil(t, fb)
-			require.Equal(t, head, fb.Vote.Hash)
-			require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
-			require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
+			require.Greater(t, len(fb.Precommits), len(kr.Keys)/2)
+			require.Greater(t, len(fb.AuthData), len(kr.Keys)/2)
 			finalised[0].Precommits = []Vote{}
 			finalised[0].AuthData = []AuthData{}
 			fb.Precommits = []Vote{}
 			fb.AuthData = []AuthData{}
 			require.Equal(t, finalised[0], fb)
+
+			if j == rounds-1 {
+				require.Greater(t, int(fb.Vote.Number), 4)
+			}
 		}
 
-		for _, gs := range gss {
-			state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 1, false)
+		chain, _ := state.AddBlocksToState(t, gss[0].blockState.(*state.BlockState), 1, false)
+		block := &types.Block{
+			Header: *(chain[0]),
+			Body:   types.Body{},
+		}
+
+		for _, gs := range gss[1:] {
+			err := gs.blockState.(*state.BlockState).AddBlock(block)
+			require.NoError(t, err)
 		}
 
 	}
