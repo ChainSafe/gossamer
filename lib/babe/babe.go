@@ -35,6 +35,7 @@ import (
 
 var (
 	logger log.Logger
+	firstBlockTimeout = time.Minute
 )
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
@@ -238,26 +239,34 @@ func (b *Service) Start() error {
 	go func() {
 		// if we aren't leading node, wait for first block
 		if !b.lead {
-			b.waitForFirstBlock()
+			if err := b.waitForFirstBlock(); err != nil {
+				logger.Crit("failed to start BABE", "error", err)
+			}
 		}
+
 		b.initiate()
 	}()
+
 	return nil
 }
 
-func (b *Service) waitForFirstBlock() {
+func (b *Service) waitForFirstBlock() error {
 	ch := b.blockState.GetImportedBlockNotifierChannel()
 	defer b.blockState.FreeImportedBlockNotifierChannel(ch)
+
+	timeout := time.After(firstBlockTimeout)
 
 	// loop until block 1
 	for {
 		select {
 		case block := <-ch:
 			if block != nil && block.Header.Number.Int64() > 0 {
-				return
+				return nil
 			}
+		case <-timeout:
+			return errFirstBlockTimeout
 		case <-b.ctx.Done():
-			return
+			return nil
 		}
 	}
 }
