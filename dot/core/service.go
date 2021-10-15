@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -242,7 +243,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if there was a runtime code substitution
-	if err := s.handleCodeSubstitution(block.Header.Hash()); err != nil {
+	if err := s.handleCodeSubstitution(block.Header.Hash(), state); err != nil {
 		logger.Crit("failed to substitute runtime code", "error", err)
 		return err
 	}
@@ -266,7 +267,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(hash common.Hash) error {
+func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
 	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil
@@ -283,9 +284,22 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 		return err
 	}
 
-	// TODO: this needs to create a new runtime instance, otherwise it will update
+	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	err = rt.UpdateRuntimeCode(code)
+	cfg := &wasmer.Config{
+		Imports: wasmer.ImportsNodeRuntime,
+	}
+
+	cfg.Storage = state
+	cfg.Keystore = rt.Keystore()
+	cfg.NodeStorage = rt.NodeStorage()
+	cfg.Network = rt.NetworkService()
+
+	if rt.Validator() {
+		cfg.Role = 4
+	}
+
+	next, err := wasmer.NewInstance(code, cfg)
 	if err != nil {
 		return err
 	}
@@ -295,6 +309,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 		return err
 	}
 
+	s.blockState.StoreRuntime(hash, next)
 	return nil
 }
 
@@ -383,15 +398,14 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			continue
 		}
 
-		// TODO: decode extrinsic and make sure it's not an inherent.
-		// currently we are attempting to re-add inherents, causing lots of "'Bad input data provided to validate_transaction" errors.
 		for _, ext := range *body {
-			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Info("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
 			}
 
+			// decode extrinsic and make sure it's not an inherent.
 			decExt := &types.ExtrinsicData{}
 			err = decExt.DecodeVersion(encExt)
 			if err != nil {
@@ -406,7 +420,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Debug("failed to validate transaction", "error", err, "extrinsic", ext)
+				logger.Info("failed to validate transaction", "error", err, "extrinsic", ext)
 				continue
 			}
 
@@ -430,7 +444,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		// TODO: re-add this
+		// TODO: re-add this, need to update tests (#904)
 		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
 		// if err != nil {
 		// 	// failed to validate tx, remove it from the pool or queue
@@ -453,7 +467,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 }
 
 // InsertKey inserts keypair into the account keystore
-// TODO: define which keystores need to be updated and create separate insert funcs for each
+// TODO: define which keystores need to be updated and create separate insert funcs for each (#1850)
 func (s *Service) InsertKey(kp crypto.Keypair) {
 	s.keys.Acco.Insert(kp)
 }

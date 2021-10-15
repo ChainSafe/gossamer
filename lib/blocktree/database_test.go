@@ -88,7 +88,7 @@ func TestStoreBlockTree(t *testing.T) {
 	err = resBt.Load()
 	require.NoError(t, err)
 
-	if !reflect.DeepEqual(bt.head, resBt.head) {
+	if !reflect.DeepEqual(bt.root, resBt.root) {
 		t.Fatalf("Fail: got %v expected %v", resBt, bt)
 	}
 

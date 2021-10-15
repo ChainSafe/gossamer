@@ -170,7 +170,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 			}
 		}
 
-		// TODO: get justification if your round is lower, or just do catch-up?
+		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
 		return nil, errRoundMismatch(m.Round, s.state.round)
 	}
 

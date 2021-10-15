@@ -395,21 +395,19 @@ func (bs *BlockState) AddBlock(block *types.Block) error {
 
 // AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
 func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
-	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
-	if err != nil {
+	// add block to blocktree
+	if err := bs.bt.AddBlock(&block.Header, uint64(arrivalTime.UnixNano())); err != nil {
+		return err
+	}
+
+	if err := bs.setArrivalTime(block.Header.Hash(), arrivalTime); err != nil {
 		return err
 	}
 
 	prevHead := bs.bt.DeepestBlockHash()
 
-	// add block to blocktree
-	err = bs.bt.AddBlock(&block.Header, uint64(arrivalTime.UnixNano()))
-	if err != nil {
-		return err
-	}
-
 	// add the header to the DB
-	err = bs.SetHeader(&block.Header)
+	err := bs.SetHeader(&block.Header)
 	if err != nil {
 		return err
 	}
@@ -469,7 +467,6 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 
 	batch := bs.db.NewBatch()
 	for _, hash := range subchain {
-		// TODO: set number from ancestor.Number + i ?
 		header, err := bs.GetHeader(hash)
 		if err != nil {
 			return fmt.Errorf("failed to get header in subchain: %w", err)

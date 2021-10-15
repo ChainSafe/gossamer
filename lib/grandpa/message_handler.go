@@ -87,7 +87,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 	}
 
 	// TODO; determine if there is some reason we don't receive justifications in responses near the head (usually),
-	// and remove the following code if it's fixed.
+	// and remove the following code if it's fixed. (#1815)
 	head, err := h.blockState.BestBlockNumber()
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 	}
 
 	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
-	// TODO: should we send a justification request here? potentially re-connect this to sync package?
+	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
 	return nil
 }
 
@@ -130,7 +130,8 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, pcs); err != nil {
 		return err
 	}
-	// TODO: re-add catch-up logic
+
+	// TODO: re-add catch-up logic (#1531)
 	return nil
 }
 
@@ -165,7 +166,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
 
-	// TODO: re-add catch-up logic
+	// TODO: re-add catch-up logic (#1531)
 	if true {
 		return nil
 	}
