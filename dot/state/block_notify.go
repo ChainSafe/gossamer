@@ -20,7 +20,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -112,15 +111,6 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 		go func(ch chan *types.FinalisationInfo) {
 			select {
 			case ch <- info:
-				err := telemetry.GetInstance().SendMessage(
-					telemetry.NewNotifyFinalizedTM(
-						info.Header.Hash(),
-						info.Header.Number,
-					),
-				)
-				if err != nil {
-					logger.Error("could not send 'notify.finalized' telemetry message", "error", err)
-				}
 			default:
 			}
 		}(ch)

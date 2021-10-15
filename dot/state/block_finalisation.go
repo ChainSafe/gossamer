@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -154,20 +155,20 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	pruned := bs.bt.Prune(hash)
-	for _, hash := range pruned {
-		header, err := bs.GetHeader(hash)
+	for _, prunedHash := range pruned {
+		header, err := bs.GetHeader(prunedHash)
 		if err != nil {
-			logger.Debug("failed to get pruned header", "hash", hash, "error", err)
+			logger.Debug("failed to get pruned header", "hash", prunedHash, "error", err)
 			continue
 		}
 
-		err = bs.DeleteBlock(hash)
+		err = bs.DeleteBlock(prunedHash)
 		if err != nil {
-			logger.Debug("failed to delete block", "hash", hash, "error", err)
+			logger.Debug("failed to delete block", "hash", prunedHash, "error", err)
 			continue
 		}
 
-		logger.Trace("pruned block", "hash", hash, "number", header.Number)
+		logger.Trace("pruned block", "hash", prunedHash, "number", header.Number)
 		go func(header *types.Header) {
 			bs.pruneKeyCh <- header
 		}(header)
@@ -177,6 +178,21 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
 		return err
+	}
+
+	header, err := bs.GetHeader(hash)
+	if err != nil {
+		return fmt.Errorf("failed to get finalised header, hash: %s, error: %s", hash, err)
+	}
+
+	err = telemetry.GetInstance().SendMessage(
+		telemetry.NewNotifyFinalizedTM(
+			header.Hash(),
+			header.Number,
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("could not send 'notify.finalized' telemetry message, error: %s", err)
 	}
 
 	return bs.setHighestRoundAndSetID(round, setID)
