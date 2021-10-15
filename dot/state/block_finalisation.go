@@ -188,7 +188,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	err = telemetry.GetInstance().SendMessage(
 		telemetry.NewNotifyFinalizedTM(
 			header.Hash(),
-			header.Number,
+			header.Number.String(),
 		),
 	)
 	if err != nil {

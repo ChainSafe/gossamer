@@ -80,7 +80,7 @@ func TestHandler_SendMulti(t *testing.T) {
 
 	go func() {
 		bestHash := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
-		GetInstance().SendMessage(NewNotifyFinalizedTM(bestHash, big.NewInt(32375)))
+		GetInstance().SendMessage(NewNotifyFinalizedTM(bestHash, "32375"))
 
 		wg.Done()
 	}()

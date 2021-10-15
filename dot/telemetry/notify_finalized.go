@@ -17,8 +17,6 @@
 package telemetry
 
 import (
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -28,12 +26,12 @@ import (
 type NotifyFinalizedTM struct {
 	Best common.Hash `json:"best"`
 	// Height is same as block.Header.Number
-	Height *big.Int `json:"height"`
-	Msg    string   `json:"msg"`
+	Height string `json:"height"`
+	Msg    string `json:"msg"`
 }
 
 // NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
-func NewNotifyFinalizedTM(best common.Hash, height *big.Int) *NotifyFinalizedTM {
+func NewNotifyFinalizedTM(best common.Hash, height string) *NotifyFinalizedTM {
 	return &NotifyFinalizedTM{
 		Best:   best,
 		Height: height,
