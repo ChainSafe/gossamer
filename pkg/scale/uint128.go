@@ -108,6 +108,11 @@ func (u *Uint128) Bytes(order ...binary.ByteOrder) (b []byte) {
 	return
 }
 
+// String returns the string format from the Uint128 value
+func (u *Uint128) String() string {
+	return fmt.Sprintf("%d", big.NewInt(0).SetBytes(u.Bytes()))
+}
+
 // Compare returns 1 if the receiver is greater than other, 0 if they are equal, and -1 otherwise.
 func (u *Uint128) Compare(other *Uint128) int {
 	switch {

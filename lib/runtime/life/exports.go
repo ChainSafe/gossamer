@@ -2,6 +2,7 @@ package life
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -162,6 +163,12 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
 func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	return in.Exec(runtime.DecodeSessionKeys, enc)
+}
+
+// PaymentQueryInfo returns information of a given extrinsic
+func (*Instance) PaymentQueryInfo([]byte) (*types.TransactionPaymentQueryInfo, error) {
+	// TODO: implement the payment query info (see issue #1892)
+	return nil, errors.New("not implemented yet")
 }
 
 func (in *Instance) CheckInherents()      {} //nolint

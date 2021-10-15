@@ -49,6 +49,7 @@ type Instance interface {
 	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
 
 	// TODO: parameters and return values for these are undefined in the spec
 	CheckInherents()
