@@ -19,6 +19,7 @@ package modules
 import (
 	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -26,10 +27,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	database "github.com/ChainSafe/chaindb"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -350,7 +354,19 @@ func newTestStateService(t *testing.T) *state.Service {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	rt, err := stateSrvc.CreateGenesisRuntime(genTrie, gen)
+	rtCfg := &wasmer.Config{}
+
+	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	if stateSrvc != nil {
+		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
+	} else {
+		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		require.NoError(t, err)
+	}
+
+	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 	require.NoError(t, err)
 
 	err = loadTestBlocks(t, genesisHeader.Hash(), stateSrvc.Block, rt)

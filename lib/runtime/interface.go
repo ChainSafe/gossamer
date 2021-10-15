@@ -49,6 +49,7 @@ type Instance interface {
 	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
 
 	CheckInherents() // TODO: use this in block verification process (#1873)
 
