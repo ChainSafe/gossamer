@@ -79,10 +79,8 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	return extBytes
 }
 
-func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
-	// TODO: move to sync package
-	net := new(MockNetwork) // nolint
-
+func TestService_HandleBlockProduced(t *testing.T) {
+	net := new(MockNetwork)
 	cfg := &Config{
 		Network:  net,
 		Keystore: keystore.NewGlobalKeystore(),

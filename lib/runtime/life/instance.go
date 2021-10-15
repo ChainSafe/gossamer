@@ -24,9 +24,9 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/perlin-network/life/exec"
 	wasm_validation "github.com/perlin-network/life/wasm-validation"
@@ -61,13 +61,16 @@ func (*Instance) GetCodeHash() common.Hash {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) { // TODO: simplify, get :code from storage
-	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
+func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
+	if cfg.Storage == nil {
+		return nil, errors.New("storage is nil")
 	}
 
-	code := common.MustHexToBytes(codeStr)
+	code := cfg.Storage.LoadCode()
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in state")
+	}
+
 	cfg.Resolver = new(Resolver)
 	return NewInstance(code, cfg)
 }
@@ -113,7 +116,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		memory: instance.Memory,
 	}
 
-	// TODO: use __heap_base
+	// TODO: use __heap_base (#1874)
 	allocator := runtime.NewAllocator(memory, 0)
 
 	runtimeCtx := &runtime.Context{
@@ -202,7 +205,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	offset, length := int64ToPointerAndSize(ret)
+	offset, length := runtime.Int64ToPointerAndSize(ret)
 	return in.vm.Memory[offset : offset+length], nil
 }
 
@@ -227,16 +230,4 @@ func (*Instance) Validator() bool {
 // Keystore to get reference to runtime keystore
 func (*Instance) Keystore() *keystore.GlobalKeystore {
 	return ctx.Keystore
-}
-
-// TODO: move below to lib/runtime
-
-// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
-func int64ToPointerAndSize(in int64) (ptr, length int32) {
-	return int32(in), int32(in >> 32)
-}
-
-// pointerAndSizeToInt64 converts int32 pointer and size to a int64
-func pointerAndSizeToInt64(ptr, size int32) int64 {
-	return int64(ptr) | (int64(size) << 32)
 }

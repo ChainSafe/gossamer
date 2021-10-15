@@ -210,30 +210,6 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	}
 }
 
-func TestSync_ManyProducers(t *testing.T) {
-	// TODO: this fails with runtime: out of memory
-	// this means when each node is connected to 8 other nodes, too much memory is being used.
-	t.Skip()
-
-	numNodes := 9 // 9 block producers
-	utils.SetLogLevel(log.LvlInfo)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
-	require.NoError(t, err)
-
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	numCmps := 100
-	for i := 0; i < numCmps; i++ {
-		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err, i)
-		time.Sleep(time.Second)
-	}
-}
-
 func TestSync_Bench(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 	numBlocks := 64

@@ -656,7 +656,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
 		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to validate signature", "error", err)
-		// TODO: fix this, fails at block 3876
+		// this fails at block 3876, which seems to be expected, based on discussions
 		return 1
 	}
 
@@ -710,7 +710,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 
-	// TODO: fix and re-enable signature verification
+	// TODO: fix and re-enable signature verification (#1405)
 	// beginBatchVerify(context)
 }
 
@@ -730,7 +730,7 @@ func beginBatchVerify(context unsafe.Pointer) { //nolint
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
 
-	// TODO: fix and re-enable signature verification
+	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
 	return 1
 }
@@ -761,25 +761,20 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	t := trie.NewEmptyTrie()
-	// TODO: this is a fix for the length until slices of structs can be decoded
-	// length passed in is the # of (key, value) tuples, but we are decoding as a slice of []byte
-	data[0] = data[0] << 1
+
+	type kv struct {
+		Key, Value []byte
+	}
 
 	// this function is expecting an array of (key, value) tuples
-	var keyValues [][]byte
-	err := scale.Unmarshal(data, &keyValues)
-	if err != nil {
+	var kvs []kv
+	if err := scale.Unmarshal(data, &kvs); err != nil {
 		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
 		return 0
 	}
 
-	if len(keyValues)%2 != 0 { // TODO: this can be removed when we have decoding of slices of structs
-		logger.Warn("[ext_trie_blake2_256_root_version_1] odd number of input key-values, skipping last value")
-		keyValues = keyValues[:len(keyValues)-1]
-	}
-
-	for i := 0; i < len(keyValues); i = i + 2 {
-		t.Put(keyValues[i], keyValues[i+1])
+	for _, kv := range kvs {
+		t.Put(kv.Key, kv.Value)
 	}
 
 	// allocate memory for value and copy value to memory
@@ -820,7 +815,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	for i, val := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i))) //nolint
 		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+			logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
 			return 0
 		}
 		logger.Trace("[ext_trie_blake2_256_ordered_root_version_1]", "key", key, "value", val)
@@ -936,7 +931,7 @@ func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStora
 		return 0
 	}
 
-	valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
+	valueBuf, valueLen := runtime.Int64ToPointerAndSize(int64(valueOut))
 	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 
 	size := uint32(len(value[offset:]))
@@ -1144,7 +1139,7 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int64_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_3] executing...")
 	logger.Warn("[ext_default_child_storage_storage_kill_version_3] somewhat unimplemented")
-	// TODO: need to use `limit` parameter
+	// TODO: need to use `limit` parameter (#1793)
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -1152,8 +1147,6 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, ch
 
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 	storage.DeleteChild(childStorageKey)
-
-	// TODO: this function returns a `KillStorageResult` which may be `AllRemoved` (0) or `SomeRemaining` (1)
 	return 0
 }
 
@@ -1671,7 +1664,7 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, _ C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_clear_prefix_version_2] executing...")
 	logger.Warn("[ext_storage_clear_prefix_version_2] somewhat unimplemented")
-	// TODO: need to use unused `limit` parameter
+	// TODO: need to use unused `limit` parameter (#1792)
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -1772,7 +1765,7 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 		size = uint32(0)
 	} else {
 		size = uint32(len(value[offset:]))
-		valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
+		valueBuf, valueLen := runtime.Int64ToPointerAndSize(int64(valueOut))
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
@@ -1851,7 +1844,7 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(context wasm.InstanceContext, span C.int64_t) []byte {
 	memory := context.Memory().Data()
-	ptr, size := int64ToPointerAndSize(int64(span))
+	ptr, size := runtime.Int64ToPointerAndSize(int64(span))
 	return memory[ptr : ptr+size]
 }
 
@@ -1872,7 +1865,7 @@ func toWasmMemory(context wasm.InstanceContext, data []byte) (int64, error) {
 	}
 
 	copy(memory[out:out+size], data)
-	return pointerAndSizeToInt64(int32(out), int32(size)), nil
+	return runtime.PointerAndSizeToInt64(int32(out), int32(size)), nil
 }
 
 // Copy a byte slice of a fixed size to wasm memory and return resulting pointer

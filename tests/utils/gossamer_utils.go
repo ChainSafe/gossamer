@@ -103,7 +103,6 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 		"--force",
 	)
 
-	//add step for init
 	logger.Info("initialising gossamer...", "cmd", cmdInit)
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
@@ -111,9 +110,7 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 		return nil, err
 	}
 
-	// TODO: get init exit code to see if node was successfully initialised
 	logger.Info("initialised gossamer!", "node", idx)
-
 	return &Node{
 		Idx:      idx,
 		RPCPort:  strconv.Itoa(BaseRPCPort + idx),

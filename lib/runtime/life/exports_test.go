@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +31,7 @@ func newInstanceFromGenesis(t *testing.T) runtime.Instance {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 	return instance
 }
@@ -234,7 +233,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
@@ -284,7 +283,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 5
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
@@ -312,5 +311,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: fix
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
 }

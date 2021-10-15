@@ -27,29 +27,9 @@ import (
 // Extrinsic is a generic transaction whose format is verified in the runtime
 type Extrinsic []byte
 
-// ExtrinsicData is a transaction which embeds the `ctypes.Extrinsic` and has additional functionality.
-type ExtrinsicData struct {
-	ctypes.Extrinsic
-}
-
 // NewExtrinsic creates a new Extrinsic given a byte slice
 func NewExtrinsic(e []byte) Extrinsic {
 	return Extrinsic(e)
-}
-
-// DecodeVersion decodes only the version field of the Extrinsic.
-func (e *ExtrinsicData) DecodeVersion(encExt Extrinsic) error {
-	decoder := scale.NewDecoder(bytes.NewReader(encExt))
-	_, err := decoder.DecodeUintCompact()
-	if err != nil {
-		return err
-	}
-
-	err = decoder.Decode(&e.Version)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // Hash returns the blake2b hash of the extrinsic
@@ -78,4 +58,20 @@ func BytesArrayToExtrinsics(b [][]byte) []Extrinsic {
 		exts[i] = be
 	}
 	return exts
+}
+
+// ExtrinsicData is a transaction which embeds the `ctypes.Extrinsic` and has additional functionality.
+type ExtrinsicData struct {
+	ctypes.Extrinsic
+}
+
+// DecodeVersion decodes only the version field of the Extrinsic.
+func (e *ExtrinsicData) DecodeVersion(encExt Extrinsic) error {
+	decoder := scale.NewDecoder(bytes.NewReader(encExt))
+	_, err := decoder.DecodeUintCompact()
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(&e.Version)
 }

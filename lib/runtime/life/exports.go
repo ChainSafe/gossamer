@@ -2,6 +2,7 @@ package life
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -39,7 +40,7 @@ func (in *Instance) Version() (runtime.Version, error) {
 	// error comes from scale now, so do a string check
 	if err != nil {
 		if strings.Contains(err.Error(), "EOF") {
-			// TODO: kusama seems to use the legacy version format
+			// kusama seems to use the legacy version format
 			lversion := &runtime.LegacyVersionData{}
 			err = lversion.Decode(res)
 			return lversion, err
@@ -132,21 +133,24 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	b.Header.Digest = types.NewDigest()
 
-	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
-		// remove seal digest only
-		for _, d := range block.Header.Digest.Types {
-			switch d.Value().(type) {
-			case types.SealDigest:
-				continue
-			default:
-				err = b.Header.Digest.Add(d.Value())
-				if err != nil {
-					return nil, err
-				}
+	// remove seal digest only
+	for _, d := range block.Header.Digest.Types {
+		// hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
+		// with type prefix (ie Primary, Secondary...)
+		if bytes.Equal(in.version.SpecName(), []byte("node")) {
+			break
+		}
+
+		switch d.Value().(type) {
+		case types.SealDigest:
+			continue
+		default:
+			err = b.Header.Digest.Add(d.Value())
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -162,6 +166,12 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
 func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	return in.Exec(runtime.DecodeSessionKeys, enc)
+}
+
+// PaymentQueryInfo returns information of a given extrinsic
+func (*Instance) PaymentQueryInfo([]byte) (*types.TransactionPaymentQueryInfo, error) {
+	// TODO: implement the payment query info (see issue #1892)
+	return nil, errors.New("not implemented yet")
 }
 
 func (in *Instance) CheckInherents()      {} //nolint

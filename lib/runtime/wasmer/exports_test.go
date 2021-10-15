@@ -2,6 +2,8 @@ package wasmer
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -175,7 +177,7 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	expected := runtime.NewVersionData(
@@ -188,7 +190,6 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 		0,
 	)
 
-	// TODO: why does kusama seem to use the old runtime version format?
 	version, err := instance.(*Instance).Version()
 	require.NoError(t, err)
 
@@ -300,7 +301,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
 	cfg.NodeStorage = nodeStorage
 
-	rt, err := NewRuntimeFromGenesis(gen, cfg)
+	rt, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	alicePub := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
@@ -590,7 +591,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
-	t.Skip() // TODO: fix timestamping issue
+	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
 
@@ -605,7 +606,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 	block := buildBlockVdt(t, instance, common.Hash{})
 
@@ -619,7 +620,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 }
 
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
-	t.Skip() // fails with "'Bad input data provided to validate_transaction: Codec error"
+	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
 
@@ -634,7 +635,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// reset state back to parent state before executing
@@ -642,8 +643,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
-	// TODO: where did this hash come from??
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	parentHash := common.Hash{}
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 	err = instance.InitializeBlock(header)
@@ -692,7 +692,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 5
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
@@ -743,7 +743,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
@@ -1071,6 +1071,67 @@ func TestInstance_DecodeSessionKeys(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, *decodedKeys, 4)
+}
+
+func TestInstance_PaymentQueryInfo(t *testing.T) {
+	tests := []struct {
+		extB   []byte
+		ext    string
+		err    error
+		expect *types.TransactionPaymentQueryInfo
+	}{
+		{
+			// Was made with @polkadot/api on https://github.com/danforbes/polkadot-js-scripts/tree/create-signed-tx
+			ext: "0xd1018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01bc2b6e35929aabd5b8bc4e5b0168c9bee59e2bb9d6098769f6683ecf73e44c776652d947a270d59f3d37eb9f9c8c17ec1b4cc473f2f9928ffdeef0f3abd43e85d502000000012844616e20466f72626573",
+			err: nil,
+			expect: &types.TransactionPaymentQueryInfo{
+				Weight: 1973000,
+				Class:  0,
+				PartialFee: &scale.Uint128{
+					Upper: 0,
+					Lower: uint64(1180126973000),
+				},
+			},
+		},
+		{
+			// incomplete extrinsic
+			ext: "0x4ccde39a5684e7a56da23b22d4d9fbadb023baa19c56495432884d0640000000000000000000000000000000",
+			err: errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint
+		},
+		{
+			// incomplete extrinsic
+			extB: nil,
+			err:  errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint
+		},
+	}
+
+	for _, test := range tests {
+		var err error
+		var extBytes []byte
+
+		if test.ext == "" {
+			extBytes = test.extB
+		} else {
+			extBytes, err = common.HexToBytes(test.ext)
+			require.NoError(t, err)
+		}
+
+		ins := NewTestInstance(t, runtime.NODE_RUNTIME)
+		info, err := ins.PaymentQueryInfo(extBytes)
+
+		if test.err != nil {
+			require.Error(t, err)
+			require.Equal(t, err.Error(), test.err.Error())
+			continue
+		}
+
+		fmt.Println(info.PartialFee.String())
+		fmt.Println(test.expect.PartialFee.String())
+
+		require.NoError(t, err)
+		require.NotNil(t, info)
+		require.Equal(t, test.expect, info)
+	}
 }
 
 func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
