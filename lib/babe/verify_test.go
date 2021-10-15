@@ -48,7 +48,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 		genCfg = genesisBABEConfig
 	}
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
 	err = dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -70,10 +70,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	vm := newTestVerificationManager(t, nil)
 
-	babeService := createTestService(t, &ServiceConfig{
-		ThresholdNumerator:   1,
-		ThresholdDenominator: 1,
-	})
+	babeService := createTestService(t, nil)
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
 	err := vm.SetOnDisabled(1, &block.Header)
 	require.Equal(t, err, ErrInvalidBlockProducerIndex)
@@ -84,9 +81,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &ServiceConfig{
-		Keypair:              kp,
-		ThresholdNumerator:   1,
-		ThresholdDenominator: 1,
+		Keypair: kp,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -98,7 +93,8 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 		randomness:  babeService.epochData.randomness,
 	}
 
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	parent, _ := babeService.blockState.BestBlockHeader()
+	block, _ := createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -106,7 +102,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	require.NoError(t, err)
 
 	// create an OnDisabled change on a different branch
-	block, _ = createTestBlock(t, babeService, genesisHeader, [][]byte{}, 2, testEpochIndex)
+	block, _ = createTestBlock(t, babeService, parent, [][]byte{}, 2, testEpochIndex)
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -119,9 +115,7 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &ServiceConfig{
-		Keypair:              kp,
-		ThresholdNumerator:   1,
-		ThresholdDenominator: 1,
+		Keypair: kp,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -149,64 +143,8 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	require.Equal(t, ErrAuthorityAlreadyDisabled, err)
 }
 
-func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
-	t.Skip() // TODO: fix OnDisabled digests and re-enable this
-
-	babeService := createTestService(t, &ServiceConfig{
-		ThresholdNumerator:   1,
-		ThresholdDenominator: 1,
-	})
-
-	rt, err := babeService.blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	cfg, err := rt.BabeConfiguration()
-	require.NoError(t, err)
-
-	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
-	cfg.C1 = 1
-	cfg.C2 = 1
-
-	vm := newTestVerificationManager(t, cfg)
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
-
-	err = vm.blockState.AddBlock(block)
-	require.NoError(t, err)
-
-	err = vm.SetOnDisabled(0, &block.Header)
-	require.NoError(t, err)
-
-	// a block that we created, that disables ourselves, should still be accepted
-	err = vm.VerifyBlock(&block.Header)
-	require.NoError(t, err)
-
-	block, _ = createTestBlock(t, babeService, &block.Header, [][]byte{}, 2, testEpochIndex)
-	err = vm.blockState.AddBlock(block)
-	require.NoError(t, err)
-
-	// any blocks following the one where we are disabled should reject
-	err = vm.VerifyBlock(&block.Header)
-	require.Equal(t, ErrAuthorityDisabled, err)
-
-	// let's try a block on a different chain, it shouldn't reject
-	parentHeader := genesisHeader
-	for slot := 77; slot < 80; slot++ {
-		block, _ = createTestBlock(t, babeService, parentHeader, [][]byte{}, uint64(slot), testEpochIndex)
-		err = vm.blockState.AddBlock(block)
-		require.NoError(t, err)
-		parentHeader = &block.Header
-	}
-
-	err = vm.VerifyBlock(&block.Header)
-	require.NoError(t, err)
-}
-
 func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
-	babeService := createTestService(t, &ServiceConfig{
-		ThresholdNumerator:   1,
-		ThresholdDenominator: 1,
-	})
-
+	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -225,11 +163,7 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
-	babeService := createTestService(t, &ServiceConfig{
-		ThresholdNumerator:   1,
-		ThresholdDenominator: 1,
-	})
-
+	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -265,12 +199,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
-	t.Skip() // TODO
-	babeService := createTestService(t, &ServiceConfig{
-		ThresholdNumerator:   1,
-		ThresholdDenominator: 1,
-	})
-
+	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -290,11 +219,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
-	babeService := createTestService(t, &ServiceConfig{
-		ThresholdNumerator:   1,
-		ThresholdDenominator: 1,
-	})
-
+	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 

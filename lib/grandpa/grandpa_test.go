@@ -71,7 +71,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
 	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
 	require.NoError(t, err)
 
@@ -80,7 +80,7 @@ func newTestState(t *testing.T) *state.Service {
 	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
@@ -1052,7 +1052,7 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 	pv, err := gs.determinePreVote()
 	require.NoError(t, err)
 
@@ -1064,10 +1064,10 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 1)
+	state.AddBlocksToState(t, st.Block, 1, false)
 
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
@@ -1085,7 +1085,7 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
@@ -1095,7 +1095,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 		Vote: *NewVoteFromHeader(header),
 	})
 
-	state.AddBlocksToState(t, st.Block, 5)
+	state.AddBlocksToState(t, st.Block, 5, false)
 	gs.head, err = st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
@@ -1287,7 +1287,7 @@ func TestGrandpa_NonAuthority(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 100)
 
-	state.AddBlocksToState(t, st.Block, 8)
+	state.AddBlocksToState(t, st.Block, 8, false)
 	head := st.Block.BestBlockHash()
 	err = st.Block.SetFinalisedHash(head, gs.state.round, gs.state.setID)
 	require.NoError(t, err)

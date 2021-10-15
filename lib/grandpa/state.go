@@ -67,7 +67,7 @@ type GrandpaState interface { //nolint
 }
 
 // DigestHandler is the interface required by GRANDPA for the digest handler
-type DigestHandler interface { // TODO: remove, use GrandpaState
+type DigestHandler interface { // TODO: use GrandpaState instead (#1871)
 	NextGrandpaAuthorityChange() uint64
 }
 

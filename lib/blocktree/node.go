@@ -69,8 +69,8 @@ func (n *node) getNode(h common.Hash) *node {
 	return nil
 }
 
-// getNodesWithnumber returns all descendent nodes with the desired number
-func (n *node) getNodesWithnumber(number *big.Int, hashes []common.Hash) []common.Hash {
+// getNodesWithNumber returns all descendent nodes with the desired number
+func (n *node) getNodesWithNumber(number *big.Int, hashes []common.Hash) []common.Hash {
 	for _, child := range n.children {
 		// number matches
 		if child.number.Cmp(number) == 0 {
@@ -82,7 +82,7 @@ func (n *node) getNodesWithnumber(number *big.Int, hashes []common.Hash) []commo
 			return hashes
 		}
 
-		hashes = child.getNodesWithnumber(number, hashes)
+		hashes = child.getNodesWithNumber(number, hashes)
 	}
 
 	return hashes

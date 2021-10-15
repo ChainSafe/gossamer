@@ -35,41 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: use these from core?
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
-	return addTestBlocksToStateWithParent(t, blockState.(*state.BlockState).BestBlockHash(), depth, blockState)
-}
-
-func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
-	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
-	require.NoError(t, err)
-
-	headers := []*types.Header{}
-
-	for i := 1; i <= depth; i++ {
-		digest := types.NewDigest()
-		err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest())
-		require.NoError(t, err)
-
-		block := &types.Block{
-			Header: types.Header{
-				ParentHash: prevHeader.Hash(),
-				Number:     big.NewInt(0).Add(prevHeader.Number, big.NewInt(1)),
-				Digest:     digest,
-			},
-			Body: types.Body{},
-		}
-
-		prevHeader = &block.Header
-		err = blockState.(*state.BlockState).AddBlock(block)
-		require.NoError(t, err)
-		headers = append(headers, &block.Header)
-	}
-
-	return headers
-}
-
-func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolint
+func newTestHandler(t *testing.T) *Handler {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
@@ -93,7 +59,7 @@ func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolin
 }
 
 func TestHandler_GrandpaScheduledChange(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -126,14 +92,14 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	headers := addTestBlocksToState(t, 2, handler.blockState)
+	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 2, false)
 	for i, h := range headers {
 		err = handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
 		require.NoError(t, err)
 	}
 
 	// authorities should change on start of block 3 from start
-	headers = addTestBlocksToState(t, 1, handler.blockState)
+	headers, _ = state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 1, false)
 	for _, h := range headers {
 		err = handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), 3, 0)
 		require.NoError(t, err)
@@ -152,7 +118,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 }
 
 func TestHandler_GrandpaForcedChange(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -185,10 +151,8 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	addTestBlocksToState(t, 3, handler.blockState)
-
 	// authorities should change on start of block 4 from start
-	addTestBlocksToState(t, 1, handler.blockState)
+	state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 4, false)
 	time.Sleep(time.Millisecond * 100)
 
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
@@ -203,7 +167,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 }
 
 func TestHandler_GrandpaPauseAndResume(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -229,7 +193,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, big.NewInt(int64(p.Delay)), nextPause)
 
-	headers := addTestBlocksToState(t, 3, handler.blockState)
+	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
 	for i, h := range headers {
 		handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
 	}
@@ -256,7 +220,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	err = handler.handleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
-	addTestBlocksToState(t, 3, handler.blockState)
+	state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
 	time.Sleep(time.Millisecond * 110)
 	require.Nil(t, handler.grandpaResume)
 
@@ -266,7 +230,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 }
 
 func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -306,7 +270,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 }
 
 func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
-	handler := newTestHandler(t, false, true)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -379,7 +343,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 }
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
-	handler := newTestHandler(t, true, false)
+	handler := newTestHandler(t)
 	header := &types.Header{
 		Number: big.NewInt(1),
 	}
@@ -421,7 +385,7 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 func TestHandler_HandleNextEpochData(t *testing.T) {
 	expData := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000")
 
-	handler := newTestHandler(t, true, false)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -474,7 +438,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 }
 
 func TestHandler_HandleNextConfigData(t *testing.T) {
-	handler := newTestHandler(t, true, false)
+	handler := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 

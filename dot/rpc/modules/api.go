@@ -20,7 +20,7 @@ type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error)
 	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
-	GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error)
+	GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
@@ -45,6 +45,7 @@ type BlockAPI interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
+	GetRuntime(hash *common.Hash) (runtime.Instance, error)
 }
 
 // NetworkAPI interface for network state methods

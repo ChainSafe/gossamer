@@ -127,7 +127,6 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
-
 	addAuthorshipProof(t, babeService, slotNumber, epoch)
 
 	for _, ext := range exts {
@@ -172,10 +171,12 @@ func TestBuildBlock_ok(t *testing.T) {
 		babeService.epochData.authorityIndex,
 	)
 
-	// TODO: re-add extrinsic
-	exts := [][]byte{}
+	parentHash := babeService.blockState.GenesisHash()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
-	block, slot := createTestBlock(t, babeService, emptyHeader, exts, 1, testEpochIndex)
+	ext := createTestExtrinsic(t, rt, parentHash, 0)
+	block, slot := createTestBlock(t, babeService, emptyHeader, [][]byte{ext}, 1, testEpochIndex)
 
 	// create pre-digest
 	preDigest, err := builder.buildBlockPreDigest(slot)

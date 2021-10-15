@@ -43,7 +43,7 @@ type Syncer interface {
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
 	HandleBlockAnnounce(from peer.ID, msg *BlockAnnounceMessage) error
 
-	// IsSynced exposes the internal synced state // TODO: use syncQueue for this
+	// IsSynced exposes the internal synced state
 	IsSynced() bool
 
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response

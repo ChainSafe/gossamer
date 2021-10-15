@@ -317,7 +317,6 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	// TODO (ed) add transactions to txQueue and add test for those
 	txQueue := state.NewTransactionState()
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil)
 }

@@ -121,7 +121,7 @@ func newTestSyncer(t *testing.T) *Service {
 	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
 
-	instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	instance, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)

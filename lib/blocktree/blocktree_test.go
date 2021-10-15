@@ -43,10 +43,10 @@ type testBranch struct {
 	arrivalTime int64
 }
 
-func newBlockTreeFromNode(head *node) *BlockTree {
+func newBlockTreeFromNode(root *node) *BlockTree {
 	return &BlockTree{
-		head:   head,
-		leaves: newLeafMap(head),
+		root:   root,
+		leaves: newLeafMap(root),
 	}
 }
 
@@ -113,9 +113,9 @@ func createFlatTree(t *testing.T, number int) (*BlockTree, []common.Hash) {
 	bt := NewBlockTreeFromRoot(testHeader)
 	require.NotNil(t, bt)
 
-	previousHash := bt.head.hash
+	previousHash := bt.root.hash
 
-	hashes := []common.Hash{bt.head.hash}
+	hashes := []common.Hash{bt.root.hash}
 	for i := 1; i <= number; i++ {
 		header := &types.Header{
 			ParentHash: previousHash,
@@ -197,12 +197,12 @@ func TestNode_isDecendantOf(t *testing.T) {
 
 	// Check leaf is descendant of root
 	leaf := bt.getNode(hashes[3])
-	if !leaf.isDescendantOf(bt.head) {
+	if !leaf.isDescendantOf(bt.root) {
 		t.Error("failed to verify leaf is descendant of root")
 	}
 
 	// Verify the inverse relationship does not hold
-	if bt.head.isDescendantOf(leaf) {
+	if bt.root.isDescendantOf(leaf) {
 		t.Error("root should not be descendant of anything")
 	}
 }
@@ -304,24 +304,24 @@ func TestBlockTree_GetNode(t *testing.T) {
 	require.Equal(t, cachedBlock, block)
 }
 
-func TestBlockTree_GetAllBlocksAtnumber(t *testing.T) {
+func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
-	hashes := bt.head.getNodesWithnumber(big.NewInt(10), []common.Hash{})
+	hashes := bt.root.getNodesWithNumber(big.NewInt(10), []common.Hash{})
 
 	expected := []common.Hash{}
 	require.Equal(t, expected, hashes)
 
 	// create one-path tree
-	btnumber := 8
-	desirednumber := 6
-	bt, btHashes := createFlatTree(t, btnumber)
+	btNumber := 8
+	desiredNumber := 6
+	bt, btHashes := createFlatTree(t, btNumber)
 
-	expected = []common.Hash{btHashes[desirednumber]}
+	expected = []common.Hash{btHashes[desiredNumber]}
 
 	// add branch
 	previousHash := btHashes[4]
 
-	for i := 4; i <= btnumber; i++ {
+	for i := 4; i <= btNumber; i++ {
 		digest := types.NewDigest()
 		err := digest.Add(types.ConsensusDigest{
 			ConsensusEngineID: types.BabeEngineID,
@@ -339,7 +339,7 @@ func TestBlockTree_GetAllBlocksAtnumber(t *testing.T) {
 		require.NoError(t, err)
 		previousHash = hash
 
-		if i == desirednumber-1 {
+		if i == desiredNumber-1 {
 			expected = append(expected, hash)
 		}
 	}
@@ -347,7 +347,7 @@ func TestBlockTree_GetAllBlocksAtnumber(t *testing.T) {
 	// add another branch
 	previousHash = btHashes[2]
 
-	for i := 2; i <= btnumber; i++ {
+	for i := 2; i <= btNumber; i++ {
 		digest := types.NewDigest()
 		err := digest.Add(types.SealDigest{
 			ConsensusEngineID: types.BabeEngineID,
@@ -365,13 +365,12 @@ func TestBlockTree_GetAllBlocksAtnumber(t *testing.T) {
 		require.NoError(t, err)
 		previousHash = hash
 
-		if i == desirednumber-1 {
+		if i == desiredNumber-1 {
 			expected = append(expected, hash)
 		}
 	}
 
-	hashes = bt.head.getNodesWithnumber(big.NewInt(int64(desirednumber)), []common.Hash{})
-
+	hashes = bt.root.getNodesWithNumber(big.NewInt(int64(desiredNumber)), []common.Hash{})
 	if !reflect.DeepEqual(hashes, expected) {
 		t.Fatalf("Fail: did not get all expected hashes got %v expected %v", hashes, expected)
 	}
@@ -381,11 +380,11 @@ func TestBlockTree_IsDecendantOf(t *testing.T) {
 	// Create tree with number 4 (with 4 nodes)
 	bt, hashes := createFlatTree(t, 4)
 
-	isDescendant, err := bt.IsDescendantOf(bt.head.hash, hashes[3])
+	isDescendant, err := bt.IsDescendantOf(bt.root.hash, hashes[3])
 	require.NoError(t, err)
 	require.True(t, isDescendant)
 
-	isDescendant, err = bt.IsDescendantOf(hashes[3], bt.head.hash)
+	isDescendant, err = bt.IsDescendantOf(hashes[3], bt.root.hash)
 	require.NoError(t, err)
 	require.False(t, isDescendant)
 }
@@ -451,7 +450,7 @@ func TestBlockTree_Prune(t *testing.T) {
 	copy := bt.DeepCopy()
 
 	// pick some block to finalise
-	finalised := bt.head.children[0].children[0].children[0]
+	finalised := bt.root.children[0].children[0].children[0]
 	pruned := bt.Prune(finalised.hash)
 
 	for _, prunedHash := range pruned {
@@ -484,7 +483,7 @@ func TestBlockTree_PruneCache(t *testing.T) {
 	}
 
 	// pick some block to finalise
-	finalised := bt.head.children[0].children[0].children[0]
+	finalised := bt.root.children[0].children[0].children[0]
 	pruned := bt.Prune(finalised.hash)
 
 	for _, prunedHash := range pruned {
@@ -530,11 +529,12 @@ func TestBlockTree_DeepCopy(t *testing.T) {
 		require.True(t, equalNodeValue(b, b2))
 
 	}
-	require.True(t, equalNodeValue(bt.head, btCopy.head), "BlockTree heads not equal")
+
+	require.True(t, equalNodeValue(bt.root, btCopy.root), "BlockTree heads not equal")
 	require.True(t, equalLeaves(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
 
-	btCopy.head = &node{}
-	require.NotEqual(t, bt.head, btCopy.head)
+	btCopy.root = &node{}
+	require.NotEqual(t, bt.root, btCopy.root)
 }
 
 func equalNodeValue(nd *node, ndCopy *node) bool {

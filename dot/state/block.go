@@ -446,7 +446,7 @@ func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
 func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
-	return bs.bt.GetAllBlocksAtDepth(hash)
+	return bs.bt.GetAllBlocksAtNumber(hash)
 }
 
 func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
