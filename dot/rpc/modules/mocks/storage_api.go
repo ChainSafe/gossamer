@@ -109,11 +109,11 @@ func (_m *MockStorageAPI) GetStorage(root *common.Hash, key []byte) ([]byte, err
 }
 
 // GetStorageByBlockHash provides a mock function with given fields: bhash, key
-func (_m *MockStorageAPI) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error) {
+func (_m *MockStorageAPI) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
 	ret := _m.Called(bhash, key)
 
 	var r0 []byte
-	if rf, ok := ret.Get(0).(func(common.Hash, []byte) []byte); ok {
+	if rf, ok := ret.Get(0).(func(*common.Hash, []byte) []byte); ok {
 		r0 = rf(bhash, key)
 	} else {
 		if ret.Get(0) != nil {
@@ -122,7 +122,7 @@ func (_m *MockStorageAPI) GetStorageByBlockHash(bhash common.Hash, key []byte) (
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(common.Hash, []byte) error); ok {
+	if rf, ok := ret.Get(1).(func(*common.Hash, []byte) error); ok {
 		r1 = rf(bhash, key)
 	} else {
 		r1 = ret.Error(1)

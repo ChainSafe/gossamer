@@ -96,7 +96,7 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 	for _, v := range conns {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
-			// todo (ed) try reconnecting if there is an error connecting
+			// TODO: try reconnecting if there is an error connecting (#1862)
 			h.log.Debug("issue adding telemetry connection", "error", err)
 			continue
 		}

@@ -146,7 +146,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	for i, gs := range gss {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15)
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15, false)
 		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
 		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
@@ -197,7 +197,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		gss[i] = gs
 
 		r := rand.Intn(3)
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
 		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
 		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
@@ -234,7 +234,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	finalised := gss[0].head
 
 	for i, gs := range gss {
-		// TODO: this can be changed to equal once attemptToFinalizeRound is implemented (needs check for >=2/3 precommits)
+		// TODO: this can be changed to equal once attemptToFinalizeRound is implemented
+		// (needs check for >=2/3 precommits) (#1026)
 		headOk := onSameChain(gss[0].blockState, finalised.Hash(), gs.head.Hash())
 		finalisedOK := onSameChain(gs.blockState, finalised.Hash(), gs.head.Hash())
 		require.True(t, headOk || finalisedOK, "node %d did not match: %s", i, gs.blockState.BlocktreeAsString())
@@ -282,7 +283,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 		outs[i] = out
 		fins[i] = fin
 
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4)
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4, false)
 	}
 
 	for _, out := range outs {
@@ -367,7 +368,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 		r := 0
 		r = rand.Intn(diff)
-		chain, _ := state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
+		chain, _ := state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
 		if r == diff-1 {
 			headers = chain
 		}
@@ -565,7 +566,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		outs[i] = out
 		fins[i] = fin
 
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4)
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4, false)
 	}
 
 	for _, out := range outs {
@@ -627,7 +628,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		}
 
 		for _, gs := range gss {
-			state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 1)
+			state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 1, false)
 		}
 
 	}

@@ -136,7 +136,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.NATPortMap(),
 		libp2p.Peerstore(ps),
 		libp2p.ConnectionManager(cm),
-		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
+		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio (#1853)
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
 			addrs := []ma.Multiaddr{}
 			for _, addr := range as {
