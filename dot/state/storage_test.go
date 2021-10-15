@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -41,6 +42,53 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.NoError(t, err)
 	new := ts2.Snapshot()
 	require.Equal(t, ts.Trie(), new)
+}
+
+func TestStorage_StorageChild(t *testing.T) {
+	mod, blockHash := setupChildStateStorage(t)
+
+	tests := []struct {
+		expect   uint64
+		err      error
+		hash     *common.Hash
+		keyChild []byte
+		entry    []byte
+	}{
+		{
+			err:      nil,
+			expect:   uint64(len([]byte(":child_first_value"))),
+			hash:     nil,
+			entry:    []byte(":child_first"),
+			keyChild: []byte(":child_storage_key"),
+		},
+		{
+			err:      nil,
+			expect:   uint64(len([]byte(":child_second_value"))),
+			hash:     &blockHash,
+			entry:    []byte(":child_second"),
+			keyChild: []byte(":child_storage_key"),
+		},
+	}
+
+	for _, test := range tests {
+		var req GetChildStorageRequest
+		var res uint64
+
+		req.Hash = test.hash
+		req.EntryKey = test.entry
+		req.KeyChild = test.keyChild
+
+		err := mod.GetStorageSize(nil, &req, &res)
+
+		if test.err != nil {
+			require.Error(t, err)
+			require.Equal(t, err, test.err)
+		} else {
+			require.NoError(t, err)
+		}
+
+		require.Equal(t, test.expect, res)
+	}
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
