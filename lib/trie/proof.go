@@ -19,6 +19,8 @@ package trie
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"sort"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -28,11 +30,14 @@ var (
 	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
 
-	// ErrValueMismatch indicates that a returned verify proof value doesnt match with the expected value on items array
-	ErrValueMismatch = errors.New("expected value not found in the trie")
+	// ErrValueNotFound indicates that a returned verify proof value doesnt match with the expected value on items array
+	ErrValueNotFound = errors.New("expected value not found in the trie")
 
 	// ErrDuplicateKeys not allowed to verify proof with duplicate keys
 	ErrDuplicateKeys = errors.New("duplicate keys on verify proof")
+
+	// ErrLoadFromProof occurs when there are problems with the proof slice while building the partial proof trie
+	ErrLoadFromProof = errors.New("failed to build the proof trie")
 )
 
 // GenerateProof receive the keys to proof, the trie root and a reference to database
@@ -49,7 +54,10 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 		nk := keyToNibbles(k)
 
 		recorder := new(recorder)
-		findAndRecord(proofTrie, nk, recorder)
+		err := findAndRecord(proofTrie, nk, recorder)
+		if err != nil {
+			return nil, err
+		}
 
 		for !recorder.isEmpty() {
 			recNode := recorder.next()
@@ -74,6 +82,12 @@ type Pair struct{ Key, Value []byte }
 // VerifyProof ensure a given key is inside a proof by creating a proof trie based on the proof slice
 // this function ignores the order of proofs
 func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
+	// ordering in the asc order
+	sort.Slice(items, func(i, j int) bool {
+		return bytes.Compare(items[i].Key, items[j].Key) == -1
+	})
+
+	// check for duplicates
 	for i := 1; i < len(items); i++ {
 		if bytes.Equal(items[i-1].Key, items[i].Key) {
 			return false, ErrDuplicateKeys
@@ -82,13 +96,13 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 
 	proofTrie := NewEmptyTrie()
 	if err := proofTrie.LoadFromProof(proof, root); err != nil {
-		return false, err
+		return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
 	}
 
 	for _, i := range items {
 		recValue := proofTrie.Get(i.Key)
 		if !bytes.Equal(i.Value, recValue) {
-			return false, ErrValueMismatch
+			return false, ErrValueNotFound
 		}
 	}
 

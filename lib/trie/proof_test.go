@@ -18,19 +18,14 @@ package trie
 
 import (
 	"io/ioutil"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 func TestProofGeneration(t *testing.T) {
+	t.Parallel()
 	tmp, err := ioutil.TempDir("", "*-test-trie")
 	require.NoError(t, err)
 
@@ -109,6 +104,8 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 }
 
 func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	entries := []Pair{
 		{Key: []byte("alpha"), Value: make([]byte, 32)},
 		{Key: []byte("bravo"), Value: []byte("bravo")},

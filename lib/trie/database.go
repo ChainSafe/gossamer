@@ -26,8 +26,8 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-// ErrIncompleteProof indicates the proof slice is empty
-var ErrIncompleteProof = errors.New("incomplete proof")
+// ErrEmptyProof indicates the proof slice is empty
+var ErrEmptyProof = errors.New("proof slice empty")
 
 // Store stores each trie node in the database, where the key is the hash of the encoded node and the value is the encoded node.
 // Generally, this will only be used for the genesis trie.
@@ -79,7 +79,11 @@ func (t *Trie) store(db chaindb.Batch, curr node) error {
 
 // LoadFromProof create a partial trie based on the proof slice, as it only contains nodes that are in the proof afaik.
 func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
-	mappedNodes := make(map[string]node)
+	if len(proof) == 0 {
+		return ErrEmptyProof
+	}
+
+	mappedNodes := make(map[string]node, len(proof))
 
 	// map all the proofs hash -> decoded node
 	// and takes the loop to indentify the root node
@@ -89,7 +93,8 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 			err     error
 		)
 
-		if decNode, err = decodeBytes(rawNode); err != nil {
+		decNode, err = decodeBytes(rawNode)
+		if err != nil {
 			return err
 		}
 
@@ -108,15 +113,11 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 		}
 	}
 
-	if len(mappedNodes) == 0 {
-		return ErrIncompleteProof
-	}
-
 	t.loadProof(mappedNodes, t.root)
 	return nil
 }
 
-// loadFromProof is a recursive function that will create all the trie paths based
+// loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting by the root
 func (t *Trie) loadProof(proof map[string]node, curr node) {
 	var (
