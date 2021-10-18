@@ -84,7 +84,7 @@ type ServiceConfig struct {
 	AuthData           []types.Authority
 	IsDev              bool
 	Authority          bool
-	Lead                 bool
+	Lead               bool
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
