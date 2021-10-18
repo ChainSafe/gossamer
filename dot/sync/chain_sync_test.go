@@ -405,6 +405,30 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(1 + maxResponseSize + (maxResponseSize / 2)),
+				targetNumber: big.NewInt(1),
+				direction:    network.Descending,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*network.BlockRequestMessage{
+				{
+					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
+					StartingBlock: *variadic.MustNewUint64OrHash(1 + (maxResponseSize / 2)),
+					EndBlockHash:  nil,
+					Direction:     network.Descending,
+					Max:           &max64,
+				},
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint64OrHash(1 + maxResponseSize + (maxResponseSize / 2)),
+					EndBlockHash:  nil,
+					Direction:     network.Descending,
+					Max:           &max128,
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {

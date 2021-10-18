@@ -897,6 +897,12 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 		} else {
 			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
 			start, _ = variadic.NewUint64OrHash(w.startHash)
+
+			// if we're doing descending requests and not at the last (highest starting) request,
+			// then use number as start block
+			if w.direction == network.Descending && i != numRequests-1 {
+				start, _ = variadic.NewUint64OrHash(startNumber)
+			}
 		}
 
 		var end *common.Hash
@@ -911,7 +917,21 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 			Direction:     w.direction,
 			Max:           &max,
 		}
-		startNumber += maxResponseSize
+
+		switch w.direction {
+		case network.Ascending:
+			startNumber += maxResponseSize
+		case network.Descending:
+			startNumber -= maxResponseSize
+		}
+	}
+
+	// if our direction is descending, we want to send out the request with the lowest
+	// startNumber first
+	if w.direction == network.Descending {
+		for i, j := 0, len(reqs)-1; i < j; i, j = i+1, j-1 {
+			reqs[i], reqs[j] = reqs[j], reqs[i]
+		}
 	}
 
 	return reqs, nil
