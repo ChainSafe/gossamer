@@ -91,6 +91,7 @@ type Node struct {
 	basePath string
 	config   string
 	WSPort   string
+	BabeLead bool
 }
 
 // InitGossamer initialises given node number and returns node reference
@@ -131,6 +132,10 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
 		"--log", "info"}
+
+	if node.BabeLead {
+		params = append(params, "--babe-lead")
+	}
 
 	if node.Idx >= len(KeyList) {
 		params = append(params, "--roles", "1")
@@ -220,6 +225,10 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 	if err != nil {
 		logger.Crit("could not initialise gossamer", "error", err)
 		os.Exit(1)
+	}
+
+	if idx == 0 {
+		node.BabeLead = true
 	}
 
 	err = StartGossamer(t, node, websocket)
@@ -501,6 +510,7 @@ func CreateConfigNoBabe() {
 func generateConfigNoGrandpa() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BabeLead = true
 	return cfg
 }
 
