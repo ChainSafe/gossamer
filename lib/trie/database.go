@@ -124,7 +124,7 @@ func (t *Trie) loadProof(proof map[string]node, curr node) {
 		ok bool
 	)
 
-	if c, ok = curr.(*branch); ok {
+	if c, ok = curr.(*branch); !ok {
 		return
 	}
 
