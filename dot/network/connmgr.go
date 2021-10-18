@@ -94,18 +94,18 @@ func (*ConnManager) UpsertTag(peer.ID, string, func(int) int) {}
 func (*ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo { return &connmgr.TagInfo{} }
 
 // TrimOpenConns peer
-func (*ConnManager) TrimOpenConns(ctx context.Context) {}
+func (*ConnManager) TrimOpenConns(_ context.Context) {}
 
 // Protect peer will add the given peer to the protectedPeerMap which will
 // protect the peer from pruning.
-func (cm *ConnManager) Protect(id peer.ID, tag string) {
+func (cm *ConnManager) Protect(id peer.ID, _ string) {
 	cm.protectedPeers.Store(id, struct{}{})
 }
 
 // Unprotect peer will remove the given peer from prune protection.
 // returns true if we have successfully removed the peer from the
 // protectedPeerMap. False otherwise.
-func (cm *ConnManager) Unprotect(id peer.ID, tag string) bool {
+func (cm *ConnManager) Unprotect(id peer.ID, _ string) bool {
 	_, wasDeleted := cm.protectedPeers.LoadAndDelete(id)
 	return wasDeleted
 }
@@ -114,7 +114,7 @@ func (cm *ConnManager) Unprotect(id peer.ID, tag string) bool {
 func (*ConnManager) Close() error { return nil }
 
 // IsProtected returns whether the given peer is protected from pruning or not.
-func (cm *ConnManager) IsProtected(id peer.ID, tag string) (protected bool) {
+func (cm *ConnManager) IsProtected(id peer.ID, _ string) (protected bool) {
 	_, ok := cm.protectedPeers.Load(id)
 	return ok
 }
@@ -188,7 +188,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 }
 
 // Disconnected is called when a connection closed
-func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
+func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	logger.Trace(
 		"Disconnected from peer",
 		"host", c.LocalPeer(),
@@ -202,7 +202,7 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 }
 
 // OpenedStream is called when a stream opened
-func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
+func (cm *ConnManager) OpenedStream(_ network.Network, s network.Stream) {
 	logger.Trace(
 		"Opened stream",
 		"peer", s.Conn().RemotePeer(),
@@ -215,7 +215,7 @@ func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb func(id p
 }
 
 // ClosedStream is called when a stream closed
-func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
+func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
 	logger.Trace(
 		"Closed stream",
 		"peer", s.Conn().RemotePeer(),

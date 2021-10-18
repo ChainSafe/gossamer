@@ -397,6 +397,6 @@ func (h *host) protocols() []string {
 }
 
 // closePeer closes connection with peer.
-func (h *host) closePeer(peer peer.ID) error { //nolint
+func (h *host) closePeer(peer peer.ID) error {
 	return h.h.Network().ClosePeer(peer)
 }

@@ -173,7 +173,7 @@ func (ps *PeersState) peers() []peer.ID {
 }
 
 // sortedPeers returns the list of peers we are connected to of a specific set.
-func (ps *PeersState) sortedPeers(idx int, peersCh chan interface{}) { // nolint
+func (ps *PeersState) sortedPeers(idx int, peersCh chan interface{}) {
 	var peerIDs peer.IDSlice
 	if len(ps.sets) < idx {
 		logger.Debug("peer state doesn't have info for the provided index")
