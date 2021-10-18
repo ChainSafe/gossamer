@@ -82,7 +82,7 @@ type SyncStateResponse struct {
 func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
 	storage StorageAPI, txAPI TransactionStateAPI, blockAPI BlockAPI) *SystemModule {
 	return &SystemModule{
-		networkAPI: net, // TODO: migrate to network state
+		networkAPI: net,
 		systemAPI:  sys,
 		coreAPI:    core,
 		storageAPI: storage,
