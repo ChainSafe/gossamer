@@ -93,7 +93,7 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 		ent := t.TrieEntries()
 		for k, v := range ent {
 			if k != ":code" {
-				// todo, currently we're ignoring :code since this is a lot of data
+				// currently we're ignoring :code since this is a lot of data
 				kv := &KeyValue{
 					Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
 					Value: v,

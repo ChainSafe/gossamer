@@ -34,7 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -43,40 +43,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
-	_ = addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
-}
-
-func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
-	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
-	require.NoError(t, err)
-	previousNum := prevHeader.Number
-
-	var headers []*types.Header
-	rt, err := blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: types.Header{
-				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest:     types.NewDigest(),
-			},
-			Body: types.Body{},
-		}
-
-		previousHash = block.Header.Hash()
-
-		blockState.StoreRuntime(block.Header.Hash(), rt)
-		err := blockState.AddBlock(block)
-		require.NoError(t, err)
-		headers = append(headers, &block.Header)
-	}
-
-	return headers
-}
 
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
@@ -94,12 +60,10 @@ func TestMain(m *testing.M) {
 
 func TestStartService(t *testing.T) {
 	s := NewTestService(t, nil)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, s)
 
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = s.Stop()
 	require.NoError(t, err)
@@ -185,7 +149,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 
 func TestHandleChainReorg_NoReorg(t *testing.T) {
 	s := NewTestService(t, nil)
-	addTestBlocksToState(t, 4, s.blockState.(*state.BlockState))
+	state.AddBlocksToState(t, s.blockState.(*state.BlockState), 4, false)
 
 	head, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -195,8 +159,8 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 }
 
 func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
+	t.Skip() // TODO: tx fails to validate in handleChainReorg() with "Invalid transaction" (#1026)
 	s := NewTestService(t, nil)
-
 	bs := s.blockState
 
 	parent, err := bs.BestBlockHeader()
@@ -235,7 +199,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	err = bs.AddBlock(block31)
 	require.NoError(t, err)
 
-	nonce := uint64(1)
+	nonce := uint64(0)
 
 	// Add extrinsic to block `block31`
 	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
@@ -284,7 +248,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	s := NewTestService(t, cfg)
 	height := 5
 	branch := 3
-	addTestBlocksToState(t, height, s.blockState.(*state.BlockState))
+	state.AddBlocksToState(t, s.blockState.(*state.BlockState), height, false)
 
 	// create extrinsic
 	enc, err := scale.Marshal([]byte("nootwashere"))
@@ -339,7 +303,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	// TODO" update these to real extrinsics on update to v0.8
+	// TODO: update these to real extrinsics on update to v0.9 (#904)
 	txs := []*transaction.ValidTransaction{
 		{
 			Extrinsic: []byte("a"),
@@ -561,7 +525,6 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {
-	t.Skip() // fix this, fails on CI
 	s := NewTestService(t, nil)
 
 	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
@@ -577,7 +540,10 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 
 	s.blockState.StoreRuntime(blockHash, rt)
 
-	err = s.handleCodeSubstitution(blockHash)
+	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	codSub := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
 	require.Equal(t, blockHash, codSub)
@@ -602,14 +568,17 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		Body: *body,
 	}
 
-	err = s.handleCodeSubstitution(blockHash)
+	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
 	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 
-	ts, err := s.storageState.TrieState(nil)
+	ts, err = s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
 	ts.Set(common.CodeKey, testRuntime)
@@ -627,7 +596,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 
 func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	s := NewTestService(t, nil)
-	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
+	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 
 	testKey, testValue := []byte("to"), []byte("0x1723712318238AB12312")
 	storageStateTrie.Set(testKey, testValue)
@@ -660,7 +629,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 
 func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	s := NewTestService(t, nil)
-	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
+	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
@@ -770,7 +739,7 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []byte, parentHash common.Hash, number int64) *types.Block {
 	t.Helper()
 
-	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
+	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 

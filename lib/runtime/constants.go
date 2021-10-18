@@ -79,6 +79,8 @@ var (
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
 	// DecodeSessionKeys is the runtime API call SessionKeys_decode_session_keys
 	DecodeSessionKeys = "SessionKeys_decode_session_keys"
+	// TransactionPaymentApiQueryInfo returns information of a given extrinsic
+	TransactionPaymentApiQueryInfo = "TransactionPaymentApi_query_info"
 )
 
 // GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
