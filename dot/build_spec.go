@@ -142,9 +142,12 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	}
 	tmpGen.Name = gData.Name
 	tmpGen.ID = gData.ID
-	// todo figure out how to assign bootnodes (see issue #1030)
-	//tmpGen.Bootnodes = gData.(*genesis.Data).Bootnodes
+	tmpGen.Bootnodes = make([]string, len(gData.Bootnodes))
 	tmpGen.ProtocolID = gData.ProtocolID
+
+	for i, bn := range gData.Bootnodes {
+		tmpGen.Bootnodes[i] = string(bn)
+	}
 
 	bs := &BuildSpec{
 		genesis: tmpGen,

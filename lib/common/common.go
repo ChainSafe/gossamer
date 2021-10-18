@@ -72,7 +72,7 @@ func HexToBytes(in string) ([]byte, error) {
 	}
 	// Ensure we have an even length, otherwise hex.DecodeString will fail and return zero hash
 	if len(in)%2 != 0 {
-		return nil, errors.New("cannot decode a odd length string")
+		return nil, errors.New("cannot decode an odd length string")
 	}
 	in = in[2:]
 	out, err := hex.DecodeString(in)
@@ -92,7 +92,7 @@ func MustHexToBytes(in string) []byte {
 
 	// Ensure we have an even length, otherwise hex.DecodeString will fail and return zero hash
 	if len(in)%2 != 0 {
-		panic("cannot decode a odd length string")
+		panic("cannot decode an odd length string")
 	}
 
 	in = in[2:]

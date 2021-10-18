@@ -23,7 +23,6 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -61,13 +60,16 @@ type Instance struct {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) { // TODO: simplify, get :code from storage
-	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
+func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
+	if cfg.Storage == nil {
+		return nil, errors.New("storage is nil")
 	}
 
-	code := common.MustHexToBytes(codeStr)
+	code := cfg.Storage.LoadCode()
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in state")
+	}
+
 	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
@@ -96,7 +98,6 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg *Config) (*Instance, error) {
-	// TODO: verify that v0.8 specific funcs are available
 	return newInstance(code, cfg)
 }
 
@@ -118,7 +119,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	// Provide importable memory for newer runtimes
-	// TODO: determine memory descriptor size that the runtime wants from the wasm.
+	// TODO: determine memory descriptor size that the runtime wants from the wasm. (#1268)
 	// should be doable w/ wasmer 1.0.0.
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
@@ -137,7 +138,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
 	// Assume imported memory is used if runtime does not export any
@@ -220,7 +221,7 @@ func (in *Instance) setupInstanceVM(code []byte) error {
 	}
 
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
-	// should be doable w/ wasmer 1.0.0.
+	// should be doable w/ wasmer 1.0.0. (#1268)
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
 		return err
@@ -243,7 +244,7 @@ func (in *Instance) setupInstanceVM(code []byte) error {
 	}
 
 	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
 	in.ctx.Allocator = runtime.NewAllocator(in.vm.Memory, heapBase)
@@ -319,7 +320,7 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	offset, length := int64ToPointerAndSize(res.ToI64())
+	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
 	return in.load(offset, length), nil
 }
 
@@ -349,14 +350,4 @@ func (in *Instance) Keystore() *keystore.GlobalKeystore {
 // Validator returns the context's Validator
 func (in *Instance) Validator() bool {
 	return in.ctx.Validator
-}
-
-// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
-func int64ToPointerAndSize(in int64) (ptr, length int32) {
-	return int32(in), int32(in >> 32)
-}
-
-// pointerAndSizeToInt64 converts int32 pointer and size to a int64
-func pointerAndSizeToInt64(ptr, size int32) int64 {
-	return int64(ptr) | (int64(size) << 32)
 }

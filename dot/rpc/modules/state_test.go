@@ -374,7 +374,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 }
 
 func TestStateModule_GetMetadata(t *testing.T) {
-	t.Skip() // TODO: update expected_metadata
+	t.Skip() // TODO: update expected_metadata (#1026)
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
