@@ -124,7 +124,7 @@ type contracts struct {
 type society struct {
 	Pot        *scale.Uint128 `json:"Pot"`
 	MaxMembers uint32         `json:"MaxMembers"`
-	// TODO: figure out the correct encoding format of members field
+	// TODO: figure out the correct encoding format of members field (#1867)
 	Members []string `json:"Members"`
 }
 
@@ -136,7 +136,7 @@ type staking struct {
 	ForceEra              string         `json:"ForceEra"`
 	SlashRewardFraction   uint32         `json:"SlashRewardFraction"`
 	CanceledSlashPayout   *scale.Uint128 `json:"CanceledSlashPayout"`
-	// TODO: figure out below fields storage key.
+	// TODO: figure out below fields storage key. (#1868)
 	// Stakers               [][]interface{} `json:"Stakers"`
 }
 
@@ -160,6 +160,6 @@ type instance1Membership struct {
 }
 
 type phragmenElection struct {
-	// TODO: figure out the correct encoding format of members data
+	// TODO: figure out the correct encoding format of members data (#1866)
 	Members [][]interface{} `json:"Members"`
 }

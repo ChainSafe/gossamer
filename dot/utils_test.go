@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
@@ -33,20 +32,14 @@ import (
 // TestNewConfig tests the NewTestConfig method
 func TestNewConfig(t *testing.T) {
 	cfg := NewTestConfig(t)
-
 	defer utils.RemoveTestDir(t)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, cfg)
 }
 
 // TestNewConfigAndFile tests the NewTestConfigWithFile method
 func TestNewConfigAndFile(t *testing.T) {
 	testCfg, testCfgFile := NewTestConfigWithFile(t)
-
 	defer utils.RemoveTestDir(t)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 }
@@ -83,12 +76,6 @@ func TestNewTestGenesisFile(t *testing.T) {
 
 	// values from raw genesis file should equal values generated from human readable genesis file
 	require.Equal(t, genRaw.Genesis.Raw["top"], genHR.Genesis.Raw["top"])
-}
-
-func TestNewRuntimeFromGenesis(t *testing.T) {
-	gen := NewTestGenesis(t)
-	_, err := wasmer.NewRuntimeFromGenesis(gen, &wasmer.Config{})
-	require.NoError(t, err)
 }
 
 func TestDeepCopyVsSnapshot(t *testing.T) {

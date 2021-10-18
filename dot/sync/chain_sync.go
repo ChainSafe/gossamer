@@ -36,7 +36,7 @@ import (
 
 const (
 	// maxWorkers is the maximum number of parallel sync workers
-	// TODO: determine ideal value
+	// TODO: determine ideal value (#1659)
 	maxWorkers = 12
 )
 
@@ -60,7 +60,7 @@ func (s chainSyncState) String() string {
 	}
 }
 
-// TODO: determine ideal limit for pending blocks set
+// TODO: determine ideal limit for pending blocks set (#1659)
 var pendingBlocksLimit = maxResponseSize * 32
 
 // peerState tracks our peers's best reported blocks
@@ -223,7 +223,7 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 		return err
 	}
 
-	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors?
+	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors? (#1659)
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
@@ -269,7 +269,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		// chain), and also the highest finalised block is higher than that number.
 		// thus the peer is on an invalid chain
 		if fin.Number.Cmp(ps.number) >= 0 {
-			// TODO: downscore this peer, or temporarily don't sync from them?
+			// TODO: downscore this peer, or temporarily don't sync from them? (#1399)
 			// perhaps we need another field in `peerState` to mark whether the state is valid or not
 			return errPeerOnInvalidFork
 		}
@@ -314,7 +314,6 @@ func (cs *chainSync) logSyncSpeed() {
 
 		select {
 		case <-t.C:
-			// TODO: why does this function not return when ctx is cancelled???
 			if cs.ctx.Err() != nil {
 				return
 			}
@@ -397,8 +396,6 @@ func (cs *chainSync) sync() {
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
-			// TODO: periodically clear out ignore list, currently is done if (ignore list >= peer list)
-
 			switch {
 			case errors.Is(res.err.err, context.Canceled):
 				return
@@ -492,7 +489,7 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 // getTarget takes the average of all peer heads
 // TODO: should we just return the highest? could be an attack vector potentially, if a peer reports some very large
 // head block number, it would leave us in bootstrap mode forever
-// it would be better to have some sort of standard deviation calculation and discard any outliers
+// it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
 func (cs *chainSync) getTarget() *big.Int {
 	count := int64(0)
 	sum := big.NewInt(0)
@@ -595,7 +592,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 
 	for _, req := range reqs {
-		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time
+		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time (#1399)
 		if err := cs.doSync(req); err != nil {
 			// failed to sync, set worker error and put into result queue
 			w.err = err
@@ -629,7 +626,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	// send out request and potentially receive response, error if timeout
 	logger.Trace("sending out block request", "request", req)
 
-	// TODO: use scoring to determine what peer to try to sync from first
+	// TODO: use scoring to determine what peer to try to sync from first (#1399)
 	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
 	who := peers[idx.Int64()]
 	resp, err := cs.network.DoBlockRequest(who, req)
@@ -904,7 +901,7 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 
 		var end *common.Hash
 		if !w.targetHash.Equal(common.EmptyHash) {
-			end = &w.targetHash // TODO: change worker targetHash to ptr?
+			end = &w.targetHash
 		}
 
 		reqs[i] = &network.BlockRequestMessage{

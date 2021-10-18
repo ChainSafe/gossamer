@@ -65,7 +65,7 @@ func NewGlobalKeystore() *GlobalKeystore {
 	return &GlobalKeystore{
 		Babe: NewBasicKeystore(BabeName, crypto.Sr25519Type),
 		Gran: NewBasicKeystore(GranName, crypto.Ed25519Type),
-		Acco: NewGenericKeystore(AccoName), // TODO: which type is used? can an account be either type?
+		Acco: NewGenericKeystore(AccoName), // TODO: which type is used? can an account be either type? (#1872)
 		Aura: NewBasicKeystore(AuraName, crypto.Sr25519Type),
 		Imon: NewBasicKeystore(ImonName, crypto.Sr25519Type),
 		Audi: NewBasicKeystore(AudiName, crypto.Sr25519Type),

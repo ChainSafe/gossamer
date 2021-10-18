@@ -40,7 +40,7 @@ func (bt *BlockTree) Load() error {
 // Encode recursively encodes the block tree
 // enc(node) = [32B block hash + 8B arrival time + 8B num children n] | enc(children[0]) | ... | enc(children[n-1])
 func (bt *BlockTree) Encode() ([]byte, error) {
-	return encodeRecursive(bt.head, []byte{})
+	return encodeRecursive(bt.root, []byte{})
 }
 
 // encode recursively encodes the blocktree by depth-first traversal
@@ -90,7 +90,7 @@ func (bt *BlockTree) Decode(in []byte) error {
 		return err
 	}
 
-	bt.head = &node{
+	bt.root = &node{
 		hash:        hash,
 		parent:      nil,
 		children:    make([]*node, numChildren),
@@ -98,9 +98,9 @@ func (bt *BlockTree) Decode(in []byte) error {
 		arrivalTime: arrivalTime,
 	}
 
-	bt.leaves = newLeafMap(bt.head)
+	bt.leaves = newLeafMap(bt.root)
 
-	return bt.decodeRecursive(r, bt.head)
+	return bt.decodeRecursive(r, bt.root)
 }
 
 // decode recursively decodes the blocktree

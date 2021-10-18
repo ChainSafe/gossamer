@@ -54,7 +54,6 @@ func TestLoadConfigGssmr(t *testing.T) {
 }
 
 func TestLoadConfigKusama(t *testing.T) {
-	t.Skip() // TODO: fix by updating kusama runtime
 	cfg := dot.KusamaConfig()
 	require.NotNil(t, cfg)
 

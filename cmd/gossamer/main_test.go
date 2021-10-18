@@ -22,10 +22,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
-	"strconv"
 	"sync"
 	"syscall"
 	"testing"
@@ -232,59 +230,6 @@ func TestInvalidCommand(t *testing.T) {
 	}
 }
 
-func TestGossamerCommand(t *testing.T) {
-	t.Skip() // TODO: not sure how relevant this is anymore, it also slows down the tests a lot
-
-	basePort := 7000
-	genesisPath := utils.GetGssmrGenesisRawPath()
-
-	tempDir, err := ioutil.TempDir("", "gossamer-maintest-")
-	require.Nil(t, err)
-
-	gossamer := runTestGossamer(t,
-		"init",
-		"--basepath", tempDir,
-		"--genesis", genesisPath,
-		"--force",
-	)
-
-	stdout, stderr := gossamer.GetOutput()
-	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
-
-	expectedMessages := []string{
-		"node initialised",
-	}
-
-	for _, m := range expectedMessages {
-		require.Contains(t, string(stdout), m)
-	}
-
-	for i := 0; i < 10; i++ {
-		t.Log("Going to gossamer cmd", "iteration", i)
-
-		// start
-		gossamer = runTestGossamer(t,
-			"--port", strconv.Itoa(basePort),
-			"--key", "alice",
-			"--basepath", tempDir,
-			"--roles", "4",
-		)
-
-		time.Sleep(10 * time.Second)
-
-		stdout, stderr = gossamer.GetOutput()
-		log.Println("Run gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
-
-		expectedMessages = []string{
-			"SIGABRT: abort",
-		}
-
-		for _, m := range expectedMessages {
-			require.NotContains(t, string(stderr), m)
-		}
-	}
-}
-
 func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	genesisPath := utils.GetGssmrGenesisRawPath()
 
@@ -344,9 +289,3 @@ func TestBuildSpecCommandWithOutput(t *testing.T) {
 	require.Empty(t, outb)
 	require.Empty(t, errb)
 }
-
-// TODO: TestExportCommand test "gossamer export" does not error
-
-// TODO: TestInitCommand test "gossamer init" does not error
-
-// TODO: TestAccountCommand test "gossamer account" does not error
