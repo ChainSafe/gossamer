@@ -29,7 +29,6 @@ var (
 )
 
 // GenerateProof receive the keys to proof, the trie root and a reference to database
-// will
 func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
 	trackedProofs := make(map[string][]byte)
 

@@ -19,10 +19,13 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/types"
@@ -1318,4 +1321,48 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 
 	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
+	t.Parallel()
+
+	tmp, err := ioutil.TempDir("", "*-test-trie")
+	require.NoError(t, err)
+
+	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
+		InMemory: true,
+		DataDir:  tmp,
+	})
+	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte("do"), []byte("verb"))
+	tr.Put([]byte("domain"), []byte("website"))
+	tr.Put([]byte("other"), []byte("random"))
+	tr.Put([]byte("otherwise"), []byte("randomstuff"))
+	tr.Put([]byte("cat"), []byte("another animal"))
+
+	err = tr.Store(memdb)
+	require.NoError(t, err)
+
+	hash, err := tr.Hash()
+	require.NoError(t, err)
+
+	keys := [][]byte{
+		[]byte("do"),
+		[]byte("domain"),
+		[]byte("other"),
+		[]byte("otherwise"),
+		[]byte("cat"),
+	}
+
+	proof, err := trie.GenerateProof(hash.ToBytes(), keys, memdb)
+	require.NoError(t, err)
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", encInput)
+	require.NoError(t, err)
+
+	fmt.Printf("RESPONSE FROM VERIFY PROOF %x\n", res)
 }
