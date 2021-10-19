@@ -122,13 +122,7 @@ func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 		[]byte("doge"),
 	}
 
-	root, proof, _ := testGenerateProof(t, entries, keys)
-
-	pl := []Pair{
-		{Key: []byte("do"), Value: []byte("verb")},
-		{Key: []byte("dog"), Value: []byte("puppy")},
-		{Key: []byte("doge"), Value: make([]byte, 32)},
-	}
+	root, proof, pl := testGenerateProof(t, entries, keys)
 
 	v, err := VerifyProof(proof, root, pl)
 	require.True(t, v)
