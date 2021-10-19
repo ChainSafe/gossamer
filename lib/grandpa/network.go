@@ -236,10 +236,8 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 	switch val := msg.Value().(type) {
 	case VoteMessage:
 		m = &val
-		logger.Trace("got VoteMessage!!!", "msg", m)
 	case CommitMessage:
 		m = &val
-		logger.Trace("got CommitMessage!!!", "msg", m)
 	case NeighbourMessage:
 		m = &val
 	case CatchUpRequest:
