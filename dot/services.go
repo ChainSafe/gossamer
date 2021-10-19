@@ -41,7 +41,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
@@ -152,23 +151,6 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
-	case wasmtime.Name:
-		rtCfg := &wasmtime.Config{
-			Imports: wasmtime.ImportNodeRuntime,
-		}
-		rtCfg.Storage = ts
-		rtCfg.Keystore = ks
-		rtCfg.LogLvl = cfg.Log.RuntimeLvl
-		rtCfg.NodeStorage = ns
-		rtCfg.Network = net
-		rtCfg.Role = cfg.Core.Roles
-		rtCfg.CodeHash = codeHash
-
-		// create runtime executor
-		rt, err = wasmtime.NewInstance(code, rtCfg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
-		}
 	case life.Name:
 		rtCfg := &life.Config{
 			Resolver: new(life.Resolver),
@@ -215,8 +197,6 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 		TransactionState:   st.Transaction,
 		EpochState:         st.Epoch,
 		BlockImportHandler: cs,
-		EpochLength:        cfg.Core.EpochLength,
-		SlotDuration:       cfg.Core.SlotDuration, // TODO: remove this, should only be modified via runtime constant
 		Authority:          cfg.Core.BabeAuthority,
 		IsDev:              cfg.Global.ID == "dev",
 	}
@@ -375,14 +355,13 @@ func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Ser
 	return rpc.NewHTTPServer(rpcConfig), nil
 }
 
-// System service
-// creates a service for providing system related information
+// createSystemService creates a systemService for providing system related information
 func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
 	genesisData, err := stateSrvc.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err
 	}
-	// TODO: use data from genesisData for SystemInfo once they are in database (See issue #1248)
+
 	return system.NewService(cfg, genesisData), nil
 }
 
@@ -436,6 +415,11 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 }
 
 func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service, net *network.Service) (*sync.Service, error) {
+	slotDuration, err := st.Epoch.GetSlotDuration()
+	if err != nil {
+		return nil, err
+	}
+
 	syncCfg := &sync.Config{
 		LogLvl:             cfg.Log.SyncLvl,
 		Network:            net,
@@ -445,6 +429,8 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 		FinalityGadget:     fg,
 		BabeVerifier:       verifier,
 		BlockImportHandler: cs,
+		MinPeers:           cfg.Network.MinPeers,
+		SlotDuration:       slotDuration,
 	}
 
 	return sync.NewService(syncCfg)

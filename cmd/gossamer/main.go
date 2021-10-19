@@ -258,6 +258,7 @@ func gossamerAction(ctx *cli.Context) error {
 	}
 
 	ks := keystore.NewGlobalKeystore()
+	// load built-in test keys if specified by `cfg.Account.Key`
 	err = keystore.LoadKeystore(cfg.Account.Key, ks.Acco)
 	if err != nil {
 		logger.Error("failed to load account keystore", "error", err)
@@ -276,6 +277,7 @@ func gossamerAction(ctx *cli.Context) error {
 		return err
 	}
 
+	// load user keys if specified
 	err = unlockKeystore(ks.Acco, cfg.Global.BasePath, cfg.Account.Unlock, ctx.String(PasswordFlag.Name))
 	if err != nil {
 		logger.Error("failed to unlock keystore", "error", err)

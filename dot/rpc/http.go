@@ -132,6 +132,8 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			srvc = modules.NewChildStateModule(h.serverConfig.StorageAPI, h.serverConfig.BlockAPI)
 		case "syncstate":
 			srvc = modules.NewSyncStateModule(h.serverConfig.SyncStateAPI)
+		case "payment":
+			srvc = modules.NewPaymentModule(h.serverConfig.BlockAPI)
 		default:
 			h.logger.Warn("Unrecognised module", "module", mod)
 			continue

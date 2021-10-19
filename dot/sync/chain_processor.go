@@ -126,7 +126,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 		// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
-		// code block can be removed
+		// code block can be removed (#1784)
 		block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
 		if err != nil {
 			logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
@@ -150,7 +150,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 		// TODO: this is probably unnecessary, since the state is already in the database
 		// however, this case shouldn't be hit often, since it's only hit if the node state
-		// is rewinded or if the node shuts down unexpectedly
+		// is rewinded or if the node shuts down unexpectedly (#1784)
 		state, err := s.storageState.TrieState(&block.Header.StateRoot)
 		if err != nil {
 			logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)

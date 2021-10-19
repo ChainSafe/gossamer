@@ -47,7 +47,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // node is the interface for trie methods
@@ -337,26 +337,28 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 		return err
 	}
 
-	sd := &scale.Decoder{Reader: r}
+	sd := scale.NewDecoder(r)
 
 	if nodeType == 3 {
+		var value []byte
 		// branch w/ value
-		value, err := sd.Decode([]byte{})
+		err := sd.Decode(&value)
 		if err != nil {
 			return err
 		}
-		b.value = value.([]byte)
+		b.value = value
 	}
 
 	for i := 0; i < 16; i++ {
 		if (childrenBitmap[i/8]>>(i%8))&1 == 1 {
-			hash, err := sd.Decode([]byte{})
+			var hash []byte
+			err := sd.Decode(&hash)
 			if err != nil {
 				return err
 			}
 
 			b.children[i] = &leaf{
-				hash: hash.([]byte),
+				hash: hash,
 			}
 		}
 	}
@@ -386,14 +388,15 @@ func (l *leaf) decode(r io.Reader, header byte) (err error) {
 		return err
 	}
 
-	sd := &scale.Decoder{Reader: r}
-	value, err := sd.Decode([]byte{})
+	sd := scale.NewDecoder(r)
+	var value []byte
+	err = sd.Decode(&value)
 	if err != nil {
 		return err
 	}
 
-	if len(value.([]byte)) > 0 {
-		l.value = value.([]byte)
+	if len(value) > 0 {
+		l.value = value
 	}
 
 	l.dirty = true

@@ -36,7 +36,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testTimeout = time.Second * 5
+const (
+	defaultMinPeers     = 1
+	testTimeout         = time.Second * 5
+	defaultSlotDuration = time.Second * 6
+)
 
 func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0), types.NewDigest())
@@ -51,7 +55,7 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
 	readyBlocks := newBlockQueue(maxResponseSize)
-	cs := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit))
+	cs := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit), defaultMinPeers, defaultSlotDuration)
 	return cs, readyBlocks
 }
 
