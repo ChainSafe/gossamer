@@ -27,6 +27,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// telemetry message types
+const (
+	notifyFinalizedMsg    = "notify.finalized"
+	blockImportMsg        = "block.import"
+	systemNetworkStateMsg = "system.network_state"
+	systemConnectedMsg    = "system.connected"
+	systemIntervalMsg     = "system.interval"
+)
+
 type telemetryConnection struct {
 	wsconn    *websocket.Conn
 	verbosity int

@@ -21,24 +21,22 @@ import (
 )
 
 //nolint
-// NotifyFinalizedTM holds `notify.finalized` telemetry message, which is
+// notifyFinalizedTM holds `notify.finalized` telemetry message, which is
 // supposed to be send when a new block gets finalized.
-type NotifyFinalizedTM struct {
+type notifyFinalizedTM struct {
 	Best common.Hash `json:"best"`
 	// Height is same as block.Header.Number
 	Height string `json:"height"`
-	Msg    string `json:"msg"`
 }
 
 // NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
-func NewNotifyFinalizedTM(best common.Hash, height string) *NotifyFinalizedTM {
-	return &NotifyFinalizedTM{
+func NewNotifyFinalizedTM(best common.Hash, height string) *notifyFinalizedTM {
+	return &notifyFinalizedTM{
 		Best:   best,
 		Height: height,
-		Msg:    "notify.finalized",
 	}
 }
 
-func (tm *NotifyFinalizedTM) messageType() string {
-	return tm.Msg
+func (tm *notifyFinalizedTM) messageType() string {
+	return notifyFinalizedMsg
 }

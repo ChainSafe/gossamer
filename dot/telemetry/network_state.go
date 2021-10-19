@@ -23,23 +23,24 @@ import (
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 )
 
-// NetworkStateTM struct to hold network state telemetry messages
-type NetworkStateTM struct {
-	Msg   string                 `json:"msg"`
+// networkStateTM struct to hold network state telemetry messages
+type networkStateTM struct {
 	State map[string]interface{} `json:"state"`
 }
 
 // NewNetworkStateTM function to create new Network State Telemetry Message
-func NewNetworkStateTM(host libp2phost.Host, peerInfos []common.PeerInfo) *NetworkStateTM {
+func NewNetworkStateTM(host libp2phost.Host, peerInfos []common.PeerInfo) *networkStateTM {
 	netState := make(map[string]interface{})
 	netState["peerId"] = host.ID()
-	hostAddrs := []string{}
+	hostAddrs := make([]string, 0, len(host.Addrs()))
 	for _, v := range host.Addrs() {
 		hostAddrs = append(hostAddrs, v.String())
 	}
 	netState["externalAddressess"] = hostAddrs
-	listAddrs := []string{}
-	for _, v := range host.Network().ListenAddresses() {
+
+	netListAddrs := host.Network().ListenAddresses()
+	listAddrs := make([]string, 0, len(netListAddrs))
+	for _, v := range netListAddrs {
 		listAddrs = append(listAddrs, fmt.Sprintf("%s/p2p/%s", v, host.ID()))
 	}
 	netState["listenedAddressess"] = listAddrs
@@ -55,12 +56,11 @@ func NewNetworkStateTM(host libp2phost.Host, peerInfos []common.PeerInfo) *Netwo
 	}
 	netState["connectedPeers"] = peers
 
-	return &NetworkStateTM{
-		Msg:   "system.network_state",
+	return &networkStateTM{
 		State: netState,
 	}
 }
 
-func (tm *NetworkStateTM) messageType() string {
-	return tm.Msg
+func (tm *networkStateTM) messageType() string {
+	return systemNetworkStateMsg
 }
