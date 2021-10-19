@@ -112,8 +112,11 @@ var (
 	// least verbosity.
 	// Expected format is 'URL VERBOSITY', e.g. `--telemetry-url 'wss://foo/bar 0'`.
 	TelemetryURLFlag = cli.StringSliceFlag{
-		Name:  "telemetry-url",
-		Usage: "The URL of the telemetry server to connect to",
+		Name: "telemetry-url",
+		Usage: `The URL of the telemetry server to connect to, this flag can be
+		passed multiple times, the verbosity levels range from 0-9, with 0 denoting
+		least verbosity.
+		Expected format --telemetry-url 'wss://foo/bar 0'`,
 	}
 )
 

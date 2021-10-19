@@ -43,7 +43,7 @@ var (
 	DefaultRetainBlocks = int64(512)
 
 	// DefaultTelemetryURLs is the default URL of the telemetry server to connect to.
-	DefaultTelemetryURLs = []genesis.TelemetryEndpoint{}
+	DefaultTelemetryURLs []genesis.TelemetryEndpoint
 
 	// InitConfig
 

@@ -29,7 +29,11 @@ import (
 
 // newTestContext creates a cli context for a test given a set of flags and values
 func newTestContext(description string, flags []string, values []interface{}) (*cli.Context, error) {
-	// defines flags with its name and default value
+	if len(flags) != len(values) {
+		return nil, fmt.Errorf("number of flags and values are not same, number of flags: %d, number of values: %d", len(flags), len(values))
+	}
+
+	// Define flags with its name and default value
 	set := flag.NewFlagSet(description, 0)
 	for i := range values {
 		switch v := values[i].(type) {
@@ -55,28 +59,28 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 		case bool:
 			err := ctx.Set(flags[i], strconv.FormatBool(v))
 			if err != nil {
-				return nil, fmt.Errorf("failed to set cli flag: %T, err: %s", flags[i], err)
+				return nil, fmt.Errorf("failed to set cli flag: %T, err: %w", flags[i], err)
 			}
 		case string:
 			err := ctx.Set(flags[i], values[i].(string))
 			if err != nil {
-				return nil, fmt.Errorf("failed to set cli flag: %T, err: %s", flags[i], err)
+				return nil, fmt.Errorf("failed to set cli flag: %T, err: %w", flags[i], err)
 			}
 		case uint:
 			err := ctx.Set(flags[i], strconv.Itoa(int(values[i].(uint))))
 			if err != nil {
-				return nil, fmt.Errorf("failed to set cli flag: %T, err: %s", flags[i], err)
+				return nil, fmt.Errorf("failed to set cli flag: %T, err: %w", flags[i], err)
 			}
 		case int64:
 			err := ctx.Set(flags[i], strconv.Itoa(int(values[i].(int64))))
 			if err != nil {
-				return nil, fmt.Errorf("failed to set cli flag: %T, err: %s", flags[i], err)
+				return nil, fmt.Errorf("failed to set cli flag: %T, err: %w", flags[i], err)
 			}
 		case []string:
 			for _, str := range values[i].([]string) {
 				err := ctx.Set(flags[i], str)
 				if err != nil {
-					return nil, fmt.Errorf("failed to set cli flag: %T, err: %s", flags[i], err)
+					return nil, fmt.Errorf("failed to set cli flag: %T, err: %w", flags[i], err)
 				}
 			}
 		default:

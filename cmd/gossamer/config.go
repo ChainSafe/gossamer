@@ -492,7 +492,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 
-	telemetryEndpoints := []genesis.TelemetryEndpoint{}
+	var telemetryEndpoints []genesis.TelemetryEndpoint
 	for _, telemetryURL := range ctx.GlobalStringSlice(TelemetryURLFlag.Name) {
 		splits := strings.Split(telemetryURL, " ")
 		if len(splits) != 2 {
@@ -501,7 +501,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 
 		verbosity, err := strconv.Atoi(splits[1])
 		if err != nil {
-			return fmt.Errorf("could not parse verbosity from %s: %s", TelemetryURLFlag.Name, err)
+			return fmt.Errorf("could not parse verbosity from %s: %w", TelemetryURLFlag.Name, err)
 		}
 
 		telemetryEndpoints = append(telemetryEndpoints, genesis.TelemetryEndpoint{

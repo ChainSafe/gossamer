@@ -353,7 +353,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
 
-	telemetryEndpoints := []*genesis.TelemetryEndpoint{}
+	var telemetryEndpoints []*genesis.TelemetryEndpoint
 	telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
 
 	telemetryURLs := cfg.Global.TelemetryURLs
