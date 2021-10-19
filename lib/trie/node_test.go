@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -160,14 +160,12 @@ func TestBranchEncode(t *testing.T) {
 		expected = append(expected, nibblesToKeyLE(b.key)...)
 		expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
 
-		buf := bytes.Buffer{}
-		encoder := &scale.Encoder{Writer: &buf}
-		_, err = encoder.Encode(b.value)
+		enc, err := scale.Marshal(b.value)
 		if err != nil {
 			t.Fatalf("Fail when encoding value with scale: %s", err)
 		}
 
-		expected = append(expected, buf.Bytes()...)
+		expected = append(expected, enc...)
 
 		for _, child := range b.children {
 			if child != nil {
@@ -207,14 +205,12 @@ func TestLeafEncode(t *testing.T) {
 		expected = append(expected, header...)
 		expected = append(expected, nibblesToKeyLE(l.key)...)
 
-		buf := bytes.Buffer{}
-		encoder := &scale.Encoder{Writer: &buf}
-		_, err = encoder.Encode(l.value)
+		enc, err := scale.Marshal(l.value)
 		if err != nil {
 			t.Fatalf("Fail when encoding value with scale: %s", err)
 		}
 
-		expected = append(expected, buf.Bytes()...)
+		expected = append(expected, enc...)
 
 		hasher := newHasher(false)
 		defer hasher.returnToPool()
