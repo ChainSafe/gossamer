@@ -32,9 +32,10 @@ import (
 // verifierInfo contains the information needed to verify blocks
 // it remains the same for an epoch
 type verifierInfo struct {
-	authorities []types.Authority
-	randomness  Randomness
-	threshold   *common.Uint128
+	authorities    []types.Authority
+	randomness     Randomness
+	threshold      *common.Uint128
+	secondarySlots bool
 }
 
 // onDisabledInfo contains information about an authority that's been disabled at a certain
@@ -225,9 +226,10 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, erro
 	}
 
 	return &verifierInfo{
-		authorities: epochData.Authorities,
-		randomness:  epochData.Randomness,
-		threshold:   threshold,
+		authorities:    epochData.Authorities,
+		randomness:     epochData.Randomness,
+		threshold:      threshold,
+		secondarySlots: configData.SecondarySlots > 0,
 	}, nil
 }
 
@@ -248,11 +250,12 @@ func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, er
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
-	blockState  BlockState
-	epoch       uint64
-	authorities []types.Authority
-	randomness  Randomness
-	threshold   *common.Uint128
+	blockState     BlockState
+	epoch          uint64
+	authorities    []types.Authority
+	randomness     Randomness
+	threshold      *common.Uint128
+	secondarySlots bool
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
@@ -262,11 +265,12 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*veri
 	}
 
 	return &verifier{
-		blockState:  blockState,
-		epoch:       epoch,
-		authorities: info.authorities,
-		randomness:  info.randomness,
-		threshold:   info.threshold,
+		blockState:     blockState,
+		epoch:          epoch,
+		authorities:    info.authorities,
+		randomness:     info.randomness,
+		threshold:      info.threshold,
+		secondarySlots: info.secondarySlots,
 	}, nil
 }
 
@@ -384,17 +388,24 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	case *types.BabePrimaryPreDigest:
 		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
 	case *types.BabeSecondaryVRFPreDigest:
-		pub := b.authorities[d.AuthorityIndex()].Key
-		var pk *sr25519.PublicKey
-		pk, err = sr25519.NewPublicKey(pub.Encode())
-		if err != nil {
-			return nil, err
+		if b.secondarySlots {
+			pub := b.authorities[d.AuthorityIndex()].Key
+			var pk *sr25519.PublicKey
+			pk, err = sr25519.NewPublicKey(pub.Encode())
+			if err != nil {
+				return nil, err
+			}
+
+			ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
+		} else {
+			ok = true
 		}
 
-		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
 	case *types.BabeSecondaryPlainPreDigest:
 		ok = true
-		err = verifySecondarySlotPlain(d.AuthorityIndex(), d.SlotNumber(), len(b.authorities), b.randomness)
+		if b.secondarySlots {
+			err = verifySecondarySlotPlain(d.AuthorityIndex(), d.SlotNumber(), len(b.authorities), b.randomness)
+		}
 	}
 
 	// verify that they are the slot winner
