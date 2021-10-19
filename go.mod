@@ -6,7 +6,6 @@ require (
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/btcsuite/btcutil v1.0.2
-	github.com/bytecodealliance/wasmtime-go v0.20.0
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.0
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0

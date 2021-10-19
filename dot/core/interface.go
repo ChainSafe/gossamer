@@ -79,6 +79,7 @@ type TransactionState interface {
 // Network is the interface for the network service
 type Network interface {
 	GossipMessage(network.NotificationsMessage)
+	IsSynced() bool
 }
 
 // EpochState is the interface for state.EpochState

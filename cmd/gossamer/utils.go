@@ -85,8 +85,6 @@ func confirmMessage(msg string) bool {
 func newTestConfig(t *testing.T) *dot.Config {
 	dir := utils.NewTestDir(t)
 
-	// TODO: use default config instead of gssmr config for test config #776
-
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{
 			Name:           dot.GssmrConfig().Global.Name,

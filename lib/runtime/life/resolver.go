@@ -22,7 +22,7 @@ import (
 )
 
 // Resolver resolves the imports for life
-type Resolver struct{} // TODO: move context inside resolver
+type Resolver struct{} // TODO: move context inside resolver (#1875)
 
 // ResolveFunc ...
 func (*Resolver) ResolveFunc(module, field string) exec.FunctionImport { // nolint
@@ -300,7 +300,7 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 	key := asMemorySlice(vm.Memory, keySpan)
 	value := asMemorySlice(vm.Memory, valueSpan)
 
-	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
+	logger.Info("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
 
 	cp := make([]byte, len(value))
 	copy(cp, value)
@@ -399,7 +399,7 @@ func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 		size = uint32(0)
 	} else {
 		size = uint32(len(value[offset:]))
-		valueBuf, valueLen := int64ToPointerAndSize(valueOut)
+		valueBuf, valueLen := runtime.Int64ToPointerAndSize(valueOut)
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
@@ -586,7 +586,7 @@ func ext_default_child_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
 		return 0
 	}
-	// todo(ed) what is this supposed to return?
+
 	return 0
 }
 
@@ -629,7 +629,7 @@ func ext_default_child_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	valueBuf, valueLen := int64ToPointerAndSize(valueOut)
+	valueBuf, valueLen := runtime.Int64ToPointerAndSize(valueOut)
 	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 
 	size := uint32(len(value[offset:]))
@@ -1122,7 +1122,7 @@ func ext_crypto_sr25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 
 	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
 		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to validate signature", "error", err)
-		// TODO: fix this, fails at block 3876
+		// this fails at block 3876, however based on discussions this seems to be expected
 		return 1
 	}
 
@@ -1278,26 +1278,20 @@ func ext_trie_blake2_256_root_version_1(vm *exec.VirtualMachine) int64 {
 	data := asMemorySlice(memory, dataSpan)
 
 	t := trie.NewEmptyTrie()
-	// TODO: this is a fix for the length until slices of structs can be decoded
-	// length passed in is the # of (key, value) tuples, but we are decoding as a slice of []byte
-	data[0] = data[0] << 1
 
 	// this function is expecting an array of (key, value) tuples
-	var kvs [][]byte
-	err := scale.Unmarshal(data, &kvs)
-	if err != nil {
+	type kv struct {
+		Key, Value []byte
+	}
+
+	var kvs []kv
+	if err := scale.Unmarshal(data, &kvs); err != nil {
 		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
 		return 0
 	}
 
-	keyValues := kvs
-	if len(keyValues)%2 != 0 { // TODO: this can be removed when we have decoding of slices of structs
-		logger.Warn("[ext_trie_blake2_256_root_version_1] odd number of input key-values, skipping last value")
-		keyValues = keyValues[:len(keyValues)-1]
-	}
-
-	for i := 0; i < len(keyValues); i = i + 2 {
-		t.Put(keyValues[i], keyValues[i+1])
+	for _, kv := range kvs {
+		t.Put(kv.Key, kv.Value)
 	}
 
 	// allocate memory for value and copy value to memory
@@ -1320,7 +1314,7 @@ func ext_trie_blake2_256_root_version_1(vm *exec.VirtualMachine) int64 {
 
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(memory []byte, span int64) []byte {
-	ptr, size := int64ToPointerAndSize(span)
+	ptr, size := runtime.Int64ToPointerAndSize(span)
 	return memory[ptr : ptr+size]
 }
 
@@ -1368,7 +1362,7 @@ func toWasmMemory(memory, data []byte) (int64, error) {
 	}
 
 	copy(memory[out:out+size], data)
-	return pointerAndSizeToInt64(int32(out), int32(size)), nil
+	return runtime.PointerAndSizeToInt64(int32(out), int32(size)), nil
 }
 
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor

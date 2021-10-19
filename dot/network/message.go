@@ -165,7 +165,8 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	case *pb.BlockRequest_Hash:
 		startingBlock, err = variadic.NewUint64OrHash(common.BytesToHash(from.Hash))
 	case *pb.BlockRequest_Number:
-		// TODO: we are receiving block requests w/ 4-byte From field; did the format change?
+		// TODO: we are receiving block requests w/ 4-byte From field; this should probably be
+		// 4-bytes as it represents a block number which is uint32 (#1854)
 		if len(from.Number) != 8 {
 			return errors.New("invalid BlockResponseMessage.From; uint64 is not 8 bytes")
 		}

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -28,10 +29,7 @@ import (
 )
 
 func newTestDB(t *testing.T) chaindb.Database {
-	// TODO: dynamically get os.TMPDIR
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-
-	// TODO: don't initialise new DB but pass it in
+	testDatadirPath, _ := ioutil.TempDir(os.TempDir(), "test-datadir-*")
 	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 	return chaindb.NewTable(db, "trie")
