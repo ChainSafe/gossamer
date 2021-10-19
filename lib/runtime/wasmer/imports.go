@@ -87,6 +87,7 @@ package wasmer
 // extern int32_t ext_offchain_random_seed_version_1(void *context);
 // extern int64_t ext_offchain_submit_transaction_version_1(void *context, int64_t a);
 // extern int64_t ext_offchain_timestamp_version_1(void *context);
+// extern void ext_offchain_sleep_until_version_1(void *context, int64_t a);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
@@ -1576,6 +1577,12 @@ func ext_offchain_timestamp_version_1(context unsafe.Pointer) C.int64_t {
 	return 0
 }
 
+//export ext_offchain_sleep_until_version_1
+func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
+	logger.Trace("executing...")
+	logger.Warn("unimplemented")
+}
+
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	nextLength := big.NewInt(1)
 	var valueRes []byte
@@ -2191,7 +2198,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
-
+	_, err = imports.Append("ext_offchain_sleep_until_version_1", ext_offchain_sleep_until_version_1, C.ext_offchain_sleep_until_version_1)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1, C.ext_sandbox_instance_teardown_version_1)
 	if err != nil {
 		return nil, err
