@@ -370,7 +370,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range *body {
-			logger.Info("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
