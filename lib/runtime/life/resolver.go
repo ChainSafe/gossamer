@@ -1361,8 +1361,7 @@ func toWasmMemory(memory, data []byte) (int64, error) {
 
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptionalUint32(memory []byte, data *uint32) (int64, error) {
-	temp := *data
-	opt := &temp
+	opt := data
 	if data != nil {
 		opt = data
 	}
