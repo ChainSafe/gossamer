@@ -29,7 +29,7 @@ type networkStateTM struct {
 }
 
 // NewNetworkStateTM function to create new Network State Telemetry Message
-func NewNetworkStateTM(host libp2phost.Host, peerInfos []common.PeerInfo) *networkStateTM {
+func NewNetworkStateTM(host libp2phost.Host, peerInfos []common.PeerInfo) Message {
 	netState := make(map[string]interface{})
 	netState["peerId"] = host.ID()
 	hostAddrs := make([]string, 0, len(host.Addrs()))

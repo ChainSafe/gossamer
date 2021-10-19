@@ -32,7 +32,7 @@ type systemConnectedTM struct {
 
 // NewSystemConnectedTM function to create new System Connected Telemetry Message
 func NewSystemConnectedTM(authority bool, chain string, genesisHash *common.Hash,
-	implementation, name, networkID, startupTime, version string) *systemConnectedTM {
+	implementation, name, networkID, startupTime, version string) Message {
 	return &systemConnectedTM{
 		Authority:      authority,
 		Chain:          chain,

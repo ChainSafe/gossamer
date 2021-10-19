@@ -30,7 +30,7 @@ type blockImportTM struct {
 }
 
 // NewBlockImportTM function to create new Block Import Telemetry Message
-func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) *blockImportTM {
+func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) Message {
 	return &blockImportTM{
 		BestHash: bestHash,
 		Height:   height,

@@ -36,7 +36,7 @@ type systemIntervalTM struct {
 }
 
 // NewBandwidthTM function to create new Bandwidth Telemetry Message
-func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) *systemIntervalTM {
+func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) Message {
 	return &systemIntervalTM{
 		BandwidthDownload: bandwidthDownload,
 		BandwidthUpload:   bandwidthUpload,
@@ -46,7 +46,7 @@ func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) *syst
 
 // NewBlockIntervalTM function to create new Block Interval Telemetry Message
 func NewBlockIntervalTM(beshHash *common.Hash, bestHeight *big.Int, finalisedHash *common.Hash,
-	finalisedHeight, txCount, usedStateCacheSize *big.Int) *systemIntervalTM {
+	finalisedHeight, txCount, usedStateCacheSize *big.Int) Message {
 	return &systemIntervalTM{
 		BestHash:           beshHash,
 		BestHeight:         bestHeight,

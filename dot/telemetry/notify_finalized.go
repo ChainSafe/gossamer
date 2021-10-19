@@ -30,7 +30,7 @@ type notifyFinalizedTM struct {
 }
 
 // NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
-func NewNotifyFinalizedTM(best common.Hash, height string) *notifyFinalizedTM {
+func NewNotifyFinalizedTM(best common.Hash, height string) Message {
 	return &notifyFinalizedTM{
 		Best:   best,
 		Height: height,
