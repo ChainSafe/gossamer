@@ -65,14 +65,14 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		return nil, nil
 	}
 
-	fin, err := s.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return nil, err
-	}
-
 	if errors.Is(res.err.err, errUnknownParent) {
 		// handleTick will handle the errUnknownParent case
 		return nil, nil
+	}
+
+	fin, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, err
 	}
 
 	// don't retry if we're requesting blocks lower than finalised
