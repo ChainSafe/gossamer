@@ -365,6 +365,8 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 }
 
 func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
+	t.Helper()
+
 	babeHeader := types.NewBabeDigest()
 	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)

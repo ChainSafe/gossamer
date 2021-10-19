@@ -13,6 +13,7 @@ import (
 )
 
 func TestEncodeLightRequest(t *testing.T) {
+	t.Parallel()
 	exp := common.MustHexToBytes("0x0000000000000000000000000000")
 
 	testLightRequest := NewLightRequest()
@@ -27,6 +28,7 @@ func TestEncodeLightRequest(t *testing.T) {
 }
 
 func TestEncodeLightResponse(t *testing.T) {
+	t.Parallel()
 	exp := common.MustHexToBytes("0x00000000000000")
 
 	testLightResponse := NewLightResponse()

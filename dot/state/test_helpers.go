@@ -75,7 +75,8 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranc
 		digest := types.NewDigest()
 		prd, err := d.ToPreRuntimeDigest()
 		require.NoError(t, err)
-		_ = digest.Add(*prd)
+		err = digest.Add(*prd)
+		require.NoError(t, err)
 
 		block := &types.Block{
 			Header: types.Header{
