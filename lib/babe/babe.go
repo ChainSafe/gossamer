@@ -45,7 +45,7 @@ type Service struct {
 	dev       bool
 	// lead is used when setting up a new network from genesis.
 	// the "lead" node is the node that is designated to build block 1, after which the rest of the nodes
-	// will sync it and determine the first slot of the network based on that block
+	// will sync block 1 and determine the first slot of the network based on it
 	lead bool
 
 	// Storage interfaces
@@ -225,8 +225,8 @@ func (b *Service) waitForFirstBlock() error {
 	// loop until block 1
 	for {
 		select {
-		case block := <-ch:
-			if block != nil && block.Header.Number.Int64() > 0 {
+		case block, ok := <-ch:
+			if ok && block.Header.Number.Int64() > 0 {
 				cleanup()
 				return nil
 			}
