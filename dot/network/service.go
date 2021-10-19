@@ -46,7 +46,9 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 63 // 63kb for now
+	// maxMessageSize       = 1024 * 63       // 63kb for now
+	maxMessageSize       = 1024 * 1024 * 4 // 4mb
+	maxBlockResponseSize = 1024 * 1024 * 4 // 4mb
 
 	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )
@@ -98,8 +100,8 @@ type Service struct {
 	telemetryInterval time.Duration
 	closeCh           chan interface{}
 
-	blockResponseBuf   []byte
-	blockResponseBufMu sync.Mutex
+	blockResponseBufPool *sizedBufferPool
+	blockResponseBufMu   sync.Mutex
 
 	batchSize int
 }
@@ -157,6 +159,15 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
 	}
 
+	var blockResponseBufPool *sizedBufferPool
+	if cfg.noPreAllocate {
+		blockResponseBufPool = &sizedBufferPool{
+			c: make(chan *[maxMessageSize]byte, cfg.MinPeers*3),
+		}
+	} else {
+		blockResponseBufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
+	}
+
 	network := &Service{
 		ctx:                    ctx,
 		cancel:                 cancel,
@@ -175,7 +186,7 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
-		blockResponseBuf:       make([]byte, maxBlockResponseSize),
+		blockResponseBufPool:   blockResponseBufPool,
 		batchSize:              100,
 	}
 

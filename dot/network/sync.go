@@ -26,8 +26,7 @@ import (
 )
 
 var (
-	maxBlockResponseSize uint64 = 1024 * 1024 * 4 // 4mb
-	blockRequestTimeout         = time.Second * 5
+	blockRequestTimeout = time.Second * 5
 )
 
 // DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
@@ -66,9 +65,11 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 	s.blockResponseBufMu.Lock()
 	defer s.blockResponseBufMu.Unlock()
 
-	buf := s.blockResponseBuf
+	// buf := s.blockResponseBufPool
+	msgBytes := s.blockResponseBufPool.get()
+	defer s.blockResponseBufPool.put(&msgBytes)
 
-	n, err := readStream(stream, buf)
+	n, err := readStream(stream, msgBytes[:])
 	if err != nil {
 		return nil, fmt.Errorf("read stream error: %w", err)
 	}
@@ -78,7 +79,7 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 	}
 
 	msg := new(BlockResponseMessage)
-	err = msg.Decode(buf[:n])
+	err = msg.Decode(msgBytes[:n])
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode block response: %w", err)
 	}
