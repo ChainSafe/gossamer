@@ -48,6 +48,10 @@ type BlockState interface {
 	NumberIsFinalised(num *big.Int) (bool, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
+	ImportedBlockNotifierManager
+}
+
+type ImportedBlockNotifierManager interface {
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 }

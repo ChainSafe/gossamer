@@ -34,8 +34,7 @@ import (
 )
 
 var (
-	logger            log.Logger
-	firstBlockTimeout = time.Minute
+	logger log.Logger
 )
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
@@ -200,14 +199,14 @@ func (b *Service) Start() error {
 		return nil
 	}
 
-	go func() {
-		// if we aren't leading node, wait for first block
-		if !b.lead {
-			if err := b.waitForFirstBlock(); err != nil {
-				logger.Crit("failed to start BABE", "error", err)
-			}
+	// if we aren't leading node, wait for first block
+	if !b.lead {
+		if err := b.waitForFirstBlock(); err != nil {
+			return err
 		}
+	}
 
+	go func() {
 		b.initiate()
 	}()
 
@@ -218,7 +217,13 @@ func (b *Service) waitForFirstBlock() error {
 	ch := b.blockState.GetImportedBlockNotifierChannel()
 	defer b.blockState.FreeImportedBlockNotifierChannel(ch)
 
-	timeout := time.After(firstBlockTimeout)
+	const firstBlockTimeout = time.Minute
+	timeout := time.NewTimer(firstBlockTimeout)
+	defer func() {
+		if !timeout.Stop() {
+			<-timeout.C
+		}
+	}()
 
 	// loop until block 1
 	for {
@@ -227,10 +232,10 @@ func (b *Service) waitForFirstBlock() error {
 			if block != nil && block.Header.Number.Int64() > 0 {
 				return nil
 			}
-		case <-timeout:
+		case <-timeout.C:
 			return errFirstBlockTimeout
 		case <-b.ctx.Done():
-			return nil
+			return b.ctx.Err()
 		}
 	}
 }
@@ -406,8 +411,12 @@ func (b *Service) invokeBlockAuthoring() error {
 		}
 
 		nextEpochStartTime := getSlotStartTime(nextEpochStart, b.slotDuration)
-		epochDoneCtx, cancel := context.WithDeadline(context.Background(), nextEpochStartTime)
-		defer cancel()
+		epochTimer := time.NewTimer(nextEpochStartTime.Sub(time.Now()))
+		defer func() {
+			if !epochTimer.Stop() {
+				<-epochTimer.C
+			}
+		}()
 
 		slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
 		for i := 0; i < int(b.epochLength-intoEpoch); i++ {
@@ -436,7 +445,7 @@ func (b *Service) invokeBlockAuthoring() error {
 					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
 					continue
 				}
-			case <-epochDoneCtx.Done():
+			case <-epochTimer.C:
 				done = true
 			}
 

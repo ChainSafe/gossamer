@@ -91,7 +91,7 @@ type Node struct {
 	basePath string
 	config   string
 	WSPort   string
-	BabeLead bool
+	BABELead bool
 }
 
 // InitGossamer initialises given node number and returns node reference
@@ -133,7 +133,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpc",
 		"--log", "info"}
 
-	if node.BabeLead {
+	if node.BABELead {
 		params = append(params, "--babe-lead")
 	}
 
@@ -228,7 +228,7 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 	}
 
 	if idx == 0 {
-		node.BabeLead = true
+		node.BABELead = true
 	}
 
 	err = StartGossamer(t, node, websocket)
@@ -510,7 +510,6 @@ func CreateConfigNoBabe() {
 func generateConfigNoGrandpa() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeLead = true
 	return cfg
 }
 
