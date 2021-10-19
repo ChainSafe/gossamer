@@ -120,12 +120,8 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 // loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting by the root
 func (t *Trie) loadProof(proof map[string]node, curr node) {
-	var (
-		c  *branch
-		ok bool
-	)
-
-	if c, ok = curr.(*branch); !ok {
+	c, ok := curr.(*branch)
+	if !ok {
 		return
 	}
 
