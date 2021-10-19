@@ -134,3 +134,35 @@ func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	require.True(t, v)
 	require.NoError(t, err)
 }
+
+func TestVerifyProof_ShouldReturnDuplicateKeysError(t *testing.T) {
+	t.Parallel()
+
+	entries := []Pair{
+		{Key: []byte("alpha"), Value: make([]byte, 32)},
+		{Key: []byte("bravo"), Value: []byte("bravo")},
+		{Key: []byte("do"), Value: []byte("verb")},
+		{Key: []byte("dog"), Value: []byte("puppy")},
+		{Key: []byte("doge"), Value: make([]byte, 32)},
+		{Key: []byte("horse"), Value: []byte("stallion")},
+		{Key: []byte("house"), Value: []byte("building")},
+	}
+
+	keys := [][]byte{
+		[]byte("do"),
+		[]byte("dog"),
+		[]byte("doge"),
+	}
+
+	root, proof, _ := testGenerateProof(t, entries, keys)
+
+	pl := []Pair{
+		{Key: []byte("do"), Value: []byte("verb")},
+		{Key: []byte("dog"), Value: []byte("puppy")},
+		{Key: []byte("doge"), Value: make([]byte, 32)},
+	}
+
+	v, err := VerifyProof(proof, root, pl)
+	require.True(t, v)
+	require.NoError(t, err)
+}

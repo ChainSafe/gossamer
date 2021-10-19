@@ -18,9 +18,9 @@ package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
-	"sort"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -82,16 +82,16 @@ type Pair struct{ Key, Value []byte }
 // VerifyProof ensure a given key is inside a proof by creating a proof trie based on the proof slice
 // this function ignores the order of proofs
 func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
-	// ordering in the asc order
-	sort.Slice(items, func(i, j int) bool {
-		return bytes.Compare(items[i].Key, items[j].Key) == -1
-	})
+	set := make(map[string][]byte, len(items))
 
-	// check for duplicates
-	for i := 1; i < len(items); i++ {
-		if bytes.Equal(items[i-1].Key, items[i].Key) {
+	// check for duplicate keys
+	for _, item := range items {
+		hexKey := hex.EncodeToString(item.Key)
+		if _, ok := set[hexKey]; ok {
 			return false, ErrDuplicateKeys
 		}
+
+		set[hexKey] = item.Value
 	}
 
 	proofTrie := NewEmptyTrie()
@@ -99,9 +99,16 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 		return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
 	}
 
-	for _, i := range items {
-		recValue := proofTrie.Get(i.Key)
-		if !bytes.Equal(i.Value, recValue) {
+	for k, v := range set {
+		key, err := hex.DecodeString(k)
+		if err != nil {
+			return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
+		}
+
+		recValue := proofTrie.Get(key)
+
+		// here we need to compare value only if the caller pass the value
+		if v != nil && !bytes.Equal(v, recValue) {
 			return false, ErrValueNotFound
 		}
 	}
