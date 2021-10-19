@@ -82,7 +82,7 @@ type Pair struct{ Key, Value []byte }
 // VerifyProof ensure a given key is inside a proof by creating a proof trie based on the proof slice
 // this function ignores the order of proofs
 func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
-	set := make(map[string][]byte, len(items))
+	set := make(map[string]struct{}, len(items))
 
 	// check for duplicate keys
 	for _, item := range items {
@@ -90,8 +90,7 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 		if _, ok := set[hexKey]; ok {
 			return false, ErrDuplicateKeys
 		}
-
-		set[hexKey] = item.Value
+		set[hexKey] = struct{}{}
 	}
 
 	proofTrie := NewEmptyTrie()
@@ -99,16 +98,11 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 		return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
 	}
 
-	for k, v := range set {
-		key, err := hex.DecodeString(k)
-		if err != nil {
-			return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
-		}
-
-		recValue := proofTrie.Get(key)
+	for _, item := range items {
+		recValue := proofTrie.Get(item.Key)
 
 		// here we need to compare value only if the caller pass the value
-		if v != nil && !bytes.Equal(v, recValue) {
+		if item.Value != nil && !bytes.Equal(item.Value, recValue) {
 			return false, ErrValueNotFound
 		}
 	}
