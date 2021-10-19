@@ -1,7 +1,6 @@
 package state
 
 import (
-	"io/ioutil"
 	"math/big"
 	"sync"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	rt "github.com/ChainSafe/gossamer/lib/runtime"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 
 	"github.com/stretchr/testify/require"
@@ -29,20 +29,16 @@ func newTestStorageState(t *testing.T) *StorageState {
 }
 
 //TODO: optimize this method to bare minimum body for the StorageState instance
-func newTestStorageState2(t *testing.T) *StorageState {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
-
+func newFileDbTestStorageState(t *testing.T) *StorageState {
 	config := Config{
-		Path:     testDatadirPath,
+		Path:     utils.NewTestBasePath(t, "flie_db"),
 		LogLevel: log.LvlInfo,
 	}
 	stateSrvc := NewService(config)
-	stateSrvc.UseMemDB()
 
 	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
-	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
+	err := stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -131,50 +127,50 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 }
 
 func TestStorage_StorageChild(t *testing.T) {
-	storage := newTestStorageState2(t)
+	storage := newFileDbTestStorageState(t)
 	tr, err := storage.TrieState(nil)
 	require.NoError(t, err)
-
-	tr.Set([]byte(":first_key"), []byte(":value1"))
-	tr.Set([]byte(":second_key"), []byte(":second_value"))
 
 	childTr := trie.NewEmptyTrie()
 	childTr.Put([]byte(":child_first"), []byte(":child_first_value"))
 	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
-	childTr.Put([]byte(":another_child"), []byte("value"))
-
 	err = tr.SetChild([]byte(":child_storage_key"), childTr)
-	require.NoError(t, err)
-
-	stateRoot, err := tr.Root()
-	_ = stateRoot
-	require.NoError(t, err)
-
-	bb, err := storage.blockState.BestBlock()
-	_ = bb
 	require.NoError(t, err)
 
 	err = storage.StoreTrie(tr, nil)
 	require.NoError(t, err)
 
+	stateRoot, err := tr.Root()
+	require.NoError(t, err)
+
+	bb, err := storage.blockState.BestBlock()
+	require.NoError(t, err)
+
+	//update the database header
+	b := &types.Block{
+		Header: types.Header{
+			ParentHash: bb.Header.Hash(),
+			Number:     big.NewInt(0).Add(big.NewInt(1), bb.Header.Number),
+			StateRoot:  stateRoot,
+		},
+		Body: types.Body{},
+	}
+	err = storage.blockState.AddBlock(b)
+	require.NoError(t, err)
+
+	hash := storage.blockState.BestBlockHash()
 	tests := []struct {
 		expect   uint64
-		err      error
-		hash     *common.Hash
 		keyChild []byte
 		entry    []byte
 	}{
 		{
-			err:      nil,
 			expect:   uint64(len([]byte(":child_first_value"))),
-			hash:     nil,
 			entry:    []byte(":child_first"),
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
-			err:      nil,
 			expect:   uint64(len([]byte(":child_second_value"))),
-			hash:     nil,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":child_storage_key"),
 		},
@@ -182,13 +178,6 @@ func TestStorage_StorageChild(t *testing.T) {
 
 	for _, test := range tests {
 		var res uint64
-		var hash common.Hash
-
-		if test.hash == nil {
-			hash = storage.blockState.BestBlockHash()
-		} else {
-			hash = *test.hash
-		}
 
 		stateRoot, err := storage.GetStateRootFromBlock(&hash)
 		require.NoError(t, err)
