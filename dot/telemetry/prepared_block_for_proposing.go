@@ -20,9 +20,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// PreparedBlockForProposingTM holds a 'prepared_block_for_proposing' telemetry
+// preparedBlockForProposingTM holds a 'prepared_block_for_proposing' telemetry
 // message, which is supposed to be sent when a new block is built.
-type PreparedBlockForProposingTM struct {
+type preparedBlockForProposingTM struct {
 	Hash common.Hash `json:"hash"`
 	// Height of the chain, Block.Header.Number
 	Number string `json:"number"`
@@ -30,14 +30,14 @@ type PreparedBlockForProposingTM struct {
 }
 
 // NewPreparedBlockForProposingTM gets a new PreparedBlockForProposingTM struct.
-func NewPreparedBlockForProposingTM(hash common.Hash, number string) *PreparedBlockForProposingTM {
-	return &PreparedBlockForProposingTM{
+func NewPreparedBlockForProposingTM(hash common.Hash, number string) Message {
+	return &preparedBlockForProposingTM{
 		Hash:   hash,
 		Number: number,
 		Msg:    "prepared_block_for_proposing",
 	}
 }
 
-func (tm *PreparedBlockForProposingTM) messageType() string {
+func (tm *preparedBlockForProposingTM) messageType() string {
 	return tm.Msg
 }
