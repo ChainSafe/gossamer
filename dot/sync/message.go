@@ -144,14 +144,6 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 		return s.handleAscendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	if startHash == nil {
-		panic("startHash is nil!")
-	}
-
-	if endHash == nil {
-		panic("endHash is nil!")
-	}
-
 	logger.Debug("handling BlockRequestMessage",
 		"start", *startHash,
 		"end", *endHash,
@@ -236,14 +228,6 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 			"direction", req.Direction,
 		)
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
-	}
-
-	if startHash == nil {
-		panic("startHash is nil!")
-	}
-
-	if endHash == nil {
-		panic("endHash is nil!")
 	}
 
 	logger.Debug("handling BlockRequestMessage",
