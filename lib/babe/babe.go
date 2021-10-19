@@ -206,10 +206,7 @@ func (b *Service) Start() error {
 		}
 	}
 
-	go func() {
-		b.initiate()
-	}()
-
+	go b.initiate()
 	return nil
 }
 
@@ -219,22 +216,24 @@ func (b *Service) waitForFirstBlock() error {
 
 	const firstBlockTimeout = time.Minute
 	timeout := time.NewTimer(firstBlockTimeout)
-	defer func() {
+	cleanup := func() {
 		if !timeout.Stop() {
 			<-timeout.C
 		}
-	}()
+	}
 
 	// loop until block 1
 	for {
 		select {
 		case block := <-ch:
 			if block != nil && block.Header.Number.Int64() > 0 {
+				cleanup()
 				return nil
 			}
 		case <-timeout.C:
 			return errFirstBlockTimeout
 		case <-b.ctx.Done():
+			cleanup()
 			return b.ctx.Err()
 		}
 	}
@@ -412,11 +411,11 @@ func (b *Service) invokeBlockAuthoring() error {
 
 		nextEpochStartTime := getSlotStartTime(nextEpochStart, b.slotDuration)
 		epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
-		defer func() {
+		cleanup := func() {
 			if !epochTimer.Stop() {
 				<-epochTimer.C
 			}
-		}()
+		}
 
 		slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
 		for i := 0; i < int(b.epochLength-intoEpoch); i++ {
@@ -428,8 +427,10 @@ func (b *Service) invokeBlockAuthoring() error {
 
 			select {
 			case <-b.ctx.Done():
+				cleanup()
 				return nil
 			case <-b.pause:
+				cleanup()
 				return nil
 			case <-slotDone[i]:
 				slotNum := startSlot + uint64(i)
