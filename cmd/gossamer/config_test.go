@@ -151,7 +151,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
-				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -165,7 +164,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
-				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -179,7 +177,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
-				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -193,7 +190,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
-				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -207,7 +203,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
-				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -221,7 +216,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: true,
 				MetricsPort:    testCfg.Global.MetricsPort,
-				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -235,7 +229,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    uint32(9871),
-				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
@@ -250,7 +243,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 				NoTelemetry:    true,
-				TelemetryURLs:  []genesis.TelemetryEndpoint{},
 			},
 		},
 		{
