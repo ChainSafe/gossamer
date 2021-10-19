@@ -1359,9 +1359,27 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	proof, err := trie.GenerateProof(hash.ToBytes(), keys, memdb)
 	require.NoError(t, err)
 
+	hashEnc, err := scale.Marshal(hash.ToBytes())
+	require.NoError(t, err)
+
+	args := []byte{}
+	args = append(args, hashEnc...)
+
+	encProof, err := scale.Marshal(proof)
+	require.NoError(t, err)
+	args = append(args, encProof...)
+
+	keyEnc, err := scale.Marshal([]byte("do"))
+	require.NoError(t, err)
+	args = append(args, keyEnc...)
+
+	valueEnc, err := scale.Marshal([]byte("verb"))
+	require.NoError(t, err)
+	args = append(args, valueEnc...)
+
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", encInput)
+	res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
 	require.NoError(t, err)
 
 	fmt.Printf("RESPONSE FROM VERIFY PROOF %x\n", res)
