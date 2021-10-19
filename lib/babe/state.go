@@ -51,6 +51,7 @@ type BlockState interface {
 	ImportedBlockNotifierManager
 }
 
+// ImportedBlockNotifierManager is the interface for block notification channels
 type ImportedBlockNotifierManager interface {
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)

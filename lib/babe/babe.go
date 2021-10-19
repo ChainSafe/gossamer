@@ -411,7 +411,7 @@ func (b *Service) invokeBlockAuthoring() error {
 		}
 
 		nextEpochStartTime := getSlotStartTime(nextEpochStart, b.slotDuration)
-		epochTimer := time.NewTimer(nextEpochStartTime.Sub(time.Now()))
+		epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
 		defer func() {
 			if !epochTimer.Stop() {
 				<-epochTimer.C

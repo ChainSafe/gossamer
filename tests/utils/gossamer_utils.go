@@ -510,6 +510,7 @@ func CreateConfigNoBabe() {
 func generateConfigNoGrandpa() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BABELead = true
 	return cfg
 }
 
