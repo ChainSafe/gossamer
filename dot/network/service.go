@@ -98,7 +98,7 @@ type Service struct {
 
 	// telemetry
 	telemetryInterval time.Duration
-	closeCh           chan interface{}
+	closeCh           chan struct{}
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
@@ -174,7 +174,7 @@ func NewService(cfg *Config) (*Service, error) {
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
-		closeCh:                make(chan interface{}),
+		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
@@ -318,7 +318,7 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) publishNetworkTelemetry(done chan interface{}) {
+func (s *Service) publishNetworkTelemetry(done chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
@@ -754,7 +754,6 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 func (s *Service) startPeerSetHandler() {
 	s.host.cm.peerSetHandler.Start()
 	// wait for peerSetHandler to start.
-	time.Sleep(time.Millisecond * 100)
 	if !s.noBootstrap {
 		s.host.bootstrap()
 	}
@@ -785,22 +784,13 @@ func (s *Service) processMessage() {
 				return
 			}
 			logger.Debug("connection successful ", "peer", peerID)
-		case peerset.Drop:
+		case peerset.Drop, peerset.Reject:
 			err := s.host.closePeer(peerID)
 			if err != nil {
 				logger.Debug("failed to close connection", "peer", peerID, "error", err)
 				return
 			}
 			logger.Debug("connection dropped successfully ", "peer", peerID)
-		case peerset.Reject:
-			conns := s.host.h.Network().ConnsToPeer(peerID)
-			for _, c := range conns {
-				err := c.Close()
-				if err != nil {
-					logger.Debug("failed to close connection ", "peer", peerID)
-					return
-				}
-			}
 		}
 	}
 

@@ -65,10 +65,11 @@ type PeerSetHandler interface {
 	AddReservedPeer(int, ...peer.ID)
 	AddPeer(int, ...peer.ID)
 	RemoveReservedPeer(int, ...peer.ID)
+	SetReservedPeer(int, ...peer.ID)
 	RemovePeer(int, ...peer.ID)
 	DisconnectPeer(int, ...peer.ID)
 	PeerReputation(peer.ID) (peerset.Reputation, error)
-	SortedPeers() chan interface{}
+	SortedPeers() chan peer.IDSlice
 	Start()
 	Stop()
 }

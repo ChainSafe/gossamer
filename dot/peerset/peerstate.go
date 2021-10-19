@@ -148,12 +148,12 @@ func (ps *PeersState) getSetLength() int {
 
 // peerStatus returns the status of peer based on its connection state, i.e. connectedPeer, notConnectedPeer or unknownPeer.
 func (ps *PeersState) peerStatus(set int, peerID peer.ID) string {
-	node, err := ps.getNode(peerID)
+	n, err := ps.getNode(peerID)
 	if err != nil {
 		return unknownPeer
 	}
 
-	switch node.state[set] {
+	switch n.state[set] {
 	case ingoing, outgoing:
 		return connectedPeer
 	case notConnected:
@@ -173,7 +173,7 @@ func (ps *PeersState) peers() []peer.ID {
 }
 
 // sortedPeers returns the list of peers we are connected to of a specific set.
-func (ps *PeersState) sortedPeers(idx int, peersCh chan interface{}) {
+func (ps *PeersState) sortedPeers(idx int, peersCh chan peer.IDSlice) {
 	var peerIDs peer.IDSlice
 	if len(ps.sets) < idx {
 		logger.Debug("peer state doesn't have info for the provided index")
@@ -285,7 +285,6 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 		return err
 	}
 
-	// check for if it's isNoSlotOccupy is true or false.
 	if _, ok := info.noSlotNodes[peerID]; !ok {
 		switch n.state[idx] {
 		case ingoing:

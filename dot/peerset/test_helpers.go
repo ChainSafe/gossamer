@@ -21,14 +21,14 @@ var (
 	peer2         = peer.ID("testPeer2")
 )
 
-func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.ID) *Handler {
+func newTestPeerSet(t *testing.T, in, out uint32, bootNodes, reservedPeers []peer.ID, reservedOnly bool) *Handler {
 	t.Helper()
 	con := &ConfigSet{
 		Set: []*config{
 			{
 				inPeers:           in,
 				outPeers:          out,
-				reservedOnly:      false,
+				reservedOnly:      reservedOnly,
 				periodicAllocTime: time.Second * 2,
 			},
 		},
@@ -39,9 +39,9 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNode, reservedPeer []peer.
 
 	handler.Start()
 
+	handler.AddPeer(0, bootNodes...)
+	handler.AddReservedPeer(0, reservedPeers...)
 	time.Sleep(time.Millisecond * 100)
-	handler.AddPeer(0, bootNode...)
-	handler.AddReservedPeer(0, reservedPeer...)
 
 	return handler
 }
@@ -59,7 +59,7 @@ func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState { //nolint
 	return state
 }
 
-func checkMessage(t *testing.T, m interface{}, expectedStatus Status) {
+func checkMessageStatus(t *testing.T, m interface{}, expectedStatus Status) {
 	t.Helper()
 	msg, ok := m.(Message)
 	require.True(t, ok)

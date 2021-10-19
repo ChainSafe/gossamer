@@ -4,12 +4,12 @@ import "github.com/libp2p/go-libp2p-core/peer"
 
 // Handler manages peerSet.
 type Handler struct {
-	actionQueue chan<- Action
+	actionQueue chan<- action
 	peerSet     *PeerSet
-	closeCh     chan interface{}
+	closeCh     chan struct{}
 }
 
-// NewPeerSetHandler initiates peerSetHandler.
+// NewPeerSetHandler creates a new *peerset.Handler.
 func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
 	ps, err := newPeerSet(cfg)
 	if err != nil {
@@ -23,7 +23,7 @@ func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
 
 // AddReservedPeer adds reserved peer into peerSet.
 func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- Action{
+	h.actionQueue <- action{
 		actionCall: addReservedPeer,
 		setID:      setID,
 		peers:      peers,
@@ -32,7 +32,7 @@ func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
 
 // RemoveReservedPeer remove reserved peer from peerSet.
 func (h *Handler) RemoveReservedPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- Action{
+	h.actionQueue <- action{
 		actionCall: removeReservedPeer,
 		setID:      setID,
 		peers:      peers,
@@ -41,7 +41,7 @@ func (h *Handler) RemoveReservedPeer(setID int, peers ...peer.ID) {
 
 // SetReservedPeer set the reserve peer into peerSet
 func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- Action{
+	h.actionQueue <- action{
 		actionCall: setReservedPeers,
 		setID:      setID,
 		peers:      peers,
@@ -50,7 +50,7 @@ func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
 
 // AddPeer adds peer to peerSet.
 func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- Action{
+	h.actionQueue <- action{
 		actionCall: addToPeerSet,
 		setID:      setID,
 		peers:      peers,
@@ -59,7 +59,7 @@ func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
 
 // RemovePeer removes peer from peerSet.
 func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- Action{
+	h.actionQueue <- action{
 		actionCall: removeFromPeerSet,
 		setID:      setID,
 		peers:      peers,
@@ -68,7 +68,7 @@ func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
 
 // ReportPeer reports ReputationChange according to the peer behaviour.
 func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
-	h.actionQueue <- Action{
+	h.actionQueue <- action{
 		actionCall: reportPeer,
 		reputation: rep,
 		peers:      peers,
@@ -77,7 +77,7 @@ func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
 
 // Incoming calls when we have an incoming connection from peer.
 func (h *Handler) Incoming(setID int, peers ...peer.ID) {
-	h.actionQueue <- Action{
+	h.actionQueue <- action{
 		actionCall: incoming,
 		peers:      peers,
 		setID:      setID,
@@ -91,7 +91,7 @@ func (h *Handler) Messages() chan interface{} {
 
 // DisconnectPeer calls for disconnecting a connection from peer.
 func (h *Handler) DisconnectPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- Action{
+	h.actionQueue <- action{
 		actionCall: disconnect,
 		setID:      setID,
 		peers:      peers,
@@ -109,16 +109,16 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 
 // Start starts peerSet processing
 func (h *Handler) Start() {
-	actionCh := make(chan Action, msgChanSize)
-	h.closeCh = make(chan interface{})
+	actionCh := make(chan action, msgChanSize)
+	h.closeCh = make(chan struct{})
 	h.actionQueue = actionCh
-	go h.peerSet.start(actionCh)
+	h.peerSet.start(actionCh)
 }
 
 // SortedPeers return chan for sorted connected peer in the peerSet.
-func (h *Handler) SortedPeers() chan interface{} {
-	resultPeersCh := make(chan interface{}, 1)
-	h.actionQueue <- Action{
+func (h *Handler) SortedPeers() chan peer.IDSlice {
+	resultPeersCh := make(chan peer.IDSlice, 1)
+	h.actionQueue <- action{
 		actionCall:    sortedPeers,
 		resultPeersCh: resultPeersCh,
 	}

@@ -120,13 +120,7 @@ func TestDisconnectNoSlotDoesntPanic(t *testing.T) {
 }
 
 func TestHighestNotConnectedPeer(t *testing.T) {
-	state, err := NewPeerState([]*config{
-		{
-			inPeers:  25,
-			outPeers: 25,
-		},
-	})
-	require.NoError(t, err)
+	state := newTestPeerState(t, 25, 25)
 	emptyPeerID := peer.ID("")
 
 	require.Equal(t, emptyPeerID, state.highestNotConnectedPeer(0))
@@ -181,4 +175,30 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 	state.nodes[peer1] = n
 
 	require.Equal(t, peer1, state.highestNotConnectedPeer(0))
+}
+
+func TestSortedPeers(t *testing.T) {
+	const msgChanSize = 1
+	state := newTestPeerState(t, 2, 1)
+
+	state.addNoSlotNode(0, peer1)
+
+	state.discover(0, peer1)
+	err := state.tryAcceptIncoming(0, peer1)
+	require.NoError(t, err)
+
+	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
+
+	// discover peer2
+	state.discover(0, peer2)
+	// try to make peer2 as an incoming connection.
+	err = state.tryAcceptIncoming(0, peer2)
+	require.NoError(t, err)
+
+	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
+
+	peerCh := make(chan peer.IDSlice, msgChanSize)
+	state.sortedPeers(0, peerCh)
+	peers := <-peerCh
+	require.Equal(t, 2, len(peers))
 }

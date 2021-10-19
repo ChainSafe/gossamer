@@ -2,6 +2,7 @@ package peerset
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"time"
 
@@ -46,14 +47,15 @@ const (
 	disconnect
 )
 
-// Action struct stores the action type and required parameters to perform action
-type Action struct {
-	actionCall    ActionReceiver
-	setID         int
-	reputation    ReputationChange
-	peers         peer.IDSlice
-	IncomingIndex uint64
-	resultPeersCh chan interface{}
+// action struct stores the action type and required parameters to perform action
+type action struct {
+	actionCall ActionReceiver
+	setID      int
+	reputation ReputationChange
+	peers      peer.IDSlice
+	// currently we only have one set, use this once we have more (#1886).
+	incomingIndex uint64 // nolint
+	resultPeersCh chan peer.IDSlice
 }
 
 // Status represents the enum value for Message
@@ -124,7 +126,7 @@ type PeerSet struct {
 
 	reservedNode map[peer.ID]struct{}
 	// TODO: this will be useful for reserved only mode
-	// this is for future purpose if reserved-only flag is enabled.
+	// this is for future purpose if reserved-only flag is enabled (#1888).
 	isReservedOnly bool
 	resultMsgCh    chan interface{}
 	// time when the PeerSet was created.
@@ -135,7 +137,7 @@ type PeerSet struct {
 	// second, to match the period of the Reputation updates.
 	nextPeriodicAllocSlots time.Duration
 	// chan for receiving action request.
-	actionQueue <-chan Action
+	actionQueue <-chan action
 }
 
 // config is configuration of a single set.
@@ -146,7 +148,7 @@ type config struct {
 	outPeers uint32
 
 	// TODO Use in future for reserved only peers
-	// if true, we only accept reservedNodes.
+	// if true, we only accept reservedNodes (#1888).
 	reservedOnly bool
 
 	// time duration for a peerSet to periodically call allocSlots.
@@ -182,7 +184,7 @@ func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 		return nil, err
 	}
 
-	// TODO: currently we only have one set, change this once we have more.
+	// TODO: currently we only have one set, change this once we have more (#1886).
 	cfgSet := cfg.Set[0]
 	ps := &PeerSet{
 		peerState:              peerState,
@@ -360,6 +362,7 @@ func (ps *PeerSet) allocSlots(setIDX int) error {
 
 		n := peerState.nodes[peerID]
 		if n.getReputation() < BannedThresholdValue {
+			logger.Crit("highest rated peer is below bannedThresholdValue")
 			break
 		}
 
@@ -472,7 +475,7 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 	for _, pid := range peers {
 		// don't do anything if node is reserved.
 		if _, ok := ps.reservedNode[pid]; ok {
-			logger.Debug("peer is reserved cannot be removed", "peer: ", pid)
+			logger.Debug("peer is reserved and cannot be removed", "peer", pid)
 			return nil
 		}
 
@@ -593,31 +596,31 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 }
 
 // start handles all the action for the peerSet.
-func (ps *PeerSet) start(aq chan Action) {
-	ps.resultMsgCh = make(chan interface{}, msgChanSize)
+func (ps *PeerSet) start(aq chan action) {
 	ps.actionQueue = aq
+	ps.resultMsgCh = make(chan interface{}, msgChanSize)
+	go ps.doWork()
+}
 
+func (ps *PeerSet) doWork() {
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
 	defer ticker.Stop()
-	var err error
 
-actionLoop:
 	for {
 		select {
 		case <-ticker.C:
-			{
-				l := ps.peerState.getSetLength()
-				for i := 0; i < l; i++ {
-					if err = ps.allocSlots(i); err != nil {
-						logger.Debug("failed to do action on peerSet ", "error", err)
-					}
+			l := ps.peerState.getSetLength()
+			for i := 0; i < l; i++ {
+				if err := ps.allocSlots(i); err != nil {
+					logger.Debug("failed to do action on peerSet ", "error", err)
 				}
 			}
 		case act, ok := <-ps.actionQueue:
 			if !ok {
-				break actionLoop
+				return
 			}
 
+			var err error
 			switch act.actionCall {
 			case addReservedPeer:
 				err = ps.addReservedPeers(act.setID, act.peers...)
@@ -627,7 +630,8 @@ actionLoop:
 				// TODO: this is not used yet, might required to implement RPC Call for this.
 				err = ps.setReservedPeer(act.setID, act.peers...)
 			case setReservedOnly:
-				// TODO: not yet implemented
+				// TODO: not yet implemented (#1888)
+				err = fmt.Errorf("not implemented yet")
 			case reportPeer:
 				err = ps.reportPeer(act.reputation, act.peers...)
 			case addToPeerSet:

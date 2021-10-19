@@ -9,7 +9,7 @@ import (
 )
 
 func TestPeerSetBanned(t *testing.T) {
-	handler := newTestPeerSet(t, 25, 25, nil, nil)
+	handler := newTestPeerSet(t, 25, 25, nil, nil, false)
 
 	ps := handler.peerSet
 	require.Equal(t, unknownPeer, ps.peerState.peerStatus(0, peer1))
@@ -24,11 +24,11 @@ func TestPeerSetBanned(t *testing.T) {
 	handler.ReportPeer(rpc, peer1)
 	time.Sleep(time.Millisecond * 100)
 
-	checkMessage(t, <-ps.resultMsgCh, Drop)
+	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 
 	// check that an incoming connection from that node gets refused.
 	handler.Incoming(0, peer1)
-	checkMessage(t, <-ps.resultMsgCh, Reject)
+	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
 
 	// wait a bit for the node's reputation to go above the threshold.
 	time.Sleep(time.Millisecond * 1200)
@@ -36,11 +36,11 @@ func TestPeerSetBanned(t *testing.T) {
 	// try again. This time the node should be accepted.
 	handler.Incoming(0, peer1)
 	require.NoError(t, err)
-	checkMessage(t, <-ps.resultMsgCh, Accept)
+	checkMessageStatus(t, <-ps.resultMsgCh, Accept)
 }
 
 func TestAddReservedPeers(t *testing.T) {
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{})
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{}, false)
 	ps := handler.peerSet
 
 	handler.AddReservedPeer(0, reservedPeer)
@@ -55,8 +55,12 @@ func TestAddReservedPeers(t *testing.T) {
 	}
 
 	require.Equal(t, uint32(1), ps.peerState.sets[0].numOut)
+	require.Equal(t, 3, len(ps.resultMsgCh))
 
-	for i := 0; i < len(ps.resultMsgCh); i++ {
+	for i := 0; ; i++ {
+		if len(ps.resultMsgCh) == 0 {
+			break
+		}
 		m := <-ps.resultMsgCh
 		msg, ok := m.(Message)
 		require.True(t, ok)
@@ -65,24 +69,24 @@ func TestAddReservedPeers(t *testing.T) {
 }
 
 func TestPeerSetIncoming(t *testing.T) {
-	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode}, []peer.ID{})
+	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode}, []peer.ID{}, false)
 	ps := handler.peerSet
 
 	// connect message will be added ingoing queue for bootnode.
-	checkMessage(t, <-ps.resultMsgCh, Connect)
+	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
 
 	handler.Incoming(0, incomingPeer)
-	checkMessage(t, <-ps.resultMsgCh, Accept)
+	checkMessageStatus(t, <-ps.resultMsgCh, Accept)
 
 	handler.Incoming(0, incoming2)
-	checkMessage(t, <-ps.resultMsgCh, Accept)
+	checkMessageStatus(t, <-ps.resultMsgCh, Accept)
 
 	handler.Incoming(0, incoming3)
-	checkMessage(t, <-ps.resultMsgCh, Reject)
+	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
 }
 
 func TestPeerSetDiscovered(t *testing.T) {
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer})
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false)
 
 	ps := handler.peerSet
 
@@ -93,13 +97,13 @@ func TestPeerSetDiscovered(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	require.Equal(t, 3, len(ps.resultMsgCh))
-	for i := 0; i < len(ps.resultMsgCh); i++ {
-		checkMessage(t, <-ps.resultMsgCh, Connect)
+	for len(ps.resultMsgCh) == 0 {
+		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
 	}
 }
 
 func TestReAllocAfterBanned(t *testing.T) {
-	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{})
+	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false)
 
 	ps := handler.peerSet
 	// adding peer1 with incoming slot.
@@ -115,13 +119,52 @@ func TestReAllocAfterBanned(t *testing.T) {
 	handler.ReportPeer(rep, peer1)
 	time.Sleep(time.Millisecond * 100)
 
-	checkMessage(t, <-ps.resultMsgCh, Drop)
+	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 
 	// Check that an incoming connection from that node gets refused.
 
 	handler.Incoming(0, peer1)
-	checkMessage(t, <-ps.resultMsgCh, Reject)
+	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
 
 	time.Sleep(time.Millisecond * 100)
-	checkMessage(t, <-ps.resultMsgCh, Connect)
+	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+}
+
+func TestRemovePeer(t *testing.T) {
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2}, nil, false)
+	ps := handler.peerSet
+
+	require.Equal(t, 2, len(ps.resultMsgCh))
+	for len(ps.resultMsgCh) != 0 {
+		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+	}
+
+	handler.RemovePeer(0, discovered1, discovered2)
+	time.Sleep(200 * time.Millisecond)
+
+	require.Equal(t, 2, len(ps.resultMsgCh))
+	for len(ps.resultMsgCh) != 0 {
+		checkMessageStatus(t, <-ps.resultMsgCh, Drop)
+	}
+
+	require.Equal(t, 0, len(ps.peerState.nodes))
+}
+
+func TestSetReservePeer(t *testing.T) {
+	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2}, true)
+	ps := handler.peerSet
+
+	require.Equal(t, 2, len(ps.resultMsgCh))
+	for len(ps.resultMsgCh) != 0 {
+		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+	}
+
+	newRsrPeerSet := peer.IDSlice{reservedPeer, peer.ID("newRsrPeer")}
+	handler.SetReservedPeer(0, newRsrPeerSet...)
+	time.Sleep(200 * time.Millisecond)
+
+	require.Equal(t, len(newRsrPeerSet), len(ps.reservedNode))
+	for _, p := range newRsrPeerSet {
+		require.Contains(t, ps.reservedNode, p)
+	}
 }
