@@ -57,6 +57,6 @@ func NewBlockIntervalTM(beshHash *common.Hash, bestHeight *big.Int, finalisedHas
 	}
 }
 
-func (tm *systemIntervalTM) messageType() string {
+func (systemIntervalTM) messageType() string {
 	return systemIntervalMsg
 }

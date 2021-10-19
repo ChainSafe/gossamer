@@ -61,6 +61,6 @@ func NewNetworkStateTM(host libp2phost.Host, peerInfos []common.PeerInfo) Messag
 	}
 }
 
-func (tm *networkStateTM) messageType() string {
+func (networkStateTM) messageType() string {
 	return systemNetworkStateMsg
 }

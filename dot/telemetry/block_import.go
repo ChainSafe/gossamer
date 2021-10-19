@@ -38,6 +38,6 @@ func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) Mes
 	}
 }
 
-func (tm *blockImportTM) messageType() string {
+func (blockImportTM) messageType() string {
 	return blockImportMsg
 }

@@ -37,6 +37,6 @@ func NewNotifyFinalizedTM(best common.Hash, height string) Message {
 	}
 }
 
-func (tm *notifyFinalizedTM) messageType() string {
+func (notifyFinalizedTM) messageType() string {
 	return notifyFinalizedMsg
 }

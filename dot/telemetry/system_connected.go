@@ -45,6 +45,6 @@ func NewSystemConnectedTM(authority bool, chain string, genesisHash *common.Hash
 	}
 }
 
-func (tm *systemConnectedTM) messageType() string {
+func (systemConnectedTM) messageType() string {
 	return systemConnectedMsg
 }
