@@ -74,14 +74,15 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		// handleTick will handle the errUnknownParent case
 		// TODO: determine if handleTick is working??
 
-		w := &worker{
-			startHash:    res.startHash,
-			startNumber:  res.startNumber,
-			targetNumber: fin.Number,
-			direction:    network.Descending,
-			requestData:  bootstrapRequestData,
-		}
-		return w, nil
+		// w := &worker{
+		// 	startHash:    res.startHash,
+		// 	startNumber:  res.startNumber,
+		// 	targetNumber: fin.Number,
+		// 	direction:    network.Descending,
+		// 	requestData:  bootstrapRequestData,
+		// }
+		// return w, nil
+		return nil, nil
 	}
 
 	// don't retry if we're requesting blocks lower than finalised
@@ -166,7 +167,7 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 
 // handleTick traverses the pending blocks set to find which forks still need to be requested
 func (s *tipSyncer) handleTick() ([]*worker, error) {
-	logger.Debug("handling tick...", "num pending blocks", s.pendingBlocks.size())
+	logger.Debug("handling tick...", "pending blocks count", s.pendingBlocks.size())
 
 	if s.pendingBlocks.size() == 0 {
 		return nil, nil
@@ -192,7 +193,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			continue
 		}
 
-		logger.Debug("handleTick handling pending block", "hash", block.hash, "number", block.number)
+		logger.Trace("handling pending block", "hash", block.hash, "number", block.number)
 
 		if block.header == nil {
 			// case 1
