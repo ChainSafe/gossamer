@@ -1421,7 +1421,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	require.NoError(t, err)
 	args = append(args, valueEnc...)
 
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.POLKADOT_RUNTIME_URL_v0910)
 
 	res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
 	require.NoError(t, err)
