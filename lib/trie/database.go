@@ -88,12 +88,7 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 	// map all the proofs hash -> decoded node
 	// and takes the loop to indentify the root node
 	for _, rawNode := range proof {
-		var (
-			decNode node
-			err     error
-		)
-
-		decNode, err = decodeBytes(rawNode)
+		decNode, err := decodeBytes(rawNode)
 		if err != nil {
 			return err
 		}
