@@ -1423,7 +1423,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 
 	inst := NewTestInstance(t, runtime.POLKADOT_RUNTIME_URL_v0910)
 
-	res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
+	res, err := inst.Exec("ext_trie_blake2_256_verify_proof_version_1", args)
 	require.NoError(t, err)
 
 	fmt.Printf("RESPONSE FROM VERIFY PROOF %x\n", res)
