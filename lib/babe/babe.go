@@ -215,10 +215,10 @@ func (b *Service) waitForFirstBlock() error {
 	defer b.blockState.FreeImportedBlockNotifierChannel(ch)
 
 	const firstBlockTimeout = time.Minute
-	timeout := time.NewTimer(firstBlockTimeout)
+	timer := time.NewTimer(firstBlockTimeout)
 	cleanup := func() {
-		if !timeout.Stop() {
-			<-timeout.C
+		if !timer.Stop() {
+			<-timer.C
 		}
 	}
 
@@ -226,11 +226,16 @@ func (b *Service) waitForFirstBlock() error {
 	for {
 		select {
 		case block, ok := <-ch:
+			if !ok {
+				cleanup()
+				return errChannelClosed
+			}
+
 			if ok && block.Header.Number.Int64() > 0 {
 				cleanup()
 				return nil
 			}
-		case <-timeout.C:
+		case <-timer.C:
 			return errFirstBlockTimeout
 		case <-b.ctx.Done():
 			cleanup()

@@ -182,33 +182,33 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	}
 }
 
-// func TestSync_SingleSyncingNode(t *testing.T) {
-// 	// TODO: Fix this test and enable it.
-// 	t.Skip("skipping TestSync_SingleSyncingNode")
-// 	utils.SetLogLevel(log.LvlInfo)
+func TestSync_SingleSyncingNode(t *testing.T) {
+	// TODO: Fix this test and enable it.
+	t.Skip("skipping TestSync_SingleSyncingNode")
+	utils.SetLogLevel(log.LvlInfo)
 
-// 	// start block producing node
-// 	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false)
-// 	require.NoError(t, err)
-// 	time.Sleep(time.Second * 15)
+	// start block producing node
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false)
+	require.NoError(t, err)
+	time.Sleep(time.Second * 15)
 
-// 	// start syncing node
-// 	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false)
-// 	require.NoError(t, err)
+	// start syncing node
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false)
+	require.NoError(t, err)
 
-// 	nodes := []*utils.Node{alice, bob}
-// 	defer func() {
-// 		errList := utils.StopNodes(t, nodes)
-// 		require.Len(t, errList, 0)
-// 	}()
+	nodes := []*utils.Node{alice, bob}
+	defer func() {
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
 
-// 	numCmps := 100
-// 	for i := 0; i < numCmps; i++ {
-// 		t.Log("comparing...", i)
-// 		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-// 		require.NoError(t, err, i)
-// 	}
-// }
+	numCmps := 100
+	for i := 0; i < numCmps; i++ {
+		t.Log("comparing...", i)
+		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
+		require.NoError(t, err, i)
+	}
+}
 
 func TestSync_Bench(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
