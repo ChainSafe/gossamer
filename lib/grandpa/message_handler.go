@@ -363,6 +363,7 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 
 	// verify authority in justification set
 	authFound := false
+
 	for _, auth := range h.grandpa.authorities() {
 		justKey, err := just.AuthorityID.Encode()
 		if err != nil {

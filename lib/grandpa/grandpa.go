@@ -697,7 +697,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	return &pvb, nil
 }
 
-// isFinalisable returns true is the round is finalisable, false otherwise.
+// isFinalisable returns true if the round is finalisable, false otherwise.
 func (s *Service) isFinalisable(round uint64) (bool, error) {
 	var pvb Vote
 	var err error
@@ -815,16 +815,18 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 		spc  *sync.Map
 		err  error
 		just []SignedVote
+		eqv  map[ed25519.PublicKeyBytes][]*SignedVote
 	)
 
 	switch stage {
 	case prevote:
 		spc = s.prevotes
+		eqv = make(map[ed25519.PublicKeyBytes][]*SignedVote, len(s.pvEquivocations))
 	case precommit:
 		spc = s.precommits
+		eqv = make(map[ed25519.PublicKeyBytes][]*SignedVote, len(s.pcEquivocations))
 	}
 
-	// TODO: use equivacatory votes to create justification as well (#1667)
 	spc.Range(func(_, value interface{}) bool {
 		pc := value.(*SignedVote)
 		var isDescendant bool
@@ -842,8 +844,20 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 		return true
 	})
 
-	if err != nil {
-		return nil, err
+	for _, votes := range eqv {
+		for _, vote := range votes {
+			var signedVote SignedVote = *vote
+			isDescendant, err := s.blockState.IsDescendantOf(bfc, signedVote.Vote.Hash)
+			if err != nil {
+				continue
+			}
+
+			if !isDescendant {
+				continue
+			}
+
+			just = append(just, signedVote)
+		}
 	}
 
 	return just, nil
