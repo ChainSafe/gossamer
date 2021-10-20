@@ -1368,9 +1368,28 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan
 }
 
 //export ext_offchain_local_storage_clear_version_1
-func ext_offchain_local_storage_clear_version_1(context unsafe.Pointer, a C.int32_t, b C.int64_t) {
+func ext_offchain_local_storage_clear_version_1(context unsafe.Pointer, kind C.int32_t, key C.int64_t) {
 	logger.Trace("[ext_offchain_local_storage_clear_version_1] executing...")
-	logger.Warn("[ext_offchain_local_storage_clear_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	storageKey := asMemorySlice(instanceContext, key)
+
+	memory := instanceContext.Memory().Data()
+	kindInt := binary.LittleEndian.Uint32(memory[kind : kind+4])
+
+	var err error
+
+	switch runtime.NodeStorageType(kindInt) {
+	case runtime.NodeStorageTypePersistent:
+		err = runtimeCtx.NodeStorage.PersistentStorage.Del(storageKey)
+	case runtime.NodeStorageTypeLocal:
+		err = runtimeCtx.NodeStorage.LocalStorage.Del(storageKey)
+	}
+
+	if err != nil {
+		logger.Error("[ext_offchain_local_storage_clear_version_1] failed to clear value from storage", "error", err)
+	}
 }
 
 //export ext_offchain_is_validator_version_1
@@ -1567,6 +1586,12 @@ func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
 	if dur > 0 {
 		time.Sleep(dur)
 	}
+}
+
+//export ext_offchain_sleep_until_version_1
+func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
+	logger.Trace("executing...")
+	logger.Warn("unimplemented")
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
@@ -2188,7 +2213,6 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
-
 	_, err = imports.Append("ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1, C.ext_sandbox_instance_teardown_version_1)
 	if err != nil {
 		return nil, err
