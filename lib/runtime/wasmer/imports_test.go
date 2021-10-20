@@ -629,6 +629,41 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 	require.True(t, read.Exists())
 }
 
+func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := secp256k1.GenerateKeypair()
+	require.NoError(t, err)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Marshal(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Marshal(msgData)
+	require.NoError(t, err)
+
+	msgHash, err := common.Blake2bHash(msgData)
+	require.NoError(t, err)
+
+	sig, err := kp.Private().Sign(msgHash[:])
+	require.NoError(t, err)
+
+	encSig, err := scale.Marshal(sig)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	require.True(t, read.Exists())
+}
+
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
