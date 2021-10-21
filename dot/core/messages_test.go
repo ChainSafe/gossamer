@@ -132,10 +132,6 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
 
-	bp := new(MockBlockProducer) // nolint
-	blockC := make(chan types.Block)
-	bp.On("GetBlockChannel", nil).Return(blockC)
-
 	cfg := &Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(),
