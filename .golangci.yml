@@ -168,7 +168,7 @@ linters-settings:
   gocritic:
     # Which checks should be disabled; can't be combined with 'enabled-checks'; default is empty
     disabled-checks:
-      - regexpMust
+      - regexpMust # TODO remove this, `regexpMust` should be at global scope.
 
     # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint` run to see all tags and checks.
     # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
@@ -231,6 +231,10 @@ issues:
         - dupl
         - gosec
         - ineffassign
+
+    - text: "exported: exported var Err*"
+      linters:
+        - revive
 
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
