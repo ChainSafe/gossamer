@@ -77,6 +77,8 @@ type TransactionStateAPI interface {
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 	Pending() []*transaction.ValidTransaction
+	GetStatusNotifierChannel() chan transaction.StatusNotification
+	FreeStatusNotifierChannel(ch chan transaction.StatusNotification)
 }
 
 // CoreAPI is the interface for the core methods

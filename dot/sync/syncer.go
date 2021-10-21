@@ -111,6 +111,14 @@ func (s *Service) Stop() error {
 	return nil
 }
 
+func (s *Service) GetReadyBlockNotifierChannel() chan *types.BlockData {
+	return s.chainSync.GetReadyBlockNotifierChannel()
+}
+
+func (s *Service) FreeReadyBlockNotifierChannel(ch chan *types.BlockData) {
+	s.chainSync.FreeReadyBlockNotifierChannel(ch)
+}
+
 // HandleBlockAnnounceHandshake notifies the `chainSync` module that we have received a BlockAnnounceHandshake from the given peer.
 func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
 	return s.chainSync.setPeerHead(from, msg.BestBlockHash, big.NewInt(int64(msg.BestBlockNumber)))

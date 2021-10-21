@@ -33,6 +33,7 @@ import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
 
@@ -411,6 +412,173 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
+
+	time.Sleep(time.Second * 20)
+
+	// wait until there's no more pending extrinsics
+	for i := 0; i < maxRetries; i++ {
+		exts := getPendingExtrinsics(t, nodes[idx])
+		if len(exts) == 0 {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	header := utils.GetChainHead(t, nodes[idx])
+
+	// search from child -> parent blocks for extrinsic
+	var (
+		resExts    []gosstypes.Extrinsic
+		extInBlock *big.Int
+	)
+
+	for i := 0; i < maxRetries; i++ {
+		block := utils.GetBlock(t, nodes[idx], header.ParentHash)
+		if block == nil {
+			// couldn't get block, increment retry counter
+			continue
+		}
+
+		header = &block.Header
+		logger.Debug("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
+
+		if block.Body != nil {
+			resExts = block.Body
+
+			logger.Debug("extrinsics", "exts", resExts)
+			if len(resExts) >= 2 {
+				extInBlock = block.Header.Number
+				break
+			}
+		}
+
+		if header.Hash() == prevHeader.Hash() {
+			t.Fatal("could not find extrinsic in any blocks")
+		}
+	}
+
+	var included bool
+	for _, ext := range resExts {
+		logger.Debug("comparing", "expected", extEnc, "in block", common.BytesToHex(ext))
+		if strings.Compare(extEnc, common.BytesToHex(ext)) == 0 {
+			included = true
+		}
+	}
+
+	require.True(t, included)
+
+	hashes, err := compareBlocksByNumberWithRetry(t, nodes, extInBlock.String())
+	require.NoError(t, err, hashes)
+}
+
+func TestSync_SubmitAndWatchExtrinsic(t *testing.T) {
+	t.Log("starting gossamer...")
+
+	// index of node to submit tx to
+	idx := 0 // TODO: randomise this
+
+	// start block producing node first
+	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, true)
+	require.NoError(t, err)
+	nodes := []*utils.Node{node}
+
+	// Start rest of nodes
+	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, true)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+	node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, true)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+
+	defer func() {
+		t.Log("going to tear down gossamer...")
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	// send tx to non-authority node
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%s", nodes[idx].WSPort))
+	require.NoError(t, err)
+
+	meta, err := api.RPC.State.GetMetadataLatest()
+	require.NoError(t, err)
+
+	c, err := types.NewCall(meta, "System.remark", []byte{0xab})
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := types.NewExtrinsic(c)
+
+	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
+	require.NoError(t, err)
+
+	rv, err := api.RPC.State.GetRuntimeVersionLatest()
+	require.NoError(t, err)
+
+	key, err := types.CreateStorageKey(meta, "System", "Account", signature.TestKeyringPairAlice.PublicKey, nil)
+	require.NoError(t, err)
+
+	var accInfo types.AccountInfo
+	ok, err := api.RPC.State.GetStorageLatest(key, &accInfo)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	o := types.SignatureOptions{
+		BlockHash:          genesisHash,
+		Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genesisHash,
+		Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
+		SpecVersion:        rv.SpecVersion,
+		Tip:                types.NewUCompactFromUInt(0),
+		TransactionVersion: rv.TransactionVersion,
+	}
+
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := types.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
+
+	// Send the extrinsic
+	// hash, err := api.RPC.Author.SubmitExtrinsic(ext)
+	// require.NoError(t, err)
+	// require.NotEqual(t, hash, common.Hash{})
+
+	hexExt, err := types.EncodeToHexString(ext)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	message := []byte(`{"id":1, "jsonrpc":"2.0", "method": "author_submitAndWatchExtrinsic", "params":["` + hexExt + `"]}`)
+
+	//message := []byte(`{"id":1, "jsonrpc":"2.0", "method": "author_submitAndWatchExtrinsic", "params":["0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f2bb38a08174047730a6163e4128cf2c728387dec88870e46212cc17d86163484cbd43b6dee15eb91467e46acb6cd6671b7694bddf34380efdb2fdc4ddfc3f8f000000000108abcd"]}`)
+	err = conn.WriteMessage(websocket.TextMessage, message)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	_, message, err = conn.ReadMessage()
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(string(message))
+	}
+	// send and watch extrinsic
+	// extStatusSubscription, err := api.RPC.Author.SubmitAndWatchExtrinsic(ext)
+	// require.NoError(t, err)
+
+	// for extrinsicStatus := range extStatusSubscription.Chan() {
+	// 	fmt.Printf("extrinsicStatus: %v\n", extrinsicStatus)
+	// }
 
 	time.Sleep(time.Second * 20)
 
