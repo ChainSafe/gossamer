@@ -66,10 +66,14 @@ type GrandpaState interface { //nolint
 	GetPrecommits(round, setID uint64) ([]SignedVote, error)
 }
 
+//go:generate mockery --name DigestHandler --structname MockDigestHandler --case underscore --keeptree
+
 // DigestHandler is the interface required by GRANDPA for the digest handler
 type DigestHandler interface { // TODO: use GrandpaState instead (#1871)
 	NextGrandpaAuthorityChange() uint64
 }
+
+//go:generate mockery --name Network --structname MockNetwork --case underscore --keeptree
 
 // Network is the interface required by GRANDPA for the network
 type Network interface {
