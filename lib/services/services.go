@@ -23,6 +23,8 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+//go:generate mockery --name Service --structname MockService --case underscore --keeptree
+
 // Service must be implemented by all services
 type Service interface {
 	Start() error
