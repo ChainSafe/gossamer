@@ -630,6 +630,8 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
+	t.Parallel()
+
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := secp256k1.GenerateKeypair()
@@ -655,8 +657,7 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
+	buf := bytes.NewBuffer(ret)
 
 	read, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
