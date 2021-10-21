@@ -156,8 +156,13 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	cm.Lock()
 	defer cm.Unlock()
 
-	// TODO: this should be updated to disconnect from (total_peers - maximum) peers, instead of just one peer
-	if len(n.Peers()) > cm.max {
+	over := len(n.Peers()) - cm.max
+	if over <= 0 {
+		return
+	}
+
+	// if over the max peer count, disconnect from (total_peers - maximum) peers
+	for i := 0; i < over; i++ {
 		unprotPeers := cm.unprotectedPeers(n.Peers())
 		if len(unprotPeers) == 0 {
 			return
@@ -235,7 +240,8 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 		}
 	}()
 
-	// TODO: if number of peers falls below the min desired peer count, we should try to connect to previously discovered peers
+	// TODO: if number of peers falls below the min desired peer count,
+	// we should try to connect to previously discovered peers (#1852)
 }
 
 // OpenedStream is called when a stream opened

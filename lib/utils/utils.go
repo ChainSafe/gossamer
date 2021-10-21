@@ -213,8 +213,6 @@ func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
 		DataDir: basePath,
 	}
 
-	// TODO: Open the db in readonly mode.
-
 	// Open already existing DB
 	db, err := chaindb.NewBadgerDB(cfg)
 	if err != nil {

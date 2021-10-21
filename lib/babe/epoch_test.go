@@ -57,7 +57,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	err := bs.initiateEpoch(0)
 	require.NoError(t, err)
 
-	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1)
+	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1, false)
 
 	// epoch 1, check that genesis EpochData and ConfigData was properly set
 	threshold := bs.epochData.threshold

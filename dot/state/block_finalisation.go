@@ -39,7 +39,7 @@ func (bs *BlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
 
 // NumberIsFinalised checks if a block number is finalised or not
 func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
-	header, err := bs.GetFinalisedHeader(0, 0)
+	header, err := bs.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, err
 	}
@@ -93,7 +93,7 @@ func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
 func (bs *BlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
 	b, err := bs.db.Get(highestRoundAndSetIDKey)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("failed to get highest round and setID: %w", err)
 	}
 
 	round := binary.LittleEndian.Uint64(b[:8])
@@ -136,13 +136,16 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		return fmt.Errorf("cannot finalise unknown block %s", hash)
 	}
 
-	// if nothing was previously finalised, set the first slot of the network to the
-	// slot number of block 1, which is now being set as final
-	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
-		err := bs.setFirstSlotOnFinalisation()
-		if err != nil {
-			return err
-		}
+	if err := bs.handleFinalisedBlock(hash); err != nil {
+		return fmt.Errorf("failed to set finalised subchain in db on finalisation: %w", err)
+	}
+
+	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
+		return fmt.Errorf("failed to set finalised hash key: %w", err)
+	}
+
+	if err := bs.setHighestRoundAndSetID(round, setID); err != nil {
+		return fmt.Errorf("failed to set highest round and set ID: %w", err)
 	}
 
 	if err := bs.handleFinalisedBlock(hash); err != nil {
@@ -155,31 +158,28 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
-		header, err := bs.GetHeader(hash)
-		if err != nil {
-			logger.Debug("failed to get pruned header", "hash", hash, "error", err)
+		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
+		if !has {
 			continue
 		}
 
-		err = bs.DeleteBlock(hash)
-		if err != nil {
-			logger.Debug("failed to delete block", "hash", hash, "error", err)
-			continue
-		}
+		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
 
-		logger.Trace("pruned block", "hash", hash, "number", header.Number)
 		go func(header *types.Header) {
 			bs.pruneKeyCh <- header
-		}(header)
+		}(&block.Header)
+	}
+
+	// if nothing was previously finalised, set the first slot of the network to the
+	// slot number of block 1, which is now being set as final
+	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
+		if err := bs.setFirstSlotOnFinalisation(); err != nil {
+			return fmt.Errorf("failed to set first slot on finalisation: %w", err)
+		}
 	}
 
 	bs.lastFinalised = hash
-
-	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
-		return err
-	}
-
-	return bs.setHighestRoundAndSetID(round, setID)
+	return nil
 }
 
 func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
@@ -189,7 +189,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 	prev, err := bs.GetHighestFinalisedHash()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get highest finalised hash: %w", err)
 	}
 
 	if prev.Equal(curr) {
@@ -202,14 +202,36 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 	}
 
 	batch := bs.db.NewBatch()
-	for _, hash := range subchain {
-		header, err := bs.GetHeader(hash)
-		if err != nil {
-			return fmt.Errorf("failed to get header in subchain: %w", err)
+
+	// root of subchain is previously finalised block, which has already been stored in the db
+	for _, hash := range subchain[1:] {
+		if hash.Equal(bs.genesisHash) {
+			continue
 		}
 
-		err = batch.Put(headerHashKey(header.Number.Uint64()), hash.ToBytes())
+		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
+		if !has {
+			return fmt.Errorf("failed to find block in unfinalised block map, block=%s", hash)
+		}
+
+		if err = bs.SetHeader(&block.Header); err != nil {
+			return err
+		}
+
+		if err = bs.SetBlockBody(hash, &block.Body); err != nil {
+			return err
+		}
+
+		arrivalTime, err := bs.bt.GetArrivalTime(hash)
 		if err != nil {
+			return err
+		}
+
+		if err = bs.setArrivalTime(hash, arrivalTime); err != nil {
+			return err
+		}
+
+		if err = batch.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes()); err != nil {
 			return err
 		}
 	}

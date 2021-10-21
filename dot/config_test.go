@@ -40,7 +40,5 @@ func TestExportConfig(t *testing.T) {
 	require.Nil(t, err)
 
 	file := ExportConfig(cfg, cfgFile.Name())
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, file)
 }

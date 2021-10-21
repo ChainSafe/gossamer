@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -53,7 +52,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 
 		idx, err := b.getAuthorityIndex(data.Authorities)
-		if err != nil && !errors.Is(err, ErrNotAuthority) { // TODO: this should be checked in the upper function
+		if err != nil {
 			return err
 		}
 
@@ -84,7 +83,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 				randomness:     data.Randomness,
 				authorities:    data.Authorities,
 				authorityIndex: idx,
-				threshold:      b.epochData.threshold,
+				threshold:      b.epochData.threshold, // TODO: threshold might change if authority count changes
 			}
 		}
 

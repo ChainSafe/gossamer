@@ -27,7 +27,7 @@ func TestNode_GetLeaves(t *testing.T) {
 	var branches []testBranch
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		bt, branches = createTestBlockTree(t, testHeader, 5)
 		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
 			break
 		}
@@ -51,7 +51,7 @@ func TestNode_Prune(t *testing.T) {
 	var branches []testBranch
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		bt, branches = createTestBlockTree(t, testHeader, 5)
 		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
 			break
 		}
@@ -60,8 +60,8 @@ func TestNode_Prune(t *testing.T) {
 	copy := bt.DeepCopy()
 
 	// pick some block to finalise
-	finalised := bt.head.children[0].children[0].children[0]
-	pruned := bt.head.prune(finalised, nil)
+	finalised := bt.root.children[0].children[0].children[0]
+	pruned := bt.root.prune(finalised, nil)
 
 	for _, prunedHash := range pruned {
 		prunedNode := copy.getNode(prunedHash)

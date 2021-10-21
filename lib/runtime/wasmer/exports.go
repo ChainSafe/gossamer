@@ -174,7 +174,6 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 				return nil, err
 			}
 		}
-
 	}
 
 	bdEnc, err := b.Encode()
@@ -188,6 +187,26 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
 func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	return in.exec(runtime.DecodeSessionKeys, enc)
+}
+
+// PaymentQueryInfo returns information of a given extrinsic
+func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error) {
+	encLen, err := scale.Marshal(uint32(len(ext)))
+	if err != nil {
+		return nil, err
+	}
+
+	resBytes, err := in.exec(runtime.TransactionPaymentApiQueryInfo, append(ext, encLen...))
+	if err != nil {
+		return nil, err
+	}
+
+	i := new(types.TransactionPaymentQueryInfo)
+	if err = scale.Unmarshal(resBytes, i); err != nil {
+		return nil, err
+	}
+
+	return i, nil
 }
 
 func (in *Instance) CheckInherents()      {} //nolint

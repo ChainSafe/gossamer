@@ -168,6 +168,7 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return err
 	}
 
+	// TODO: correctly use keystore type (#1850)
 	keyPair, err := keystore.DecodeKeyPairFromHex(keyBytes, keystore.DetermineKeyType(keyReq.Type))
 	if err != nil {
 		return err

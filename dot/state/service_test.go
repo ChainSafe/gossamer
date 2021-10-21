@@ -132,7 +132,11 @@ func TestService_BlockTree(t *testing.T) {
 	require.NoError(t, err)
 
 	// add blocks to state
-	AddBlocksToState(t, stateA.Block, 10)
+	AddBlocksToState(t, stateA.Block, 10, false)
+	head := stateA.Block.BestBlockHash()
+
+	err = stateA.Block.SetFinalisedHash(head, 1, 1)
+	require.NoError(t, err)
 
 	err = stateA.Stop()
 	require.NoError(t, err)
@@ -307,7 +311,11 @@ func TestService_Rewind(t *testing.T) {
 	err = serv.Grandpa.setSetIDChangeAtBlock(3, big.NewInt(10))
 	require.NoError(t, err)
 
-	AddBlocksToState(t, serv.Block, 12)
+	AddBlocksToState(t, serv.Block, 12, false)
+	head := serv.Block.BestBlockHash()
+	err = serv.Block.SetFinalisedHash(head, 0, 0)
+	require.NoError(t, err)
+
 	err = serv.Rewind(6)
 	require.NoError(t, err)
 

@@ -555,8 +555,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	cfg.Roles = tomlCfg.Roles
 	cfg.BabeAuthority = tomlCfg.Roles == types.AuthorityRole
 	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
-	cfg.SlotDuration = tomlCfg.SlotDuration
-	cfg.EpochLength = tomlCfg.EpochLength
+	cfg.BABELead = ctx.GlobalBool(BABELeadFlag.Name)
 
 	// check --roles flag and update node configuration
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
@@ -609,7 +608,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"core configuration",
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
-		"epoch-length", cfg.EpochLength,
 		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }

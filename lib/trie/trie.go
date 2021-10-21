@@ -270,7 +270,6 @@ func (t *Trie) insert(parent node, key []byte, value node) node {
 		n := t.updateBranch(p, key, value)
 
 		if p != nil && n != nil && n.isDirty() {
-			// TODO: set all `Copy` nodes as dirty?
 			p.setDirty(true)
 		}
 		return n

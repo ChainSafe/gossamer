@@ -186,6 +186,50 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	require.Nil(t, val)
 }
 
+func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("key1")
+	err := inst.NodeStorage().PersistentStorage.Put(testkey, []byte{1})
+	require.NoError(t, err)
+
+	kind := int32(1)
+	encKind, err := scale.Marshal(kind)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
+	require.NoError(t, err)
+
+	val, err := inst.NodeStorage().PersistentStorage.Get(testkey)
+	require.EqualError(t, err, "Key not found")
+	require.Nil(t, val)
+}
+
+func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("key1")
+	err := inst.NodeStorage().LocalStorage.Put(testkey, []byte{1})
+	require.NoError(t, err)
+
+	kind := int32(2)
+	encKind, err := scale.Marshal(kind)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
+	require.NoError(t, err)
+
+	val, err := inst.NodeStorage().LocalStorage.Get(testkey)
+	require.EqualError(t, err, "Key not found")
+	require.Nil(t, val)
+}
+
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -352,7 +396,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 	read, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
 	val := read.Value()
-	require.Equal(t, len(testvalue)-int(testoffset), len(val)) // TODO: fix
+	require.Equal(t, len(testvalue)-int(testoffset), len(val))
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
 }
 
@@ -418,7 +462,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_offline_index_set_version_1(t *testing.T) {
-	// TODO this currently fails with error could nat find exported function, determine how else to test this
+	// TODO this currently fails with error could not find exported function, add rtm_ func to tester wasm (#1026)
 	t.Skip()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -470,7 +514,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	mem := inst.vm.Memory.Data()
-	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
+	// this SCALE encoded, but it should just be a 32 byte buffer. may be due to way test runtime is written.
 	pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
 	require.NoError(t, err)

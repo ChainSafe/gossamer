@@ -71,7 +71,8 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	err = storage.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	res, err := storage.GetStorageByBlockHash(block.Header.Hash(), key)
+	hash := block.Header.Hash()
+	res, err := storage.GetStorageByBlockHash(&hash, key)
 	require.NoError(t, err)
 	require.Equal(t, value, res)
 }
