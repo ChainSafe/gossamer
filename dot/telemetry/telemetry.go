@@ -66,7 +66,7 @@ var (
 const (
 	defaultMessageTimeout = time.Second
 	defaultMaxRetries     = 5
-	defaultRetryDelay     = time.Millisecond * 100
+	defaultRetryDelay     = time.Second * 15
 )
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
