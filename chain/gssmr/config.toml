@@ -30,6 +30,7 @@ port = 7001
 nobootstrap = false
 nomdns = false
 discovery-interval = 10
+min-peers = 1
 
 [rpc]
 enabled = false
