@@ -18,6 +18,11 @@ const (
 	unknownPeer = "unknownPeer"
 )
 
+var (
+	errConfigSetIsEmpty = errors.New("config set is empty")
+	errPeerDoesNotExist = errors.New("peer doesn't exist")
+)
+
 // MembershipState represent the state of node ingoing the set.
 type MembershipState int
 
@@ -81,7 +86,6 @@ func newNode(n int) *node {
 	return &node{
 		state:         sets,
 		lastConnected: lastConnected,
-		rep:           0,
 	}
 }
 
@@ -113,13 +117,13 @@ func (ps *PeersState) getNode(p peer.ID) (*node, error) {
 		return n, nil
 	}
 
-	return nil, errors.New("peer doesn't exist")
+	return nil, errPeerDoesNotExist
 }
 
 // NewPeerState initiates a new PeersState
 func NewPeerState(set []*config) (*PeersState, error) {
 	if len(set) == 0 {
-		return nil, errors.New("config set is empty")
+		return nil, errConfigSetIsEmpty
 	}
 	infoSet := make([]Info, 0, len(set))
 	for _, cfg := range set {
@@ -173,8 +177,7 @@ func (ps *PeersState) peers() []peer.ID {
 }
 
 // sortedPeers returns the list of peers we are connected to of a specific set.
-func (ps *PeersState) sortedPeers(idx int, peersCh chan peer.IDSlice) {
-	var peerIDs peer.IDSlice
+func (ps *PeersState) sortedPeers(idx int, peersCh chan<- peer.IDSlice) {
 	if len(ps.sets) < idx {
 		logger.Debug("peer state doesn't have info for the provided index")
 		return
@@ -197,8 +200,9 @@ func (ps *PeersState) sortedPeers(idx int, peersCh chan peer.IDSlice) {
 		return ss[i].Node.rep > ss[j].Node.rep
 	})
 
-	for _, kv := range ss {
-		peerIDs = append(peerIDs, kv.peerID)
+	peerIDs := make(peer.IDSlice, len(ss))
+	for i, kv := range ss {
+		peerIDs[i] = kv.peerID
 	}
 
 	peersCh <- peerIDs
@@ -333,19 +337,20 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 		n.state[set] = notMember
 	}
 
-	if n.getReputation() == 0 {
-		// remove the peer from peerSet nodes entirely if it isn't a member of any set.
-		remove := true
-		for _, state := range n.state {
-			if state != notMember {
-				remove = false
-				break
-			}
+	if n.getReputation() != 0 {
+		return nil
+	}
+	// remove the peer from peerSet nodes entirely if it isn't a member of any set.
+	remove := true
+	for _, state := range n.state {
+		if state != notMember {
+			remove = false
+			break
 		}
+	}
 
-		if remove {
-			delete(ps.nodes, peerID)
-		}
+	if remove {
+		delete(ps.nodes, peerID)
 	}
 
 	return nil

@@ -9,6 +9,8 @@ import (
 )
 
 func TestPeerSetBanned(t *testing.T) {
+	t.Parallel()
+
 	handler := newTestPeerSet(t, 25, 25, nil, nil, false)
 
 	ps := handler.peerSet
@@ -40,6 +42,8 @@ func TestPeerSetBanned(t *testing.T) {
 }
 
 func TestAddReservedPeers(t *testing.T) {
+	t.Parallel()
+
 	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{}, false)
 	ps := handler.peerSet
 
@@ -69,6 +73,8 @@ func TestAddReservedPeers(t *testing.T) {
 }
 
 func TestPeerSetIncoming(t *testing.T) {
+	t.Parallel()
+
 	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode}, []peer.ID{}, false)
 	ps := handler.peerSet
 
@@ -86,6 +92,8 @@ func TestPeerSetIncoming(t *testing.T) {
 }
 
 func TestPeerSetDiscovered(t *testing.T) {
+	t.Parallel()
+
 	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false)
 
 	ps := handler.peerSet
@@ -103,6 +111,8 @@ func TestPeerSetDiscovered(t *testing.T) {
 }
 
 func TestReAllocAfterBanned(t *testing.T) {
+	t.Parallel()
+
 	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false)
 
 	ps := handler.peerSet
@@ -131,6 +141,8 @@ func TestReAllocAfterBanned(t *testing.T) {
 }
 
 func TestRemovePeer(t *testing.T) {
+	t.Parallel()
+
 	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2}, nil, false)
 	ps := handler.peerSet
 
@@ -151,6 +163,8 @@ func TestRemovePeer(t *testing.T) {
 }
 
 func TestSetReservePeer(t *testing.T) {
+	t.Parallel()
+
 	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2}, true)
 	ps := handler.peerSet
 

@@ -10,19 +10,22 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var logger log.Logger = log.New("pkg", "peerset")
+var (
+	logger                                   log.Logger = log.New("pkg", "peerset")
+	errDisconnectReceivedForNonConnectedPeer            = errors.New("received disconnect for non-connected node")
+)
 
 const (
 	// disconnectReputationChange Reputation change value for a node when we get disconnected from it.
 	disconnectReputationChange Reputation = -256
 	// forgetAfterTime amount of time between the moment we disconnect from a node and the moment we remove it from the list.
-	forgetAfterTime = time.Second * 3600 // seconds
+	forgetAfterTime = time.Second * 3600 // one hour
 	// default channel size for peerSet.
 	msgChanSize = 100
 )
 
 // ActionReceiver represents the enum value for action to be performed on peerSet
-type ActionReceiver int
+type ActionReceiver uint8
 
 const (
 	// addReservedPeer is for adding reserved peers
@@ -49,17 +52,15 @@ const (
 
 // action struct stores the action type and required parameters to perform action
 type action struct {
-	actionCall ActionReceiver
-	setID      int
-	reputation ReputationChange
-	peers      peer.IDSlice
-	// currently we only have one set, use this once we have more (#1886).
-	incomingIndex uint64 // nolint
+	actionCall    ActionReceiver
+	setID         int
+	reputation    ReputationChange
+	peers         peer.IDSlice
 	resultPeersCh chan peer.IDSlice
 }
 
 // Status represents the enum value for Message
-type Status int
+type Status uint8
 
 const (
 	// Connect is request to open a connection to the given peer.
@@ -74,10 +75,10 @@ const (
 
 // Message that will be sent by the peerSet.
 type Message struct {
-	// Status ...
+	// Status of the peer in current set.
 	Status Status
 	setID  uint64
-	// PeerID ...
+	// PeerID peer in message.
 	PeerID peer.ID
 }
 
@@ -169,14 +170,16 @@ func NewConfigSet(in, out uint32, reservedOnly bool, allocTime time.Duration) *C
 		periodicAllocTime: allocTime,
 	}
 
-	return &ConfigSet{[]*config{set}}
+	return &ConfigSet{
+		Set: []*config{set},
+	}
 }
 
 func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 	now := time.Now()
 
 	if len(cfg.Set) == 0 {
-		return nil, errors.New("config set is empty")
+		return nil, errConfigSetIsEmpty
 	}
 
 	peerState, err := NewPeerState(cfg.Set)
@@ -198,11 +201,28 @@ func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 	return ps, nil
 }
 
+// If we multiply each second the reputation by `k` (where `k` is between 0 and 1), it
+// takes `ln(0.5) / ln(k)` seconds to reduce the reputation by half. Use this formula to
+// empirically determine a value of `k` that looks correct.
+// we use `k = 0.98`, so we divide by `50`. With that value, it takes 34.3 seconds
+// to reduce the reputation by half.
+func reputationTick(reput Reputation) Reputation {
+	diff := reput / 50
+	if diff == 0 && reput < 0 {
+		diff = -1
+	} else if diff == 0 && reput > 0 {
+		diff = 1
+	}
+
+	reput = reput.sub(diff)
+	return reput
+}
+
 // updateTime updates the value of latestTimeUpdate and performs all the updates that happen
 // over time, such as Reputation increases for staying connected.
 func (ps *PeerSet) updateTime() error {
 	currTime := time.Now()
-	// identify the time difference between current time and last update time for peerScoring/reputation in seconds.
+	// identify the time difference between current time and last update time for peer reputation in seconds.
 	// update the latestTimeUpdate to currTime.
 	elapsedLatest := ps.latestTimeUpdate.Sub(ps.created)
 	elapsedNow := currTime.Sub(ps.created)
@@ -211,32 +231,15 @@ func (ps *PeerSet) updateTime() error {
 
 	// this will give for how many seconds decaying is required for each peer
 	// for each elapsed second, move the node reputation towards zero.
-	// If we multiply each second the reputation by `k` (where `k` is between 0 and 1), it
-	// takes `ln(0.5) / ln(k)` seconds to reduce the reputation by half. Use this formula to
-	// empirically determine a value of `k` that looks correct.
 	for i := int64(0); i < secDiff; i++ {
-		// we use `k = 0.98`, so we divide by `50`. With that value, it takes 34.3 seconds
-		// to reduce the reputation by half.
 		for _, peerID := range ps.peerState.peers() {
-			reputTick := func(reput Reputation) Reputation {
-				diff := reput / 50
-				if diff == 0 && reput < 0 {
-					diff = -1
-				} else if diff == 0 && reput > 0 {
-					diff = 1
-				}
-
-				reput = reput.sub(diff)
-				return reput
-			}
-
 			n, err := ps.peerState.getNode(peerID)
 			if err != nil {
 				return err
 			}
 
 			before := n.getReputation()
-			after := reputTick(before)
+			after := reputationTick(before)
 			n.setReputation(after)
 			ps.peerState.nodes[peerID] = n
 
@@ -313,7 +316,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 }
 
 // allocSlots tries to fill available outgoing slots of nodes for the given set.
-func (ps *PeerSet) allocSlots(setIDX int) error {
+func (ps *PeerSet) allocSlots(setIdx int) error {
 	err := ps.updateTime()
 	if err != nil {
 		return err
@@ -321,12 +324,12 @@ func (ps *PeerSet) allocSlots(setIDX int) error {
 
 	peerState := ps.peerState
 	for reservePeer := range ps.reservedNode {
-		status := peerState.peerStatus(setIDX, reservePeer)
+		status := peerState.peerStatus(setIdx, reservePeer)
 		switch status {
 		case connectedPeer:
 			continue
 		case unknownPeer:
-			peerState.discover(setIDX, reservePeer)
+			peerState.discover(setIdx, reservePeer)
 		}
 
 		var n *node
@@ -339,13 +342,13 @@ func (ps *PeerSet) allocSlots(setIDX int) error {
 			break
 		}
 
-		if err = peerState.tryOutgoing(setIDX, reservePeer); err != nil {
+		if err = peerState.tryOutgoing(setIdx, reservePeer); err != nil {
 			return err
 		}
 
 		ps.resultMsgCh <- Message{
 			Status: Connect,
-			setID:  uint64(setIDX),
+			setID:  uint64(setIdx),
 			PeerID: reservePeer,
 		}
 	}
@@ -354,8 +357,8 @@ func (ps *PeerSet) allocSlots(setIDX int) error {
 		return nil
 	}
 
-	for peerState.hasFreeOutgoingSlot(setIDX) {
-		peerID := peerState.highestNotConnectedPeer(setIDX)
+	for peerState.hasFreeOutgoingSlot(setIdx) {
+		peerID := peerState.highestNotConnectedPeer(setIdx)
 		if peerID == "" {
 			break
 		}
@@ -366,13 +369,13 @@ func (ps *PeerSet) allocSlots(setIDX int) error {
 			break
 		}
 
-		if err = peerState.tryOutgoing(setIDX, peerID); err != nil {
+		if err = peerState.tryOutgoing(setIdx, peerID); err != nil {
 			break
 		}
 
 		ps.resultMsgCh <- Message{
 			Status: Connect,
-			setID:  uint64(setIDX),
+			setID:  uint64(setIdx),
 			PeerID: peerID,
 		}
 
@@ -473,7 +476,6 @@ func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 
 func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 	for _, pid := range peers {
-		// don't do anything if node is reserved.
 		if _, ok := ps.reservedNode[pid]; ok {
 			logger.Debug("peer is reserved and cannot be removed", "peer", pid)
 			return nil
@@ -569,7 +571,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 	for _, pid := range peers {
 		connectionStatus := state.peerStatus(setIdx, pid)
 		if connectionStatus != connectedPeer {
-			return errors.New("received disconnect for non-connected node")
+			return errDisconnectReceivedForNonConnectedPeer
 		}
 
 		n := state.nodes[pid]
@@ -641,9 +643,9 @@ func (ps *PeerSet) doWork() {
 			case incoming:
 				err = ps.incoming(act.setID, act.peers...)
 			case sortedPeers:
-				ps.peerState.sortedPeers(0, act.resultPeersCh)
+				ps.peerState.sortedPeers(act.setID, act.resultPeersCh)
 			case disconnect:
-				err = ps.disconnect(0, UnknownDrop, act.peers...)
+				err = ps.disconnect(act.setID, UnknownDrop, act.peers...)
 			}
 
 			if err != nil {

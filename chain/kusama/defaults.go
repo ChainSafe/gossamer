@@ -17,8 +17,9 @@
 package kusama
 
 import (
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	log "github.com/ChainSafe/log15"
+
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 var (
@@ -68,7 +69,7 @@ var (
 	// NetworkConfig
 
 	// DefaultNetworkPort network port
-	DefaultNetworkPort = uint32(7001)
+	DefaultNetworkPort = uint16(7001)
 	// DefaultNetworkBootnodes network bootnodes
 	DefaultNetworkBootnodes = []string(nil)
 	// DefaultNoBootstrap disables bootstrap

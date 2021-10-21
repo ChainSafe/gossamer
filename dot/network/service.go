@@ -19,6 +19,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"os"
@@ -318,7 +319,7 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) publishNetworkTelemetry(done chan struct{}) {
+func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
@@ -758,54 +759,52 @@ func (s *Service) startPeerSetHandler() {
 		s.host.bootstrap()
 	}
 
-	go s.processMessage()
+	go s.startProcessingMsg()
 }
 
-func (s *Service) processMessage() {
-	msgCh := s.host.cm.peerSetHandler.Messages()
-
-	processMessage := func(msg peerset.Message) {
-		peerID := msg.PeerID
-		switch msg.Status {
-		case peerset.Connect:
-			addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
-			if addrInfo.Addrs == nil || len(addrInfo.Addrs) == 0 {
-				var err error
-				addrInfo, err = s.host.discovery.findPeer(peerID)
-				if err != nil {
-					logger.Debug("failed to find peer", "peer", peerID, "error", err)
-					return
-				}
-			}
-
-			err := s.host.connect(addrInfo)
+func (s *Service) processMessage(msg peerset.Message) {
+	peerID := msg.PeerID
+	switch msg.Status {
+	case peerset.Connect:
+		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
+		if addrInfo.Addrs == nil || len(addrInfo.Addrs) == 0 {
+			var err error
+			addrInfo, err = s.host.discovery.findPeer(peerID)
 			if err != nil {
-				logger.Debug("failed to open connection", "peer", peerID, "error", err)
+				logger.Debug("failed to find peer", "peer", peerID, "error", err)
 				return
 			}
-			logger.Debug("connection successful ", "peer", peerID)
-		case peerset.Drop, peerset.Reject:
-			err := s.host.closePeer(peerID)
-			if err != nil {
-				logger.Debug("failed to close connection", "peer", peerID, "error", err)
-				return
-			}
-			logger.Debug("connection dropped successfully ", "peer", peerID)
 		}
-	}
 
-messageLoop:
+		err := s.host.connect(addrInfo)
+		if err != nil {
+			logger.Debug("failed to open connection", "peer", peerID, "error", err)
+			return
+		}
+		logger.Debug("connection successful ", "peer", peerID)
+	case peerset.Drop, peerset.Reject:
+		err := s.host.closePeer(peerID)
+		if err != nil {
+			logger.Debug("failed to close connection", "peer", peerID, "error", err)
+			return
+		}
+		logger.Debug("connection dropped successfully ", "peer", peerID)
+	}
+}
+
+func (s *Service) startProcessingMsg() {
+	msgCh := s.host.cm.peerSetHandler.Messages()
 	for {
 		select {
 		case <-s.ctx.Done():
-			break messageLoop
+			return
 		case m := <-msgCh:
 			msg, ok := m.(peerset.Message)
 			if !ok {
-				logger.Error("failed to get message from peerSet")
+				logger.Error(fmt.Sprintf("failed to get message from peerSet: type is %T instead of peerset.Message", m))
 				continue
 			}
-			processMessage(msg)
+			s.processMessage(msg)
 		}
 	}
 }

@@ -116,11 +116,12 @@ func (h *Handler) Start() {
 }
 
 // SortedPeers return chan for sorted connected peer in the peerSet.
-func (h *Handler) SortedPeers() chan peer.IDSlice {
-	resultPeersCh := make(chan peer.IDSlice, 1)
+func (h *Handler) SortedPeers(setIdx int) chan peer.IDSlice {
+	resultPeersCh := make(chan peer.IDSlice)
 	h.actionQueue <- action{
 		actionCall:    sortedPeers,
 		resultPeersCh: resultPeersCh,
+		setID:         setIdx,
 	}
 
 	return resultPeersCh

@@ -21,6 +21,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+
 	. "github.com/ChainSafe/gossamer/dot/core/mocks" // nolint
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -31,8 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 
 	"github.com/stretchr/testify/require"
 )
@@ -125,6 +126,8 @@ func TestService_HandleBlockProduced(t *testing.T) {
 }
 
 func TestService_HandleTransactionMessage(t *testing.T) {
+	t.Parallel()
+
 	const peer1 = "testPeer1"
 
 	kp, err := sr25519.GenerateKeypair()

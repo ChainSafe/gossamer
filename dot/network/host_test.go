@@ -537,6 +537,8 @@ func TestStreamCloseEOF(t *testing.T) {
 
 // Test to check the nodes connection by peer set manager
 func TestPeerConnect(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -576,6 +578,8 @@ func TestPeerConnect(t *testing.T) {
 
 // Test to check banned peer disconnection by peer set manager
 func TestBannedPeer(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
@@ -631,6 +635,8 @@ func TestBannedPeer(t *testing.T) {
 
 // Test to check reputation updated by peer set manager
 func TestPeerReputation(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{

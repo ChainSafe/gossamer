@@ -63,7 +63,7 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port              uint32   `toml:"port,omitempty"`
+	Port              uint16   `toml:"port,omitempty"`
 	Bootnodes         []string `toml:"bootnodes,omitempty"`
 	ProtocolID        string   `toml:"protocol,omitempty"`
 	NoBootstrap       bool     `toml:"nobootstrap,omitempty"`

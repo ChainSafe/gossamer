@@ -20,13 +20,14 @@ import (
 	"encoding/json"
 	"time"
 
+	log "github.com/ChainSafe/log15"
+
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
-	log "github.com/ChainSafe/log15"
 )
 
 // TODO: update config to have toml rules and perhaps un-export some fields, since we don't want to expose all
@@ -83,7 +84,7 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port              uint32
+	Port              uint16
 	Bootnodes         []string
 	ProtocolID        string
 	NoBootstrap       bool
