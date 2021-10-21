@@ -46,9 +46,7 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	// maxMessageSize       = 1024 * 63       // 63kb for now
-	maxMessageSize       = 1024 * 1024 * 4 // 4mb
-	maxBlockResponseSize = 1024 * 1024 * 4 // 4mb
+	maxMessageSize = 1024 * 1024 * 4 // 4mb
 
 	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )

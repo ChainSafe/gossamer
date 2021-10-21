@@ -26,7 +26,8 @@ import (
 )
 
 var (
-	blockRequestTimeout = time.Second * 5
+	maxBlockResponseSize uint64 = 1024 * 1024 * 4 // 4mb
+	blockRequestTimeout         = time.Second * 5
 )
 
 // DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
