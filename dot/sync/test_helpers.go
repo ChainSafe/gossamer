@@ -22,9 +22,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -54,39 +52,20 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
 
-	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
 	inherentExts, err := instance.InherentExtrinsics(ienc)
 	require.NoError(t, err)
 
 	// decode inherent extrinsics
-	var exts [][]byte
-	err = scale.Unmarshal(inherentExts, &exts)
+	cp := make([]byte, len(inherentExts))
+	copy(cp, inherentExts)
+	var inExts [][]byte
+	err = scale.Unmarshal(cp, &inExts)
 	require.NoError(t, err)
 
-	inExt := exts
-
-	var body *types.Body
-	if ext != nil {
-		var txn *transaction.Validity
-		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-		txn, err = instance.ValidateTransaction(externalExt)
-		require.NoError(t, err)
-
-		vtx := transaction.NewValidTransaction(ext, txn)
-		ret, err := instance.ApplyExtrinsic(ext) //nolint
-		require.NoError(t, err)
-		require.Equal(t, ret, []byte{0, 0})
-
-		body, err = babe.ExtrinsicsToBody(inExt, []*transaction.ValidTransaction{vtx})
-		require.NoError(t, err)
-
-	} else {
-		body = types.NewBody(types.BytesArrayToExtrinsics(exts))
-	}
-
 	// apply each inherent extrinsic
-	for _, ext := range inExt {
-		in, err := scale.Marshal(ext) //nolint
+	for _, inherent := range inExts {
+		in, err := scale.Marshal(inherent) //nolint
 		require.NoError(t, err)
 
 		ret, err := instance.ApplyExtrinsic(in)
@@ -94,12 +73,30 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
+	body := types.Body(types.BytesArrayToExtrinsics(inExts))
+
+	if ext != nil {
+		// validate and apply extrinsic
+		var ret []byte
+
+		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		_, err = instance.ValidateTransaction(externalExt)
+		require.NoError(t, err)
+
+		ret, err = instance.ApplyExtrinsic(ext)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+
+		body = append(body, ext)
+	}
+
 	res, err := instance.FinalizeBlock()
 	require.NoError(t, err)
 	res.Number = header.Number
+	res.Hash()
 
 	return &types.Block{
 		Header: *res,
-		Body:   *body,
+		Body:   body,
 	}
 }
