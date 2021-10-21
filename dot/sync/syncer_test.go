@@ -38,7 +38,7 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
+	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
 func TestMain(m *testing.M) {
@@ -55,21 +55,21 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func newMockFinalityGadget() *syncmocks.FinalityGadget {
-	m := new(syncmocks.FinalityGadget)
+func newMockFinalityGadget() *mocks.MockFinalityGadget {
+	m := new(mocks.MockFinalityGadget)
 	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
 	m.On("VerifyBlockJustification", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil)
 	return m
 }
 
-func newMockVerifier() *syncmocks.MockVerifier {
-	m := new(syncmocks.MockVerifier)
+func newMockBabeVerifier() *mocks.MockBabeVerifier {
+	m := new(mocks.MockBabeVerifier)
 	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
 	return m
 }
 
-func newMockNetwork() *syncmocks.MockNetwork {
-	m := new(syncmocks.MockNetwork)
+func newMockNetwork() *mocks.MockNetwork {
+	m := new(mocks.MockNetwork)
 	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 	return m
 }
@@ -126,8 +126,8 @@ func newTestSyncer(t *testing.T) *Service {
 
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 
-	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
-	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
+	cfg.BlockImportHandler = new(mocks.MockBlockImportHandler)
+	cfg.BlockImportHandler.(*mocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
 		// store updates state trie nodes in database
 		if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
 			logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
@@ -144,7 +144,7 @@ func newTestSyncer(t *testing.T) *Service {
 	})
 
 	cfg.TransactionState = stateSrvc.Transaction
-	cfg.BabeVerifier = newMockVerifier()
+	cfg.BabeVerifier = newMockBabeVerifier()
 	cfg.LogLvl = log.LvlTrace
 	cfg.FinalityGadget = newMockFinalityGadget()
 	cfg.Network = newMockNetwork()
