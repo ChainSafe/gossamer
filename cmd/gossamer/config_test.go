@@ -335,6 +335,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				BabeAuthority:    true,
 				GrandpaAuthority: true,
 				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+				GrandpaInterval:  testCfg.Core.GrandpaInterval,
 			},
 		},
 		{
@@ -346,6 +347,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				BabeAuthority:    false,
 				GrandpaAuthority: false,
 				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+				GrandpaInterval:  testCfg.Core.GrandpaInterval,
 			},
 		},
 	}
@@ -390,7 +392,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       testCfg.Network.NoBootstrap,
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
-				GrandpaInterval:   time.Second,
 			},
 		},
 		{
@@ -404,7 +405,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       testCfg.Network.NoBootstrap,
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
-				GrandpaInterval:   time.Second,
 			},
 		},
 		{
@@ -418,7 +418,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       testCfg.Network.NoBootstrap,
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
-				GrandpaInterval:   time.Second,
 			},
 		},
 		{
@@ -432,7 +431,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       true,
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
-				GrandpaInterval:   time.Second,
 			},
 		},
 		{
@@ -446,7 +444,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       testCfg.Network.NoBootstrap,
 				NoMDNS:            true,
 				DiscoveryInterval: time.Second * 10,
-				GrandpaInterval:   time.Second,
 			},
 		},
 	}
@@ -821,7 +818,6 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			NoBootstrap:       testCfg.Network.NoBootstrap,
 			NoMDNS:            testCfg.Network.NoMDNS,
 			DiscoveryInterval: testCfg.Network.DiscoveryInterval,
-			GrandpaInterval:   testCfg.Network.GrandpaInterval,
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,

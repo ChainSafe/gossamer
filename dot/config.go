@@ -92,7 +92,6 @@ type NetworkConfig struct {
 	MaxPeers          int
 	PersistentPeers   []string
 	DiscoveryInterval time.Duration
-	GrandpaInterval   time.Duration
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -103,6 +102,7 @@ type CoreConfig struct {
 	SlotDuration     uint64
 	EpochLength      uint64
 	WasmInterpreter  string
+	GrandpaInterval  time.Duration
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -179,6 +179,7 @@ func GssmrConfig() *Config {
 			BabeAuthority:    gssmr.DefaultBabeAuthority,
 			GrandpaAuthority: gssmr.DefaultGrandpaAuthority,
 			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+			GrandpaInterval:  gssmr.DefaultGrandpaInterval,
 		},
 		Network: NetworkConfig{
 			Port:              gssmr.DefaultNetworkPort,
@@ -186,7 +187,6 @@ func GssmrConfig() *Config {
 			NoBootstrap:       gssmr.DefaultNoBootstrap,
 			NoMDNS:            gssmr.DefaultNoMDNS,
 			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
-			GrandpaInterval:   gssmr.DefaultGrandpaInterval,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,

@@ -72,7 +72,6 @@ type NetworkConfig struct {
 	MaxPeers          int      `toml:"max-peers,omitempty"`
 	PersistentPeers   []string `toml:"persistent-peers,omitempty"`
 	DiscoveryInterval int      `toml:"discovery-interval,omitempty"`
-	GrandpaInterval   int      `toml:"grandpa-interval,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -83,6 +82,7 @@ type CoreConfig struct {
 	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
 	EpochLength      uint64 `toml:"epoch-length,omitempty"`
 	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
+	GrandpaInterval  uint32 `toml:"grandpa-interval,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars

@@ -24,13 +24,13 @@ unlock = ""
 roles = 4
 babe-authority = true
 grandpa-authority = true
+grandpa-interval = 1
 
 [network]
 port = 7001
 nobootstrap = false
 nomdns = false
 discovery-interval = 10
-grandpa-interval = 1
 
 [rpc]
 enabled = false

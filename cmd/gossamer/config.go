@@ -557,6 +557,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
 	cfg.SlotDuration = tomlCfg.SlotDuration
 	cfg.EpochLength = tomlCfg.EpochLength
+	cfg.GrandpaInterval = time.Second * time.Duration(tomlCfg.GrandpaInterval)
 
 	// check --roles flag and update node configuration
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
@@ -611,6 +612,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"grandpa-authority", cfg.GrandpaAuthority,
 		"epoch-length", cfg.EpochLength,
 		"wasm-interpreter", cfg.WasmInterpreter,
+		"grandpa-interval", cfg.GrandpaInterval,
 	)
 }
 
@@ -624,18 +626,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.MinPeers = tomlCfg.MinPeers
 	cfg.MaxPeers = tomlCfg.MaxPeers
 	cfg.PersistentPeers = tomlCfg.PersistentPeers
-
-	if tomlCfg.DiscoveryInterval > 0 {
-		cfg.DiscoveryInterval = time.Second * time.Duration(tomlCfg.DiscoveryInterval)
-	} else {
-		cfg.DiscoveryInterval = 0
-	}
-
-	if tomlCfg.GrandpaInterval > 0 {
-		cfg.GrandpaInterval = time.Second * time.Duration(tomlCfg.GrandpaInterval)
-	} else {
-		cfg.GrandpaInterval = 0
-	}
+	cfg.DiscoveryInterval = time.Second * time.Duration(tomlCfg.DiscoveryInterval)
 
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
@@ -682,7 +673,6 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		"maxpeers", cfg.MaxPeers,
 		"persistent-peers", cfg.PersistentPeers,
 		"discovery-interval", cfg.DiscoveryInterval,
-		"grandpa-interval", cfg.GrandpaInterval,
 	)
 }
 

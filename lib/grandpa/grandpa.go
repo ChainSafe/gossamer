@@ -146,6 +146,10 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	if cfg.Interval == 0 {
+		return nil, ErrZeroInterval
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Service{
 		ctx:                ctx,

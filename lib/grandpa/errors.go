@@ -101,6 +101,9 @@ var (
 	// ErrAuthorityNotInSet is returned when a precommit within a justification is signed by a key not in the authority set
 	ErrAuthorityNotInSet = errors.New("authority is not in set")
 
+	// ErrZeroInterval is returned when the grandpa sub-round interval is set to 0
+	ErrZeroInterval = errors.New("cannot have zero second interval")
+
 	errVoteExists              = errors.New("already have vote")
 	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
 	errInvalidVoteBlock        = errors.New("block in vote is not descendant of previously finalised block")
