@@ -71,7 +71,7 @@ One important distinction is that we are building the Polkadot Runtime Environme
     Please keep prefixing mocks with `Mock` to match the rest of the code.
     This will generate a Go file `./mocks/my_interface.go` with the `MockMyInterface` Mockery mock.
 
-    If you want to have your mock in the same package you are working on, replace `--keeptree` with `-inpackage`. This will generate a Go file `./mock_my_interface.go`. You might also want to prefix the mock with `mock` instead of `Mock` so it's unexported.
+    If you want to have your mock in the same package you are working on, replace `--keeptree` with `-inpackage --filename mock_my_interface_test.go`. This will generate a Go file `./mock_my_interface_test.go`. You might also want to prefix the mock with `mock` instead of `Mock` so it's unexported.
 
     Generate the mock code with `go generate -run "mockery" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `make mock`, which is itself just the last command.
 
