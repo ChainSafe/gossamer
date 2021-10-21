@@ -35,6 +35,8 @@ type BlockState interface {
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 
+//go:generate mockery --name Syncer --structname MockSyncer --case underscore --inpackage
+
 // Syncer is implemented by the syncing service
 type Syncer interface {
 	HandleBlockAnnounceHandshake(from peer.ID, msg *BlockAnnounceHandshake) error
@@ -49,6 +51,8 @@ type Syncer interface {
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 }
+
+//go:generate mockery --name TransactionHandler --structname MockTransactionHandler --case underscore --inpackage
 
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {
