@@ -1,44 +1,37 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 )
 
-const (
-	titleRegex = `[A-Za-z]+\([A-Za-z/]+\):.+[A-Za-z]+`
-	bodyRegex  = `## Changes.*- .*[A-Za-z0-9].*## Tests.*[A-Za-z].*## Issues.*- .*[A-Za-z0-9].*## Primary Reviewer.*- @.+[A-Za-z0-9].*`
+var (
+	// ErrTitlePatternNotValid indicates the title does not match the expected pattern.
+	ErrTitlePatternNotValid = errors.New("title pattern is not valid")
+	// ErrBodyPatternNotValid indicates the body does not match the expected pattern.
+	ErrBodyPatternNotValid = errors.New("body pattern is not valid")
 )
 
-// CheckPRDescription matches the PR title and body according to the PR template.
+var (
+	titleRegexp   = regexp.MustCompile(`^[A-Za-z]+\([A-Za-z/]+\):.+[A-Za-z]+$`)
+	bodyRegexp    = regexp.MustCompile(`^(.|\n)*## Changes\n+(.|\n)+\n+## Tests\n+(.|\n)+\n+## Issues\n+(.|\n)+\n+## Primary Reviewer\n+(.|\n)+$`)
+	commentRegexp = regexp.MustCompile(`<!--(.|\n)*?-->`)
+)
+
+// CheckPRDescription verifies the PR title and body match the expected format.
 func CheckPRDescription(title, body string) error {
-	match, err := regexp.MatchString(titleRegex, title)
-	if err != nil || !match {
-		return fmt.Errorf("title pattern is not valid: %w match %t", err, match)
+	if !titleRegexp.MatchString(title) {
+		return fmt.Errorf("%w: for regular expression %s: '%s'",
+			ErrTitlePatternNotValid, titleRegexp.String(), title)
 	}
 
-	var bodyData string
-	// Remove comment from PR body.
-	for {
-		start := strings.Index(body, "<!--")
-		end := strings.Index(body, "-->")
-		if start < 0 || end < 0 {
-			break
-		}
+	body = commentRegexp.ReplaceAllString(body, "")
 
-		bodyData = bodyData + body[:start]
-		body = body[end+4:]
+	if !bodyRegexp.MatchString(body) {
+		return fmt.Errorf("%w: for regular expression %s: '%s'",
+			ErrBodyPatternNotValid, bodyRegexp.String(), body)
 	}
-	bodyData = bodyData + body
 
-	lineSplit := strings.Split(bodyData, "\n")
-	joinedLine := strings.Join(lineSplit, "")
-
-	// Regex for body data
-	match, err = regexp.MatchString(bodyRegex, joinedLine)
-	if err != nil || !match {
-		return fmt.Errorf("body pattern is not valid: %w match %t", err, match)
-	}
 	return nil
 }
