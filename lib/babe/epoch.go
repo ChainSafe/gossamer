@@ -83,7 +83,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 				randomness:     data.Randomness,
 				authorities:    data.Authorities,
 				authorityIndex: idx,
-				threshold:      b.epochData.threshold,
+				threshold:      b.epochData.threshold, // TODO: threshold might change if authority count changes
 			}
 		}
 

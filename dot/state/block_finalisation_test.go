@@ -75,15 +75,46 @@ func TestHighestRoundAndSetID(t *testing.T) {
 
 func TestBlockState_SetFinalisedHash(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
+	h, err := bs.GetFinalisedHash(0, 0)
+	require.NoError(t, err)
+	require.Equal(t, testGenesisHeader.Hash(), h)
 
 	digest := types.NewDigest()
-	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
+	header := &types.Header{
+		ParentHash: testGenesisHeader.Hash(),
+		Number:     big.NewInt(1),
+		Digest:     digest,
+	}
+
+	testhash := header.Hash()
+	err = bs.db.Put(headerKey(testhash), []byte{})
+	require.NoError(t, err)
+
+	err = bs.AddBlock(&types.Block{
+		Header: *header,
+		Body:   types.Body{},
+	})
+	require.NoError(t, err)
+
+	err = bs.SetFinalisedHash(testhash, 1, 1)
+	require.NoError(t, err)
+
+	h, err = bs.GetFinalisedHash(1, 1)
+	require.NoError(t, err)
+	require.Equal(t, testhash, h)
+}
+
+func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+	firstSlot := uint64(42069)
+
+	digest := types.NewDigest()
+	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest())
 	require.NoError(t, err)
 	digest2 := types.NewDigest()
-	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 2).ToPreRuntimeDigest())
-	require.NoError(t, err)
-	digest3 := types.NewDigest()
-	err = digest3.Add(*types.NewBabeSecondaryPlainPreDigest(0, 200).ToPreRuntimeDigest())
+	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
 	require.NoError(t, err)
 
 	header1 := types.Header{
@@ -95,12 +126,6 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	header2 := types.Header{
 		Number:     big.NewInt(2),
 		Digest:     digest2,
-		ParentHash: header1.Hash(),
-	}
-
-	header2Again := types.Header{
-		Number:     big.NewInt(2),
-		Digest:     digest3,
 		ParentHash: header1.Hash(),
 	}
 
@@ -116,21 +141,11 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = bs.AddBlock(&types.Block{
-		Header: header2Again,
-		Body:   types.Body{},
-	})
+	err = bs.SetFinalisedHash(header2.Hash(), 1, 1)
 	require.NoError(t, err)
+	require.Equal(t, header2.Hash(), bs.lastFinalised)
 
-	err = bs.SetFinalisedHash(header2Again.Hash(), 0, 0)
+	res, err := bs.baseState.loadFirstSlot()
 	require.NoError(t, err)
-	require.Equal(t, header2Again.Hash(), bs.lastFinalised)
-
-	h1, err := bs.GetHeaderByNumber(big.NewInt(1))
-	require.NoError(t, err)
-	require.Equal(t, &header1, h1)
-
-	h2, err := bs.GetHeaderByNumber(big.NewInt(2))
-	require.NoError(t, err)
-	require.Equal(t, &header2Again, h2)
+	require.Equal(t, firstSlot, res)
 }
