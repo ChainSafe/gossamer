@@ -74,18 +74,6 @@ func createStateService(cfg *Config) (*state.Service, error) {
 		}
 	}
 
-	// load most recent state from database
-	latestState, err := stateSrvc.Base.LoadLatestStorageHash()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load latest state root hash: %s", err)
-	}
-
-	// load most recent state from database
-	_, err = stateSrvc.Storage.LoadFromDB(latestState)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load latest state from database: %s", err)
-	}
-
 	return stateSrvc, nil
 }
 
