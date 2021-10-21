@@ -43,6 +43,8 @@ type Handler struct {
 	connections        []*telemetryConnection
 	log                log.Logger
 	sendMessageTimeout time.Duration
+	maxRetries         int
+	retryDelay         time.Duration
 }
 
 // Instance interface that telemetry handler instance needs to implement
@@ -61,7 +63,11 @@ var (
 	initilised sync.Once
 )
 
-const defaultMessageTimeout = time.Second
+const (
+	defaultMessageTimeout = time.Second
+	defaultMaxRetries     = 5
+	defaultRetryDelay     = time.Millisecond * 100
+)
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
 func GetInstance() Instance {
@@ -72,6 +78,8 @@ func GetInstance() Instance {
 					msg:                make(chan Message, 256),
 					log:                log.New("pkg", "telemetry"),
 					sendMessageTimeout: defaultMessageTimeout,
+					maxRetries:         defaultMaxRetries,
+					retryDelay:         defaultRetryDelay,
 				}
 				go handlerInstance.startListening()
 			})
@@ -91,26 +99,21 @@ func (h *Handler) Initialise(e bool) {
 		})
 }
 
-var maxRetries = 5
-var retryDelay = time.Millisecond * 100
-
 // AddConnections adds the given telemetry endpoint as listeners that will receive telemetry data
 func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 	for _, v := range conns {
-		for connAttempts := 0; connAttempts < maxRetries; {
+		for connAttempts := 0; connAttempts < h.maxRetries; connAttempts++ {
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
 				h.log.Debug("issue adding telemetry connection", "error", err)
-				connAttempts++
-				time.Sleep(retryDelay)
-			} else {
-				tConn := &telemetryConnection{
-					wsconn:    c,
-					verbosity: v.Verbosity,
-				}
-				h.connections = append(h.connections, tConn)
-				break
+				time.Sleep(h.retryDelay)
+				continue
 			}
+			h.connections = append(h.connections, &telemetryConnection{
+				wsconn:    c,
+				verbosity: v.Verbosity,
+			})
+			break
 		}
 	}
 }
