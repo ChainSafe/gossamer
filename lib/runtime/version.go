@@ -20,6 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+//go:generate mockery --name Version --structname MockVersion --case underscore --keeptree
+
 // Version represents the data returned by runtime call core_version
 type Version interface {
 	SpecName() []byte
