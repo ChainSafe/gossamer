@@ -187,6 +187,7 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 		BlockImportHandler: cs,
 		Authority:          cfg.Core.BabeAuthority,
 		IsDev:              cfg.Global.ID == "dev",
+		Lead:               cfg.Core.BABELead,
 	}
 
 	if cfg.Core.BabeAuthority {

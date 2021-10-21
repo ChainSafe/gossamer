@@ -59,6 +59,8 @@ var (
 	errNilEpochState         = errors.New("cannot have nil EpochState")
 	errInvalidResult         = errors.New("invalid error value")
 	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
+	errFirstBlockTimeout     = errors.New("timed out waiting for first block")
+	errChannelClosed         = errors.New("block notifier channel was closed")
 
 	other         Other
 	invalidCustom InvalidCustom

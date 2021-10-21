@@ -28,13 +28,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	log "github.com/ChainSafe/log15"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
 var (
-	logger          log.Logger
-	initialWaitTime time.Duration
+	logger log.Logger
 )
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
@@ -43,6 +43,10 @@ type Service struct {
 	cancel    context.CancelFunc
 	authority bool
 	dev       bool
+	// lead is used when setting up a new network from genesis.
+	// the "lead" node is the node that is designated to build block 1, after which the rest of the nodes
+	// will sync block 1 and determine the first slot of the network based on it
+	lead bool
 
 	// Storage interfaces
 	blockState       BlockState
@@ -79,6 +83,7 @@ type ServiceConfig struct {
 	AuthData           []types.Authority
 	IsDev              bool
 	Authority          bool
+	Lead               bool
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -119,6 +124,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
+		lead:               cfg.Lead,
 	}
 
 	epoch, err := cfg.EpochState.GetCurrentEpoch()
@@ -126,12 +132,9 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	err = babeService.setupParameters(cfg)
-	if err != nil {
+	if err = babeService.setupParameters(cfg); err != nil {
 		return nil, err
 	}
-
-	initialWaitTime = babeService.slotDuration * 5
 
 	logger.Debug("created service",
 		"epoch", epoch,
@@ -143,6 +146,11 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		"threshold", babeService.epochData.threshold,
 		"randomness", babeService.epochData.randomness,
 	)
+
+	if cfg.Lead {
+		logger.Debug("node designated to build block 1")
+	}
+
 	return babeService, nil
 }
 
@@ -191,11 +199,49 @@ func (b *Service) Start() error {
 		return nil
 	}
 
-	// wait a bit to check if we need to sync before initiating
-	<-time.NewTimer(initialWaitTime).C
+	// if we aren't leading node, wait for first block
+	if !b.lead {
+		if err := b.waitForFirstBlock(); err != nil {
+			return err
+		}
+	}
 
 	go b.initiate()
 	return nil
+}
+
+func (b *Service) waitForFirstBlock() error {
+	ch := b.blockState.GetImportedBlockNotifierChannel()
+	defer b.blockState.FreeImportedBlockNotifierChannel(ch)
+
+	const firstBlockTimeout = time.Minute
+	timer := time.NewTimer(firstBlockTimeout)
+	cleanup := func() {
+		if !timer.Stop() {
+			<-timer.C
+		}
+	}
+
+	// loop until block 1
+	for {
+		select {
+		case block, ok := <-ch:
+			if !ok {
+				cleanup()
+				return errChannelClosed
+			}
+
+			if ok && block.Header.Number.Int64() > 0 {
+				cleanup()
+				return nil
+			}
+		case <-timer.C:
+			return errFirstBlockTimeout
+		case <-b.ctx.Done():
+			cleanup()
+			return b.ctx.Err()
+		}
+	}
 }
 
 // SlotDuration returns the current service slot duration in milliseconds
@@ -327,6 +373,12 @@ func (b *Service) invokeBlockAuthoring() error {
 			return err
 		}
 
+		logger.Debug("initiated epoch",
+			"threshold", b.epochData.threshold,
+			"randomness", b.epochData.randomness,
+			"authorities", b.epochData.authorities,
+		)
+
 		epochStartSlot, err := b.waitForEpochStart(epoch)
 		if err != nil {
 			logger.Error("failed to wait for epoch start", "epoch", epoch, "error", err)
@@ -355,16 +407,35 @@ func (b *Service) invokeBlockAuthoring() error {
 
 		logger.Info("current epoch", "epoch", epoch, "slots into epoch", intoEpoch)
 
+		// get start slot for current epoch
+		nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
+		if err != nil {
+			logger.Error("failed to get start slot for next epoch", "epoch", epoch, "error", err)
+			return err
+		}
+
+		nextEpochStartTime := getSlotStartTime(nextEpochStart, b.slotDuration)
+		epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
+		cleanup := func() {
+			if !epochTimer.Stop() {
+				<-epochTimer.C
+			}
+		}
+
 		slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
 		for i := 0; i < int(b.epochLength-intoEpoch); i++ {
 			slotDone[i] = time.After(b.getSlotDuration() * time.Duration(i))
 		}
 
 		for i := 0; i < int(b.epochLength-intoEpoch); i++ {
+			done := false
+
 			select {
 			case <-b.ctx.Done():
+				cleanup()
 				return nil
 			case <-b.pause:
+				cleanup()
 				return nil
 			case <-slotDone[i]:
 				slotNum := startSlot + uint64(i)
@@ -380,6 +451,12 @@ func (b *Service) invokeBlockAuthoring() error {
 					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
 					continue
 				}
+			case <-epochTimer.C:
+				done = true
+			}
+
+			if done {
+				break
 			}
 		}
 
@@ -489,7 +566,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		"epoch", epoch,
 		"slot", slotNum,
 	)
-	logger.Debug("built block",
+	logger.Trace("built block",
 		"header", block.Header,
 		"body", block.Body,
 		"parent", parent.Hash(),
