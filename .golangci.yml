@@ -71,27 +71,27 @@ linters-settings:
 
 linters:
   enable:
-    - megacheck
-    - govet
+    - bodyclose
+    - depguard
+    - errcheck
+    - goconst
+    - gocyclo
     - gofmt
     - goimports
-    - gosimple
-    - varcheck
-    - misspell
-    - ineffassign
-    - unconvert
-    - goconst
-    - errcheck
-    - staticcheck
-    - megacheck
     - goimports
-    - gosec
-    - bodyclose
     - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - megacheck
+    - megacheck
+    - misspell
     - revive
-    - depguard
-    - gocyclo
+    - staticcheck
+    - unconvert
     - unparam
+    - varcheck
 
   fast: false
 
