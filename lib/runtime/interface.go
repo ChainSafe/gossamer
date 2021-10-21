@@ -96,7 +96,7 @@ type BasicStorage interface {
 	Del(key []byte) error
 }
 
-//go:generate mockery --name TransactionState --structname MockTransactionState --case underscore --inpackage
+//go:generate mockery --name TransactionState --structname MockTransactionState --case underscore --keeptree
 
 // TransactionState interface for adding transactions to pool
 type TransactionState interface {
