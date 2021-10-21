@@ -16,6 +16,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+//go:generate mockery --name StorageAPI --structname MockStorageAPI --case underscore --keeptree
+
 // StorageAPI is the interface for the storage state
 type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
@@ -28,6 +30,8 @@ type StorageAPI interface {
 	RegisterStorageObserver(observer state.Observer)
 	UnregisterStorageObserver(observer state.Observer)
 }
+
+//go:generate mockery --name BlockAPI --structname MockBlockAPI --case underscore --keeptree
 
 // BlockAPI is the interface for the block state
 type BlockAPI interface {
@@ -48,6 +52,8 @@ type BlockAPI interface {
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
 	GetRuntime(hash *common.Hash) (runtime.Instance, error)
 }
+
+//go:generate mockery --name NetworkAPI --structname MockNetworkAPI --case underscore --keeptree
 
 // NetworkAPI interface for network state methods
 type NetworkAPI interface {
@@ -80,6 +86,8 @@ type TransactionStateAPI interface {
 	Pending() []*transaction.ValidTransaction
 }
 
+//go:generate mockery --name CoreAPI --structname MockCoreAPI --case underscore --keeptree
+
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
@@ -92,11 +100,15 @@ type CoreAPI interface {
 	GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error)
 }
 
+//go:generate mockery --name RPCAPI --structname MockRPCAPI --case underscore --keeptree
+
 // RPCAPI is the interface for methods related to RPC service
 type RPCAPI interface {
 	Methods() []string
 	BuildMethodNames(rcvr interface{}, name string)
 }
+
+//go:generate mockery --name SystemAPI --structname MockSystemAPI --case underscore --keeptree
 
 // SystemAPI is the interface for handling system methods
 type SystemAPI interface {
@@ -107,6 +119,8 @@ type SystemAPI interface {
 	ChainName() string
 }
 
+//go:generate mockery --name BlockFinalityAPI --structname MockBlockFinalityAPI --case underscore --keeptree
+
 // BlockFinalityAPI is the interface for handling block finalisation methods
 type BlockFinalityAPI interface {
 	GetSetID() uint64
@@ -115,6 +129,8 @@ type BlockFinalityAPI interface {
 	PreVotes() []ed25519.PublicKeyBytes
 	PreCommits() []ed25519.PublicKeyBytes
 }
+
+//go:generate mockery --name RuntimeStorageAPI --structname MockRuntimeStorageAPI --case underscore --keeptree
 
 // RuntimeStorageAPI is the interface to interacts with the node storage
 type RuntimeStorageAPI interface {
