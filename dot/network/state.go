@@ -25,6 +25,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+//go:generate mockery --name BlockState --structname mockBlockState --case underscore --inpackage
+
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)

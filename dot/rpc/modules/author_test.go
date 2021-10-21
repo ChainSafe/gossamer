@@ -247,10 +247,10 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorModule_PendingExtrinsics(t *testing.T) {
-	emptyMockTransactionStateAPI := &apimocks.TransactionStateAPI{}
+	emptyMockTransactionStateAPI := &apimocks.MockTransactionStateAPI{}
 	emptyMockTransactionStateAPI.On("Pending").Return([]*transaction.ValidTransaction{})
 
-	mockTransactionStateAPI := &apimocks.TransactionStateAPI{}
+	mockTransactionStateAPI := &apimocks.MockTransactionStateAPI{}
 	mockTransactionStateAPI.On("Pending").Return([]*transaction.ValidTransaction{
 		{
 			Extrinsic: types.NewExtrinsic([]byte("someExtrinsic")),

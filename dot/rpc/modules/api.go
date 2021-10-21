@@ -78,6 +78,8 @@ type BlockProducerAPI interface {
 	SlotDuration() uint64
 }
 
+//go:generate mockery --name TransactionStateAPI --structname MockTransactionStateAPI --case underscore --keeptree
+
 // TransactionStateAPI ...
 type TransactionStateAPI interface {
 	AddToPool(*transaction.ValidTransaction) common.Hash

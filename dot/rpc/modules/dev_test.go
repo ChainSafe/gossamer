@@ -55,7 +55,7 @@ func newBABEService(t *testing.T) *babe.Service {
 		EpochState:         es,
 		Keypair:            kr.Alice().(*sr25519.Keypair),
 		IsDev:              true,
-		BlockImportHandler: new(babemocks.BlockImportHandler),
+		BlockImportHandler: new(babemocks.MockBlockImportHandler),
 	}
 
 	babe, err := babe.NewService(cfg)
