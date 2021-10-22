@@ -62,7 +62,6 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 	// if peer's number is highest, return worker w/ their block as target
 	expected := &worker{
 		requestData:  bootstrapRequestData,
-		startHash:    common.EmptyHash,
 		startNumber:  big.NewInt(101),
 		targetHash:   common.NewHash([]byte{1}),
 		targetNumber: big.NewInt(101),
@@ -76,7 +75,6 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 
 	expected = &worker{
 		requestData:  bootstrapRequestData,
-		startHash:    common.EmptyHash,
 		startNumber:  big.NewInt(101),
 		targetHash:   common.NewHash([]byte{1}),
 		targetNumber: big.NewInt(9999),
@@ -102,7 +100,6 @@ func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
 	// startNumber = bestBlockNumber + 1 and the same target as previously
 	expected := &worker{
 		requestData:  bootstrapRequestData,
-		startHash:    common.EmptyHash,
 		startNumber:  big.NewInt(101),
 		targetHash:   common.NewHash([]byte{1}),
 		targetNumber: big.NewInt(201),
@@ -127,7 +124,6 @@ func TestBootstrapSyncer_handleWorkerResult_errUnknownParent(t *testing.T) {
 	// startNumber = bestBlockNumber + 1 and the same target as previously
 	expected := &worker{
 		requestData:  bootstrapRequestData,
-		startHash:    common.EmptyHash,
 		startNumber:  big.NewInt(200),
 		targetHash:   common.NewHash([]byte{1}),
 		targetNumber: big.NewInt(300),

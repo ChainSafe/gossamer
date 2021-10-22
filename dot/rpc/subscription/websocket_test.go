@@ -307,9 +307,9 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	expected := fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"chain_allHead","params":{"result":{"parentHash":"%s","number":"0x00","stateRoot":"%s","extrinsicsRoot":"%s","digest":{"logs":["0x064241424504ff"]}},"subscription":1}}`,
-		common.EmptyHash,
-		common.EmptyHash,
-		common.EmptyHash,
+		common.Hash{},
+		common.Hash{},
+		common.Hash{},
 	)
 
 	digest := types.NewDigest()
@@ -317,11 +317,8 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	fCh <- &types.FinalisationInfo{
 		Header: types.Header{
-			ParentHash:     common.EmptyHash,
-			Number:         big.NewInt(0),
-			StateRoot:      common.EmptyHash,
-			ExtrinsicsRoot: common.EmptyHash,
-			Digest:         digest,
+			Number: big.NewInt(0),
+			Digest: digest,
 		},
 	}
 
@@ -336,11 +333,8 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	iCh <- &types.Block{
 		Header: types.Header{
-			ParentHash:     common.EmptyHash,
-			Number:         big.NewInt(0),
-			StateRoot:      common.EmptyHash,
-			ExtrinsicsRoot: common.EmptyHash,
-			Digest:         digest,
+			Number: big.NewInt(0),
+			Digest: digest,
 		},
 	}
 	time.Sleep(time.Millisecond * 500)

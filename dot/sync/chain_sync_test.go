@@ -538,7 +538,6 @@ func TestChainSync_validateResponse(t *testing.T) {
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
-				Hash:          common.EmptyHash,
 				Justification: &[]byte{0},
 			},
 		},
