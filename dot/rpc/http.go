@@ -54,6 +54,7 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
+	SyncStateAPI        modules.SyncStateAPI
 	NodeStorage         *runtime.NodeStorage
 	RPC                 bool
 	RPCExternal         bool
@@ -129,6 +130,8 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			srvc = modules.NewOffchainModule(h.serverConfig.NodeStorage)
 		case "childstate":
 			srvc = modules.NewChildStateModule(h.serverConfig.StorageAPI, h.serverConfig.BlockAPI)
+		case "syncstate":
+			srvc = modules.NewSyncStateModule(h.serverConfig.SyncStateAPI)
 		case "payment":
 			srvc = modules.NewPaymentModule(h.serverConfig.BlockAPI)
 		default:
@@ -137,7 +140,6 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		}
 
 		err := h.rpcServer.RegisterService(srvc, mod)
-
 		if err != nil {
 			h.logger.Warn("Failed to register module", "mod", mod, "err", err)
 		}

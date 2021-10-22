@@ -49,7 +49,7 @@ var (
 )
 
 // BuildMethodNames takes receiver interface and populates rpcMethods array with available
-//  method names
+// method names
 func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 	rcvrType := reflect.TypeOf(rcvr)
 	for i := 0; i < rcvrType.NumMethod(); i++ {
