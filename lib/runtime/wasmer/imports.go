@@ -1792,24 +1792,47 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 }
 
 //export ext_storage_clear_prefix_version_2
-func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, _ C.int64_t) C.int64_t {
+func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_clear_prefix_version_2] executing...")
-	logger.Warn("[ext_storage_clear_prefix_version_2] somewhat unimplemented")
-	// TODO: need to use unused `limit` parameter (#1792)
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 
 	prefix := asMemorySlice(instanceContext, prefixSpan)
-	logger.Debug("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
+	logger.Debug("[ext_storage_clear_prefix_version_2]", "prefix", fmt.Sprintf("0x%x", prefix))
 
-	err := storage.ClearPrefix(prefix)
+	limitBytes := asMemorySlice(instanceContext, lim)
+	buf := &bytes.Buffer{}
+	buf.Write(limitBytes)
+
+	limit, err := optional.NewBytes(true, nil).Decode(buf)
 	if err != nil {
-		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
+		logger.Warn("[ext_storage_clear_prefix_version_2] cannot generate limit", "error", err)
+		return 0
 	}
 
-	return 1
+	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limit)
+	if err != nil {
+		logger.Error("[ext_storage_clear_prefix_version_2]", "error", err)
+	}
+
+	encBytes, err := toKillStorageResultEnum(all, numRemoved)
+
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ := toWasmMemory(instanceContext, nil)
+		return C.int64_t(ret)
+	}
+
+	valueSpan, err := toWasmMemory(instanceContext, encBytes)
+	if err != nil {
+		logger.Error("[ext_storage_get_version_2] failed to allocate", "error", err)
+		ptr, _ := toWasmMemory(instanceContext, nil)
+		return C.int64_t(ptr)
+	}
+
+	return C.int64_t(valueSpan)
 }
 
 //export ext_storage_exists_version_1
@@ -2063,6 +2086,27 @@ func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int
 
 	enc := opt.Encode()
 	return toWasmMemory(context, enc)
+}
+
+// toKillStorageResult returns enum encoded value
+func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) ([]byte, error) {
+	var b, sbytes []byte
+	sbytes, err := scale.Marshal(numRemoved)
+	if err != nil {
+		return nil, err
+	}
+
+	if allRemoved {
+		// No key remains in the child trie.
+		b = append(b, byte(0))
+	} else {
+		// At least one key still resides in the child trie due to the supplied limit.
+		b = append(b, byte(1))
+	}
+
+	b = append(b, sbytes...)
+
+	return b, err
 }
 
 // Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor

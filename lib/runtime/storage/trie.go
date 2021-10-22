@@ -18,6 +18,7 @@ package storage
 
 import (
 	"encoding/binary"
+	"errors"
 	"sort"
 	"sync"
 
@@ -136,6 +137,21 @@ func (s *TrieState) ClearPrefix(prefix []byte) error {
 	defer s.lock.Unlock()
 	s.t.ClearPrefix(prefix)
 	return nil
+}
+
+// ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
+func (s *TrieState) ClearPrefixLimit(prefix []byte, limit *optional.Bytes) (uint32, bool, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if limit == nil || !limit.Exists() {
+		return 0, false, errors.New("limit not exists")
+	}
+
+	limitUint := binary.LittleEndian.Uint32(limit.Value())
+
+	num, del := s.t.ClearPrefixLimit(prefix, limitUint)
+	return num, del, nil
 }
 
 // TrieEntries returns every key-value pair in the trie
