@@ -828,7 +828,9 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) []SignedV
 		isDescendant, err = s.blockState.IsDescendantOf(bfc, pc.Vote.Hash)
 		if err != nil {
 			return false
-		} else if !isDescendant {
+		}
+
+		if !isDescendant {
 			return true
 		}
 
@@ -842,8 +844,10 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) []SignedV
 			isDescendant, err := s.blockState.IsDescendantOf(bfc, signedVote.Vote.Hash)
 
 			if err != nil {
-				continue
-			} else if !isDescendant {
+				break
+			}
+
+			if !isDescendant {
 				continue
 			}
 
