@@ -19,7 +19,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -1379,6 +1378,12 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	otherTrie := trie.NewEmptyTrie()
+	otherTrie.Put([]byte("simple"), []byte("cat"))
+
+	otherHash, err := otherTrie.Hash()
+	require.NoError(t, err)
+
 	tr := trie.NewEmptyTrie()
 	tr.Put([]byte("do"), []byte("verb"))
 	tr.Put([]byte("domain"), []byte("website"))
@@ -1401,6 +1406,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	}
 
 	root := hash.ToBytes()
+	otherRoot := otherHash.ToBytes()
 
 	proof, err := trie.GenerateProof(root, keys, memdb)
 	require.NoError(t, err)
@@ -1412,7 +1418,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	}{
 		{root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
 		{root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
-		{root: make([]byte, 32), key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		{root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
 		{root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
 		{root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
 		{root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
@@ -1422,32 +1428,30 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	for _, testcase := range testcases {
-		t.Run(fmt.Sprintf("%s -> %s", string(testcase.key), string(testcase.value)), func(t *testing.T) {
-			hashEnc, err := scale.Marshal(testcase.root)
-			require.NoError(t, err)
+		hashEnc, err := scale.Marshal(testcase.root)
+		require.NoError(t, err)
 
-			args := []byte{}
-			args = append(args, hashEnc...)
+		args := []byte{}
+		args = append(args, hashEnc...)
 
-			encProof, err := scale.Marshal(testcase.proof)
-			require.NoError(t, err)
-			args = append(args, encProof...)
+		encProof, err := scale.Marshal(testcase.proof)
+		require.NoError(t, err)
+		args = append(args, encProof...)
 
-			keyEnc, err := scale.Marshal(testcase.key)
-			require.NoError(t, err)
-			args = append(args, keyEnc...)
+		keyEnc, err := scale.Marshal(testcase.key)
+		require.NoError(t, err)
+		args = append(args, keyEnc...)
 
-			valueEnc, err := scale.Marshal(testcase.value)
-			require.NoError(t, err)
-			args = append(args, valueEnc...)
+		valueEnc, err := scale.Marshal(testcase.value)
+		require.NoError(t, err)
+		args = append(args, valueEnc...)
 
-			res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
-			require.NoError(t, err)
+		res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
+		require.NoError(t, err)
 
-			var got bool
-			err = scale.Unmarshal(res, &got)
-			require.NoError(t, err)
-			require.Equal(t, testcase.expect, got)
-		})
+		var got bool
+		err = scale.Unmarshal(res, &got)
+		require.NoError(t, err)
+		require.Equal(t, testcase.expect, got)
 	}
 }

@@ -47,7 +47,7 @@ package wasmer
 //
 // extern int32_t ext_trie_blake2_256_root_version_1(void *context, int64_t a);
 // extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
-// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
+// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int64_t a, int64_t b, int64_t c, int64_t d);
 //
 // extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
 // extern void ext_misc_print_hex_version_1(void *context, int64_t a);
@@ -848,7 +848,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootP C.int32_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan C.int64_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -858,22 +858,20 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootP C.
 	err := scale.Unmarshal(toDecProofs, &decProofs)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_verify_proof_version_1]", "error", err)
-		return 0
+		return C.int32_t(0)
 	}
 
 	key := asMemorySlice(instanceContext, keySpan)
 	value := asMemorySlice(instanceContext, valueSpan)
-
-	memory := instanceContext.Memory().Data()
-	trieRoot := memory[rootP : rootP+32]
+	trieRoot := asMemorySlice(instanceContext, rootSpan)
 
 	exists, err := trie.VerifyProof(decProofs, trieRoot, []trie.Pair{{Key: key, Value: value}})
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_verify_proof_version_1]", "error", err)
-		return 0
+		return C.int32_t(0)
 	}
 
-	var result C.int32_t
+	var result C.int32_t = 0
 	if exists {
 		result = 1
 	}
