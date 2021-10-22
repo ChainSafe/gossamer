@@ -476,7 +476,7 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 
 	hash, err := common.Blake2bHash(message)
 	if err != nil {
-		logger.Error("failed to decode public key", "error", err)
+		logger.Error("failed to hash message", "error", err)
 		return C.int32_t(0)
 	}
 
