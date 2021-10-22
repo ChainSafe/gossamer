@@ -643,7 +643,7 @@ func (ps *PeerSet) doWork() {
 			case incoming:
 				err = ps.incoming(act.setID, act.peers...)
 			case sortedPeers:
-				ps.peerState.sortedPeers(act.setID, act.resultPeersCh)
+				act.resultPeersCh <- ps.peerState.sortedPeers(act.setID)
 			case disconnect:
 				err = ps.disconnect(act.setID, UnknownDrop, act.peers...)
 			}

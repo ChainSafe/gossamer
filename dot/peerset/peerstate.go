@@ -177,10 +177,10 @@ func (ps *PeersState) peers() []peer.ID {
 }
 
 // sortedPeers returns the list of peers we are connected to of a specific set.
-func (ps *PeersState) sortedPeers(idx int, peersCh chan<- peer.IDSlice) {
+func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 	if len(ps.sets) < idx {
 		logger.Debug("peer state doesn't have info for the provided index")
-		return
+		return nil
 	}
 
 	type kv struct {
@@ -205,7 +205,7 @@ func (ps *PeersState) sortedPeers(idx int, peersCh chan<- peer.IDSlice) {
 		peerIDs[i] = kv.peerID
 	}
 
-	peersCh <- peerIDs
+	return peerIDs
 }
 
 // highestNotConnectedPeer returns the peer with the highest Reputation and that we are not connected to.

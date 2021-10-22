@@ -198,7 +198,7 @@ func TestSortedPeers(t *testing.T) {
 	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
 
 	peerCh := make(chan peer.IDSlice, msgChanSize)
-	state.sortedPeers(0, peerCh)
+	peerCh <- state.sortedPeers(0)
 	peers := <-peerCh
 	require.Equal(t, 2, len(peers))
 }
