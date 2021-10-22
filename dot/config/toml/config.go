@@ -82,6 +82,7 @@ type CoreConfig struct {
 	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
 	EpochLength      uint64 `toml:"epoch-length,omitempty"`
 	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
+	BABELead         bool   `toml:"babe-lead,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
