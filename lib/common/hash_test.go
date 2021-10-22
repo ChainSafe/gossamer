@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,6 +72,33 @@ func TestCustomMarshalJson(t *testing.T) {
 			byt, err := test.hash.MarshalJSON()
 			require.Nil(t, err)
 			require.True(t, strings.Contains(string(byt), test.expected))
+		})
+	}
+}
+
+func Test_Hash_Empty(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		hash  Hash
+		empty bool
+	}{
+		"empty": {
+			empty: true,
+		},
+		"not empty": {
+			hash: Hash{1},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			empty := testCase.hash.Empty()
+
+			assert.Equal(t, testCase.empty, empty)
 		})
 	}
 }
