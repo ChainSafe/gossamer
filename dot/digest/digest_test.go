@@ -94,13 +94,15 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 
 	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 2, false)
 	for i, h := range headers {
-		handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
+		err = handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
+		require.NoError(t, err)
 	}
 
 	// authorities should change on start of block 3 from start
 	headers, _ = state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 1, false)
 	for _, h := range headers {
-		handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), 3, 0)
+		err = handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), 3, 0)
+		require.NoError(t, err)
 	}
 
 	time.Sleep(time.Millisecond * 500)
