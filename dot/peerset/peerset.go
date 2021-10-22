@@ -518,14 +518,14 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		if ps.isReservedOnly {
 			if _, ok := ps.reservedNode[pid]; !ok {
 				ps.resultMsgCh <- Message{Status: Reject}
-				return nil
+				continue
 			}
 		}
 
 		status := ps.peerState.peerStatus(setID, pid)
 		switch status {
 		case connectedPeer:
-			return nil
+			continue
 		case notConnectedPeer:
 			ps.peerState.nodes[pid].lastConnected[setID] = time.Now()
 		case unknownPeer:
