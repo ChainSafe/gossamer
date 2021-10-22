@@ -51,10 +51,10 @@ type ConnManager struct {
 	peerSetHandler PeerSetHandler
 }
 
-func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) *ConnManager {
+func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
 	psh, err := peerset.NewPeerSetHandler(peerSetCfg)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	return &ConnManager{
@@ -64,7 +64,7 @@ func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) *ConnManager {
 		protectedPeers:  new(sync.Map),
 		persistentPeers: new(sync.Map),
 		peerSetHandler:  psh,
-	}
+	}, err
 }
 
 // Notifee is used to monitor changes to a connection

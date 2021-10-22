@@ -168,6 +168,8 @@ func TestBootstrap(t *testing.T) {
 
 // test host send method
 func TestSend(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -215,6 +217,8 @@ func TestSend(t *testing.T) {
 
 // test host send method with existing stream
 func TestExistingStream(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -277,6 +281,8 @@ func TestExistingStream(t *testing.T) {
 }
 
 func TestStreamCloseMetadataCleanup(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -411,6 +417,8 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 }
 
 func Test_AddReservedPeers(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -443,6 +451,8 @@ func Test_AddReservedPeers(t *testing.T) {
 }
 
 func Test_RemoveReservedPeers(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,

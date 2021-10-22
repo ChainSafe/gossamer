@@ -104,7 +104,10 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	peerCfgSet := peerset.NewConfigSet(uint32(cfg.MaxPeers-cfg.MinPeers), uint32(cfg.MinPeers), false, peerSetSlotAllocTime)
 	// create connection manager
-	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
+	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, pp := range pps {
 		cm.persistentPeers.Store(pp.ID, struct{}{})
