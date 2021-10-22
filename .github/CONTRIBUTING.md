@@ -77,7 +77,7 @@ One important distinction is that we are building the Polkadot Runtime Environme
 
     This will generate a Go file `./mock_my_interface_test.go` with mock `mockMyInterface`.
 
-    Generate the mock code with `go generate -run "mockery" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `make mock`, which is itself just the last command.
+    Generate the mock code with `go generate -run "mockery" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `go generate -run "mockery" ./...` from the repository root.
 
 8. **Lint your changes.**
 
