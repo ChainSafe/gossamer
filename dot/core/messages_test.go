@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/ChainSafe/gossamer/dot/core/mocks" // nolint
+	"github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
@@ -80,7 +80,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 }
 
 func TestService_HandleBlockProduced(t *testing.T) {
-	net := new(Network)
+	net := new(mocks.Network)
 	cfg := &Config{
 		Network:  net,
 		Keystore: keystore.NewGlobalKeystore(),
