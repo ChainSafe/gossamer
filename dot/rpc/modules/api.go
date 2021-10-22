@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -121,4 +122,9 @@ type RuntimeStorageAPI interface {
 	SetPersistent(k, v []byte) error
 	GetLocal(k []byte) ([]byte, error)
 	GetPersistent(k []byte) ([]byte, error)
+}
+
+// SyncStateAPI is the interface to interact with sync state.
+type SyncStateAPI interface {
+	GenSyncSpec(raw bool) (*genesis.Genesis, error)
 }
