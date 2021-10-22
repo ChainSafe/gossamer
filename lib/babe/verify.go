@@ -388,17 +388,18 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	case *types.BabePrimaryPreDigest:
 		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
 	case *types.BabeSecondaryVRFPreDigest:
-		if b.secondarySlots {
-			pub := b.authorities[d.AuthorityIndex()].Key
-			var pk *sr25519.PublicKey
-			pk, err = sr25519.NewPublicKey(pub.Encode())
-			if err != nil {
-				return nil, err
-			}
-
-			ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
-		} else {
+		if !b.secondarySlots {
 			ok = true
+			break
+		}
+		pub := b.authorities[d.AuthorityIndex()].Key
+		var pk *sr25519.PublicKey
+		pk, err = sr25519.NewPublicKey(pub.Encode())
+		if err != nil {
+			return nil, err
+		}
+
+		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
 		}
 
 	case *types.BabeSecondaryPlainPreDigest:
