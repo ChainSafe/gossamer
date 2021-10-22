@@ -7,7 +7,6 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -38,22 +37,15 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retain
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	base := NewBaseState(db)
-	bestHash, err := base.LoadBestBlockHash()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get best block hash: %w", err)
-	}
-
-	// load blocktree
-	bt := blocktree.NewEmptyBlockTree(db)
-	if err = bt.Load(); err != nil {
-		return nil, fmt.Errorf("failed to load blocktree: %w", err)
-	}
-
 	// create blockState state
-	blockState, err := NewBlockState(db, bt)
+	blockState, err := NewBlockState(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
+	}
+
+	bestHash, err := blockState.GetHighestFinalisedHash()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get best finalised hash: %w", err)
 	}
 
 	// create bloom filter

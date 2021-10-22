@@ -390,6 +390,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       testCfg.Network.NoBootstrap,
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
 			},
 		},
 		{
@@ -403,6 +404,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       testCfg.Network.NoBootstrap,
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
 			},
 		},
 		{
@@ -416,6 +418,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       testCfg.Network.NoBootstrap,
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
 			},
 		},
 		{
@@ -429,6 +432,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       true,
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
 			},
 		},
 		{
@@ -442,6 +446,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoBootstrap:       testCfg.Network.NoBootstrap,
 				NoMDNS:            true,
 				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
 			},
 		},
 	}
@@ -816,6 +821,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			NoBootstrap:       testCfg.Network.NoBootstrap,
 			NoMDNS:            testCfg.Network.NoMDNS,
 			DiscoveryInterval: testCfg.Network.DiscoveryInterval,
+			MinPeers:          testCfg.Network.MinPeers,
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,

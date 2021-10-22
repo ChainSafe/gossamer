@@ -142,12 +142,8 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	}
 	tmpGen.Name = gData.Name
 	tmpGen.ID = gData.ID
-	tmpGen.Bootnodes = make([]string, len(gData.Bootnodes))
+	tmpGen.Bootnodes = common.BytesToStringArray(gData.Bootnodes)
 	tmpGen.ProtocolID = gData.ProtocolID
-
-	for i, bn := range gData.Bootnodes {
-		tmpGen.Bootnodes[i] = string(bn)
-	}
 
 	bs := &BuildSpec{
 		genesis: tmpGen,
