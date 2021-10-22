@@ -291,7 +291,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) *rpc.HTTPServer {
+func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
 	logger.Info(
 		"creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -304,6 +304,16 @@ func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Ser
 	)
 	rpcService := rpc.NewService()
 
+	genesisData, err := stateSrvc.Base.LoadGenesisData()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load genesis data: %s", err)
+	}
+
+	syncStateSrvc, err := modules.NewStateSync(genesisData, stateSrvc.Storage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sync state service: %s", err)
+	}
+
 	rpcConfig := &rpc.HTTPServerConfig{
 		LogLvl:              cfg.Log.RPCLvl,
 		BlockAPI:            stateSrvc.Block,
@@ -315,6 +325,7 @@ func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Ser
 		BlockFinalityAPI:    finSrvc,
 		TransactionQueueAPI: stateSrvc.Transaction,
 		RPCAPI:              rpcService,
+		SyncStateAPI:        syncStateSrvc,
 		SystemAPI:           sysSrvc,
 		RPC:                 cfg.RPC.Enabled,
 		RPCExternal:         cfg.RPC.External,
@@ -330,7 +341,7 @@ func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Ser
 		Modules:             cfg.RPC.Modules,
 	}
 
-	return rpc.NewHTTPServer(rpcConfig)
+	return rpc.NewHTTPServer(rpcConfig), nil
 }
 
 // createSystemService creates a systemService for providing system related information
