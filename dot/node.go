@@ -282,12 +282,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
-	if err != nil {
-		return nil, err
-	}
-	nodeSrvcs = append(nodeSrvcs, bp)
-
 	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	if err != nil {
 		return nil, err
@@ -304,6 +298,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		networkSrvc.SetTransactionHandler(coreSrvc)
 	}
 	nodeSrvcs = append(nodeSrvcs, syncer)
+
+	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
+	if err != nil {
+		return nil, err
+	}
+	nodeSrvcs = append(nodeSrvcs, bp)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	if err != nil {

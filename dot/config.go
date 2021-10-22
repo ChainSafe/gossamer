@@ -98,6 +98,7 @@ type NetworkConfig struct {
 type CoreConfig struct {
 	Roles            byte
 	BabeAuthority    bool
+	BABELead         bool
 	GrandpaAuthority bool
 	WasmInterpreter  string
 }
@@ -183,6 +184,7 @@ func GssmrConfig() *Config {
 			NoBootstrap:       gssmr.DefaultNoBootstrap,
 			NoMDNS:            gssmr.DefaultNoMDNS,
 			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
+			MinPeers:          gssmr.DefaultMinPeers,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,

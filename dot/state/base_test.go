@@ -39,42 +39,6 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	require.Equal(t, expected, tt.MustHash())
 }
 
-type test struct {
-	key   []byte
-	value []byte
-}
-
-func TestStoreAndLoadLatestStorageHash(t *testing.T) {
-	db := NewInMemoryDB(t)
-	base := NewBaseState(db)
-	tt := trie.NewEmptyTrie()
-
-	tests := []test{
-		{key: []byte{0x01, 0x35}, value: []byte("pen")},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-		{key: []byte{0xf2}, value: []byte("feather")},
-		{key: []byte{0xf2, 0x3}, value: []byte("f")},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-		{key: []byte{0x07}, value: []byte("ramen")},
-		{key: []byte{0}, value: nil},
-	}
-
-	for _, test := range tests {
-		tt.Put(test.key, test.value)
-	}
-
-	expected, err := tt.Hash()
-	require.NoError(t, err)
-
-	err = base.StoreLatestStorageHash(expected)
-	require.NoError(t, err)
-
-	hash, err := base.LoadLatestStorageHash()
-	require.NoError(t, err)
-	require.Equal(t, expected, hash)
-}
-
 func TestStoreAndLoadGenesisData(t *testing.T) {
 	db := NewInMemoryDB(t)
 	base := NewBaseState(db)
@@ -97,20 +61,6 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 	gen, err := base.LoadGenesisData()
 	require.NoError(t, err)
 	require.Equal(t, expected, gen)
-}
-
-func TestStoreAndLoadBestBlockHash(t *testing.T) {
-	db := NewInMemoryDB(t)
-	base := NewBaseState(db)
-
-	hash, _ := common.HexToHash("0x3f5a19b9e9507e05276216f3877bb289e47885f8184010c65d0e41580d3663cc")
-
-	err := base.StoreBestBlockHash(hash)
-	require.NoError(t, err)
-
-	res, err := base.LoadBestBlockHash()
-	require.NoError(t, err)
-	require.Equal(t, hash, res)
 }
 
 func TestLoadStoreEpochLength(t *testing.T) {

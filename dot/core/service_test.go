@@ -201,7 +201,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 	nonce := uint64(0)
 
-	// Add extrinsic to block `block31`
+	// Add extrinsic to block `block41`
 	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
 
 	block41 := sync.BuildBlock(t, rt, &block31.Header, ext)
