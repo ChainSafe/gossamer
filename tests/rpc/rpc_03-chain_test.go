@@ -75,7 +75,7 @@ func TestChainRPC(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.Nil(t, err)
 
-	time.Sleep(time.Second) // give server a second to start
+	time.Sleep(time.Second * 5) // give server a few seconds to start
 
 	chainBlockHeaderHash := ""
 	for _, test := range testCases {
