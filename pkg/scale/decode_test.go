@@ -17,6 +17,7 @@
 package scale
 
 import (
+	"bytes"
 	"math/big"
 	"reflect"
 	"testing"
@@ -189,7 +190,6 @@ func Test_unmarshal_optionality(t *testing.T) {
 				if diff != "" {
 					t.Errorf("decodeState.unmarshal() = %s", diff)
 				}
-
 			}
 		})
 	}
@@ -234,6 +234,69 @@ func Test_unmarshal_optionality_nil_case(t *testing.T) {
 			}
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
+			}
+		})
+	}
+}
+
+func Test_Decoder_Decode(t *testing.T) {
+	for _, tt := range newTests(fixedWidthIntegerTests, variableWidthIntegerTests, stringTests,
+		boolTests, sliceTests, arrayTests,
+	) {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			wantBuf := bytes.NewBuffer(tt.want)
+			d := NewDecoder(wantBuf)
+			if err := d.Decode(&dst); (err != nil) != tt.wantErr {
+				t.Errorf("Decoder.Decode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("Decoder.Decode() = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
+
+func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
+	tests := []struct {
+		name    string
+		ins     []interface{}
+		want    []byte
+		wantErr []bool
+	}{
+		{
+			name: "int64 and []byte",
+			ins:  []interface{}{int64(9223372036854775807), []byte{0x01}},
+			want: append([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, []byte{0x04, 0x01}...),
+		},
+		{
+			name:    "eof error",
+			ins:     []interface{}{int64(9223372036854775807), []byte{0x01}},
+			want:    []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+			wantErr: []bool{false, true},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := bytes.NewBuffer(tt.want)
+			d := NewDecoder(buf)
+
+			for i := range tt.ins {
+				in := tt.ins[i]
+				dst := reflect.New(reflect.TypeOf(in)).Elem().Interface()
+				var wantErr bool
+				if len(tt.wantErr) > i {
+					wantErr = tt.wantErr[i]
+				}
+				if err := d.Decode(&dst); (err != nil) != wantErr {
+					t.Errorf("Decoder.Decode() error = %v, wantErr %v", err, tt.wantErr[i])
+					return
+				}
+				if !wantErr && !reflect.DeepEqual(dst, in) {
+					t.Errorf("Decoder.Decode() = %v, want %v", dst, in)
+					return
+				}
 			}
 		})
 	}

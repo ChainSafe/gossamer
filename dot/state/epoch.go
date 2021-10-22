@@ -63,7 +63,7 @@ type EpochState struct {
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
-func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConfiguration) (*EpochState, error) {
+func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState, genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
 	err := baseState.storeFirstSlot(1) // this may change once the first block is imported
@@ -83,6 +83,7 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 
 	s := &EpochState{
 		baseState:   NewBaseState(db),
+		blockState:  blockState,
 		db:          epochDB,
 		epochLength: genesisConfig.EpochLength,
 	}
@@ -121,9 +122,6 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
-	s.blockState = &BlockState{
-		db: chaindb.NewTable(db, blockPrefix),
-	}
 	return s, nil
 }
 
@@ -350,7 +348,7 @@ func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
 // SetFirstSlot sets the first slot number of the network
 func (s *EpochState) SetFirstSlot(slot uint64) error {
 	// check if block 1 was finalised already; if it has, don't set first slot again
-	header, err := s.blockState.GetFinalisedHeader(0, 0)
+	header, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return err
 	}
