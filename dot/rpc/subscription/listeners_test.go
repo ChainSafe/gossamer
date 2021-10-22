@@ -43,11 +43,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type MockWSConnAPI struct {
+type mockWSConnAPI struct {
 	lastMessage BaseResponseJSON
 }
 
-func (m *MockWSConnAPI) safeSend(msg interface{}) {
+func (m *mockWSConnAPI) safeSend(msg interface{}) {
 	m.lastMessage = msg.(BaseResponseJSON)
 }
 
@@ -342,7 +342,7 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 
 func TestRuntimeChannelListener_Listen(t *testing.T) {
 	notifyChan := make(chan runtime.Version)
-	mockConnection := &MockWSConnAPI{}
+	mockConnection := &mockWSConnAPI{}
 	rvl := RuntimeVersionListener{
 		wsconn:        mockConnection,
 		subID:         0,
