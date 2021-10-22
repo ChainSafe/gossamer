@@ -80,7 +80,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 }
 
 func TestService_HandleBlockProduced(t *testing.T) {
-	net := new(MockNetwork)
+	net := new(Network)
 	cfg := &Config{
 		Network:  net,
 		Keystore: keystore.NewGlobalKeystore(),

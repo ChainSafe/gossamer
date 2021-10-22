@@ -65,13 +65,17 @@ One important distinction is that we are building the Polkadot Runtime Environme
     Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `MyInterface`, the comment would be:
 
     ```go
-    //go:generate mockery --name MyInterface --structname MockMyInterface --case underscore --keeptree
+    //go:generate mockery --name MyInterface --structname MyInterface --case underscore --keeptree
     ```
 
-    Please keep prefixing mocks with `Mock` to match the rest of the code.
-    This will generate a Go file `./mocks/my_interface.go` with the `MockMyInterface` Mockery mock.
+    This will generate a Go file `./mocks/my_interface.go` with the `MyInterface` Mockery mock.
 
-    If you want to have your mock in the same package you are working on, replace `--keeptree` with `-inpackage --filename mock_my_interface_test.go`. This will generate a Go file `./mock_my_interface_test.go`. You might also want to prefix the mock with `mock` instead of `Mock` so it's unexported.
+    If you want to have your mock in the same package you are working on:
+      - Replace `--keeptree` with `-inpackage`
+      - Add `--filename mock_my_interface_test.go` so it's clear it's only used for package local tests
+      - Prefix the `--structname` value with `mock` to differentiate it with the original interface.
+
+    This will generate a Go file `./mock_my_interface_test.go` with mock `mockMyInterface`.
 
     Generate the mock code with `go generate -run "mockery" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `make mock`, which is itself just the last command.
 

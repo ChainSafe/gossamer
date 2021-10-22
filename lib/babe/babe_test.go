@@ -85,8 +85,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		}
 	}
 
-	cfg.BlockImportHandler = new(mocks.MockBlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.MockBlockImportHandler).On("HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
+	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Keypair == nil {
 		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
@@ -341,7 +341,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 	}()
 
 	time.Sleep(babeService.slotDuration * 2)
-	babeService.blockImportHandler.(*mocks.MockBlockImportHandler).AssertCalled(t, "HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
+	babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
 }
 
 func TestService_GetAuthorityIndex(t *testing.T) {

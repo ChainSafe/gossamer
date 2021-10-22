@@ -95,7 +95,7 @@ type DigestHandler interface {
 	HandleDigests(*types.Header)
 }
 
-//go:generate mockery --name BlockImportHandler --structname MockBlockImportHandler --case underscore --keeptree
+//go:generate mockery --name BlockImportHandler --structname BlockImportHandler --case underscore --keeptree
 
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {

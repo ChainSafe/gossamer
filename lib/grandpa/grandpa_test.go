@@ -56,8 +56,8 @@ var (
 	voters = newTestVoters()
 )
 
-func NewMockDigestHandler() *MockDigestHandler {
-	m := new(MockDigestHandler)
+func NewMockDigestHandler() *DigestHandler {
+	m := new(DigestHandler)
 	m.On("NextGrandpaAuthorityChange").Return(uint64(2 ^ 64 - 1))
 	return m
 }
