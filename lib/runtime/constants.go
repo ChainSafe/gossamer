@@ -35,9 +35,9 @@ const (
 	NODE_RUNTIME_URL_v098 = "https://github.com/noot/substrate/blob/noot/v0.9.8/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 
 	// v0.9.10 polkadot runtime
-	POLKADOT_RUNTIME_v0910     = "polkadot_runtime-v9110.compact.wasm"
-	POLKADOT_RUNTIME_FP_v0910  = "polkadot_runtime-v9110.compact.wasm"
-	POLKADOT_RUNTIME_URL_v0910 = "polkadot_runtime-v9110.compact.wasm"
+	POLKADOT_RUNTIME_v0910     = "polkadot_runtime-v9100"
+	POLKADOT_RUNTIME_FP_v0910  = "polkadot_runtime-v9100.compact.wasm"
+	POLKADOT_RUNTIME_URL_v0910 = "https://github.com/paritytech/polkadot/releases/download/v0.9.10/polkadot_runtime-v9100.compact.wasm"
 
 	// v0.8 polkadot runtime
 	POLKADOT_RUNTIME     = "polkadot_runtime"
@@ -46,7 +46,7 @@ const (
 
 	// v0.8 test API wasm
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
-	HOST_API_TEST_RUNTIME_FP  = "/Users/eclesiojunior/w3f/eclesio-polkaspec/test/runtimes/hostapi/target/release/wbuild/hostapi-runtime/hostapi_runtime.compact.wasm"
+	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
 	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/f9f8c94397d155c4f2edc9c59828dc4ef2c62dd3/test/hostapi_runtime.compact.wasm?raw=true"
 
 	// v0.8 substrate runtime with modified name and babe C=(1, 1)

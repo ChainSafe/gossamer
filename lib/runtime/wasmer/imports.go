@@ -863,9 +863,6 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootP C.
 
 	key := asMemorySlice(instanceContext, keySpan)
 	value := asMemorySlice(instanceContext, valueSpan)
-	if len(value) == 0 {
-		value = nil
-	}
 
 	memory := instanceContext.Memory().Data()
 	trieRoot := memory[rootP : rootP+32]
