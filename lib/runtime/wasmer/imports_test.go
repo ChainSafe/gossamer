@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"sort"
 	"testing"
 
@@ -38,7 +37,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,19 +44,19 @@ var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
 
-func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
-		os.Exit(1)
-	}
+// func TestMain(m *testing.M) {
+// 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+// 	if err != nil {
+// 		log.Error("failed to generate runtime wasm file", err)
+// 		os.Exit(1)
+// 	}
 
-	// Start all tests
-	code := m.Run()
+// 	// Start all tests
+// 	code := m.Run()
 
-	runtime.RemoveFiles(wasmFilePaths)
-	os.Exit(code)
-}
+// 	runtime.RemoveFiles(wasmFilePaths)
+// 	os.Exit(code)
+// }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
@@ -1400,31 +1398,54 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 		[]byte("cat"),
 	}
 
-	proof, err := trie.GenerateProof(hash.ToBytes(), keys, memdb)
+	root := hash.ToBytes()
+
+	proof, err := trie.GenerateProof(root, keys, memdb)
 	require.NoError(t, err)
 
-	hashEnc, err := scale.Marshal(hash.ToBytes())
-	require.NoError(t, err)
+	testcases := []struct {
+		root, key, value []byte
+		proof            [][]byte
+		expect           bool
+	}{
+		{root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+		{root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		{root: make([]byte, 32), key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		{root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+		{root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+		{root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+		{root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
+	}
 
-	args := []byte{}
-	args = append(args, hashEnc...)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	encProof, err := scale.Marshal(proof)
-	require.NoError(t, err)
-	args = append(args, encProof...)
+	for _, testcase := range testcases {
+		t.Run(fmt.Sprintf("%s -> %s", string(testcase.key), string(testcase.value)), func(t *testing.T) {
+			hashEnc, err := scale.Marshal(testcase.root)
+			require.NoError(t, err)
 
-	keyEnc, err := scale.Marshal([]byte("do"))
-	require.NoError(t, err)
-	args = append(args, keyEnc...)
+			args := []byte{}
+			args = append(args, hashEnc...)
 
-	valueEnc, err := scale.Marshal([]byte("verb"))
-	require.NoError(t, err)
-	args = append(args, valueEnc...)
+			encProof, err := scale.Marshal(testcase.proof)
+			require.NoError(t, err)
+			args = append(args, encProof...)
 
-	inst := NewTestInstance(t, runtime.POLKADOT_RUNTIME_URL_v0910)
+			keyEnc, err := scale.Marshal(testcase.key)
+			require.NoError(t, err)
+			args = append(args, keyEnc...)
 
-	res, err := inst.Exec("ext_trie_blake2_256_verify_proof_version_1", args)
-	require.NoError(t, err)
+			valueEnc, err := scale.Marshal(testcase.value)
+			require.NoError(t, err)
+			args = append(args, valueEnc...)
 
-	fmt.Printf("RESPONSE FROM VERIFY PROOF %x\n", res)
+			res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
+			require.NoError(t, err)
+
+			var got bool
+			err = scale.Unmarshal(res, &got)
+			require.NoError(t, err)
+			require.Equal(t, testcase.expect, got)
+		})
+	}
 }

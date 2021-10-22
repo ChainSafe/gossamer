@@ -99,9 +99,12 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 
 	for _, item := range items {
 		recValue := proofTrie.Get(item.Key)
+		if recValue == nil {
+			return false, ErrValueNotFound
+		}
 
 		// here we need to compare value only if the caller pass the value
-		if item.Value != nil && !bytes.Equal(item.Value, recValue) {
+		if (item.Value != nil || len(item.Value) > 0) && !bytes.Equal(item.Value, recValue) {
 			return false, ErrValueNotFound
 		}
 	}

@@ -848,10 +848,40 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootP C.int32_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
-	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	toDecProofs := asMemorySlice(instanceContext, proofSpan)
+	var decProofs [][]byte
+	err := scale.Unmarshal(toDecProofs, &decProofs)
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_verify_proof_version_1]", "error", err)
+		return 0
+	}
+
+	key := asMemorySlice(instanceContext, keySpan)
+	value := asMemorySlice(instanceContext, valueSpan)
+	if len(value) == 0 {
+		value = nil
+	}
+
+	memory := instanceContext.Memory().Data()
+	trieRoot := memory[rootP : rootP+32]
+
+	exists, err := trie.VerifyProof(decProofs, trieRoot, []trie.Pair{{Key: key, Value: value}})
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_verify_proof_version_1]", "error", err)
+		return 0
+	}
+
+	var result C.int32_t
+	if exists {
+		result = 1
+	}
+
+	return result
 }
 
 //export ext_misc_print_hex_version_1
