@@ -56,17 +56,19 @@ func TestService_Methods(t *testing.T) {
 
 type mockService struct{}
 
-type mockServiceArrayRequest struct {
+// MockServiceArrayRequest must be exported for ReadArray or tests will fail.
+type MockServiceArrayRequest struct {
 	Key   []string
 	Bhash []common.Hash
 }
 
-type mockServiceArrayResponse struct {
+// MockServiceArrayResponse must be exported for ReadArray or tests will fail.
+type MockServiceArrayResponse struct {
 	Key   []string
 	Bhash []common.Hash
 }
 
-func (t *mockService) ReadArray(r *http.Request, req *mockServiceArrayRequest, res *mockServiceArrayResponse) error {
+func (t *mockService) ReadArray(r *http.Request, req *MockServiceArrayRequest, res *MockServiceArrayResponse) error {
 	res.Key = req.Key
 	res.Bhash = req.Bhash
 	return nil
@@ -129,7 +131,7 @@ func TestJson2ReadRequest(t *testing.T) {
 				return
 			}
 
-			var resp mockServiceArrayResponse
+			var resp MockServiceArrayResponse
 			var resMap map[string]json.RawMessage
 
 			err = json.Unmarshal([]byte(resWriter.Body), &resMap)
