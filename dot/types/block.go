@@ -17,6 +17,8 @@
 package types
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -40,6 +42,14 @@ func NewEmptyBlock() Block {
 		Header: *NewEmptyHeader(),
 		Body:   Body(nil),
 	}
+}
+
+// String returns the formatted Block string
+func (b *Block) String() string {
+	return fmt.Sprintf("header: %v\nbody: %v",
+		&b.Header,
+		b.Body,
+	)
 }
 
 // Empty returns a boolean indicating is the Block is empty
