@@ -837,7 +837,7 @@ func TestGetReadProofAt(t *testing.T) {
 		}
 
 		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
-		require.Equal(t, common.Hash{}, b)
+		require.True(t, b.IsEmpty())
 		require.Nil(t, p)
 		require.Error(t, err)
 	})
@@ -860,7 +860,7 @@ func TestGetReadProofAt(t *testing.T) {
 		}
 
 		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
-		require.Equal(t, common.Hash{}, b)
+		require.True(t, b.IsEmpty())
 		require.Nil(t, p)
 		require.Error(t, err)
 	})
