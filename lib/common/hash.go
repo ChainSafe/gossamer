@@ -69,7 +69,7 @@ func (h Hash) Equal(g Hash) bool {
 
 // IsEmpty returns true if the hash is empty, false otherwise.
 func (h Hash) IsEmpty() bool {
-	return h.Equal(Hash{})
+	return h == Hash{}
 }
 
 // String returns the hex string for the hash
