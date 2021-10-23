@@ -67,8 +67,8 @@ func (h Hash) Equal(g Hash) bool {
 	return bytes.Equal(h[:], g[:])
 }
 
-// Empty returns true if the hash is empty, false otherwise.
-func (h Hash) Empty() bool {
+// IsEmpty returns true if the hash is empty, false otherwise.
+func (h Hash) IsEmpty() bool {
 	return h.Equal(Hash{})
 }
 

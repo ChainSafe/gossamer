@@ -76,7 +76,7 @@ func TestCustomMarshalJson(t *testing.T) {
 	}
 }
 
-func Test_Hash_Empty(t *testing.T) {
+func Test_Hash_IsEmpty(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -96,7 +96,7 @@ func Test_Hash_Empty(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			empty := testCase.hash.Empty()
+			empty := testCase.hash.IsEmpty()
 
 			assert.Equal(t, testCase.empty, empty)
 		})

@@ -552,7 +552,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 // QueryStorage returns the key-value data by block based on `keys` params
 // on every block starting `from` until `to` block, if `to` is not nil
 func (s *Service) QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
-	if to.Empty() {
+	if to.IsEmpty() {
 		to = s.blockState.BestBlockHash()
 	}
 
@@ -608,7 +608,7 @@ func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyVa
 // based on the block hash passed as param as well, if block hash is nil then the current state will take place
 func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 	hash common.Hash, proofForKeys [][]byte, err error) {
-	if block.Empty() {
+	if block.IsEmpty() {
 		block = s.blockState.BestBlockHash()
 	}
 
