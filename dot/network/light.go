@@ -174,7 +174,11 @@ type RemoteCallRequest struct {
 }
 
 func newRemoteCallRequest() *RemoteCallRequest {
-	return &RemoteCallRequest{}
+	return &RemoteCallRequest{
+		Block:  []byte{},
+		Method: "",
+		Data:   []byte{},
+	}
 }
 
 // RemoteReadRequest ...

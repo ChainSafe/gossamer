@@ -1891,7 +1891,8 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
 	var opt *[]byte
 	if data != nil {
-		opt = &data
+		temp := data
+		opt =  &temp
 	}
 
 	enc, err := scale.Marshal(opt)
@@ -1923,7 +1924,8 @@ func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error
 func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int64, error) {
 	var opt *uint32
 	if data != nil {
-		opt = data
+		temp := *data
+		opt = &temp
 	}
 
 	enc, err := scale.Marshal(opt)
@@ -1935,8 +1937,9 @@ func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int
 
 // Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (int64, error) {
-	var opt [64]byte
-	copy(opt[:], data[:])
+	// TODO this might break thing
+	opt := make([]byte, 64)
+	copy(opt, data)
 	enc, err := scale.Marshal(&opt)
 	if err != nil {
 		return 0, err
