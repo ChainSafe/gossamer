@@ -65,8 +65,8 @@ func (ls *leafMap) replace(oldNode, newNode *node) {
 	ls.store(newNode.hash, newNode)
 }
 
-// DeepestLeaf searches the stored leaves to the find the one with the greatest depth.
-// If there are two leaves with the same depth, choose the one with the earliest arrival time.
+// DeepestLeaf searches the stored leaves to the find the one with the greatest number.
+// If there are two leaves with the same number, choose the one with the earliest arrival time.
 func (ls *leafMap) deepestLeaf() *node {
 	max := big.NewInt(-1)
 
@@ -78,10 +78,10 @@ func (ls *leafMap) deepestLeaf() *node {
 
 		node := n.(*node)
 
-		if max.Cmp(node.depth) < 0 {
-			max = node.depth
+		if max.Cmp(node.number) < 0 {
+			max = node.number
 			dLeaf = node
-		} else if max.Cmp(node.depth) == 0 && node.arrivalTime < dLeaf.arrivalTime {
+		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(dLeaf.arrivalTime) {
 			dLeaf = node
 		}
 

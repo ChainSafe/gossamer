@@ -46,7 +46,7 @@ func (s *Service) receiveMessages(ctx context.Context) {
 				return
 			}
 
-			logger.Trace("received vote message", "msg", msg)
+			logger.Trace("received vote message", "msg", msg.msg, "from", msg.from)
 			vm := msg.msg
 
 			v, err := s.validateMessage(msg.from, vm)
@@ -57,11 +57,12 @@ func (s *Service) receiveMessages(ctx context.Context) {
 
 			logger.Debug("validated vote message",
 				"vote", v,
+				"from", vm.Message.AuthorityID,
 				"round", vm.Round,
 				"subround", vm.Message.Stage,
 				"prevote count", s.lenVotes(prevote),
 				"precommit count", s.lenVotes(precommit),
-				"votes needed", s.state.threshold(),
+				"votes needed", s.state.threshold()+1,
 			)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
@@ -168,6 +169,12 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 			if err = s.network.SendMessage(from, msg); err != nil {
 				logger.Warn("failed to send CommitMessage", "error", err)
 			}
+		} else {
+			// round is higher than ours, perhaps we are behind. store vote in tracker for now
+			s.tracker.addVote(&networkVoteMessage{
+				from: from,
+				msg:  m,
+			})
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up? (#1815)

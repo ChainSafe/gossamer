@@ -41,7 +41,7 @@ import (
 func TestRegisterModules(t *testing.T) {
 	rpcapiMocks := new(mocks.MockRPCAPI)
 
-	mods := []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate"}
+	mods := []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate"}
 
 	for _, modName := range mods {
 		rpcapiMocks.On("BuildMethodNames", mock.Anything, modName).Once()
@@ -125,7 +125,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 func TestUnsafeRPCProtection(t *testing.T) {
 	cfg := &HTTPServerConfig{
-		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev"},
+		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev", "syncstate"},
 		RPCPort:           7878,
 		RPCAPI:            NewService(),
 		RPCUnsafe:         false,

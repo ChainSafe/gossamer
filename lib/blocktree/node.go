@@ -19,6 +19,7 @@ package blocktree
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/disiqueira/gotree"
@@ -29,8 +30,8 @@ type node struct {
 	hash        common.Hash // Block hash
 	parent      *node       // Parent Node
 	children    []*node     // Nodes of children blocks
-	depth       *big.Int    // Depth within the tree
-	arrivalTime uint64      // Arrival time of the block
+	number      *big.Int    // block number
+	arrivalTime time.Time   // Arrival time of the block
 }
 
 // addChild appends Node to n's list of children
@@ -38,9 +39,9 @@ func (n *node) addChild(node *node) {
 	n.children = append(n.children, node)
 }
 
-// string returns stringified hash and depth of node
+// string returns stringified hash and number of node
 func (n *node) string() string {
-	return fmt.Sprintf("{hash: %s, depth: %s, arrivalTime: %d}", n.hash.String(), n.depth, n.arrivalTime)
+	return fmt.Sprintf("{hash: %s, number: %s, arrivalTime: %s}", n.hash.String(), n.number, n.arrivalTime)
 }
 
 // createTree adds all the nodes children to the existing printable tree.
@@ -68,20 +69,20 @@ func (n *node) getNode(h common.Hash) *node {
 	return nil
 }
 
-// getNodesWithDepth returns all descendent nodes with the desired depth
-func (n *node) getNodesWithDepth(depth *big.Int, hashes []common.Hash) []common.Hash {
+// getNodesWithNumber returns all descendent nodes with the desired number
+func (n *node) getNodesWithNumber(number *big.Int, hashes []common.Hash) []common.Hash {
 	for _, child := range n.children {
-		// depth matches
-		if child.depth.Cmp(depth) == 0 {
+		// number matches
+		if child.number.Cmp(number) == 0 {
 			hashes = append(hashes, child.hash)
 		}
 
-		// are deeper than desired depth, return
-		if child.depth.Cmp(depth) > 0 {
+		// are deeper than desired number, return
+		if child.number.Cmp(number) > 0 {
 			return hashes
 		}
 
-		hashes = child.getNodesWithDepth(depth, hashes)
+		hashes = child.getNodesWithNumber(number, hashes)
 	}
 
 	return hashes
@@ -190,8 +191,8 @@ func (n *node) deepCopy(parent *node) *node {
 	nCopy.hash = n.hash
 	nCopy.arrivalTime = n.arrivalTime
 
-	if n.depth != nil {
-		nCopy.depth = new(big.Int).Set(n.depth)
+	if n.number != nil {
+		nCopy.number = new(big.Int).Set(n.number)
 	}
 
 	nCopy.children = make([]*node, len(n.children))

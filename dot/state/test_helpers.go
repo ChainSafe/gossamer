@@ -162,17 +162,24 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	// create base tree
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
+		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+		require.NoError(t, err)
+		require.NotNil(t, d)
+		digest := types.NewDigest()
+		_ = digest.Add(*d)
+
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
+				Digest:     digest,
 			},
 			Body: types.Body{},
 		}
 
 		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
 
 		blockState.StoreRuntime(hash, rt)
@@ -205,7 +212,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			block := &types.Block{
 				Header: types.Header{
 					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i)),
+					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
 				},

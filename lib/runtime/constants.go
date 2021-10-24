@@ -47,7 +47,7 @@ const (
 	// v0.8 test API wasm
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
 	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
-	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/e8770476a4b8445cddd2bd1e8f0060a83eaccb38/test/hostapi_runtime.compact.wasm?raw=true"
+	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/f9f8c94397d155c4f2edc9c59828dc4ef2c62dd3/test/hostapi_runtime.compact.wasm?raw=true"
 
 	// v0.8 substrate runtime with modified name and babe C=(1, 1)
 	DEV_RUNTIME     = "dev_runtime"
