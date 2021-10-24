@@ -1918,7 +1918,7 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 	var opt *[]byte
 	if data != nil {
 		temp := data
-		opt =  &temp
+		opt = &temp
 	}
 
 	enc, err := scale.Marshal(opt)
