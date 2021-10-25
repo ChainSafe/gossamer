@@ -133,3 +133,10 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 func (s *Service) IsSynced() bool {
 	return s.chainSync.syncState() == tip
 }
+
+func reverseBlockData(data []*types.BlockData) []*types.BlockData {
+	for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
+		data[i], data[j] = data[j], data[i]
+	}
+	return data
+}

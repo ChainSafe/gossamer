@@ -354,6 +354,7 @@ func TestService_CreateBlockResponse_Descending_EndHash(t *testing.T) {
 }
 
 func TestService_checkOrGetDescendantHash(t *testing.T) {
+	t.Parallel()
 	s := newTestSyncer(t)
 	branches := map[int]int{
 		8: 1,

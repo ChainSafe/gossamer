@@ -39,7 +39,7 @@ func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*networ
 	case network.Descending:
 		return s.handleDescendingRequest(req)
 	default:
-		return nil, errors.New("invalid request direction")
+		return nil, errInvalidRequestDirection
 	}
 }
 
@@ -69,13 +69,13 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 
 		// if request start is higher than our best block, return error
 		if bestBlockNumber.Uint64() < startBlock {
-			return nil, errors.New("request start number is higher than our best block")
+			return nil, errRequestStartTooHigh
 		}
 
 		startNumber = startBlock
 
 		if endHash != nil {
-			// TODO: end is hash is provided but start hash isn't. need to determine start block
+			// TODO: end hash is provided but start hash isn't, so we need to determine a start block
 			// that is an ancestor of the end block
 			sh, err := s.blockState.GetHashByNumber(big.NewInt(int64(startNumber)))
 			if err != nil {
@@ -88,7 +88,7 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 			}
 
 			if !is {
-				return nil, fmt.Errorf("failed to get ancestor of end block with hash %s", *endHash)
+				return nil, fmt.Errorf("%w: hash=%s", errFailedToGetEndHashAncestor, *endHash)
 			}
 
 			startHash = &sh
@@ -129,10 +129,11 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 	// start hash provided, need to determine end hash that is descendant of start hash
 	if startHash != nil {
 		eh, err := s.checkOrGetDescendantHash(*startHash, endHash, big.NewInt(int64(endNumber)))
-		endHash = &eh
 		if err != nil {
 			return nil, err
 		}
+
+		endHash = &eh
 	}
 
 	if startHash == nil && endHash == nil {
@@ -238,35 +239,35 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)
 }
 
-// checkOrGetDescendantHash checks if the provided `descedant` is on the same chain as the `ancestor`, if it's provided,
+// checkOrGetDescendantHash checks if the provided `descendant` is on the same chain as the `ancestor`, if it's provided,
 // otherwise, it sets `descendant` to a block with number=`descendantNumber` that is a descendant of the ancestor
 // if used with an Ascending request, ancestor is the start block and descendant is the end block
 // if used with an Descending request, ancestor is the end block and descendant is the start block
 func (s *Service) checkOrGetDescendantHash(ancestor common.Hash, descendant *common.Hash, descendantNumber *big.Int) (common.Hash, error) {
 	if descendantNumber == nil {
-		return common.EmptyHash, errors.New("descendantNumber is nil")
+		return common.Hash{}, errors.New("descendantNumber is nil")
 	}
 
 	// if `descendant` was provided, check that it's a descendant of `ancestor`
 	if descendant != nil {
 		header, err := s.blockState.GetHeader(ancestor)
 		if err != nil {
-			return common.EmptyHash, fmt.Errorf("failed to get descendant %s: %w", *descendant, err)
+			return common.Hash{}, fmt.Errorf("failed to get descendant %s: %w", *descendant, err)
 		}
 
 		// if descendant number is lower than ancestor number, this is an error
 		if header.Number.Cmp(descendantNumber) > 0 {
-			return common.EmptyHash, fmt.Errorf("invalid request, descendant number %d is higher than ancestor %d", header.Number, descendantNumber)
+			return common.Hash{}, fmt.Errorf("invalid request, descendant number %d is higher than ancestor %d", header.Number, descendantNumber)
 		}
 
 		// check if provided start hash is descendant of provided descendant hash
 		is, err := s.blockState.IsDescendantOf(ancestor, *descendant)
 		if err != nil {
-			return common.EmptyHash, err
+			return common.Hash{}, err
 		}
 
 		if !is {
-			return common.EmptyHash, errors.New("request start and end hash are not on the same chain")
+			return common.Hash{}, errors.New("request start and end hash are not on the same chain")
 		}
 
 		return *descendant, nil
@@ -275,42 +276,38 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash, descendant *com
 	// otherwise, get block on canonical chain by descendantNumber
 	hash, err := s.blockState.GetHashByNumber(descendantNumber)
 	if err != nil {
-		return common.EmptyHash, err
+		return common.Hash{}, err
 	}
 
 	// check if it's a descendant of the provided ancestor hash
 	is, err := s.blockState.IsDescendantOf(ancestor, hash)
 	if err != nil {
-		return common.EmptyHash, err
+		return common.Hash{}, err
 	}
 
 	if !is {
-		// if it's not a descedant, search for a block that has number=descendantNumber that is
+		// if it's not a descendant, search for a block that has number=descendantNumber that is
 		hashes, err := s.blockState.GetAllBlocksAtNumber(descendantNumber)
 		if err != nil {
-			return common.EmptyHash, fmt.Errorf("failed to get blocks at number %d: %w", descendantNumber, err)
+			return common.Hash{}, fmt.Errorf("failed to get blocks at number %d: %w", descendantNumber, err)
 		}
 
 		for _, hash := range hashes {
 			is, err := s.blockState.IsDescendantOf(ancestor, hash)
-			if err != nil {
-				continue
-			}
-
-			if !is {
+			if err != nil || !is {
 				continue
 			}
 
 			// this sets the descendant hash to whatever the first block we find with descendantNumber
 			// is, however there might be multiple blocks that fit this criteria
-			h := common.EmptyHash
+			h := common.Hash{}
 			copy(h[:], hash[:])
 			descendant = &h
 			break
 		}
 
 		if descendant == nil {
-			return common.EmptyHash, fmt.Errorf("failed to find descedant block with number %d", descendantNumber)
+			return common.Hash{}, fmt.Errorf("failed to find descendant block with number %d", descendantNumber)
 		}
 	} else {
 		// if it is, set descendant hash to our block w/ descendantNumber
@@ -330,8 +327,8 @@ func (s *Service) handleAscendingByNumber(start, end uint64, requestedData byte)
 	data := make([]*types.BlockData, (end-start)+1)
 
 	idx := 0
-	for i := start; i <= end; i++ {
-		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(i)), requestedData)
+	for blockNumber := start; blockNumber <= end; blockNumber++ {
+		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(blockNumber)), requestedData)
 		if err != nil {
 			return nil, err
 		}
@@ -382,9 +379,7 @@ func (s *Service) handleChainByHash(ancestor, descendant common.Hash, max uint32
 
 	// reverse BlockData, if descending request
 	if direction == network.Descending {
-		for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
-			data[i], data[j] = data[j], data[i]
-		}
+		data = reverseBlockData(data)
 	}
 
 	return &network.BlockResponseMessage{
