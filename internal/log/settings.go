@@ -9,13 +9,17 @@ type settings struct {
 	level   Level
 	caller  Caller
 	format  Format
-	context map[string]string
+	context []contextKeyValues
 	writer  io.Writer
+}
+
+type contextKeyValues struct {
+	key    string
+	values []string
 }
 
 // newSettings returns settings using the options given.
 func newSettings(options []Option) (settings settings) {
-	settings.context = make(map[string]string)
 	for _, option := range options {
 		option(&settings)
 	}
@@ -43,13 +47,22 @@ func (s *settings) mergeWith(other settings) {
 	if s.writer == nil {
 		s.writer = other.writer
 	}
-	if s.context == nil {
-		s.context = other.context
-	} else {
-		for k, v := range other.context {
-			if _, ok := s.context[k]; !ok {
-				s.context[k] = v
-			}
+
+	existingKeyToIndex := make(map[string]int, len(s.context))
+	for i, kvs := range s.context {
+		existingKeyToIndex[kvs.key] = i
+	}
+	for _, kvs := range other.context {
+		i, ok := existingKeyToIndex[kvs.key]
+		if ok {
+			s.context[i].values = append(s.context[i].values, kvs.values...)
+			continue
 		}
+		kvsCopy := contextKeyValues{
+			key:    kvs.key,
+			values: make([]string, len(kvs.values)),
+		}
+		copy(kvsCopy.values, kvs.values)
+		s.context = append(s.context, kvsCopy)
 	}
 }

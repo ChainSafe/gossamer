@@ -22,6 +22,9 @@ const (
 	LevelError
 	// LevelCritical is the cirtical (crit) level.
 	LevelCritical
+	// LevelDoNotChange indicates the level of the logger should be
+	// left as is.
+	LevelDoNotChange Level = Level(^uint8(0))
 )
 
 func (level Level) String() (s string) {
@@ -38,8 +41,9 @@ func (level Level) String() (s string) {
 		return "EROR"
 	case LevelCritical:
 		return "CRIT"
+	default:
+		return "???"
 	}
-	return string(level)
 }
 
 // ErrLevelNotRecognised is an error returned if the level string is

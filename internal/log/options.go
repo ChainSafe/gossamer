@@ -38,11 +38,18 @@ func SetWriter(writer io.Writer) Option {
 	}
 }
 
-// SetContext set the context for the logger as key value pairs.
-func SetContext(kv map[string]string) Option {
+// AddContext adds the context for the logger as a key values pair.
+// It adds them in order. If a key already exists, the value is added to the
+// existing values.
+func AddContext(key, value string) Option {
 	return func(s *settings) {
-		for k, v := range kv {
-			s.context[k] = v
+		for i := range s.context {
+			if s.context[i].key == key {
+				s.context[i].values = append(s.context[i].values, value)
+				return
+			}
 		}
+		newKV := contextKeyValues{key: key, values: []string{value}}
+		s.context = append(s.context, newKV)
 	}
 }

@@ -1,8 +1,10 @@
 package log
 
-import "strings"
+import (
+	"strings"
+)
 
-func (l *Logger) log(logLevel Level, s string, options []LogOption) {
+func (l *Logger) log(logLevel Level, s string) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -10,13 +12,12 @@ func (l *Logger) log(logLevel Level, s string, options []LogOption) {
 		return
 	}
 
-	logSettings := newLogSettings(options)
-
 	line := logLevel.String() + " " + s
-	if len(logSettings.context) > 0 {
-		keyValues := make([]string, 0, len(logSettings.context))
-		for k, v := range logSettings.context {
-			keyValue := k + "=" + v
+	if len(l.settings.context) > 0 {
+		keyValues := make([]string, 0, len(l.settings.context))
+		for _, kvs := range l.settings.context {
+			valuesString := strings.Join(kvs.values, ",")
+			keyValue := kvs.key + "=" + valuesString
 			keyValues = append(keyValues, keyValue)
 		}
 		line += "\t" + strings.Join(keyValues, " ")
@@ -27,19 +28,19 @@ func (l *Logger) log(logLevel Level, s string, options []LogOption) {
 }
 
 // Trace logs with the trce level.
-func (l *Logger) Trace(s string, options ...LogOption) { l.log(LevelTrace, s, options) }
+func (l *Logger) Trace(s string) { l.log(LevelTrace, s) }
 
 // Debug logs with the dbug level.
-func (l *Logger) Debug(s string, options ...LogOption) { l.log(LevelDebug, s, options) }
+func (l *Logger) Debug(s string) { l.log(LevelDebug, s) }
 
 // Info logs with the info level.
-func (l *Logger) Info(s string, options ...LogOption) { l.log(LevelInfo, s, options) }
+func (l *Logger) Info(s string) { l.log(LevelInfo, s) }
 
 // Warn logs with the warn level.
-func (l *Logger) Warn(s string, options ...LogOption) { l.log(LevelWarn, s, options) }
+func (l *Logger) Warn(s string) { l.log(LevelWarn, s) }
 
 // Error logs with the eror level.
-func (l *Logger) Error(s string, options ...LogOption) { l.log(LevelError, s, options) }
+func (l *Logger) Error(s string) { l.log(LevelError, s) }
 
 // Critical logs with the crit level.
-func (l *Logger) Critical(s string, options ...LogOption) { l.log(LevelCritical, s, options) }
+func (l *Logger) Critical(s string) { l.log(LevelCritical, s) }

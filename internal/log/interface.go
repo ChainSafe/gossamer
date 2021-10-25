@@ -17,14 +17,15 @@ type ChildConstructor interface {
 // LoggerUpdater is the interface to update the current logger.
 type LoggerUpdater interface {
 	Patch(options ...Option)
+	PatchLevel(level Level)
 }
 
 // LeveledLogger is the interface to log at different levels.
 type LeveledLogger interface {
-	Trace(s string, options ...LogOption)
-	Debug(s string, options ...LogOption)
-	Info(s string, options ...LogOption)
-	Warn(s string, options ...LogOption)
-	Error(s string, options ...LogOption)
-	Critical(s string, options ...LogOption)
+	Trace(s string)
+	Debug(s string)
+	Info(s string)
+	Warn(s string)
+	Error(s string)
+	Critical(s string)
 }

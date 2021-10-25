@@ -13,6 +13,11 @@ func Patch(options ...Option) {
 	globalLogger.Patch(options...)
 }
 
+// PatchLevel patches the global package logger level.
+func PatchLevel(level Level) {
+	globalLogger.PatchLevel(level)
+}
+
 // Trace using the global logger.
 func Trace(s string) {
 	globalLogger.Trace(s)

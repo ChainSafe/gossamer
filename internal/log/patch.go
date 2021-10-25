@@ -7,3 +7,15 @@ func (l *Logger) Patch(options ...Option) {
 	defer l.mutex.Unlock()
 	l.settings = newSettings(options)
 }
+
+// PatchLevel changes the logger level. This is thread safe.
+// This does not affect child loggers.
+func (l *Logger) PatchLevel(level Level) {
+	if level == LevelDoNotChange {
+		return
+	}
+
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.settings.level = level
+}
