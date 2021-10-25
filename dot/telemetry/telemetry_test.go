@@ -84,8 +84,9 @@ func TestHandler_SendMulti(t *testing.T) {
 	expected2 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`)
 	expected3 := []byte(`{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1,"ts":`)
 	expected4 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","ts":`) // nolint
+	expected6 := []byte(`{"hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","msg":"prepared_block_for_proposing","number":"1","ts":`)
 
-	expected := [][]byte{expected1, expected3, expected4, expected2}
+	expected := [][]byte{expected1, expected3, expected4, expected2, expected6}
 
 	var actual [][]byte
 	for data := range resultCh {
@@ -98,10 +99,10 @@ func TestHandler_SendMulti(t *testing.T) {
 	sort.Slice(actual, func(i, j int) bool {
 		return bytes.Compare(actual[i], actual[j]) < 0
 	})
-	require.Contains(t, string(actual[0]), string(expected[0]))
-	require.Contains(t, string(actual[1]), string(expected[1]))
-	require.Contains(t, string(actual[2]), string(expected[2]))
-	require.Contains(t, string(actual[3]), string(expected[3]))
+
+	for i := range actual {
+		require.Contains(t, string(actual[i]), string(expected[i]))
+	}
 }
 
 func TestListenerConcurrency(t *testing.T) {
