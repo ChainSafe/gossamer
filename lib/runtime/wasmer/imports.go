@@ -848,7 +848,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan C.int64_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
