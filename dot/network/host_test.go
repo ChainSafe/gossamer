@@ -168,8 +168,6 @@ func TestBootstrap(t *testing.T) {
 
 // test host send method
 func TestSend(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -217,8 +215,6 @@ func TestSend(t *testing.T) {
 
 // test host send method with existing stream
 func TestExistingStream(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -281,8 +277,6 @@ func TestExistingStream(t *testing.T) {
 }
 
 func TestStreamCloseMetadataCleanup(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -417,8 +411,6 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 }
 
 func Test_AddReservedPeers(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -451,8 +443,6 @@ func Test_AddReservedPeers(t *testing.T) {
 }
 
 func Test_RemoveReservedPeers(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -547,8 +537,6 @@ func TestStreamCloseEOF(t *testing.T) {
 
 // Test to check the nodes connection by peer set manager
 func TestPeerConnect(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -588,8 +576,6 @@ func TestPeerConnect(t *testing.T) {
 
 // Test to check banned peer disconnection by peer set manager
 func TestBannedPeer(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
@@ -645,8 +631,6 @@ func TestBannedPeer(t *testing.T) {
 
 // Test to check reputation updated by peer set manager
 func TestPeerReputation(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
@@ -692,6 +676,6 @@ func TestPeerReputation(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	rep, err := nodeA.host.cm.peerSetHandler.PeerReputation(addrInfoB.ID)
-	require.NoError(t, nil, err)
+	require.NoError(t, err)
 	require.Greater(t, rep, int32(0))
 }

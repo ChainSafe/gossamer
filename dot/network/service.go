@@ -767,7 +767,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 	switch msg.Status {
 	case peerset.Connect:
 		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
-		if addrInfo.Addrs == nil || len(addrInfo.Addrs) == 0 {
+		if len(addrInfo.Addrs) == 0 {
 			var err error
 			addrInfo, err = s.host.discovery.findPeer(peerID)
 			if err != nil {

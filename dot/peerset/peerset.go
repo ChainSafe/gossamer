@@ -1,7 +1,6 @@
 package peerset
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -11,8 +10,7 @@ import (
 )
 
 var (
-	logger                                   log.Logger = log.New("pkg", "peerset")
-	errDisconnectReceivedForNonConnectedPeer            = errors.New("received disconnect for non-connected node")
+	logger = log.New("pkg", "peerset")
 )
 
 const (
@@ -176,8 +174,6 @@ func NewConfigSet(in, out uint32, reservedOnly bool, allocTime time.Duration) *C
 }
 
 func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
-	now := time.Now()
-
 	if len(cfg.Set) == 0 {
 		return nil, errConfigSetIsEmpty
 	}
@@ -189,6 +185,7 @@ func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 
 	// TODO: currently we only have one set, change this once we have more (#1886).
 	cfgSet := cfg.Set[0]
+	now := time.Now()
 	ps := &PeerSet{
 		peerState:              peerState,
 		reservedNode:           make(map[peer.ID]struct{}),
@@ -214,8 +211,7 @@ func reputationTick(reput Reputation) Reputation {
 		diff = 1
 	}
 
-	reput = reput.sub(diff)
-	return reput
+	return reput.sub(diff)
 }
 
 // updateTime updates the value of latestTimeUpdate and performs all the updates that happen
@@ -229,8 +225,8 @@ func (ps *PeerSet) updateTime() error {
 	ps.latestTimeUpdate = currTime
 	secDiff := int64(elapsedNow.Seconds() - elapsedLatest.Seconds())
 
-	// this will give for how many seconds decaying is required for each peer
-	// for each elapsed second, move the node reputation towards zero.
+	// This will give for how many seconds decaying is required for each peer.
+	// For each elapsed second, move the node reputation towards zero.
 	for i := int64(0); i < secDiff; i++ {
 		for _, peerID := range ps.peerState.peers() {
 			n, err := ps.peerState.getNode(peerID)

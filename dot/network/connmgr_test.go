@@ -30,8 +30,6 @@ import (
 )
 
 func TestMinPeers(t *testing.T) {
-	t.Parallel()
-
 	const min = 1
 
 	nodes := make([]*Service, 2)
@@ -68,8 +66,6 @@ func TestMinPeers(t *testing.T) {
 }
 
 func TestMaxPeers(t *testing.T) {
-	t.Parallel()
-
 	const max = 3
 	nodes := make([]*Service, max+2)
 	for i := range nodes {
@@ -104,8 +100,6 @@ func TestMaxPeers(t *testing.T) {
 }
 
 func TestProtectUnprotectPeer(t *testing.T) {
-	t.Parallel()
-
 	const (
 		min                = 1
 		max                = 4
@@ -170,8 +164,6 @@ func TestPersistentPeers(t *testing.T) {
 }
 
 func TestRemovePeer(t *testing.T) {
-	t.Parallel()
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -206,8 +198,6 @@ func TestRemovePeer(t *testing.T) {
 }
 
 func TestSetReservedPeer(t *testing.T) {
-	t.Parallel()
-
 	nodes := make([]*Service, 3)
 	for i := range nodes {
 		config := &Config{

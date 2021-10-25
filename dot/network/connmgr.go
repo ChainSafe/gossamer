@@ -64,7 +64,7 @@ func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, 
 		protectedPeers:  new(sync.Map),
 		persistentPeers: new(sync.Map),
 		peerSetHandler:  psh,
-	}, err
+	}, nil
 }
 
 // Notifee is used to monitor changes to a connection

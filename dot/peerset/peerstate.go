@@ -18,11 +18,6 @@ const (
 	unknownPeer = "unknownPeer"
 )
 
-var (
-	errConfigSetIsEmpty = errors.New("config set is empty")
-	errPeerDoesNotExist = errors.New("peer doesn't exist")
-)
-
 // MembershipState represent the state of node ingoing the set.
 type MembershipState int
 
@@ -296,7 +291,7 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 		case outgoing:
 			info.numOut--
 		case notMember, notConnected:
-			return errors.New("node is already disconnected")
+			return errPeerDisconnected
 		}
 	}
 
@@ -367,12 +362,12 @@ func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 	}
 
 	if !ps.hasFreeOutgoingSlot(setID) && !isNoSlotOccupied {
-		return errors.New("not enough outgoing slots")
+		return errSlotsUnavailable
 	}
 
-	n, ok := ps.nodes[peerID]
-	if !ok {
-		return errors.New("unknown node")
+	n, err := ps.getNode(peerID)
+	if err != nil {
+		return err
 	}
 
 	n.state[setID] = outgoing
