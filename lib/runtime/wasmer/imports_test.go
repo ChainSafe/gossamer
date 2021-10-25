@@ -653,12 +653,15 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
 	require.NoError(t, err)
 
-	buf := bytes.NewBuffer(ret)
+	//buf := bytes.NewBuffer(ret)
+	//
+	//read, err := new(optional.Bytes).Decode(buf)
 
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
 
-	require.True(t, read.Exists())
+	require.NotNil(t, read)
 }
 
 func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
@@ -1321,11 +1324,11 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
-	optLimit2 := optional.NewBytes(true, testLimitBytes)
+	optLimit2 := &testLimitBytes
 
 	testCases := []struct {
 		key      []byte
-		limit    *optional.Bytes
+		limit    *[]byte
 		expected []byte
 		errMsg   string
 	}{
@@ -1337,7 +1340,7 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 	for _, test := range testCases {
 		encChildKey, err := scale.Marshal(test.key)
 		require.NoError(t, err)
-		encOptLimit, err := test.limit.Encode()
+		encOptLimit, err := scale.Marshal(test.limit)
 		require.NoError(t, err)
 		res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_3", append(encChildKey, encOptLimit...))
 		if test.errMsg != "" {
@@ -1348,12 +1351,15 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 
 		require.NoError(t, err)
 
-		buf := &bytes.Buffer{}
-		buf.Write(res)
-
-		read, err := new(optional.Bytes).Decode(buf)
+		//buf := &bytes.Buffer{}
+		//buf.Write(res)
+		//
+		//read, err := new(optional.Bytes).Decode(buf)
+		var read *[]byte
+		err = scale.Unmarshal(res, &read)
 		require.NoError(t, err)
-		require.Equal(t, test.expected, read.Value())
+		require.NotNil(t, read)
+		require.Equal(t, test.expected, *read)
 	}
 }
 
