@@ -248,12 +248,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return err
 	}
 
-	// check if block production epoch transitioned
-	if err := s.handleCurrentSlot(&block.Header); err != nil {
-		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
-		return err
-	}
-
 	go func() {
 		s.Lock()
 		defer s.Unlock()
@@ -311,29 +305,6 @@ func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.Trie
 
 	s.blockState.StoreRuntime(hash, next)
 	return nil
-}
-
-func (s *Service) handleCurrentSlot(header *types.Header) error {
-	head := s.blockState.BestBlockHash()
-	if header.Hash() != head {
-		return nil
-	}
-
-	epoch, err := s.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
-	currEpoch, err := s.epochState.GetCurrentEpoch()
-	if err != nil {
-		return err
-	}
-
-	if currEpoch == epoch {
-		return nil
-	}
-
-	return s.epochState.SetCurrentEpoch(epoch)
 }
 
 // handleBlocksAsync handles a block asynchronously; the handling performed by this function
@@ -399,7 +370,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range *body {
-			logger.Info("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err

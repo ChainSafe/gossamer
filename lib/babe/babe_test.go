@@ -323,6 +323,7 @@ func TestService_SlotDuration(t *testing.T) {
 
 func TestService_ProducesBlocks(t *testing.T) {
 	babeService := createTestService(t, nil)
+	babeService.lead = true
 
 	babeService.epochData.authorityIndex = 0
 	babeService.epochData.authorities = []types.Authority{
