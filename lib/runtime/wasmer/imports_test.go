@@ -1226,6 +1226,54 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	require.Nil(t, child)
 }
 
+func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	tr.Put([]byte(`key3`), []byte(`value3`))
+	err := inst.ctx.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
+	optLimit2 := optional.NewBytes(true, testLimitBytes)
+
+	testCases := []struct {
+		key      []byte
+		limit    *optional.Bytes
+		expected []byte
+		errMsg   string
+	}{
+		{key: []byte(`fakekey`), limit: optLimit2, expected: []byte{0, 0, 0, 0, 0}, errMsg: "Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function."},
+		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
+		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
+	}
+
+	for _, test := range testCases {
+		encChildKey, err := scale.Marshal(test.key)
+		require.NoError(t, err)
+		encOptLimit, err := test.limit.Encode()
+		require.NoError(t, err)
+		res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_3", append(encChildKey, encOptLimit...))
+		if test.errMsg != "" {
+			require.Error(t, err)
+			require.EqualError(t, err, test.errMsg)
+			continue
+		}
+
+		require.NoError(t, err)
+
+		buf := &bytes.Buffer{}
+		buf.Write(res)
+
+		read, err := new(optional.Bytes).Decode(buf)
+		require.NoError(t, err)
+		require.Equal(t, test.expected, read.Value())
+	}
+}
+
 func Test_ext_storage_append_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
