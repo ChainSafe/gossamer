@@ -81,6 +81,8 @@ var (
 	DefaultNoBootstrap = false
 	// DefaultNoMDNS disables mDNS discovery
 	DefaultNoMDNS = false
+	// DefaultMinPeers is the default minimum desired peer count
+	DefaultMinPeers = 1
 
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Second * 10
@@ -95,7 +97,7 @@ var (
 	// DefaultRPCHTTPPort rpc port
 	DefaultRPCHTTPPort = uint32(8545)
 	// DefaultRPCModules rpc modules
-	DefaultRPCModules = []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate"}
+	DefaultRPCModules = []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"}
 	// DefaultRPCWSPort rpc websocket port
 	DefaultRPCWSPort = uint32(8546)
 )

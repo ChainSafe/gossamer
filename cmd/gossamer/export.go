@@ -113,8 +113,6 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 		Roles:            dcfg.Core.Roles,
 		BabeAuthority:    dcfg.Core.BabeAuthority,
 		GrandpaAuthority: dcfg.Core.GrandpaAuthority,
-		EpochLength:      dcfg.Core.EpochLength,
-		SlotDuration:     dcfg.Core.SlotDuration,
 		GrandpaInterval:  uint32(dcfg.Core.GrandpaInterval / time.Second),
 	}
 
@@ -125,6 +123,8 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 		NoBootstrap:       dcfg.Network.NoBootstrap,
 		NoMDNS:            dcfg.Network.NoMDNS,
 		DiscoveryInterval: int(dcfg.Network.DiscoveryInterval / time.Second),
+		MinPeers:          dcfg.Network.MinPeers,
+		MaxPeers:          dcfg.Network.MaxPeers,
 	}
 
 	cfg.RPC = ctoml.RPCConfig{

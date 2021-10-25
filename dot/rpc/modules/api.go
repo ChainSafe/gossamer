@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -20,7 +21,7 @@ type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error)
 	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
-	GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error)
+	GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
@@ -45,6 +46,7 @@ type BlockAPI interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
+	GetRuntime(hash *common.Hash) (runtime.Instance, error)
 }
 
 // NetworkAPI interface for network state methods
@@ -120,4 +122,9 @@ type RuntimeStorageAPI interface {
 	SetPersistent(k, v []byte) error
 	GetLocal(k []byte) ([]byte, error)
 	GetPersistent(k []byte) ([]byte, error)
+}
+
+// SyncStateAPI is the interface to interact with sync state.
+type SyncStateAPI interface {
+	GenSyncSpec(raw bool) (*genesis.Genesis, error)
 }

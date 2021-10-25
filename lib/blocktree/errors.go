@@ -31,4 +31,12 @@ var (
 
 	// ErrFailedToGetRuntime is returned when runtime doesn't exist in blockTree for corresponding block.
 	ErrFailedToGetRuntime = errors.New("failed to get runtime instance")
+
+	// ErrNumGreaterThanHighest is returned when attempting to get a hash by number that is higher than any in the blocktree
+	ErrNumGreaterThanHighest = errors.New("cannot find node with number greater than highest in blocktree")
+
+	// ErrNumLowerThanRoot is returned when attempting to get a hash by number that is lower than the root node
+	ErrNumLowerThanRoot = errors.New("cannot find node with number lower than root node")
+
+	errUnexpectedNumber = errors.New("block number is not parent number + 1")
 )

@@ -83,6 +83,7 @@ type CoreConfig struct {
 	EpochLength      uint64 `toml:"epoch-length,omitempty"`
 	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
 	GrandpaInterval  uint32 `toml:"grandpa-interval,omitempty"`
+	BABELead         bool   `toml:"babe-lead,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars

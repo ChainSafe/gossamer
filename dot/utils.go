@@ -121,14 +121,13 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 
 // NewTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
-// nolint
 func NewTestGenesisAndRuntime(t *testing.T) string {
 	dir := utils.NewTestDir(t)
 
 	_ = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
 
-	runtimeData, err := ioutil.ReadFile(runtimeFilePath)
+	runtimeData, err := ioutil.ReadFile(filepath.Clean(runtimeFilePath))
 	require.Nil(t, err)
 
 	gen := NewTestGenesis(t)
@@ -156,8 +155,6 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 // NewTestConfig returns a new test configuration using the provided basepath
 func NewTestConfig(t *testing.T) *Config {
 	dir := utils.NewTestDir(t)
-
-	// TODO: use default config instead of gssmr config for test config #776
 
 	cfg := &Config{
 		Global: GlobalConfig{
@@ -230,7 +227,7 @@ func WriteConfig(data []byte, fp string) *os.File {
 	return newFile
 }
 
-// CreateJSONRawFile will generate an Json File
+// CreateJSONRawFile will generate a JSON genesis file with raw storage
 func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
 	data, err := bs.ToJSONRaw()
 	if err != nil {
@@ -240,8 +237,7 @@ func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
 	return WriteConfig(data, fp)
 }
 
-// RandomNodeName generate a new random name
-// if there is no name configured to the node
+// RandomNodeName generates a new random name if there is no name configured for the node
 func RandomNodeName() string {
 	entropy, _ := bip39.NewEntropy(128)
 	randomNamesString, _ := bip39.NewMnemonic(entropy)

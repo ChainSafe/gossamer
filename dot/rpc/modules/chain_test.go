@@ -19,6 +19,7 @@ package modules
 import (
 	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -26,10 +27,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	database "github.com/ChainSafe/chaindb"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -310,13 +314,14 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 
 	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	header := &types.Header{
+
+	header := types.Header{
 		ParentHash: genesisHeader.Hash(),
 		Number:     big.NewInt(1),
 		Digest:     digest,
 	}
 	err = state.Block.AddBlock(&types.Block{
-		Header: *header,
+		Header: header,
 		Body:   types.Body{},
 	})
 	require.NoError(t, err)
@@ -350,11 +355,22 @@ func newTestStateService(t *testing.T) *state.Service {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	rt, err := stateSrvc.CreateGenesisRuntime(genTrie, gen)
+	rtCfg := &wasmer.Config{}
+
+	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	err = loadTestBlocks(t, genesisHeader.Hash(), stateSrvc.Block, rt)
+	if stateSrvc != nil {
+		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
+	} else {
+		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		require.NoError(t, err)
+	}
+
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
+
+	loadTestBlocks(t, genesisHeader.Hash(), stateSrvc.Block, rt)
 
 	t.Cleanup(func() {
 		stateSrvc.Stop()
@@ -362,36 +378,11 @@ func newTestStateService(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
-	// Create header
-	header0 := &types.Header{
-		Number:     big.NewInt(0),
-		Digest:     types.NewDigest(),
-		ParentHash: gh,
-		StateRoot:  trie.EmptyHash,
-	}
-	// Create blockHash
-	blockHash0 := header0.Hash()
-	block0 := &types.Block{
-		Header: *header0,
-		Body:   sampleBodyBytes,
-	}
-
-	err := bs.AddBlock(block0)
-	if err != nil {
-		return err
-	}
-
-	bs.StoreRuntime(block0.Header.Hash(), rt)
-
-	// Create header & blockData for block 1
-	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	require.NoError(t, err)
+func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) {
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     digest,
-		ParentHash: blockHash0,
+		Digest:     types.NewDigest(),
+		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
 
@@ -400,13 +391,27 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		Body:   sampleBodyBytes,
 	}
 
-	// Add the block1 to the DB
-	err = bs.AddBlock(block1)
-	if err != nil {
-		return err
+	err := bs.AddBlock(block1)
+	require.NoError(t, err)
+	bs.StoreRuntime(header1.Hash(), rt)
+
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
+
+	header2 := &types.Header{
+		Number:     big.NewInt(2),
+		Digest:     digest,
+		ParentHash: header1.Hash(),
+		StateRoot:  trie.EmptyHash,
 	}
 
-	bs.StoreRuntime(block1.Header.Hash(), rt)
+	block2 := &types.Block{
+		Header: *header2,
+		Body:   sampleBodyBytes,
+	}
 
-	return nil
+	err = bs.AddBlock(block2)
+	require.NoError(t, err)
+	bs.StoreRuntime(header2.Hash(), rt)
 }

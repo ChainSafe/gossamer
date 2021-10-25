@@ -186,6 +186,50 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	require.Nil(t, val)
 }
 
+func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("key1")
+	err := inst.NodeStorage().PersistentStorage.Put(testkey, []byte{1})
+	require.NoError(t, err)
+
+	kind := int32(1)
+	encKind, err := scale.Marshal(kind)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
+	require.NoError(t, err)
+
+	val, err := inst.NodeStorage().PersistentStorage.Get(testkey)
+	require.EqualError(t, err, "Key not found")
+	require.Nil(t, val)
+}
+
+func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("key1")
+	err := inst.NodeStorage().LocalStorage.Put(testkey, []byte{1})
+	require.NoError(t, err)
+
+	kind := int32(2)
+	encKind, err := scale.Marshal(kind)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
+	require.NoError(t, err)
+
+	val, err := inst.NodeStorage().LocalStorage.Get(testkey)
+	require.EqualError(t, err, "Key not found")
+	require.Nil(t, val)
+}
+
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -352,7 +396,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 	read, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
 	val := read.Value()
-	require.Equal(t, len(testvalue)-int(testoffset), len(val)) // TODO: fix
+	require.Equal(t, len(testvalue)-int(testoffset), len(val))
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
 }
 
@@ -418,7 +462,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_offline_index_set_version_1(t *testing.T) {
-	// TODO this currently fails with error could nat find exported function, determine how else to test this
+	// TODO this currently fails with error could not find exported function, add rtm_ func to tester wasm (#1026)
 	t.Skip()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -470,7 +514,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	mem := inst.vm.Memory.Data()
-	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
+	// this SCALE encoded, but it should just be a 32 byte buffer. may be due to way test runtime is written.
 	pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
 	require.NoError(t, err)
@@ -1180,6 +1224,54 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
 	require.Error(t, err)
 	require.Nil(t, child)
+}
+
+func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	tr.Put([]byte(`key3`), []byte(`value3`))
+	err := inst.ctx.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
+	optLimit2 := optional.NewBytes(true, testLimitBytes)
+
+	testCases := []struct {
+		key      []byte
+		limit    *optional.Bytes
+		expected []byte
+		errMsg   string
+	}{
+		{key: []byte(`fakekey`), limit: optLimit2, expected: []byte{0, 0, 0, 0, 0}, errMsg: "Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function."},
+		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
+		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
+	}
+
+	for _, test := range testCases {
+		encChildKey, err := scale.Marshal(test.key)
+		require.NoError(t, err)
+		encOptLimit, err := test.limit.Encode()
+		require.NoError(t, err)
+		res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_3", append(encChildKey, encOptLimit...))
+		if test.errMsg != "" {
+			require.Error(t, err)
+			require.EqualError(t, err, test.errMsg)
+			continue
+		}
+
+		require.NoError(t, err)
+
+		buf := &bytes.Buffer{}
+		buf.Write(res)
+
+		read, err := new(optional.Bytes).Decode(buf)
+		require.NoError(t, err)
+		require.Equal(t, test.expected, read.Value())
+	}
 }
 
 func Test_ext_storage_append_version_1(t *testing.T) {

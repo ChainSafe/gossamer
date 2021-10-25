@@ -42,22 +42,20 @@ func TestConcurrencySetHeader(t *testing.T) {
 		go func(index int) {
 			defer pend.Done()
 
-			bs := &BlockState{
-				db: dbs[index],
-			}
+			bs, err := NewBlockStateFromGenesis(dbs[index], testGenesisHeader)
+			require.NoError(t, err)
 
 			header := &types.Header{
-				Number:    big.NewInt(0),
+				Number:    big.NewInt(1),
 				StateRoot: trie.EmptyHash,
 				Digest:    types.NewDigest(),
 			}
 
-			err := bs.SetHeader(header)
-			require.Nil(t, err)
+			err = bs.SetHeader(header)
+			require.NoError(t, err)
 
 			res, err := bs.GetHeader(header.Hash())
-			require.Nil(t, err)
-
+			require.NoError(t, err)
 			require.Equal(t, header, res)
 
 		}(i)

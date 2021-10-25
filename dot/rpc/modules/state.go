@@ -124,7 +124,6 @@ type StatePairResponse []interface{}
 type StateStorageKeysResponse []string
 
 // StateMetadataResponse holds the metadata
-//TODO: Determine actual type
 type StateMetadataResponse string
 
 //StateGetReadProofResponse holds the response format
@@ -174,7 +173,6 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
 func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *StatePairResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	var (
 		stateRootHash *common.Hash
 		err           error
@@ -188,26 +186,37 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 	}
 
 	if req.Prefix == nil || *req.Prefix == "" || *req.Prefix == "0x" {
-		pairs, err := sm.storageAPI.Entries(stateRootHash)
+		pairs, err := sm.storageAPI.Entries(stateRootHash) //nolint
 		if err != nil {
 			return err
 		}
+
 		for k, v := range pairs {
-			*res = append(*res, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
+			*res = append(*res, []string{common.BytesToHex([]byte(k)), common.BytesToHex(v)})
 		}
-	} else {
-		// TODO this should return all keys with same prefix, currently only returning
-		//  matches.  Implement when #837 is done.
-		reqBytes, _ := common.HexToBytes(*req.Prefix)
-		resI, err := sm.storageAPI.GetStorage(stateRootHash, reqBytes)
+
+		return nil
+	}
+
+	reqBytes, _ := common.HexToBytes(*req.Prefix)
+	keys, err := sm.storageAPI.GetKeysWithPrefix(stateRootHash, reqBytes)
+	if err != nil {
+		return err
+	}
+
+	if len(keys) == 0 {
+		*res = []interface{}{}
+		return nil
+	}
+
+	*res = make([]interface{}, len(keys))
+	for i, key := range keys {
+		val, err := sm.storageAPI.GetStorage(stateRootHash, key)
 		if err != nil {
 			return err
 		}
-		if resI != nil {
-			*res = append(*res, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
-		} else {
-			*res = []interface{}{}
-		}
+
+		(*res)[i] = []string{common.BytesToHex(key), common.BytesToHex(val)}
 	}
 
 	return nil
@@ -248,7 +257,6 @@ func (sm *StateModule) GetKeysPaged(_ *http.Request, req *StateStorageKeyRequest
 
 // GetMetadata calls runtime Metadata_metadata function
 func (sm *StateModule) GetMetadata(_ *http.Request, req *StateRuntimeMetadataQuery, res *StateMetadataResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	metadata, err := sm.coreAPI.GetMetadata(req.Bhash)
 	if err != nil {
 		return err
@@ -292,7 +300,6 @@ func (sm *StateModule) GetReadProof(_ *http.Request, req *StateGetReadProofReque
 
 // GetRuntimeVersion Get the runtime version at a given block.
 //  If no block hash is provided, the latest version gets returned.
-// TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
 func (sm *StateModule) GetRuntimeVersion(_ *http.Request, req *StateRuntimeVersionRequest, res *StateRuntimeVersionResponse) error {
 	rtVersion, err := sm.coreAPI.GetRuntimeVersion(req.Bhash)
 	if err != nil {
@@ -320,7 +327,7 @@ func (sm *StateModule) GetStorage(_ *http.Request, req *StateStorageRequest, res
 	reqBytes, _ := common.HexToBytes(req.Key) // no need to catch error here
 
 	if req.Bhash != nil {
-		item, err = sm.storageAPI.GetStorageByBlockHash(*req.Bhash, reqBytes)
+		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
 		if err != nil {
 			return err
 		}
@@ -340,7 +347,6 @@ func (sm *StateModule) GetStorage(_ *http.Request, req *StateStorageRequest, res
 
 // GetStorageHash returns the hash of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is returned.
-//  TODO implement change storage trie so that block hash parameter works (See issue #834)
 func (sm *StateModule) GetStorageHash(_ *http.Request, req *StateStorageHashRequest, res *StateStorageHashResponse) error {
 	var (
 		item []byte
@@ -350,7 +356,7 @@ func (sm *StateModule) GetStorageHash(_ *http.Request, req *StateStorageHashRequ
 	reqBytes, _ := common.HexToBytes(req.Key)
 
 	if req.Bhash != nil {
-		item, err = sm.storageAPI.GetStorageByBlockHash(*req.Bhash, reqBytes)
+		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
 		if err != nil {
 			return err
 		}
@@ -370,7 +376,6 @@ func (sm *StateModule) GetStorageHash(_ *http.Request, req *StateStorageHashRequ
 
 // GetStorageSize returns the size of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is used.
-// TODO implement change storage trie so that block hash parameter works (See issue #834)
 func (sm *StateModule) GetStorageSize(_ *http.Request, req *StateStorageSizeRequest, res *StateStorageSizeResponse) error {
 	var (
 		item []byte
@@ -380,7 +385,7 @@ func (sm *StateModule) GetStorageSize(_ *http.Request, req *StateStorageSizeRequ
 	reqBytes, _ := common.HexToBytes(req.Key)
 
 	if req.Bhash != nil {
-		item, err = sm.storageAPI.GetStorageByBlockHash(*req.Bhash, reqBytes)
+		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
 		if err != nil {
 			return err
 		}
@@ -428,10 +433,9 @@ func (sm *StateModule) QueryStorage(_ *http.Request, req *StateStorageQueryRange
 	return nil
 }
 
-// SubscribeRuntimeVersion isn't implemented properly yet.
-// TODO make this actually a subscription that pushes data
+// SubscribeRuntimeVersion initialised a runtime version subscription and returns the current version
+// See dot/rpc/subscription
 func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, _ *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	return sm.GetRuntimeVersion(r, nil, res)
 }
 
