@@ -27,16 +27,19 @@ import (
 )
 
 var (
-	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
+	// ErrEmptyTrieRoot ...
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
 
-	// ErrValueNotFound indicates that a returned verify proof value doesnt match with the expected value on items array
+	// ErrValueNotFound ...
 	ErrValueNotFound = errors.New("expected value not found in the trie")
 
-	// ErrDuplicateKeys not allowed to verify proof with duplicate keys
+	// ErrKeyNotFound ...
+	ErrKeyNotFound = errors.New("expected key not found in the trie")
+
+	// ErrDuplicateKeys ...
 	ErrDuplicateKeys = errors.New("duplicate keys on verify proof")
 
-	// ErrLoadFromProof occurs when there are problems with the proof slice while building the partial proof trie
+	// ErrLoadFromProof ...
 	ErrLoadFromProof = errors.New("failed to build the proof trie")
 )
 
@@ -100,11 +103,10 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 	for _, item := range items {
 		recValue := proofTrie.Get(item.Key)
 		if recValue == nil {
-			return false, ErrValueNotFound
+			return false, ErrKeyNotFound
 		}
-
 		// here we need to compare value only if the caller pass the value
-		if (item.Value != nil || len(item.Value) > 0) && !bytes.Equal(item.Value, recValue) {
+		if len(item.Value) > 0 && !bytes.Equal(item.Value, recValue) {
 			return false, ErrValueNotFound
 		}
 	}
