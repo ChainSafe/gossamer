@@ -14,6 +14,8 @@ The [Polkadot Runtime Specification](https://research.web3.foundation/en/latest/
 
 One important distinction is that we are building the Polkadot Runtime Environment, not Polkadot itself. Given that, although a deep understanding of Polkadot is helpful, it's not critical to contribute to gossamer. To help understand how the Runtime Environment relates to Polkadot, check out this [talk that one of our team members gave at DotCon](https://www.youtube.com/watch?v=nYkbYhM5Yfk).
 
+For coding style, you may refer to the [code style](CODE_STYLE.md) document which we keep up to date with coding style conventions we have for this repository.
+
 ## Contribution Steps
 
 1. **Fork the gossamer repo.**
