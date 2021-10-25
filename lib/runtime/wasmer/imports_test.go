@@ -653,10 +653,6 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
 	require.NoError(t, err)
 
-	//buf := bytes.NewBuffer(ret)
-	//
-	//read, err := new(optional.Bytes).Decode(buf)
-
 	var read *[]byte
 	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
@@ -1348,13 +1344,8 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 			require.EqualError(t, err, test.errMsg)
 			continue
 		}
-
 		require.NoError(t, err)
 
-		//buf := &bytes.Buffer{}
-		//buf.Write(res)
-		//
-		//read, err := new(optional.Bytes).Decode(buf)
 		var read *[]byte
 		err = scale.Unmarshal(res, &read)
 		require.NoError(t, err)

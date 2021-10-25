@@ -1206,10 +1206,6 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, ch
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 
 	limitBytes := asMemorySlice(instanceContext, lim)
-	//buf := &bytes.Buffer{}
-	//buf.Write(limitBytes)
-	//
-	//limit, err := optional.NewBytes(true, nil).Decode(buf)
 
 	var limit *[]byte
 	err := scale.Unmarshal(limitBytes, &limit)
