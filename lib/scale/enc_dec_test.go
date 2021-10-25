@@ -226,7 +226,6 @@ func TestEncodeDecodeSliceComplexStruct(t *testing.T) {
 			C: []int{1, 2, 3, 4},
 			D: [][]byte{[]byte("ascasc")},
 			E: &MyType{1, 2, 3, 4},
-			F: common.Hash{},
 		},
 		{
 			A: []byte("Hello"),

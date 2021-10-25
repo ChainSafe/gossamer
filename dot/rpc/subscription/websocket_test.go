@@ -220,7 +220,6 @@ func TestWSConn_HandleComm(t *testing.T) {
 	mockedJust := grandpa.Justification{
 		Round: 1,
 		Commit: grandpa.Commit{
-			Hash:       common.Hash{},
 			Number:     1,
 			Precommits: nil,
 		},
@@ -248,8 +247,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	listener.Listen()
 	header := &types.Header{
-		ParentHash: common.Hash{},
-		Number:     big.NewInt(1),
+		Number: big.NewInt(1),
 	}
 
 	fCh <- &types.FinalisationInfo{

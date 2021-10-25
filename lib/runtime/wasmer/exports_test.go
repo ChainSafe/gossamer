@@ -330,9 +330,8 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 
 	genesisHeader := &types.Header{
-		ParentHash: common.Hash{},
-		Number:     big.NewInt(0),
-		StateRoot:  genTrie.MustHash(),
+		Number:    big.NewInt(0),
+		StateRoot: genTrie.MustHash(),
 	}
 
 	ext := createTestExtrinsic(t, rt, genesisHeader.Hash(), 0)
