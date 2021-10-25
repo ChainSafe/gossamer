@@ -38,6 +38,7 @@ package wasmer
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_version_2(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(void *context, int32_t a, int32_t b);
+// extern int32_t ext_crypto_ecdsa_verify_version_2(void *context, int32_t a, int64_t b, int32_t c);
 // extern int32_t ext_crypto_sr25519_generate_version_1(void *context, int32_t a, int64_t b);
 // extern int64_t ext_crypto_sr25519_public_keys_version_1(void *context, int32_t a);
 // extern int64_t ext_crypto_sr25519_sign_version_1(void *context, int32_t a, int32_t b, int64_t c);
@@ -447,6 +448,56 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_2] executing...")
 	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
+}
+
+//export ext_crypto_ecdsa_verify_version_2
+func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
+	logger.Trace("executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	message := asMemorySlice(instanceContext, msg)
+	signature := memory[sig : sig+64]
+	pubKey := memory[key : key+33]
+
+	pub := new(secp256k1.PublicKey)
+	err := pub.Decode(pubKey)
+	if err != nil {
+		logger.Error("failed to decode public key", "error", err)
+		return C.int32_t(0)
+	}
+
+	logger.Debug("", "pub", pub.Hex(),
+		"message", fmt.Sprintf("0x%x", message),
+		"signature", fmt.Sprintf("0x%x", signature),
+	)
+
+	hash, err := common.Blake2bHash(message)
+	if err != nil {
+		logger.Error("failed to hash message", "error", err)
+		return C.int32_t(0)
+	}
+
+	if sigVerifier.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      signature,
+			Msg:       hash[:],
+			KeyTypeID: crypto.Secp256k1Type,
+		}
+		sigVerifier.Add(&signature)
+		return C.int32_t(1)
+	}
+
+	if ok, err := pub.Verify(hash[:], signature); err != nil || !ok {
+		logger.Error("failed to validate signature", "error", err)
+		return C.int32_t(0)
+	}
+
+	logger.Debug("validated signature")
+	return C.int32_t(1)
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
@@ -2099,6 +2150,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2, C.ext_crypto_sr25519_verify_version_2)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_crypto_ecdsa_verify_version_2", ext_crypto_ecdsa_verify_version_2, C.ext_crypto_ecdsa_verify_version_2)
 	if err != nil {
 		return nil, err
 	}
