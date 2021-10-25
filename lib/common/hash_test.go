@@ -102,3 +102,25 @@ func Test_Hash_IsEmpty(t *testing.T) {
 		})
 	}
 }
+
+func Benchmark_IsEmpty(b *testing.B) {
+	h := Hash{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	b.Run("using equal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = h == Hash{}
+		}
+	})
+
+	b.Run("using equal with predefined empty", func(b *testing.B) {
+		empty := Hash{}
+		for i := 0; i < b.N; i++ {
+			_ = h == empty
+		}
+	})
+
+	b.Run("using bytes.Equal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = h.Equal(Hash{})
+		}
+	})
+}
