@@ -17,7 +17,6 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"os"
@@ -121,39 +120,22 @@ func (s *Service) Start() error {
 		s.Base = NewBaseState(db)
 	}
 
-	// retrieve latest header
-	bestHash, err := s.Base.LoadBestBlockHash()
-	if err != nil {
-		return fmt.Errorf("failed to get best block hash: %w", err)
-	}
-
-	logger.Trace("start", "best block hash", bestHash)
-
-	// load blocktree
-	bt := blocktree.NewEmptyBlockTree(db)
-	if err = bt.Load(); err != nil {
-		return fmt.Errorf("failed to load blocktree: %w", err)
-	}
+	var err error
 
 	// create block state
-	s.Block, err = NewBlockState(db, bt)
+	s.Block, err = NewBlockState(db)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
 
-	// if blocktree head isn't "best hash", then the node shutdown abnormally.
-	// restore state from last finalised hash.
-	btHead := bt.DeepestBlockHash()
-	if !bytes.Equal(btHead[:], bestHash[:]) {
-		logger.Info("detected abnormal node shutdown, restoring from last finalised block")
-
-		lastFinalised, err := s.Block.GetHighestFinalisedHeader() //nolint
-		if err != nil {
-			return fmt.Errorf("failed to get latest finalised block: %w", err)
-		}
-
-		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised, db)
+	// retrieve latest header
+	bestHeader, err := s.Block.GetHighestFinalisedHeader()
+	if err != nil {
+		return fmt.Errorf("failed to get best block hash: %w", err)
 	}
+
+	stateRoot := bestHeader.StateRoot
+	logger.Debug("start", "latest state root", stateRoot)
 
 	pr, err := s.Base.loadPruningData()
 	if err != nil {
@@ -166,14 +148,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
 
-	stateRoot, err := s.Base.LoadLatestStorageHash()
-	if err != nil {
-		return fmt.Errorf("cannot load latest storage root: %w", err)
-	}
-
-	logger.Debug("start", "latest state root", stateRoot)
-
-	// load current storage state
+	// load current storage state trie into memory
 	_, err = s.Storage.LoadFromDB(stateRoot)
 	if err != nil {
 		return fmt.Errorf("failed to load storage trie from database: %w", err)
@@ -194,7 +169,11 @@ func (s *Service) Start() error {
 	}
 
 	num, _ := s.Block.BestBlockNumber()
-	logger.Info("created state service", "head", s.Block.BestBlockHash(), "highest number", num)
+	logger.Info("created state service",
+		"head", s.Block.BestBlockHash(),
+		"highest number", num,
+		"genesis hash", s.Block.genesisHash,
+	)
 
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
@@ -216,11 +195,15 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
-	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header, s.db)
-	newHead := s.Block.BestBlockHash()
+	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header)
 
-	header, _ := s.Block.BestBlockHeader()
-	logger.Info("rewinding state...", "new height", header.Number, "best block hash", newHead)
+	header, err := s.Block.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	s.Block.lastFinalised = header.Hash()
+	logger.Info("rewinding state...", "new height", header.Number, "best block hash", header.Hash())
 
 	epoch, err := s.Epoch.GetEpochForBlock(header)
 	if err != nil {
@@ -266,49 +249,20 @@ func (s *Service) Rewind(toBlock int64) error {
 		}
 	}
 
-	return s.Base.StoreBestBlockHash(newHead)
+	//return s.Base.StoreBestBlockHash(newHead)
+	return nil
 }
 
 // Stop closes each state database
 func (s *Service) Stop() error {
-	head, err := s.Block.BestBlockStateRoot()
-	if err != nil {
-		return err
-	}
-
-	st, has := s.Storage.tries.Load(head)
-	if !has {
-		return errTrieDoesNotExist(head)
-	}
-
-	t := st.(*trie.Trie)
-
-	if err = s.Base.StoreLatestStorageHash(head); err != nil {
-		return err
-	}
-
-	logger.Debug("storing latest storage trie", "root", head)
-
-	if err = t.Store(s.Storage.db); err != nil {
-		return err
-	}
-
-	if err = s.Block.bt.Store(); err != nil {
-		return err
-	}
-
-	hash := s.Block.BestBlockHash()
-	if err = s.Base.StoreBestBlockHash(hash); err != nil {
-		return err
-	}
-
-	thash, err := t.Hash()
-	if err != nil {
-		return err
-	}
 	close(s.closeCh)
 
-	logger.Debug("stop", "best block hash", hash, "latest state root", thash)
+	hash, err := s.Block.GetHighestFinalisedHash()
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("stop", "best finalised hash", hash)
 
 	if err = s.db.Flush(); err != nil {
 		return err
@@ -367,30 +321,26 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
 
-	if err := s.Base.StoreLatestStorageHash(root); err != nil {
-		return err
-	}
-
 	logger.Info("importing storage trie...", "basepath", s.dbPath, "root", root)
 
 	if err := t.Store(storage.db); err != nil {
 		return err
 	}
 
-	bt := blocktree.NewBlockTreeFromRoot(header, s.db)
-	if err := bt.Store(); err != nil {
-		return err
-	}
-
-	if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
-		return err
-	}
-
+	hash := header.Hash()
 	if err := block.SetHeader(header); err != nil {
 		return err
 	}
 
-	logger.Debug("Import", "best block hash", header.Hash(), "latest state root", root)
+	// TODO: this is broken, need to know round and setID for the header as well
+	if err := block.db.Put(finalisedHashKey(0, 0), hash[:]); err != nil {
+		return err
+	}
+	if err := block.setHighestRoundAndSetID(0, 0); err != nil {
+		return err
+	}
+
+	logger.Debug("Import", "best block hash", hash, "latest state root", root)
 	if err := s.db.Flush(); err != nil {
 		return err
 	}
