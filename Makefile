@@ -126,22 +126,3 @@ gossamer: clean
 ## install: install the gossamer binary in $GOPATH/bin
 install:
 	GOBIN=$(GOPATH)/bin go run scripts/ci.go install
-
-MOCKGEN := $(shell command -v $(GOPATH)/bin/mockery 2> /dev/null)
-INMOCKS=0
-mock:
-ifndef MOCKGEN
-	@echo "> Installing mockery ..."
-	@go get github.com/vektra/mockery/v2/.../
-endif
-	@echo "> Generating mocks at $(path)"
-
-ifeq ($(INMOCKS),1)
-	cd $(path); $(GOPATH)/bin/mockery --name $(interface) --structname Mock$(interface) --case underscore --keeptree
-else
-	$(GOPATH)/bin/mockery --srcpkg $(path) --name $(interface) --case underscore --inpackage
-endif
-
-
-
-
