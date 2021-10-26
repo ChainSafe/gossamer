@@ -1349,9 +1349,12 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 						isAllDeleted = false
 						require.Equal(t, test.value, val)
 					}
+				} else {
+					require.NotNil(t, val)
 				}
 			}
 			require.Equal(t, num, deleteCount)
+			require.LessOrEqual(t, deleteCount, uint32(lim))
 			if lim > 0 {
 				require.Equal(t, allDeleted, isAllDeleted)
 			}
@@ -1476,8 +1479,11 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 							isAllDeleted = false
 							require.Equal(t, test.value, val)
 						}
+					} else {
+						require.NotNil(t, val)
 					}
 				}
+				require.LessOrEqual(t, deleteCount, uint32(lim))
 				require.Equal(t, num, deleteCount)
 				if lim > 0 {
 					require.Equal(t, allDeleted, isAllDeleted)
