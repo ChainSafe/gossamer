@@ -444,9 +444,9 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		}
 
 		// check for equivocatory votes
-		_, ok := s.pcEquivocations[just.AuthorityID]
+		eqPreCommitVotes, ok := s.pcEquivocations[just.AuthorityID]
 		if ok {
-			equivocatoryVotersCount++
+			equivocatoryVotersCount += len(eqPreCommitVotes)
 		}
 
 		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
