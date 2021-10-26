@@ -17,7 +17,7 @@ import (
 const blockRequestSize uint32 = 128
 
 // NewMockBlockState create and return a network BlockState interface mock
-func NewMockBlockState(n *big.Int) *mockBlockState {
+func NewMockBlockState(n *big.Int) *MockBlockState {
 	parentHash, _ := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	stateRoot, _ := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
 	extrinsicsRoot, _ := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
@@ -33,7 +33,7 @@ func NewMockBlockState(n *big.Int) *mockBlockState {
 		Digest:         types.NewDigest(),
 	}
 
-	m := new(mockBlockState)
+	m := new(MockBlockState)
 	m.On("BestBlockHeader").Return(header, nil)
 	m.On("GetHighestFinalisedHeader").Return(header, nil)
 	m.On("GenesisHash").Return(common.NewHash([]byte{}))

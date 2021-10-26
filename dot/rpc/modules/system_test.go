@@ -154,8 +154,8 @@ var testGenesisData = &genesis.Data{
 	ChainType: "Local",
 }
 
-func newMockSystemAPI() *mocks.MockSystemAPI {
-	sysapimock := new(mocks.MockSystemAPI)
+func newMockSystemAPI() *mocks.SystemAPI {
+	sysapimock := new(mocks.SystemAPI)
 	sysapimock.On("SystemName").Return(testSystemInfo.SystemName)
 	sysapimock.On("SystemVersion").Return(testSystemInfo.SystemVersion)
 	sysapimock.On("ChainName").Return(testGenesisData.Name)
@@ -339,7 +339,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		srvc = newTestStateService(t)
 	}
 
-	mocknet := new(coremocks.MockNetwork)
+	mocknet := new(coremocks.Network)
 	mocknet.On("GossipMessage", mock.AnythingOfType("network.NotificationsMessage"))
 
 	cfg := &core.Config{
@@ -362,11 +362,11 @@ func TestSyncState(t *testing.T) {
 		Number: big.NewInt(int64(49)),
 	}
 
-	blockapiMock := new(mocks.MockBlockAPI)
+	blockapiMock := new(mocks.BlockAPI)
 	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
 
-	netapiMock := new(mocks.MockNetworkAPI)
+	netapiMock := new(mocks.NetworkAPI)
 	netapiMock.On("HighestBlock").Return(int64(90))
 	netapiMock.On("StartingBlock").Return(int64(10))
 
@@ -400,7 +400,7 @@ func TestLocalListenAddresses(t *testing.T) {
 		Multiaddrs: []multiaddr.Multiaddr{ma},
 	}
 
-	mockNetAPI := new(mocks.MockNetworkAPI)
+	mockNetAPI := new(mocks.NetworkAPI)
 	mockNetAPI.On("NetworkState").Return(mockedNetState).Once()
 
 	res := make([]string, 0)
@@ -427,7 +427,7 @@ func TestLocalPeerId(t *testing.T) {
 		PeerID: peerID,
 	}
 
-	mocknetAPI := new(mocks.MockNetworkAPI)
+	mocknetAPI := new(mocks.NetworkAPI)
 	mocknetAPI.On("NetworkState").Return(state).Once()
 
 	sysmodules := new(SystemModule)
@@ -447,7 +447,7 @@ func TestLocalPeerId(t *testing.T) {
 
 func TestAddReservedPeer(t *testing.T) {
 	t.Run("Test Add and Remove reserved peers with success", func(t *testing.T) {
-		networkMock := new(mocks.MockNetworkAPI)
+		networkMock := new(mocks.NetworkAPI)
 		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
 		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
 
@@ -468,7 +468,7 @@ func TestAddReservedPeer(t *testing.T) {
 	})
 
 	t.Run("Test Add and Remove reserved peers without success", func(t *testing.T) {
-		networkMock := new(mocks.MockNetworkAPI)
+		networkMock := new(mocks.NetworkAPI)
 		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("some problems")).Once()
 		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("other problems")).Once()
 
