@@ -766,10 +766,16 @@ func (s *Service) finalise() error {
 	s.bestFinalCandidate[s.state.round] = bfc
 
 	// create prevote justification ie. list of all signed prevotes for the bfc
-	pvs := s.createJustification(bfc.Hash, prevote)
+	pvs, err := s.createJustification(bfc.Hash, prevote)
+	if err != nil {
+		return err
+	}
 
 	// create precommit justification ie. list of all signed precommits for the bfc
-	pcs := s.createJustification(bfc.Hash, precommit)
+	pcs, err := s.createJustification(bfc.Hash, precommit)
+	if err != nil {
+		return err
+	}
 
 	pcj, err := scale.Marshal(*newJustification(s.state.round, bfc.Hash, bfc.Number, pcs))
 	if err != nil {
@@ -804,7 +810,7 @@ func (s *Service) finalise() error {
 // createJustification collects the signed precommits received for this round and turns them into
 // a justification by adding all signed precommits that are for the best finalised candidate or
 // a descendent of the bfc
-func (s *Service) createJustification(bfc common.Hash, stage Subround) []SignedVote {
+func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]SignedVote, error) {
 	var (
 		spc  *sync.Map
 		err  error
@@ -815,10 +821,10 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) []SignedV
 	switch stage {
 	case prevote:
 		spc = s.prevotes
-		eqv = make(map[ed25519.PublicKeyBytes][]*SignedVote, len(s.pvEquivocations))
+		eqv = s.pvEquivocations
 	case precommit:
 		spc = s.precommits
-		eqv = make(map[ed25519.PublicKeyBytes][]*SignedVote, len(s.pcEquivocations))
+		eqv = s.pcEquivocations
 	}
 
 	spc.Range(func(_, value interface{}) bool {
@@ -838,13 +844,17 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) []SignedV
 		return true
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
 	for _, votes := range eqv {
 		for _, vote := range votes {
 			var signedVote SignedVote = *vote
 			isDescendant, err := s.blockState.IsDescendantOf(bfc, signedVote.Vote.Hash)
 
 			if err != nil {
-				break
+				return nil, err
 			}
 
 			if !isDescendant {
@@ -855,7 +865,7 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) []SignedV
 		}
 	}
 
-	return just
+	return just, nil
 }
 
 // derivePrimary returns the primary for the current round

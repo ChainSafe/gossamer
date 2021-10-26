@@ -273,6 +273,11 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 		if isDescendant {
 			count++
 		}
+
+		eqPreCommitVotes, ok := h.grandpa.pcEquivocations[just.AuthorityID]
+		if ok {
+			count += len(eqPreCommitVotes)
+		}
 	}
 
 	// confirm total # signatures >= grandpa threshold
@@ -297,6 +302,11 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 		}
 
 		votes[just.Vote.Hash]++
+
+		eqPreVotes, ok := h.grandpa.pvEquivocations[just.AuthorityID]
+		if ok {
+			votes[just.Vote.Hash] += uint64(len(eqPreVotes))
+		}
 	}
 
 	var prevote common.Hash
@@ -325,6 +335,11 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 		if just.Vote.Hash == msg.Hash && just.Vote.Number == msg.Number {
 			count++
+		}
+
+		eqPreCommitVotes, ok := h.grandpa.pcEquivocations[just.AuthorityID]
+		if ok {
+			count += len(eqPreCommitVotes)
 		}
 	}
 
@@ -415,9 +430,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		"sig count", len(fj.Commit.Precommits),
 	)
 
-	if len(fj.Commit.Precommits) < (2 * len(auths) / 3) {
-		return ErrMinVotesNotMet
-	}
+	var equivocatoryVotersCount int
 
 	for _, just := range fj.Commit.Precommits {
 		// check if vote was for descendant of committed block
@@ -430,13 +443,18 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return ErrPrecommitBlockMismatch
 		}
 
+		// check for equivocatory votes
+		_, ok := s.pcEquivocations[just.AuthorityID]
+		if ok {
+			equivocatoryVotersCount++
+		}
+
 		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
 		if err != nil {
 			return err
 		}
 
-		ok := isInAuthSet(pk, auths)
-		if !ok {
+		if !isInAuthSet(pk, auths) {
 			return ErrAuthorityNotInSet
 		}
 
@@ -459,6 +477,10 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		if !ok {
 			return ErrInvalidSignature
 		}
+	}
+
+	if len(fj.Commit.Precommits)+equivocatoryVotersCount <= (2 * len(auths) / 3) {
+		return ErrMinVotesNotMet
 	}
 
 	err = s.blockState.SetFinalisedHash(hash, fj.Round, setID)
