@@ -344,7 +344,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	b := createTestService(t, configB)
 
-	txnBatch := make(chan *batchMessage, s.batchSize)
+	txnBatch := make(chan *BatchMessage, s.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// don't set handshake data ie. this stream has just been opened

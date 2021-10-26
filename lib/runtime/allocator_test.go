@@ -26,8 +26,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func NewMemoryMock(size uint32) *MockMemory {
-	m := new(MockMemory)
+func newMemoryMock(size uint32) *mockMemory {
+	m := new(mockMemory)
 	testobj := make([]byte, size)
 
 	m.On("Data").Return(testobj)
@@ -291,7 +291,7 @@ var allTests = []testHolder{
 //  test holder
 func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
-		memmock := NewMemoryMock(1 << 16)
+		memmock := newMemoryMock(1 << 16)
 		allocator := NewAllocator(memmock, test.offset)
 
 		for _, theTest := range test.tests {
@@ -336,7 +336,7 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 
 // test that allocator should grow memory if the allocation request is larger than current size
 func TestShouldGrowMemory(t *testing.T) {
-	mem := NewMemoryMock(1 << 16)
+	mem := newMemoryMock(1 << 16)
 	currentSize := mem.Length()
 
 	fbha := NewAllocator(mem, 0)
@@ -349,7 +349,7 @@ func TestShouldGrowMemory(t *testing.T) {
 
 // test that the allocator should grow memory if it's already full
 func TestShouldGrowMemoryIfFull(t *testing.T) {
-	mem := NewMemoryMock(1 << 16)
+	mem := newMemoryMock(1 << 16)
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
@@ -369,10 +369,10 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
-	mem := NewMemoryMock(1 << 16)
+	mem := newMemoryMock(1 << 16)
 
 	pagesNeeded := (MaxPossibleAllocation / PageSize) - (mem.Length() / PageSize) + 1
-	mem = NewMemoryMock(mem.Length() + pagesNeeded*65*1024)
+	mem = newMemoryMock(mem.Length() + pagesNeeded*65*1024)
 
 	fbha := NewAllocator(mem, 0)
 
@@ -388,7 +388,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
-	fbha := NewAllocator(NewMemoryMock(1<<16), 0)
+	fbha := NewAllocator(newMemoryMock(1<<16), 0)
 
 	// when
 	_, err := fbha.Allocate(MaxPossibleAllocation + 1)
