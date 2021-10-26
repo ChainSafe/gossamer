@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -571,6 +572,16 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		"body", block.Body,
 		"parent", parent.Hash(),
 	)
+
+	err = telemetry.GetInstance().SendMessage(
+		telemetry.NewPreparedBlockForProposingTM(
+			block.Header.Hash(),
+			block.Header.Number.String(),
+		),
+	)
+	if err != nil {
+		logger.Debug("problem sending 'prepared_block_for_proposing' telemetry message", "error", err)
+	}
 
 	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
 		logger.Warn("failed to import built block", "error", err)
