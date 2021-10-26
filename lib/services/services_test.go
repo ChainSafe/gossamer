@@ -19,15 +19,15 @@ package services
 import (
 	"testing"
 
-	. "github.com/ChainSafe/gossamer/lib/services/mocks"
+	"github.com/ChainSafe/gossamer/lib/services/mocks"
 	"github.com/stretchr/testify/require"
 )
 
 func TestServiceRegistry_RegisterService(t *testing.T) {
 	r := NewServiceRegistry()
 
-	r.RegisterService(&MockService{})
-	r.RegisterService(&MockService{})
+	r.RegisterService(&mocks.Service{})
+	r.RegisterService(&mocks.Service{})
 
 	require.Len(t, r.services, 1)
 }
@@ -35,7 +35,7 @@ func TestServiceRegistry_RegisterService(t *testing.T) {
 func TestServiceRegistry_StartStopAll(t *testing.T) {
 	r := NewServiceRegistry()
 
-	m := new(MockService)
+	m := new(mocks.Service)
 	m.On("Start").Return(nil)
 	m.On("Stop").Return(nil)
 
@@ -51,7 +51,7 @@ func TestServiceRegistry_StartStopAll(t *testing.T) {
 func TestServiceRegistry_Get_Err(t *testing.T) {
 	r := NewServiceRegistry()
 
-	a := new(MockService)
+	a := new(mocks.Service)
 	a.On("Start").Return(nil)
 	a.On("Stop").Return(nil)
 
