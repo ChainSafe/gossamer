@@ -10,20 +10,20 @@ overview of some of the flags/parameters they accept. The flags/parameters that 
 [the installation instructions](../../README.md#installation) and execute `./bin/gossamer --help`.
 
 - `gossamerAction` - This the default Gossamer execution action - it will launch a Gossamer blockchain client. The
-  details of how Gossamer orchestrates a blockchain client are [described below](#client-components).
+  details of how Gossamer orchestrates a blockchain client are [described below in the Client Components section](#client-components).
   - `chain` - specifies the [chain configuration](../../chain) that the
     [Gossamer host node](https://chainsafe.github.io/gossamer/getting-started/overview/host-architecture/) should load
-  - `log` - supports levels `crit` (silent) to `trce` (detailed), default is `info`
+  - `log` - supports levels `crit` (silent), `error`, `warn`, `info` and `trce` (detailed), default is `info`
   - `name` - node name, as it will appear in, e.g., [telemetry](https://telemetry.polkadot.io/)
 - `account` - The `account` subcommand provides the user with capabilities related to generating and using `ed25519`,
   `secp256k1`, and `sr25519` [account keys](https://wiki.polkadot.network/docs/learn-keys), and managing the keys
   present in the [Gossamer keystore](#keystore). The action for this subcommand is defined in [account.go](account.go);
-  it is an interface to the capabilities defined in the [`crypto`](../../lib/crypto) and
-  [`keystore`](../../lib/keystore) packages. This subcommand provides capabilities that are similar to
+  it is an interface to the capabilities defined in the [`lib/crypto`](../../lib/crypto) and
+  [`lib/keystore`](../../lib/keystore) packages. This subcommand provides capabilities that are similar to
   [Parity's Subkey utility](https://docs.substrate.io/v3/tools/subkey).
   - `generate` - creates a new key pair; specify `--ed25519`, `--secp256k1`, or `--sr25519` (default)
   - `list` - lists the keys in the Gossamer keystore
-  - `password` - allows the user to provide a password for encrypting a generated key, or unlocking the Gossamer
+  - `password` - allows the user to provide a password to either encrypt a generated key or unlock the Gossamer
     keystore
 - `import-runtime` - This subcommand takes a [Wasm runtime binary](https://wiki.polkadot.network/docs/learn-wasm) and
   uses it to generate a [genesis](https://wiki.polkadot.network/docs/glossary#genesis) configuration file; it does not
@@ -36,7 +36,7 @@ overview of some of the flags/parameters they accept. The flags/parameters that 
     consume
 - `import-state` - The `import-state` subcommand allows a user to seed [Gossamer storage](../../dot/state) with
   key-value pairs in the form of a JSON file. The input for this subcommand can be retrieved from
-  [the state_getPairs RPC endpoint](https://github.com/w3f/PSPs/blob/master/PSPs/drafts/psp-6.md#1114-state_getpairs).
+  [the `state_getPairs` RPC endpoint](https://github.com/w3f/PSPs/blob/master/PSPs/drafts/psp-6.md#1114-state_getpairs).
   - `first-slot` - the first [BABE](https://wiki.polkadot.network/docs/learn-consensus#block-production-babe) slot,
     which is the timestamp of the first block divided by the slot duration
   - `header` - path to a JSON file that describes the block header corresponding to the given state
