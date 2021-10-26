@@ -4,18 +4,20 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var (
 	// ErrTitlePatternNotValid indicates the title does not match the expected pattern.
 	ErrTitlePatternNotValid = errors.New("title pattern is not valid")
-	// ErrBodyPatternNotValid indicates the body does not match the expected pattern.
-	ErrBodyPatternNotValid = errors.New("body pattern is not valid")
+	// ErrBodySectionNotFound indicates one of the required body section was not found.
+	ErrBodySectionNotFound = errors.New("body section not found")
+	// ErrBodySectionMisplaced indicates one of the required body section was misplaced in the body.
+	ErrBodySectionMisplaced = errors.New("body section misplaced")
 )
 
 var (
 	titleRegexp   = regexp.MustCompile(`^[A-Za-z]+\([A-Za-z/]+\):.+[A-Za-z]+$`)
-	bodyRegexp    = regexp.MustCompile(`^(.|\n)*## Changes\n+(.|\n)+\n+## Tests\n+(.|\n)+\n+## Issues\n+(.|\n)+\n+## Primary Reviewer\n+(.|\n)+$`)
 	commentRegexp = regexp.MustCompile(`<!--(.|\n)*?-->`)
 )
 
@@ -28,9 +30,31 @@ func CheckPRDescription(title, body string) error {
 
 	body = commentRegexp.ReplaceAllString(body, "")
 
-	if !bodyRegexp.MatchString(body) {
-		return fmt.Errorf("%w: for regular expression %s: '%s'",
-			ErrBodyPatternNotValid, bodyRegexp.String(), body)
+	// Required subheading sections in order
+	requiredSections := []string{"Changes", "Tests", "Issues", "Primary Reviewer"}
+
+	previousIndex := -1
+	previousSection := ""
+	for i, requiredSection := range requiredSections {
+		textToFind := "## " + requiredSection
+		if i > 0 {
+			// no new line required before the first section
+			textToFind = "\n" + textToFind
+		}
+		if i < len(requiredSections)-1 {
+			// no new line required for last section
+			textToFind += "\n"
+		}
+
+		index := strings.Index(body, textToFind)
+		if index == -1 {
+			return fmt.Errorf("%w: %q", ErrBodySectionNotFound, textToFind)
+		} else if i > 0 && index < previousIndex {
+			return fmt.Errorf("%w: section %q cannot be before section %q",
+				ErrBodySectionMisplaced, requiredSection, previousSection)
+		}
+		previousIndex = index
+		previousSection = requiredSection
 	}
 
 	return nil

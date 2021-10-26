@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_PR_Checks(t *testing.T) {
+func Test_CheckPRDescription(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -25,12 +25,21 @@ func Test_PR_Checks(t *testing.T) {
 		},
 		"empty body only": {
 			title: "category(subcategory): something",
-			err:   errors.New("body pattern is not valid: for regular expression ^(.|\\n)*## Changes\\n+(.|\\n)+\\n+## Tests\\n+(.|\\n)+\\n+## Issues\\n+(.|\\n)+\\n+## Primary Reviewer\\n+(.|\\n)+$: ''"),
+			err:   errors.New("body section not found: \"## Changes\\n\""),
 		},
 		"invalid body": {
 			title: "category(subcategory): something",
-			body:  "##Changes ## Tests ## Issues ## Primary reviewer",
-			err:   errors.New("body pattern is not valid: for regular expression ^(.|\\n)*## Changes\\n+(.|\\n)+\\n+## Tests\\n+(.|\\n)+\\n+## Issues\\n+(.|\\n)+\\n+## Primary Reviewer\\n+(.|\\n)+$: '##Changes ## Tests ## Issues ## Primary reviewer'"),
+			body:  "##Changes ## Tests ## Issues ## Primary Reviewer",
+			err:   errors.New("body section not found: \"## Changes\\n\""),
+		},
+		"misplaced section": {
+			title: "category(subcategory): something",
+			body:  "## Changes\n## Tests\n## Primary Reviewer\n## Issues\n",
+			err:   errors.New("body section misplaced: section \"Primary Reviewer\" cannot be before section \"Issues\""),
+		},
+		"minimal valid": {
+			title: "category(subcategory): something",
+			body:  "## Changes\n## Tests\n## Issues\n## Primary Reviewer",
 		},
 		"valid example": {
 			title: `feat(dot/rpc): implement chain_subscribeAllHeads RPC`,
