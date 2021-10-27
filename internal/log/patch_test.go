@@ -1,7 +1,7 @@
 package log
 
 import (
-	"io"
+	"io/ioutil"
 	"os"
 	"sync"
 	"testing"
@@ -40,7 +40,7 @@ func Test_Logger_Patch(t *testing.T) {
 		"with options": {
 			initialLogger: &Logger{
 				settings: settings{
-					writer: io.Discard,
+					writer: ioutil.Discard,
 					level:  levelPtr(LevelInfo),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(false, false, false),
@@ -53,7 +53,7 @@ func Test_Logger_Patch(t *testing.T) {
 			},
 			expectedLogger: &Logger{
 				settings: settings{
-					writer: io.Discard,
+					writer: ioutil.Discard,
 					level:  levelPtr(LevelWarn),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(true, false, false),
