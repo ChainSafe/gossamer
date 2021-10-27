@@ -229,7 +229,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	mockedJustBytes, err := scale.Marshal(mockedJust)
 	require.NoError(t, err)
 
-	BlockAPI := new(mocks.MockBlockAPI)
+	BlockAPI := new(mocks.BlockAPI)
 
 	fCh := make(chan *types.FinalisationInfo, 5)
 	BlockAPI.On("GetFinalisedNotifierChannel").Return(fCh)
@@ -282,7 +282,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	mockBlockAPI := new(mocks.MockBlockAPI)
+	mockBlockAPI := new(mocks.BlockAPI)
 
 	wsconn.BlockAPI = mockBlockAPI
 

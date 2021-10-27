@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2021 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,16 +14,29 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package telemetry
 
-// PageSize is 65kb
-const PageSize = 65536
+import (
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
-//go:generate mockery --name Memory --structname mockMemory --case underscore --inpackage --filename mock_memory_test.go
+//nolint
+// notifyFinalizedTM holds `notify.finalized` telemetry message, which is
+// supposed to be send when a new block gets finalized.
+type notifyFinalizedTM struct {
+	Best common.Hash `json:"best"`
+	// Height is same as block.Header.Number
+	Height string `json:"height"`
+}
 
-// Memory is a raw memory interface
-type Memory interface {
-	Data() []byte
-	Length() uint32
-	Grow(uint32) error
+// NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
+func NewNotifyFinalizedTM(best common.Hash, height string) Message {
+	return &notifyFinalizedTM{
+		Best:   best,
+		Height: height,
+	}
+}
+
+func (notifyFinalizedTM) messageType() string {
+	return notifyFinalizedMsg
 }
