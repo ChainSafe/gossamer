@@ -342,7 +342,7 @@ func (s *Service) handleDescendingByNumber(start, end uint64, requestedData byte
 	var err error
 	data := make([]*types.BlockData, (start-end)+1)
 
-	for idx, bn := 0, start; bn <= end; idx, bn = idx+1, bn+1 {
+	for idx, bn := 0, start; bn >= end; idx, bn = idx+1, bn-1 {
 		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(bn)), requestedData)
 		if err != nil {
 			return nil, err
