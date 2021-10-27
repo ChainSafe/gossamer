@@ -28,6 +28,11 @@ import (
 func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (bool, error) {
 	logger.Debug("received TransactionMessage")
 
+	if !s.net.IsSynced() {
+		logger.Debug("ignoring TransactionMessage, not yet synced")
+		return false, nil
+	}
+
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics
 	var toPropagate []types.Extrinsic

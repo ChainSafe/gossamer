@@ -57,10 +57,13 @@ type (
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 
 	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream in batch processing mode.
-	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*batchMessage, err error)
+	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*BatchMessage, err error)
 )
 
-type batchMessage struct {
+// BatchMessage is exported for the mocks of lib/grandpa/mocks/network.go
+// to be able to compile.
+// TODO: unexport if changing mock library to e.g. github.com/golang/gomock
+type BatchMessage struct {
 	msg  NotificationsMessage
 	peer peer.ID
 }
@@ -221,7 +224,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		var (
 			propagate bool
 			err       error
-			msgs      []*batchMessage
+			msgs      []*BatchMessage
 		)
 		if batchHandler != nil {
 			msgs, err = batchHandler(peer, msg)
@@ -235,7 +238,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			if err != nil {
 				return err
 			}
-			msgs = append(msgs, &batchMessage{
+			msgs = append(msgs, &BatchMessage{
 				msg:  msg,
 				peer: peer,
 			})
@@ -334,7 +337,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		// TODO: ensure grandpa stores *all* previously received votes and discards them
 		// only when they are for already finalised rounds; currently this causes issues
 		// because a vote might be received slightly too early, causing a round mismatch err,
-		// causing grandpa to discard the vote.
+		// causing grandpa to discard the vote. (#1855)
 		_, isConsensusMsg := msg.(*ConsensusMessage)
 		if !added && !isConsensusMsg {
 			return

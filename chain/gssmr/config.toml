@@ -30,10 +30,11 @@ port = 7001
 nobootstrap = false
 nomdns = false
 discovery-interval = 10
+min-peers = 1
 
 [rpc]
 enabled = false
 port = 8545
 host = "localhost"
-modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate"]
+modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
 ws-port = 8546

@@ -21,6 +21,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math/big"
 	"reflect"
 )
@@ -87,7 +89,7 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	ds.Buffer = *buf
+	ds.Reader = buf
 
 	err = ds.unmarshal(elem)
 	if err != nil {
@@ -96,8 +98,36 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	return
 }
 
+// Decoder is used to decode from an io.Reader
+type Decoder struct {
+	decodeState
+}
+
+// Decode accepts a pointer to a destination and decodes into supplied destination
+func (d *Decoder) Decode(dst interface{}) (err error) {
+	dstv := reflect.ValueOf(dst)
+	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
+		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
+		return
+	}
+
+	elem := indirect(dstv)
+	if err != nil {
+		return
+	}
+	return d.unmarshal(elem)
+}
+
+// NewDecoder is constructor for Decoder
+func NewDecoder(r io.Reader) (d *Decoder) {
+	d = &Decoder{
+		decodeState{r},
+	}
+	return
+}
+
 type decodeState struct {
-	bytes.Buffer
+	io.Reader
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
@@ -230,6 +260,12 @@ func (ds *decodeState) decodeCustomPrimitive(dstv reflect.Value) (err error) {
 	return
 }
 
+func (ds *decodeState) ReadByte() (byte, error) {
+	b := make([]byte, 1)        // make buffer
+	_, err := ds.Reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
+	return b[0], err
+}
+
 func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 	res := dstv.Interface().(Result)
 	var rb byte
@@ -263,7 +299,8 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 		}
 		dstv.Set(reflect.ValueOf(res))
 	default:
-		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, ds.Bytes())
+		bytes, _ := ioutil.ReadAll(ds.Reader)
+		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, bytes)
 	}
 	return
 }
@@ -295,7 +332,8 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 			dstv.Set(tempElem)
 		}
 	default:
-		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, ds.Bytes())
+		bytes, _ := ioutil.ReadAll(ds.Reader)
+		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, bytes)
 	}
 	return
 }

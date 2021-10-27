@@ -54,21 +54,6 @@ func (s *BaseState) LoadNodeGlobalName() (string, error) {
 	return string(nodeName), nil
 }
 
-// StoreBestBlockHash stores the hash at the BestBlockHashKey
-func (s *BaseState) StoreBestBlockHash(hash common.Hash) error {
-	return s.db.Put(common.BestBlockHashKey, hash[:])
-}
-
-// LoadBestBlockHash loads the hash stored at BestBlockHashKey
-func (s *BaseState) LoadBestBlockHash() (common.Hash, error) {
-	hash, err := s.db.Get(common.BestBlockHashKey)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return common.NewHash(hash), nil
-}
-
 // StoreGenesisData stores the given genesis data at the known GenesisDataKey.
 func (s *BaseState) StoreGenesisData(gen *genesis.Data) error {
 	enc, err := json.Marshal(gen)
@@ -95,21 +80,6 @@ func (s *BaseState) LoadGenesisData() (*genesis.Data, error) {
 	return data, nil
 }
 
-// StoreLatestStorageHash stores the current root hash in the database at LatestStorageHashKey
-func (s *BaseState) StoreLatestStorageHash(root common.Hash) error {
-	return s.db.Put(common.LatestStorageHashKey, root[:])
-}
-
-// LoadLatestStorageHash retrieves the hash stored at LatestStorageHashKey from the DB
-func (s *BaseState) LoadLatestStorageHash() (common.Hash, error) {
-	hashbytes, err := s.db.Get(common.LatestStorageHashKey)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return common.NewHash(hashbytes), nil
-}
-
 // StoreCodeSubstitutedBlockHash stores the hash at the CodeSubstitutedBlock key
 func (s *BaseState) StoreCodeSubstitutedBlockHash(hash common.Hash) error {
 	return s.db.Put(common.CodeSubstitutedBlock, hash[:])
@@ -133,6 +103,11 @@ func (s *BaseState) Put(key, value []byte) error {
 // Get retrieves value by key from database
 func (s *BaseState) Get(key []byte) ([]byte, error) {
 	return s.db.Get(key)
+}
+
+// Del deletes key from database
+func (s *BaseState) Del(key []byte) error {
+	return s.db.Del(key)
 }
 
 func (s *BaseState) storeSkipToEpoch(epoch uint64) error {

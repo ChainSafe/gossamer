@@ -14,5 +14,7 @@ ignore:
   - "lib/runtime/test_data"
   - "**/errors.go"
   - "**/*/errors.go"
+  - "**/*/mocks/*.go"
+  - "**/*/mock_*.go"
   - "go.mod"
   - "go.sum"

@@ -34,7 +34,7 @@ func newTestTipSyncer(t *testing.T) *tipSyncer {
 	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(200), types.NewDigest())
 	require.NoError(t, err)
 
-	bs := new(syncmocks.MockBlockState)
+	bs := new(syncmocks.BlockState)
 	bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
@@ -239,7 +239,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
-	bs := new(syncmocks.MockBlockState)
+	bs := new(syncmocks.BlockState)
 	bs.On("GetHighestFinalisedHeader").Return(fin, nil)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
 	s.blockState = bs
@@ -278,4 +278,69 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
 	s.readyBlocks.pop() // first pop will remove parent
 	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
+}
+
+func TestTipSyncer_hasCurrentWorker(t *testing.T) {
+	s := newTestTipSyncer(t)
+	require.False(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(0),
+		targetNumber: big.NewInt(0),
+	}, nil))
+
+	workers := make(map[uint64]*worker)
+	workers[0] = &worker{
+		startNumber:  big.NewInt(1),
+		targetNumber: big.NewInt(128),
+	}
+	require.False(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(1),
+		targetNumber: big.NewInt(129),
+	}, workers))
+	require.True(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(1),
+		targetNumber: big.NewInt(128),
+	}, workers))
+	require.True(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(1),
+		targetNumber: big.NewInt(127),
+	}, workers))
+
+	workers[0] = &worker{
+		startNumber:  big.NewInt(128),
+		targetNumber: big.NewInt(255),
+	}
+	require.False(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(127),
+		targetNumber: big.NewInt(255),
+	}, workers))
+	require.True(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(128),
+		targetNumber: big.NewInt(255),
+	}, workers))
+
+	workers[0] = &worker{
+		startNumber:  big.NewInt(128),
+		targetNumber: big.NewInt(1),
+		direction:    network.Descending,
+	}
+	require.False(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(129),
+		targetNumber: big.NewInt(1),
+		direction:    network.Descending,
+	}, workers))
+	require.True(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(128),
+		targetNumber: big.NewInt(1),
+		direction:    network.Descending,
+	}, workers))
+	require.True(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(128),
+		targetNumber: big.NewInt(2),
+		direction:    network.Descending,
+	}, workers))
+	require.True(t, s.hasCurrentWorker(&worker{
+		startNumber:  big.NewInt(127),
+		targetNumber: big.NewInt(1),
+		direction:    network.Descending,
+	}, workers))
 }

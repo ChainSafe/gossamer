@@ -49,7 +49,7 @@ var (
 )
 
 // BuildMethodNames takes receiver interface and populates rpcMethods array with available
-//  method names
+// method names
 func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 	rcvrType := reflect.TypeOf(rcvr)
 	for i := 0; i < rcvrType.NumMethod(); i++ {
@@ -63,11 +63,13 @@ func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 		if mtype.NumIn() != 4 {
 			continue
 		}
+
 		// First argument must be a pointer and must be http.Request.
 		reqType := mtype.In(1)
 		if reqType.Kind() != reflect.Ptr || reqType.Elem() != typeOfRequest {
 			continue
 		}
+
 		// Second argument must be a pointer and must be exported.
 		args := mtype.In(2)
 		if args.Kind() != reflect.Ptr || !isExportedOrBuiltIn(args) {

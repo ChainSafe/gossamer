@@ -102,7 +102,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	// start block producing node first
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
@@ -188,12 +188,12 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false, true)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -210,36 +210,12 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	}
 }
 
-func TestSync_ManyProducers(t *testing.T) {
-	// TODO: this fails with runtime: out of memory
-	// this means when each node is connected to 8 other nodes, too much memory is being used.
-	t.Skip()
-
-	numNodes := 9 // 9 block producers
-	utils.SetLogLevel(log.LvlInfo)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
-	require.NoError(t, err)
-
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	numCmps := 100
-	for i := 0; i < numCmps; i++ {
-		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err, i)
-		time.Sleep(time.Second)
-	}
-}
-
 func TestSync_Bench(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 	numBlocks := 64
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 
 	for {
@@ -260,7 +236,7 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("BABE paused")
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNotAuthority, false)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNotAuthority, false, true)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -314,7 +290,7 @@ func TestSync_Restart(t *testing.T) {
 
 	// start block producing node first
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigDefault, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigDefault, false, true)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
@@ -367,15 +343,15 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	idx := 0 // TODO: randomise this
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
+	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 	nodes := []*utils.Node{node}
 
 	// Start rest of nodes
-	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, false)
+	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
-	node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, false)
+	node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 

@@ -224,7 +224,7 @@ func (s *Service) Start() error {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
-	txnBatch := make(chan *batchMessage, s.batchSize)
+	txnBatch := make(chan *BatchMessage, s.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol
@@ -364,7 +364,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			&finalizedHash,
 			finalized.Number,
 			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
-			big.NewInt(0), // todo (ed) determine where to get used_state_cache_size
+			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))
 		if err != nil {
 			logger.Debug("problem sending system.interval telemetry message", "error", err)
@@ -374,7 +374,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 }
 
 func (*Service) handleConn(conn libp2pnetwork.Conn) {
-	// TODO: update this for scoring
+	// TODO: update this for scoring (#1399)
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -641,7 +641,7 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 		return err
 	}
 
-	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage.
+	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage. (#1856)
 	logger.Debug("LightResponse", "msg", resp.String())
 
 	err = s.host.writeToStream(stream, &resp)
@@ -729,12 +729,17 @@ func (s *Service) CollectGauge() map[string]int64 {
 
 // HighestBlock returns the highest known block number
 func (*Service) HighestBlock() int64 {
-	// TODO: refactor this to get the data from the sync service
+	// TODO: refactor this to get the data from the sync service (#1857)
 	return 0
 }
 
 // StartingBlock return the starting block number that's currently being synced
 func (*Service) StartingBlock() int64 {
-	// TODO: refactor this to get the data from the sync service
+	// TODO: refactor this to get the data from the sync service (#1857)
 	return 0
+}
+
+// IsSynced returns whether we are synced (no longer in bootstrap mode) or not
+func (s *Service) IsSynced() bool {
+	return s.syncer.IsSynced()
 }

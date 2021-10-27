@@ -33,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	log "github.com/ChainSafe/log15"
@@ -556,8 +555,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	cfg.Roles = tomlCfg.Roles
 	cfg.BabeAuthority = tomlCfg.Roles == types.AuthorityRole
 	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
-	cfg.SlotDuration = tomlCfg.SlotDuration
-	cfg.EpochLength = tomlCfg.EpochLength
+	cfg.BABELead = ctx.GlobalBool(BABELeadFlag.Name)
 
 	// check --roles flag and update node configuration
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
@@ -597,8 +595,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	switch tomlCfg.WasmInterpreter {
 	case wasmer.Name:
 		cfg.WasmInterpreter = wasmer.Name
-	case wasmtime.Name:
-		cfg.WasmInterpreter = wasmtime.Name
 	case life.Name:
 		cfg.WasmInterpreter = life.Name
 	case "":
@@ -612,7 +608,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"core configuration",
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
-		"epoch-length", cfg.EpochLength,
 		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }

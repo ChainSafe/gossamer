@@ -25,6 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+//go:generate mockery --name Instance --structname Instance --case underscore --keeptree
+
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
 	UpdateRuntimeCode([]byte) error
@@ -49,9 +51,11 @@ type Instance interface {
 	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
 
-	// TODO: parameters and return values for these are undefined in the spec
-	CheckInherents()
+	CheckInherents() // TODO: use this in block verification process (#1873)
+
+	// parameters and return values for these are undefined in the spec
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
@@ -77,6 +81,7 @@ type Storage interface {
 	BeginStorageTransaction()
 	CommitStorageTransaction()
 	RollbackStorageTransaction()
+	LoadCode() []byte
 }
 
 // BasicNetwork interface for functions used by runtime network state function
@@ -88,7 +93,10 @@ type BasicNetwork interface {
 type BasicStorage interface {
 	Put(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
+	Del(key []byte) error
 }
+
+//go:generate mockery --name TransactionState --structname TransactionState --case underscore --keeptree
 
 // TransactionState interface for adding transactions to pool
 type TransactionState interface {

@@ -330,7 +330,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 	})
 
 	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
-		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock := new(mocks.CoreAPI)
 		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(nil, errors.New("problem while querying"))
 
 		module := new(StateModule)
@@ -354,7 +354,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 				"0x90": "another value",
 			}),
 		}
-		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock := new(mocks.CoreAPI)
 		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
 
 		module := new(StateModule)
@@ -374,7 +374,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 }
 
 func TestStateModule_GetMetadata(t *testing.T) {
-	t.Skip() // TODO: update expected_metadata
+	t.Skip() // TODO: update expected_metadata (#1026)
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
@@ -477,7 +477,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 }
 
 func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
-	coreAPIMock := new(mocks.MockCoreAPI)
+	coreAPIMock := new(mocks.CoreAPI)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
 		Return(common.EmptyHash, nil, errors.New("mocked error"))
@@ -497,7 +497,7 @@ func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 	expectedBlock := common.BytesToHash([]byte("random hash"))
 	mockedProof := [][]byte{[]byte("proof-1"), []byte("proof-2")}
 
-	coreAPIMock := new(mocks.MockCoreAPI)
+	coreAPIMock := new(mocks.CoreAPI)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
 		Return(expectedBlock, mockedProof, nil)
@@ -543,7 +543,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	b := &types.Block{
 		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
-			Number:     big.NewInt(2),
+			Number:     big.NewInt(3),
 			StateRoot:  sr1,
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte{}}),
@@ -557,7 +557,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	chain.Block.StoreRuntime(b.Header.Hash(), rt)
 
-	hash, _ := chain.Block.GetBlockHash(big.NewInt(2))
+	hash, _ := chain.Block.GetBlockHash(big.NewInt(3))
 	core := newCoreService(t, chain)
 	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }

@@ -14,31 +14,14 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package wasmtime
+package runtime
 
-import (
-	"errors"
-
-	"github.com/bytecodealliance/wasmtime-go"
-)
-
-// Memory is a thin wrapper around wasmtime memory to support
-// Gossamer runtime.Memory interface
-type Memory struct {
-	memory *wasmtime.Memory
+// Int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
+func Int64ToPointerAndSize(in int64) (ptr, length int32) {
+	return int32(in), int32(in >> 32)
 }
 
-// Data returns the memory's data
-func (m Memory) Data() []byte {
-	return m.memory.UnsafeData()
-}
-
-// Length returns the memory's length
-func (m Memory) Length() uint32 {
-	return uint32(m.memory.DataSize())
-}
-
-// Grow ...
-func (m Memory) Grow(numPages uint32) error {
-	return errors.New("wasmtime Memory.Grow unimplemented")
+// PointerAndSizeToInt64 converts int32 pointer and size to a int64
+func PointerAndSizeToInt64(ptr, size int32) int64 {
+	return int64(ptr) | (int64(size) << 32)
 }

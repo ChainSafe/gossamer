@@ -25,6 +25,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+//go:generate mockery --name BlockState --structname MockBlockState --case underscore --inpackage
+
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
@@ -35,6 +37,8 @@ type BlockState interface {
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 
+//go:generate mockery --name Syncer --structname MockSyncer --case underscore --inpackage
+
 // Syncer is implemented by the syncing service
 type Syncer interface {
 	HandleBlockAnnounceHandshake(from peer.ID, msg *BlockAnnounceHandshake) error
@@ -43,12 +47,14 @@ type Syncer interface {
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
 	HandleBlockAnnounce(from peer.ID, msg *BlockAnnounceMessage) error
 
-	// IsSynced exposes the internal synced state // TODO: use syncQueue for this
+	// IsSynced exposes the internal synced state
 	IsSynced() bool
 
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 }
+
+//go:generate mockery --name TransactionHandler --structname MockTransactionHandler --case underscore --inpackage
 
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {
