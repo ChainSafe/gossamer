@@ -43,11 +43,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type MockWSConnAPI struct {
+type mockWSConnAPI struct {
 	lastMessage BaseResponseJSON
 }
 
-func (m *MockWSConnAPI) safeSend(msg interface{}) {
+func (m *mockWSConnAPI) safeSend(msg interface{}) {
 	m.lastMessage = msg.(BaseResponseJSON)
 }
 
@@ -97,7 +97,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	BlockAPI := new(mocks.MockBlockAPI)
+	BlockAPI := new(mocks.BlockAPI)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 
 	wsconn.BlockAPI = BlockAPI
@@ -145,7 +145,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	BlockAPI := new(mocks.MockBlockAPI)
+	BlockAPI := new(mocks.BlockAPI)
 	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
@@ -196,7 +196,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	notifyImportedChan := make(chan *types.Block, 100)
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
 
-	BlockAPI := new(mocks.MockBlockAPI)
+	BlockAPI := new(mocks.BlockAPI)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
@@ -270,7 +270,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		mockedJustBytes, err := scale.Marshal(mockedJust)
 		require.NoError(t, err)
 
-		blockStateMock := new(mocks.MockBlockAPI)
+		blockStateMock := new(mocks.BlockAPI)
 		blockStateMock.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
 		blockStateMock.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 		wsconn.BlockAPI = blockStateMock
@@ -342,7 +342,7 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 
 func TestRuntimeChannelListener_Listen(t *testing.T) {
 	notifyChan := make(chan runtime.Version)
-	mockConnection := &MockWSConnAPI{}
+	mockConnection := &mockWSConnAPI{}
 	rvl := RuntimeVersionListener{
 		wsconn:        mockConnection,
 		subID:         0,

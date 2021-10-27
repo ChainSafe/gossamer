@@ -26,6 +26,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+//go:generate mockery --name BlockState --structname MockBlockState --case underscore --inpackage
+
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
@@ -35,6 +37,8 @@ type BlockState interface {
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
+
+//go:generate mockery --name Syncer --structname MockSyncer --case underscore --inpackage
 
 // Syncer is implemented by the syncing service
 type Syncer interface {
@@ -50,6 +54,8 @@ type Syncer interface {
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 }
+
+//go:generate mockery --name TransactionHandler --structname MockTransactionHandler --case underscore --inpackage
 
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {
