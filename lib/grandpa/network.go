@@ -188,7 +188,7 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 	}
 
 	s.network.GossipMessage(cm)
-	logger.Trace(fmt.Sprintf("sent message: %v", msg))
+	logger.Tracef("sent message: %v", msg)
 	return nil
 }
 
@@ -219,7 +219,7 @@ func (s *Service) sendNeighbourMessage() {
 
 		cm, err := s.neighbourMessage.ToConsensusMessage()
 		if err != nil {
-			logger.Warn(fmt.Sprintf("failed to convert NeighbourMessage to network message: %s", err))
+			logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
 			continue
 		}
 

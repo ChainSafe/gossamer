@@ -17,7 +17,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -84,7 +83,7 @@ func memProfile(ctx *cli.Context) (func(), error) {
 	return func() {
 		runtime.GC()
 		if err := pprof.WriteHeapProfile(memFile); err != nil {
-			logger.Error(fmt.Sprintf("could not write memory profile: %s", err))
+			logger.Errorf("could not write memory profile: %s", err)
 		}
 
 		if err := memFile.Close(); err != nil {

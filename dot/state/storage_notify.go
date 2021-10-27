@@ -65,12 +65,12 @@ func (s *StorageState) RegisterStorageObserver(o Observer) {
 	// notifyObserver here to send storage value of current state
 	sr, err := s.blockState.BestBlockStateRoot()
 	if err != nil {
-		logger.Debug(fmt.Sprintf("error registering storage change channel: %s", err))
+		logger.Debugf("error registering storage change channel: %s", err)
 		return
 	}
 	go func() {
 		if err := s.notifyObserver(sr, o); err != nil {
-			logger.Warn(fmt.Sprintf("failed to notify storage subscriptions: %s", err))
+			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}()
 
@@ -87,7 +87,7 @@ func (s *StorageState) notifyAll(root common.Hash) {
 	for _, observer := range s.observerList {
 		err := s.notifyObserver(root, observer)
 		if err != nil {
-			logger.Warn(fmt.Sprintf("failed to notify storage subscriptions: %s", err))
+			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}
 }
@@ -134,7 +134,7 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 	}
 
 	if len(subRes.Changes) > 0 {
-		logger.Trace(fmt.Sprintf("update observer, changes are %v", subRes.Changes))
+		logger.Tracef("update observer, changes are %v", subRes.Changes)
 		go func() {
 			o.Update(subRes)
 		}()

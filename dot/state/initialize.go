@@ -111,7 +111,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to close database: %s", err)
 	}
 
-	logger.Info(fmt.Sprintf("block state hash genesis hash: %s", blockState.genesisHash))
+	logger.Infof("block state hash genesis hash: %s", blockState.genesisHash)
 	return nil
 }
 

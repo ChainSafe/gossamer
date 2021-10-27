@@ -190,7 +190,7 @@ func (s *Service) Start() error {
 
 	go func() {
 		if err := s.initiate(); err != nil {
-			logger.Critical(fmt.Sprintf("failed to initiate: %s", err))
+			logger.Criticalf("failed to initiate: %s", err)
 		}
 	}()
 
@@ -288,14 +288,14 @@ func (s *Service) initiateRound() error {
 	}
 
 	if setID > s.state.setID {
-		logger.Debug(fmt.Sprintf("found block finalised in higher setID, updating our setID to be %d...", setID))
+		logger.Debugf("found block finalised in higher setID, updating our setID to be %d...", setID)
 		s.state.setID = setID
 		s.state.round = round
 	}
 
 	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
 	if err != nil {
-		logger.Critical(fmt.Sprintf("failed to get finalised header for round %d: %s", round, err))
+		logger.Criticalf("failed to get finalised header for round %d: %s", round, err)
 		return err
 	}
 
@@ -312,7 +312,7 @@ func (s *Service) initiateRound() error {
 	// make sure no votes can be validated while we are incrementing rounds
 	s.roundLock.Lock()
 	s.state.round++
-	logger.Debug(fmt.Sprintf("incrementing grandpa round, next round will be %d", s.state.round))
+	logger.Debugf("incrementing grandpa round, next round will be %d", s.state.round)
 	s.prevotes = new(sync.Map)
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
@@ -338,7 +338,7 @@ func (s *Service) initiate() error {
 	for {
 		err := s.initiateRound()
 		if err != nil {
-			logger.Warn(fmt.Sprintf("failed to initiate round for round %d: %s", s.state.round, err))
+			logger.Warnf("failed to initiate round for round %d: %s", s.state.round, err)
 			return err
 		}
 
@@ -351,7 +351,7 @@ func (s *Service) initiate() error {
 		}
 
 		if err != nil {
-			logger.Warn(fmt.Sprintf("failed to play grandpa round: %s", err))
+			logger.Warnf("failed to play grandpa round: %s", err)
 			continue
 		}
 
@@ -430,7 +430,7 @@ func (s *Service) primaryBroadcastCommitMessage() {
 	// send finalised block from previous round to network
 	msg, err := cm.ToConsensusMessage()
 	if err != nil {
-		logger.Warn(fmt.Sprintf("failed to encode finalisation message: %s", err))
+		logger.Warnf("failed to encode finalisation message: %s", err)
 	}
 
 	s.network.GossipMessage(msg)
@@ -474,7 +474,7 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	logger.Debug(fmt.Sprintf("sending pre-vote message %s...", pv))
+	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
 	defer close(roundComplete)
 
@@ -500,17 +500,17 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	s.precommits.Store(s.publicKeyBytes(), spc)
-	logger.Debug(fmt.Sprintf("sending pre-commit message %s...", pc))
+	logger.Debugf("sending pre-commit message %s...", pc)
 
 	// continue to send precommit messages until round is done
 	go s.sendVoteMessage(precommit, pcm, roundComplete)
 
 	if err = s.attemptToFinalize(); err != nil {
-		logger.Error(fmt.Sprintf("failed to finalise: %s", err))
+		logger.Errorf("failed to finalise: %s", err)
 		return err
 	}
 
-	logger.Debug(fmt.Sprintf("round completed in %s", time.Since(start)))
+	logger.Debugf("round completed in %s", time.Since(start))
 	return nil
 }
 
@@ -524,10 +524,10 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 		}
 
 		if err := s.sendMessage(msg); err != nil {
-			logger.Warn(fmt.Sprintf("could not send message for stage %s: %s", stage, err))
+			logger.Warnf("could not send message for stage %s: %s", stage, err)
 		}
 
-		logger.Trace(fmt.Sprintf("sent vote message for stage %s: %s", stage, msg.Message))
+		logger.Tracef("sent vote message for stage %s: %s", stage, msg.Message)
 		select {
 		case <-roundComplete:
 			return
@@ -553,7 +553,7 @@ func (s *Service) attemptToFinalize() error {
 
 		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 		if has {
-			logger.Debug(fmt.Sprintf("block was finalised for round %d", s.state.round))
+			logger.Debugf("block was finalised for round %d", s.state.round)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
@@ -604,7 +604,7 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		logger.Debug(fmt.Sprintf("sending CommitMessage: %v", cm))
+		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
 		return nil
 	}

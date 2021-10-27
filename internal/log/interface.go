@@ -7,6 +7,7 @@ type Interface interface {
 	ChildConstructor
 	LoggerUpdater
 	LeveledLogger
+	LeveledFormatterLogger
 }
 
 // ChildConstructor is the interface to create child loggers.
@@ -28,4 +29,14 @@ type LeveledLogger interface {
 	Warn(s string)
 	Error(s string)
 	Critical(s string)
+}
+
+// LeveledFormatterLogger is the interface to format and log at different levels.
+type LeveledFormatterLogger interface {
+	Tracef(format string, args ...interface{})
+	Debugf(format string, args ...interface{})
+	Infof(format string, args ...interface{})
+	Warnf(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
+	Criticalf(format string, args ...interface{})
 }

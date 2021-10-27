@@ -337,32 +337,32 @@ func (b *Service) getSlotDuration() time.Duration {
 
 func (b *Service) initiate() {
 	if b.blockState == nil {
-		logger.Error(fmt.Sprintf("block authoring: %s", errNilBlockState))
+		logger.Errorf("block authoring: %s", errNilBlockState)
 		return
 	}
 
 	if b.storageState == nil {
-		logger.Error(fmt.Sprintf("block authoring: %s", errNilStorageState))
+		logger.Errorf("block authoring: %s", errNilStorageState)
 		return
 	}
 
 	err := b.invokeBlockAuthoring()
 	if err != nil {
-		logger.Critical(fmt.Sprintf("block authoring error: %s", err))
+		logger.Criticalf("block authoring error: %s", err)
 	}
 }
 
 func (b *Service) invokeBlockAuthoring() error {
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get current epoch: %s", err))
+		logger.Errorf("failed to get current epoch: %s", err)
 		return err
 	}
 
 	for {
 		err := b.initiateEpoch(epoch)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to initiate epoch %d: %s", epoch, err))
+			logger.Errorf("failed to initiate epoch %d: %s", epoch, err)
 			return err
 		}
 
@@ -371,7 +371,7 @@ func (b *Service) invokeBlockAuthoring() error {
 
 		epochStartSlot, err := b.waitForEpochStart(epoch)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to wait for epoch %d start: %s", epoch, err))
+			logger.Errorf("failed to wait for epoch %d start: %s", epoch, err)
 			return err
 		}
 
@@ -393,12 +393,12 @@ func (b *Service) invokeBlockAuthoring() error {
 			intoEpoch = intoEpoch % b.epochLength
 		}
 
-		logger.Info(fmt.Sprintf("current epoch %d has %d slots", epoch, intoEpoch))
+		logger.Infof("current epoch %d has %d slots", epoch, intoEpoch)
 
 		// get start slot for current epoch
 		nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to get start slot for next epoch %d: %s", epoch+1, err))
+			logger.Errorf("failed to get start slot for next epoch %d: %s", epoch+1, err)
 			return err
 		}
 
@@ -434,7 +434,7 @@ func (b *Service) invokeBlockAuthoring() error {
 						slotNum, epoch, slotNum-epochStartSlot))
 					continue
 				} else if err != nil {
-					logger.Warn(fmt.Sprintf("failed to handle slot %d: %s", slotNum, err))
+					logger.Warnf("failed to handle slot %d: %s", slotNum, err)
 					continue
 				}
 			case <-epochTimer.C:
@@ -449,11 +449,11 @@ func (b *Service) invokeBlockAuthoring() error {
 		// setup next epoch, re-invoke block authoring
 		next, err := b.incrementEpoch()
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to increment epoch: %s", err))
+			logger.Errorf("failed to increment epoch: %s", err)
 			return err
 		}
 
-		logger.Info(fmt.Sprintf("epoch %d complete, upcoming epoch: %d", epoch, next))
+		logger.Infof("epoch %d complete, upcoming epoch: %d", epoch, next)
 		epoch = next
 	}
 }
@@ -462,12 +462,12 @@ func (b *Service) waitForEpochStart(epoch uint64) (uint64, error) {
 	// get start slot for current epoch
 	epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get start slot for current epoch %d: %s", epoch, err))
+		logger.Errorf("failed to get start slot for current epoch %d: %s", epoch, err)
 		return 0, err
 	}
 
 	epochStartTime := getSlotStartTime(epochStart, b.slotDuration)
-	logger.Debug(fmt.Sprintf("checking if epoch started with epoch start %s and current time %s", epochStartTime, time.Now()))
+	logger.Debugf("checking if epoch started with epoch start %s and current time %s", epochStartTime, time.Now())
 
 	// check if it's time to start the epoch yet. if not, wait until it is
 	if time.Since(epochStartTime) < 0 {
@@ -500,12 +500,12 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		logger.Error(fmt.Sprintf("block authoring: %s", err))
+		logger.Errorf("block authoring: %s", err)
 		return err
 	}
 
 	if parentHeader == nil {
-		logger.Error(fmt.Sprintf("block authoring: %s", errNilParentHeader))
+		logger.Errorf("block authoring: %s", errNilParentHeader)
 		return errNilParentHeader
 	}
 
@@ -529,7 +529,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 	// if block building is successful, store the resulting trie in the storage state
 	ts, err := b.storageState.TrieState(&parent.StateRoot)
 	if err != nil || ts == nil {
-		logger.Error(fmt.Sprintf("failed to get parent trie with parent state root %s: %s", parent.StateRoot, err))
+		logger.Errorf("failed to get parent trie with parent state root %s: %s", parent.StateRoot, err)
 		return err
 	}
 
@@ -560,11 +560,11 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		),
 	)
 	if err != nil {
-		logger.Debug(fmt.Sprintf("problem sending 'prepared_block_for_proposing' telemetry message: %s", err))
+		logger.Debugf("problem sending 'prepared_block_for_proposing' telemetry message: %s", err)
 	}
 
 	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
-		logger.Warn(fmt.Sprintf("failed to import built block: %s", err))
+		logger.Warnf("failed to import built block: %s", err)
 		return err
 	}
 

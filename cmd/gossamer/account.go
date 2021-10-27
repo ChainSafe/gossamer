@@ -35,7 +35,7 @@ func accountAction(ctx *cli.Context) error {
 	// create dot configuration
 	cfg, err := createDotConfig(ctx)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create dot configuration: %s", err))
+		logger.Errorf("failed to create dot configuration: %s", err)
 		return err
 	}
 
@@ -58,7 +58,7 @@ func accountAction(ctx *cli.Context) error {
 
 		file, err = keystore.GenerateKeypair(keytype, nil, basepath, getKeystorePassword(ctx))
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to generate keypair: %s", err))
+			logger.Errorf("failed to generate keypair: %s", err)
 			return err
 		}
 
@@ -72,7 +72,7 @@ func accountAction(ctx *cli.Context) error {
 		// import keypair
 		_, err = keystore.ImportKeypair(keyimport, basepath)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to import keypair: %s", err))
+			logger.Errorf("failed to import keypair: %s", err)
 			return err
 		}
 	}
@@ -81,7 +81,7 @@ func accountAction(ctx *cli.Context) error {
 	if keylist := ctx.Bool(ListFlag.Name); keylist {
 		_, err = utils.KeystoreFilepaths(basepath)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to list keys: %s", err))
+			logger.Errorf("failed to list keys: %s", err)
 			return err
 		}
 	}
@@ -90,7 +90,7 @@ func accountAction(ctx *cli.Context) error {
 	if importraw := ctx.String(ImportRawFlag.Name); importraw != "" {
 		file, err = keystore.ImportRawPrivateKey(importraw, keytype, basepath, getKeystorePassword(ctx))
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to import private key: %s", err))
+			logger.Errorf("failed to import private key: %s", err)
 			return err
 		}
 

@@ -42,7 +42,7 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		header := utils.GetChainHead(t, node)
-		logger.Info(fmt.Sprintf("got header with hash %s from node with key %s", header.Hash(), node.Key))
+		logger.Infof("got header with hash %s from node with key %s", header.Hash(), node.Key)
 		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
 	}
 
@@ -86,7 +86,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 
 	for _, node := range nodes {
 		go func(node *utils.Node) {
-			logger.Debug(fmt.Sprintf("calling chain_getBlockHash for node index %d", node.Idx))
+			logger.Debugf("calling chain_getBlockHash for node index %d", node.Idx)
 			hash, err := utils.GetBlockHash(t, node, num)
 			mapMu.Lock()
 			defer func() {
@@ -97,7 +97,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 				errs = append(errs, err)
 				return
 			}
-			logger.Debug(fmt.Sprintf("got hash %s from node with key %s", hash, node.Key))
+			logger.Debugf("got hash %s from node with key %s", hash, node.Key)
 
 			hashes[hash] = append(hashes[hash], node.Key)
 		}(node)
@@ -153,7 +153,7 @@ func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		hash := utils.GetFinalizedHead(t, node)
-		logger.Info(fmt.Sprintf("got finalised head with hash %s from node with key %s", hash, node.Key))
+		logger.Infof("got finalised head with hash %s from node with key %s", hash, node.Key)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
@@ -179,7 +179,7 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 			return nil, err
 		}
 
-		logger.Info(fmt.Sprintf("got finalised head with hash %s from node with key %s at round %d", hash, node.Key, round))
+		logger.Infof("got finalised head with hash %s from node with key %s at round %d", hash, node.Key, round)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 

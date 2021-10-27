@@ -98,7 +98,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
 
 	if !codeSubHash.IsEmpty() {
-		logger.Info(fmt.Sprintf("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash))
+		logger.Infof("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash)
 		genData, err := st.Base.LoadGenesisData() // nolint
 		if err != nil {
 			return nil, err
@@ -176,7 +176,7 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 	}
 
 	kps := ks.Keypairs()
-	logger.Info(fmt.Sprintf("keystore with keys %v", kps))
+	logger.Infof("keystore with keys %v", kps)
 	if len(kps) == 0 && cfg.Core.BabeAuthority {
 		return nil, ErrNoKeysProvided
 	}
@@ -200,7 +200,7 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 	// create new BABE service
 	bs, err := babe.NewService(bcfg)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to initialise BABE service: %s", err))
+		logger.Errorf("failed to initialise BABE service: %s", err)
 		return nil, err
 	}
 
@@ -242,7 +242,7 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Servi
 	// create new core service
 	coreSrvc, err := core.NewService(coreConfig)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create core service: %s", err))
+		logger.Errorf("failed to create core service: %s", err)
 		return nil, err
 	}
 
@@ -278,7 +278,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 
 	networkSrvc, err := network.NewService(&networkConfig)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create network service: %s", err))
+		logger.Errorf("failed to create network service: %s", err)
 		return nil, err
 	}
 

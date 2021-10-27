@@ -136,7 +136,7 @@ func NodeInitialized(basepath string) bool {
 	// initialise database using data directory
 	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
-		logger.Debug(fmt.Sprintf("failed to create database from base path %s: %s", basepath, err))
+		logger.Debugf("failed to create database from base path %s: %s", basepath, err)
 		return false
 	}
 
@@ -144,14 +144,14 @@ func NodeInitialized(basepath string) bool {
 		// close database
 		err = db.Close()
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to close database: %s", err))
+			logger.Errorf("failed to close database: %s", err)
 		}
 	}()
 
 	// load genesis data from initialised node database
 	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
-		logger.Error(fmt.Sprintf("node has not been initialised from base path %s: %s", basepath, err))
+		logger.Errorf("node has not been initialised from base path %s: %s", basepath, err)
 		return false
 	}
 
@@ -169,7 +169,7 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	defer func() {
 		err = db.Close()
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to close database: %s", err))
+			logger.Errorf("failed to close database: %s", err)
 			return
 		}
 	}()
@@ -177,7 +177,7 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	basestate := state.NewBaseState(db)
 	nodename, err = basestate.LoadNodeGlobalName()
 	if err != nil {
-		logger.Warn(fmt.Sprintf("failed to load global node name from base path %s: %s", basepath, err))
+		logger.Warnf("failed to load global node name from base path %s: %s", basepath, err)
 		return "", err
 	}
 
@@ -224,7 +224,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		nodeSrvcs = append(nodeSrvcs, networkSrvc)
 	} else {
 		// do not create or append network service if network service is not enabled
-		logger.Debug(fmt.Sprintf("network service disabled, roles are %d", cfg.Core.Roles))
+		logger.Debugf("network service disabled, roles are %d", cfg.Core.Roles)
 	}
 
 	// create runtime
@@ -354,7 +354,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		strconv.FormatInt(time.Now().UnixNano(), 10),
 		sysSrvc.SystemVersion()))
 	if err != nil {
-		logger.Debug(fmt.Sprintf("problem sending system.connected telemetry message: %s", err))
+		logger.Debugf("problem sending system.connected telemetry message: %s", err)
 	}
 	return node, nil
 }
@@ -369,7 +369,7 @@ func storeGlobalNodeName(name, basepath string) (err error) {
 	defer func() {
 		err = db.Close()
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to close database: %s", err))
+			logger.Errorf("failed to close database: %s", err)
 			return
 		}
 	}()
@@ -377,7 +377,7 @@ func storeGlobalNodeName(name, basepath string) (err error) {
 	basestate := state.NewBaseState(db)
 	err = basestate.StoreNodeGlobalName(name)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("failed to store global node name at base path %s: %s", basepath, err))
+		logger.Warnf("failed to store global node name at base path %s: %s", basepath, err)
 		return err
 	}
 

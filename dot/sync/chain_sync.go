@@ -294,7 +294,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	}
 
 	cs.workQueue <- ps
-	logger.Debug(fmt.Sprintf("set peer %s head with block number %s and hash %s", p, number, hash))
+	logger.Debugf("set peer %s head with block number %s and hash %s", p, number, hash)
 	return nil
 }
 
@@ -371,7 +371,7 @@ func (cs *chainSync) sync() {
 			cs.maybeSwitchMode()
 
 			if err := cs.handleWork(ps); err != nil {
-				logger.Error(fmt.Sprintf("failed to handle chain sync work: %s", err))
+				logger.Errorf("failed to handle chain sync work: %s", err)
 			}
 		case res := <-cs.resultQueue:
 			// delete worker from workers map
@@ -383,7 +383,7 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
-			logger.Debug(fmt.Sprintf("worker error: %s", res.err.err))
+			logger.Debugf("worker error: %s", res.err.err)
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
@@ -403,7 +403,7 @@ func (cs *chainSync) sync() {
 
 			worker, err := cs.handler.handleWorkerResult(res)
 			if err != nil {
-				logger.Error(fmt.Sprintf("failed to handle worker result: %s", err))
+				logger.Errorf("failed to handle worker result: %s", err)
 				continue
 			}
 
@@ -417,7 +417,7 @@ func (cs *chainSync) sync() {
 
 			workers, err := cs.handler.handleTick()
 			if err != nil {
-				logger.Error(fmt.Sprintf("failed to handle tick: %s", err))
+				logger.Errorf("failed to handle tick: %s", err)
 				continue
 			}
 
@@ -437,7 +437,7 @@ func (cs *chainSync) sync() {
 func (cs *chainSync) maybeSwitchMode() {
 	head, err := cs.blockState.BestBlockHeader()
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get best block header: %s", err))
+		logger.Errorf("failed to get best block header: %s", err)
 		return
 	}
 
@@ -474,7 +474,7 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 	}
 
 	cs.state = mode
-	logger.Debug(fmt.Sprintf("switched sync mode to %d", mode))
+	logger.Debugf("switched sync mode to %d", mode)
 }
 
 // getTarget takes the average of all peer heads
@@ -507,7 +507,7 @@ func (cs *chainSync) getTarget() *big.Int {
 // in tip mode, this adds the peer's state to the pendingBlocks set and potentially starts
 // a fork sync
 func (cs *chainSync) handleWork(ps *peerState) error {
-	logger.Trace(fmt.Sprintf("handling potential work for target block number %s and hash %s", ps.number, ps.hash))
+	logger.Tracef("handling potential work for target block number %s and hash %s", ps.number, ps.hash)
 	worker, err := cs.handler.handleNewPeerState(ps)
 	if err != nil {
 		return err
@@ -572,7 +572,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	reqs, err := workerToRequests(w)
 	if err != nil {
 		// if we are creating valid workers, this should not happen
-		logger.Critical(fmt.Sprintf("failed to create requests from worker id %d: %s", w.id, err))
+		logger.Criticalf("failed to create requests from worker id %d: %s", w.id, err)
 		w.err = &workerError{
 			err: err,
 		}
@@ -612,7 +612,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	}
 
 	// send out request and potentially receive response, error if timeout
-	logger.Trace(fmt.Sprintf("sending out block request: %s", req))
+	logger.Tracef("sending out block request: %s", req)
 
 	// TODO: use scoring to determine what peer to try to sync from first (#1399)
 	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
@@ -667,7 +667,7 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 		bd.Header = block.header
 	}
 
-	logger.Trace(fmt.Sprintf("new ready block number %s with hash %s", bd.Header.Number, bd.Hash))
+	logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)
 
 	ready := []*types.BlockData{bd}
 	ready = pendingBlocks.getReadyDescendants(bd.Hash, ready)
@@ -707,7 +707,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 		return errEmptyBlockData
 	}
 
-	logger.Trace(fmt.Sprintf("validating block response starting at block hash %s", resp.BlockData[0].Hash))
+	logger.Tracef("validating block response starting at block hash %s", resp.BlockData[0].Hash)
 
 	var (
 		prev, curr *types.Header

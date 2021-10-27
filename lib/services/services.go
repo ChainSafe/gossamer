@@ -50,7 +50,7 @@ func NewServiceRegistry(logger log.Interface) *ServiceRegistry {
 func (s *ServiceRegistry) RegisterService(service Service) {
 	kind := reflect.TypeOf(service)
 	if _, exists := s.services[kind]; exists {
-		s.logger.Warn(fmt.Sprintf("Tried to add service type %s that has already been seen", kind))
+		s.logger.Warnf("Tried to add service type %s that has already been seen", kind)
 		return
 	}
 	s.services[kind] = service
@@ -59,12 +59,12 @@ func (s *ServiceRegistry) RegisterService(service Service) {
 
 // StartAll calls `Service.Start()` for all registered services
 func (s *ServiceRegistry) StartAll() {
-	s.logger.Info(fmt.Sprintf("Starting services: %v", s.serviceTypes))
+	s.logger.Infof("Starting services: %v", s.serviceTypes)
 	for _, typ := range s.serviceTypes {
 		log.Debug(fmt.Sprintf("Starting service %v", typ))
 		err := s.services[typ].Start()
 		if err != nil {
-			s.logger.Error(fmt.Sprintf("Cannot start service %s: %s", typ, err))
+			s.logger.Errorf("Cannot start service %s: %s", typ, err)
 		}
 	}
 	log.Debug("All services started.")
@@ -72,12 +72,12 @@ func (s *ServiceRegistry) StartAll() {
 
 // StopAll calls `Service.Stop()` for all registered services
 func (s *ServiceRegistry) StopAll() {
-	s.logger.Info(fmt.Sprintf("Stopping services: %v", s.serviceTypes))
+	s.logger.Infof("Stopping services: %v", s.serviceTypes)
 	for _, typ := range s.serviceTypes {
-		s.logger.Debug(fmt.Sprintf("Stopping service %v", typ))
+		s.logger.Debugf("Stopping service %v", typ)
 		err := s.services[typ].Stop()
 		if err != nil {
-			s.logger.Error(fmt.Sprintf("Error stopping service %s: %s", typ, err))
+			s.logger.Errorf("Error stopping service %s: %s", typ, err)
 		}
 	}
 	log.Debug("All services stopped.")

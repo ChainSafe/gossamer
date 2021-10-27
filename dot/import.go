@@ -19,7 +19,6 @@ package dot
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -44,7 +43,7 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 		return err
 	}
 
-	logger.Info(fmt.Sprintf("ImportState with header: %v", header))
+	logger.Infof("ImportState with header: %v", header)
 
 	config := state.Config{
 		Path:     basepath,

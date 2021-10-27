@@ -79,7 +79,7 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 
 	err := loadConfigFile(ctx, tomlCfg)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to load toml configuration: %s", err))
+		logger.Errorf("failed to load toml configuration: %s", err)
 		return nil, nil, err
 	}
 
@@ -111,7 +111,7 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 	}
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set chain configuration: %s", err))
+		logger.Errorf("failed to set chain configuration: %s", err)
 		return nil, nil, err
 	}
 
@@ -122,23 +122,23 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	tomlCfg, cfg, err := setupConfigFromChain(ctx)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set chain configuration: %s", err))
+		logger.Errorf("failed to set chain configuration: %s", err)
 		return nil, err
 	}
 
 	// set log config
 	err = setLogConfig(ctx, tomlCfg, &cfg.Global, &cfg.Log)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set log configuration: %s", err))
+		logger.Errorf("failed to set log configuration: %s", err)
 		return nil, err
 	}
 
 	// TODO: we should have it pretty printed with a custom String function
-	logger.Info(fmt.Sprintf("loaded package log configuration: %v", cfg.Log))
+	logger.Infof("loaded package log configuration: %v", cfg.Log)
 
 	// set global configuration values
 	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
-		logger.Error(fmt.Sprintf("failed to set global node configuration: %s", err))
+		logger.Errorf("failed to set global node configuration: %s", err)
 		return nil, err
 	}
 
@@ -163,14 +163,14 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	tomlCfg, cfg, err := setupConfigFromChain(ctx)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set chain configuration: %s", err))
+		logger.Errorf("failed to set chain configuration: %s", err)
 		return nil, err
 	}
 
 	// set global configuration values
 	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set global node configuration: %s", err))
+		logger.Errorf("failed to set global node configuration: %s", err)
 		return nil, err
 	}
 
@@ -185,7 +185,7 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	// set log config
 	err = setLogConfig(ctx, tomlCfg, &cfg.Global, &cfg.Log)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set log configuration: %s", err))
+		logger.Errorf("failed to set log configuration: %s", err)
 		return nil, err
 	}
 
@@ -211,13 +211,13 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 func createImportStateConfig(ctx *cli.Context) (*dot.Config, error) {
 	tomlCfg, cfg, err := setupConfigFromChain(ctx)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set chain configuration: %s", err))
+		logger.Errorf("failed to set chain configuration: %s", err)
 		return nil, err
 	}
 
 	// set global configuration values
 	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
-		logger.Error(fmt.Sprintf("failed to set global node configuration: %s", err))
+		logger.Errorf("failed to set global node configuration: %s", err)
 		return nil, err
 	}
 
@@ -229,13 +229,13 @@ func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
 	cfg := &dot.Config{}
 	err := loadConfigFile(ctx, tomlCfg)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to load toml configuration: %s", err))
+		logger.Errorf("failed to load toml configuration: %s", err)
 		return nil, err
 	}
 
 	// set global configuration values
 	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
-		logger.Error(fmt.Sprintf("failed to set global node configuration: %s", err))
+		logger.Errorf("failed to set global node configuration: %s", err)
 		return nil, err
 	}
 
@@ -249,7 +249,7 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 
 	err := loadConfigFile(ctx, tomlCfg)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to load toml configuration: %s", err))
+		logger.Errorf("failed to load toml configuration: %s", err)
 		return nil, err
 	}
 
@@ -259,14 +259,14 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	// set global configuration values
 	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set global node configuration: %s", err))
+		logger.Errorf("failed to set global node configuration: %s", err)
 		return nil, err
 	}
 
 	// set log config
 	err = setLogConfig(ctx, &ctoml.Config{}, &cfg.Global, &cfg.Log)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to set log configuration: %s", err))
+		logger.Errorf("failed to set log configuration: %s", err)
 		return nil, err
 	}
 
@@ -576,17 +576,17 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		n, err := strconv.Atoi(roles)
 		b := byte(n)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to convert Roles to byte: %s", err))
+			logger.Errorf("failed to convert Roles to byte: %s", err)
 		} else if b == types.AuthorityRole {
 			// if roles byte is 4, act as an authority (see Table D.2)
 			logger.Debug("authority enabled (roles=4)")
 			cfg.Roles = b
 		} else if b > types.AuthorityRole {
 			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
-			logger.Error(fmt.Sprintf("invalid roles option provided, authority disabled (roles=%d)", b))
+			logger.Errorf("invalid roles option provided, authority disabled (roles=%d)", b)
 		} else {
 			// if roles byte is less than 4, do not act as an authority (see Table D.2)
-			logger.Debug(fmt.Sprintf("authority disabled (roles=%d)", b))
+			logger.Debugf("authority disabled (roles=%d)", b)
 			cfg.Roles = b
 		}
 	}
@@ -753,7 +753,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.Modules = []string(nil)
 	}
 
-	logger.Debug(fmt.Sprintf("rpc configuration: %s", cfg))
+	logger.Debugf("rpc configuration: %s", cfg)
 }
 
 func setSystemInfoConfig(ctx *cli.Context, cfg *dot.Config) {
@@ -782,7 +782,7 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 	// load Genesis from genesis configuration file
 	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to load genesis from file: %s", err))
+		logger.Errorf("failed to load genesis from file: %s", err)
 		return // exit
 	}
 

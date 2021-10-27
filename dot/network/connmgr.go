@@ -162,22 +162,22 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 
 		i, err := rand.Int(rand.Reader, big.NewInt(int64(len(unprotPeers))))
 		if err != nil {
-			logger.Error(fmt.Sprintf("error generating random number: %s", err))
+			logger.Errorf("error generating random number: %s", err)
 			return
 		}
 
 		up := unprotPeers[i.Int64()]
-		logger.Trace(fmt.Sprintf("Over max peer count, disconnecting from random unprotected peer %s", up))
+		logger.Tracef("Over max peer count, disconnecting from random unprotected peer %s", up)
 		err = n.ClosePeer(up)
 		if err != nil {
-			logger.Trace(fmt.Sprintf("failed to close connection to peer %s", up))
+			logger.Tracef("failed to close connection to peer %s", up)
 		}
 	}
 }
 
 // Disconnected is called when a connection closed
 func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
-	logger.Trace(fmt.Sprintf("Host %s disconnected from peer %s", c.LocalPeer(), c.RemotePeer()))
+	logger.Tracef("Host %s disconnected from peer %s", c.LocalPeer(), c.RemotePeer())
 
 	cm.Unprotect(c.RemotePeer(), "")
 	if cm.disconnectHandler != nil {
@@ -198,7 +198,7 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	retry := func() bool {
 		err := cm.host.connect(info)
 		if err != nil {
-			logger.Warn(fmt.Sprintf("failed to reconnect to persistent peer %s: %s", c.RemotePeer(), err))
+			logger.Warnf("failed to reconnect to persistent peer %s: %s", c.RemotePeer(), err)
 			return false
 		}
 

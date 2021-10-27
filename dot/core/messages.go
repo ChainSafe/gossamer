@@ -17,8 +17,6 @@
 package core
 
 import (
-	"fmt"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -66,7 +64,7 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 			val, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Debug(fmt.Sprintf("failed to validate transaction: %s", err))
+				logger.Debugf("failed to validate transaction: %s", err)
 				return nil
 			}
 
@@ -75,7 +73,7 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 
 			// push to the transaction queue of BABE session
 			hash := s.transactionState.AddToPool(vtx)
-			logger.Trace(fmt.Sprintf("added transaction with hash %s to pool", hash))
+			logger.Tracef("added transaction with hash %s to pool", hash)
 
 			// find tx(s) that should propagate
 			if val.Propagate {

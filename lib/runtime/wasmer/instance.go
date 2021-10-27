@@ -153,7 +153,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		SigVerifier: runtime.NewSignatureVerifier(),
 	}
 
-	logger.Debug(fmt.Sprintf("NewInstance called with runtimeCtx: %v", runtimeCtx))
+	logger.Debugf("NewInstance called with runtimeCtx: %v", runtimeCtx)
 	instance.SetContextData(runtimeCtx)
 
 	inst := &Instance{

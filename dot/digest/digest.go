@@ -192,12 +192,12 @@ func (h *Handler) handleGrandpaConsensusDigest(digest scale.VaryingDataType, hea
 func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
-		logger.Debug(fmt.Sprintf("handling BABENextEpochData data: %v", digest))
+		logger.Debugf("handling BABENextEpochData data: %v", digest)
 		return h.handleNextEpochData(val, header)
 	case types.BABEOnDisabled:
 		return h.handleBABEOnDisabled(val, header)
 	case types.NextConfigData:
-		logger.Debug(fmt.Sprintf("handling BABENextConfigData data: %v", digest))
+		logger.Debugf("handling BABENextConfigData data: %v", digest)
 		return h.handleNextConfigData(val, header)
 	}
 
@@ -214,7 +214,7 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 
 			err := h.handleGrandpaChangesOnImport(block.Header.Number)
 			if err != nil {
-				logger.Error(fmt.Sprintf("failed to handle grandpa changes on block import: %s", err))
+				logger.Errorf("failed to handle grandpa changes on block import: %s", err)
 			}
 		case <-ctx.Done():
 			return
@@ -232,7 +232,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 
 			err := h.handleGrandpaChangesOnFinalization(info.Header.Number)
 			if err != nil {
-				logger.Error(fmt.Sprintf("failed to handle grandpa changes on block finalisation: %s", err))
+				logger.Errorf("failed to handle grandpa changes on block finalisation: %s", err)
 			}
 		case <-ctx.Done():
 			return
@@ -259,7 +259,7 @@ func (h *Handler) handleGrandpaChangesOnImport(num *big.Int) error {
 			return err
 		}
 
-		logger.Debug(fmt.Sprintf("incremented grandpa set id %d", curr))
+		logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
 	return nil
@@ -284,7 +284,7 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 			return err
 		}
 
-		logger.Debug(fmt.Sprintf("incremented grandpa set id %d", curr))
+		logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
 	// if blocks get finalised before forced change takes place, disregard it
@@ -302,7 +302,7 @@ func (h *Handler) handleScheduledChange(sc types.GrandpaScheduledChange, header 
 		return nil
 	}
 
-	logger.Debug(fmt.Sprintf("handling GrandpaScheduledChange data: %v", sc))
+	logger.Debugf("handling GrandpaScheduledChange data: %v", sc)
 
 	c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
 	if err != nil {
@@ -332,7 +332,7 @@ func (h *Handler) handleForcedChange(fc types.GrandpaForcedChange, header *types
 		return errors.New("already have forced change scheduled")
 	}
 
-	logger.Debug(fmt.Sprintf("handling GrandpaForcedChange with data %v", fc))
+	logger.Debugf("handling GrandpaForcedChange with data %v", fc)
 
 	c, err := newGrandpaChange(fc.Auths, fc.Delay, header.Number)
 	if err != nil {

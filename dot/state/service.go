@@ -137,7 +137,7 @@ func (s *Service) Start() error {
 	}
 
 	stateRoot := bestHeader.StateRoot
-	logger.Debug(fmt.Sprintf("start with latest state root: %s", stateRoot))
+	logger.Debugf("start with latest state root: %s", stateRoot)
 
 	pr, err := s.Base.loadPruningData()
 	if err != nil {
@@ -267,7 +267,7 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	logger.Debug(fmt.Sprintf("stop with best finalised hash %s", hash))
+	logger.Debugf("stop with best finalised hash %s", hash)
 
 	if err = s.db.Flush(); err != nil {
 		return err
@@ -315,7 +315,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	if err := s.Base.storeSkipToEpoch(skipTo); err != nil {
 		return err
 	}
-	logger.Debug(fmt.Sprintf("skip BABE verification up to epoch %d", skipTo))
+	logger.Debugf("skip BABE verification up to epoch %d", skipTo)
 
 	if err := epoch.SetCurrentEpoch(blockEpoch); err != nil {
 		return err

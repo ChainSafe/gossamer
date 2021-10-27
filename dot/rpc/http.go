@@ -138,7 +138,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 
 		err := h.rpcServer.RegisterService(srvc, mod)
 		if err != nil {
-			h.logger.Warn(fmt.Sprintf("Failed to register module %s: %s", mod, err))
+			h.logger.Warnf("Failed to register module %s: %s", mod, err)
 		}
 
 		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod)
@@ -153,7 +153,7 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
 
-	h.logger.Info(fmt.Sprintf("Starting HTTP Server on host %s and port %d...", h.serverConfig.Host, h.serverConfig.RPCPort))
+	h.logger.Infof("Starting HTTP Server on host %s and port %d...", h.serverConfig.Host, h.serverConfig.RPCPort)
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 
@@ -166,7 +166,7 @@ func (h *HTTPServer) Start() error {
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {
-			h.logger.Error(fmt.Sprintf("http error: %s", err))
+			h.logger.Errorf("http error: %s", err)
 		}
 	}()
 
@@ -181,7 +181,7 @@ func (h *HTTPServer) Start() error {
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
-			h.logger.Error(fmt.Sprintf("http error: %s", err))
+			h.logger.Errorf("http error: %s", err)
 		}
 	}()
 
@@ -204,7 +204,7 @@ func (h *HTTPServer) Stop() error {
 
 			err := conn.Wsconn.Close()
 			if err != nil {
-				h.logger.Error(fmt.Sprintf("error closing websocket connection: %s", err))
+				h.logger.Errorf("error closing websocket connection: %s", err)
 			}
 		}
 	}
@@ -218,7 +218,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if !h.serverConfig.exposeWS() {
 				ip, _, err := net.SplitHostPort(r.RemoteAddr)
 				if err != nil {
-					logger.Error(fmt.Sprintf("unable to parse remote address %s: %s", ip, err))
+					logger.Errorf("unable to parse remote address %s: %s", ip, err)
 					return false
 				}
 
@@ -237,7 +237,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := upg.Upgrade(w, r, nil)
 	if err != nil {
-		h.logger.Error(fmt.Sprintf("websocket upgrade failed: %s", err))
+		h.logger.Errorf("websocket upgrade failed: %s", err)
 		return
 	}
 	// create wsConn

@@ -3,7 +3,6 @@ package state
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	bloomfilter "github.com/holiman/bloomfilter/v2"
@@ -36,7 +35,7 @@ func newBloomState(size uint64) (*bloomState, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger.Info(fmt.Sprintf("initialised state bloom with size %f", float64(bloom.M()/8)))
+	logger.Infof("initialised state bloom with size %f", float64(bloom.M()/8))
 	return &bloomState{bloom: bloom}, nil
 }
 

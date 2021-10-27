@@ -182,7 +182,7 @@ func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 func ExportConfig(cfg *Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to marshal configuration: %s", err))
+		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(raw, fp)
@@ -192,7 +192,7 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to marshal configuration: %s", err))
+		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(raw, fp)
@@ -202,18 +202,18 @@ func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
 func WriteConfig(data []byte, fp string) *os.File {
 	newFile, err := os.Create(filepath.Clean(fp))
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create configuration file: %s", err))
+		logger.Errorf("failed to create configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	_, err = newFile.Write(data)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to write to configuration file: %s", err))
+		logger.Errorf("failed to write to configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	if err := newFile.Close(); err != nil {
-		logger.Error(fmt.Sprintf("failed to close configuration file: %s", err))
+		logger.Errorf("failed to close configuration file: %s", err)
 		os.Exit(1)
 	}
 
@@ -224,7 +224,7 @@ func WriteConfig(data []byte, fp string) *os.File {
 func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
 	data, err := bs.ToJSONRaw()
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to convert into raw json: %s", err))
+		logger.Errorf("failed to convert into raw json: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(data, fp)

@@ -114,7 +114,7 @@ func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Inter
 		return nil, err
 	}
 
-	p.logger.Debug(fmt.Sprintf("last pruned block is %d", blockNum))
+	p.logger.Debugf("last pruned block is %d", blockNum)
 	blockNum++
 
 	p.pendingNumber = blockNum
@@ -139,7 +139,7 @@ func (p *FullNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash
 		return fmt.Errorf("failed to store journal record for %d: %w", blockNum, err)
 	}
 
-	p.logger.Debug(fmt.Sprintf("journal record stored for block number %d", blockNum))
+	p.logger.Debugf("journal record stored for block number %d", blockNum)
 	p.addDeathRow(jr, blockNum)
 	return nil
 }
@@ -217,13 +217,13 @@ func (p *FullNode) start() {
 		row := p.deathList[0]
 		blockNum := p.pendingNumber
 
-		p.logger.Debug(fmt.Sprintf("pruning block number %d", blockNum))
+		p.logger.Debugf("pruning block number %d", blockNum)
 
 		sdbBatch := p.storageDB.NewBatch()
 		for _, record := range row {
 			err := p.deleteKeys(sdbBatch, record.deletedKeys)
 			if err != nil {
-				p.logger.Warn(fmt.Sprintf("failed to prune keys for block number %d: %s", blockNum, err))
+				p.logger.Warnf("failed to prune keys for block number %d: %s", blockNum, err)
 				sdbBatch.Reset()
 				return
 			}
@@ -234,13 +234,13 @@ func (p *FullNode) start() {
 		}
 
 		if err := sdbBatch.Flush(); err != nil {
-			p.logger.Warn(fmt.Sprintf("failed to prune keys for block number %d: %s", blockNum, err))
+			p.logger.Warnf("failed to prune keys for block number %d: %s", blockNum, err)
 			return
 		}
 
 		err := p.storeLastPrunedIndex(blockNum)
 		if err != nil {
-			p.logger.Warn(fmt.Sprintf("failed to store last pruned index for block number %d: %s", blockNum, err))
+			p.logger.Warnf("failed to store last pruned index for block number %d: %s", blockNum, err)
 			return
 		}
 
@@ -252,17 +252,17 @@ func (p *FullNode) start() {
 			jk := &journalKey{blockNum, record.blockHash}
 			err = p.deleteJournalRecord(jdbBatch, jk)
 			if err != nil {
-				p.logger.Warn(fmt.Sprintf("failed to delete journal record for block number %d: %s", blockNum, err))
+				p.logger.Warnf("failed to delete journal record for block number %d: %s", blockNum, err)
 				jdbBatch.Reset()
 				return
 			}
 		}
 
 		if err = jdbBatch.Flush(); err != nil {
-			p.logger.Warn(fmt.Sprintf("failed to flush delete journal record for block number %d: %s", blockNum, err))
+			p.logger.Warnf("failed to flush delete journal record for block number %d: %s", blockNum, err)
 			return
 		}
-		p.logger.Debug(fmt.Sprintf("pruned block number %d", blockNum))
+		p.logger.Debugf("pruned block number %d", blockNum)
 	}
 
 	for {

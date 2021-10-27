@@ -115,12 +115,12 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 	if req, ok := msg.(*BlockRequestMessage); ok {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			logger.Debug(fmt.Sprintf("cannot create response for request: %s", err))
+			logger.Debugf("cannot create response for request: %s", err)
 			return nil
 		}
 
 		if err = s.host.writeToStream(stream, resp); err != nil {
-			logger.Debug(fmt.Sprintf("failed to send BlockResponse message to peer %s: %s", stream.Conn().RemotePeer(), err))
+			logger.Debugf("failed to send BlockResponse message to peer %s: %s", stream.Conn().RemotePeer(), err)
 			return err
 		}
 	}

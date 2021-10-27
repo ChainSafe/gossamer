@@ -131,7 +131,7 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
 		// store updates state trie nodes in database
 		if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
-			logger.Warn(fmt.Sprintf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err))
+			logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
 			return err
 		}
 
@@ -140,7 +140,7 @@ func newTestSyncer(t *testing.T) *Service {
 		require.NoError(t, err)
 
 		stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
-		logger.Debug(fmt.Sprintf("imported block %s and stored state trie with root %s", block.Header.Hash(), ts.MustRoot()))
+		logger.Debugf("imported block %s and stored state trie with root %s", block.Header.Hash(), ts.MustRoot())
 		return nil
 	})
 

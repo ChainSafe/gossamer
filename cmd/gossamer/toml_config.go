@@ -32,13 +32,13 @@ import (
 func loadConfig(cfg *ctoml.Config, fp string) error {
 	fp, err := filepath.Abs(fp)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create absolute path for toml configuration file: %s", err))
+		logger.Errorf("failed to create absolute path for toml configuration file: %s", err)
 		return err
 	}
 
 	file, err := os.Open(filepath.Clean(fp))
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to open toml configuration file: %s", err))
+		logger.Errorf("failed to open toml configuration file: %s", err)
 		return err
 	}
 
@@ -59,7 +59,7 @@ func loadConfig(cfg *ctoml.Config, fp string) error {
 	}
 
 	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
-		logger.Error(fmt.Sprintf("failed to decode configuration: %s", err))
+		logger.Errorf("failed to decode configuration: %s", err)
 		return err
 	}
 
@@ -75,24 +75,24 @@ func exportConfig(cfg *ctoml.Config, fp string) *os.File {
 	)
 
 	if raw, err = toml.Marshal(*cfg); err != nil {
-		logger.Error(fmt.Sprintf("failed to marshal configuration: %s", err))
+		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
 
 	newFile, err = os.Create(filepath.Clean(fp))
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create configuration file: %s", err))
+		logger.Errorf("failed to create configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	_, err = newFile.Write(raw)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to write to configuration file: %s", err))
+		logger.Errorf("failed to write to configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	if err := newFile.Close(); err != nil {
-		logger.Error(fmt.Sprintf("failed to close configuration file: %s", err))
+		logger.Errorf("failed to close configuration file: %s", err)
 		os.Exit(1)
 	}
 

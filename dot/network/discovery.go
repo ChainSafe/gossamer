@@ -99,7 +99,7 @@ func (d *discovery) start() error {
 		}
 	}
 
-	logger.Debug(fmt.Sprintf("starting DHT with bootnodes %v...", d.bootnodes))
+	logger.Debugf("starting DHT with bootnodes %v...", d.bootnodes)
 
 	dhtOpts := []dual.Option{
 		dual.DHTOption(kaddht.Datastore(d.ds)),
@@ -155,13 +155,13 @@ func (d *discovery) advertise() {
 			logger.Debug("advertising ourselves in the DHT...")
 			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
-				logger.Warn(fmt.Sprintf("failed to bootstrap DHT: %s", err))
+				logger.Warnf("failed to bootstrap DHT: %s", err)
 				continue
 			}
 
 			ttl, err = d.rd.Advertise(d.ctx, string(d.pid))
 			if err != nil {
-				logger.Debug(fmt.Sprintf("failed to advertise in the DHT: %s", err))
+				logger.Debugf("failed to advertise in the DHT: %s", err)
 				ttl = tryAdvertiseTimeout
 			}
 		case <-d.ctx.Done():
@@ -193,7 +193,7 @@ func (d *discovery) findPeers(ctx context.Context) {
 	logger.Debug("attempting to find DHT peers...")
 	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid))
 	if err != nil {
-		logger.Warn(fmt.Sprintf("failed to begin finding peers via DHT: %s", err))
+		logger.Warnf("failed to begin finding peers via DHT: %s", err)
 		return
 	}
 
@@ -206,13 +206,13 @@ func (d *discovery) findPeers(ctx context.Context) {
 				continue
 			}
 
-			logger.Trace(fmt.Sprintf("found new peer %s via DHT", peer.ID))
+			logger.Tracef("found new peer %s via DHT", peer.ID)
 
 			// found a peer, try to connect if we need more peers
 			if len(d.h.Network().Peers()) < d.maxPeers {
 				err = d.h.Connect(d.ctx, peer)
 				if err != nil {
-					logger.Trace(fmt.Sprintf("failed to connect to discovered peer %s: %s", peer.ID, err))
+					logger.Tracef("failed to connect to discovered peer %s: %s", peer.ID, err)
 				}
 			} else {
 				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)

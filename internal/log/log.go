@@ -1,17 +1,22 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"time"
 )
 
-func (l *Logger) log(logLevel Level, s string) {
+func (l *Logger) log(logLevel Level, s string, args ...interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
 	if *l.settings.level > logLevel {
 		return
+	}
+
+	if len(args) > 0 {
+		s = fmt.Sprintf(s, args...)
 	}
 
 	line := time.Now().Format(time.RFC3339) + " " + logLevel.String() + " " + s
@@ -53,3 +58,33 @@ func (l *Logger) Error(s string) { l.log(LevelError, s) }
 
 // Critical logs with the crit level.
 func (l *Logger) Critical(s string) { l.log(LevelCritical, s) }
+
+// Tracef formats and logs at the trce level.
+func (l *Logger) Tracef(format string, args ...interface{}) {
+	l.log(LevelTrace, format, args...)
+}
+
+// Debugf formats and logs at the dbug level.
+func (l *Logger) Debugf(format string, args ...interface{}) {
+	l.log(LevelTrace, format, args...)
+}
+
+// Infof formats and logs at the info level.
+func (l *Logger) Infof(format string, args ...interface{}) {
+	l.log(LevelTrace, format, args...)
+}
+
+// Warnf formats and logs at the warn level.
+func (l *Logger) Warnf(format string, args ...interface{}) {
+	l.log(LevelTrace, format, args...)
+}
+
+// Errorf formats and logs at the eror level.
+func (l *Logger) Errorf(format string, args ...interface{}) {
+	l.log(LevelTrace, format, args...)
+}
+
+// Criticalf formats and logs at the crit level.
+func (l *Logger) Criticalf(format string, args ...interface{}) {
+	l.log(LevelTrace, format, args...)
+}

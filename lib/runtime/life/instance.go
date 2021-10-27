@@ -127,7 +127,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		SigVerifier: runtime.NewSignatureVerifier(),
 	}
 
-	logger.Debug(fmt.Sprintf("creating new runtime instance with context: %v", runtimeCtx))
+	logger.Debugf("creating new runtime instance with context: %v", runtimeCtx)
 
 	inst := &Instance{
 		vm: instance,
@@ -136,7 +136,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	ctx = runtimeCtx
 	inst.version, err = inst.Version()
 	if err != nil {
-		logger.Error(fmt.Sprintf("error checking instance version: %s", err))
+		logger.Errorf("error checking instance version: %s", err)
 	}
 	return inst, nil
 }

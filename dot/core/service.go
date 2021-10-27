@@ -238,13 +238,13 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	// check for runtime changes
 	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
-		logger.Critical(fmt.Sprintf("failed to update runtime code: %s", err))
+		logger.Criticalf("failed to update runtime code: %s", err)
 		return err
 	}
 
 	// check if there was a runtime code substitution
 	if err := s.handleCodeSubstitution(block.Header.Hash(), state); err != nil {
-		logger.Critical(fmt.Sprintf("failed to substitute runtime code: %s", err))
+		logger.Criticalf("failed to substitute runtime code: %s", err)
 		return err
 	}
 
@@ -321,7 +321,7 @@ func (s *Service) handleBlocksAsync() {
 			}
 
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-				logger.Warn(fmt.Sprintf("failed to re-add transactions to chain upon re-org: %s", err))
+				logger.Warnf("failed to re-add transactions to chain upon re-org: %s", err)
 			}
 
 			s.maintainTransactionPool(block)
@@ -371,7 +371,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range *body {
-			logger.Trace(fmt.Sprintf("validating transaction on re-org chain for extrinsic %s", ext))
+			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
@@ -392,7 +392,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Info(fmt.Sprintf("failed to validate transaction for extrinsic %s: %s", ext, err))
+				logger.Infof("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
 
@@ -434,7 +434,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 		}
 
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
-		logger.Trace(fmt.Sprintf("moved transaction %s to queue", h))
+		logger.Tracef("moved transaction %s to queue", h)
 	}
 }
 

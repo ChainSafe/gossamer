@@ -47,12 +47,12 @@ func (s *Service) receiveMessages(ctx context.Context) {
 				return
 			}
 
-			logger.Trace(fmt.Sprintf("received vote message %v from %s", msg.msg, msg.from))
+			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
 			vm := msg.msg
 
 			v, err := s.validateMessage(msg.from, vm)
 			if err != nil {
-				logger.Debug(fmt.Sprintf("failed to validate vote message %v: %s", vm, err))
+				logger.Debugf("failed to validate vote message %v: %s", vm, err)
 				continue
 			}
 
@@ -162,7 +162,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 			}
 
 			if err = s.network.SendMessage(from, msg); err != nil {
-				logger.Warn(fmt.Sprintf("failed to send CommitMessage: %s", err))
+				logger.Warnf("failed to send CommitMessage: %s", err)
 			}
 		} else {
 			// round is higher than ours, perhaps we are behind. store vote in tracker for now

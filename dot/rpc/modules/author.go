@@ -18,7 +18,6 @@ package modules
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -224,7 +223,7 @@ func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		return err
 	}
 	ext := types.Extrinsic(extBytes)
-	am.logger.Critical(fmt.Sprintf("[rpc] extrinsic is %s", ext))
+	am.logger.Criticalf("[rpc] extrinsic is %s", ext)
 
 	*res = ExtrinsicHashResponse(ext.Hash().String())
 	err = am.coreAPI.HandleSubmittedExtrinsic(ext)

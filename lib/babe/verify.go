@@ -160,7 +160,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 				return fmt.Errorf("failed to get slot from block 1: %w", err)
 			}
 
-			logger.Debug(fmt.Sprintf("syncing block 1, setting first slot as %d", firstSlot))
+			logger.Debugf("syncing block 1, setting first slot as %d", firstSlot)
 
 			err = v.epochState.SetFirstSlot(firstSlot)
 			if err != nil {
@@ -277,7 +277,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("block header is missing digest items")
 	}
 
-	logger.Trace(fmt.Sprintf("beginning BABE authorship right verification for block %s", header.Hash()))
+	logger.Tracef("beginning BABE authorship right verification for block %s", header.Hash())
 
 	// check for valid seal by verifying signature
 	preDigestItem := header.Digest.Types[0]
@@ -298,7 +298,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 	}
 
-	logger.Trace(fmt.Sprintf("verified block %s BABE pre-runtime digest", header.Hash()))
+	logger.Tracef("verified block %s BABE pre-runtime digest", header.Hash())
 
 	var authIdx uint32
 	switch d := babePreDigest.(type) {
@@ -324,7 +324,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	header.Digest = h
 	defer func() {
 		if err = header.Digest.Add(sealItem.Value()); err != nil {
-			logger.Error(fmt.Sprintf("failed to re-add seal to digest: %s", err))
+			logger.Errorf("failed to re-add seal to digest: %s", err)
 		}
 	}()
 

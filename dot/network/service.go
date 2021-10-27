@@ -239,7 +239,7 @@ func (s *Service) Start() error {
 		txnBatchHandler,
 	)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("failed to register notifications protocol with block announce id %s: %s", blockAnnounceID, err))
+		logger.Warnf("failed to register notifications protocol with block announce id %s: %s", blockAnnounceID, err)
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
@@ -247,7 +247,7 @@ func (s *Service) Start() error {
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
-		logger.Info(fmt.Sprintf("Started listening on %s", addr))
+		logger.Infof("Started listening on %s", addr)
 	}
 
 	if !s.noBootstrap {
@@ -262,7 +262,7 @@ func (s *Service) Start() error {
 		go func() {
 			err = s.host.discovery.start()
 			if err != nil {
-				logger.Error(fmt.Sprintf("failed to begin DHT discovery: %s", err))
+				logger.Errorf("failed to begin DHT discovery: %s", err)
 			}
 		}()
 	}
@@ -312,7 +312,7 @@ func (s *Service) logPeerCount() {
 	for {
 		select {
 		case <-ticker.C:
-			logger.Debug(fmt.Sprintf("peer count %d, min=%d and max=%d", s.host.peerCount(), s.cfg.MinPeers, s.cfg.MaxPeers))
+			logger.Debugf("peer count %d, min=%d and max=%d", s.host.peerCount(), s.cfg.MinPeers, s.cfg.MaxPeers)
 		case <-s.ctx.Done():
 			return
 		}
@@ -333,12 +333,12 @@ main:
 			o := s.host.bwc.GetBandwidthTotals()
 			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
 			if err != nil {
-				logger.Debug(fmt.Sprintf("problem sending system.interval telemetry message: %s", err))
+				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
 
 			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
 			if err != nil {
-				logger.Debug(fmt.Sprintf("problem sending system.interval telemetry message: %s", err))
+				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
 		}
 	}
@@ -367,7 +367,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))
 		if err != nil {
-			logger.Debug(fmt.Sprintf("problem sending system.interval telemetry message: %s", err))
+			logger.Debugf("problem sending system.interval telemetry message: %s", err)
 		}
 		time.Sleep(s.telemetryInterval)
 	}
@@ -386,13 +386,13 @@ func (s *Service) Stop() error {
 	// close mDNS discovery service
 	err := s.mdns.close()
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to close mDNS discovery service: %s", err))
+		logger.Errorf("Failed to close mDNS discovery service: %s", err)
 	}
 
 	// close host and host services
 	err = s.host.close()
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to close host: %s", err))
+		logger.Errorf("Failed to close host: %s", err)
 	}
 
 	// check if closeCh is closed, if not, close it.
@@ -463,7 +463,7 @@ func (s *Service) RegisterNotificationsProtocol(
 	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler, batchHandler)
 
 	s.host.registerStreamHandler(protocolID, func(stream libp2pnetwork.Stream) {
-		logger.Trace(fmt.Sprintf("received stream using sub-protocol %s", protocolID))
+		logger.Tracef("received stream using sub-protocol %s", protocolID)
 		conn := stream.Conn()
 		if conn == nil {
 			logger.Error("Failed to get connection from stream")
@@ -473,7 +473,7 @@ func (s *Service) RegisterNotificationsProtocol(
 		s.readStream(stream, decoder, handlerWithValidate)
 	})
 
-	logger.Info(fmt.Sprintf("registered notifications sub-protocol %s", protocolID))
+	logger.Infof("registered notifications sub-protocol %s", protocolID)
 	return nil
 }
 
@@ -504,7 +504,7 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 		return
 	}
 
-	logger.Error(fmt.Sprintf("message type %d not supported by any notifications protocol", msg.Type()))
+	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())
 }
 
 // SendMessage sends a message to the given peer
@@ -591,7 +591,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 		err = handler(stream, msg)
 		if err != nil {
-			logger.Trace(fmt.Sprintf("failed to handle message %s from stream id %s: %s", msg, stream.ID(), err))
+			logger.Tracef("failed to handle message %s from stream id %s: %s", msg, stream.ID(), err)
 			_ = stream.Close()
 			return
 		}
@@ -629,16 +629,16 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	}
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get the response: %s", err))
+		logger.Errorf("failed to get the response: %s", err)
 		return err
 	}
 
 	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage. (#1856)
-	logger.Debug(fmt.Sprintf("LightResponse message: %s", resp))
+	logger.Debugf("LightResponse message: %s", resp)
 
 	err = s.host.writeToStream(stream, resp)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("failed to send LightResponse message to peer %s: %s", stream.Conn().RemotePeer(), err))
+		logger.Warnf("failed to send LightResponse message to peer %s: %s", stream.Conn().RemotePeer(), err)
 	}
 	return err
 }
