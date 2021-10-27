@@ -30,12 +30,13 @@ func New(options ...Option) *Logger {
 // It can use a different writer, but it is expected to use the
 // same writer since it is thread safe.
 func (l *Logger) New(options ...Option) *Logger {
-	s := newSettings(options)
-	s.mergeWith(l.settings)
-	s.setDefaults()
+	var childSettings settings
+	childSettings.mergeWith(l.settings)
+	childSettings.mergeWith(newSettings(options))
+	// defaults are already set in parent
 
 	return &Logger{
-		settings: s,
+		settings: childSettings,
 		mutex:    l.mutex,
 	}
 }
