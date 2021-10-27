@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 //nolint
@@ -54,7 +54,7 @@ func (d *InherentsData) String() string {
 	return str
 }
 
-// SetInt64Inherent set the Int64 scale.Encode for a given data
+// SetInt64Inherent set an inherent of type uint64
 func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	if len(key) != 8 {
 		return errors.New("inherent key must be 8 bytes")
@@ -63,7 +63,7 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	val := make([]byte, 8)
 	binary.LittleEndian.PutUint64(val, data)
 
-	venc, err := scale.Encode(val)
+	venc, err := scale.Marshal(val)
 	if err != nil {
 		return err
 	}
@@ -75,37 +75,17 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	return nil
 }
 
-// SetBigIntInherent set as a big.Int (compact int) inherent
-func (d *InherentsData) SetBigIntInherent(key []byte, data *big.Int) error {
-	if len(key) != 8 {
-		return errors.New("inherent key must be 8 bytes")
-	}
-
-	venc, err := scale.Encode(data)
-	if err != nil {
-		return err
-	}
-
-	lenc, err := scale.Encode(big.NewInt(int64(len(venc))))
-	if err != nil {
-		return err
-	}
-
-	kb := [8]byte{}
-	copy(kb[:], key)
-
-	d.data[kb] = append(lenc, venc...)
-	return nil
-}
-
 // Encode will encode a given []byte using scale.Encode
 func (d *InherentsData) Encode() ([]byte, error) {
 	length := big.NewInt(int64(len(d.data)))
-
 	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
 
-	_, err := se.Encode(length)
+	l, err := scale.Marshal(length)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = buffer.Write(l[:])
 	if err != nil {
 		return nil, err
 	}
