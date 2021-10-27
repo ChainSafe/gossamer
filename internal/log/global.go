@@ -16,5 +16,5 @@ func Patch(options ...Option) {
 // Errorf using the global logger, only used in test
 // main runners initialisation error.
 func Errorf(s string, args ...interface{}) {
-	globalLogger.Error(s)
+	globalLogger.Errorf(s, args...)
 }
