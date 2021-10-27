@@ -66,25 +66,25 @@ func (l *Logger) Tracef(format string, args ...interface{}) {
 
 // Debugf formats and logs at the dbug level.
 func (l *Logger) Debugf(format string, args ...interface{}) {
-	l.log(LevelTrace, format, args...)
+	l.log(LevelDebug, format, args...)
 }
 
 // Infof formats and logs at the info level.
 func (l *Logger) Infof(format string, args ...interface{}) {
-	l.log(LevelTrace, format, args...)
+	l.log(LevelInfo, format, args...)
 }
 
 // Warnf formats and logs at the warn level.
 func (l *Logger) Warnf(format string, args ...interface{}) {
-	l.log(LevelTrace, format, args...)
+	l.log(LevelWarn, format, args...)
 }
 
 // Errorf formats and logs at the eror level.
 func (l *Logger) Errorf(format string, args ...interface{}) {
-	l.log(LevelTrace, format, args...)
+	l.log(LevelError, format, args...)
 }
 
 // Criticalf formats and logs at the crit level.
 func (l *Logger) Criticalf(format string, args ...interface{}) {
-	l.log(LevelTrace, format, args...)
+	l.log(LevelCritical, format, args...)
 }
