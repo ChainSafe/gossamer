@@ -32,9 +32,11 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-const readyPoolTransactionsMetrics = "gossamer/ready/pool/transaction/metrics"
-const readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
-const substrateNumberLeaves = "gossamer/substrate_number_leaves/metrics"
+const (
+	readyPoolTransactionsMetrics   = "gossamer/ready/pool/transaction/metrics"
+	readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
+	substrateNumberLeaves          = "gossamer/substrate_number_leaves/metrics"
+)
 
 var logger = log.New("pkg", "state")
 
