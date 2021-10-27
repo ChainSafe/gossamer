@@ -123,7 +123,7 @@ func (_m *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 }
 
 // GetAllBlocksAtNumber provides a mock function with given fields: num
-func (_m *MockBlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) {
+func (_m *BlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) {
 	ret := _m.Called(num)
 
 	var r0 []common.Hash
@@ -277,7 +277,7 @@ func (_m *BlockState) GetHeader(_a0 common.Hash) (*types.Header, error) {
 }
 
 // GetHeaderByNumber provides a mock function with given fields: num
-func (_m *MockBlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
+func (_m *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 	ret := _m.Called(num)
 
 	var r0 *types.Header
@@ -457,7 +457,7 @@ func (_m *BlockState) HasHeader(hash common.Hash) (bool, error) {
 }
 
 // IsDescendantOf provides a mock function with given fields: parent, child
-func (_m *MockBlockState) IsDescendantOf(parent common.Hash, child common.Hash) (bool, error) {
+func (_m *BlockState) IsDescendantOf(parent common.Hash, child common.Hash) (bool, error) {
 	ret := _m.Called(parent, child)
 
 	var r0 bool
