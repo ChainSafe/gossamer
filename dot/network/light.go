@@ -3,34 +3,53 @@ package network
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Pair is a pair of arbitrary bytes.
 type Pair struct {
-	first  []byte
-	second []byte
+	First  []byte
+	Second []byte
 }
 
 // LightRequest is all possible light client related requests.
 type LightRequest struct {
-	RmtCallRequest      *RemoteCallRequest
-	RmtReadRequest      *RemoteReadRequest
-	RmtHeaderRequest    *RemoteHeaderRequest
-	RmtReadChildRequest *RemoteReadChildRequest
-	RmtChangesRequest   *RemoteChangesRequest
+	*RemoteCallRequest
+	*RemoteReadRequest
+	*RemoteHeaderRequest
+	*RemoteReadChildRequest
+	*RemoteChangesRequest
+}
+
+type request struct {
+	RemoteCallRequest
+	RemoteReadRequest
+	RemoteHeaderRequest
+	RemoteReadChildRequest
+	RemoteChangesRequest
 }
 
 // NewLightRequest returns a new LightRequest
 func NewLightRequest() *LightRequest {
+	rcr := newRemoteChangesRequest()
 	return &LightRequest{
-		RmtCallRequest:      new(RemoteCallRequest),
-		RmtReadRequest:      new(RemoteReadRequest),
-		RmtHeaderRequest:    new(RemoteHeaderRequest),
-		RmtReadChildRequest: new(RemoteReadChildRequest),
-		RmtChangesRequest:   NewRemoteChangesRequest(),
+		RemoteCallRequest:      newRemoteCallRequest(),
+		RemoteReadRequest:      newRemoteReadRequest(),
+		RemoteHeaderRequest:    newRemoteHeaderRequest(),
+		RemoteReadChildRequest: newRemoteReadChildRequest(),
+		RemoteChangesRequest:   &rcr,
+	}
+}
+
+func newRequest() *request {
+	return &request{
+		RemoteCallRequest:      *newRemoteCallRequest(),
+		RemoteReadRequest:      *newRemoteReadRequest(),
+		RemoteHeaderRequest:    *newRemoteHeaderRequest(),
+		RemoteReadChildRequest: *newRemoteReadChildRequest(),
+		RemoteChangesRequest:   newRemoteChangesRequest(),
 	}
 }
 
@@ -41,21 +60,29 @@ func (l *LightRequest) SubProtocol() string {
 
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
 func (l *LightRequest) Encode() ([]byte, error) {
-	return scale.Encode(l)
+	req := request{
+		RemoteCallRequest:      *l.RemoteCallRequest,
+		RemoteReadRequest:      *l.RemoteReadRequest,
+		RemoteHeaderRequest:    *l.RemoteHeaderRequest,
+		RemoteReadChildRequest: *l.RemoteReadChildRequest,
+		RemoteChangesRequest:   *l.RemoteChangesRequest,
+	}
+	return scale.Marshal(req)
 }
 
 // Decode the message into a LightRequest, it assumes the type byte has been removed
 func (l *LightRequest) Decode(in []byte) error {
-	msg, err := scale.Decode(in, l)
+	msg := newRequest()
+	err := scale.Unmarshal(in, msg)
 	if err != nil {
 		return err
 	}
 
-	l.RmtCallRequest = msg.(*LightRequest).RmtCallRequest
-	l.RmtReadRequest = msg.(*LightRequest).RmtReadRequest
-	l.RmtHeaderRequest = msg.(*LightRequest).RmtHeaderRequest
-	l.RmtReadChildRequest = msg.(*LightRequest).RmtReadChildRequest
-	l.RmtChangesRequest = msg.(*LightRequest).RmtChangesRequest
+	l.RemoteCallRequest = &msg.RemoteCallRequest
+	l.RemoteReadRequest = &msg.RemoteReadRequest
+	l.RemoteHeaderRequest = &msg.RemoteHeaderRequest
+	l.RemoteReadChildRequest = &msg.RemoteReadChildRequest
+	l.RemoteChangesRequest = &msg.RemoteChangesRequest
 	return nil
 }
 
@@ -64,24 +91,40 @@ func (l LightRequest) String() string {
 	return fmt.Sprintf(
 		"RemoteCallRequest=%s RemoteReadRequest=%s RemoteHeaderRequest=%s "+
 			"RemoteReadChildRequest=%s RemoteChangesRequest=%s",
-		l.RmtCallRequest, l.RmtReadRequest, l.RmtHeaderRequest, l.RmtReadChildRequest, l.RmtChangesRequest)
+		l.RemoteCallRequest, l.RemoteReadRequest, l.RemoteHeaderRequest, l.RemoteReadChildRequest, l.RemoteChangesRequest)
 }
 
 // LightResponse is all possible light client response messages.
 type LightResponse struct {
-	RmtCallResponse   *RemoteCallResponse
-	RmtReadResponse   *RemoteReadResponse
-	RmtHeaderResponse *RemoteHeaderResponse
-	RmtChangeResponse *RemoteChangesResponse
+	*RemoteCallResponse
+	*RemoteReadResponse
+	*RemoteHeaderResponse
+	*RemoteChangesResponse
+}
+
+type response struct {
+	RemoteCallResponse
+	RemoteReadResponse
+	RemoteHeaderResponse
+	RemoteChangesResponse
 }
 
 // NewLightResponse returns a new LightResponse
 func NewLightResponse() *LightResponse {
 	return &LightResponse{
-		RmtCallResponse:   new(RemoteCallResponse),
-		RmtReadResponse:   new(RemoteReadResponse),
-		RmtHeaderResponse: new(RemoteHeaderResponse),
-		RmtChangeResponse: new(RemoteChangesResponse),
+		RemoteCallResponse:    newRemoteCallResponse(),
+		RemoteReadResponse:    newRemoteReadResponse(),
+		RemoteHeaderResponse:  newRemoteHeaderResponse(),
+		RemoteChangesResponse: newRemoteChangesResponse(),
+	}
+}
+
+func newResponse() *response {
+	return &response{
+		RemoteCallResponse:    *newRemoteCallResponse(),
+		RemoteReadResponse:    *newRemoteReadResponse(),
+		RemoteHeaderResponse:  *newRemoteHeaderResponse(),
+		RemoteChangesResponse: *newRemoteChangesResponse(),
 	}
 }
 
@@ -92,20 +135,27 @@ func (l *LightResponse) SubProtocol() string {
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
 func (l *LightResponse) Encode() ([]byte, error) {
-	return scale.Encode(l)
+	resp := response{
+		RemoteCallResponse:    *l.RemoteCallResponse,
+		RemoteReadResponse:    *l.RemoteReadResponse,
+		RemoteHeaderResponse:  *l.RemoteHeaderResponse,
+		RemoteChangesResponse: *l.RemoteChangesResponse,
+	}
+	return scale.Marshal(resp)
 }
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
 func (l *LightResponse) Decode(in []byte) error {
-	msg, err := scale.Decode(in, l)
+	msg := newResponse()
+	err := scale.Unmarshal(in, msg)
 	if err != nil {
 		return err
 	}
 
-	l.RmtCallResponse = msg.(*LightResponse).RmtCallResponse
-	l.RmtReadResponse = msg.(*LightResponse).RmtReadResponse
-	l.RmtHeaderResponse = msg.(*LightResponse).RmtHeaderResponse
-	l.RmtChangeResponse = msg.(*LightResponse).RmtChangeResponse
+	l.RemoteCallResponse = &msg.RemoteCallResponse
+	l.RemoteReadResponse = &msg.RemoteReadResponse
+	l.RemoteHeaderResponse = &msg.RemoteHeaderResponse
+	l.RemoteChangesResponse = &msg.RemoteChangesResponse
 	return nil
 }
 
@@ -113,7 +163,7 @@ func (l *LightResponse) Decode(in []byte) error {
 func (l LightResponse) String() string {
 	return fmt.Sprintf(
 		"RemoteCallResponse=%s RemoteReadResponse=%s RemoteHeaderResponse=%s RemoteChangesResponse=%s",
-		l.RmtCallResponse, l.RmtReadResponse, l.RmtHeaderResponse, l.RmtChangeResponse)
+		l.RemoteCallResponse, l.RemoteReadResponse, l.RemoteHeaderResponse, l.RemoteChangesResponse)
 }
 
 // RemoteCallRequest ...
@@ -123,10 +173,24 @@ type RemoteCallRequest struct {
 	Data   []byte
 }
 
+func newRemoteCallRequest() *RemoteCallRequest {
+	return &RemoteCallRequest{
+		Block:  []byte{},
+		Method: "",
+		Data:   []byte{},
+	}
+}
+
 // RemoteReadRequest ...
 type RemoteReadRequest struct {
 	Block []byte
 	Keys  [][]byte
+}
+
+func newRemoteReadRequest() *RemoteReadRequest {
+	return &RemoteReadRequest{
+		Block: []byte{},
+	}
 }
 
 // RemoteReadChildRequest ...
@@ -136,29 +200,41 @@ type RemoteReadChildRequest struct {
 	Keys       [][]byte
 }
 
+func newRemoteReadChildRequest() *RemoteReadChildRequest {
+	return &RemoteReadChildRequest{
+		Block:      []byte{},
+		StorageKey: []byte{},
+	}
+}
+
 // RemoteHeaderRequest ...
 type RemoteHeaderRequest struct {
 	Block []byte
 }
 
+func newRemoteHeaderRequest() *RemoteHeaderRequest {
+	return &RemoteHeaderRequest{
+		Block: []byte{},
+	}
+}
+
 // RemoteChangesRequest ...
 type RemoteChangesRequest struct {
-	FirstBlock *optional.Hash
-	LastBlock  *optional.Hash
+	FirstBlock *common.Hash
+	LastBlock  *common.Hash
 	Min        []byte
 	Max        []byte
-	StorageKey *optional.Bytes
+	StorageKey *[]byte
 	key        []byte
 }
 
-// NewRemoteChangesRequest returns a new RemoteChangesRequest
-func NewRemoteChangesRequest() *RemoteChangesRequest {
-	return &RemoteChangesRequest{
-		FirstBlock: optional.NewHash(false, common.Hash{}),
-		LastBlock:  optional.NewHash(false, common.Hash{}),
+func newRemoteChangesRequest() RemoteChangesRequest {
+	return RemoteChangesRequest{
+		FirstBlock: nil,
+		LastBlock:  nil,
 		Min:        []byte{},
 		Max:        []byte{},
-		StorageKey: optional.NewBytes(false, nil),
+		StorageKey: nil,
 	}
 }
 
@@ -167,15 +243,33 @@ type RemoteCallResponse struct {
 	Proof []byte
 }
 
+func newRemoteCallResponse() *RemoteCallResponse {
+	return &RemoteCallResponse{
+		Proof: []byte{},
+	}
+}
+
 // RemoteReadResponse ...
 type RemoteReadResponse struct {
 	Proof []byte
 }
 
+func newRemoteReadResponse() *RemoteReadResponse {
+	return &RemoteReadResponse{
+		Proof: []byte{},
+	}
+}
+
 // RemoteHeaderResponse ...
 type RemoteHeaderResponse struct {
-	Header []*optional.Header
+	Header []*types.Header
 	proof  []byte
+}
+
+func newRemoteHeaderResponse() *RemoteHeaderResponse {
+	return &RemoteHeaderResponse{
+		Header: nil,
+	}
 }
 
 // RemoteChangesResponse ...
@@ -186,6 +280,13 @@ type RemoteChangesResponse struct {
 	RootsProof []byte
 }
 
+func newRemoteChangesResponse() *RemoteChangesResponse {
+	return &RemoteChangesResponse{
+		Max:        []byte{},
+		RootsProof: []byte{},
+	}
+}
+
 // String formats a RemoteCallRequest as a string
 func (rc *RemoteCallRequest) String() string {
 	return fmt.Sprintf("Block =%s method=%s Data=%s",
@@ -194,12 +295,24 @@ func (rc *RemoteCallRequest) String() string {
 
 // String formats a RemoteChangesRequest as a string
 func (rc *RemoteChangesRequest) String() string {
+	first := common.Hash{}
+	last := common.Hash{}
+	storageKey := []byte{0}
+	if rc.FirstBlock != nil {
+		first = *rc.FirstBlock
+	}
+	if rc.LastBlock != nil {
+		last = *rc.LastBlock
+	}
+	if rc.StorageKey != nil {
+		storageKey = *rc.StorageKey
+	}
 	return fmt.Sprintf("FirstBlock =%s LastBlock=%s Min=%s Max=%s Storagekey=%s key=%s",
-		rc.FirstBlock.String(),
-		rc.LastBlock.String(),
+		first,
+		last,
 		string(rc.Min),
 		string(rc.Max),
-		rc.StorageKey.String(),
+		storageKey,
 		string(rc.key),
 	)
 }
@@ -241,7 +354,7 @@ func (rc *RemoteChangesResponse) String() string {
 	}
 	for _, v := range rc.Roots {
 		for _, p := range v {
-			strRoots = append(strRoots, string(p.first), string(p.second))
+			strRoots = append(strRoots, string(p.First), string(p.Second))
 		}
 	}
 	return fmt.Sprintf("Max =%s Proof =%s Roots=%v RootsProof=%s",
@@ -259,21 +372,21 @@ func (rr *RemoteReadResponse) String() string {
 
 // String formats a RemoteHeaderResponse as a string
 func (rh *RemoteHeaderResponse) String() string {
-	return fmt.Sprintf("Header =%s Proof =%s", rh.Header, string(rh.proof))
+	return fmt.Sprintf("Header =%+v Proof =%s", rh.Header, string(rh.proof))
 }
 
-func remoteCallResp(req *RemoteCallRequest) (*RemoteCallResponse, error) {
+func remoteCallResp(_ *RemoteCallRequest) (*RemoteCallResponse, error) {
 	return &RemoteCallResponse{}, nil
 }
-func remoteChangeResp(req *RemoteChangesRequest) (*RemoteChangesResponse, error) {
+func remoteChangeResp(_ *RemoteChangesRequest) (*RemoteChangesResponse, error) {
 	return &RemoteChangesResponse{}, nil
 }
-func remoteHeaderResp(req *RemoteHeaderRequest) (*RemoteHeaderResponse, error) {
+func remoteHeaderResp(_ *RemoteHeaderRequest) (*RemoteHeaderResponse, error) {
 	return &RemoteHeaderResponse{}, nil
 }
-func remoteReadChildResp(req *RemoteReadChildRequest) (*RemoteReadResponse, error) {
+func remoteReadChildResp(_ *RemoteReadChildRequest) (*RemoteReadResponse, error) {
 	return &RemoteReadResponse{}, nil
 }
-func remoteReadResp(req *RemoteReadRequest) (*RemoteReadResponse, error) {
+func remoteReadResp(_ *RemoteReadRequest) (*RemoteReadResponse, error) {
 	return &RemoteReadResponse{}, nil
 }

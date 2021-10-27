@@ -540,8 +540,11 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Ha
 
 	res.Number = header.Number
 
-	babeDigest := types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{})
-	data := babeDigest.Encode()
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()

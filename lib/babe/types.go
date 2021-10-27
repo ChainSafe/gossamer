@@ -31,8 +31,8 @@ type Randomness = [types.RandomnessLength]byte
 
 // VrfOutputAndProof represents the fields for VRF output and proof
 type VrfOutputAndProof struct {
-	output [sr25519.VrfOutputLength]byte
-	proof  [sr25519.VrfProofLength]byte
+	output [sr25519.VRFOutputLength]byte
+	proof  [sr25519.VRFProofLength]byte
 }
 
 // Slot represents a BABE slot
