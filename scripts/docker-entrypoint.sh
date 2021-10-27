@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # Copyright 2019 ChainSafe Systems (ON) Corp.
 # This file is part of gossamer.
@@ -22,7 +22,7 @@ BASE_PATH=~/gossamer-dev
 set -euxo pipefail
 
 if [ ! -f $BASE_PATH/genesis_created ]; then
-	/usr/local/gossamer init --genesis=/gocode/src/github.com/ChainSafe/gossamer/chain/gssmr/genesis.json
+	/gossamer/bin/gossamer init --genesis=/gossamer/chain/gssmr/genesis.json
 	touch $BASE_PATH/genesis_created;
 fi;
 

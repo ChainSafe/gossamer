@@ -53,20 +53,17 @@ RUN wget -qO /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sge
 # Install C dependencies
 RUN apk add libgcc musl
 
+WORKDIR /gossamer
+
 # Install libwasmer.so
 ENV LD_LIBRARY_PATH=/lib:/usr/lib
 COPY --from=builder /go/src/github.com/ChainSafe/gossamer/libwasmer.so /lib/libwasmer.so
 
-# Install bash for retro-compatibility
-RUN apk add --no-cache bash
-
 EXPOSE 7001 8546 8540
 
-ENTRYPOINT ["/gocode/src/github.com/ChainSafe/gossamer/scripts/docker-entrypoint.sh"]
-CMD ["/usr/local/gossamer"]
+ENTRYPOINT ["/gossamer/docker-entrypoint.sh"]
+CMD ["/gossamer/bin/gossamer"]
 
-WORKDIR /gocode/src/github.com/ChainSafe/gossamer
-COPY chain chain
-COPY scripts/docker-entrypoint.sh scripts/docker-entrypoint.sh
-COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gocode/src/github.com/ChainSafe/gossamer/bin/gossamer
-RUN ln -s /gocode/src/github.com/ChainSafe/gossamer/bin/gossamer /usr/local/gossamer
+COPY chain /gossamer/chain
+COPY scripts/docker-entrypoint.sh /gossamer/docker-entrypoint.sh
+COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gossamer/bin/gossamer
