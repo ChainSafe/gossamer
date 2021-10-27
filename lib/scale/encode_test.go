@@ -242,18 +242,18 @@ func TestEncodeAndDecodeStringArrayInStruct(t *testing.T) {
 }
 
 // test type for encoding
-type MockTypeA struct {
+type mockTypeA struct {
 	A string
 }
 
 // Encode func for TypeReal that uses actual Scale Encode
-func (tr *MockTypeA) Encode() ([]byte, error) {
+func (tr *mockTypeA) Encode() ([]byte, error) {
 	return Encode(tr)
 }
 
 // test to confirm EncodeCustom is return Scale Encoded result
 func TestEncodeCustomMockTypeA(t *testing.T) {
-	test := &MockTypeA{A: "hello"}
+	test := &mockTypeA{A: "hello"}
 
 	encCust, err := EncodeCustom(test)
 	require.Nil(t, err)
@@ -265,13 +265,13 @@ func TestEncodeCustomMockTypeA(t *testing.T) {
 }
 
 // test type for encoding, this type does not have Encode func
-type MockTypeB struct {
+type mockTypeB struct {
 	A string
 }
 
 // test to confirm EncodeCustom is return Scale Encoded result
 func TestEncodeCustomMockTypeB(t *testing.T) {
-	test := &MockTypeB{A: "hello"}
+	test := &mockTypeB{A: "hello"}
 
 	encCust, err := EncodeCustom(test)
 	require.Nil(t, err)
@@ -283,18 +283,18 @@ func TestEncodeCustomMockTypeB(t *testing.T) {
 }
 
 // test types for encoding
-type MockTypeC struct {
+type mockTypeC struct {
 	A string
 }
 
 // Encode func for MockTypeC that return fake byte array [1, 2, 3]
-func (tr *MockTypeC) Encode() ([]byte, error) {
+func (tr *mockTypeC) Encode() ([]byte, error) {
 	return []byte{1, 2, 3}, nil
 }
 
 // test to confirm EncodeCustom is using type's Encode function
 func TestEncodeCustomMockTypeC(t *testing.T) {
-	test := &MockTypeC{A: "hello"}
+	test := &mockTypeC{A: "hello"}
 	expected := []byte{1, 2, 3}
 
 	encCust, err := EncodeCustom(test)
@@ -304,18 +304,18 @@ func TestEncodeCustomMockTypeC(t *testing.T) {
 }
 
 // test types for encoding
-type MockTypeD struct {
+type mockTypeD struct {
 	A string
 }
 
 // Encode func for MockTypeD that return an error
-func (tr *MockTypeD) Encode() ([]byte, error) {
+func (tr *mockTypeD) Encode() ([]byte, error) {
 	return nil, errors.New("error encoding")
 }
 
 // test to confirm EncodeCustom is handling errors
 func TestEncodeCustomMockTypeD(t *testing.T) {
-	test := &MockTypeD{A: "hello"}
+	test := &mockTypeD{A: "hello"}
 
 	_, err := EncodeCustom(test)
 	require.EqualError(t, err, "error encoding")

@@ -24,7 +24,7 @@ func TestAuthorModule_HasSessionKey_WhenScaleDataEmptyOrNil(t *testing.T) {
 	keys := "0x00"
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 
-	coremockapi := new(apimocks.MockCoreAPI)
+	coremockapi := new(apimocks.CoreAPI)
 
 	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
 	decodeSessionKeysMock.Run(func(args mock.Arguments) {
@@ -51,7 +51,7 @@ func TestAuthorModule_HasSessionKey_WhenScaleDataEmptyOrNil(t *testing.T) {
 }
 
 func TestAuthorModule_HasSessionKey_WhenRuntimeFails(t *testing.T) {
-	coremockapi := new(apimocks.MockCoreAPI)
+	coremockapi := new(apimocks.CoreAPI)
 	coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("problems with runtime"))
 
 	module := &AuthorModule{
@@ -73,7 +73,7 @@ func TestAuthorModule_HasSessionKey_WhenThereIsNoKeys(t *testing.T) {
 	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 
-	coremockapi := new(apimocks.MockCoreAPI)
+	coremockapi := new(apimocks.CoreAPI)
 	coremockapi.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
 
 	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
@@ -105,7 +105,7 @@ func TestAuthorModule_HasSessionKey_WhenThereIsNoKeys(t *testing.T) {
 func TestAuthorModule_HasSessionKey(t *testing.T) {
 	globalStore := keystore.NewGlobalKeystore()
 
-	coremockapi := new(apimocks.MockCoreAPI)
+	coremockapi := new(apimocks.CoreAPI)
 	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
 	mockInsertKey.Run(func(args mock.Arguments) {
 		kp := args.Get(0).(*sr25519.Keypair)
@@ -164,10 +164,10 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
-	errMockCoreAPI := &apimocks.MockCoreAPI{}
+	errMockCoreAPI := &apimocks.CoreAPI{}
 	errMockCoreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(fmt.Errorf("some error"))
 
-	mockCoreAPI := &apimocks.MockCoreAPI{}
+	mockCoreAPI := &apimocks.CoreAPI{}
 	mockCoreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(nil)
 
 	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
@@ -322,7 +322,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey(t *testing.T) {
-	mockCoreAPI := &apimocks.MockCoreAPI{}
+	mockCoreAPI := &apimocks.CoreAPI{}
 	mockCoreAPI.On("InsertKey", mock.Anything).Return(nil)
 
 	type fields struct {
@@ -414,13 +414,13 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 }
 
 func TestAuthorModule_HasKey(t *testing.T) {
-	mockCoreAPITrue := &apimocks.MockCoreAPI{}
+	mockCoreAPITrue := &apimocks.CoreAPI{}
 	mockCoreAPITrue.On("HasKey", mock.Anything, mock.Anything).Return(true, nil)
 
-	mockCoreAPIFalse := &apimocks.MockCoreAPI{}
+	mockCoreAPIFalse := &apimocks.CoreAPI{}
 	mockCoreAPIFalse.On("HasKey", mock.Anything, mock.Anything).Return(false, nil)
 
-	mockCoreAPIErr := &apimocks.MockCoreAPI{}
+	mockCoreAPIErr := &apimocks.CoreAPI{}
 	mockCoreAPIErr.On("HasKey", mock.Anything, mock.Anything).Return(false, fmt.Errorf("some error"))
 
 	kr, err := keystore.NewSr25519Keyring()

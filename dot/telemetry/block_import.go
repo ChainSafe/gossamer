@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2021 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,16 +14,30 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package telemetry
 
-// PageSize is 65kb
-const PageSize = 65536
+import (
+	"math/big"
 
-//go:generate mockery --name Memory --structname mockMemory --case underscore --inpackage --filename mock_memory_test.go
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
-// Memory is a raw memory interface
-type Memory interface {
-	Data() []byte
-	Length() uint32
-	Grow(uint32) error
+// blockImportTM struct to hold block import telemetry messages
+type blockImportTM struct {
+	BestHash *common.Hash `json:"best"`
+	Height   *big.Int     `json:"height"`
+	Origin   string       `json:"origin"`
+}
+
+// NewBlockImportTM function to create new Block Import Telemetry Message
+func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) Message {
+	return &blockImportTM{
+		BestHash: bestHash,
+		Height:   height,
+		Origin:   origin,
+	}
+}
+
+func (blockImportTM) messageType() string {
+	return blockImportMsg
 }

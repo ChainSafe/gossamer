@@ -75,7 +75,7 @@ func TestRoundState(t *testing.T) {
 		})
 	}
 
-	grandpamock := new(rpcmocks.MockBlockFinalityAPI)
+	grandpamock := new(rpcmocks.BlockFinalityAPI)
 	grandpamock.On("GetVoters").Return(voters)
 	grandpamock.On("GetSetID").Return(uint64(0))
 	grandpamock.On("GetRound").Return(uint64(2))
