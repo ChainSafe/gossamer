@@ -25,7 +25,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 const none = "None"
@@ -134,7 +134,7 @@ func (x *Bytes) Encode() ([]byte, error) {
 		return []byte{0}, nil
 	}
 
-	value, err := scale.Encode(x.value)
+	value, err := scale.Marshal(x.value)
 	if err != nil {
 		return nil, err
 	}
@@ -153,15 +153,15 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 		return nil, ErrInvalidOptional
 	}
 
-	x.exists = (exists != 0)
+	x.exists = exists != 0
 
 	if x.exists {
-		sd := scale.Decoder{Reader: r}
-		value, err := sd.DecodeByteArray()
+		sd := scale.NewDecoder(r)
+		err := sd.Decode(&x.value)
+
 		if err != nil {
 			return nil, err
 		}
-		x.value = value
 	}
 
 	return x, nil
@@ -176,11 +176,12 @@ func (x *Bytes) DecodeBytes(data []byte) (*Bytes, error) {
 	x.exists = data[0] != 0
 
 	if x.exists {
-		decData, err := scale.Decode(data[1:], []byte{})
+		var decData []byte
+		err := scale.Unmarshal(data[1:], &decData)
 		if err != nil {
 			return nil, err
 		}
-		x.value = decData.([]byte)
+		x.value = decData
 	} else {
 		x.value = nil
 	}

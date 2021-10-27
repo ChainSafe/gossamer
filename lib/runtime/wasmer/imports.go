@@ -1803,20 +1803,17 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	logger.Debug("[ext_storage_clear_prefix_version_2]", "prefix", fmt.Sprintf("0x%x", prefix))
 
 	limitBytes := asMemorySlice(instanceContext, lim)
-	buf := &bytes.Buffer{}
-	buf.Write(limitBytes)
 
-	limit, err := optional.NewBytes(true, nil).Decode(buf)
+	var limit []byte
+	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
 		logger.Warn("[ext_storage_clear_prefix_version_2] cannot generate limit", "error", err)
-		return 0
+		ret, _ := toWasmMemory(instanceContext, nil)
+		return C.int64_t(ret)
 	}
 
-	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limit)
-	if err != nil {
-		logger.Error("[ext_storage_clear_prefix_version_2]", "error", err)
-	}
-
+	limitUint := binary.LittleEndian.Uint32(limit)
+	numRemoved, all := storage.ClearPrefixLimit(prefix, limitUint)
 	encBytes, err := toKillStorageResultEnum(all, numRemoved)
 
 	if err != nil {
