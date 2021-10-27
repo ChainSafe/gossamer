@@ -34,7 +34,7 @@ func newTestTipSyncer(t *testing.T) *tipSyncer {
 	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(200), types.NewDigest())
 	require.NoError(t, err)
 
-	bs := new(syncmocks.MockBlockState)
+	bs := new(syncmocks.BlockState)
 	bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
@@ -239,7 +239,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
-	bs := new(syncmocks.MockBlockState)
+	bs := new(syncmocks.BlockState)
 	bs.On("GetHighestFinalisedHeader").Return(fin, nil)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
 	s.blockState = bs
