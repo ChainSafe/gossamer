@@ -50,6 +50,10 @@ func (c *callerSettings) setDefaults() {
 }
 
 func getCallerString(settings callerSettings) (s string) {
+	if !*settings.file && !*settings.line && !*settings.funC {
+		return ""
+	}
+
 	const depth = 3
 	pc, file, line, ok := runtime.Caller(depth)
 	if !ok {
