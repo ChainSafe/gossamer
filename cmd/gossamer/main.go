@@ -341,12 +341,9 @@ func initAction(ctx *cli.Context) error {
 
 		// prompt user to confirm reinitialization
 		if force || confirmMessage("Are you sure you want to reinitialise the node? [Y/n]") {
-			logger.Info("reinitialising node at base path " +
-				cfg.Global.BasePath + "...")
+			logger.Info("reinitialising node at base path " + cfg.Global.BasePath + "...")
 		} else {
-			logger.Warn(
-				"exiting without reinitialising the node at base path " +
-					cfg.Global.BasePath + "...")
+			logger.Warn("exiting without reinitialising the node at base path " + cfg.Global.BasePath + "...")
 			return nil // exit if reinitialization is not confirmed
 		}
 	}

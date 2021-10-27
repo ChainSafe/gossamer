@@ -139,7 +139,8 @@ func newTestSyncer(t *testing.T) *Service {
 		require.NoError(t, err)
 
 		stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
-		logger.Debugf("imported block %s and stored state trie with root %s", block.Header.Hash(), ts.MustRoot())
+		logger.Debugf("imported block %s and stored state trie with root %s",
+			block.Header.Hash(), ts.MustRoot())
 		return nil
 	})
 

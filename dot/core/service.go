@@ -224,8 +224,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
-	logger.Debugf(
-		"imported block %s and stored state trie with root %s",
+	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
 	// handle consensus digests
@@ -267,8 +266,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.Trie
 		return nil
 	}
 
-	logger.Infof(
-		"🔄 detected runtime code substitution, upgrading for block %s...", hash)
+	logger.Infof("🔄 detected runtime code substitution, upgrading for block %s...", hash)
 	code := common.MustHexToBytes(value)
 	if len(code) == 0 {
 		return ErrEmptyRuntimeCode

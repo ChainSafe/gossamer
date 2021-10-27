@@ -62,7 +62,7 @@ func accountAction(ctx *cli.Context) error {
 			return err
 		}
 
-		logger.Info("generated keypair and saved to " + file)
+		logger.Info("keypair generated and saved to " + file)
 	}
 
 	// check if --import is set

@@ -133,7 +133,6 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 		return nil, err
 	}
 
-	// TODO: we should have it pretty printed with a custom String function
 	logger.Infof("loaded package log configuration: %v", cfg.Log)
 
 	// set global configuration values
