@@ -99,25 +99,25 @@ func (b *branch) copy() node {
 	b.Lock()
 	defer b.Unlock()
 	cpy := &branch{
-		key:        make([]byte, len(b.key)),
+		key:        b.key,
 		children:   [16]node{},
-		value:      nil,
+		value:      b.value,
 		dirty:      b.dirty,
-		hash:       make([]byte, len(b.hash)),
-		encoding:   make([]byte, len(b.encoding)),
+		hash:       b.hash,
+		encoding:   b.encoding,
 		generation: b.generation,
 	}
-	copy(cpy.key, b.key)
+	//copy(cpy.key, b.key)
 	copy(cpy.children[:], b.children[:])
 
 	// nil and []byte{} are encoded differently, watch out!
-	if b.value != nil {
-		cpy.value = make([]byte, len(b.value))
-		copy(cpy.value, b.value)
-	}
+	// if b.value != nil {
+	// 	cpy.value = make([]byte, len(b.value))
+	// 	copy(cpy.value, b.value)
+	// }
 
-	copy(cpy.hash, b.hash)
-	copy(cpy.encoding, b.encoding)
+	//copy(cpy.hash, b.hash)
+	//copy(cpy.encoding, b.encoding)
 	return cpy
 }
 
@@ -125,17 +125,17 @@ func (l *leaf) copy() node {
 	l.Lock()
 	defer l.Unlock()
 	cpy := &leaf{
-		key:        make([]byte, len(l.key)),
-		value:      make([]byte, len(l.value)),
+		key:        l.key,
+		value:      l.value,
 		dirty:      l.dirty,
-		hash:       make([]byte, len(l.hash)),
-		encoding:   make([]byte, len(l.encoding)),
+		hash:       l.hash,
+		encoding:   l.encoding,
 		generation: l.generation,
 	}
-	copy(cpy.key, l.key)
-	copy(cpy.value, l.value)
-	copy(cpy.hash, l.hash)
-	copy(cpy.encoding, l.encoding)
+	// copy(cpy.key, l.key)
+	// copy(cpy.value, l.value)
+	// copy(cpy.hash, l.hash)
+	// copy(cpy.encoding, l.encoding)
 	return cpy
 }
 
