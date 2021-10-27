@@ -162,6 +162,25 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
+	babeService := createTestService(t, nil)
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.C1 = 1
+	cfg.C2 = 1
+
+	vm := newTestVerificationManager(t, cfg)
+
+	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	err = vm.VerifyBlock(&block.Header)
+	require.NoError(t, err)
+}
+
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
