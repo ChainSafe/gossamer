@@ -18,7 +18,9 @@ package babe
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"testing"
 	"time"
@@ -173,12 +175,46 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
 	cfg.C1 = 1
 	cfg.C2 = 1
+	cfg.SecondarySlots = 0
 
 	vm := newTestVerificationManager(t, cfg)
 
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
-	err = vm.VerifyBlock(&block.Header)
+	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
+
+	dig := createSecondaryVRFPreDigest(t, kp, 0, uint64(0), uint64(0), Randomness{})
+
+	// create pre-digest
+	preDigest := &types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              dig.Encode(),
+	}
+
+	// create new block header
+	number := big.NewInt(1)
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+
+	// create seal and add to digest
+	seal := &types.SealDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              []byte{0},
+	}
+	require.NoError(t, err)
+
+	err = digest.Add(*seal)
+	require.NoError(t, err)
+
+	header, err := types.NewHeader(common.EmptyHash, common.EmptyHash, common.EmptyHash, number, digest)
+	require.NoError(t, err)
+
+	block := types.Block{
+		Header: *header,
+		Body:   nil,
+	}
+	err = vm.VerifyBlock(&block.Header)
+	require.EqualError(t, err, "failed to verify pre-runtime digest: could not verify slot claim VRF proof")
 }
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
