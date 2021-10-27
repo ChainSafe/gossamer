@@ -1,55 +1,96 @@
 package utils
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_PR_Checks(t *testing.T) {
-	tests := []struct {
+func Test_CheckPRDescription(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
 		title string
 		body  string
-		valid bool
+		err   error
 	}{
-		{
-			title: "",
-			body:  "",
-			valid: false,
+		"all empty": {
+			err: errors.New("title pattern is not valid: for regular expression ^[A-Za-z]+\\([A-Za-z/]+\\):.+[A-Za-z]+$: ''"),
 		},
-		{
-			title: "abc(abc): abc",
-			body:  "",
-			valid: false,
+		"invalid title": {
+			title: "category: something",
+			err:   errors.New("title pattern is not valid: for regular expression ^[A-Za-z]+\\([A-Za-z/]+\\):.+[A-Za-z]+$: 'category: something'"),
 		},
-		{
+		"empty body only": {
+			title: "category(subcategory): something",
+			err:   errors.New("body section not found: \"## Changes\\n\""),
+		},
+		"invalid body": {
+			title: "category(subcategory): something",
+			body:  "##Changes ## Tests ## Issues ## Primary Reviewer",
+			err:   errors.New("body section not found: \"## Changes\\n\""),
+		},
+		"misplaced section": {
+			title: "category(subcategory): something",
+			body:  "## Changes\n## Tests\n## Primary Reviewer\n## Issues\n",
+			err:   errors.New("body section misplaced: section \"Primary Reviewer\" cannot be before section \"Issues\""),
+		},
+		"minimal valid": {
+			title: "category(subcategory): something",
+			body:  "## Changes\n## Tests\n## Issues\n## Primary Reviewer",
+		},
+		"valid example": {
 			title: `feat(dot/rpc): implement chain_subscribeAllHeads RPC`,
-			body:  `## Changes\n\n<!--\nPlease provide a brief but specific list of changes made, describe the changes\nin functionality rather than the changes in code.\n-->\n\n- changes for demo :123\n\n## Tests\n\n<!--\nDetails on how to run tests relevant to the changes within this pull request.\n-->\n\n- tests for demo:123{}\n\n## Issues\n\n<!--\nPlease link any issues that this pull request is related to and use the GitHub\nsupported format for automatically closing issues (ie, closes #123, fixes #123)\n-->\n\n- issues for demo:43434\n\n## Primary Reviewer\n\n<!--\nPlease indicate one of the code owners that are required to review prior to merging changes (e.g. @noot)\n-->\n\n- @noot for demo:12`,
-			valid: true,
-		},
-		{
-			title: "abc(): abc",
-			body:  "",
-			valid: false,
-		},
-		{
-			title: "(abc): abc",
-			body:  "",
-			valid: false,
-		},
-		{
-			title: "abc(abc):",
-			body:  "",
-			valid: false,
+			body: `## Changes
+
+<!--
+Please provide a brief but specific list of changes made, describe the changes
+in functionality rather than the changes in code.
+-->
+
+- changes for demo :123
+
+## Tests
+
+<!--
+Details on how to run tests relevant to the changes within this pull request.
+-->
+
+- tests for demo:123{}
+
+## Issues
+
+<!--
+Please link any issues that this pull request is related to and use the GitHub
+supported format for automatically closing issues (ie, closes #123, fixes #123)
+-->
+
+- issues for demo:43434
+
+## Primary Reviewer
+
+<!--Please indicate one of the code owners that are required to review prior to merging changes (e.g. @noot)
+-->
+
+- @noot for demo:12
+`,
 		},
 	}
 
-	for _, test := range tests {
-		err := CheckPRDescription(test.title, test.body)
-		if test.valid {
-			require.NoError(t, err, "title", test.title, "body", test.body)
-		} else {
-			require.Error(t, err, "title", test.title, "body", test.body)
-		}
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			err := CheckPRDescription(testCase.title, testCase.body)
+			if testCase.err != nil {
+				require.Error(t, err)
+				assert.Equal(t, testCase.err.Error(), err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }
