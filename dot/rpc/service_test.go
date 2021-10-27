@@ -54,40 +54,42 @@ func TestService_Methods(t *testing.T) {
 	require.Equal(t, qtySystemMethods+qtyRPCMethods+qtyAuthorMethods, len(m))
 }
 
-type MockService struct{}
+type mockService struct{}
 
+// MockServiceArrayRequest must be exported for ReadArray or tests will fail.
 type MockServiceArrayRequest struct {
 	Key   []string
 	Bhash []common.Hash
 }
 
+// MockServiceArrayResponse must be exported for ReadArray or tests will fail.
 type MockServiceArrayResponse struct {
 	Key   []string
 	Bhash []common.Hash
 }
 
-func (t *MockService) ReadArray(r *http.Request, req *MockServiceArrayRequest, res *MockServiceArrayResponse) error {
+func (t *mockService) ReadArray(r *http.Request, req *MockServiceArrayRequest, res *MockServiceArrayResponse) error {
 	res.Key = req.Key
 	res.Bhash = req.Bhash
 	return nil
 }
 
-type MockResponseWriter struct {
+type mockResponseWriter struct {
 	header http.Header
 	Status int
 	Body   string
 }
 
-func NewMockResponseWriter() *MockResponseWriter {
+func newMockResponseWriter() *mockResponseWriter {
 	header := make(http.Header)
-	return &MockResponseWriter{header: header}
+	return &mockResponseWriter{header: header}
 }
 
-func (w *MockResponseWriter) Header() http.Header {
+func (w *mockResponseWriter) Header() http.Header {
 	return w.header
 }
 
-func (w *MockResponseWriter) Write(p []byte) (int, error) {
+func (w *mockResponseWriter) Write(p []byte) (int, error) {
 	w.Body = string(p)
 	if w.Status == 0 {
 		w.Status = 200
@@ -95,13 +97,13 @@ func (w *MockResponseWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (w *MockResponseWriter) WriteHeader(status int) {
+func (w *mockResponseWriter) WriteHeader(status int) {
 	w.Status = status
 }
 
 func TestJson2ReadRequest(t *testing.T) {
 	s := rpc.NewServer()
-	s.RegisterService(new(MockService), "mockService")
+	s.RegisterService(new(mockService), "mockService")
 	s.RegisterCodec(NewDotUpCodec(), "application/json")
 
 	testCase := []struct {
@@ -120,7 +122,7 @@ func TestJson2ReadRequest(t *testing.T) {
 			req, err := http.NewRequest("POST", "", reader)
 			require.NoError(t, err)
 
-			resWriter := NewMockResponseWriter()
+			resWriter := newMockResponseWriter()
 			req.Header.Set("Content-Type", "application/json")
 			s.ServeHTTP(resWriter, req)
 

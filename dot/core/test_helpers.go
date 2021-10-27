@@ -43,8 +43,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg = &Config{}
 	}
 
-	cfg.DigestHandler = new(coremocks.MockDigestHandler)
-	cfg.DigestHandler.(*coremocks.MockDigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
+	cfg.DigestHandler = new(coremocks.DigestHandler)
+	cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
@@ -124,7 +124,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	if cfg.Network == nil {
-		net := new(coremocks.MockNetwork)
+		net := new(coremocks.Network)
 		net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
 		net.On("IsSynced").Return(true)
 		cfg.Network = net
