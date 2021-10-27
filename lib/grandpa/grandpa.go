@@ -122,9 +122,9 @@ func NewService(cfg *Config) (*Service, error) {
 		pub = cfg.Keypair.Public().Hex()
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"creating service with authority=%t, pub=%s and voter set %v",
-		cfg.Authority, pub, Voters(cfg.Voters)))
+		cfg.Authority, pub, Voters(cfg.Voters))
 
 	// get latest finalised header
 	head, err := cfg.BlockState.GetFinalisedHeader(0, 0)
@@ -277,9 +277,9 @@ func (s *Service) initiateRound() error {
 	}
 
 	if round > s.state.round && setID == s.state.setID {
-		logger.Debug(fmt.Sprintf(
+		logger.Debugf(
 			"found block finalised in higher round, updating our round to be %d...",
-			round))
+			round)
 		s.state.round = round
 		err = s.grandpaState.SetLatestRound(round)
 		if err != nil {
@@ -439,8 +439,8 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
-	logger.Debug(fmt.Sprintf("starting round %d with set id %d",
-		s.state.round, s.state.setID))
+	logger.Debugf("starting round %d with set id %d",
+		s.state.round, s.state.setID)
 	start := time.Now()
 
 	ctx, cancel := context.WithCancel(s.ctx)
@@ -559,14 +559,14 @@ func (s *Service) attemptToFinalize() error {
 
 		highestRound, highestSetID, _ := s.blockState.GetHighestRoundAndSetID()
 		if highestRound > s.state.round {
-			logger.Debug(fmt.Sprintf("block was finalised for round %d and set id %d",
-				highestRound, highestSetID))
+			logger.Debugf("block was finalised for round %d and set id %d",
+				highestRound, highestSetID)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
 		if highestSetID > s.state.setID {
-			logger.Debug(fmt.Sprintf("block was finalised for round %d and set id %d",
-				highestRound, highestSetID))
+			logger.Debugf("block was finalised for round %d and set id %d",
+				highestRound, highestSetID)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
@@ -590,9 +590,9 @@ func (s *Service) attemptToFinalize() error {
 
 		// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
 		votes := s.getDirectVotes(precommit)
-		logger.Debug(fmt.Sprintf("block was finalised for round %d and set id %d. "+
+		logger.Debugf("block was finalised for round %d and set id %d. "+
 			"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
-			s.state.round, s.state.setID, s.head.Hash().String(), votes[*bfc], pc))
+			s.state.round, s.state.setID, s.head.Hash().String(), votes[*bfc], pc)
 
 		cm, err := s.newCommitMessage(s.head, s.state.round)
 		if err != nil {

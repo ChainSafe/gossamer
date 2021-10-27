@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"crypto/rand"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -118,14 +117,14 @@ func (cm *ConnManager) IsProtected(id peer.ID, tag string) (protected bool) {
 
 // Listen is called when network starts listening on an address
 func (cm *ConnManager) Listen(n network.Network, addr ma.Multiaddr) {
-	logger.Trace(fmt.Sprintf(
-		"Host %s started listening on address %s", n.LocalPeer(), addr))
+	logger.Tracef(
+		"Host %s started listening on address %s", n.LocalPeer(), addr)
 }
 
 // ListenClose is called when network stops listening on an address
 func (cm *ConnManager) ListenClose(n network.Network, addr ma.Multiaddr) {
-	logger.Trace(fmt.Sprintf(
-		"Host %s stopped listening on address %s", n.LocalPeer(), addr))
+	logger.Tracef(
+		"Host %s stopped listening on address %s", n.LocalPeer(), addr)
 }
 
 // returns a slice of peers that are unprotected and may be pruned.
@@ -142,8 +141,8 @@ func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
 
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
-	logger.Trace(fmt.Sprintf(
-		"Host %s connected to peer %s", n.LocalPeer(), c.RemotePeer()))
+	logger.Tracef(
+		"Host %s connected to peer %s", n.LocalPeer(), c.RemotePeer())
 
 	cm.Lock()
 	defer cm.Unlock()
@@ -234,8 +233,8 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 
 // OpenedStream is called when a stream opened
 func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
-	logger.Trace(fmt.Sprintf("Stream opened with peer %s using protocol %s",
-		s.Conn().RemotePeer(), s.Protocol()))
+	logger.Tracef("Stream opened with peer %s using protocol %s",
+		s.Conn().RemotePeer(), s.Protocol())
 }
 
 func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb func(id peer.ID)) {
@@ -244,8 +243,8 @@ func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb func(id p
 
 // ClosedStream is called when a stream closed
 func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
-	logger.Trace(fmt.Sprintf("Stream closed with peer %s using protocol %s",
-		s.Conn().RemotePeer(), s.Protocol()))
+	logger.Tracef("Stream closed with peer %s using protocol %s",
+		s.Conn().RemotePeer(), s.Protocol())
 
 	cm.Lock()
 	defer cm.Unlock()

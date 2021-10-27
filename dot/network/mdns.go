@@ -18,7 +18,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -53,9 +52,9 @@ func newMDNS(host *host) *mdns {
 
 // startMDNS starts a new mDNS discovery service
 func (m *mdns) start() {
-	m.logger.Debug(fmt.Sprintf(
+	m.logger.Debugf(
 		"Starting mDNS discovery service with host %s, period %s and protocol %s...",
-		m.host.id(), MDNSPeriod, m.host.protocolID))
+		m.host.id(), MDNSPeriod, m.host.protocolID)
 
 	// create and start service
 	mdns, err := libp2pdiscovery.NewMdnsService(
@@ -98,9 +97,9 @@ func (m *mdns) close() error {
 
 // HandlePeerFound is event handler called when a peer is found
 func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
-	n.logger.Debug(fmt.Sprintf(
+	n.logger.Debugf(
 		"Peer %s found using mDNS discovery, with host %s",
-		p.ID, n.host.id()))
+		p.ID, n.host.id())
 
 	// connect to found peer
 	err := n.host.connect(p)

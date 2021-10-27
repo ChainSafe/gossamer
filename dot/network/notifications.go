@@ -18,7 +18,6 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -170,8 +169,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		if msg.IsHandshake() {
-			logger.Trace(fmt.Sprintf("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
-				info.protocolID, stream.Conn().RemotePeer(), msg))
+			logger.Tracef("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
+				info.protocolID, stream.Conn().RemotePeer(), msg)
 
 			hs, ok := msg.(Handshake)
 			if !ok {
@@ -190,9 +189,9 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 				err := info.handshakeValidator(peer, hs)
 				if err != nil {
-					logger.Trace(fmt.Sprintf(
+					logger.Tracef(
 						"failed to validate handshake from peer %s using protocol %s: %s",
-						peer, info.protocolID, err))
+						peer, info.protocolID, err)
 					return errCannotValidateHandshake
 				}
 
@@ -217,8 +216,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return nil
 		}
 
-		logger.Trace(fmt.Sprintf("received message on notifications sub-protocol %s from peer %s, message is: %s",
-			info.protocolID, stream.Conn().RemotePeer(), msg))
+		logger.Tracef("received message on notifications sub-protocol %s from peer %s, message is: %s",
+			info.protocolID, stream.Conn().RemotePeer(), msg)
 
 		var (
 			propagate bool
@@ -277,8 +276,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		hsData.Lock()
 		defer hsData.Unlock()
 
-		logger.Trace(fmt.Sprintf("sending outbound handshake to peer %s using protocol %s, message: %s",
-			peer, info.protocolID, hs))
+		logger.Tracef("sending outbound handshake to peer %s using protocol %s, message: %s",
+			peer, info.protocolID, hs)
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
 			logger.Tracef("failed to send message to peer %s: %s", peer, err)

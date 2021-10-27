@@ -18,7 +18,6 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"path"
 	"time"
 
@@ -176,9 +175,9 @@ func (c *Config) buildIdentity() error {
 
 		// generate key if no key exists
 		if key == nil {
-			c.logger.Info(fmt.Sprintf(
+			c.logger.Infof(
 				"Generating p2p identity with seed %d and key file %s",
-				c.RandSeed, path.Join(c.BasePath, DefaultKeyFile)))
+				c.RandSeed, path.Join(c.BasePath, DefaultKeyFile))
 
 			// generate key
 			key, err = generateKey(c.RandSeed, c.BasePath)
@@ -190,9 +189,9 @@ func (c *Config) buildIdentity() error {
 		// set private key
 		c.privateKey = key
 	} else {
-		c.logger.Info(fmt.Sprintf(
+		c.logger.Infof(
 			"Generating p2p identity with seed %d and key file %s",
-			c.RandSeed, path.Join(c.BasePath, DefaultKeyFile)))
+			c.RandSeed, path.Join(c.BasePath, DefaultKeyFile))
 
 		// generate temporary deterministic key
 		key, err := generateKey(c.RandSeed, c.BasePath)

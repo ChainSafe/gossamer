@@ -19,7 +19,6 @@ package digest
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 
@@ -135,9 +134,9 @@ func (h *Handler) HandleDigests(header *types.Header) {
 		if ok {
 			err := h.handleConsensusDigest(&val, header)
 			if err != nil {
-				logger.Error(fmt.Sprintf(
+				logger.Errorf(
 					"cannot handle digests for block number %s, index %d, digest %s: %s",
-					header.Number, i, d.Value(), err))
+					header.Number, i, d.Value(), err)
 			}
 		}
 	}
@@ -315,8 +314,8 @@ func (h *Handler) handleScheduledChange(sc types.GrandpaScheduledChange, header 
 	if err != nil {
 		return err
 	}
-	logger.Debug(fmt.Sprintf("setting GrandpaScheduledChange at block %s",
-		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay)))))
+	logger.Debugf("setting GrandpaScheduledChange at block %s",
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))),
@@ -346,8 +345,8 @@ func (h *Handler) handleForcedChange(fc types.GrandpaForcedChange, header *types
 		return err
 	}
 
-	logger.Debug(fmt.Sprintf("setting GrandpaForcedChange at block %s",
-		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay)))))
+	logger.Debugf("setting GrandpaForcedChange at block %s",
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))),
@@ -414,8 +413,8 @@ func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Hea
 		return err
 	}
 
-	logger.Debug(fmt.Sprintf("setting data for block number %s and epoch %d with data: %v",
-		header.Number, currEpoch+1, data))
+	logger.Debugf("setting data for block number %s and epoch %d with data: %v",
+		header.Number, currEpoch+1, data)
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
@@ -425,8 +424,8 @@ func (h *Handler) handleNextConfigData(config types.NextConfigData, header *type
 		return err
 	}
 
-	logger.Debug(fmt.Sprintf("setting BABE config data for block number %s and epoch %d with data: %v",
-		header.Number, currEpoch+1, config.ToConfigData()))
+	logger.Debugf("setting BABE config data for block number %s and epoch %d with data: %v",
+		header.Number, currEpoch+1, config.ToConfigData())
 	// set EpochState config data for upcoming epoch
 	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())
 }

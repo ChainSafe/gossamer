@@ -208,8 +208,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	// store updates state trie nodes in database
 	err := s.storageState.StoreTrie(state, &block.Header)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("failed to store state trie for imported block %s: %s",
-			block.Header.Hash(), err))
+		logger.Warnf("failed to store state trie for imported block %s: %s",
+			block.Header.Hash(), err)
 		return err
 	}
 
@@ -224,9 +224,9 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"imported block %s and stored state trie with root %s",
-		block.Header.Hash(), state.MustRoot()))
+		block.Header.Hash(), state.MustRoot())
 
 	// handle consensus digests
 	s.digestHandler.HandleDigests(&block.Header)
@@ -267,8 +267,8 @@ func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.Trie
 		return nil
 	}
 
-	logger.Info(fmt.Sprintf(
-		"🔄 detected runtime code substitution, upgrading for block %s...", hash))
+	logger.Infof(
+		"🔄 detected runtime code substitution, upgrading for block %s...", hash)
 	code := common.MustHexToBytes(value)
 	if len(code) == 0 {
 		return ErrEmptyRuntimeCode

@@ -396,8 +396,8 @@ func setLogConfig(ctx *cli.Context, cfg *ctoml.Config, globalCfg *dot.GlobalConf
 		logCfg.FinalityGadgetLvl = lvl
 	}
 
-	logger.Debug(fmt.Sprintf("set log configuration with global log level %s and --log=%s",
-		globalCfg.LogLvl, ctx.String(LogFlag.Name)))
+	logger.Debugf("set log configuration with global log level %s and --log=%s",
+		globalCfg.LogLvl, ctx.String(LogFlag.Name))
 	return nil
 }
 
@@ -618,9 +618,9 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		logger.Warn("invalid wasm interpreter set in config, defaulting to " + gssmr.DefaultWasmInterpreter)
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"core configuration: babe-authority=%t, grandpa-authority=%t wasm-interpreter=%s",
-		cfg.BabeAuthority, cfg.GrandpaAuthority, cfg.WasmInterpreter))
+		cfg.BabeAuthority, cfg.GrandpaAuthority, cfg.WasmInterpreter)
 }
 
 // setDotNetworkConfig sets dot.NetworkConfig using flag values from the cli context
@@ -674,14 +674,14 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.PersistentPeers = []string(nil)
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"network configuration: port=%d bootnodes=%s protocol=%s nobootstrap=%t "+
 			"nomdns=%t minpeers=%d maxpeers=%d persistent-peers=%s "+
 			"discovery-interval=%s",
 		cfg.Port, strings.Join(cfg.Bootnodes, ","), cfg.ProtocolID, cfg.NoBootstrap,
 		cfg.NoMDNS, cfg.MinPeers, cfg.MaxPeers, strings.Join(cfg.PersistentPeers, ","),
 		cfg.DiscoveryInterval,
-	))
+	)
 }
 
 // setDotRPCConfig sets dot.RPCConfig using flag values from the cli context
@@ -794,13 +794,13 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 		logger.Critical("empty protocol ID in genesis file, please set it!")
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"configuration after genesis json:" +
 			" name=" + cfg.Global.Name +
 			" id=" + cfg.Global.ID +
 			" bootnodes=" + strings.Join(cfg.Network.Bootnodes, ",") +
 			" protocol=" + cfg.Network.ProtocolID,
-	))
+	)
 }
 
 // updateDotConfigFromGenesisData updates the configuration from genesis data of an initialised node
@@ -838,13 +838,13 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 		return fmt.Errorf("failed to close database: %s", err)
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"configuration after genesis data:" +
 			" name=" + cfg.Global.Name +
 			" id=" + cfg.Global.ID +
 			" bootnodes=" + strings.Join(cfg.Network.Bootnodes, ",") +
 			" protocol=" + cfg.Network.ProtocolID,
-	))
+	)
 
 	return nil
 }

@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"strings"
@@ -220,8 +219,8 @@ func (s *Service) Start() error {
 		nil,
 	)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("failed to register notifications protocol with block announce id %s: %s",
-			blockAnnounceID, err))
+		logger.Warnf("failed to register notifications protocol with block announce id %s: %s",
+			blockAnnounceID, err)
 	}
 
 	txnBatch := make(chan *BatchMessage, s.batchSize)
@@ -443,16 +442,16 @@ func (s *Service) RegisterNotificationsProtocol(
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID) {
 		if _, ok := np.getInboundHandshakeData(peerID); ok {
-			logger.Trace(fmt.Sprintf(
+			logger.Tracef(
 				"Cleaning up inbound handshake data for peer %s and protocol %s",
-				peerID, protocolID))
+				peerID, protocolID)
 			np.inboundHandshakeData.Delete(peerID)
 		}
 
 		if _, ok := np.getOutboundHandshakeData(peerID); ok {
-			logger.Trace(fmt.Sprintf(
+			logger.Tracef(
 				"Cleaning up outbound handshake data for peer %s and protocol %s",
-				peerID, protocolID))
+				peerID, protocolID)
 			np.outboundHandshakeData.Delete(peerID)
 		}
 	})
@@ -488,8 +487,8 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 		return
 	}
 
-	logger.Debug(fmt.Sprintf("gossiping from host %s message of type %d: %s",
-		s.host.id(), msg.Type(), msg))
+	logger.Debugf("gossiping from host %s message of type %d: %s",
+		s.host.id(), msg.Type(), msg)
 
 	// check if the message is part of a notifications protocol
 	s.notificationsMu.Lock()
@@ -568,9 +567,9 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		if errors.Is(err, io.EOF) {
 			return
 		} else if err != nil {
-			logger.Trace(fmt.Sprintf(
+			logger.Tracef(
 				"failed to read from stream id %s of peer %s using protocol %s: %s",
-				stream.ID(), stream.Conn().RemotePeer(), stream.Protocol(), err))
+				stream.ID(), stream.Conn().RemotePeer(), stream.Protocol(), err)
 			_ = stream.Close()
 			return
 		}
@@ -580,14 +579,14 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
-			logger.Trace(fmt.Sprintf("failed to decode message from stream id %s using protocol %s: %s",
-				stream.ID(), stream.Protocol(), err))
+			logger.Tracef("failed to decode message from stream id %s using protocol %s: %s",
+				stream.ID(), stream.Protocol(), err)
 			continue
 		}
 
-		logger.Trace(fmt.Sprintf(
+		logger.Tracef(
 			"host %s received message from peer %s: %s",
-			s.host.id(), peer, msg.String()))
+			s.host.id(), peer, msg.String())
 
 		err = handler(stream, msg)
 		if err != nil {

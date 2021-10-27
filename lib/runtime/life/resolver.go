@@ -954,8 +954,8 @@ func ext_crypto_sr25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
 
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("[ext_crypto_sr25519_public_keys_version_1] error for id %s: %s",
-			common.BytesToHex(id), err))
+		logger.Warnf("[ext_crypto_sr25519_public_keys_version_1] error for id %s: %s",
+			common.BytesToHex(id), err)
 		ret, _ := toWasmMemory(memory, []byte{0})
 		return ret
 	}
@@ -1102,9 +1102,9 @@ func ext_crypto_sr25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_crypto_sr25519_verify_version_1] pub=%s; message=0x%x; signature=0x%x",
-		pub.Hex(), message, signature))
+		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
@@ -1160,9 +1160,9 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(vm *exec.VirtualMachine) int64
 		return ret
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_crypto_secp256k1_ecdsa_recover_version_1] recovered public key of length %d: 0x%x",
-		len(pub), pub))
+		len(pub), pub)
 
 	ret, err := toWasmMemoryResult(memory, pub[1:])
 	if err != nil {

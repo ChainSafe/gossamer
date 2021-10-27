@@ -17,7 +17,6 @@ package babe
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -47,8 +46,8 @@ func verifySecondarySlotPlain(authorityIndex uint32, slot uint64, numAuths int, 
 		return err
 	}
 
-	logger.Trace(fmt.Sprintf("verifySecondarySlotPlain authority index %d, %d authorities, slot number %d, randomness %s and expected index %d",
-		authorityIndex, numAuths, slot, common.BytesToHex(randomness[:]), expected))
+	logger.Tracef("verifySecondarySlotPlain authority index %d, %d authorities, slot number %d, randomness %s and expected index %d",
+		authorityIndex, numAuths, slot, common.BytesToHex(randomness[:]), expected)
 
 	if authorityIndex != expected {
 		return ErrBadSecondarySlotClaim
@@ -69,8 +68,8 @@ func verifySecondarySlotVRF(digest *types.BabeSecondaryVRFPreDigest,
 		return false, err
 	}
 
-	logger.Trace(fmt.Sprintf("verifySecondarySlotVRF authority index %d, public key %s, %d authorities, slot number %d, epoch %d, randomness %s and expected index %d",
-		digest.AuthorityIndex, pk.Hex(), numAuths, digest.SlotNumber, epoch, common.BytesToHex(randomness[:]), expected))
+	logger.Tracef("verifySecondarySlotVRF authority index %d, public key %s, %d authorities, slot number %d, epoch %d, randomness %s and expected index %d",
+		digest.AuthorityIndex, pk.Hex(), numAuths, digest.SlotNumber, epoch, common.BytesToHex(randomness[:]), expected)
 
 	if digest.AuthorityIndex != expected {
 		return false, ErrBadSecondarySlotClaim

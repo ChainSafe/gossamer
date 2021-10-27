@@ -265,18 +265,18 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stre
 		return nil, err
 	}
 
-	logger.Trace(fmt.Sprintf(
+	logger.Tracef(
 		"Opened stream with host %s, peer %s and protocol %s",
-		h.id(), p, pid))
+		h.id(), p, pid)
 
 	err = h.writeToStream(stream, msg)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Trace(fmt.Sprintf(
+	logger.Tracef(
 		"Sent message %s to peer %s using protocol %s and host %s",
-		msg, p, pid, h.id()))
+		msg, p, pid, h.id())
 
 	return stream, nil
 }

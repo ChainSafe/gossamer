@@ -59,9 +59,9 @@ type Node struct {
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
 	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
-	logger.Info(fmt.Sprintf(
+	logger.Infof(
 		"🕸️ initialising node with name %s, id %s, base path %s and genesis %s...",
-		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath, cfg.Init.Genesis))
+		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath, cfg.Init.Genesis)
 
 	// create genesis from configuration file
 	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
@@ -112,9 +112,9 @@ func InitNode(cfg *Config) error {
 		return fmt.Errorf("failed to store global node name: %s", err)
 	}
 
-	logger.Info(fmt.Sprintf(
+	logger.Infof(
 		"node initialised with name %s, id %s, base path %s, genesis %s, block %v and genesis hash %s",
-		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath, cfg.Init.Genesis, header.Number, header.Hash()))
+		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath, cfg.Init.Genesis, header.Number, header.Hash())
 
 	return nil
 }
@@ -200,9 +200,9 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, ErrNoKeysProvided
 	}
 
-	logger.Info(fmt.Sprintf(
+	logger.Infof(
 		"🕸️ initialising node services with global configuration name %s, id %s and base path %s...",
-		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath))
+		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath)
 
 	var (
 		nodeSrvcs   []services.Service

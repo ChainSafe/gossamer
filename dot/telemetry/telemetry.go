@@ -19,7 +19,6 @@ package telemetry
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -111,7 +110,7 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 		for connAttempts := 0; connAttempts < h.maxRetries; connAttempts++ {
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
-				h.log.Debug(fmt.Sprintf("issue adding telemetry connection: %s", err))
+				h.log.Debugf("issue adding telemetry connection: %s", err)
 				time.Sleep(h.retryDelay)
 				continue
 			}
@@ -143,7 +142,7 @@ func (h *Handler) startListening() {
 		go func() {
 			msgBytes, err := h.msgToJSON(msg)
 			if err != nil {
-				h.log.Debug(fmt.Sprintf("issue decoding telemetry message: %s", err))
+				h.log.Debugf("issue decoding telemetry message: %s", err)
 				return
 			}
 			for _, conn := range h.connections {
@@ -152,7 +151,7 @@ func (h *Handler) startListening() {
 
 				err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 				if err != nil {
-					h.log.Debug(fmt.Sprintf("issue while sending telemetry message: %s", err))
+					h.log.Debugf("issue while sending telemetry message: %s", err)
 				}
 			}
 		}()

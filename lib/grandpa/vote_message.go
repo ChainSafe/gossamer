@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -56,9 +55,9 @@ func (s *Service) receiveMessages(ctx context.Context) {
 				continue
 			}
 
-			logger.Debug(fmt.Sprintf(
+			logger.Debugf(
 				"validated vote message %v from %s, round %d, subround %d, prevote count %d, precommit count %d, votes needed %d",
-				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage, s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1))
+				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage, s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
 			return

@@ -397,8 +397,8 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 	}
 
 	if len(b.authorities) <= int(authIdx) {
-		logger.Trace(fmt.Sprintf("verifyPreRuntimeDigest invalid auth index %d, we have %d auths",
-			authIdx, len(b.authorities)))
+		logger.Tracef("verifyPreRuntimeDigest invalid auth index %d, we have %d auths",
+			authIdx, len(b.authorities))
 		return nil, ErrInvalidBlockProducerIndex
 	}
 
@@ -458,8 +458,8 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, v
 	}
 
 	// validate VRF proof
-	logger.Trace(fmt.Sprintf("verifyPrimarySlotWinner authority index %d, public key %s, randomness %s, slot %d, epoch %d, output %s and proof %s",
-		authorityIndex, pub.Hex(), common.BytesToHex(b.randomness[:]), slot, b.epoch, common.BytesToHex(vrfOutput[:]), common.BytesToHex(vrfProof[:])))
+	logger.Tracef("verifyPrimarySlotWinner authority index %d, public key %s, randomness %s, slot %d, epoch %d, output %s and proof %s",
+		authorityIndex, pub.Hex(), common.BytesToHex(b.randomness[:]), slot, b.epoch, common.BytesToHex(vrfOutput[:]), common.BytesToHex(vrfProof[:]))
 
 	t := makeTranscript(b.randomness, slot, b.epoch)
 	return pk.VrfVerify(t, vrfOutput, vrfProof)

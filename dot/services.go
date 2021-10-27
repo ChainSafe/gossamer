@@ -253,10 +253,10 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Servi
 
 // createNetworkService creates a network service from the command configuration and genesis data
 func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error) {
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
-		cfg.Network.NoBootstrap, cfg.Network.NoMDNS))
+		cfg.Network.NoBootstrap, cfg.Network.NoMDNS)
 
 	// network service configuation
 	networkConfig := network.Config{
@@ -289,11 +289,11 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 
 // createRPCService creates the RPC service from the provided core configuration
 func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
-	logger.Info(fmt.Sprintf(
+	logger.Infof(
 		"creating rpc service with host %s, external=%t, port %d, modules %s, ws=%t, ws port %d and ws external=%t",
 		cfg.RPC.Host, cfg.RPC.External, cfg.RPC.Port, strings.Join(cfg.RPC.Modules, ","), cfg.RPC.WS,
 		cfg.RPC.WSPort, cfg.RPC.WSExternal,
-	))
+	)
 	rpcService := rpc.NewService()
 
 	genesisData, err := stateSrvc.Base.LoadGenesisData()

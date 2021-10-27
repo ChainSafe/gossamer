@@ -284,8 +284,8 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("[ext_crypto_ed25519_public_keys_version_1] error for id "+
-			common.BytesToHex(id)+": %s", err))
+		logger.Warnf("[ext_crypto_ed25519_public_keys_version_1] error for id "+
+			common.BytesToHex(id)+": %s", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -433,9 +433,9 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 		return C.int64_t(ret)
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_crypto_secp256k1_ecdsa_recover_version_1] recovered public key of length %d: 0x%x",
-		len(pub), pub))
+		len(pub), pub)
 
 	ret, err := toWasmMemoryResult(instanceContext, pub[1:])
 	if err != nil {
@@ -471,8 +471,8 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 		return C.int32_t(0)
 	}
 
-	logger.Debug(fmt.Sprintf("pub=%s, message=0x%x, signature=0x%x",
-		pub.Hex(), fmt.Sprintf("0x%x", message), fmt.Sprintf("0x%x", signature)))
+	logger.Debugf("pub=%s, message=0x%x, signature=0x%x",
+		pub.Hex(), fmt.Sprintf("0x%x", message), fmt.Sprintf("0x%x", signature))
 
 	hash, err := common.Blake2bHash(message)
 	if err != nil {
@@ -519,9 +519,9 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 		return C.int64_t(ret)
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] recovered public key of length %d: 0x%x",
-		len(cpub), cpub))
+		len(cpub), cpub)
 
 	ret, err := toWasmMemoryResult(instanceContext, cpub)
 	if err != nil {
@@ -696,9 +696,9 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 		return 0
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_crypto_sr25519_verify_version_1] pub=%s message=0x%x signature=0x%x",
-		pub.Hex(), message, signature))
+		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
@@ -738,9 +738,9 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 		return 0
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_crypto_sr25519_verify_version_2] pub=%s; message=0x%x; signature=0x%x",
-		pub.Hex(), message, signature))
+		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
@@ -874,9 +874,9 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 			logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
 			return 0
 		}
-		logger.Trace(fmt.Sprintf(
+		logger.Tracef(
 			"[ext_trie_blake2_256_ordered_root_version_1] put key=0x%x and value=0x%x",
-			key, val))
+			key, val)
 
 		t.Put(key, val)
 	}
@@ -1297,9 +1297,9 @@ func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t
 		return 0
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_hashing_blake2_128_version_1] data 0x%x has hash 0x%x",
-		data, hash))
+		data, hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
@@ -1417,9 +1417,9 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 		return 0
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_hashing_twox_128_version_1] data 0x%x hash hash 0x%x",
-		data, hash))
+		data, hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
@@ -1443,9 +1443,9 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 		return 0
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_hashing_twox_64_version_1] data 0x%x has hash 0x%x",
-		data, hash))
+		data, hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash, 8)
 	if err != nil {
@@ -1704,8 +1704,8 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		var currLength *big.Int
 		err := scale.Unmarshal(valueCurr, &currLength)
 		if err != nil {
-			logger.Trace(fmt.Sprintf(
-				"[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting at key 0x%x", key))
+			logger.Tracef(
+				"[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting at key 0x%x", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
 			return nil
 		}
@@ -1744,9 +1744,9 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 
 	key := asMemorySlice(instanceContext, keySpan)
 	valueAppend := asMemorySlice(instanceContext, valueSpan)
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_storage_append_version_1] will append value 0x%x to values at key 0x%x",
-		valueAppend, key))
+		valueAppend, key)
 
 	cp := make([]byte, len(valueAppend))
 	copy(cp, valueAppend)
@@ -1873,9 +1873,9 @@ func ext_storage_next_key_version_1(context unsafe.Pointer, keySpan C.int64_t) C
 	key := asMemorySlice(instanceContext, keySpan)
 
 	next := storage.NextKey(key)
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_storage_next_key_version_1] key: 0x%x; next key 0x%x",
-		key, next))
+		key, next)
 
 	nextSpan, err := toWasmMemoryOptional(instanceContext, next)
 	if err != nil {
@@ -1896,9 +1896,9 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 
 	key := asMemorySlice(instanceContext, keySpan)
 	value := storage.Get(key)
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_storage_read_version_1] key 0x%x has value 0x%x",
-		key, value))
+		key, value)
 
 	if value == nil {
 		ret, _ := toWasmMemoryOptional(instanceContext, nil)
@@ -1962,9 +1962,9 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int6
 	cp := make([]byte, len(value))
 	copy(cp, value)
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"[ext_storage_set_version_1] key 0x%x has value 0x%x",
-		key, value))
+		key, value)
 	storage.Set(key, cp)
 }
 

@@ -134,11 +134,11 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"created service with epoch %d, block producer=%t, slot duration %s, epoch length (slots) %d, authorities %v, "+
 			"authority index %d, threshold %v and randomness %s",
 		epoch, cfg.Authority, babeService.slotDuration, babeService.epochLength, Authorities(babeService.epochData.authorities),
-		babeService.epochData.authorityIndex, babeService.epochData.threshold, babeService.epochData.randomness))
+		babeService.epochData.authorityIndex, babeService.epochData.threshold, babeService.epochData.randomness)
 
 	if cfg.Lead {
 		logger.Debug("node designated to build block 1")
@@ -366,8 +366,8 @@ func (b *Service) invokeBlockAuthoring() error {
 			return err
 		}
 
-		logger.Debug(fmt.Sprintf("initiated epoch with threshold %s, randomness %s and authorities %v",
-			b.epochData.threshold, common.BytesToHex(b.epochData.randomness[:]), b.epochData.authorities))
+		logger.Debugf("initiated epoch with threshold %s, randomness %s and authorities %v",
+			b.epochData.threshold, common.BytesToHex(b.epochData.randomness[:]), b.epochData.authorities)
 
 		epochStartSlot, err := b.waitForEpochStart(epoch)
 		if err != nil {
@@ -383,9 +383,9 @@ func (b *Service) invokeBlockAuthoring() error {
 		// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
-			logger.Debug(fmt.Sprintf(
+			logger.Debugf(
 				"pausing BABE, need to sync since we have %d slots (start slot %d) into the epoch starting at %d",
-				intoEpoch, startSlot, epochStartSlot))
+				intoEpoch, startSlot, epochStartSlot)
 			return b.Pause()
 		}
 
@@ -429,9 +429,9 @@ func (b *Service) invokeBlockAuthoring() error {
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(epoch, slotNum)
 				if err == ErrNotAuthorized {
-					logger.Debug(fmt.Sprintf(
+					logger.Debugf(
 						"not authorized to produce a block in slot %d, at epoch %d with %d slots in this epoch",
-						slotNum, epoch, slotNum-epochStartSlot))
+						slotNum, epoch, slotNum-epochStartSlot)
 					continue
 				} else if err != nil {
 					logger.Warnf("failed to handle slot %d: %s", slotNum, err)
@@ -546,12 +546,12 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		return err
 	}
 
-	logger.Info(fmt.Sprintf(
+	logger.Infof(
 		"built block %d with hash %s, state root %s, epoch %d and slot %d",
-		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slotNum))
-	logger.Trace(fmt.Sprintf(
+		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slotNum)
+	logger.Tracef(
 		"built block with parent hash %s, header %s and body %s",
-		parent.Hash(), block.Header.String(), block.Body))
+		parent.Hash(), block.Header.String(), block.Body)
 
 	err = telemetry.GetInstance().SendMessage(
 		telemetry.NewPreparedBlockForProposingTM(

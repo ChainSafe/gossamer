@@ -18,7 +18,6 @@ package sync
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -158,7 +157,7 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 
 // handleTick traverses the pending blocks set to find which forks still need to be requested
 func (s *tipSyncer) handleTick() ([]*worker, error) {
-	logger.Debug(fmt.Sprintf("handling tick, we have %d pending blocks", s.pendingBlocks.size()))
+	logger.Debugf("handling tick, we have %d pending blocks", s.pendingBlocks.size())
 
 	if s.pendingBlocks.size() == 0 {
 		return nil, nil
@@ -184,7 +183,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			continue
 		}
 
-		logger.Trace(fmt.Sprintf("handling pending block number %s with hash %s", block.number, block.hash))
+		logger.Tracef("handling pending block number %s with hash %s", block.number, block.hash)
 
 		if block.header == nil {
 			// case 1

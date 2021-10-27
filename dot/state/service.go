@@ -189,9 +189,9 @@ func (s *Service) Rewind(toBlock int64) error {
 		return fmt.Errorf("cannot rewind, given height is higher than our current height")
 	}
 
-	logger.Info(fmt.Sprintf(
+	logger.Infof(
 		"rewinding state from current height %s to desired height %d...",
-		num, toBlock))
+		num, toBlock)
 
 	root, err := s.Block.GetBlockByNumber(big.NewInt(toBlock))
 	if err != nil {
@@ -206,9 +206,9 @@ func (s *Service) Rewind(toBlock int64) error {
 	}
 
 	s.Block.lastFinalised = header.Hash()
-	logger.Info(fmt.Sprintf(
+	logger.Infof(
 		"rewinding state for new height %s and best block hash %s...",
-		header.Number, header.Hash()))
+		header.Number, header.Hash())
 
 	epoch, err := s.Epoch.GetEpochForBlock(header)
 	if err != nil {
@@ -346,9 +346,9 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"Import best block hash %s with latest state root %s",
-		hash, root))
+		hash, root)
 	if err := s.db.Flush(); err != nil {
 		return err
 	}

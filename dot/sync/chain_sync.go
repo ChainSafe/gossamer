@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -336,17 +335,17 @@ func (cs *chainSync) logSyncSpeed() {
 			cs.benchmarker.end(after.Number.Uint64())
 			target := cs.getTarget()
 
-			logger.Info(fmt.Sprintf(
+			logger.Infof(
 				"🔗 imported blocks from %d to %d (hashes [%s ... %s ])",
-				before.Number, after.Number, before.Hash(), after.Hash()))
+				before.Number, after.Number, before.Hash(), after.Hash())
 
-			logger.Info(fmt.Sprintf(
+			logger.Infof(
 				"🚣 currently syncing, %d peers connected, target block number %s, %.2f average blocks/second, %.2f overall average, finalised block number %s with hash %s",
-				len(cs.network.Peers()), target, cs.benchmarker.mostRecentAverage(), cs.benchmarker.average(), finalised.Number, finalised.Hash()))
+				len(cs.network.Peers()), target, cs.benchmarker.mostRecentAverage(), cs.benchmarker.average(), finalised.Number, finalised.Hash())
 		case tip:
-			logger.Info(fmt.Sprintf(
+			logger.Infof(
 				"💤 node waiting, %d peers connected, head block number %s with hash %s, finalised block number %s with hash %s",
-				len(cs.network.Peers()), after.Number, after.Hash(), finalised.Number, finalised.Hash()))
+				len(cs.network.Peers()), after.Number, after.Hash(), finalised.Number, finalised.Hash())
 		}
 	}
 }
@@ -542,8 +541,8 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // if it fails due to any reason, it sets the worker `err` and returns
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
-	logger.Debug(fmt.Sprintf("dispatching sync worker id %d, start number %s, target number %s, start hash %s, target hash %s, request data %d, direction %s",
-		w.id, w.startNumber, w.targetNumber, w.startHash, w.targetHash, w.requestData, w.direction))
+	logger.Debugf("dispatching sync worker id %d, start number %s, target number %s, start hash %s, target hash %s, request data %d, direction %s",
+		w.id, w.startNumber, w.targetNumber, w.startHash, w.targetHash, w.requestData, w.direction)
 
 	if w.startNumber == nil {
 		logger.Error("a block start number must be provided")
@@ -563,9 +562,9 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		if w.err != nil {
 			outcome = "failure"
 		}
-		logger.Debug(fmt.Sprintf(
+		logger.Debugf(
 			"sync worker completed in %s with %s for worker id %d",
-			w.duration, outcome, w.id))
+			w.duration, outcome, w.id)
 		cs.resultQueue <- w
 	}()
 

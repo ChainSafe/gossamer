@@ -165,9 +165,9 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		}
 	case nil:
 	default:
-		logger.Warn(fmt.Sprintf(
+		logger.Warnf(
 			"unexpected type %T returned from message handler: %v",
-			resp, resp))
+			resp, resp)
 	}
 
 	switch m.(type) {

@@ -174,8 +174,8 @@ func (h *HTTPServer) Start() error {
 		return nil
 	}
 
-	h.logger.Info(fmt.Sprintf("Starting WebSocket Server on host %s and port %d...",
-		h.serverConfig.Host, h.serverConfig.WSPort))
+	h.logger.Infof("Starting WebSocket Server on host %s and port %d...",
+		h.serverConfig.Host, h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {

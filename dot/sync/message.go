@@ -136,13 +136,13 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Debug(fmt.Sprintf("handling BlockRequestMessage with direction %s from start block with number %d to end block with number %d",
-			req.Direction, startNumber, endNumber))
+		logger.Debugf("handling BlockRequestMessage with direction %s from start block with number %d to end block with number %d",
+			req.Direction, startNumber, endNumber)
 		return s.handleAscendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debug(fmt.Sprintf("handling BlockRequestMessage with direction %s from start block with hash %s to end block with hash %s",
-		req.Direction, *startHash, *endHash))
+	logger.Debugf("handling BlockRequestMessage with direction %s from start block with hash %s to end block with hash %s",
+		req.Direction, *startHash, *endHash)
 	return s.handleChainByHash(*startHash, *endHash, max, req.RequestedData, req.Direction)
 }
 
@@ -216,13 +216,13 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Debug(fmt.Sprintf("handling BlockRequestMessage with direction %s from start block with number %d to end block with number %d",
-			req.Direction, startNumber, endNumber))
+		logger.Debugf("handling BlockRequestMessage with direction %s from start block with number %d to end block with number %d",
+			req.Direction, startNumber, endNumber)
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debug(fmt.Sprintf("handling BlockRequestMessage with direction %s from start block with hash %s to end block with hash %s",
-		req.Direction, *startHash, *endHash))
+	logger.Debugf("handling BlockRequestMessage with direction %s from start block with hash %s to end block with hash %s",
+		req.Direction, *startHash, *endHash)
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)
 }
 
@@ -301,8 +301,8 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash, descendant *com
 		descendant = &hash
 	}
 
-	logger.Trace(fmt.Sprintf("determined descendant %s with number %s and ancestor %s",
-		*descendant, descendantNumber, ancestor))
+	logger.Tracef("determined descendant %s with number %s and ancestor %s",
+		*descendant, descendantNumber, ancestor)
 	return *descendant, nil
 }
 

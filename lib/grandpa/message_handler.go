@@ -141,8 +141,8 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMe
 		return nil, nil
 	}
 
-	logger.Debug(fmt.Sprintf("received catch up request for round %d and set id %d",
-		msg.Round, msg.SetID))
+	logger.Debugf("received catch up request for round %d and set id %d",
+		msg.Round, msg.SetID)
 
 	if msg.SetID != h.grandpa.state.setID {
 		return nil, ErrSetIDMismatch
@@ -157,9 +157,9 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMe
 		return nil, err
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"sending catch up response with hash %s for round %d and set id %d",
-		resp.Hash, msg.Round, msg.SetID))
+		resp.Hash, msg.Round, msg.SetID)
 	return resp.ToConsensusMessage()
 }
 
@@ -168,9 +168,9 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		return nil
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"received catch up response with hash %s for round %d and set id %d",
-		msg.Hash, msg.Round, msg.SetID))
+		msg.Hash, msg.Round, msg.SetID)
 
 	// TODO: re-add catch-up logic (#1531)
 	if true {
@@ -282,9 +282,9 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count) < h.grandpa.state.threshold() {
-		logger.Debug(fmt.Sprintf(
+		logger.Debugf(
 			"minimum votes not met for finalisation message. Need %d votes and received %d votes.",
-			h.grandpa.state.threshold(), count))
+			h.grandpa.state.threshold(), count)
 		return ErrMinVotesNotMet
 	}
 
@@ -412,9 +412,9 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return fmt.Errorf("cannot get authorities for set ID: %w", err)
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"verifying justification: set id %d, round %d, hash %s, number %d, sig count %d",
-		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits)))
+		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits))
 
 	if len(fj.Commit.Precommits) < (2 * len(auths) / 3) {
 		return ErrMinVotesNotMet
@@ -467,9 +467,9 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return err
 	}
 
-	logger.Debug(fmt.Sprintf(
+	logger.Debugf(
 		"set finalised block with hash %s, round %d and set id %d",
-		hash, fj.Round, setID))
+		hash, fj.Round, setID)
 	return nil
 }
 
