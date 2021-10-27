@@ -136,7 +136,7 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 		endHash = &eh
 	}
 
-	if startHash == nil && endHash == nil {
+	if startHash == nil || endHash == nil {
 		logger.Debug("handling BlockRequestMessage",
 			"start", startNumber,
 			"end", endNumber,
@@ -222,7 +222,7 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 		}
 	}
 
-	if startHash == nil && endHash == nil {
+	if startHash == nil || endHash == nil {
 		logger.Debug("handling BlockRequestMessage",
 			"start", startNumber,
 			"end", endNumber,
@@ -326,13 +326,11 @@ func (s *Service) handleAscendingByNumber(start, end uint64, requestedData byte)
 	var err error
 	data := make([]*types.BlockData, (end-start)+1)
 
-	idx := 0
-	for blockNumber := start; blockNumber <= end; blockNumber++ {
-		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(blockNumber)), requestedData)
+	for idx, bn := 0, start; bn <= end; idx, bn = idx+1, bn+1 {
+		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(bn)), requestedData)
 		if err != nil {
 			return nil, err
 		}
-		idx++
 	}
 
 	return &network.BlockResponseMessage{
@@ -344,13 +342,11 @@ func (s *Service) handleDescendingByNumber(start, end uint64, requestedData byte
 	var err error
 	data := make([]*types.BlockData, (start-end)+1)
 
-	idx := 0
-	for blockNumber := start; blockNumber >= end; blockNumber-- {
-		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(blockNumber)), requestedData)
+	for idx, bn := 0, start; bn <= end; idx, bn = idx+1, bn+1 {
+		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(bn)), requestedData)
 		if err != nil {
 			return nil, err
 		}
-		idx++
 	}
 
 	return &network.BlockResponseMessage{
@@ -379,7 +375,7 @@ func (s *Service) handleChainByHash(ancestor, descendant common.Hash, max uint32
 
 	// reverse BlockData, if descending request
 	if direction == network.Descending {
-		data = reverseBlockData(data)
+		reverseBlockData(data)
 	}
 
 	return &network.BlockResponseMessage{

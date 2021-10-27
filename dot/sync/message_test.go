@@ -266,6 +266,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_Ascending_EndHash(t *testing.T) {
+	t.Parallel()
 	s := newTestSyncer(t)
 	addTestBlocksToState(t, int(maxResponseSize+1), s.blockState)
 
