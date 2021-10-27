@@ -27,9 +27,9 @@ import (
 	"time"
 
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
-	log "github.com/ChainSafe/log15"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -58,18 +58,17 @@ func TestMain(m *testing.M) {
 		os.Remove(utils.ConfigNotAuthority)
 	}()
 
-	logLvl := log.LvlInfo
+	logLvl := log.LevelInfo
 	if utils.LOGLEVEL != "" {
 		var err error
-		logLvl, err = log.LvlFromString(utils.LOGLEVEL)
+		logLvl, err = log.ParseLevel(utils.LOGLEVEL)
 		if err != nil {
-			panic(fmt.Sprint("Invalid log level: ", err))
+			panic(fmt.Sprintf("Invalid log level: %s", err))
 		}
 	}
 
-	utils.SetLogLevel(logLvl)
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(log.LvlFilterHandler(logLvl, h))
+	utils.Logger.PatchLevel(logLvl)
+	logger.PatchLevel(logLvl)
 
 	utils.GenerateGenesisThreeAuth()
 
@@ -98,7 +97,7 @@ func TestRestartNode(t *testing.T) {
 
 func TestSync_SingleBlockProducer(t *testing.T) {
 	numNodes := 4
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.PatchLevel(log.LevelInfo)
 
 	// start block producing node first
 	//nolint
@@ -153,7 +152,7 @@ func TestSync_Basic(t *testing.T) {
 func TestSync_MultipleEpoch(t *testing.T) {
 	t.Skip("skipping TestSync_MultipleEpoch")
 	numNodes := 3
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.PatchLevel(log.LevelInfo)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
@@ -185,7 +184,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 func TestSync_SingleSyncingNode(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_SingleSyncingNode")
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.PatchLevel(log.LevelInfo)
 
 	// start block producing node
 	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false, true)
@@ -211,7 +210,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 }
 
 func TestSync_Bench(t *testing.T) {
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.PatchLevel(log.LevelInfo)
 	numBlocks := 64
 
 	// start block producing node
@@ -286,7 +285,7 @@ func TestSync_Restart(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_Restart")
 	numNodes := 3
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.PatchLevel(log.LevelInfo)
 
 	// start block producing node first
 	//nolint
@@ -440,12 +439,12 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		}
 
 		header = &block.Header
-		logger.Debug("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
+		logger.Debug(fmt.Sprintf("got block with header %s and body %v from node with key %s", header, block.Body, nodes[idx].Key))
 
 		if block.Body != nil {
 			resExts = block.Body
 
-			logger.Debug("extrinsics", "exts", resExts)
+			logger.Debug(fmt.Sprintf("extrinsics: %v", resExts))
 			if len(resExts) >= 2 {
 				extInBlock = block.Header.Number
 				break
@@ -459,7 +458,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	var included bool
 	for _, ext := range resExts {
-		logger.Debug("comparing", "expected", extEnc, "in block", common.BytesToHex(ext))
+		logger.Debug(fmt.Sprintf("comparing extrinsic 0x%x against expected 0x%x", ext, extEnc))
 		if strings.Compare(extEnc, common.BytesToHex(ext)) == 0 {
 			included = true
 		}

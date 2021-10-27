@@ -18,6 +18,7 @@ package modules
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -26,12 +27,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
-	logger     log.Logger
+	logger     log.Interface
 	coreAPI    CoreAPI
 	txStateAPI TransactionStateAPI
 }
@@ -104,13 +105,10 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, txStateAPI TransactionStateAPI) *AuthorModule {
-	if logger == nil {
-		logger = log.New("service", "RPC", "module", "author")
-	}
-
+func NewAuthorModule(logger log.Interface, coreAPI CoreAPI, txStateAPI TransactionStateAPI) *AuthorModule {
+	logger = logger.New(log.AddContext("service", "RPC"), log.AddContext("module", "author"))
 	return &AuthorModule{
-		logger:     logger.New("module", "author"),
+		logger:     logger,
 		coreAPI:    coreAPI,
 		txStateAPI: txStateAPI,
 	}
@@ -180,7 +178,7 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 	}
 
 	am.coreAPI.InsertKey(keyPair)
-	am.logger.Info("inserted key into keystore", "key", keyPair.Public().Hex())
+	am.logger.Info("inserted key " + keyPair.Public().Hex() + " into keystore")
 	return nil
 }
 
@@ -226,7 +224,7 @@ func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		return err
 	}
 	ext := types.Extrinsic(extBytes)
-	am.logger.Crit("[rpc]", "extrinsic", ext)
+	am.logger.Critical(fmt.Sprintf("[rpc] extrinsic is %s", ext))
 
 	*res = ExtrinsicHashResponse(ext.Hash().String())
 	err = am.coreAPI.HandleSubmittedExtrinsic(ext)

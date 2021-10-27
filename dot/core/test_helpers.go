@@ -24,6 +24,7 @@ import (
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -32,7 +33,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +66,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
 		config := state.Config{
 			Path:     testDatadirPath,
-			LogLevel: log.LvlInfo,
+			LogLevel: log.LevelInfo,
 		}
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()

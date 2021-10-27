@@ -615,7 +615,8 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		return nil
 	}
 
-	logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash, "previous code hash", codeHash, "new code hash", currCodeHash)
+	logger.Info(fmt.Sprintf("🔄 detected runtime code change, upgrading with block %s from previous code hash %s to new code hash %s...",
+		bHash, codeHash, currCodeHash))
 	code := newState.LoadCode()
 	if len(code) == 0 {
 		return errors.New("new :code is empty")
@@ -637,9 +638,9 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 			return nil
 		}
 
-		logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash,
-			"previous code hash", codeHash, "new code hash", currCodeHash,
-			"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
+		logger.Info(fmt.Sprintf(
+			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...",
+			bHash, codeHash, previousVersion.SpecVersion(), currCodeHash, newVersion.SpecVersion()))
 	}
 
 	rtCfg := &wasmer.Config{

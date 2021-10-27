@@ -35,7 +35,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -210,7 +210,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.LevelInfo,
 	}
 	stateSrvc := state.NewService(config)
 

@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -106,7 +107,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 		for _, v := range vms {
 			_, err := t.handler.handleMessage(v.from, v.msg)
 			if err != nil {
-				logger.Warn("failed to handle vote message", "message", v, "error", err)
+				logger.Warn(fmt.Sprintf("failed to handle vote message %v: %s", v, err))
 			}
 		}
 
@@ -116,7 +117,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 	if cm, has := t.commitMessages[h]; has {
 		_, err := t.handler.handleMessage("", cm)
 		if err != nil {
-			logger.Warn("failed to handle commit message", "message", cm, "error", err)
+			logger.Warn(fmt.Sprintf("failed to handle commit message %v: %s", cm, err))
 		}
 
 		delete(t.commitMessages, h)

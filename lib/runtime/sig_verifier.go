@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
@@ -67,7 +67,7 @@ func (sv *SignatureVerifier) Start() {
 				}
 				err := sign.verify()
 				if err != nil {
-					log.Error("[ext_crypto_start_batch_verify_version_1]", "error", err)
+					log.Error(fmt.Sprintf("[ext_crypto_start_batch_verify_version_1]: %s", err))
 					sv.Invalid()
 					return
 				}

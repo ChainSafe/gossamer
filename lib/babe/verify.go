@@ -160,7 +160,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 				return fmt.Errorf("failed to get slot from block 1: %w", err)
 			}
 
-			logger.Debug("syncing block 1, setting first slot", "slot", firstSlot)
+			logger.Debug(fmt.Sprintf("syncing block 1, setting first slot as %d", firstSlot))
 
 			err = v.epochState.SetFirstSlot(firstSlot)
 			if err != nil {
@@ -277,7 +277,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("block header is missing digest items")
 	}
 
-	logger.Trace("beginning BABE authorship right verification", "block", header.Hash())
+	logger.Trace(fmt.Sprintf("beginning BABE authorship right verification for block %s", header.Hash()))
 
 	// check for valid seal by verifying signature
 	preDigestItem := header.Digest.Types[0]
@@ -298,7 +298,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 	}
 
-	logger.Trace("verified block BABE pre-runtime digest", "block", header.Hash())
+	logger.Trace(fmt.Sprintf("verified block %s BABE pre-runtime digest", header.Hash()))
 
 	var authIdx uint32
 	switch d := babePreDigest.(type) {
@@ -324,7 +324,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	header.Digest = h
 	defer func() {
 		if err = header.Digest.Add(sealItem.Value()); err != nil {
-			logger.Error("failed to re-add seal to digest", "error", err)
+			logger.Error(fmt.Sprintf("failed to re-add seal to digest: %s", err))
 		}
 	}()
 
@@ -397,7 +397,8 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 	}
 
 	if len(b.authorities) <= int(authIdx) {
-		logger.Trace("verifyPreRuntimeDigest", "invalid auth index", authIdx, "our auths", len(b.authorities))
+		logger.Trace(fmt.Sprintf("verifyPreRuntimeDigest invalid auth index %d, we have %d auths",
+			authIdx, len(b.authorities)))
 		return nil, ErrInvalidBlockProducerIndex
 	}
 
@@ -457,15 +458,8 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, v
 	}
 
 	// validate VRF proof
-	logger.Trace("verifyPrimarySlotWinner",
-		"index", authorityIndex,
-		"pub", pub.Hex(),
-		"randomness", b.randomness,
-		"slot", slot,
-		"epoch", b.epoch,
-		"output", fmt.Sprintf("0x%x", vrfOutput),
-		"proof", fmt.Sprintf("0x%x", vrfProof),
-	)
+	logger.Trace(fmt.Sprintf("verifyPrimarySlotWinner authority index %d, public key %s, randomness %s, slot %d, epoch %d, output %s and proof %s",
+		authorityIndex, pub.Hex(), common.BytesToHex(b.randomness[:]), slot, b.epoch, common.BytesToHex(vrfOutput[:]), common.BytesToHex(vrfProof[:])))
 
 	t := makeTranscript(b.randomness, slot, b.epoch)
 	return pk.VrfVerify(t, vrfOutput, vrfProof)
