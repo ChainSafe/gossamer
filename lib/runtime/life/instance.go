@@ -98,7 +98,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, errors.New("code is empty")
 	}
 
-	logger.PatchLevel(cfg.LogLvl)
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	vmCfg := exec.VMConfig{
 		DefaultMemoryPages: 23,

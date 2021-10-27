@@ -28,7 +28,7 @@ import (
 
 func TestNetwork_MaxPeers(t *testing.T) {
 	numNodes := 9 // 9 block producers
-	utils.Logger.PatchLevel(log.LevelInfo)
+	utils.Logger.Patch(log.SetLevel(log.LevelInfo))
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 

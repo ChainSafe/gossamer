@@ -80,7 +80,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errNilBlockImportHandler
 	}
 
-	logger.PatchLevel(cfg.LogLvl)
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)

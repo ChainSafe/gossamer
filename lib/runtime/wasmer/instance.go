@@ -104,8 +104,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, errors.New("code is empty")
 	}
 
-	logger.PatchLevel(cfg.LogLvl)
-	logger.PatchCallerFunc(true)
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	imports, err := cfg.Imports()
 	if err != nil {

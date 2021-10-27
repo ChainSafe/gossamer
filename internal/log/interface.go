@@ -5,7 +5,7 @@ var _ Interface = (*Logger)(nil)
 // Interface is the interface encompassing all the methods of the logger.
 type Interface interface {
 	ChildConstructor
-	LoggerUpdater
+	LoggerPatcher
 	LeveledLogger
 	LeveledFormatterLogger
 }
@@ -15,10 +15,9 @@ type ChildConstructor interface {
 	New(options ...Option) *Logger
 }
 
-// LoggerUpdater is the interface to update the current logger.
-type LoggerUpdater interface {
+// LoggerPatcher is the interface to update the current logger.
+type LoggerPatcher interface {
 	Patch(options ...Option)
-	PatchLevel(level Level)
 }
 
 // LeveledLogger is the interface to log at different levels.

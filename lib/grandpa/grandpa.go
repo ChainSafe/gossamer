@@ -115,7 +115,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilNetwork
 	}
 
-	logger.PatchLevel(cfg.LogLvl)
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	var pub string
 	if cfg.Authority {

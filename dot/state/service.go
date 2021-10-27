@@ -72,7 +72,7 @@ type Config struct {
 
 // NewService create a new instance of Service
 func NewService(config Config) *Service {
-	logger.PatchLevel(config.LogLevel)
+	logger.Patch(log.SetLevel(config.LogLevel))
 
 	return &Service{
 		dbPath:    config.Path,

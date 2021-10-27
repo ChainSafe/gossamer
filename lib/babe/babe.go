@@ -105,7 +105,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errNilBlockImportHandler
 	}
 
-	logger.PatchLevel(cfg.LogLvl)
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	ctx, cancel := context.WithCancel(context.Background())
 

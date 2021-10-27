@@ -90,7 +90,7 @@ var logger log.Interface
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	logger = log.NewFromGlobal(log.AddContext("pkg", "rpc"))
-	logger.PatchLevel(cfg.LogLvl)
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	server := &HTTPServer{
 		logger:       logger,

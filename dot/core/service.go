@@ -113,7 +113,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errNilCodeSubstitutedState
 	}
 
-	logger.PatchLevel(cfg.LogLvl)
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	blockAddCh := make(chan *types.Block, 256)
 

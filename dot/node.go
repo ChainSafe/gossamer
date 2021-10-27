@@ -58,7 +58,7 @@ type Node struct {
 // InitNode initialises a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
-	logger.PatchLevel(cfg.Global.LogLvl)
+	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
 	logger.Info(fmt.Sprintf(
 		"🕸️ initialising node with name %s, id %s, base path %s and genesis %s...",
 		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath, cfg.Init.Genesis))
@@ -193,7 +193,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		debug.SetGCPercent(prev)
 	}
 
-	logger.PatchLevel(cfg.Global.LogLvl)
+	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
 
 	// if authority node, should have at least 1 key in keystore
 	if cfg.Core.Roles == types.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {

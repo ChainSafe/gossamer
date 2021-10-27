@@ -109,7 +109,7 @@ type Service struct {
 func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background()) //nolint
 
-	logger.PatchLevel(cfg.LogLvl)
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 	cfg.logger = logger
 
 	// build configuration
