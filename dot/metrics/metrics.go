@@ -30,8 +30,8 @@ var logger = log.New("pkg", "metrics")
 
 const (
 	// RefreshInterval is the refresh time for publishing metrics.
-	RefreshInterval     = time.Second * 10
-	refreshFreq = int64(RefreshInterval / time.Second)
+	RefreshInterval = time.Second * 10
+	refreshFreq     = int64(RefreshInterval / time.Second)
 )
 
 // PublishMetrics function will export the /metrics endpoint to prometheus process
