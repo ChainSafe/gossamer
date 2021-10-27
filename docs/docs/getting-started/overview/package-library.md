@@ -94,10 +94,6 @@ Gossamer packages can be categorized into **four package types**:
 
 - the **runtime package** contains various wasm interpreters used to interpret the runtime. It currently contains `life` and `wasmer`; however, `wasmer` is the only interpreter that is fully supported at the moment. In the future, all interpreters will be fully supported.
 
-#### `lib/scale`
-
-- the **scale package** implements the SCALE codec.
-
 #### `lib/services`
 
 - the **services package** implements a common interface for node services.
