@@ -18,7 +18,7 @@ func TestOffchainStorageGet(t *testing.T) {
 
 	for kind, test := range testFuncs {
 		expectedValue := common.BytesToHex([]byte("some-value"))
-		st := new(mocks.MockRuntimeStorageAPI)
+		st := new(mocks.RuntimeStorageAPI)
 		st.On(test, mock.AnythingOfType("[]uint8")).Return([]byte("some-value"), nil).Once()
 
 		m := new(OffchainModule)
@@ -71,7 +71,7 @@ func TestOffchainStorageSet(t *testing.T) {
 	}
 
 	for kind, test := range testFuncs {
-		st := new(mocks.MockRuntimeStorageAPI)
+		st := new(mocks.RuntimeStorageAPI)
 		st.On(test, mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil).Once()
 
 		m := new(OffchainModule)

@@ -229,15 +229,15 @@ func TestDecodePtr_DecodeCommonHash(t *testing.T) {
 }
 
 // add Decode func to MockTypeA
-func (tr *MockTypeA) Decode(in []byte) error {
+func (tr *mockTypeA) Decode(in []byte) error {
 	return DecodePtr(in, tr)
 }
 
 // test decoding for MockTypeA (which has Decode func)
 func TestDecodeCustom_DecodeMockTypeA(t *testing.T) {
-	expected := &MockTypeA{A: "hello"}
+	expected := &mockTypeA{A: "hello"}
 	encoded := []byte{20, 104, 101, 108, 108, 111}
-	mockType := new(MockTypeA)
+	mockType := new(mockTypeA)
 
 	err := DecodeCustom(encoded, mockType)
 	require.Nil(t, err)
@@ -246,9 +246,9 @@ func TestDecodeCustom_DecodeMockTypeA(t *testing.T) {
 
 // test decoding for MockTypeB (which does not have Decode func)
 func TestDecodeCustom_DecodeMockTypeB(t *testing.T) {
-	expected := &MockTypeB{A: "hello"}
+	expected := &mockTypeB{A: "hello"}
 	encoded := []byte{20, 104, 101, 108, 108, 111}
-	mockType := new(MockTypeB)
+	mockType := new(mockTypeB)
 
 	err := DecodeCustom(encoded, mockType)
 	require.Nil(t, err)
@@ -256,16 +256,16 @@ func TestDecodeCustom_DecodeMockTypeB(t *testing.T) {
 }
 
 // add Decode func to MockTypeC which will return fake data (so we'll know when it was called)
-func (tr *MockTypeC) Decode(in []byte) error {
+func (tr *mockTypeC) Decode(in []byte) error {
 	tr.A = "goodbye"
 	return nil
 }
 
 // test decoding for MockTypeC (which has Decode func that returns fake data (A: "goodbye"))
 func TestDecodeCustom_DecodeMockTypeC(t *testing.T) {
-	expected := &MockTypeC{A: "goodbye"}
+	expected := &mockTypeC{A: "goodbye"}
 	encoded := []byte{20, 104, 101, 108, 108, 111}
-	mockType := new(MockTypeC)
+	mockType := new(mockTypeC)
 
 	err := DecodeCustom(encoded, mockType)
 	require.Nil(t, err)
@@ -273,14 +273,14 @@ func TestDecodeCustom_DecodeMockTypeC(t *testing.T) {
 }
 
 // add Decode func to MockTypeD which will return an error
-func (tr *MockTypeD) Decode(in []byte) error {
+func (tr *mockTypeD) Decode(in []byte) error {
 	return errors.New("error decoding")
 }
 
 // test decoding for MockTypeD (which has Decode func that returns error)
 func TestDecodeCustom_DecodeMockTypeD(t *testing.T) {
 	encoded := []byte{20, 104, 101, 108, 108, 111}
-	mockType := new(MockTypeD)
+	mockType := new(mockTypeD)
 
 	err := DecodeCustom(encoded, mockType)
 	require.EqualError(t, err, "error decoding")

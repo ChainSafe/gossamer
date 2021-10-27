@@ -24,6 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+//go:generate mockery --name Instance --structname Instance --case underscore --keeptree
+
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
 	UpdateRuntimeCode([]byte) error
@@ -92,6 +94,8 @@ type BasicStorage interface {
 	Get(key []byte) ([]byte, error)
 	Del(key []byte) error
 }
+
+//go:generate mockery --name TransactionState --structname TransactionState --case underscore --keeptree
 
 // TransactionState interface for adding transactions to pool
 type TransactionState interface {
