@@ -18,7 +18,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -48,7 +47,7 @@ import (
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error(fmt.Sprintf("failed to generate runtime wasm file: %s", err))
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 

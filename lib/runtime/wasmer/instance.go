@@ -150,7 +150,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		NodeStorage: cfg.NodeStorage,
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
-		SigVerifier: runtime.NewSignatureVerifier(),
+		SigVerifier: runtime.NewSignatureVerifier(logger),
 	}
 
 	logger.Debugf("NewInstance called with runtimeCtx: %v", runtimeCtx)

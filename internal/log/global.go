@@ -13,37 +13,8 @@ func Patch(options ...Option) {
 	globalLogger.Patch(options...)
 }
 
-// PatchLevel patches the global package logger level.
-func PatchLevel(level Level) {
-	globalLogger.PatchLevel(level)
-}
-
-// Trace using the global logger.
-func Trace(s string) {
-	globalLogger.Trace(s)
-}
-
-// Debug using the global logger.
-func Debug(s string) {
-	globalLogger.Debug(s)
-}
-
-// Info using the global logger.
-func Info(s string) {
-	globalLogger.Info(s)
-}
-
-// Warn using the global logger.
-func Warn(s string) {
-	globalLogger.Warn(s)
-}
-
-// Error using the global logger.
-func Error(s string) {
+// Errorf using the global logger, only used in test
+// main runners initialisation error.
+func Errorf(s string, args ...interface{}) {
 	globalLogger.Error(s)
-}
-
-// Critical using the global logger.
-func Critical(s string) {
-	globalLogger.Critical(s)
 }

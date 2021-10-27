@@ -17,7 +17,6 @@
 package services
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -61,13 +60,13 @@ func (s *ServiceRegistry) RegisterService(service Service) {
 func (s *ServiceRegistry) StartAll() {
 	s.logger.Infof("Starting services: %v", s.serviceTypes)
 	for _, typ := range s.serviceTypes {
-		log.Debug(fmt.Sprintf("Starting service %v", typ))
+		s.logger.Debugf("Starting service %v", typ)
 		err := s.services[typ].Start()
 		if err != nil {
 			s.logger.Errorf("Cannot start service %s: %s", typ, err)
 		}
 	}
-	log.Debug("All services started.")
+	s.logger.Debug("All services started.")
 }
 
 // StopAll calls `Service.Stop()` for all registered services
@@ -80,13 +79,13 @@ func (s *ServiceRegistry) StopAll() {
 			s.logger.Errorf("Error stopping service %s: %s", typ, err)
 		}
 	}
-	log.Debug("All services stopped.")
+	s.logger.Debug("All services stopped.")
 }
 
 // Get retrieves a service and stores a reference to it in the passed in `srvc`
 func (s *ServiceRegistry) Get(srvc interface{}) Service {
 	if reflect.TypeOf(srvc).Kind() != reflect.Ptr {
-		log.Warn(fmt.Sprintf("expected a pointer but got %T", srvc))
+		s.logger.Warnf("expected a pointer but got %T", srvc)
 		return nil
 	}
 	e := reflect.ValueOf(srvc)
@@ -94,6 +93,6 @@ func (s *ServiceRegistry) Get(srvc interface{}) Service {
 	if s, ok := s.services[e.Type()]; ok {
 		return s
 	}
-	log.Warn(fmt.Sprintf("unknown service type %T", srvc))
+	s.logger.Warnf("unknown service type %T", srvc)
 	return nil
 }

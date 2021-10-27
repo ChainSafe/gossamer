@@ -17,7 +17,6 @@
 package metrics
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -47,7 +46,7 @@ func setupMetricsServer(address string) {
 	logger.Info("Starting metrics server at http://" + address + "/metrics")
 	go func() {
 		if err := http.ListenAndServe(address, m); err != nil {
-			log.Error(fmt.Sprintf("Metrics HTTP server crashed: %s", err))
+			logger.Errorf("Metrics HTTP server crashed: %s", err)
 		}
 	}()
 }

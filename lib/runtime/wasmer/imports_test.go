@@ -19,7 +19,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"os"
 	"sort"
 	"testing"
@@ -49,7 +48,7 @@ var testValue = []byte("value")
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error(fmt.Sprintf("failed to generate runtime wasm file: %s", err))
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 
