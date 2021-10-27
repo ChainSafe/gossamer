@@ -9,8 +9,8 @@ import (
 )
 
 // NewMockStorageAPI creates and return an rpc StorageAPI interface mock
-func NewMockStorageAPI() *modulesmocks.MockStorageAPI {
-	m := new(modulesmocks.MockStorageAPI)
+func NewMockStorageAPI() *modulesmocks.StorageAPI {
+	m := new(modulesmocks.StorageAPI)
 	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
@@ -23,8 +23,8 @@ func NewMockStorageAPI() *modulesmocks.MockStorageAPI {
 }
 
 // NewMockBlockAPI creates and return an rpc BlockAPI interface mock
-func NewMockBlockAPI() *modulesmocks.MockBlockAPI {
-	m := new(modulesmocks.MockBlockAPI)
+func NewMockBlockAPI() *modulesmocks.BlockAPI {
+	m := new(modulesmocks.BlockAPI)
 	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
 	m.On("BestBlockHash").Return(common.Hash{})
 	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil)
@@ -44,8 +44,8 @@ func NewMockBlockAPI() *modulesmocks.MockBlockAPI {
 }
 
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
-func NewMockCoreAPI() *modulesmocks.MockCoreAPI {
-	m := new(modulesmocks.MockCoreAPI)
+func NewMockCoreAPI() *modulesmocks.CoreAPI {
+	m := new(modulesmocks.CoreAPI)
 	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"))
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(NewMockVersion(), nil)

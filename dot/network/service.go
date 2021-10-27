@@ -224,7 +224,7 @@ func (s *Service) Start() error {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
-	txnBatch := make(chan *batchMessage, s.batchSize)
+	txnBatch := make(chan *BatchMessage, s.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol

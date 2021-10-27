@@ -36,7 +36,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 var testChildKey = []byte("childKey")
@@ -627,6 +629,99 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, read.Exists())
+}
+
+func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
+	t.Parallel()
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := secp256k1.GenerateKeypair()
+	require.NoError(t, err)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Marshal(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Marshal(msgData)
+	require.NoError(t, err)
+
+	msgHash, err := common.Blake2bHash(msgData)
+	require.NoError(t, err)
+
+	sig, err := kp.Private().Sign(msgHash[:])
+	require.NoError(t, err)
+
+	encSig, err := scale.Marshal(sig)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	buf := bytes.NewBuffer(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	require.True(t, read.Exists())
+}
+
+func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
+	testCases := map[string]struct {
+		sig      []byte
+		msg      []byte
+		key      []byte
+		expected []byte
+		err      error
+	}{
+		"valid signature": {
+			sig:      []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			expected: []byte{1, 0, 0, 0},
+		},
+		"invalid signature": {
+			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			expected: []byte{0, 0, 0, 0},
+		},
+		"wrong key": {
+			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 0, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			expected: []byte{0, 0, 0, 0},
+		},
+		"invalid key": {
+			sig: []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key: []byte{132, 2, 39, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			err: wasmer.NewExportedFunctionError("rtm_ext_crypto_ecdsa_verify_version_2", "Failed to call the `%s` exported function."),
+		},
+		"invalid message": {
+			sig: []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100},
+			key: []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			err: wasmer.NewExportedFunctionError("rtm_ext_crypto_ecdsa_verify_version_2", "Failed to call the `%s` exported function."),
+		},
+	}
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+			ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(tc.sig, tc.msg...), tc.key...))
+			assert.Equal(t, tc.expected, ret)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
 
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
@@ -1224,6 +1319,54 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
 	require.Error(t, err)
 	require.Nil(t, child)
+}
+
+func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	tr.Put([]byte(`key3`), []byte(`value3`))
+	err := inst.ctx.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
+	optLimit2 := optional.NewBytes(true, testLimitBytes)
+
+	testCases := []struct {
+		key      []byte
+		limit    *optional.Bytes
+		expected []byte
+		errMsg   string
+	}{
+		{key: []byte(`fakekey`), limit: optLimit2, expected: []byte{0, 0, 0, 0, 0}, errMsg: "Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function."},
+		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
+		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
+	}
+
+	for _, test := range testCases {
+		encChildKey, err := scale.Marshal(test.key)
+		require.NoError(t, err)
+		encOptLimit, err := test.limit.Encode()
+		require.NoError(t, err)
+		res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_3", append(encChildKey, encOptLimit...))
+		if test.errMsg != "" {
+			require.Error(t, err)
+			require.EqualError(t, err, test.errMsg)
+			continue
+		}
+
+		require.NoError(t, err)
+
+		buf := &bytes.Buffer{}
+		buf.Write(res)
+
+		read, err := new(optional.Bytes).Decode(buf)
+		require.NoError(t, err)
+		require.Equal(t, test.expected, read.Value())
+	}
 }
 
 func Test_ext_storage_append_version_1(t *testing.T) {

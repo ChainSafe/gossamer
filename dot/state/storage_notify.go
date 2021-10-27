@@ -34,6 +34,8 @@ type SubscriptionResult struct {
 	Changes []KeyValue
 }
 
+//go:generate mockery --name Observer --structname MockObserver --case underscore --inpackage
+
 // Observer interface defines functions needed for observers, Observer Design Pattern
 type Observer interface {
 	Update(result *SubscriptionResult)
