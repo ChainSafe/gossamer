@@ -60,6 +60,8 @@ RUN wget -qO /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sge
 # Install C dependencies
 RUN apk add libgcc musl
 
+WORKDIR /gossamer
+
 # Install libwasmer.so
 ENV LD_LIBRARY_PATH=/lib:/usr/lib
 COPY --from=builder /go/src/github.com/ChainSafe/gossamer/libwasmer.so /lib/libwasmer.so
