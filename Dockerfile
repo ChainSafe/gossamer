@@ -1,4 +1,4 @@
-ARG ALPINE_VERSION=3.14
+ARG DEBIAN_VERSION=bullseye-slim
 ARG GO_VERSION=1.15-buster
 
 FROM golang:${GO_VERSION} AS builder
@@ -37,21 +37,8 @@ COPY . .
 # Build
 RUN GOBIN=$GOPATH/src/github.com/ChainSafe/gossamer/bin go run scripts/ci.go install
 
-# Final stage based on Alpine with glibc
-FROM alpine:${ALPINE_VERSION}
-
-# Install wget to have TLS validation
-RUN apk add --update --no-cache wget
-
-# Install (runtime) glibc
-ARG GLIBC_VERSION=2.34-r0
-RUN wget -qO /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub && \
-    wget -qO /tmp/glibc.apk https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk && \
-    apk add /tmp/glibc.apk && \
-    rm /tmp/glibc.apk
-
-# Install C dependencies
-RUN apk add libgcc musl
+# Final stage based on Debian
+FROM debian:${DEBIAN_VERSION}
 
 WORKDIR /gossamer
 

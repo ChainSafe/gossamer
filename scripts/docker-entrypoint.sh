@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # Copyright 2019 ChainSafe Systems (ON) Corp.
 # This file is part of gossamer.
