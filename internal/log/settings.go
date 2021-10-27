@@ -6,11 +6,11 @@ import (
 )
 
 type settings struct {
-	level   Level
-	caller  Caller
-	format  Format
-	context []contextKeyValues
 	writer  io.Writer
+	level   *Level
+	format  *Format
+	caller  callerSettings
+	context []contextKeyValues
 }
 
 type contextKeyValues struct {
@@ -30,23 +30,38 @@ func (s *settings) setDefaults() {
 	if s.writer == nil {
 		s.writer = os.Stdout
 	}
+
+	if s.level == nil {
+		value := LevelInfo
+		s.level = &value
+	}
+
+	if s.format == nil {
+		value := FormatConsole
+		s.format = &value
+	}
+
+	s.caller.setDefaults()
 }
 
-// mergeWith sets empty values of s with the values from other.
-// It also merges contexts together but does not override existing keys.
+// mergeWith sets values to s for all values that are set in other.
+// It also merges contexts together without overriding existing keys.
 func (s *settings) mergeWith(other settings) {
-	if s.level == 0 {
-		s.level = other.level
-	}
-	if s.caller == 0 {
-		s.caller = other.caller
-	}
-	if s.format == 0 {
-		s.format = other.format
-	}
-	if s.writer == nil {
+	if other.writer != nil { // use other's writer
 		s.writer = other.writer
 	}
+
+	if other.level != nil {
+		value := *other.level
+		s.level = &value
+	}
+
+	if other.format != nil {
+		value := *other.format
+		s.format = &value
+	}
+
+	s.caller.mergeWith(other.caller)
 
 	existingKeyToIndex := make(map[string]int, len(s.context))
 	for i, kvs := range s.context {

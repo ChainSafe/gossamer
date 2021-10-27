@@ -10,15 +10,31 @@ type Option func(s *settings)
 // The level defaults to the lowest level, trce.
 func SetLevel(level Level) Option {
 	return func(s *settings) {
-		s.level = level
+		s.level = &level
 	}
 }
 
-// SetCaller set the caller for the logger.
-// The caller defaults to not show the caller (CallerHidden).
-func SetCaller(caller Caller) Option {
+// SetCallerFile enables or disables logging the caller file.
+// The default is disabled.
+func SetCallerFile(enabled bool) Option {
 	return func(s *settings) {
-		s.caller = caller
+		s.caller.file = &enabled
+	}
+}
+
+// SetCallerLine enables or disables logging the caller line number.
+// The default is disabled.
+func SetCallerLine(enabled bool) Option {
+	return func(s *settings) {
+		s.caller.line = &enabled
+	}
+}
+
+// SetCallerFunc enables or disables logging the caller function.
+// The default is disabled.
+func SetCallerFunc(enabled bool) Option {
+	return func(s *settings) {
+		s.caller.funC = &enabled
 	}
 }
 
@@ -26,7 +42,7 @@ func SetCaller(caller Caller) Option {
 // The format defaults to FormatConsole.
 func SetFormat(format Format) Option {
 	return func(s *settings) {
-		s.format = format
+		s.format = &format
 	}
 }
 

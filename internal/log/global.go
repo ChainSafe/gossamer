@@ -1,7 +1,7 @@
 package log
 
 // TODO do not use a global logger.
-var globalLogger = New(SetCaller(CallerShort))
+var globalLogger = New()
 
 // NewFromGlobal creates a child logger from the global logger.
 func NewFromGlobal(options ...Option) *Logger {

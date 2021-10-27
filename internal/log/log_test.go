@@ -15,7 +15,8 @@ func Test_Logger_Debug(t *testing.T) {
 
 	buffer := bytes.NewBuffer(nil)
 
-	logger := New(SetLevel(LevelDebug), SetWriter(buffer), SetCaller(CallerShort))
+	logger := New(SetLevel(LevelDebug), SetWriter(buffer),
+		SetCallerFile(true), SetCallerLine(true))
 
 	logger.Debug("isn't this \"function\"...")
 	logger.Debug("...fun?")
@@ -28,11 +29,11 @@ func Test_Logger_Debug(t *testing.T) {
 	lines := strings.Split(result, "\n")
 	require.Len(t, lines, 2)
 
-	expectedVariablePrefix := regexp.MustCompile(`2[0-9]{3}/[0-1][0-9]/[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] `)
+	expectedVariablePrefix := regexp.MustCompile(`2[0-9]{3}-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z `)
 
 	expectedLinesWithoutPrefix := []string{
-		`log_test.go:20: DBUG isn't this "function"...`,
-		`log_test.go:21: DBUG ...fun?`,
+		`DBUG isn't this "function"...	log_test.go:L21`,
+		`DBUG ...fun?	log_test.go:L22`,
 	}
 
 	for i, line := range lines {

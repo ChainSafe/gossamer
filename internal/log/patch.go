@@ -17,5 +17,13 @@ func (l *Logger) PatchLevel(level Level) {
 
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	l.settings.level = level
+	l.settings.level = &level
+}
+
+// PatchCallerFunc patches the logger caller function logging.
+// This is thread safe and does not affect child loggers.
+func (l *Logger) PatchCallerFunc(enabled bool) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.settings.caller.funC = &enabled
 }
