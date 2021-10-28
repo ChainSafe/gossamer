@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -191,11 +192,15 @@ func TestAuthorModule_InsertKey_Valid(t *testing.T) {
 	require.Len(t, *res, 0) // zero len result on success
 }
 
-func TestAuthorModule_InsertKey_Valid_gran_keytype(t *testing.T) {
+func TestAuthorModule_InsertKey_Valid_Gran_Keytype(t *testing.T) {
+	seed := "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
+	kp, err := ed25519.NewKeypairFromSeed(common.MustHexToBytes(seed))
+	require.NoError(t, err)
+
 	auth := setupAuthModule(t, nil)
-	req := &KeyInsertRequest{"gran", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309b7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"}
+	req := &KeyInsertRequest{"gran", seed, kp.Public().Hex()}
 	res := &KeyInsertResponse{}
-	err := auth.InsertKey(nil, req, res)
+	err = auth.InsertKey(nil, req, res)
 	require.Nil(t, err)
 
 	require.Len(t, *res, 0) // zero len result on success
