@@ -17,11 +17,15 @@
 package core
 
 import (
+	"errors"
+
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // HandleTransactionMessage validates each transaction in the message and
@@ -66,10 +70,12 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 			val, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				s.net.ReportPeer(peerset.ReputationChange{
-					Value:  peerset.BadTransactionValue,
-					Reason: peerset.BadTransactionReason,
-				}, peerID)
+				if errors.Is(err, runtime.ErrInvalidTransaction) {
+					s.net.ReportPeer(peerset.ReputationChange{
+						Value:  peerset.BadTransactionValue,
+						Reason: peerset.BadTransactionReason,
+					}, peerID)
+				}
 				logger.Debug("failed to validate transaction", "err", err)
 				return nil
 			}
