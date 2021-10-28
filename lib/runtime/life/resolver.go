@@ -1,6 +1,5 @@
 package life
 
-import "C"
 import (
 	"bytes"
 	"encoding/binary"
