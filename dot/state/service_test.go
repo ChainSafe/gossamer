@@ -39,23 +39,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// var testGenesisHeader = &types.Header{
-// 	Number:    big.NewInt(0),
-// 	StateRoot: trie.EmptyHash,
-// 	Digest:    types.NewDigest(),
-// }
-
-// func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
-// 	db := NewInMemoryDB(t)
-// 	if header == nil {
-// 		header = testGenesisHeader
-// 	}
-
-// 	bs, err := NewBlockStateFromGenesis(db, header)
-// 	require.NoError(t, err)
-// 	return bs
-// }
-
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
