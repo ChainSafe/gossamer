@@ -359,11 +359,14 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
 
 	var telemetryEndpoints []*genesis.TelemetryEndpoint
-	telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
+	if len(cfg.Global.TelemetryURLs) == 0 {
+		telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
 
-	telemetryURLs := cfg.Global.TelemetryURLs
-	for i := range telemetryURLs {
-		telemetryEndpoints = append(telemetryEndpoints, &telemetryURLs[i])
+	} else {
+		telemetryURLs := cfg.Global.TelemetryURLs
+		for i := range telemetryURLs {
+			telemetryEndpoints = append(telemetryEndpoints, &telemetryURLs[i])
+		}
 	}
 
 	telemetry.GetInstance().AddConnections(telemetryEndpoints)
