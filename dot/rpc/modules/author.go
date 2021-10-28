@@ -5,7 +5,6 @@ package modules
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -158,8 +157,6 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 	}
 
 	//strings.EqualFold compare using case-insensitivity.
-	fmt.Println("keyPair key: ", keyPair.Public().Hex())
-	fmt.Println("req key: ", keyReq.PublicKey)
 	if !strings.EqualFold(keyPair.Public().Hex(), keyReq.PublicKey) {
 		return errors.New("generated public key does not equal provide public key")
 	}
