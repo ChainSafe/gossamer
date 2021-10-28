@@ -17,7 +17,6 @@
 package sync
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -245,7 +244,7 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 // if used with an Descending request, ancestor is the end block and descendant is the start block
 func (s *Service) checkOrGetDescendantHash(ancestor common.Hash, descendant *common.Hash, descendantNumber *big.Int) (common.Hash, error) {
 	if descendantNumber == nil {
-		return common.Hash{}, errors.New("descendantNumber is nil")
+		return common.Hash{}, errNilDescendantNumber
 	}
 
 	// if `descendant` was provided, check that it's a descendant of `ancestor`
@@ -267,7 +266,7 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash, descendant *com
 		}
 
 		if !is {
-			return common.Hash{}, errors.New("request start and end hash are not on the same chain")
+			return common.Hash{}, errStartAndEndMismatch
 		}
 
 		return *descendant, nil
@@ -307,7 +306,7 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash, descendant *com
 		}
 
 		if descendant == nil {
-			return common.Hash{}, fmt.Errorf("failed to find descendant block with number %d", descendantNumber)
+			return common.Hash{}, fmt.Errorf("%d with number %d", errFailedToGetDescendant, descendantNumber)
 		}
 	} else {
 		// if it is, set descendant hash to our block w/ descendantNumber

@@ -60,6 +60,9 @@ var (
 	errUnknownParent                = errors.New("parent of first block in block response is unknown")
 	errUnknownBlockForJustification = errors.New("received justification for unknown block")
 	errFailedToGetParent            = errors.New("failed to get parent header")
+	errNilDescendantNumber          = errors.New("descendant number is nil")
+	errStartAndEndMismatch          = errors.New("request start and end hash are not on the same chain")
+	errFailedToGetDescendant        = errors.New("failed to find descendant block")
 )
 
 // ErrNilChannel is returned if a channel is nil

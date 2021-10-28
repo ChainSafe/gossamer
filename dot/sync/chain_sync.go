@@ -899,7 +899,7 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 			// if we're doing descending requests and not at the last (highest starting) request,
 			// then use number as start block
 			if w.direction == network.Descending && i != numRequests-1 {
-				start, _ = variadic.NewUint64OrHash(startNumber)
+				start = variadic.MustNewUint64OrHash(startNumber)
 			}
 		}
 
