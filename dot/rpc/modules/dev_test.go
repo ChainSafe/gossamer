@@ -35,7 +35,7 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader)
 	require.NoError(t, err)
-	es, err := state.NewEpochStateFromGenesis(db, genesisBABEConfig)
+	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
 	require.NoError(t, err)
 	return bs, es
 }

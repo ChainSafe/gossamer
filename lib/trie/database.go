@@ -18,12 +18,16 @@ package trie
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/chaindb"
 )
+
+// ErrEmptyProof indicates the proof slice is empty
+var ErrEmptyProof = errors.New("proof slice empty")
 
 // Store stores each trie node in the database, where the key is the hash of the encoded node and the value is the encoded node.
 // Generally, this will only be used for the genesis trie.
@@ -71,6 +75,64 @@ func (t *Trie) store(db chaindb.Batch, curr node) error {
 	}
 
 	return nil
+}
+
+// LoadFromProof create a partial trie based on the proof slice, as it only contains nodes that are in the proof afaik.
+func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
+	if len(proof) == 0 {
+		return ErrEmptyProof
+	}
+
+	mappedNodes := make(map[string]node, len(proof))
+
+	// map all the proofs hash -> decoded node
+	// and takes the loop to indentify the root node
+	for _, rawNode := range proof {
+		decNode, err := decodeBytes(rawNode)
+		if err != nil {
+			return err
+		}
+
+		decNode.setDirty(false)
+		decNode.setEncodingAndHash(rawNode, nil)
+
+		_, computedRoot, err := decNode.encodeAndHash()
+		if err != nil {
+			return err
+		}
+
+		mappedNodes[common.BytesToHex(computedRoot)] = decNode
+
+		if bytes.Equal(computedRoot, root) {
+			t.root = decNode
+		}
+	}
+
+	t.loadProof(mappedNodes, t.root)
+	return nil
+}
+
+// loadProof is a recursive function that will create all the trie paths based
+// on the mapped proofs slice starting by the root
+func (t *Trie) loadProof(proof map[string]node, curr node) {
+	c, ok := curr.(*branch)
+	if !ok {
+		return
+	}
+
+	for i, child := range c.children {
+		if child == nil {
+			continue
+		}
+
+		proofNode, ok := proof[common.BytesToHex(child.getHash())]
+		if !ok {
+			continue
+		}
+
+		c.children[i] = proofNode
+		t.loadProof(proof, proofNode)
+	}
 }
 
 // Load reconstructs the trie from the database from the given root hash. Used when restarting the node to load the current state trie.

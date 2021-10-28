@@ -94,13 +94,15 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 
 	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 2, false)
 	for i, h := range headers {
-		handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
+		err = handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
+		require.NoError(t, err)
 	}
 
 	// authorities should change on start of block 3 from start
 	headers, _ = state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 1, false)
 	for _, h := range headers {
-		handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), 3, 0)
+		err = handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), 3, 0)
+		require.NoError(t, err)
 	}
 
 	time.Sleep(time.Millisecond * 500)
@@ -365,14 +367,19 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 }
 
 func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
-	babeHeader := types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{})
+	t.Helper()
 
-	enc := babeHeader.Encode()
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+
+	enc, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
 	d := &types.PreRuntimeDigest{
 		Data: enc,
 	}
 	digest := types.NewDigest()
-	err := digest.Add(*d)
+	err = digest.Add(*d)
 	require.NoError(t, err)
 
 	return &types.Header{

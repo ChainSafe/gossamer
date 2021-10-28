@@ -248,12 +248,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return err
 	}
 
-	// check if block production epoch transitioned
-	if err := s.handleCurrentSlot(&block.Header); err != nil {
-		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
-		return err
-	}
-
 	go func() {
 		s.Lock()
 		defer s.Unlock()
@@ -311,29 +305,6 @@ func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.Trie
 
 	s.blockState.StoreRuntime(hash, next)
 	return nil
-}
-
-func (s *Service) handleCurrentSlot(header *types.Header) error {
-	head := s.blockState.BestBlockHash()
-	if header.Hash() != head {
-		return nil
-	}
-
-	epoch, err := s.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
-	currEpoch, err := s.epochState.GetCurrentEpoch()
-	if err != nil {
-		return err
-	}
-
-	if currEpoch == epoch {
-		return nil
-	}
-
-	return s.epochState.SetCurrentEpoch(epoch)
 }
 
 // handleBlocksAsync handles a block asynchronously; the handling performed by this function
@@ -399,7 +370,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range *body {
-			logger.Info("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
@@ -581,7 +552,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 // QueryStorage returns the key-value data by block based on `keys` params
 // on every block starting `from` until `to` block, if `to` is not nil
 func (s *Service) QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
-	if to == common.EmptyHash {
+	if to.IsEmpty() {
 		to = s.blockState.BestBlockHash()
 	}
 
@@ -635,19 +606,20 @@ func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyVa
 
 // GetReadProofAt will return an array with the proofs for the keys passed as params
 // based on the block hash passed as param as well, if block hash is nil then the current state will take place
-func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error) {
-	if common.EmptyHash.Equal(block) {
+func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
+	hash common.Hash, proofForKeys [][]byte, err error) {
+	if block.IsEmpty() {
 		block = s.blockState.BestBlockHash()
 	}
 
 	stateRoot, err := s.blockState.GetBlockStateRoot(block)
 	if err != nil {
-		return common.EmptyHash, nil, err
+		return hash, nil, err
 	}
 
-	proofForKeys, err := s.storageState.GenerateTrieProof(stateRoot, keys)
+	proofForKeys, err = s.storageState.GenerateTrieProof(stateRoot, keys)
 	if err != nil {
-		return common.EmptyHash, nil, err
+		return hash, nil, err
 	}
 
 	return block, proofForKeys, nil

@@ -329,6 +329,14 @@ var (
 	}
 )
 
+// BABE flags
+var (
+	BABELeadFlag = cli.BoolFlag{
+		Name:  "babe-lead",
+		Usage: `specify whether node should build block 1 of the network. only used when starting a new network`,
+	}
+)
+
 // flag sets that are shared by multiple commands
 var (
 	// GlobalFlags are flags that are valid for use with the root command and all subcommands
@@ -380,6 +388,9 @@ var (
 		// telemetry flags
 		NoTelemetryFlag,
 		TelemetryURLFlag,
+
+		// BABE flags
+		BABELeadFlag,
 	}
 )
 

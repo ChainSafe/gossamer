@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/ChainSafe/gossamer/dot/core/mocks" // nolint
+	"github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
@@ -80,7 +80,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 }
 
 func TestService_HandleBlockProduced(t *testing.T) {
-	net := new(MockNetwork)
+	net := new(mocks.Network)
 	cfg := &Config{
 		Network:  net,
 		Keystore: keystore.NewGlobalKeystore(),
@@ -92,7 +92,9 @@ func TestService_HandleBlockProduced(t *testing.T) {
 
 	// simulate block sent from BABE session
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
@@ -131,10 +133,6 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
-
-	bp := new(MockBlockProducer) // nolint
-	blockC := make(chan types.Block)
-	bp.On("GetBlockChannel", nil).Return(blockC)
 
 	cfg := &Config{
 		Keystore:         ks,

@@ -70,7 +70,7 @@ func TestStartService(t *testing.T) {
 }
 
 func TestAnnounceBlock(t *testing.T) {
-	net := new(mocks.MockNetwork)
+	net := new(mocks.Network)
 	cfg := &Config{
 		Network: net,
 	}
@@ -82,7 +82,9 @@ func TestAnnounceBlock(t *testing.T) {
 
 	// simulate block sent from BABE session
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
@@ -201,7 +203,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 	nonce := uint64(0)
 
-	// Add extrinsic to block `block31`
+	// Add extrinsic to block `block41`
 	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
 
 	block41 := sync.BuildBlock(t, rt, &block31.Header, ext)
@@ -761,10 +763,10 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 }
 
 func TestDecodeSessionKeys(t *testing.T) {
-	mockInstance := new(runtimemocks.MockInstance)
+	mockInstance := new(runtimemocks.Instance)
 	mockInstance.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8")).Return([]byte{}, nil).Once()
 
-	mockBlockState := new(mocks.MockBlockState)
+	mockBlockState := new(mocks.BlockState)
 	mockBlockState.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(mockInstance, nil).Once()
 
 	coreservice := new(Service)
@@ -780,7 +782,7 @@ func TestDecodeSessionKeys(t *testing.T) {
 }
 
 func TestDecodeSessionKeys_WhenGetRuntimeReturnError(t *testing.T) {
-	mockBlockState := new(mocks.MockBlockState)
+	mockBlockState := new(mocks.BlockState)
 	mockBlockState.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("problems")).Once()
 
 	coreservice := new(Service)
@@ -801,12 +803,12 @@ func TestGetReadProofAt(t *testing.T) {
 		mockedStateRootHash := common.NewHash([]byte("state root hash"))
 		expectedBlockHash := common.NewHash([]byte("expected block hash"))
 
-		mockBlockState := new(mocks.MockBlockState)
+		mockBlockState := new(mocks.BlockState)
 		mockBlockState.On("BestBlockHash").Return(expectedBlockHash)
 		mockBlockState.On("GetBlockStateRoot", expectedBlockHash).
 			Return(mockedStateRootHash, nil)
 
-		mockStorageStage := new(mocks.MockStorageState)
+		mockStorageStage := new(mocks.StorageState)
 		mockStorageStage.On("GenerateTrieProof", mockedStateRootHash, keysToProof).
 			Return(mockedProofs, nil)
 
@@ -815,7 +817,7 @@ func TestGetReadProofAt(t *testing.T) {
 			storageState: mockStorageStage,
 		}
 
-		b, p, err := s.GetReadProofAt(common.EmptyHash, keysToProof)
+		b, p, err := s.GetReadProofAt(common.Hash{}, keysToProof)
 		require.NoError(t, err)
 		require.Equal(t, p, mockedProofs)
 		require.Equal(t, expectedBlockHash, b)
@@ -828,16 +830,16 @@ func TestGetReadProofAt(t *testing.T) {
 	t.Run("When GetStateRoot fails", func(t *testing.T) {
 		mockedBlockHash := common.NewHash([]byte("fake block hash"))
 
-		mockBlockState := new(mocks.MockBlockState)
+		mockBlockState := new(mocks.BlockState)
 		mockBlockState.On("GetBlockStateRoot", mockedBlockHash).
-			Return(common.EmptyHash, errors.New("problems while getting state root"))
+			Return(common.Hash{}, errors.New("problems while getting state root"))
 
 		s := &Service{
 			blockState: mockBlockState,
 		}
 
 		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
-		require.Equal(t, common.EmptyHash, b)
+		require.True(t, b.IsEmpty())
 		require.Nil(t, p)
 		require.Error(t, err)
 	})
@@ -846,11 +848,11 @@ func TestGetReadProofAt(t *testing.T) {
 		mockedBlockHash := common.NewHash([]byte("fake block hash"))
 		mockedStateRootHash := common.NewHash([]byte("state root hash"))
 
-		mockBlockState := new(mocks.MockBlockState)
+		mockBlockState := new(mocks.BlockState)
 		mockBlockState.On("GetBlockStateRoot", mockedBlockHash).
 			Return(mockedStateRootHash, nil)
 
-		mockStorageStage := new(mocks.MockStorageState)
+		mockStorageStage := new(mocks.StorageState)
 		mockStorageStage.On("GenerateTrieProof", mockedStateRootHash, keysToProof).
 			Return(nil, errors.New("problems to generate trie proof"))
 
@@ -860,7 +862,7 @@ func TestGetReadProofAt(t *testing.T) {
 		}
 
 		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
-		require.Equal(t, common.EmptyHash, b)
+		require.True(t, b.IsEmpty())
 		require.Nil(t, p)
 		require.Error(t, err)
 	})

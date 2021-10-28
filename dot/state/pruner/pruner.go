@@ -7,7 +7,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -275,12 +275,12 @@ func (p *FullNode) start() {
 }
 
 func (p *FullNode) storeJournal(key *journalKey, jr *journalRecord) error {
-	encKey, err := scale.Encode(key)
+	encKey, err := scale.Marshal(*key)
 	if err != nil {
 		return fmt.Errorf("failed to encode journal key block num %d: %w", key.blockNum, err)
 	}
 
-	encRecord, err := scale.Encode(jr)
+	encRecord, err := scale.Marshal(*jr)
 	if err != nil {
 		return fmt.Errorf("failed to encode journal record block num %d: %w", key.blockNum, err)
 	}
@@ -299,26 +299,27 @@ func (p *FullNode) loadDeathList() error {
 	defer itr.Release()
 
 	for itr.Next() {
-		jk, err := scale.Decode(itr.Key(), new(journalKey))
+		key := &journalKey{}
+		err := scale.Unmarshal(itr.Key(), key)
 		if err != nil {
 			return fmt.Errorf("failed to decode journal key %w", err)
 		}
 
-		key := jk.(*journalKey)
 		val := itr.Value()
 
-		jr, err := scale.Decode(val, new(journalRecord))
+		jr := &journalRecord{}
+		err = scale.Unmarshal(val, jr)
 		if err != nil {
 			return fmt.Errorf("failed to decode journal record block num %d : %w", key.blockNum, err)
 		}
 
-		p.addDeathRow(jr.(*journalRecord), key.blockNum)
+		p.addDeathRow(jr, key.blockNum)
 	}
 	return nil
 }
 
 func (p *FullNode) deleteJournalRecord(b chaindb.Batch, key *journalKey) error {
-	encKey, err := scale.Encode(key)
+	encKey, err := scale.Marshal(*key)
 	if err != nil {
 		return err
 	}
@@ -332,7 +333,7 @@ func (p *FullNode) deleteJournalRecord(b chaindb.Batch, key *journalKey) error {
 }
 
 func (p *FullNode) storeLastPrunedIndex(blockNum int64) error {
-	encNum, err := scale.Encode(blockNum)
+	encNum, err := scale.Marshal(blockNum)
 	if err != nil {
 		return err
 	}
@@ -355,12 +356,13 @@ func (p *FullNode) getLastPrunedIndex() (int64, error) {
 		return 0, err
 	}
 
-	blockNum, err := scale.Decode(val, int64(0))
+	blockNum := int64(0)
+	err = scale.Unmarshal(val, &blockNum)
 	if err != nil {
 		return 0, err
 	}
 
-	return blockNum.(int64), nil
+	return blockNum, nil
 }
 
 func (p *FullNode) deleteKeys(b chaindb.Batch, nodesHash map[common.Hash]int64) error {
