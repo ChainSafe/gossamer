@@ -17,7 +17,7 @@ type Network struct {
 	mock.Mock
 }
 
-func (_m *MockNetwork) ReportPeer(change peerset.ReputationChange, peer peer.ID) {
+func (_m *Network) ReportPeer(change peerset.ReputationChange, peer peer.ID) {
 	_m.Called(change, peer)
 }
 

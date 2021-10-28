@@ -15,11 +15,11 @@ type NetworkAPI struct {
 	mock.Mock
 }
 
-func (_m *MockNetworkAPI) GossipMessage(message network.NotificationsMessage) {
+func (_m *NetworkAPI) GossipMessage(message network.NotificationsMessage) {
 	_m.Called(message)
 }
 
-func (_m *MockNetworkAPI) ReportPeer(change peerset.ReputationChange, p peer.ID) {
+func (_m *NetworkAPI) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 	_m.Called(change, p)
 }
 

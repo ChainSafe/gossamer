@@ -88,7 +88,7 @@ func newNetworkService(t *testing.T) *network.Service {
 
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
-	networkMock := new(mocks.MockNetworkAPI)
+	networkMock := new(mocks.NetworkAPI)
 	networkMock.On("Health").Return(testHealth)
 
 	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil)

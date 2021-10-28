@@ -36,6 +36,6 @@ func (_m *Network) IsSynced() bool {
 }
 
 // ReportPeer provides a mock function with given fields: change, p
-func (_m *MockNetwork) ReportPeer(change peerset.ReputationChange, p peer.ID) {
+func (_m *Network) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 	_m.Called(change, p)
 }
