@@ -497,10 +497,11 @@ func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
 }
 
 // GetBlockStateRoot returns the state root of the given block hash
-func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (common.Hash, error) {
+func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (
+	hash common.Hash, err error) {
 	header, err := bs.GetHeader(bhash)
 	if err != nil {
-		return common.EmptyHash, err
+		return hash, err
 	}
 
 	return header.StateRoot, nil

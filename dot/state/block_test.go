@@ -158,7 +158,7 @@ func TestAddBlock(t *testing.T) {
 				t.Fatal("got panic when processing retBlock.Header.Hash() ", r)
 			}
 		}()
-		require.NotEqual(t, hash, common.Hash{})
+		require.False(t, hash.IsEmpty())
 	}()
 
 	require.Equal(t, block1, retBlock, "Could not validate returned block1 as expected")

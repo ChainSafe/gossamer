@@ -410,7 +410,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
-	require.NotEqual(t, hash, common.Hash{})
+	require.NotEqual(t, types.Hash{}, hash)
 
 	time.Sleep(time.Second * 20)
 
