@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Level_String(t *testing.T) {
+func Test_Level_ColouredString(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -50,7 +50,10 @@ func Test_Level_String(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			s := testCase.level.String()
+			s := testCase.level.ColouredString()
+			// Note: fatih/colour is clever enough to not add colours
+			// when running tests, so the string is effectively without
+			// colour here.
 
 			assert.Equal(t, testCase.s, s)
 		})

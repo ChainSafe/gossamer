@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/fatih/color" //nolint:misspell
 )
 
 // Level is the level of the logger.
@@ -44,6 +46,30 @@ func (level Level) String() (s string) {
 	default:
 		return "???"
 	}
+}
+
+// ColouredString returns the corresponding coloured
+// string for the level.
+func (level Level) ColouredString() (s string) {
+	attribute := color.Reset
+
+	switch level {
+	case LevelTrace:
+		attribute = color.FgHiCyan
+	case LevelDebug:
+		attribute = color.FgHiBlue
+	case LevelInfo:
+		attribute = color.FgCyan
+	case LevelWarn:
+		attribute = color.FgYellow
+	case LevelError:
+		attribute = color.FgHiRed
+	case LevelCritical:
+		attribute = color.FgRed
+	}
+
+	c := color.New(attribute)
+	return c.Sprint(level.String())
 }
 
 // ErrLevelNotRecognised is an error returned if the level string is

@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"github.com/fatih/color" //nolint:misspell
 )
 
 func (l *Logger) log(logLevel Level, s string, args ...interface{}) {
@@ -19,18 +21,18 @@ func (l *Logger) log(logLevel Level, s string, args ...interface{}) {
 		s = fmt.Sprintf(s, args...)
 	}
 
-	line := time.Now().Format(time.RFC3339) + " " + logLevel.String() + " " + s
+	line := time.Now().Format(time.RFC3339) + " " + logLevel.ColouredString() + " " + s
 
 	callerString := getCallerString(l.settings.caller)
 	if callerString != "" {
-		line += "\t" + callerString
+		line += "\t" + color.HiWhiteString(callerString)
 	}
 
 	if len(l.settings.context) > 0 {
 		keyValues := make([]string, 0, len(l.settings.context))
 		for _, kvs := range l.settings.context {
 			valuesString := strings.Join(kvs.values, ",")
-			keyValue := kvs.key + "=" + valuesString
+			keyValue := color.CyanString(kvs.key) + "=" + valuesString
 			keyValues = append(keyValues, keyValue)
 		}
 		line += "\t" + strings.Join(keyValues, " ")
