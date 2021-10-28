@@ -8,7 +8,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -816,10 +815,9 @@ func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 
 	id := memory[keyTypeID : keyTypeID+4]
 	seedBytes := asMemorySlice(memory, seedSpan)
-	buf := &bytes.Buffer{}
-	buf.Write(seedBytes)
 
-	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
 		return 0
@@ -827,8 +825,8 @@ func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 
 	var kp crypto.Keypair
 
-	if seed.Exists() {
-		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	if seed != nil {
+		kp, err = ed25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
 		kp, err = ed25519.GenerateKeypair()
 	}
@@ -998,20 +996,18 @@ func ext_crypto_sr25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 	memory := vm.Memory
 
 	id := memory[keyTypeID : keyTypeID+4]
-
 	seedBytes := asMemorySlice(memory, seedSpan)
-	buf := &bytes.Buffer{}
-	buf.Write(seedBytes)
 
-	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warn("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
 		return 0
 	}
 
 	var kp crypto.Keypair
-	if seed.Exists() {
-		kp, err = sr25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	if seed != nil {
+		kp, err = sr25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
 		kp, err = sr25519.GenerateKeypair()
 	}
@@ -1335,14 +1331,12 @@ func toWasmMemorySized(memory, data []byte, size uint32) (uint32, error) {
 
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(memory, data []byte) (int64, error) {
-	var opt *optional.Bytes
-	if data == nil {
-		opt = optional.NewBytes(false, nil)
-	} else {
-		opt = optional.NewBytes(true, data)
+	var opt *[]byte
+	if data != nil {
+		opt = &data
 	}
 
-	enc, err := opt.Encode()
+	enc, err := scale.Marshal(opt)
 	if err != nil {
 		return 0, err
 	}
@@ -1366,31 +1360,27 @@ func toWasmMemory(memory, data []byte) (int64, error) {
 
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptionalUint32(memory []byte, data *uint32) (int64, error) {
-	var opt *optional.Uint32
-	if data == nil {
-		opt = optional.NewUint32(false, 0)
-	} else {
-		opt = optional.NewUint32(true, *data)
+	var opt *uint32
+	if data != nil {
+		temp := *data
+		opt = &temp
 	}
 
-	enc := opt.Encode()
+	enc, err := scale.Marshal(opt)
+	if err != nil {
+		return int64(0), err
+	}
 	return toWasmMemory(memory, enc)
 }
 
 // Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryFixedSizeOptional(memory, data []byte) (int64, error) {
-	var opt *optional.FixedSizeBytes
-	if data == nil {
-		opt = optional.NewFixedSizeBytes(false, nil)
-	} else {
-		opt = optional.NewFixedSizeBytes(true, data)
-	}
-
-	enc, err := opt.Encode()
+	var opt [64]byte
+	copy(opt[:], data[:])
+	enc, err := scale.Marshal(&opt)
 	if err != nil {
 		return 0, err
 	}
-
 	return toWasmMemory(memory, enc)
 }
 
