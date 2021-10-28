@@ -7,7 +7,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -492,7 +491,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
-						Hash:   optional.NewHash(true, bestHash).Value(),
+						Hash:   bestHash,
 						Header: &bestBlock.Header,
 						Body:   &bestBlock.Body,
 					},
@@ -511,7 +510,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
-						Hash:   optional.NewHash(true, bestHash).Value(),
+						Hash:   bestHash,
 						Header: &bestBlock.Header,
 						Body:   nil,
 					},
@@ -530,7 +529,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
-						Hash:    optional.NewHash(true, bestHash).Value(),
+						Hash:    bestHash,
 						Header:  nil,
 						Body:    nil,
 						Receipt: bds.Receipt,
@@ -550,7 +549,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
-						Hash:         optional.NewHash(true, bestHash).Value(),
+						Hash:         bestHash,
 						Header:       nil,
 						Body:         nil,
 						MessageQueue: bds.MessageQueue,

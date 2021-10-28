@@ -70,7 +70,7 @@ func (bh *Header) Exists() bool {
 
 // Empty returns a boolean indicating is the header is empty
 func (bh *Header) Empty() bool {
-	if !bh.StateRoot.Equal(common.Hash{}) || !bh.ExtrinsicsRoot.Equal(common.Hash{}) || !bh.ParentHash.Equal(common.Hash{}) {
+	if !bh.StateRoot.IsEmpty() || !bh.ExtrinsicsRoot.IsEmpty() || !bh.ParentHash.IsEmpty() {
 		return false
 	}
 	return (bh.Number.Cmp(big.NewInt(0)) == 0 || bh.Number == nil) && len(bh.Digest.Types) == 0
