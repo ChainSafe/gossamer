@@ -100,7 +100,7 @@ func (b *branch) copy() node {
 	defer b.Unlock()
 	cpy := &branch{
 		key:        b.key,
-		children:   [16]node{},
+		children:   b.children, //[16]node{},
 		value:      b.value,
 		dirty:      b.dirty,
 		hash:       b.hash,
@@ -108,7 +108,7 @@ func (b *branch) copy() node {
 		generation: b.generation,
 	}
 	//copy(cpy.key, b.key)
-	copy(cpy.children[:], b.children[:])
+	//copy(cpy.children[:], b.children[:])
 
 	// nil and []byte{} are encoded differently, watch out!
 	// if b.value != nil {

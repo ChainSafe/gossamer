@@ -290,7 +290,11 @@ func (t *Trie) insert(parent node, key []byte, value node) node {
 		length := lenCommonPrefix(key, p.key)
 
 		// need to convert this leaf into a branch
-		br := &branch{key: key[:length], dirty: true, generation: t.generation}
+		br := &branch{
+			key:        key[:length],
+			dirty:      true,
+			generation: t.generation,
+		}
 		parentKey := p.key
 
 		// value goes at this branch
@@ -352,14 +356,24 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node) {
 		switch c := p.children[key[length]].(type) {
 		case *branch, *leaf:
 			n = t.insert(c, key[length+1:], value)
-			p.children[key[length]] = n
+
+			cpy := [16]node{}
+			copy(cpy[:], p.children[:])
+			cpy[key[length]] = n
+			p.children = cpy
+
 			n.setDirty(true)
 			p.setDirty(true)
 			return p
 		case nil:
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
-			p.children[key[length]] = value
+
+			cpy := [16]node{}
+			copy(cpy[:], p.children[:])
+			cpy[key[length]] = value
+			p.children = cpy
+
 			p.setDirty(true)
 			return p
 		}
@@ -540,7 +554,12 @@ func (t *Trie) clearPrefix(cn node, prefix []byte) (node, bool) {
 		if len(prefix) == len(c.key)+1 && length == len(prefix)-1 {
 			// found prefix at child index, delete child
 			i := prefix[len(c.key)]
-			c.children[i] = nil
+
+			cpy := [16]node{}
+			copy(cpy[:], c.children[:])
+			cpy[i] = nil
+			c.children = cpy
+
 			c.setDirty(true)
 			curr = handleDeletion(c, prefix)
 			return curr, true
@@ -554,7 +573,10 @@ func (t *Trie) clearPrefix(cn node, prefix []byte) (node, bool) {
 		var wasUpdated bool
 		i := prefix[len(c.key)]
 
-		c.children[i], wasUpdated = t.clearPrefix(c.children[i], prefix[len(c.key)+1:])
+		cpy := [16]node{}
+		copy(cpy[:], c.children[:])
+		cpy[i], wasUpdated = t.clearPrefix(c.children[i], prefix[len(c.key)+1:])
+		c.children = cpy
 		if wasUpdated {
 			c.setDirty(true)
 			curr = handleDeletion(c, prefix)
@@ -599,7 +621,11 @@ func (t *Trie) delete(parent node, key []byte) (node, bool) {
 			return p, false
 		}
 
-		p.children[key[length]] = n
+		cpy := [16]node{}
+		copy(cpy[:], p.children[:])
+		cpy[key[length]] = n
+		p.children = cpy
+
 		p.setDirty(true)
 		n = handleDeletion(p, key)
 		return n, true
