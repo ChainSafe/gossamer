@@ -904,7 +904,9 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 		}
 
 		var end *common.Hash
-		if !w.targetHash.IsEmpty() {
+		if !w.targetHash.IsEmpty() && i == numRequests-1 {
+			// if we're on our last request (which should contain the target hash),
+			// then add it
 			end = &w.targetHash
 		}
 
