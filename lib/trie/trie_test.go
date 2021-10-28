@@ -1428,7 +1428,6 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 
 	for _, testCase := range cases {
 		for _, prefix := range prefixes {
-
 			prefixNibbles := keyToNibbles(prefix)
 			if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 				prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]

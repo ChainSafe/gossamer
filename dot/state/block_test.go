@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -170,12 +171,15 @@ func TestGetSlotForBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 	expectedSlot := uint64(77)
 
-	babeHeader := types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{})
-	data := babeHeader.Encode()
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()
-	err := digest.Add(*preDigest)
+	err = digest.Add(*preDigest)
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
@@ -482,11 +486,15 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.False(t, fin)
 
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
-	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
+	prd, err = types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest2.Add(*prd)
 	require.NoError(t, err)
 
 	header1 := types.Header{
