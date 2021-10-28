@@ -89,6 +89,7 @@ package wasmer
 // extern int64_t ext_offchain_submit_transaction_version_1(void *context, int64_t a);
 // extern int64_t ext_offchain_timestamp_version_1(void *context);
 // extern void ext_offchain_sleep_until_version_1(void *context, int64_t a);
+// extern int64_t ext_offchain_http_request_start_version_1(void *context, int64_t a, int64_t b, int64_t c);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
@@ -1682,6 +1683,40 @@ func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
 	logger.Warn("unimplemented")
 }
 
+//export ext_offchain_http_request_start_version_1
+func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpan, uriSpan, meta C.int64_t) C.int64_t {
+	logger.Debug("[ext_offchain_submit_transaction_version_1] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	encHTTPMethod := asMemorySlice(instanceContext, methodSpan)
+	encURI := asMemorySlice(instanceContext, uriSpan)
+	encMetaParams := asMemorySlice(instanceContext, meta)
+
+	var (
+		HTTPMethod string
+		URI        string
+		MetaParams []byte
+	)
+
+	if err := scale.Unmarshal(encHTTPMethod, &HTTPMethod); err != nil {
+		logger.Error("[ext_offchain_http_request_start_version_1] failed to decode http method data", "error", err)
+	}
+
+	if err := scale.Unmarshal(encURI, &URI); err != nil {
+		logger.Error("[ext_offchain_http_request_start_version_1] failed to decode http method data", "error", err)
+	}
+
+	if err := scale.Unmarshal(encMetaParams, &MetaParams); err != nil {
+		logger.Error("[ext_offchain_http_request_start_version_1] failed to decode http method data", "error", err)
+	}
+
+	fmt.Println(HTTPMethod)
+	fmt.Println(HTTPMethod)
+	fmt.Println(MetaParams)
+
+	return 0
+}
+
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	nextLength := big.NewInt(1)
 	var valueRes []byte
@@ -2302,6 +2337,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_offchain_sleep_until_version_1", ext_offchain_sleep_until_version_1, C.ext_offchain_sleep_until_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1)
 	if err != nil {
 		return nil, err
 	}
