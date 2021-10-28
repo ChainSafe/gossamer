@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	logc "github.com/ChainSafe/gossamer/internal/log/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -25,7 +25,7 @@ type SignatureVerifier struct {
 	batch   []*Signature
 	init    bool // Indicates whether the batch processing is started.
 	invalid bool // Set to true if any signature verification fails.
-	logger  log.Interface
+	logger  logc.Logger
 	closeCh chan struct{}
 	sync.RWMutex
 	sync.Once
@@ -36,7 +36,7 @@ type SignatureVerifier struct {
 // Start() is called to start the verification process.
 // Finish() is called to stop the verification process.
 // Signatures can be added to the batch using Add().
-func NewSignatureVerifier(logger log.Interface) *SignatureVerifier {
+func NewSignatureVerifier(logger logc.Logger) *SignatureVerifier {
 	return &SignatureVerifier{
 		batch:   make([]*Signature, 0),
 		init:    false,

@@ -28,7 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 )
 
 // ImportState imports the state in the given files to the database with the given path.

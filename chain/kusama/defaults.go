@@ -17,7 +17,7 @@
 package kusama
 
 import (
-	"github.com/ChainSafe/gossamer/internal/log"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )

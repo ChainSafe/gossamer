@@ -20,7 +20,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	logc "github.com/ChainSafe/gossamer/internal/log/common"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 	"github.com/libp2p/go-libp2p-core/peer"
 	libp2pdiscovery "github.com/libp2p/go-libp2p/p2p/discovery/mdns_legacy"
 )
@@ -30,14 +31,14 @@ const MDNSPeriod = time.Minute
 
 // Notifee See https://godoc.org/github.com/libp2p/go-libp2p/p2p/discovery#Notifee
 type Notifee struct {
-	logger log.Interface
+	logger logc.Logger
 	ctx    context.Context
 	host   *host
 }
 
 // mdns submodule
 type mdns struct {
-	logger log.Interface
+	logger logc.Logger
 	host   *host
 	mdns   libp2pdiscovery.Service
 }

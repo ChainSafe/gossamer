@@ -27,7 +27,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/internal/log"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"

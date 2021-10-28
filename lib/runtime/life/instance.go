@@ -22,7 +22,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	logc "github.com/ChainSafe/gossamer/internal/log/common"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -37,7 +38,7 @@ const Name = "life"
 // Check that runtime interfaces are satisfied
 var (
 	_      runtime.Instance = (*Instance)(nil)
-	logger log.Interface    = log.NewFromGlobal(
+	logger logc.Logger      = log.NewFromGlobal(
 		log.AddContext("pkg", "runtime"),
 		log.AddContext("component", "perlin/life"),
 	)

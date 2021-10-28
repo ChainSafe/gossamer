@@ -23,7 +23,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
+	logc "github.com/ChainSafe/gossamer/internal/log/common"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -38,7 +39,7 @@ import (
 
 var (
 	_      services.Service = &Service{}
-	logger log.Interface    = log.NewFromGlobal(log.AddContext("pkg", "core"))
+	logger logc.Logger      = log.NewFromGlobal(log.AddContext("pkg", "core"))
 )
 
 // QueryKeyValueChanges represents the key-value data inside a block storage

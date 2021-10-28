@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 	"github.com/ChainSafe/gossamer/lib/services/mocks"
 	"github.com/stretchr/testify/require"
 )

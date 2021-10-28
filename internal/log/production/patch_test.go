@@ -1,4 +1,4 @@
-package log
+package production
 
 import (
 	"io/ioutil"
@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/log/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +15,7 @@ func Test_Logger_Patch(t *testing.T) {
 
 	testCases := map[string]struct {
 		initialLogger  *Logger
-		options        []Option
+		options        []common.Option
 		expectedLogger *Logger
 	}{
 		"no option": {
@@ -47,7 +48,7 @@ func Test_Logger_Patch(t *testing.T) {
 				},
 				mutex: new(sync.Mutex),
 			},
-			options: []Option{
+			options: []common.Option{
 				SetLevel(LevelWarn),
 				SetCallerFile(true),
 			},

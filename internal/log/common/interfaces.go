@@ -1,9 +1,7 @@
-package log
+package common
 
-var _ Interface = (*Logger)(nil)
-
-// Interface is the interface encompassing all the methods of the logger.
-type Interface interface {
+// Logger is the interface encompassing all the methods of the logger.
+type Logger interface {
 	ChildConstructor
 	LoggerPatcher
 	LeveledLogger
@@ -12,7 +10,7 @@ type Interface interface {
 
 // ChildConstructor is the interface to create child loggers.
 type ChildConstructor interface {
-	New(options ...Option) *Logger
+	New(options ...Option) Logger
 }
 
 // LoggerPatcher is the interface to update the current logger.

@@ -22,7 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/tests/utils"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 	"github.com/stretchr/testify/require"
 )
 

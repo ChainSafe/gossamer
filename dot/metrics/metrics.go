@@ -20,12 +20,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	logc "github.com/ChainSafe/gossamer/internal/log/common"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
 )
 
-var logger log.Interface = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
+var logger logc.Logger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
 
 const (
 	// RefreshInterval is the refresh time for publishing metrics.

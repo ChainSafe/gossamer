@@ -19,12 +19,13 @@ package network
 import (
 	"sync"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	logc "github.com/ChainSafe/gossamer/internal/log/common"
+	log "github.com/ChainSafe/gossamer/internal/log/production"
 )
 
 // gossip submodule
 type gossip struct {
-	logger log.Interface
+	logger logc.Logger
 	seen   *sync.Map
 }
 

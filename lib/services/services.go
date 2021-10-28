@@ -19,7 +19,7 @@ package services
 import (
 	"reflect"
 
-	"github.com/ChainSafe/gossamer/internal/log"
+	logc "github.com/ChainSafe/gossamer/internal/log/common"
 )
 
 //go:generate mockery --name Service --structname Service --case underscore --keeptree
@@ -34,11 +34,11 @@ type Service interface {
 type ServiceRegistry struct {
 	services     map[reflect.Type]Service // map of types to service instances
 	serviceTypes []reflect.Type           // all known service types, used to iterate through services
-	logger       log.Interface
+	logger       logc.Logger
 }
 
 // NewServiceRegistry creates an empty registry
-func NewServiceRegistry(logger log.Interface) *ServiceRegistry {
+func NewServiceRegistry(logger logc.Logger) *ServiceRegistry {
 	return &ServiceRegistry{
 		services: make(map[reflect.Type]Service),
 		logger:   logger,
