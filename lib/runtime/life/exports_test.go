@@ -183,8 +183,8 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	require.Equal(t, expected.ParentHash, res.ParentHash)
 	require.Equal(t, expected.Number, res.Number)
 	require.Equal(t, expected.Digest, res.Digest)
-	require.NotEqual(t, common.Hash{}, res.StateRoot)
-	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
+	require.False(t, res.StateRoot.IsEmpty())
+	require.False(t, res.ExtrinsicsRoot.IsEmpty())
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 
 	return &types.Block{
