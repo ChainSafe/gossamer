@@ -91,7 +91,9 @@ func TestSendNeighbourMessage(t *testing.T) {
 	go gs.sendNeighbourMessage()
 
 	digest := types.NewDigest()
-	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
