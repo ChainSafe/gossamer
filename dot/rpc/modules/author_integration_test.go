@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -46,7 +47,7 @@ func TestMain(m *testing.M) {
 
 func TestAuthorModule_Pending(t *testing.T) {
 	txQueue := state.NewTransactionState()
-	auth := NewAuthorModule(nil, nil, nil, txQueue)
+	auth := NewAuthorModule(nil, nil, txQueue)
 
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
@@ -178,10 +179,14 @@ func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_Valid(t *testing.T) {
+	seed := "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
+	kp, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes(seed))
+	require.NoError(t, err)
+
 	auth := setupAuthModule(t, nil)
-	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
+	req := &KeyInsertRequest{"babe", seed, kp.Public().Hex()}
 	res := &KeyInsertResponse{}
-	err := auth.InsertKey(nil, req, res)
+	err = auth.InsertKey(nil, req, res)
 	require.Nil(t, err)
 	require.Len(t, *res, 0) // zero len result on success
 }
@@ -267,5 +272,5 @@ func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 	t.Cleanup(func() {
 		rt.Stop()
 	})
-	return NewAuthorModule(nil, cs, rt, txq)
+	return NewAuthorModule(nil, cs, txq)
 }
