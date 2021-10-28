@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
@@ -252,8 +251,7 @@ func TestChainProcessor_processReadyBlocks_errFailedToGetParent(t *testing.T) {
 	defer processor.cancel()
 
 	header := &types.Header{
-		ParentHash: common.EmptyHash,
-		Number:     big.NewInt(1),
+		Number: big.NewInt(1),
 	}
 
 	processor.readyBlocks.push(&types.BlockData{
