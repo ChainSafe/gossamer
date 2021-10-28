@@ -87,7 +87,9 @@ func (s *chainProcessor) processReadyBlocks() {
 		default:
 		}
 
+		logger.Trace("going to pop ready block from queue")
 		bd := s.readyBlocks.pop()
+		logger.Trace("popped ready block", "block", bd)
 		if bd == nil {
 			continue
 		}
