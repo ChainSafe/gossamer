@@ -891,7 +891,7 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 		}
 
 		var start *variadic.Uint64OrHash
-		if w.startHash.Equal(common.EmptyHash) {
+		if w.startHash.IsEmpty() {
 			// worker startHash is unspecified if we are in bootstrap mode
 			start, _ = variadic.NewUint64OrHash(startNumber)
 		} else {
@@ -900,7 +900,7 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 		}
 
 		var end *common.Hash
-		if !w.targetHash.Equal(common.EmptyHash) {
+		if !w.targetHash.IsEmpty() {
 			end = &w.targetHash
 		}
 

@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -221,11 +220,11 @@ func TestTrieState_DeleteChildLimit(t *testing.T) {
 
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
-	optLimit2 := optional.NewBytes(true, testLimitBytes)
+	optLimit2 := &testLimitBytes
 
 	testCases := []struct {
 		key             []byte
-		limit           *optional.Bytes
+		limit           *[]byte
 		expectedDeleted uint32
 		expectedDelAll  bool
 		errMsg          string

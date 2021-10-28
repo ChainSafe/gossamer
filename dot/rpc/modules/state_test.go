@@ -330,7 +330,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 	})
 
 	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
-		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock := new(mocks.CoreAPI)
 		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(nil, errors.New("problem while querying"))
 
 		module := new(StateModule)
@@ -354,7 +354,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 				"0x90": "another value",
 			}),
 		}
-		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock := new(mocks.CoreAPI)
 		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
 
 		module := new(StateModule)
@@ -477,17 +477,16 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 }
 
 func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
-	coreAPIMock := new(mocks.MockCoreAPI)
+	coreAPIMock := new(mocks.CoreAPI)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
-		Return(common.EmptyHash, nil, errors.New("mocked error"))
+		Return(common.Hash{}, nil, errors.New("mocked error"))
 
 	sm := new(StateModule)
 	sm.coreAPI = coreAPIMock
 
 	req := &StateGetReadProofRequest{
 		Keys: []string{},
-		Hash: common.EmptyHash,
 	}
 	err := sm.GetReadProof(nil, req, nil)
 	require.Error(t, err, "mocked error")
@@ -497,7 +496,7 @@ func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 	expectedBlock := common.BytesToHash([]byte("random hash"))
 	mockedProof := [][]byte{[]byte("proof-1"), []byte("proof-2")}
 
-	coreAPIMock := new(mocks.MockCoreAPI)
+	coreAPIMock := new(mocks.CoreAPI)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
 		Return(expectedBlock, mockedProof, nil)
@@ -507,7 +506,6 @@ func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 
 	req := &StateGetReadProofRequest{
 		Keys: []string{},
-		Hash: common.EmptyHash,
 	}
 
 	res := new(StateGetReadProofResponse)

@@ -39,7 +39,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	. "github.com/ChainSafe/gossamer/lib/grandpa/mocks"
+	"github.com/ChainSafe/gossamer/lib/grandpa/mocks"
 
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
@@ -56,8 +56,8 @@ var (
 	voters = newTestVoters()
 )
 
-func NewMockDigestHandler() *MockDigestHandler {
-	m := new(MockDigestHandler)
+func NewMockDigestHandler() *mocks.DigestHandler {
+	m := new(mocks.DigestHandler)
 	m.On("NextGrandpaAuthorityChange").Return(uint64(2 ^ 64 - 1))
 	return m
 }
