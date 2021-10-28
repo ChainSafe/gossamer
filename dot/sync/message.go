@@ -306,7 +306,7 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash, descendant *com
 		}
 
 		if descendant == nil {
-			return common.Hash{}, fmt.Errorf("%d with number %d", errFailedToGetDescendant, descendantNumber)
+			return common.Hash{}, fmt.Errorf("%w with number %d", errFailedToGetDescendant, descendantNumber)
 		}
 	} else {
 		// if it is, set descendant hash to our block w/ descendantNumber
@@ -325,8 +325,9 @@ func (s *Service) handleAscendingByNumber(start, end uint64, requestedData byte)
 	var err error
 	data := make([]*types.BlockData, (end-start)+1)
 
-	for idx, bn := 0, start; bn <= end; idx, bn = idx+1, bn+1 {
-		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(bn)), requestedData)
+	for i := uint64(0); start+i <= end; i++ {
+		blockNumber := start + i
+		data[i], err = s.getBlockDataByNumber(big.NewInt(int64(blockNumber)), requestedData)
 		if err != nil {
 			return nil, err
 		}
@@ -341,8 +342,9 @@ func (s *Service) handleDescendingByNumber(start, end uint64, requestedData byte
 	var err error
 	data := make([]*types.BlockData, (start-end)+1)
 
-	for idx, bn := 0, start; bn >= end; idx, bn = idx+1, bn-1 {
-		data[idx], err = s.getBlockDataByNumber(big.NewInt(int64(bn)), requestedData)
+	for i := uint64(0); start-i >= end; i++ {
+		blockNumber := start - i
+		data[i], err = s.getBlockDataByNumber(big.NewInt(int64(blockNumber)), requestedData)
 		if err != nil {
 			return nil, err
 		}
