@@ -618,19 +618,19 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 		return nil
 	}
 
-	var resp LightResponse
+	resp := NewLightResponse()
 	var err error
 	switch {
-	case lr.RmtCallRequest != nil:
-		resp.RmtCallResponse, err = remoteCallResp(lr.RmtCallRequest)
-	case lr.RmtHeaderRequest != nil:
-		resp.RmtHeaderResponse, err = remoteHeaderResp(lr.RmtHeaderRequest)
-	case lr.RmtChangesRequest != nil:
-		resp.RmtChangeResponse, err = remoteChangeResp(lr.RmtChangesRequest)
-	case lr.RmtReadRequest != nil:
-		resp.RmtReadResponse, err = remoteReadResp(lr.RmtReadRequest)
-	case lr.RmtReadChildRequest != nil:
-		resp.RmtReadResponse, err = remoteReadChildResp(lr.RmtReadChildRequest)
+	case lr.RemoteCallRequest != nil:
+		resp.RemoteCallResponse, err = remoteCallResp(lr.RemoteCallRequest)
+	case lr.RemoteHeaderRequest != nil:
+		resp.RemoteHeaderResponse, err = remoteHeaderResp(lr.RemoteHeaderRequest)
+	case lr.RemoteChangesRequest != nil:
+		resp.RemoteChangesResponse, err = remoteChangeResp(lr.RemoteChangesRequest)
+	case lr.RemoteReadRequest != nil:
+		resp.RemoteReadResponse, err = remoteReadResp(lr.RemoteReadRequest)
+	case lr.RemoteReadChildRequest != nil:
+		resp.RemoteReadResponse, err = remoteReadChildResp(lr.RemoteReadChildRequest)
 	default:
 		logger.Warn("ignoring LightRequest without request data")
 		return nil
@@ -644,7 +644,7 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage. (#1856)
 	logger.Debug("LightResponse", "msg", resp.String())
 
-	err = s.host.writeToStream(stream, &resp)
+	err = s.host.writeToStream(stream, resp)
 	if err != nil {
 		logger.Warn("failed to send LightResponse message", "peer", stream.Conn().RemotePeer(), "err", err)
 	}

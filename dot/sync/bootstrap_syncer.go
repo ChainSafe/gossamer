@@ -50,7 +50,6 @@ func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}
 
 	return &worker{
-		startHash:    common.EmptyHash,
 		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
 		targetHash:   ps.hash,
 		targetNumber: ps.number,
@@ -90,7 +89,7 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	}
 
 	return &worker{
-		startHash:    common.EmptyHash, // for bootstrap, just use number
+		startHash:    common.Hash{}, // for bootstrap, just use number
 		startNumber:  startNumber,
 		targetHash:   res.targetHash,
 		targetNumber: res.targetNumber,
