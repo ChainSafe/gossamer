@@ -1817,14 +1817,14 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	encBytes, err := toKillStorageResultEnum(all, numRemoved)
 
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		logger.Error("[ext_storage_clear_prefix_version_2] failed to allocate memory", err)
 		ret, _ := toWasmMemory(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
 	valueSpan, err := toWasmMemory(instanceContext, encBytes)
 	if err != nil {
-		logger.Error("[ext_storage_get_version_2] failed to allocate", "error", err)
+		logger.Error("[ext_storage_clear_prefix_version_2] failed to allocate", "error", err)
 		ptr, _ := toWasmMemory(instanceContext, nil)
 		return C.int64_t(ptr)
 	}

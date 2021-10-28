@@ -536,7 +536,7 @@ func (t *Trie) clearPrefixLimit(cn node, prefix []byte, limit *uint32) (node, bo
 		if length == len(prefix) {
 			n, _ := t.deleteNodes(c, []byte{}, limit)
 			if n == nil {
-				return n, true, true
+				return nil, true, true
 			}
 			return n, true, false
 		}
