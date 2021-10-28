@@ -27,7 +27,6 @@ run:
   skip-files:
     - .*mock_.*\.go
     - .*mocks\/.*\.go
-    - author_integration_test\.go # TODO remove once fixed
 
 # all available settings of specific linters
 linters-settings:
