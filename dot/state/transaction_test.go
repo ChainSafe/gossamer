@@ -1,9 +1,13 @@
 package state
 
 import (
+	"math/rand"
 	"sort"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
@@ -58,4 +62,59 @@ func TestTransactionState_Pending(t *testing.T) {
 	// queue should be empty
 	head := ts.Peek()
 	require.Nil(t, head)
+}
+
+func TestTransactionState_NotifierChannels(t *testing.T) {
+	ts := NewTransactionState()
+
+	notifierChannel := ts.GetStatusNotifierChannel()
+	defer ts.FreeStatusNotifierChannel(notifierChannel)
+
+	// number of "future" status updates
+	var futureCount int
+	// number of "ready" status updates
+	var readyCount int
+
+	rand.Seed(time.Now().UnixNano())
+
+	expectedFutureCount := rand.Intn(10) + 10
+	expectedReadyCount := rand.Intn(5) + 5
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(futureCount int, readyCount int) {
+		defer wg.Done()
+		for status := range notifierChannel {
+			if status.Status == transaction.Future.String() {
+				futureCount++
+			}
+			if status.Status == transaction.Ready.String() {
+				readyCount++
+			}
+		}
+	}(futureCount, readyCount)
+
+	dummyTransactions := make([]*transaction.ValidTransaction, expectedFutureCount)
+
+	for i := 0; i < expectedFutureCount; i++ {
+		dummyTransactions[i] = &transaction.ValidTransaction{
+			Extrinsic: types.Extrinsic{},
+			Validity:  transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false),
+		}
+
+		ts.AddToPool(dummyTransactions[i])
+	}
+
+	for i := 0; i < expectedReadyCount; i++ {
+		ts.Push(dummyTransactions[i])
+	}
+
+	// it takes time for the status updates to happen
+	time.Sleep(1 * time.Second)
+	close(notifierChannel)
+
+	wg.Wait()
+
+	require.Equal(t, expectedFutureCount, futureCount)
+	require.Equal(t, expectedReadyCount, readyCount)
 }

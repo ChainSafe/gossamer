@@ -55,6 +55,7 @@ func NewValidTransaction(extrinsic types.Extrinsic, validity *Validity) *ValidTr
 	}
 }
 
+// StatusNotification represents information about a transaction status update.
 type StatusNotification struct {
 	Ext                types.Extrinsic
 	Status             string
@@ -62,33 +63,59 @@ type StatusNotification struct {
 	BlockHash          *common.Hash
 }
 
+//nolint
+// Status represents possible transaction statuses.
+//
+// The status events can be grouped based on their kinds as:
+// 1. Entering/Moving within the pool:
+// 		- `Future`
+// 		- `Ready`
+// 2. Inside `Ready` queue:
+// 		- `Broadcast`
+// 3. Leaving the pool:
+// 		- `InBlock`
+// 		- `Invalid`
+// 		- `Usurped`
+// 		- `Dropped`
+// 	4. Re-entering the pool:
+// 		- `Retracted`
+// 	5. Block finalized:
+// 		- `Finalized`
+// 		- `FinalityTimeout`
 type Status int64
 
 const (
-	/// Transaction is part of the future queue.
+	// Future status occurs when transaction is part of the future queue.
 	Future Status = iota
-	/// Transaction is part of the ready queue.
+	// Ready status occurs when transaction is part of the ready queue.
 	Ready
-	/// The transaction has been broadcast to the given peers.
+	// Broadcast status occurs when transaction has been broadcast to the given peers.
 	Broadcast
-	/// Transaction has been included in block with given hash.
+	// InBlock status occurs when transaction has been included in block with given
+	// hash.
 	InBlock
-	/// The block this transaction was included in has been retracted.
+	// Retracted status occurs when the block this transaction was included in has
+	// been retracted.
 	Retracted
-	/// Maximum number of finality watchers has been reached,
-	/// old watchers are being removed.
+	// FinalityTimeout status occurs when the maximum number of finality watchers
+	// has been reached,
+	// old watchers are being removed.
 	FinalityTimeout
-	/// Transaction has been finalized by a finality-gadget, e.g GRANDPA
+	//nolint
+	// Finalized status occurs when transaction has been finalized by a finality-gadget,
+	// e.g GRANDPA
 	Finalized
-	/// Transaction has been replaced in the pool, by another transaction
-	/// that provides the same tags. (e.g. same (sender, nonce)).
+	// Usurped status occurs when transaction has been replaced in the pool, by another
+	// transaction that provides the same tags. (e.g. same (sender, nonce)).
 	Usurped
-	/// Transaction has been dropped from the pool because of the limit.
+	// Dropped status occurs when transaction has been dropped from the pool because
+	// of the limit.
 	Dropped
-	/// Transaction is no longer valid in the current state.
+	// Invalid status occurs when transaction is no longer valid in the current state.
 	Invalid
 )
 
+// String returns string representation of current status.
 func (s Status) String() string {
 	switch s {
 	case Future:
@@ -103,6 +130,7 @@ func (s Status) String() string {
 		return "retracted"
 	case FinalityTimeout:
 		return "finalityTimeout"
+	//nolint
 	case Finalized:
 		return "finalized"
 	case Usurped:

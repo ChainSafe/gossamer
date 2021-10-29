@@ -70,6 +70,7 @@ func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Ha
 	return s.pool.Insert(vt)
 }
 
+// GetStatusNotifierChannel creates and returns a status notifier channel.
 func (s *TransactionState) GetStatusNotifierChannel() chan transaction.StatusNotification {
 	s.notifierLock.Lock()
 	defer s.notifierLock.Unlock()
@@ -79,6 +80,7 @@ func (s *TransactionState) GetStatusNotifierChannel() chan transaction.StatusNot
 	return ch
 }
 
+// FreeStatusNotifierChannel deletes given status notifier channel from our map.
 func (s *TransactionState) FreeStatusNotifierChannel(ch chan transaction.StatusNotification) {
 	s.notifierLock.Lock()
 	defer s.notifierLock.Unlock()
