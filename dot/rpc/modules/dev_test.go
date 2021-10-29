@@ -1,6 +1,7 @@
 package modules
 
 import (
+	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"net/http"
 	"testing"
 )
@@ -46,6 +47,12 @@ func Test_uint64ToHex(t *testing.T) {
 }
 
 func TestDevModule_EpochLength(t *testing.T) {
+	mockBlockProducerAPI := new(apimocks.BlockProducerAPI)
+	mockBlockProducerAPI.On("EpochLength").Return(uint64(23))
+
+	devModule := NewDevModule(mockBlockProducerAPI, nil)
+
+	var res string
 	type fields struct {
 		networkAPI       NetworkAPI
 		blockProducerAPI BlockProducerAPI
@@ -53,6 +60,101 @@ func TestDevModule_EpochLength(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
+		res *string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "EpochLength OK",
+			fields: fields{
+				devModule.networkAPI,
+				devModule.blockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &EmptyRequest{},
+				res: &res,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &DevModule{
+				networkAPI:       tt.fields.networkAPI,
+				blockProducerAPI: tt.fields.blockProducerAPI,
+			}
+			if err := m.EpochLength(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("EpochLength() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDevModule_SlotDuration(t *testing.T) {
+	mockBlockProducerAPI := new(apimocks.BlockProducerAPI)
+	mockBlockProducerAPI.On("SlotDuration").Return(uint64(23))
+
+	var res string
+	type fields struct {
+		networkAPI       NetworkAPI
+		blockProducerAPI BlockProducerAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *EmptyRequest
+		res *string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "SlotDuration OK",
+			fields: fields{
+				nil,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &EmptyRequest{},
+				res: &res,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &DevModule{
+				networkAPI:       tt.fields.networkAPI,
+				blockProducerAPI: tt.fields.blockProducerAPI,
+			}
+			if err := m.SlotDuration(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("SlotDuration() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDevModule_Control(t *testing.T) {
+	mockBlockProducerAPI := new(apimocks.BlockProducerAPI)
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+
+
+
+	type fields struct {
+		networkAPI       NetworkAPI
+		blockProducerAPI BlockProducerAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *[]string
 		res *string
 	}
 	tests := []struct {
@@ -69,9 +171,10 @@ func TestDevModule_EpochLength(t *testing.T) {
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			if err := m.EpochLength(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("EpochLength() error = %v, wantErr %v", err, tt.wantErr)
+			if err := m.Control(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("Control() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
+
