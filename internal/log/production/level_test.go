@@ -16,27 +16,27 @@ func Test_Level_ColouredString(t *testing.T) {
 		s     string
 	}{
 		"trace": {
-			level: LevelTrace,
+			level: Trace,
 			s:     "TRCE",
 		},
 		"debug": {
-			level: LevelDebug,
+			level: Debug,
 			s:     "DBUG",
 		},
 		"info": {
-			level: LevelInfo,
+			level: Info,
 			s:     "INFO",
 		},
 		"warn": {
-			level: LevelWarn,
+			level: Warn,
 			s:     "WARN",
 		},
 		"error": {
-			level: LevelError,
+			level: Error,
 			s:     "EROR",
 		},
 		"critical": {
-			level: LevelCritical,
+			level: Critical,
 			s:     "CRIT",
 		},
 		"unknown": {
@@ -70,27 +70,27 @@ func Test_ParseLevel(t *testing.T) {
 	}{
 		"trace": {
 			s:     "TRCE",
-			level: LevelTrace,
+			level: Trace,
 		},
 		"debug": {
 			s:     "DBUG",
-			level: LevelDebug,
+			level: Debug,
 		},
 		"info": {
 			s:     "INFO",
-			level: LevelInfo,
+			level: Info,
 		},
 		"warn": {
 			s:     "WARN",
-			level: LevelWarn,
+			level: Warn,
 		},
 		"error": {
 			s:     "EROR",
-			level: LevelError,
+			level: Error,
 		},
 		"critical": {
 			s:     "CRIT",
-			level: LevelCritical,
+			level: Critical,
 		},
 		"invalid": {
 			s:   "someinvalid",

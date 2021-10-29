@@ -35,7 +35,7 @@ var (
 	DefaultBasePath = string("~/.gossamer/polkadot")
 
 	// DefaultLvl is the default log level
-	DefaultLvl = log.LevelInfo
+	DefaultLvl = log.Info
 
 	// DefaultPruningMode is the default pruning mode
 	DefaultPruningMode = "archive"

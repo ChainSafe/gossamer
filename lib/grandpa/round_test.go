@@ -108,7 +108,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *networkVot
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kp,
-		LogLvl:        log.LevelInfo,
+		LogLvl:        log.Info,
 		Authority:     true,
 		Network:       net,
 	}

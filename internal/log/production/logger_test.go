@@ -21,7 +21,7 @@ func Test_New(t *testing.T) {
 			expectedLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
-					level:  levelPtr(LevelInfo),
+					level:  levelPtr(Info),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(false, false, false),
 				},
@@ -30,7 +30,7 @@ func Test_New(t *testing.T) {
 		},
 		"all options": {
 			options: []common.Option{
-				SetLevel(LevelTrace),
+				SetLevel(Trace),
 				SetCallerFile(true),
 				SetCallerLine(true),
 				SetCallerFunc(true),
@@ -42,7 +42,7 @@ func Test_New(t *testing.T) {
 			expectedLogger: &Logger{
 				settings: settings{
 					writer: ioutil.Discard,
-					level:  levelPtr(LevelTrace),
+					level:  levelPtr(Trace),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(true, true, true),
 					context: []contextKeyValues{
@@ -78,7 +78,7 @@ func Test_Logger_New(t *testing.T) {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
-					level:  levelPtr(LevelInfo),
+					level:  levelPtr(Info),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(false, false, false),
 				},
@@ -87,7 +87,7 @@ func Test_Logger_New(t *testing.T) {
 			expectedLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
-					level:  levelPtr(LevelInfo),
+					level:  levelPtr(Info),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(false, false, false),
 				},
@@ -98,7 +98,7 @@ func Test_Logger_New(t *testing.T) {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
-					level:  levelPtr(LevelInfo),
+					level:  levelPtr(Info),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(true, true, true),
 					context: []contextKeyValues{
@@ -108,7 +108,7 @@ func Test_Logger_New(t *testing.T) {
 				mutex: new(sync.Mutex),
 			},
 			options: []common.Option{
-				SetLevel(LevelTrace),
+				SetLevel(Trace),
 				SetCallerFunc(false),
 				SetFormat(FormatConsole),
 				SetWriter(ioutil.Discard),
@@ -118,7 +118,7 @@ func Test_Logger_New(t *testing.T) {
 			expectedLogger: &Logger{
 				settings: settings{
 					writer: ioutil.Discard,
-					level:  levelPtr(LevelTrace),
+					level:  levelPtr(Trace),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(true, true, false),
 					context: []contextKeyValues{

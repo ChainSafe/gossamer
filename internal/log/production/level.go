@@ -12,36 +12,36 @@ import (
 type Level uint8
 
 const (
-	// LevelTrace is the trace (trce) level.
-	LevelTrace Level = iota
-	// LevelDebug is the debug (dbug) level.
-	LevelDebug
-	// LevelInfo is the info level.
-	LevelInfo
-	// LevelWarn is the warn level.
-	LevelWarn
-	// LevelError is the error (eror) level.
-	LevelError
-	// LevelCritical is the cirtical (crit) level.
-	LevelCritical
-	// LevelDoNotChange indicates the level of the logger should be
+	// Trace is the trace (trce) level.
+	Trace Level = iota
+	// Debug is the debug (dbug) level.
+	Debug
+	// Info is the info level.
+	Info
+	// Warn is the warn level.
+	Warn
+	// Error is the error (eror) level.
+	Error
+	// Critical is the cirtical (crit) level.
+	Critical
+	// DoNotChange indicates the level of the logger should be
 	// left as is.
-	LevelDoNotChange Level = Level(^uint8(0))
+	DoNotChange Level = Level(^uint8(0))
 )
 
 func (level Level) String() (s string) {
 	switch level {
-	case LevelTrace:
+	case Trace:
 		return "TRCE"
-	case LevelDebug:
+	case Debug:
 		return "DBUG"
-	case LevelInfo:
+	case Info:
 		return "INFO"
-	case LevelWarn:
+	case Warn:
 		return "WARN"
-	case LevelError:
+	case Error:
 		return "EROR"
-	case LevelCritical:
+	case Critical:
 		return "CRIT"
 	default:
 		return "???"
@@ -54,17 +54,17 @@ func (level Level) ColouredString() (s string) {
 	attribute := color.Reset
 
 	switch level {
-	case LevelTrace:
+	case Trace:
 		attribute = color.FgHiCyan
-	case LevelDebug:
+	case Debug:
 		attribute = color.FgHiBlue
-	case LevelInfo:
+	case Info:
 		attribute = color.FgCyan
-	case LevelWarn:
+	case Warn:
 		attribute = color.FgYellow
-	case LevelError:
+	case Error:
 		attribute = color.FgHiRed
-	case LevelCritical:
+	case Critical:
 		attribute = color.FgRed
 	}
 
@@ -80,18 +80,18 @@ var ErrLevelNotRecognised = errors.New("level is not recognised")
 // error if it fails.
 func ParseLevel(s string) (level Level, err error) {
 	switch strings.ToUpper(s) {
-	case LevelTrace.String():
-		return LevelTrace, nil
-	case LevelDebug.String():
-		return LevelDebug, nil
-	case LevelInfo.String():
-		return LevelInfo, nil
-	case LevelWarn.String():
-		return LevelWarn, nil
-	case LevelError.String():
-		return LevelError, nil
-	case LevelCritical.String():
-		return LevelCritical, nil
+	case Trace.String():
+		return Trace, nil
+	case Debug.String():
+		return Debug, nil
+	case Info.String():
+		return Info, nil
+	case Warn.String():
+		return Warn, nil
+	case Error.String():
+		return Error, nil
+	case Critical.String():
+		return Critical, nil
 	}
 	return 0, fmt.Errorf("%w: %s", ErrLevelNotRecognised, s)
 }

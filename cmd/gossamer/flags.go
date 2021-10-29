@@ -57,7 +57,7 @@ var (
 	LogFlag = cli.StringFlag{
 		Name:  "log",
 		Usage: "Supports levels crit (silent) to trce (trace)",
-		Value: log.LevelInfo.String(),
+		Value: log.Info.String(),
 	}
 	// NameFlag node implementation name
 	NameFlag = cli.StringFlag{

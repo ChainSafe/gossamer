@@ -38,7 +38,7 @@ var (
 	DefaultMetricsPort = uint32(9876)
 
 	// DefaultLvl is the default log level
-	DefaultLvl = log.LevelInfo
+	DefaultLvl = log.Info
 
 	// DefaultPruningMode is the default pruning mode
 	DefaultPruningMode = "archive"

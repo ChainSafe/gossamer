@@ -36,7 +36,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 
 	config := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LevelInfo,
+		LogLevel: log.Info,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()

@@ -941,7 +941,7 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	cfg := &Config{
 		Imports: ImportsNodeRuntime,
 	}
-	cfg.LogLvl = log.LevelDoNotChange
+	cfg.LogLvl = log.DoNotChange
 	cfg.Storage, _ = rtstorage.NewTrieState(nil)
 
 	instance, err := NewInstance(data, cfg)

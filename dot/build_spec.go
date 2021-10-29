@@ -109,7 +109,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 
 	config := state.Config{
 		Path:     path,
-		LogLevel: log.LevelInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
 

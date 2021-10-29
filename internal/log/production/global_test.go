@@ -19,7 +19,7 @@ func Test_GlobalLogger(t *testing.T) {
 
 	Errorf("word %d", 1)
 
-	childLogger := NewFromGlobal(SetLevel(LevelError))
+	childLogger := NewFromGlobal(SetLevel(Error))
 
 	childLogger.Error("word 2")
 

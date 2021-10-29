@@ -154,7 +154,7 @@ func NewTestConfig(t *testing.T) *Config {
 			Name:     GssmrConfig().Global.Name,
 			ID:       GssmrConfig().Global.ID,
 			BasePath: dir,
-			LogLvl:   log.LevelInfo,
+			LogLvl:   log.Info,
 		},
 		Log:     GssmrConfig().Log,
 		Init:    GssmrConfig().Init,

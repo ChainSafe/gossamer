@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 		os.Remove(utils.ConfigNotAuthority)
 	}()
 
-	logLvl := log.LevelInfo
+	logLvl := log.Info
 	if utils.LOGLEVEL != "" {
 		var err error
 		logLvl, err = log.ParseLevel(utils.LOGLEVEL)
@@ -97,7 +97,7 @@ func TestRestartNode(t *testing.T) {
 
 func TestSync_SingleBlockProducer(t *testing.T) {
 	numNodes := 4
-	utils.Logger.Patch(log.SetLevel(log.LevelInfo))
+	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
 	//nolint
@@ -152,7 +152,7 @@ func TestSync_Basic(t *testing.T) {
 func TestSync_MultipleEpoch(t *testing.T) {
 	t.Skip("skipping TestSync_MultipleEpoch")
 	numNodes := 3
-	utils.Logger.Patch(log.SetLevel(log.LevelInfo))
+	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
@@ -184,7 +184,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 func TestSync_SingleSyncingNode(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_SingleSyncingNode")
-	utils.Logger.Patch(log.SetLevel(log.LevelInfo))
+	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node
 	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false, true)
@@ -210,7 +210,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 }
 
 func TestSync_Bench(t *testing.T) {
-	utils.Logger.Patch(log.SetLevel(log.LevelInfo))
+	utils.Logger.Patch(log.SetLevel(log.Info))
 	numBlocks := 64
 
 	// start block producing node
@@ -285,7 +285,7 @@ func TestSync_Restart(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_Restart")
 	numNodes := 3
-	utils.Logger.Patch(log.SetLevel(log.LevelInfo))
+	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
 	//nolint

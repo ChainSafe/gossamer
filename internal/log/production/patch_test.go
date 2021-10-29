@@ -22,7 +22,7 @@ func Test_Logger_Patch(t *testing.T) {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
-					level:  levelPtr(LevelInfo),
+					level:  levelPtr(Info),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(false, false, false),
 				},
@@ -31,7 +31,7 @@ func Test_Logger_Patch(t *testing.T) {
 			expectedLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
-					level:  levelPtr(LevelInfo),
+					level:  levelPtr(Info),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(false, false, false),
 				},
@@ -42,20 +42,20 @@ func Test_Logger_Patch(t *testing.T) {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: ioutil.Discard,
-					level:  levelPtr(LevelInfo),
+					level:  levelPtr(Info),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(false, false, false),
 				},
 				mutex: new(sync.Mutex),
 			},
 			options: []common.Option{
-				SetLevel(LevelWarn),
+				SetLevel(Warn),
 				SetCallerFile(true),
 			},
 			expectedLogger: &Logger{
 				settings: settings{
 					writer: ioutil.Discard,
-					level:  levelPtr(LevelWarn),
+					level:  levelPtr(Warn),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(true, false, false),
 				},

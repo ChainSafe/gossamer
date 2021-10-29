@@ -210,7 +210,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
-		LogLevel: log.LevelInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
 

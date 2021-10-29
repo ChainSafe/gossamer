@@ -34,7 +34,7 @@ func (s *settings) setDefaults() {
 	}
 
 	if s.level == nil {
-		value := LevelInfo
+		value := Info
 		s.level = &value
 	}
 

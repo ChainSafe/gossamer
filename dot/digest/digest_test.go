@@ -41,7 +41,7 @@ func newTestHandler(t *testing.T) *Handler {
 
 	config := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LevelInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()

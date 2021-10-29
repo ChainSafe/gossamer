@@ -82,7 +82,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 	scfg := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LevelInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
@@ -146,7 +146,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 	cfg.TransactionState = stateSrvc.Transaction
 	cfg.BabeVerifier = newMockBabeVerifier()
-	cfg.LogLvl = log.LevelTrace
+	cfg.LogLvl = log.Trace
 	cfg.FinalityGadget = newMockFinalityGadget()
 	cfg.Network = newMockNetwork()
 

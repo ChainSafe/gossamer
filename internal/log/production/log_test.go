@@ -24,36 +24,36 @@ func Test_Logger_log(t *testing.T) {
 		"log at trace": {
 			logger: &Logger{
 				settings: settings{
-					level:  levelPtr(LevelTrace),
+					level:  levelPtr(Trace),
 					caller: newCallerSettings(false, false, false),
 				},
 				mutex: new(sync.Mutex),
 			},
-			level:       LevelTrace,
+			level:       Trace,
 			s:           "some words",
 			outputRegex: timePrefixRegex + "TRCE some words\n$",
 		},
 		"do not log at trace": {
 			logger: &Logger{
 				settings: settings{
-					level:  levelPtr(LevelDebug),
+					level:  levelPtr(Debug),
 					caller: newCallerSettings(false, false, false),
 				},
 				mutex: new(sync.Mutex),
 			},
-			level:       LevelTrace,
+			level:       Trace,
 			s:           "some words",
 			outputRegex: "^$",
 		},
 		"format string": {
 			logger: &Logger{
 				settings: settings{
-					level:  levelPtr(LevelTrace),
+					level:  levelPtr(Trace),
 					caller: newCallerSettings(false, false, false),
 				},
 				mutex: new(sync.Mutex),
 			},
-			level:       LevelTrace,
+			level:       Trace,
 			s:           "some %s",
 			args:        []interface{}{"words"},
 			outputRegex: timePrefixRegex + "TRCE some words\n$",
@@ -61,19 +61,19 @@ func Test_Logger_log(t *testing.T) {
 		"show caller": {
 			logger: &Logger{
 				settings: settings{
-					level:  levelPtr(LevelTrace),
+					level:  levelPtr(Trace),
 					caller: newCallerSettings(true, true, true),
 				},
 				mutex: new(sync.Mutex),
 			},
-			level:       LevelTrace,
+			level:       Trace,
 			s:           "some words",
 			outputRegex: timePrefixRegex + "TRCE some words\tlog_test.go:L[0-9]+:func[0-9]+\n$",
 		},
 		"context": {
 			logger: &Logger{
 				settings: settings{
-					level:  levelPtr(LevelTrace),
+					level:  levelPtr(Trace),
 					caller: newCallerSettings(false, false, false),
 					context: []contextKeyValues{
 						{key: "key1", values: []string{"a", "b"}},
@@ -82,7 +82,7 @@ func Test_Logger_log(t *testing.T) {
 				},
 				mutex: new(sync.Mutex),
 			},
-			level:       LevelTrace,
+			level:       Trace,
 			s:           "some words",
 			outputRegex: timePrefixRegex + "TRCE some words\tkey1=a,b key2=c,d\n$",
 		},
@@ -119,7 +119,7 @@ func Test_Logger_LevelsLog(t *testing.T) {
 
 	buffer := bytes.NewBuffer(nil)
 
-	logger := New(SetLevel(LevelTrace), SetWriter(buffer))
+	logger := New(SetLevel(Trace), SetWriter(buffer))
 	logger.Trace("some trace")
 	logger.Debug("some debug")
 	logger.Info("some info")

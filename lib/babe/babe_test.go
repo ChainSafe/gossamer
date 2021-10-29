@@ -45,7 +45,7 @@ import (
 )
 
 var (
-	defaultTestLogLvl = log.LevelInfo
+	defaultTestLogLvl = log.Info
 	emptyHash         = trie.EmptyHash
 	testEpochIndex    = uint64(0)
 
@@ -111,7 +111,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
 		config := state.Config{
 			Path:     testDatadirPath,
-			LogLevel: log.LevelInfo,
+			LogLevel: log.Info,
 		}
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
@@ -185,7 +185,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 
 	config := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LevelInfo,
+		LogLevel: log.Info,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
@@ -377,7 +377,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 
 func TestStartAndStop(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.LevelCritical,
+		LogLvl: log.Critical,
 	})
 	err := bs.Start()
 	require.NoError(t, err)
@@ -387,7 +387,7 @@ func TestStartAndStop(t *testing.T) {
 
 func TestService_PauseAndResume(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.LevelCritical,
+		LogLvl: log.Critical,
 	})
 	err := bs.Start()
 	require.NoError(t, err)

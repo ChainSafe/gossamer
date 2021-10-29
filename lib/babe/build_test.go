@@ -157,7 +157,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 func TestBuildBlock_ok(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LevelInfo,
+		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -207,7 +207,7 @@ func TestBuildBlock_ok(t *testing.T) {
 func TestApplyExtrinsic(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LevelInfo,
+		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -298,7 +298,7 @@ func TestApplyExtrinsic(t *testing.T) {
 func TestBuildAndApplyExtrinsic(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LevelInfo,
+		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)
