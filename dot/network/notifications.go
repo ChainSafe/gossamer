@@ -349,7 +349,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 	err := s.host.writeToStream(hsData.stream, msg)
 	if err != nil {
-		logger.Trace("failed to send message to peer", "peer", peer, "error", err)
+		logger.Debug("failed to send message to peer", "peer", peer, "error", err)
 	}
 }
 

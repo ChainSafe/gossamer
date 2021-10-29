@@ -35,9 +35,6 @@ const (
 // Hash used to store a blake2b hash
 type Hash [32]byte
 
-// EmptyHash is an empty [32]byte{}
-var EmptyHash = Hash{}
-
 // NewHash casts a byte array to a Hash
 // if the input is longer than 32 bytes, it takes the first 32 bytes
 func NewHash(in []byte) (res Hash) {
@@ -68,6 +65,11 @@ func HashValidator(field reflect.Value) interface{} {
 // Equal compares two hashes
 func (h Hash) Equal(g Hash) bool {
 	return bytes.Equal(h[:], g[:])
+}
+
+// IsEmpty returns true if the hash is empty, false otherwise.
+func (h Hash) IsEmpty() bool {
+	return h == Hash{}
 }
 
 // String returns the hex string for the hash

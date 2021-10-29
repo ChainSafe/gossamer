@@ -105,25 +105,6 @@ type AuthorityRaw struct {
 	Weight uint64
 }
 
-// Decode will decode the Reader into a AuthorityRaw
-func (a *AuthorityRaw) Decode(r io.Reader) (*AuthorityRaw, error) {
-	id, err := common.Read32Bytes(r)
-	if err != nil {
-		return nil, err
-	}
-
-	weight, err := common.ReadUint64(r)
-	if err != nil {
-		return nil, err
-	}
-
-	a = new(AuthorityRaw)
-	a.Key = id
-	a.Weight = weight
-
-	return a, nil
-}
-
 // AuthoritiesToRaw converts an array of Authority in an array of AuthorityRaw
 func AuthoritiesToRaw(auths []Authority) []AuthorityRaw {
 	raw := make([]AuthorityRaw, len(auths))

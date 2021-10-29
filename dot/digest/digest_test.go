@@ -367,14 +367,19 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 }
 
 func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
-	babeHeader := types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{})
+	t.Helper()
 
-	enc := babeHeader.Encode()
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+
+	enc, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
 	d := &types.PreRuntimeDigest{
 		Data: enc,
 	}
 	digest := types.NewDigest()
-	err := digest.Add(*d)
+	err = digest.Add(*d)
 	require.NoError(t, err)
 
 	return &types.Header{

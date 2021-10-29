@@ -82,7 +82,9 @@ func TestAnnounceBlock(t *testing.T) {
 
 	// simulate block sent from BABE session
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
@@ -815,7 +817,7 @@ func TestGetReadProofAt(t *testing.T) {
 			storageState: mockStorageStage,
 		}
 
-		b, p, err := s.GetReadProofAt(common.EmptyHash, keysToProof)
+		b, p, err := s.GetReadProofAt(common.Hash{}, keysToProof)
 		require.NoError(t, err)
 		require.Equal(t, p, mockedProofs)
 		require.Equal(t, expectedBlockHash, b)
@@ -830,14 +832,14 @@ func TestGetReadProofAt(t *testing.T) {
 
 		mockBlockState := new(mocks.BlockState)
 		mockBlockState.On("GetBlockStateRoot", mockedBlockHash).
-			Return(common.EmptyHash, errors.New("problems while getting state root"))
+			Return(common.Hash{}, errors.New("problems while getting state root"))
 
 		s := &Service{
 			blockState: mockBlockState,
 		}
 
 		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
-		require.Equal(t, common.EmptyHash, b)
+		require.True(t, b.IsEmpty())
 		require.Nil(t, p)
 		require.Error(t, err)
 	})
@@ -860,7 +862,7 @@ func TestGetReadProofAt(t *testing.T) {
 		}
 
 		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
-		require.Equal(t, common.EmptyHash, b)
+		require.True(t, b.IsEmpty())
 		require.Nil(t, p)
 		require.Error(t, err)
 	})
