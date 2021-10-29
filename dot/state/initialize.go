@@ -17,7 +17,6 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"path/filepath"
 
@@ -139,9 +138,7 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 		return []types.GrandpaVoter{}, nil
 	}
 
-	r := &bytes.Buffer{}
-	_, _ = r.Write(authsRaw[1:])
-	return types.DecodeGrandpaVoters(r)
+	return types.DecodeGrandpaVoters(authsRaw[1:])
 }
 
 // storeInitialValues writes initial genesis values to the state database

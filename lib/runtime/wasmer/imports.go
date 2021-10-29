@@ -38,6 +38,7 @@ package wasmer
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_version_2(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(void *context, int32_t a, int32_t b);
+// extern int32_t ext_crypto_ecdsa_verify_version_2(void *context, int32_t a, int64_t b, int32_t c);
 // extern int32_t ext_crypto_sr25519_generate_version_1(void *context, int32_t a, int64_t b);
 // extern int64_t ext_crypto_sr25519_public_keys_version_1(void *context, int32_t a);
 // extern int64_t ext_crypto_sr25519_sign_version_1(void *context, int32_t a, int32_t b, int64_t c);
@@ -109,7 +110,6 @@ package wasmer
 import "C"
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -120,7 +120,6 @@ import (
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -234,10 +233,9 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	id := memory[keyTypeID : keyTypeID+4]
 	seedBytes := asMemorySlice(instanceContext, seedSpan)
-	buf := &bytes.Buffer{}
-	buf.Write(seedBytes)
 
-	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
 		return 0
@@ -245,8 +243,8 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	var kp crypto.Keypair
 
-	if seed.Exists() {
-		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	if seed != nil {
+		kp, err = ed25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
 		kp, err = ed25519.GenerateKeypair()
 	}
@@ -450,6 +448,56 @@ func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, m
 	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
 }
 
+//export ext_crypto_ecdsa_verify_version_2
+func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
+	logger.Trace("executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	message := asMemorySlice(instanceContext, msg)
+	signature := memory[sig : sig+64]
+	pubKey := memory[key : key+33]
+
+	pub := new(secp256k1.PublicKey)
+	err := pub.Decode(pubKey)
+	if err != nil {
+		logger.Error("failed to decode public key", "error", err)
+		return C.int32_t(0)
+	}
+
+	logger.Debug("", "pub", pub.Hex(),
+		"message", fmt.Sprintf("0x%x", message),
+		"signature", fmt.Sprintf("0x%x", signature),
+	)
+
+	hash, err := common.Blake2bHash(message)
+	if err != nil {
+		logger.Error("failed to hash message", "error", err)
+		return C.int32_t(0)
+	}
+
+	if sigVerifier.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      signature,
+			Msg:       hash[:],
+			KeyTypeID: crypto.Secp256k1Type,
+		}
+		sigVerifier.Add(&signature)
+		return C.int32_t(1)
+	}
+
+	if ok, err := pub.Verify(hash[:], signature); err != nil || !ok {
+		logger.Error("failed to validate signature", "error", err)
+		return C.int32_t(0)
+	}
+
+	logger.Debug("validated signature")
+	return C.int32_t(1)
+}
+
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
 func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
@@ -495,20 +543,18 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 	memory := instanceContext.Memory().Data()
 
 	id := memory[keyTypeID : keyTypeID+4]
-
 	seedBytes := asMemorySlice(instanceContext, seedSpan)
-	buf := &bytes.Buffer{}
-	buf.Write(seedBytes)
 
-	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warn("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
 		return 0
 	}
 
 	var kp crypto.Keypair
-	if seed.Exists() {
-		kp, err = sr25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	if seed != nil {
+		kp, err = sr25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
 		kp, err = sr25519.GenerateKeypair()
 	}
@@ -1122,10 +1168,9 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 
 	limitBytes := asMemorySlice(instanceContext, lim)
-	buf := &bytes.Buffer{}
-	buf.Write(limitBytes)
 
-	limit, err := optional.NewBytes(true, nil).Decode(buf)
+	var limit *[]byte
+	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
 		logger.Warn("[ext_default_child_storage_storage_kill_version_2] cannot generate limit", "error", err)
 		return 0
@@ -1143,19 +1188,66 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 	return 0
 }
 
-//export ext_default_child_storage_storage_kill_version_3
-func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int64_t {
-	logger.Debug("[ext_default_child_storage_storage_kill_version_3] executing...")
-	logger.Warn("[ext_default_child_storage_storage_kill_version_3] somewhat unimplemented")
-	// TODO: need to use `limit` parameter (#1793)
+type noneRemain uint32
+type someRemain uint32
 
+func (noneRemain) Index() uint {
+	return 0
+}
+func (someRemain) Index() uint {
+	return 1
+}
+
+//export ext_default_child_storage_storage_kill_version_3
+func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, lim C.int64_t) C.int64_t {
+	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
-
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
-	storage.DeleteChild(childStorageKey)
-	return 0
+
+	limitBytes := asMemorySlice(instanceContext, lim)
+
+	var limit *[]byte
+	err := scale.Unmarshal(limitBytes, &limit)
+	if err != nil {
+		logger.Warn("cannot generate limit", "error", err)
+	}
+
+	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
+	if err != nil {
+		logger.Warn("cannot get child storage", "error", err)
+		return C.int64_t(0)
+	}
+
+	vdt, err := scale.NewVaryingDataType(noneRemain(0), someRemain(0))
+	if err != nil {
+		logger.Warn("cannot create new varying data type", "error", err)
+	}
+
+	if all {
+		err = vdt.Set(noneRemain(deleted))
+	} else {
+		err = vdt.Set(someRemain(deleted))
+	}
+	if err != nil {
+		logger.Warn("cannot set varying data type", "error", err)
+		return C.int64_t(0)
+	}
+
+	encoded, err := scale.Marshal(vdt)
+	if err != nil {
+		logger.Warn("problem marshaling varying data type", "error", err)
+		return C.int64_t(0)
+	}
+
+	out, err := toWasmMemoryOptional(instanceContext, encoded)
+	if err != nil {
+		logger.Warn("failed to allocate", "error", err)
+		return 0
+	}
+
+	return C.int64_t(out)
 }
 
 //export ext_allocator_free_version_1
@@ -1932,14 +2024,13 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
-	var opt *optional.Bytes
-	if data == nil {
-		opt = optional.NewBytes(false, nil)
-	} else {
-		opt = optional.NewBytes(true, data)
+	var opt *[]byte
+	if data != nil {
+		temp := data
+		opt = &temp
 	}
 
-	enc, err := opt.Encode()
+	enc, err := scale.Marshal(opt)
 	if err != nil {
 		return 0, err
 	}
@@ -1966,31 +2057,27 @@ func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error
 
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int64, error) {
-	var opt *optional.Uint32
-	if data == nil {
-		opt = optional.NewUint32(false, 0)
-	} else {
-		opt = optional.NewUint32(true, *data)
+	var opt *uint32
+	if data != nil {
+		temp := *data
+		opt = &temp
 	}
 
-	enc := opt.Encode()
+	enc, err := scale.Marshal(opt)
+	if err != nil {
+		return int64(0), err
+	}
 	return toWasmMemory(context, enc)
 }
 
 // Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (int64, error) {
-	var opt *optional.FixedSizeBytes
-	if data == nil {
-		opt = optional.NewFixedSizeBytes(false, nil)
-	} else {
-		opt = optional.NewFixedSizeBytes(true, data)
-	}
-
-	enc, err := opt.Encode()
+	var opt [64]byte
+	copy(opt[:], data[:])
+	enc, err := scale.Marshal(&opt)
 	if err != nil {
 		return 0, err
 	}
-
 	return toWasmMemory(context, enc)
 }
 
@@ -2062,6 +2149,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2, C.ext_crypto_sr25519_verify_version_2)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_crypto_ecdsa_verify_version_2", ext_crypto_ecdsa_verify_version_2, C.ext_crypto_ecdsa_verify_version_2)
 	if err != nil {
 		return nil, err
 	}

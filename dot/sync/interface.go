@@ -29,6 +29,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+//go:generate mockery --name BlockState --structname BlockState --case underscore --keeptree
+
 // BlockState is the interface for the block state
 type BlockState interface {
 	BestBlockHash() common.Hash
@@ -55,6 +57,9 @@ type BlockState interface {
 	StoreRuntime(common.Hash, runtime.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
+	GetHeaderByNumber(num *big.Int) (*types.Header, error)
+	GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error)
+	IsDescendantOf(parent, child common.Hash) (bool, error)
 }
 
 // StorageState is the interface for the storage state
@@ -76,20 +81,28 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 }
 
+//go:generate mockery --name BabeVerifier --structname BabeVerifier --case underscore --keeptree
+
 // BabeVerifier deals with BABE block verification
 type BabeVerifier interface {
 	VerifyBlock(header *types.Header) error
 }
+
+//go:generate mockery --name FinalityGadget --structname FinalityGadget --case underscore --keeptree
 
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
 	VerifyBlockJustification(common.Hash, []byte) error
 }
 
+//go:generate mockery --name BlockImportHandler --structname BlockImportHandler --case underscore --keeptree
+
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
 	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }
+
+//go:generate mockery --name Network --structname Network --case underscore --keeptree
 
 // Network is the interface for the network
 type Network interface {

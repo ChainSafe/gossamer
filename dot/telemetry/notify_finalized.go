@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2021 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,9 +14,29 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package optional
+package telemetry
 
-import "errors"
+import (
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
-// ErrInvalidOptional is returned when decoding an optional fails
-var ErrInvalidOptional = errors.New("decoding failed, invalid optional")
+//nolint
+// notifyFinalizedTM holds `notify.finalized` telemetry message, which is
+// supposed to be send when a new block gets finalized.
+type notifyFinalizedTM struct {
+	Best common.Hash `json:"best"`
+	// Height is same as block.Header.Number
+	Height string `json:"height"`
+}
+
+// NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
+func NewNotifyFinalizedTM(best common.Hash, height string) Message {
+	return &notifyFinalizedTM{
+		Best:   best,
+		Height: height,
+	}
+}
+
+func (notifyFinalizedTM) messageType() string {
+	return notifyFinalizedMsg
+}

@@ -73,7 +73,7 @@ func claimPrimarySlot(randomness Randomness,
 // checkPrimaryThreshold returns true if the authority was authorized to produce a block in the given slot and epoch
 func checkPrimaryThreshold(randomness Randomness,
 	slot, epoch uint64,
-	output [sr25519.VrfOutputLength]byte,
+	output [sr25519.VRFOutputLength]byte,
 	threshold *common.Uint128,
 	pub *sr25519.PublicKey,
 ) bool {

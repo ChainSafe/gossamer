@@ -128,7 +128,7 @@ To start the polkadot node:
 
 ## Contribute
 
-- Check out [Contributing Guidelines](.github/CONTRIBUTING.md)  
+- Check out [Contributing Guidelines](.github/CONTRIBUTING.md) and our [code style](.github/CODE_STYLE.md) document
 - Have questions? Say hi on [Discord](https://discord.gg/Xdc5xjE)!
 
 ## Donate

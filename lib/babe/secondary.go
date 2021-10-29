@@ -68,25 +68,25 @@ func verifySecondarySlotVRF(digest *types.BabeSecondaryVRFPreDigest,
 	numAuths int,
 	randomness Randomness,
 ) (bool, error) {
-	expected, err := getSecondarySlotAuthor(digest.SlotNumber(), numAuths, randomness)
+	expected, err := getSecondarySlotAuthor(digest.SlotNumber, numAuths, randomness)
 	if err != nil {
 		return false, err
 	}
 
 	logger.Trace("verifySecondarySlotPlain",
-		"index", digest.AuthorityIndex(),
+		"index", digest.AuthorityIndex,
 		"pub", pk.Hex(),
 		"number of authorities", numAuths,
-		"slot", digest.SlotNumber(),
+		"slot", digest.SlotNumber,
 		"epoch", epoch,
 		"randomness", randomness,
 		"expected index", expected,
 	)
 
-	if digest.AuthorityIndex() != expected {
+	if digest.AuthorityIndex != expected {
 		return false, ErrBadSecondarySlotClaim
 	}
 
-	t := makeTranscript(randomness, digest.SlotNumber(), epoch)
-	return pk.VrfVerify(t, digest.VrfOutput(), digest.VrfProof())
+	t := makeTranscript(randomness, digest.SlotNumber, epoch)
+	return pk.VrfVerify(t, digest.VrfOutput, digest.VrfProof)
 }

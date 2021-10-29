@@ -83,36 +83,6 @@ require (
 	github.com/libp2p/go-libp2p-nat v0.0.6 // indirect
 	github.com/libp2p/go-libp2p-noise v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-peerstore v0.2.7
-	github.com/libp2p/go-libp2p-pnet v0.2.0 // indirect
-	github.com/libp2p/go-libp2p-record v0.1.3 // indirect
-	github.com/libp2p/go-libp2p-routing-helpers v0.2.3 // indirect
-	github.com/libp2p/go-libp2p-secio v0.2.2
-	github.com/libp2p/go-libp2p-swarm v0.5.0 // indirect
-	github.com/libp2p/go-libp2p-tls v0.1.3 // indirect
-	github.com/libp2p/go-libp2p-transport-upgrader v0.4.2 // indirect
-	github.com/libp2p/go-libp2p-yamux v0.5.4 // indirect
-	github.com/libp2p/go-maddr-filter v0.1.0 // indirect
-	github.com/libp2p/go-mplex v0.3.0 // indirect
-	github.com/libp2p/go-msgio v0.0.6 // indirect
-	github.com/libp2p/go-nat v0.0.5 // indirect
-	github.com/libp2p/go-netroute v0.1.6 // indirect
-	github.com/libp2p/go-openssl v0.0.7 // indirect
-	github.com/libp2p/go-reuseport v0.0.2 // indirect
-	github.com/libp2p/go-reuseport-transport v0.0.4 // indirect
-	github.com/libp2p/go-sockaddr v0.1.1 // indirect
-	github.com/libp2p/go-stream-muxer-multistream v0.3.0 // indirect
-	github.com/libp2p/go-tcp-transport v0.2.1 // indirect
-	github.com/libp2p/go-ws-transport v0.4.0 // indirect
-	github.com/libp2p/go-yamux/v2 v2.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/mattn/go-isatty v0.0.12 // indirect
-	github.com/miekg/dns v1.1.41 // indirect
-	github.com/mimoo/StrobeGo v0.0.0-20181016162300-f8f6d4d2b643 // indirect
-	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
-	github.com/minio/sha256-simd v0.1.1 // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/multiformats/go-base32 v0.0.3 // indirect
-	github.com/multiformats/go-base36 v0.1.0 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.3.1 // indirect
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
@@ -162,6 +132,38 @@ require (
 	google.golang.org/protobuf v1.26.0-rc.1
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+)
+
+require (
+	github.com/libp2p/go-libp2p-pnet v0.2.0 // indirect
+	github.com/libp2p/go-libp2p-record v0.1.3 // indirect
+	github.com/libp2p/go-libp2p-routing-helpers v0.2.3 // indirect
+	github.com/libp2p/go-libp2p-swarm v0.5.0 // indirect
+	github.com/libp2p/go-libp2p-tls v0.1.3 // indirect
+	github.com/libp2p/go-libp2p-transport-upgrader v0.4.2 // indirect
+	github.com/libp2p/go-libp2p-yamux v0.5.4 // indirect
+	github.com/libp2p/go-maddr-filter v0.1.0 // indirect
+	github.com/libp2p/go-mplex v0.3.0 // indirect
+	github.com/libp2p/go-msgio v0.0.6 // indirect
+	github.com/libp2p/go-nat v0.0.5 // indirect
+	github.com/libp2p/go-netroute v0.1.6 // indirect
+	github.com/libp2p/go-openssl v0.0.7 // indirect
+	github.com/libp2p/go-reuseport v0.0.2 // indirect
+	github.com/libp2p/go-reuseport-transport v0.0.4 // indirect
+	github.com/libp2p/go-sockaddr v0.1.1 // indirect
+	github.com/libp2p/go-stream-muxer-multistream v0.3.0 // indirect
+	github.com/libp2p/go-tcp-transport v0.2.1 // indirect
+	github.com/libp2p/go-ws-transport v0.4.0 // indirect
+	github.com/libp2p/go-yamux/v2 v2.2.0 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-isatty v0.0.12 // indirect
+	github.com/miekg/dns v1.1.41 // indirect
+	github.com/mimoo/StrobeGo v0.0.0-20181016162300-f8f6d4d2b643 // indirect
+	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
+	github.com/minio/sha256-simd v0.1.1 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
+	github.com/multiformats/go-base32 v0.0.3 // indirect
+	github.com/multiformats/go-base36 v0.1.0 // indirect
 )
 
 go 1.17
