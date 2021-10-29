@@ -427,10 +427,13 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness) // nolint
 
 	case *types.BabeSecondaryPlainPreDigest:
-		ok = true
-		if b.secondarySlots {
-			err = verifySecondarySlotPlain(d.AuthorityIndex, d.SlotNumber, len(b.authorities), b.randomness)
+		if !b.secondarySlots {
+			ok = false
+			break
 		}
+
+		ok = true
+		err = verifySecondarySlotPlain(d.AuthorityIndex, d.SlotNumber, len(b.authorities), b.randomness)
 	}
 
 	// verify that they are the slot winner

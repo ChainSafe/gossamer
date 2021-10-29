@@ -18,21 +18,20 @@ package babe
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
@@ -184,10 +183,13 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 
 	dig := createSecondaryVRFPreDigest(t, kp, 0, uint64(0), uint64(0), Randomness{})
 
+	digEnc, err := scale.Marshal(dig)
+	require.NoError(t, err)
+
 	// create pre-digest
 	preDigest := &types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              dig.Encode(),
+		Data:              digEnc,
 	}
 
 	// create new block header
@@ -206,7 +208,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	err = digest.Add(*seal)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(common.EmptyHash, common.EmptyHash, common.EmptyHash, number, digest)
+	header, err := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, number, digest)
 	require.NoError(t, err)
 
 	block := types.Block{
