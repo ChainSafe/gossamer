@@ -646,9 +646,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 
 	if req.Direction == network.Descending {
 		// reverse blocks before pre-validating and placing in ready queue
-		for i, j := 0, len(resp.BlockData)-1; i < j; i, j = i+1, j-1 {
-			resp.BlockData[i], resp.BlockData[j] = resp.BlockData[j], resp.BlockData[i]
-		}
+		reverseBlockData(resp.BlockData)
 	}
 
 	// perform some pre-validation of response, error if failure
@@ -891,16 +889,24 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 		}
 
 		var start *variadic.Uint64OrHash
-		if w.startHash.Equal(common.EmptyHash) {
+		if w.startHash.IsEmpty() {
 			// worker startHash is unspecified if we are in bootstrap mode
 			start, _ = variadic.NewUint64OrHash(startNumber)
 		} else {
 			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
 			start, _ = variadic.NewUint64OrHash(w.startHash)
+
+			// if we're doing descending requests and not at the last (highest starting) request,
+			// then use number as start block
+			if w.direction == network.Descending && i != numRequests-1 {
+				start = variadic.MustNewUint64OrHash(startNumber)
+			}
 		}
 
 		var end *common.Hash
-		if !w.targetHash.Equal(common.EmptyHash) {
+		if !w.targetHash.IsEmpty() && i == numRequests-1 {
+			// if we're on our last request (which should contain the target hash),
+			// then add it
 			end = &w.targetHash
 		}
 
@@ -911,7 +917,21 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 			Direction:     w.direction,
 			Max:           &max,
 		}
-		startNumber += maxResponseSize
+
+		switch w.direction {
+		case network.Ascending:
+			startNumber += maxResponseSize
+		case network.Descending:
+			startNumber -= maxResponseSize
+		}
+	}
+
+	// if our direction is descending, we want to send out the request with the lowest
+	// startNumber first
+	if w.direction == network.Descending {
+		for i, j := 0, len(reqs)-1; i < j; i, j = i+1, j-1 {
+			reqs[i], reqs[j] = reqs[j], reqs[i]
+		}
 	}
 
 	return reqs, nil

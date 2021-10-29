@@ -24,6 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -149,8 +151,11 @@ func TestEpochState_ConfigData(t *testing.T) {
 func TestEpochState_GetEpochForBlock(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	babeHeader := types.NewBabePrimaryPreDigest(0, s.epochLength+2, [32]byte{}, [64]byte{})
-	enc := babeHeader.Encode()
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, s.epochLength+2, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	enc, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
 	d := types.NewBABEPreRuntimeDigest(enc)
 	digest := types.NewDigest()
 	digest.Add(*d)
@@ -163,8 +168,11 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), epoch)
 
-	babeHeader = types.NewBabePrimaryPreDigest(0, s.epochLength*2+3, [32]byte{}, [64]byte{})
-	enc = babeHeader.Encode()
+	babeHeader = types.NewBabeDigest()
+	err = babeHeader.Set(*types.NewBabePrimaryPreDigest(0, s.epochLength*2+3, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	enc, err = scale.Marshal(babeHeader)
+	require.NoError(t, err)
 	d = types.NewBABEPreRuntimeDigest(enc)
 	digest2 := types.NewDigest()
 	digest2.Add(*d)

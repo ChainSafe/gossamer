@@ -17,7 +17,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -26,7 +25,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
@@ -197,18 +196,26 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			continue
 		}
 
-		r := &bytes.Buffer{}
-		_, _ = r.Write(predigest.Data)
-		digest, err := types.DecodeBabePreDigest(r)
+		digest, err := types.DecodeBabePreDigest(predigest.Data)
 		if err != nil {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
 		}
 
-		if digest.SlotNumber() < firstSlot {
+		var slotNumber uint64
+		switch d := digest.(type) {
+		case types.BabePrimaryPreDigest:
+			slotNumber = d.SlotNumber
+		case types.BabeSecondaryVRFPreDigest:
+			slotNumber = d.SlotNumber
+		case types.BabeSecondaryPlainPreDigest:
+			slotNumber = d.SlotNumber
+		}
+
+		if slotNumber < firstSlot {
 			return 0, nil
 		}
 
-		return (digest.SlotNumber() - firstSlot) / s.epochLength, nil
+		return (slotNumber - firstSlot) / s.epochLength, nil
 	}
 
 	return 0, errors.New("header does not contain pre-runtime digest")
@@ -218,7 +225,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	raw := info.ToEpochDataRaw()
 
-	enc, err := scale.Encode(raw)
+	enc, err := scale.Marshal(*raw)
 	if err != nil {
 		return err
 	}
@@ -233,14 +240,10 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 		return nil, err
 	}
 
-	info, err := scale.Decode(enc, &types.EpochDataRaw{})
+	raw := &types.EpochDataRaw{}
+	err = scale.Unmarshal(enc, raw)
 	if err != nil {
 		return nil, err
-	}
-
-	raw, ok := info.(*types.EpochDataRaw)
-	if !ok {
-		return nil, errors.New("failed to decode raw epoch data")
 	}
 
 	return raw.ToEpochData()
@@ -263,7 +266,7 @@ func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
 
 // SetConfigData sets the BABE config data for a given epoch
 func (s *EpochState) SetConfigData(epoch uint64, info *types.ConfigData) error {
-	enc, err := scale.Encode(info)
+	enc, err := scale.Marshal(*info)
 	if err != nil {
 		return err
 	}
@@ -289,12 +292,13 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 		return nil, err
 	}
 
-	info, err := scale.Decode(enc, new(types.ConfigData))
+	info := &types.ConfigData{}
+	err = scale.Unmarshal(enc, info)
 	if err != nil {
 		return nil, err
 	}
 
-	return info.(*types.ConfigData), nil
+	return info, nil
 }
 
 // GetLatestConfigData returns the most recently set ConfigData

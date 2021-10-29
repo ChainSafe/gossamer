@@ -122,6 +122,29 @@ func (_m *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 	return r0
 }
 
+// GetAllBlocksAtNumber provides a mock function with given fields: num
+func (_m *BlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) {
+	ret := _m.Called(num)
+
+	var r0 []common.Hash
+	if rf, ok := ret.Get(0).(func(*big.Int) []common.Hash); ok {
+		r0 = rf(num)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]common.Hash)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*big.Int) error); ok {
+		r1 = rf(num)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBlockBody provides a mock function with given fields: _a0
 func (_m *BlockState) GetBlockBody(_a0 common.Hash) (*types.Body, error) {
 	ret := _m.Called(_a0)
@@ -246,6 +269,29 @@ func (_m *BlockState) GetHeader(_a0 common.Hash) (*types.Header, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
 		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetHeaderByNumber provides a mock function with given fields: num
+func (_m *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
+	ret := _m.Called(num)
+
+	var r0 *types.Header
+	if rf, ok := ret.Get(0).(func(*big.Int) *types.Header); ok {
+		r0 = rf(num)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Header)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*big.Int) error); ok {
+		r1 = rf(num)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -403,6 +449,27 @@ func (_m *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
 		r1 = rf(hash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// IsDescendantOf provides a mock function with given fields: parent, child
+func (_m *BlockState) IsDescendantOf(parent common.Hash, child common.Hash) (bool, error) {
+	ret := _m.Called(parent, child)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(common.Hash, common.Hash) bool); ok {
+		r0 = rf(parent, child)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(common.Hash, common.Hash) error); ok {
+		r1 = rf(parent, child)
 	} else {
 		r1 = ret.Error(1)
 	}

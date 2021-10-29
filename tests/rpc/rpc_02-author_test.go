@@ -25,7 +25,6 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
@@ -99,7 +98,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
-	require.NotEqual(t, hash, common.Hash{})
+	require.NotEqual(t, types.Hash{}, hash)
 }
 
 func TestAuthorRPC(t *testing.T) {
