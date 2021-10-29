@@ -444,6 +444,16 @@ func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 	return bs.bt.AddBlock(header, arrivalTime)
 }
 
+// GetAllBlocksAtNumber returns all unfinalised blocks with the given number
+func (bs *BlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) {
+	header, err := bs.GetHeaderByNumber(num)
+	if err != nil {
+		return nil, err
+	}
+
+	return bs.GetAllBlocksAtDepth(header.ParentHash), nil
+}
+
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
 func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	return bs.bt.GetAllBlocksAtNumber(hash)
