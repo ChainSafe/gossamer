@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -195,6 +195,8 @@ func TestWSConn_HandleComm(t *testing.T) {
 	// test initExtrinsicWatch
 	wsconn.CoreAPI = modules.NewMockCoreAPI()
 	wsconn.BlockAPI = nil
+	TxStateAPI := modules.NewMockTransactionStateAPI()
+	wsconn.TxStateAPI = TxStateAPI
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
 	require.Nil(t, res)
