@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -72,11 +71,12 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 
 // GetAbsolutePath returns the completePath for a given targetDir
 func GetAbsolutePath(targetDir string) string {
-	dir, err := os.Getwd()
-	if err != nil {
-		panic("failed to get current working directory")
-	}
-	return path.Join(dir, targetDir)
+	// dir, err := os.Getwd()
+	// if err != nil {
+	// 	panic("failed to get current working directory")
+	// }
+	// return path.Join(dir, targetDir)
+	return targetDir
 }
 
 // GetRuntimeBlob checks if the test wasm @testRuntimeFilePath exists and if not, it fetches it from @testRuntimeURL

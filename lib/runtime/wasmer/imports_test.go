@@ -19,7 +19,7 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"os"
+	"fmt"
 	"sort"
 	"testing"
 
@@ -35,7 +35,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wasmerio/go-ext-wasm/wasmer"
@@ -45,19 +44,19 @@ var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
 
-func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
-		os.Exit(1)
-	}
+// func TestMain(m *testing.M) {
+// 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+// 	if err != nil {
+// 		log.Error("failed to generate runtime wasm file", err)
+// 		os.Exit(1)
+// 	}
 
-	// Start all tests
-	code := m.Run()
+// 	// Start all tests
+// 	code := m.Run()
 
-	runtime.RemoveFiles(wasmFilePaths)
-	os.Exit(code)
-}
+// 	runtime.RemoveFiles(wasmFilePaths)
+// 	os.Exit(code)
+// }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
@@ -230,6 +229,68 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 	val, err := inst.NodeStorage().LocalStorage.Get(testkey)
 	require.EqualError(t, err, "Key not found")
 	require.Nil(t, val)
+}
+
+func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	encMethod, err := scale.Marshal([]byte("GET"))
+	require.NoError(t, err)
+
+	encUri, err := scale.Marshal([]byte("https://chainsafe.io"))
+	require.NoError(t, err)
+
+	var optMeta *[]byte
+	encMeta, err := scale.Marshal(optMeta)
+	require.NoError(t, err)
+
+	params := append([]byte{}, encMethod...)
+	params = append(params, encUri...)
+	params = append(params, encMeta...)
+
+	inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	fmt.Println(ret)
+
+	reqID := scale.NewResult(int16(0), string(""))
+	err = scale.Unmarshal(ret, &reqID)
+	require.NoError(t, err)
+
+	fmt.Println(reqID)
+	require.NoError(t, err)
+
+	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	fmt.Println(ret)
+
+	reqID = scale.NewResult(int16(0), string(""))
+	err = scale.Unmarshal(ret, &reqID)
+	require.NoError(t, err)
+
+	fmt.Println(reqID)
+	require.NoError(t, err)
+	//require.Equal(t, int16(1), ok.(int16))
+
+	// ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	// require.NoError(t, err)
+
+	// err = scale.Unmarshal(ret, &reqID)
+	// require.NoError(t, err)
+
+	// fmt.Println(reqID, ret)
+	// require.Equal(t, int16(1), reqID)
+
+	// ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	// require.NoError(t, err)
+
+	// err = scale.Unmarshal(ret, &reqID)
+	// require.NoError(t, err)
+	// require.Equal(t, int16(2), reqID)
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {

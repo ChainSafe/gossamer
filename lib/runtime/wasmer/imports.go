@@ -48,7 +48,7 @@ package wasmer
 //
 // extern int32_t ext_trie_blake2_256_root_version_1(void *context, int64_t a);
 // extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
-// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
+// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int64_t a, int64_t b, int64_t c, int64_t d);
 //
 // extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
 // extern void ext_misc_print_hex_version_1(void *context, int64_t a);
@@ -128,6 +128,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -900,7 +901,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a, b, c, d C.int64_t) C.int32_t {
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
 	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
 	return 0
@@ -1684,37 +1685,45 @@ func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
 }
 
 //export ext_offchain_http_request_start_version_1
-func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpan, uriSpan, meta C.int64_t) C.int64_t {
+func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpan, uriSpan, metaSpan C.int64_t) C.int64_t {
 	logger.Debug("[ext_offchain_submit_transaction_version_1] executing...")
+
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	encHTTPMethod := asMemorySlice(instanceContext, methodSpan)
-	encURI := asMemorySlice(instanceContext, uriSpan)
-	encMetaParams := asMemorySlice(instanceContext, meta)
+	httpMethod := asMemorySlice(instanceContext, methodSpan)
+	uri := asMemorySlice(instanceContext, uriSpan)
 
-	var (
-		HTTPMethod string
-		URI        string
-		MetaParams []byte
-	)
-
-	if err := scale.Unmarshal(encHTTPMethod, &HTTPMethod); err != nil {
-		logger.Error("[ext_offchain_http_request_start_version_1] failed to decode http method data", "error", err)
+	reqID, err := offchain.HTTPSet.StartRequest(string(httpMethod), string(uri))
+	if err != nil {
+		logger.Error("[ext_offchain_http_request_start_version_1] failed to start request", "error", err)
+		ptr, _ := toWasmMemoryResult(instanceContext, nil)
+		return C.int64_t(ptr)
 	}
 
-	if err := scale.Unmarshal(encURI, &URI); err != nil {
-		logger.Error("[ext_offchain_http_request_start_version_1] failed to decode http method data", "error", err)
+	result := scale.NewResult(int16(0), string(""))
+	err = result.Set(scale.OK, reqID)
+
+	if err != nil {
+		logger.Error("[ext_offchain_http_request_start_version_1] failed to set request start result", "error", err)
+		ptr, _ := toWasmMemoryResult(instanceContext, nil)
+		return C.int64_t(ptr)
 	}
 
-	if err := scale.Unmarshal(encMetaParams, &MetaParams); err != nil {
-		logger.Error("[ext_offchain_http_request_start_version_1] failed to decode http method data", "error", err)
+	encResult, err := scale.Marshal(result)
+	if err != nil {
+		logger.Error("[ext_offchain_http_request_start_version_1] failed to encode request start result", "error", err)
+		ptr, _ := toWasmMemoryResult(instanceContext, nil)
+		return C.int64_t(ptr)
 	}
 
-	fmt.Println(HTTPMethod)
-	fmt.Println(HTTPMethod)
-	fmt.Println(MetaParams)
+	ptr, err := toWasmMemory(instanceContext, encResult)
+	if err != nil {
+		logger.Error("[ext_offchain_http_request_start_version_1] failed to create ptr", "error", err)
+		ptr, _ := toWasmMemoryResult(instanceContext, nil)
+		return C.int64_t(ptr)
+	}
 
-	return 0
+	return C.int64_t(ptr)
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
