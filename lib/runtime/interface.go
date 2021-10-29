@@ -19,11 +19,12 @@ package runtime
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
+
+//go:generate mockery --name Instance --structname Instance --case underscore --keeptree
 
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
@@ -69,7 +70,7 @@ type Storage interface {
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte)
 	DeleteChild(keyToChild []byte)
-	DeleteChildLimit(keyToChild []byte, limit *optional.Bytes) (uint32, bool, error)
+	DeleteChildLimit(keyToChild []byte, limit *[]byte) (uint32, bool, error)
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
@@ -93,6 +94,8 @@ type BasicStorage interface {
 	Get(key []byte) ([]byte, error)
 	Del(key []byte) error
 }
+
+//go:generate mockery --name TransactionState --structname TransactionState --case underscore --keeptree
 
 // TransactionState interface for adding transactions to pool
 type TransactionState interface {

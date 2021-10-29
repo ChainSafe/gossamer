@@ -149,6 +149,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 	// build block
 	block, err := babeService.buildBlock(parent, slot, rt)
 	require.NoError(t, err)
+
 	babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
 	return block, slot
 }
@@ -444,10 +445,10 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 
 	vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
 
-	body, err := ExtrinsicsToBody(inh, []*transaction.ValidTransaction{vtx})
+	body, err := extrinsicsToBody(inh, []*transaction.ValidTransaction{vtx})
 	require.Nil(t, err)
 	require.NotNil(t, body)
-	require.Len(t, *body, 3)
+	require.Len(t, body, 3)
 
 	contains, err := body.HasExtrinsic(ext)
 	require.Nil(t, err)

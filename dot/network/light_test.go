@@ -4,10 +4,46 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
+
+func TestEncodeLightRequest(t *testing.T) {
+	t.Parallel()
+	exp := common.MustHexToBytes("0x0000000000000000000000000000")
+
+	testLightRequest := NewLightRequest()
+	enc, err := testLightRequest.Encode()
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
+
+	testLightRequest2 := NewLightRequest()
+	err = testLightRequest2.Decode(enc)
+	require.NoError(t, err)
+	require.Equal(t, testLightRequest, testLightRequest2)
+}
+
+func TestEncodeLightResponse(t *testing.T) {
+	t.Parallel()
+	exp := common.MustHexToBytes("0x00000000000000")
+
+	testLightResponse := NewLightResponse()
+	enc, err := testLightResponse.Encode()
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
+
+	testLightResponse2 := NewLightResponse()
+	for i := range testLightResponse.RemoteHeaderResponse.Header {
+		testLightResponse.RemoteHeaderResponse.Header[i] = types.NewEmptyHeader()
+	}
+	err = testLightResponse2.Decode(enc)
+	require.NoError(t, err)
+	require.Equal(t, testLightResponse, testLightResponse2)
+}
 
 func TestDecodeLightMessage(t *testing.T) {
 	s := &Service{
@@ -83,35 +119,35 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	// Testing remoteCallResp()
 	msg = &LightRequest{
-		RmtCallRequest: &RemoteCallRequest{},
+		RemoteCallRequest: &RemoteCallRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteHeaderResp()
 	msg = &LightRequest{
-		RmtHeaderRequest: &RemoteHeaderRequest{},
+		RemoteHeaderRequest: &RemoteHeaderRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteChangeResp()
 	msg = &LightRequest{
-		RmtChangesRequest: &RemoteChangesRequest{},
+		RemoteChangesRequest: &RemoteChangesRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteReadResp()
 	msg = &LightRequest{
-		RmtReadRequest: &RemoteReadRequest{},
+		RemoteReadRequest: &RemoteReadRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteReadChildResp()
 	msg = &LightRequest{
-		RmtReadChildRequest: &RemoteReadChildRequest{},
+		RemoteReadChildRequest: &RemoteReadChildRequest{},
 	}
 	err = s.handleLightMsg(stream, msg)
 	require.Error(t, err, expectedErr, msg.String())

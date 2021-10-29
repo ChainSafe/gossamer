@@ -54,7 +54,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 
 	err = dbSrv.Start()
 	require.NoError(t, err)
-	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), genCfg)
+	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
 	require.NoError(t, err)
 
 	logger = log.New("pkg", "babe")
@@ -158,7 +158,6 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	vm := newTestVerificationManager(t, cfg)
 
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
-
 	err = vm.VerifyBlock(&block.Header)
 	require.NoError(t, err)
 }
@@ -290,7 +289,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ok, err := verifier.verifyPrimarySlotWinner(babeHeader.AuthorityIndex(), slot.number, babeHeader.VrfOutput(), babeHeader.VrfProof())
+	ok, err := verifier.verifyPrimarySlotWinner(babeHeader.AuthorityIndex, slot.number, babeHeader.VRFOutput, babeHeader.VRFProof)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
