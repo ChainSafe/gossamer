@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"errors"
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"net/http"
 	"testing"
@@ -144,10 +145,24 @@ func TestDevModule_SlotDuration(t *testing.T) {
 
 func TestDevModule_Control(t *testing.T) {
 	mockBlockProducerAPI := new(apimocks.BlockProducerAPI)
+	mockErrorBlockProducerAPI := new(apimocks.BlockProducerAPI)
 	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockErrorNetworkAPI := new(apimocks.NetworkAPI)
+
+	mockErrorBlockProducerAPI.On("Pause").Return(errors.New("babe pause error"))
+	mockBlockProducerAPI.On("Pause").Return(nil)
+
+	mockErrorBlockProducerAPI.On("Resume").Return(errors.New("babe resume error"))
+	mockBlockProducerAPI.On("Resume").Return(nil)
+
+	mockErrorNetworkAPI.On("Stop").Return(errors.New("network stop error"))
+	mockNetworkAPI.On("Stop").Return(nil)
+
+	mockErrorNetworkAPI.On("Start").Return(errors.New("network start error"))
+	mockNetworkAPI.On("Start").Return(nil)
 
 
-
+	var res string
 	type fields struct {
 		networkAPI       NetworkAPI
 		blockProducerAPI BlockProducerAPI
@@ -163,7 +178,123 @@ func TestDevModule_Control(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Not a BlockProducer",
+			fields: fields{
+				nil,
+				nil,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"babe", "stop"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Babe Stop Error",
+			fields: fields{
+				mockNetworkAPI,
+				mockErrorBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"babe", "stop"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Babe Stop OK",
+			fields: fields{
+				mockNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"babe", "stop"},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Babe Start Error",
+			fields: fields{
+				mockNetworkAPI,
+				mockErrorBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"babe", "start"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Babe Start OK",
+			fields: fields{
+				mockNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"babe", "start"},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Network Stop Error",
+			fields: fields{
+				mockErrorNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"network", "stop"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Network Stop OK",
+			fields: fields{
+				mockNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"network", "stop"},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Network Start Error",
+			fields: fields{
+				mockErrorNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"network", "start"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Network Start OK",
+			fields: fields{
+				mockNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				r : nil,
+				req: &[]string{"network", "start"},
+				res: &res,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
