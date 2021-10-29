@@ -472,7 +472,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	require.NoError(t, err, hashes)
 }
 
-func TestSync_SubmitAndWatchExtrinsic(t *testing.T) {
+func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	t.Log("starting gossamer...")
 
 	// index of node to submit tx to
@@ -551,6 +551,8 @@ func TestSync_SubmitAndWatchExtrinsic(t *testing.T) {
 	err = conn.WriteMessage(websocket.TextMessage, message)
 	require.NoError(t, err)
 
-	_, _, err = conn.ReadMessage()
+	var result []byte
+	_, result, err = conn.ReadMessage()
 	require.NoError(t, err)
+	fmt.Println("result:", result)
 }
