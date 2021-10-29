@@ -216,16 +216,7 @@ func (am *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyR
 
 // SubmitAndWatchExtrinsic Submit and subscribe to watch an extrinsic until unsubscribed
 func (am *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicStatus) error {
-	extBytes, err := common.HexToBytes(req.Data)
-	if err != nil {
-		return err
-	}
-	ext := types.Extrinsic(extBytes)
-	am.logger.Crit("[rpc]", "extrinsic", ext)
-
-	*res = ExtrinsicStatus{}
-	err = am.coreAPI.HandleSubmittedExtrinsic(ext)
-	return err
+	return nil
 }
 
 // SubmitExtrinsic Submit a fully formatted extrinsic for block inclusion

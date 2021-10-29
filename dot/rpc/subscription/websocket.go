@@ -391,7 +391,6 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 func (c *WSConn) safeSend(msg interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	fmt.Println("message", msg)
 	err := c.Wsconn.WriteJSON(msg)
 	if err != nil {
 		logger.Debug("error sending websocket message", "error", err)

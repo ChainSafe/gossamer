@@ -97,9 +97,6 @@ type ChainSync interface {
 	start()
 	stop()
 
-	GetReadyBlockNotifierChannel() chan *types.BlockData
-	FreeReadyBlockNotifierChannel(ch chan *types.BlockData)
-
 	// called upon receiving a BlockAnnounce
 	setBlockAnnounce(from peer.ID, header *types.Header) error
 
@@ -148,11 +145,6 @@ type chainSync struct {
 	// note: the block may have empty fields, as some data about it may be unknown
 	pendingBlocks DisjointBlockSet
 
-	readyChan map[chan *types.BlockData]struct{}
-	readyLock sync.RWMutex
-
-	futureChan chan *types.Block
-
 	// bootstrap or tip (near-head)
 	state chainSyncState
 
@@ -188,7 +180,6 @@ func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBl
 		finalisedCh:   bs.GetFinalisedNotifierChannel(),
 		minPeers:      minPeers,
 		slotDuration:  slotDuration,
-		readyChan:     make(map[chan *types.BlockData]struct{}),
 	}
 }
 
@@ -674,8 +665,6 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	for _, bd := range resp.BlockData {
 		// block is ready to be processed!
 		handleReadyBlock(bd, cs.pendingBlocks, cs.readyBlocks)
-		cs.notifyReady(bd)
-
 	}
 
 	return nil
@@ -700,49 +689,6 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 	for _, rb := range ready {
 		pendingBlocks.removeBlock(rb.Hash)
 		readyBlocks.push(rb)
-		scaleEncodedExtrinsics, err := rb.Body.AsEncodedExtrinsics()
-		if err != nil {
-			logger.Warn(err.Error())
-		}
-		for _, e := range scaleEncodedExtrinsics {
-			fmt.Printf("\nextrinsic %s\n", common.BytesToHex(e))
-		}
-	}
-}
-
-// DEFAULT_BUFFER_SIZE buffer size for channels
-const DEFAULT_BUFFER_SIZE = 128
-
-func (cs *chainSync) GetReadyBlockNotifierChannel() chan *types.BlockData {
-	cs.readyLock.Lock()
-	defer cs.readyLock.Unlock()
-
-	ch := make(chan *types.BlockData, DEFAULT_BUFFER_SIZE)
-	cs.readyChan[ch] = struct{}{}
-	return ch
-}
-
-func (cs *chainSync) FreeReadyBlockNotifierChannel(ch chan *types.BlockData) {
-	cs.readyLock.Lock()
-	defer cs.readyLock.Unlock()
-	delete(cs.readyChan, ch)
-}
-
-func (cs *chainSync) notifyReady(bd *types.BlockData) {
-	cs.readyLock.RLock()
-	defer cs.readyLock.RUnlock()
-
-	if len(cs.readyChan) == 0 {
-		return
-	}
-
-	for ch := range cs.readyChan {
-		go func(ch chan *types.BlockData) {
-			select {
-			case ch <- bd:
-			default:
-			}
-		}(ch)
 	}
 }
 

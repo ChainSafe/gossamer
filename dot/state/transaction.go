@@ -14,7 +14,6 @@ type TransactionState struct {
 	pool  *transaction.Pool
 
 	// notifierChannels channels are used to notify transaction status.
-	// Stringified extrinsics (i.e., string(extrinsic bytes)) are used as keys here.
 	notifierChannels map[chan transaction.StatusNotification]struct{}
 	notifierLock     sync.RWMutex
 }

@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -29,22 +28,17 @@ import (
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
-	fmt.Println("In ValidateTransaction ", common.BytesToHex(e))
 	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("ValidateTransaction2")
-
 	if ret[0] != 0 {
 		return nil, runtime.NewValidateTransactionError(ret)
 	}
-	fmt.Println("ValidateTransaction3")
 
 	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
 	err = scale.Unmarshal(ret[1:], v)
-	fmt.Println("ValidateTransaction4")
 
 	return v, err
 }
