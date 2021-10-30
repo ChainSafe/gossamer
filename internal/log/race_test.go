@@ -1,4 +1,4 @@
-package production
+package log
 
 import (
 	"bytes"
@@ -6,8 +6,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/ChainSafe/gossamer/internal/log/common"
 )
 
 func Test_Race(t *testing.T) {
@@ -23,7 +21,7 @@ func Test_Race(t *testing.T) {
 	childAA := childA.New()
 	childBA := childB.New()
 
-	loggers := []common.Logger{
+	loggers := []*Logger{
 		parent, childA, childB, childAA, childBA,
 	}
 
@@ -46,7 +44,7 @@ func Test_Race(t *testing.T) {
 	defer cancel()
 
 	for _, logger := range loggers {
-		go func(logger common.Logger) {
+		go func(logger *Logger) {
 			defer doneWait.Done()
 			readyWait.Done()
 			readyWait.Wait()

@@ -21,8 +21,7 @@ import (
 	"path"
 	"time"
 
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
@@ -61,7 +60,7 @@ var DefaultBootnodes = []string(nil)
 // Config is used to configure a network service
 type Config struct {
 	LogLvl  log.Level
-	logger  logc.Logger
+	logger  log.LeveledLogger
 	ErrChan chan<- error
 
 	// BasePath the data directory for the node

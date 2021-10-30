@@ -22,8 +22,7 @@ import (
 	"sync"
 	"time"
 
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 )
@@ -47,7 +46,7 @@ type telemetryConnection struct {
 type Handler struct {
 	msg                chan Message
 	connections        []*telemetryConnection
-	log                logc.Logger
+	log                log.LeveledLogger
 	sendMessageTimeout time.Duration
 	maxRetries         int
 	retryDelay         time.Duration

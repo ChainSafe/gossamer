@@ -27,8 +27,7 @@ import (
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ethereum/go-ethereum/metrics"
@@ -54,7 +53,7 @@ const (
 
 var (
 	_        services.Service = &Service{}
-	logger   logc.Logger      = log.NewFromGlobal(log.AddContext("pkg", "network"))
+	logger                    = log.NewFromGlobal(log.AddContext("pkg", "network"))
 	maxReads                  = 256
 )
 

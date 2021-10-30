@@ -1,4 +1,4 @@
-package production
+package log
 
 // Format is the format to use.
 type Format uint8

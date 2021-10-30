@@ -23,8 +23,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -32,8 +31,8 @@ import (
 var maxUint64 = uint64(math.MaxUint64)
 
 var (
-	_      services.Service = &Handler{}
-	logger logc.Logger      = log.NewFromGlobal(log.AddContext("pkg", "digest")) // TODO: add to config options (#1851)
+	_      services.Service  = &Handler{}
+	logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "digest")) // TODO: add to config options (#1851)
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA

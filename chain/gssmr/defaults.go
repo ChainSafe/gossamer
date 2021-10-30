@@ -19,7 +19,7 @@ package gssmr
 import (
 	"time"
 
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )

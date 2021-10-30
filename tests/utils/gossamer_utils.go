@@ -32,13 +32,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 // Logger is the utils package local logger.
-var Logger logc.Logger = log.NewFromGlobal(log.AddContext("pkg", "test/utils"))
+var Logger = log.NewFromGlobal(log.AddContext("pkg", "test/utils"))
 var maxRetries = 24
 
 var (

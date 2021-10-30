@@ -35,8 +35,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -45,7 +44,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
-var logger logc.Logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
 
 // Node is a container for all the components of a node.
 type Node struct {

@@ -22,8 +22,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -31,7 +30,7 @@ import (
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
-	logger     logc.Logger
+	logger     log.LeveledLogger
 	coreAPI    CoreAPI
 	txStateAPI TransactionStateAPI
 }
@@ -104,7 +103,7 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(logger logc.Logger, coreAPI CoreAPI, txStateAPI TransactionStateAPI) *AuthorModule {
+func NewAuthorModule(logger *log.Logger, coreAPI CoreAPI, txStateAPI TransactionStateAPI) *AuthorModule {
 	logger = logger.New(log.AddContext("service", "RPC"), log.AddContext("module", "author"))
 	return &AuthorModule{
 		logger:     logger,

@@ -26,8 +26,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -35,7 +34,7 @@ import (
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
-var logger logc.Logger = log.NewFromGlobal(log.AddContext("pkg", "babe"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "babe"))
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {

@@ -1,12 +1,4 @@
-package common
-
-// Logger is the interface encompassing all the methods of the logger.
-type Logger interface {
-	ChildConstructor
-	LoggerPatcher
-	LeveledLogger
-	LeveledFormatterLogger
-}
+package log
 
 // ChildConstructor is the interface to create child loggers.
 type ChildConstructor interface {
@@ -26,10 +18,6 @@ type LeveledLogger interface {
 	Warn(s string)
 	Error(s string)
 	Critical(s string)
-}
-
-// LeveledFormatterLogger is the interface to format and log at different levels.
-type LeveledFormatterLogger interface {
 	Tracef(format string, args ...interface{})
 	Debugf(format string, args ...interface{})
 	Infof(format string, args ...interface{})

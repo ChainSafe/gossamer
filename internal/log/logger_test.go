@@ -1,4 +1,4 @@
-package production
+package log
 
 import (
 	"io/ioutil"
@@ -6,7 +6,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/internal/log/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +13,7 @@ func Test_New(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		options        []common.Option
+		options        []Option
 		expectedLogger *Logger
 	}{
 		"no option": {
@@ -29,7 +28,7 @@ func Test_New(t *testing.T) {
 			},
 		},
 		"all options": {
-			options: []common.Option{
+			options: []Option{
 				SetLevel(Trace),
 				SetCallerFile(true),
 				SetCallerLine(true),
@@ -71,7 +70,7 @@ func Test_Logger_New(t *testing.T) {
 
 	testCases := map[string]struct {
 		initialLogger  *Logger
-		options        []common.Option
+		options        []Option
 		expectedLogger *Logger
 	}{
 		"no option": {
@@ -107,7 +106,7 @@ func Test_Logger_New(t *testing.T) {
 				},
 				mutex: new(sync.Mutex),
 			},
-			options: []common.Option{
+			options: []Option{
 				SetLevel(Trace),
 				SetCallerFunc(false),
 				SetFormat(FormatConsole),

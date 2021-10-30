@@ -23,8 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/urfave/cli"
@@ -42,7 +41,7 @@ const (
 
 // app is the cli application
 var app = cli.NewApp()
-var logger logc.Logger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
+var logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
 
 var (
 	// exportCommand defines the "export" subcommand (ie, `gossamer export`)

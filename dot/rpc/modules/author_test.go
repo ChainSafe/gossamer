@@ -9,8 +9,7 @@ import (
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -180,7 +179,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 143}
 
 	type fields struct {
-		logger     logc.Logger
+		logger     log.LeveledLogger
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -263,7 +262,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 	})
 
 	type fields struct {
-		logger     logc.Logger
+		logger     log.LeveledLogger
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -328,7 +327,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	mockCoreAPI.On("InsertKey", mock.Anything).Return(nil)
 
 	type fields struct {
-		logger     logc.Logger
+		logger     log.LeveledLogger
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -432,7 +431,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	}
 
 	type fields struct {
-		logger     logc.Logger
+		logger     log.LeveledLogger
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}

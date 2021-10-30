@@ -23,8 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -38,7 +37,7 @@ const (
 	substrateNumberLeaves          = "gossamer/substrate_number_leaves/metrics"
 )
 
-var logger logc.Logger = log.NewFromGlobal(
+var logger = log.NewFromGlobal(
 	log.AddContext("pkg", "state"),
 )
 

@@ -25,7 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )

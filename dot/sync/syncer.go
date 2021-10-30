@@ -23,12 +23,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var logger logc.Logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {

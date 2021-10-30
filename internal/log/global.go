@@ -1,17 +1,15 @@
-package production
-
-import "github.com/ChainSafe/gossamer/internal/log/common"
+package log
 
 // TODO do not use a global logger.
 var globalLogger = New()
 
 // NewFromGlobal creates a child logger from the global logger.
-func NewFromGlobal(options ...common.Option) common.Logger {
+func NewFromGlobal(options ...Option) *Logger {
 	return globalLogger.New(options...)
 }
 
-// Patch patches the global package productionger.
-func Patch(options ...common.Option) {
+// Patch patches the global logger.
+func Patch(options ...Option) {
 	globalLogger.Patch(options...)
 }
 

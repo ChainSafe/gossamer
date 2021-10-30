@@ -1,10 +1,8 @@
-package production
+package log
 
 import (
 	"io"
 	"os"
-
-	"github.com/ChainSafe/gossamer/internal/log/common"
 )
 
 type settings struct {
@@ -21,7 +19,7 @@ type contextKeyValues struct {
 }
 
 // newSettings returns settings using the options given.
-func newSettings(options []common.Option) (settings settings) {
+func newSettings(options []Option) (settings settings) {
 	for _, option := range options {
 		option(&settings)
 	}

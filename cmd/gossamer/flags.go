@@ -18,7 +18,7 @@ package main
 
 import (
 	"github.com/ChainSafe/gossamer/chain/dev"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/urfave/cli"
 )
 

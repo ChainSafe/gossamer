@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -257,7 +257,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.LevelInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 				NoTelemetry:    false,

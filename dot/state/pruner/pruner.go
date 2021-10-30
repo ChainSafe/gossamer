@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -66,7 +66,7 @@ type deathRow []*deathRecord
 
 // FullNode stores state trie diff and allows online state trie pruning
 type FullNode struct {
-	logger        logc.Logger
+	logger        log.LeveledLogger
 	deathList     []deathRow
 	storageDB     chaindb.Database
 	journalDB     chaindb.Database
@@ -99,7 +99,7 @@ func newJournalRecord(hash common.Hash, insertedKeys, deletedKeys []common.Hash)
 }
 
 // NewFullNode creates a Pruner for full node.
-func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l logc.Logger) (Pruner, error) {
+func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.LeveledLogger) (Pruner, error) {
 	p := &FullNode{
 		deathList:    make([]deathRow, 0),
 		deathIndex:   make(map[common.Hash]int64),

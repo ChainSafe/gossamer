@@ -24,8 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
-	logc "github.com/ChainSafe/gossamer/internal/log/common"
-	log "github.com/ChainSafe/gossamer/internal/log/production"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/go-playground/validator/v10"
@@ -36,7 +35,7 @@ import (
 
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
-	logger       logc.Logger
+	logger       *log.Logger
 	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
 	wsConns      []*subscription.WSConn
@@ -86,7 +85,7 @@ func (h *HTTPServerConfig) exposeRPC() bool {
 	return h.RPCExternal || h.RPCUnsafeExternal
 }
 
-var logger logc.Logger
+var logger *log.Logger
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {

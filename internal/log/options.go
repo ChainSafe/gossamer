@@ -1,61 +1,57 @@
-package production
+package log
 
 import (
 	"io"
-
-	"github.com/ChainSafe/gossamer/internal/log/common"
 )
+
+// Option is the type to specify settings modifier
+// for the logger operation.
+type Option func(s *settings)
 
 // SetLevel sets the level for the logger.
 // The level defaults to the lowest level, trce.
-func SetLevel(level Level) common.Option {
-	return func(sIntf interface{}) {
-		s := sIntf.(*settings)
+func SetLevel(level Level) Option {
+	return func(s *settings) {
 		s.level = &level
 	}
 }
 
 // SetCallerFile enables or disables logging the caller file.
 // The default is disabled.
-func SetCallerFile(enabled bool) common.Option {
-	return func(sIntf interface{}) {
-		s := sIntf.(*settings)
+func SetCallerFile(enabled bool) Option {
+	return func(s *settings) {
 		s.caller.file = &enabled
 	}
 }
 
 // SetCallerLine enables or disables logging the caller line number.
 // The default is disabled.
-func SetCallerLine(enabled bool) common.Option {
-	return func(sIntf interface{}) {
-		s := sIntf.(*settings)
+func SetCallerLine(enabled bool) Option {
+	return func(s *settings) {
 		s.caller.line = &enabled
 	}
 }
 
 // SetCallerFunc enables or disables logging the caller function.
 // The default is disabled.
-func SetCallerFunc(enabled bool) common.Option {
-	return func(sIntf interface{}) {
-		s := sIntf.(*settings)
+func SetCallerFunc(enabled bool) Option {
+	return func(s *settings) {
 		s.caller.funC = &enabled
 	}
 }
 
 // SetFormat set the format for the logger.
 // The format defaults to FormatConsole.
-func SetFormat(format Format) common.Option {
-	return func(sIntf interface{}) {
-		s := sIntf.(*settings)
+func SetFormat(format Format) Option {
+	return func(s *settings) {
 		s.format = &format
 	}
 }
 
 // SetWriter set the writer for the logger.
 // The writer defaults to os.Stdout.
-func SetWriter(writer io.Writer) common.Option {
-	return func(sIntf interface{}) {
-		s := sIntf.(*settings)
+func SetWriter(writer io.Writer) Option {
+	return func(s *settings) {
 		s.writer = writer
 	}
 }
@@ -63,9 +59,8 @@ func SetWriter(writer io.Writer) common.Option {
 // AddContext adds the context for the logger as a key values pair.
 // It adds them in order. If a key already exists, the value is added to the
 // existing values.
-func AddContext(key, value string) common.Option {
-	return func(sIntf interface{}) {
-		s := sIntf.(*settings)
+func AddContext(key, value string) Option {
+	return func(s *settings) {
 		for i := range s.context {
 			if s.context[i].key == key {
 				s.context[i].values = append(s.context[i].values, value)
