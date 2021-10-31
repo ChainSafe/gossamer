@@ -1700,7 +1700,7 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 		return C.int64_t(ptr)
 	}
 
-	result := scale.NewResult(int16(0), string(""))
+	result := scale.NewResult(int16(0), nil)
 	err = result.Set(scale.OK, reqID)
 
 	if err != nil {

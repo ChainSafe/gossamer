@@ -19,7 +19,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"sort"
 	"testing"
 
@@ -248,49 +247,40 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	params = append(params, encUri...)
 	params = append(params, encMeta...)
 
-	inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
-	require.NoError(t, err)
+	resReqID := scale.NewResult(int16(0), nil)
 
+	// start request number 0
 	ret, err := inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
 	require.NoError(t, err)
 
-	fmt.Println(ret)
-
-	reqID := scale.NewResult(int16(0), string(""))
-	err = scale.Unmarshal(ret, &reqID)
+	err = scale.Unmarshal(ret, &resReqID)
 	require.NoError(t, err)
 
-	fmt.Println(reqID)
+	requestNumber, err := resReqID.Unwrap()
 	require.NoError(t, err)
+	require.Equal(t, int16(0), requestNumber)
 
+	// start request number 1
 	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
 	require.NoError(t, err)
 
-	fmt.Println(ret)
-
-	reqID = scale.NewResult(int16(0), string(""))
-	err = scale.Unmarshal(ret, &reqID)
+	err = scale.Unmarshal(ret, &resReqID)
 	require.NoError(t, err)
 
-	fmt.Println(reqID)
+	requestNumber, err = resReqID.Unwrap()
 	require.NoError(t, err)
-	//require.Equal(t, int16(1), ok.(int16))
+	require.Equal(t, int16(1), requestNumber)
 
-	// ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
-	// require.NoError(t, err)
+	// start request number 2
+	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
 
-	// err = scale.Unmarshal(ret, &reqID)
-	// require.NoError(t, err)
+	err = scale.Unmarshal(ret, &resReqID)
+	require.NoError(t, err)
 
-	// fmt.Println(reqID, ret)
-	// require.Equal(t, int16(1), reqID)
-
-	// ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
-	// require.NoError(t, err)
-
-	// err = scale.Unmarshal(ret, &reqID)
-	// require.NoError(t, err)
-	// require.Equal(t, int16(2), reqID)
+	requestNumber, err = resReqID.Unwrap()
+	require.NoError(t, err)
+	require.Equal(t, int16(2), requestNumber)
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
