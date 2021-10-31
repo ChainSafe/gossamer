@@ -46,7 +46,7 @@ const (
 
 	// v0.8 test API wasm
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
-	HOST_API_TEST_RUNTIME_FP  = "/Users/eclesiojunior/w3f/eclesio-polkaspec/test/runtimes/hostapi/target/release/wbuild/hostapi-runtime/hostapi_runtime.compact.wasm"
+	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
 	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/80fa2be272820731b5159e9dc2a3eec3cca02b4d/test/hostapi_runtime.compact.wasm?raw=true"
 
 	// v0.8 substrate runtime with modified name and babe C=(1, 1)

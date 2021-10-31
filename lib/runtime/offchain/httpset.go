@@ -52,6 +52,7 @@ func (p *Set) Remove(id int) {
 	p.reqs = append(p.reqs[:id], p.reqs[id+1:]...)
 }
 
+// Get returns a request or nil if request not found
 func (p *Set) Get(id int) *http.Request {
 	if len(p.reqs) <= id {
 		return nil

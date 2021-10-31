@@ -19,6 +19,7 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
+	"os"
 	"sort"
 	"testing"
 
@@ -34,6 +35,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wasmerio/go-ext-wasm/wasmer"
@@ -43,19 +45,19 @@ var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
 
-// func TestMain(m *testing.M) {
-// 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-// 	if err != nil {
-// 		log.Error("failed to generate runtime wasm file", err)
-// 		os.Exit(1)
-// 	}
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
 
-// 	// Start all tests
-// 	code := m.Run()
+	// Start all tests
+	code := m.Run()
 
-// 	runtime.RemoveFiles(wasmFilePaths)
-// 	os.Exit(code)
-// }
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
