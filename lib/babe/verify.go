@@ -408,7 +408,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 	var (
 		ok bool
 	)
-
+fmt.Printf("d type %T\n", babePreDigest)
 	switch d := babePreDigest.(type) {
 	case types.BabePrimaryPreDigest:
 		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex, d.SlotNumber, d.VRFOutput, d.VRFProof)
