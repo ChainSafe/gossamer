@@ -157,6 +157,8 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 
 // handleTick traverses the pending blocks set to find which forks still need to be requested
 func (s *tipSyncer) handleTick() ([]*worker, error) {
+	logger.Debug("handling tick...", "pending blocks count", s.pendingBlocks.size())
+
 	if s.pendingBlocks.size() == 0 {
 		return nil, nil
 	}
@@ -180,6 +182,8 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			s.pendingBlocks.removeBlock(block.hash)
 			continue
 		}
+
+		logger.Trace("handling pending block", "hash", block.hash, "number", block.number)
 
 		if block.header == nil {
 			// case 1
