@@ -5,6 +5,9 @@ package modules
 
 import (
 	"errors"
+	"net/http"
+	"testing"
+
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -12,8 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"testing"
 )
 
 func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
