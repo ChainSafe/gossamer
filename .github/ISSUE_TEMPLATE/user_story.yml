@@ -3,12 +3,19 @@ description: Create a user story
 title: "User story: FILL-ME-PLEASE"
 labels: ["Status: Needs Triage"]
 body:
-  - type: input
+  - type: dropdown
     id: role
     attributes:
       label: As a
+      options:
+        - Polkadot implementer (Default)
+        - Polkadot node operator
+        - Blockchain developer
+        - Dapp developer
+        - Authority node in a parachain
+        - Relay node in a relay chain
       description: |
-        Describe the role you would play for this user story
+        Describe the role you would play for this user story.
     validations:
       required: true
   - type: input
