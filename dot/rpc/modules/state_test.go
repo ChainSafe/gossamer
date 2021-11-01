@@ -480,14 +480,13 @@ func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
 	coreAPIMock := new(mocks.CoreAPI)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
-		Return(common.EmptyHash, nil, errors.New("mocked error"))
+		Return(common.Hash{}, nil, errors.New("mocked error"))
 
 	sm := new(StateModule)
 	sm.coreAPI = coreAPIMock
 
 	req := &StateGetReadProofRequest{
 		Keys: []string{},
-		Hash: common.EmptyHash,
 	}
 	err := sm.GetReadProof(nil, req, nil)
 	require.Error(t, err, "mocked error")
@@ -507,7 +506,6 @@ func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 
 	req := &StateGetReadProofRequest{
 		Keys: []string{},
-		Hash: common.EmptyHash,
 	}
 
 	res := new(StateGetReadProofResponse)
