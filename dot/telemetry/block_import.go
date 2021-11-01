@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2021 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,12 +14,30 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package scale
+package telemetry
 
-func reverseBytes(a []byte) []byte {
-	for i := len(a)/2 - 1; i >= 0; i-- {
-		opp := len(a) - 1 - i
-		a[i], a[opp] = a[opp], a[i]
+import (
+	"math/big"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+)
+
+// blockImportTM struct to hold block import telemetry messages
+type blockImportTM struct {
+	BestHash *common.Hash `json:"best"`
+	Height   *big.Int     `json:"height"`
+	Origin   string       `json:"origin"`
+}
+
+// NewBlockImportTM function to create new Block Import Telemetry Message
+func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) Message {
+	return &blockImportTM{
+		BestHash: bestHash,
+		Height:   height,
+		Origin:   origin,
 	}
-	return a
+}
+
+func (blockImportTM) messageType() string {
+	return blockImportMsg
 }

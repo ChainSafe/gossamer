@@ -22,7 +22,7 @@ import (
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
-	libp2pdiscovery "github.com/libp2p/go-libp2p/p2p/discovery"
+	libp2pdiscovery "github.com/libp2p/go-libp2p/p2p/discovery/mdns_legacy"
 )
 
 // MDNSPeriod is 1 minute

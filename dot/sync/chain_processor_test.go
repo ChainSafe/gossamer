@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
@@ -218,9 +217,10 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 func TestChainProcessor_HandleJustification(t *testing.T) {
 	syncer := newTestSyncer(t)
 
-	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
 	digest := types.NewDigest()
-	err := digest.Add(d)
+	err = digest.Add(d)
 	require.NoError(t, err)
 
 	header := &types.Header{
@@ -251,8 +251,7 @@ func TestChainProcessor_processReadyBlocks_errFailedToGetParent(t *testing.T) {
 	defer processor.cancel()
 
 	header := &types.Header{
-		ParentHash: common.EmptyHash,
-		Number:     big.NewInt(1),
+		Number: big.NewInt(1),
 	}
 
 	processor.readyBlocks.push(&types.BlockData{
