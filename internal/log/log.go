@@ -13,7 +13,7 @@ func (l *Logger) log(logLevel Level, s string, args ...interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if *l.settings.level > logLevel {
+	if *l.settings.level < logLevel {
 		return
 	}
 

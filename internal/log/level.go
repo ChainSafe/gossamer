@@ -12,18 +12,18 @@ import (
 type Level uint8
 
 const (
-	// Trace is the trace (trce) level.
-	Trace Level = iota
-	// Debug is the debug (dbug) level.
-	Debug
-	// Info is the info level.
-	Info
-	// Warn is the warn level.
-	Warn
+	// Critical is the cirtical (crit) level.
+	Critical Level = iota
 	// Error is the error (eror) level.
 	Error
-	// Critical is the cirtical (crit) level.
-	Critical
+	// Warn is the warn level.
+	Warn
+	// Info is the info level.
+	Info
+	// Debug is the debug (dbug) level.
+	Debug
+	// Trace is the trace (trce) level.
+	Trace
 	// DoNotChange indicates the level of the logger should be
 	// left as is.
 	DoNotChange Level = Level(^uint8(0))

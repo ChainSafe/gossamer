@@ -45,6 +45,18 @@ func Test_Logger_log(t *testing.T) {
 			s:           "some words",
 			outputRegex: "^$",
 		},
+		"log at debug with trace set": {
+			logger: &Logger{
+				settings: settings{
+					level:  levelPtr(Trace),
+					caller: newCallerSettings(false, false, false),
+				},
+				mutex: new(sync.Mutex),
+			},
+			level:       Debug,
+			s:           "some words",
+			outputRegex: timePrefixRegex + "DBUG some words\n$",
+		},
 		"format string": {
 			logger: &Logger{
 				settings: settings{
