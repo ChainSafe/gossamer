@@ -84,7 +84,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetKeysRequest{
 					Key:    []byte(":child_storage_key"),
 					Prefix: []byte{},
@@ -101,7 +101,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetKeysRequest{
 					Key:    []byte(":child_storage_key"),
 					Prefix: []byte{},
@@ -118,7 +118,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetKeysRequest{
 					Key:    []byte{},
 					Prefix: []byte{},
@@ -135,7 +135,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetKeysRequest{
 					Key:    []byte(":child_storage_key"),
 					Prefix: []byte{},
@@ -203,11 +203,11 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetChildStorageRequest{
-					KeyChild:    []byte(":child_storage_key"),
+					KeyChild: []byte(":child_storage_key"),
 					EntryKey: []byte(":child_first"),
-					Hash:   nil,
+					Hash:     nil,
 				},
 				res: &res,
 			},
@@ -220,11 +220,11 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetChildStorageRequest{
-					KeyChild:    []byte(":child_storage_key"),
+					KeyChild: []byte(":child_storage_key"),
 					EntryKey: []byte(":child_first"),
-					Hash:   &hash,
+					Hash:     &hash,
 				},
 				res: &res,
 			},
@@ -237,11 +237,11 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetChildStorageRequest{
-					KeyChild:    []byte{},
+					KeyChild: []byte{},
 					EntryKey: []byte{},
-					Hash:   &hash,
+					Hash:     &hash,
 				},
 				res: &res,
 			},
@@ -254,11 +254,11 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetChildStorageRequest{
-					KeyChild:    []byte{},
+					KeyChild: []byte{},
 					EntryKey: []byte{},
-					Hash:   &hash,
+					Hash:     &hash,
 				},
 				res: &res,
 			},
@@ -322,11 +322,11 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetStorageHash{
-					KeyChild:    []byte(":child_storage_key"),
+					KeyChild: []byte(":child_storage_key"),
 					EntryKey: []byte(":child_first"),
-					Hash:   nil,
+					Hash:     nil,
 				},
 				res: &res,
 			},
@@ -339,11 +339,11 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetStorageHash{
-					KeyChild:    []byte(":child_storage_key"),
+					KeyChild: []byte(":child_storage_key"),
 					EntryKey: []byte(":child_first"),
-					Hash:   &hash,
+					Hash:     &hash,
 				},
 				res: &res,
 			},
@@ -356,11 +356,11 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetStorageHash{
-					KeyChild:    []byte{},
+					KeyChild: []byte{},
 					EntryKey: []byte{},
-					Hash:   &hash,
+					Hash:     &hash,
 				},
 				res: &res,
 			},
@@ -373,11 +373,11 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &GetStorageHash{
-					KeyChild:    []byte{},
+					KeyChild: []byte{},
 					EntryKey: []byte{},
-					Hash:   &hash,
+					Hash:     &hash,
 				},
 				res: &res,
 			},
@@ -441,11 +441,11 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &ChildStateStorageRequest{
-					ChildStorageKey:    []byte(":child_storage_key"),
-					Key: []byte(":child_first"),
-					Hash:   nil,
+					ChildStorageKey: []byte(":child_storage_key"),
+					Key:             []byte(":child_first"),
+					Hash:            nil,
 				},
 				res: &res,
 			},
@@ -458,11 +458,11 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &ChildStateStorageRequest{
-					ChildStorageKey:    []byte(":child_storage_key"),
-					Key: []byte(":child_first"),
-					Hash:   &hash,
+					ChildStorageKey: []byte(":child_storage_key"),
+					Key:             []byte(":child_first"),
+					Hash:            &hash,
 				},
 				res: &res,
 			},
@@ -475,11 +475,11 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &ChildStateStorageRequest{
-					ChildStorageKey:    []byte{},
-					Key: []byte{},
-					Hash:   &hash,
+					ChildStorageKey: []byte{},
+					Key:             []byte{},
+					Hash:            &hash,
 				},
 				res: &res,
 			},
@@ -492,11 +492,11 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0 : nil,
+				in0: nil,
 				req: &ChildStateStorageRequest{
-					ChildStorageKey:    []byte{},
-					Key: []byte{},
-					Hash:   &hash,
+					ChildStorageKey: []byte{},
+					Key:             []byte{},
+					Hash:            &hash,
 				},
 				res: &res,
 			},
