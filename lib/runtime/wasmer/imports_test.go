@@ -58,6 +58,35 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func Test_ext_offchain_timestamp_version_1(t *testing.T) {
+	t.Skip()
+	// TODO: Fix me: https://github.com/ChainSafe/gossamer/issues/1902
+	// inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	// runtimeFunc, ok := inst.vm.Imports["rtm_ext_offchain_timestamp_version_1"]
+	// require.True(t, ok)
+
+	// res, err := runtimeFunc(0, 0)
+	// require.NoError(t, err)
+
+	// expected := time.Now().Unix()
+	// require.GreaterOrEqual(t, expected, res.ToI64())
+
+	// _, err := inst.Exec("rtm_ext_offchain_timestamp_version_1", nil)
+	// require.NoError(t, err)
+}
+
+func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
+	t.Skip()
+	// TODO: Fix me: https://github.com/ChainSafe/gossamer/issues/1902
+	// inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	// enc := make([]byte, 8)
+	// binary.LittleEndian.PutUint64(enc, uint64(time.Now().UnixMilli()))
+
+	// _, err := inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc)
+	// require.NoError(t, err)
+}
+
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -1295,8 +1324,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
-	var val *[]byte // nolint
-	val = nil
+	var val *[]byte = nil
 	optLimit, err := scale.Marshal(val)
 	require.NoError(t, err)
 

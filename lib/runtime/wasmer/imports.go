@@ -116,6 +116,7 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"time"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -1663,16 +1664,20 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 }
 
 //export ext_offchain_timestamp_version_1
-func ext_offchain_timestamp_version_1(context unsafe.Pointer) C.int64_t {
+func ext_offchain_timestamp_version_1(_ unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_offchain_timestamp_version_1] executing...")
-	logger.Warn("[ext_offchain_timestamp_version_1] unimplemented")
-	return 0
+	now := time.Now().Unix()
+
+	return C.int64_t(now)
 }
 
 //export ext_offchain_sleep_until_version_1
 func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
-	logger.Trace("executing...")
-	logger.Warn("unimplemented")
+	logger.Trace("[ext_offchain_sleep_until_version_1] executing...")
+	dur := time.Until(time.UnixMilli(int64(deadline)))
+	if dur > 0 {
+		time.Sleep(dur)
+	}
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
