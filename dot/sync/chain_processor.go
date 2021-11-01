@@ -94,6 +94,7 @@ func (s *chainProcessor) processReadyBlocks() {
 			continue
 		}
 
+		logger.Trace("processing block data", "hash", bd.Hash)
 		if err := s.processBlockData(bd); err != nil {
 			logger.Error("ready block failed", "hash", bd.Hash, "error", err)
 
@@ -113,16 +114,17 @@ func (s *chainProcessor) processReadyBlocks() {
 // processBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
+	defer func() {
+		logger.Info("returning from processBlockData", "hash", bd.Hash)
+	}()
+
 	if bd == nil {
 		return ErrNilBlockData
 	}
 
-	err := s.blockState.CompareAndSetBlockData(bd)
-	if err != nil {
-		return fmt.Errorf("failed to compare and set data: %w", err)
-	}
-
+	logger.Info("processBlockData HasHeader")
 	hasHeader, _ := s.blockState.HasHeader(bd.Hash)
+	logger.Info("processBlockData hasBody")
 	hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 	if hasHeader && hasBody {
 		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
@@ -166,8 +168,10 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		return nil
 	}
 
+	logger.Debug("processBlockData: processing block", "hash", bd.Hash)
+
 	if bd.Header != nil && bd.Body != nil {
-		if err = s.handleHeader(bd.Header); err != nil {
+		if err := s.handleHeader(bd.Header); err != nil {
 			return err
 		}
 
@@ -178,9 +182,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			Body:   *bd.Body,
 		}
 
-		logger.Debug("processing block", "hash", bd.Hash)
-
-		if err = s.handleBlock(block); err != nil {
+		if err := s.handleBlock(block); err != nil {
 			logger.Error("failed to handle block", "number", block.Header.Number, "error", err)
 			return err
 		}
@@ -191,6 +193,10 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if bd.Justification != nil && bd.Header != nil {
 		logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
 		s.handleJustification(bd.Header, *bd.Justification)
+	}
+
+	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
+		return fmt.Errorf("failed to compare and set data: %w", err)
 	}
 
 	return nil
