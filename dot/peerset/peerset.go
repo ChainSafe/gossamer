@@ -175,7 +175,7 @@ func NewConfigSet(in, out uint32, reservedOnly bool, allocTime time.Duration) *C
 
 func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 	if len(cfg.Set) == 0 {
-		return nil, errConfigSetIsEmpty
+		return nil, ErrConfigSetIsEmpty
 	}
 
 	peerState, err := NewPeerState(cfg.Set)
@@ -567,7 +567,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 	for _, pid := range peers {
 		connectionStatus := state.peerStatus(setIdx, pid)
 		if connectionStatus != connectedPeer {
-			return errDisconnectReceivedForNonConnectedPeer
+			return ErrDisconnectReceivedForNonConnectedPeer
 		}
 
 		n := state.nodes[pid]

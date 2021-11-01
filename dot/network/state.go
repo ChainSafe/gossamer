@@ -68,28 +68,28 @@ type PeerSetHandler interface {
 	Start()
 	Stop()
 	ReportPeer(peerset.ReputationChange, ...peer.ID)
-	PeerAdder
-	PeerRemover
-	PeerGetter
+	PeerAdd
+	PeerRemove
+	Peer
 }
 
-// PeerAdder is the interface used by the PeerSetHandler to add peers in peerSet.
-type PeerAdder interface {
+// PeerAdd is the interface used by the PeerSetHandler to add peers in peerSet.
+type PeerAdd interface {
 	Incoming(int, ...peer.ID)
 	AddReservedPeer(int, ...peer.ID)
 	AddPeer(int, ...peer.ID)
 	SetReservedPeer(int, ...peer.ID)
 }
 
-// PeerRemover is the interface used by the PeerSetHandler to remove peers from peerSet.
-type PeerRemover interface {
+// PeerRemove is the interface used by the PeerSetHandler to remove peers from peerSet.
+type PeerRemove interface {
 	DisconnectPeer(int, ...peer.ID)
 	RemoveReservedPeer(int, ...peer.ID)
 	RemovePeer(int, ...peer.ID)
 }
 
-// PeerGetter is the interface used by the PeerSetHandler to get the peer data from peerSet.
-type PeerGetter interface {
+// Peer is the interface used by the PeerSetHandler to get the peer data from peerSet.
+type Peer interface {
 	PeerReputation(peer.ID) (peerset.Reputation, error)
 	SortedPeers(idx int) chan peer.IDSlice
 	Messages() chan interface{}

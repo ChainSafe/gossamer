@@ -94,7 +94,7 @@ func (*ConnManager) UpsertTag(peer.ID, string, func(int) int) {}
 func (*ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo { return &connmgr.TagInfo{} }
 
 // TrimOpenConns peer
-func (*ConnManager) TrimOpenConns(_ context.Context) {}
+func (*ConnManager) TrimOpenConns(context.Context) {}
 
 // Protect peer will add the given peer to the protectedPeerMap which will
 // protect the peer from pruning.

@@ -8,6 +8,8 @@ import (
 )
 
 func TestFullSlotIn(t *testing.T) {
+	t.Parallel()
+
 	state := newTestPeerState(t, 1, 1)
 
 	// initially peer1 state will be unknownPeer.
@@ -34,6 +36,8 @@ func TestFullSlotIn(t *testing.T) {
 }
 
 func TestNoSlotNodeDoesntOccupySlot(t *testing.T) {
+	t.Parallel()
+
 	state := newTestPeerState(t, 1, 1)
 
 	// peer1 will not occupy any slot.
@@ -70,6 +74,8 @@ func TestNoSlotNodeDoesntOccupySlot(t *testing.T) {
 }
 
 func TestDisconnectingFreeSlot(t *testing.T) {
+	t.Parallel()
+
 	state := newTestPeerState(t, 1, 1)
 
 	// initially peer1 state will be unknownPeer.
@@ -101,6 +107,8 @@ func TestDisconnectingFreeSlot(t *testing.T) {
 }
 
 func TestDisconnectNoSlotDoesntPanic(t *testing.T) {
+	t.Parallel()
+
 	state := newTestPeerState(t, 1, 1)
 
 	state.addNoSlotNode(0, peer1)
@@ -120,6 +128,8 @@ func TestDisconnectNoSlotDoesntPanic(t *testing.T) {
 }
 
 func TestHighestNotConnectedPeer(t *testing.T) {
+	t.Parallel()
+
 	state := newTestPeerState(t, 25, 25)
 	emptyPeerID := peer.ID("")
 
@@ -178,6 +188,8 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 }
 
 func TestSortedPeers(t *testing.T) {
+	t.Parallel()
+
 	const msgChanSize = 1
 	state := newTestPeerState(t, 2, 1)
 

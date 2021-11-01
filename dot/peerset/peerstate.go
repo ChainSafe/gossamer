@@ -1,7 +1,6 @@
 package peerset
 
 import (
-	"errors"
 	"math"
 	"sort"
 	"time"
@@ -50,7 +49,7 @@ type Info struct {
 	// Note for future readers: this module is purely dedicated to managing slots.
 	// If you are considering adding more features, please consider doing so outside this module rather
 	// than inside.
-	noSlotNodes map[peer.ID]interface{}
+	noSlotNodes map[peer.ID]struct{}
 }
 
 // node represents state of a single node that we know about
@@ -112,22 +111,22 @@ func (ps *PeersState) getNode(p peer.ID) (*node, error) {
 		return n, nil
 	}
 
-	return nil, errPeerDoesNotExist
+	return nil, ErrPeerDoesNotExist
 }
 
 // NewPeerState initiates a new PeersState
-func NewPeerState(set []*config) (*PeersState, error) {
-	if len(set) == 0 {
-		return nil, errConfigSetIsEmpty
+func NewPeerState(cfgs []*config) (*PeersState, error) {
+	if len(cfgs) == 0 {
+		return nil, ErrConfigSetIsEmpty
 	}
-	infoSet := make([]Info, 0, len(set))
-	for _, cfg := range set {
+	infoSet := make([]Info, 0, len(cfgs))
+	for _, cfg := range cfgs {
 		info := Info{
 			numIn:       0,
 			numOut:      0,
 			maxIn:       cfg.inPeers,
 			maxOut:      cfg.outPeers,
-			noSlotNodes: make(map[peer.ID]interface{}),
+			noSlotNodes: make(map[peer.ID]struct{}),
 		}
 
 		infoSet = append(infoSet, info)
@@ -186,7 +185,7 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 	var ss []kv
 	for k, v := range ps.nodes {
 		state := v.state[idx]
-		if isConnected(state) {
+		if isPeerConnected(state) {
 			ss = append(ss, kv{k, v})
 		}
 	}
@@ -290,8 +289,8 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 			info.numIn--
 		case outgoing:
 			info.numOut--
-		case notMember, notConnected:
-			return errPeerDisconnected
+		default:
+			return ErrPeerDisconnected
 		}
 	}
 
@@ -362,7 +361,7 @@ func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 	}
 
 	if !ps.hasFreeOutgoingSlot(setID) && !isNoSlotOccupied {
-		return errSlotsUnavailable
+		return ErrOutgoingSlotsUnavailable
 	}
 
 	n, err := ps.getNode(peerID)
@@ -390,7 +389,7 @@ func (ps *PeersState) tryAcceptIncoming(setID int, peerID peer.ID) error {
 
 	// if slot is not available and the node is not a reserved node then error
 	if ps.hasFreeIncomingSlot(setID) && !isNoSlotOccupied {
-		return errors.New("not enough incoming slots")
+		return ErrIncomingSlotsUnavailable
 	}
 
 	n, err := ps.getNode(peerID)
@@ -408,7 +407,7 @@ func (ps *PeersState) tryAcceptIncoming(setID int, peerID peer.ID) error {
 	return nil
 }
 
-// isConnected returns true if peer is connected else false
-func isConnected(state MembershipState) bool {
+// isPeerConnected returns true if peer is connected else false
+func isPeerConnected(state MembershipState) bool {
 	return state == ingoing || state == outgoing
 }

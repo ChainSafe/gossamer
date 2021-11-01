@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
+const (
 	bootNode      = peer.ID("testBootNode")
 	reservedPeer  = peer.ID("testReservedPeer")
 	reservedPeer2 = peer.ID("testReservedPeer2")
