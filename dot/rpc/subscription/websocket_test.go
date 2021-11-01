@@ -215,10 +215,6 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
 
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
-
 	mockedJust := grandpa.Justification{
 		Round: 1,
 		Commit: grandpa.Commit{

@@ -70,7 +70,7 @@ func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) 
 		return nil, nil, errCannotReadFromWebsocket
 	}
 
-	logger.Trace("websocket received", "message", mbytes)
+	logger.Trace("websocket received", "message", string(mbytes))
 
 	// determine if request is for subscribe method type
 	var msg map[string]interface{}

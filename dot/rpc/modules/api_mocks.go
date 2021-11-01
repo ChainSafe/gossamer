@@ -49,6 +49,7 @@ func NewMockTransactionStateAPI() *modulesmocks.TransactionStateAPI {
 	m := new(modulesmocks.TransactionStateAPI)
 	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.StatusNotification"))
 	m.On("GetStatusNotifierChannel").Return(make(chan transaction.StatusNotification))
+	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{})
 	return m
 }
 
