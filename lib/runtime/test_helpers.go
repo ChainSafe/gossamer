@@ -80,27 +80,24 @@ func GetAbsolutePath(targetDir string) string {
 }
 
 // GetRuntimeBlob checks if the test wasm @testRuntimeFilePath exists and if not, it fetches it from @testRuntimeURL
-func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err error) {
+func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 	if utils.PathExists(testRuntimeFilePath) {
-		return 0, nil
+		return nil
 	}
-
-	out, err := os.Create(testRuntimeFilePath)
-	if err != nil {
-		return 0, err
-	}
-
-	defer out.Close()
 
 	/* #nosec */
-	resp, err := http.Get(testRuntimeURL)
+	resp, err := http.DefaultClient.Get(testRuntimeURL)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint
 
-	return io.Copy(out, resp.Body)
+	return ioutil.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
 }
 
 // TestRuntimeNetwork ...
@@ -147,11 +144,12 @@ func GenerateRuntimeWasmFile() ([]string, error) {
 	var wasmFilePaths []string
 	for _, rt := range runtimes {
 		testRuntimeFilePath, testRuntimeURL := GetRuntimeVars(rt)
-		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
-		_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+		err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 		if err != nil {
 			return nil, err
 		}
+
+		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
 	}
 	return wasmFilePaths, nil
 }
