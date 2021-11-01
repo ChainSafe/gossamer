@@ -1501,6 +1501,8 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "*-test-trie")
 	require.NoError(t, err)
 
+	defer os.RemoveAll(tmp)
+
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
 		InMemory: true,
 		DataDir:  tmp,
