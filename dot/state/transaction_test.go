@@ -82,7 +82,7 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go func(futureCount int, readyCount int) {
+	go func() {
 		defer wg.Done()
 		for status := range notifierChannel {
 			if status.Status == transaction.Future.String() {
@@ -92,7 +92,7 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 				readyCount++
 			}
 		}
-	}(futureCount, readyCount)
+	}()
 
 	dummyTransactions := make([]*transaction.ValidTransaction, expectedFutureCount)
 
