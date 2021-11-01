@@ -31,6 +31,10 @@ run:
 
 # all available settings of specific linters
 linters-settings:
+  govet:
+    # report about shadowed variables
+    check-shadowing: true
+
   maligned:
     # print struct with more effective memory layout or not, false by default
     suggest-new: true
@@ -112,6 +116,10 @@ issues:
     - text: "exported: exported var Err*"
       linters:
         - revive
+
+    - text: "shadow: declaration of \"err\" shadows declaration*"
+      linters:
+        - govet
 
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
