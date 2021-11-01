@@ -3,7 +3,6 @@ package state
 import (
 	"math/rand"
 	"sort"
-	"sync"
 	"testing"
 	"time"
 
@@ -80,20 +79,6 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 	expectedFutureCount := rand.Intn(10) + 10
 	expectedReadyCount := rand.Intn(5) + 5
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for status := range notifierChannel {
-			if status.Status == transaction.Future.String() {
-				futureCount++
-			}
-			if status.Status == transaction.Ready.String() {
-				readyCount++
-			}
-		}
-	}()
-
 	dummyTransactions := make([]*transaction.ValidTransaction, expectedFutureCount)
 
 	for i := 0; i < expectedFutureCount; i++ {
@@ -113,7 +98,14 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	close(notifierChannel)
 
-	wg.Wait()
+	for status := range notifierChannel {
+		if status.Status == transaction.Future.String() {
+			futureCount++
+		}
+		if status.Status == transaction.Ready.String() {
+			readyCount++
+		}
+	}
 
 	require.Equal(t, expectedFutureCount, futureCount)
 	require.Equal(t, expectedReadyCount, readyCount)
