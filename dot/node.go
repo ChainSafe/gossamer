@@ -358,7 +358,18 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
 
-	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
+	var telemetryEndpoints []*genesis.TelemetryEndpoint
+	if len(cfg.Global.TelemetryURLs) == 0 {
+		telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
+
+	} else {
+		telemetryURLs := cfg.Global.TelemetryURLs
+		for i := range telemetryURLs {
+			telemetryEndpoints = append(telemetryEndpoints, &telemetryURLs[i])
+		}
+	}
+
+	telemetry.GetInstance().AddConnections(telemetryEndpoints)
 	genesisHash := stateSrvc.Block.GenesisHash()
 	err = telemetry.GetInstance().SendMessage(telemetry.NewSystemConnectedTM(
 		cfg.Core.GrandpaAuthority,
