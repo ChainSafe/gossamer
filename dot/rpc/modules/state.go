@@ -405,7 +405,7 @@ func (sm *StateModule) GetStorageSize(_ *http.Request, req *StateStorageSizeRequ
 
 // QueryStorage isn't implemented properly yet.
 func (sm *StateModule) QueryStorage(_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
-	if req.StartBlock == common.EmptyHash {
+	if req.StartBlock.IsEmpty() {
 		return errors.New("the start block hash cannot be an empty value")
 	}
 

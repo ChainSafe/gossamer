@@ -19,6 +19,7 @@ package gssmr
 import (
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	log "github.com/ChainSafe/log15"
 )
@@ -45,6 +46,9 @@ var (
 	DefaultPruningMode = "archive"
 	// DefaultRetainBlocks is the default retained blocks
 	DefaultRetainBlocks = int64(512)
+
+	// DefaultTelemetryURLs is the default URL of the telemetry server to connect to.
+	DefaultTelemetryURLs []genesis.TelemetryEndpoint
 
 	// InitConfig
 

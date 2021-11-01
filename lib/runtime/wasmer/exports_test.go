@@ -330,9 +330,8 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 
 	genesisHeader := &types.Header{
-		ParentHash: common.Hash{},
-		Number:     big.NewInt(0),
-		StateRoot:  genTrie.MustHash(),
+		Number:    big.NewInt(0),
+		StateRoot: genTrie.MustHash(),
 	}
 
 	ext := createTestExtrinsic(t, rt, genesisHeader.Hash(), 0)
@@ -540,8 +539,11 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Ha
 
 	res.Number = header.Number
 
-	babeDigest := types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{})
-	data := babeDigest.Encode()
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()
@@ -558,8 +560,8 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Ha
 	require.Equal(t, expected.ParentHash, res.ParentHash)
 	require.Equal(t, expected.Number, res.Number)
 	require.Equal(t, expected.Digest, res.Digest)
-	require.NotEqual(t, common.Hash{}, res.StateRoot)
-	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
+	require.False(t, res.StateRoot.IsEmpty())
+	require.False(t, res.ExtrinsicsRoot.IsEmpty())
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 
 	return &types.Block{
