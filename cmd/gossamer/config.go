@@ -421,7 +421,9 @@ func setDotInitConfig(ctx *cli.Context, tomlCfg ctoml.InitConfig, cfg *dot.InitC
 
 func setDotGlobalConfig(ctx *cli.Context, tomlConfig *ctoml.Config, cfg *dot.GlobalConfig) error {
 	setDotGlobalConfigFromToml(tomlConfig, cfg)
-	setDotGlobalConfigFromFlags(ctx, cfg)
+	if err := setDotGlobalConfigFromFlags(ctx, cfg); err != nil {
+		return fmt.Errorf("could not set global config from flags: %w", err)
+	}
 
 	if err := setDotGlobalConfigName(ctx, tomlConfig, cfg); err != nil {
 		return fmt.Errorf("could not set global node name: %w", err)
@@ -460,7 +462,7 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 }
 
 // setDotGlobalConfigFromFlags sets dot.GlobalConfig using flag values from the cli context
-func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
+func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error {
 	// check --basepath flag and update node configuration
 	if basepath := ctx.GlobalString(BasePathFlag.Name); basepath != "" {
 		cfg.BasePath = basepath
@@ -488,6 +490,28 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)
 	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
+
+	var telemetryEndpoints []genesis.TelemetryEndpoint
+	for _, telemetryURL := range ctx.GlobalStringSlice(TelemetryURLFlag.Name) {
+		splits := strings.Split(telemetryURL, " ")
+		if len(splits) != 2 {
+			return fmt.Errorf("%s must be in the format 'URL VERBOSITY'", TelemetryURLFlag.Name)
+		}
+
+		verbosity, err := strconv.Atoi(splits[1])
+		if err != nil {
+			return fmt.Errorf("could not parse verbosity from %s: %w", TelemetryURLFlag.Name, err)
+		}
+
+		telemetryEndpoints = append(telemetryEndpoints, genesis.TelemetryEndpoint{
+			Endpoint:  splits[0],
+			Verbosity: verbosity,
+		})
+	}
+
+	cfg.TelemetryURLs = telemetryEndpoints
+
+	return nil
 }
 
 func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) error {
