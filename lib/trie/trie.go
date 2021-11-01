@@ -527,6 +527,8 @@ func (t *Trie) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
 	return l - limit, allDeleted
 }
 
+// clearPrefixLimit deletes the keys having the prefix till limit reached and returns updated trie root node,
+// true if any node in the trie got updated, and next bool returns true if there is no keys left with prefix.
 func (t *Trie) clearPrefixLimit(cn node, prefix []byte, limit *uint32) (node, bool, bool) {
 	curr := t.maybeUpdateGeneration(cn)
 
