@@ -57,6 +57,9 @@ type BlockState interface {
 	StoreRuntime(common.Hash, runtime.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
+	GetHeaderByNumber(num *big.Int) (*types.Header, error)
+	GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error)
+	IsDescendantOf(parent, child common.Hash) (bool, error)
 }
 
 // StorageState is the interface for the storage state
