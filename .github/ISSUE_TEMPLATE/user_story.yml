@@ -1,0 +1,27 @@
+name: User story
+description: Create a user story
+title: "User story: FILL-ME-PLEASE"
+labels: ["Status: Needs Triage"]
+body:
+  - type: input
+    id: role
+    attributes:
+      label: As a
+      description: |
+        Describe the role you would play for this user story
+    validations:
+      required: true
+  - type: input
+    id: wantto
+    attributes:
+      label: I want to
+      placeholder: "Develop this new feature and change this"
+    validations:
+      required: true
+  - type: input
+    id: because
+    attributes:
+      label: Because
+      placeholder: "Because I need to do something"
+    validations:
+      required: true
