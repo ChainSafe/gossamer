@@ -1542,25 +1542,24 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	proof, err := trie.GenerateProof(root, keys, memdb)
 	require.NoError(t, err)
 
-	testcases := []struct {
-		name             string
+	testcases := map[string]struct {
 		root, key, value []byte
 		proof            [][]byte
 		expect           bool
 	}{
-		{name: "Proof should be true", root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
-		{name: "Root empty, proof should be false", root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
-		{name: "Other root, proof should be false", root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
-		{name: "Value empty, proof should be true", root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
-		{name: "Unknow key, proof should be false", root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
-		{name: "Key and value unknow, proof should be false", root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
-		{name: "Empty proof, should be false", root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
+		"Proof should be true":                        {root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+		"Root empty, proof should be false":           {root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		"Other root, proof should be false":           {root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		"Value empty, proof should be true":           {root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+		"Unknow key, proof should be false":           {root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+		"Key and value unknow, proof should be false": {root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+		"Empty proof, should be false":                {root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}
 
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	for _, testcase := range testcases {
-		t.Run(testcase.name, func(t *testing.T) {
+	for name, testcase := range testcases {
+		t.Run(name, func(t *testing.T) {
 			hashEnc, err := scale.Marshal(testcase.root)
 			require.NoError(t, err)
 
