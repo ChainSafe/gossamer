@@ -80,17 +80,17 @@ var ErrLevelNotRecognised = errors.New("level is not recognised")
 // error if it fails.
 func ParseLevel(s string) (level Level, err error) {
 	switch strings.ToUpper(s) {
-	case Trace.String():
+	case Trace.String(), "TRACE":
 		return Trace, nil
-	case Debug.String():
+	case Debug.String(), "DEBUG":
 		return Debug, nil
 	case Info.String():
 		return Info, nil
 	case Warn.String():
 		return Warn, nil
-	case Error.String():
+	case Error.String(), "ERROR":
 		return Error, nil
-	case Critical.String():
+	case Critical.String(), "CRITICAL":
 		return Critical, nil
 	}
 	return 0, fmt.Errorf("%w: %s", ErrLevelNotRecognised, s)
