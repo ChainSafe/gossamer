@@ -89,21 +89,18 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err er
 	if err != nil {
 		return 0, err
 	}
-	defer func() {
-		_ = out.Close()
-	}()
+
+	defer out.Close()
 
 	/* #nosec */
 	resp, err := http.Get(testRuntimeURL)
 	if err != nil {
 		return 0, err
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
 
-	n, err = io.Copy(out, resp.Body)
-	return n, err
+	defer resp.Body.Close()
+
+	return io.Copy(out, resp.Body)
 }
 
 // TestRuntimeNetwork ...

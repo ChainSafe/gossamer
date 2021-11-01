@@ -1543,46 +1543,49 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	testcases := []struct {
+		name             string
 		root, key, value []byte
 		proof            [][]byte
 		expect           bool
 	}{
-		{root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
-		{root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
-		{root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
-		{root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
-		{root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
-		{root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
-		{root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
+		{name: "Proof should be true", root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+		{name: "Root empty, proof should be false", root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		{name: "Other root, proof should be false", root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		{name: "Value empty, proof should be true", root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+		{name: "Unknow key, proof should be false", root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+		{name: "Key and value unknow, proof should be false", root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+		{name: "Empty proof, should be false", root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}
 
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	for _, testcase := range testcases {
-		hashEnc, err := scale.Marshal(testcase.root)
-		require.NoError(t, err)
+		t.Run(testcase.name, func(t *testing.T) {
+			hashEnc, err := scale.Marshal(testcase.root)
+			require.NoError(t, err)
 
-		args := []byte{}
-		args = append(args, hashEnc...)
+			args := []byte{}
+			args = append(args, hashEnc...)
 
-		encProof, err := scale.Marshal(testcase.proof)
-		require.NoError(t, err)
-		args = append(args, encProof...)
+			encProof, err := scale.Marshal(testcase.proof)
+			require.NoError(t, err)
+			args = append(args, encProof...)
 
-		keyEnc, err := scale.Marshal(testcase.key)
-		require.NoError(t, err)
-		args = append(args, keyEnc...)
+			keyEnc, err := scale.Marshal(testcase.key)
+			require.NoError(t, err)
+			args = append(args, keyEnc...)
 
-		valueEnc, err := scale.Marshal(testcase.value)
-		require.NoError(t, err)
-		args = append(args, valueEnc...)
+			valueEnc, err := scale.Marshal(testcase.value)
+			require.NoError(t, err)
+			args = append(args, valueEnc...)
 
-		res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
-		require.NoError(t, err)
+			res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
+			require.NoError(t, err)
 
-		var got bool
-		err = scale.Unmarshal(res, &got)
-		require.NoError(t, err)
-		require.Equal(t, testcase.expect, got)
+			var got bool
+			err = scale.Unmarshal(res, &got)
+			require.NoError(t, err)
+			require.Equal(t, testcase.expect, got)
+		})
 	}
 }
