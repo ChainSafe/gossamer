@@ -301,7 +301,7 @@ func (s *Service) collectNetworkMetrics() {
 			syncedBlocks.Update(num.Int64())
 		}
 
-		time.Sleep(gssmrmetrics.Refresh)
+		time.Sleep(gssmrmetrics.RefreshInterval)
 	}
 }
 
@@ -713,13 +713,11 @@ func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
 }
 
-// CollectGauge will be used to collect coutable metrics from network service
+// CollectGauge will be used to collect countable metrics from network service
 func (s *Service) CollectGauge() map[string]int64 {
 	var isSynced int64
 	if !s.syncer.IsSynced() {
 		isSynced = 1
-	} else {
-		isSynced = 0
 	}
 
 	return map[string]int64{
