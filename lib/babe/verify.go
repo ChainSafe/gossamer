@@ -410,9 +410,9 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 	)
 
 	switch d := babePreDigest.(type) {
-	case *types.BabePrimaryPreDigest:
+	case types.BabePrimaryPreDigest:
 		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex, d.SlotNumber, d.VRFOutput, d.VRFProof)
-	case *types.BabeSecondaryVRFPreDigest:
+	case types.BabeSecondaryVRFPreDigest:
 		if !b.secondarySlots {
 			ok = false
 			break
@@ -424,12 +424,12 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 			return nil, err
 		}
 
-		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness) // nolint
+		ok, err = verifySecondarySlotVRF(&d, pk, b.epoch, len(b.authorities), b.randomness) // nolint
 		if err != nil {
 			return nil, err
 		}
 
-	case *types.BabeSecondaryPlainPreDigest:
+	case types.BabeSecondaryPlainPreDigest:
 		if !b.secondarySlots {
 			ok = false
 			break
