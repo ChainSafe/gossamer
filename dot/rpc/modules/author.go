@@ -168,7 +168,6 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return err
 	}
 
-	// TODO: correctly use keystore type (#1850)
 	keyPair, err := keystore.DecodeKeyPairFromHex(keyBytes, keystore.DetermineKeyType(keyReq.Type))
 	if err != nil {
 		return err
@@ -179,7 +178,11 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return errors.New("generated public key does not equal provide public key")
 	}
 
-	am.coreAPI.InsertKey(keyPair)
+	err = am.coreAPI.InsertKey(keyPair, keyReq.Type)
+	if err != nil {
+		return err
+	}
+
 	am.logger.Info("inserted key into keystore", "key", keyPair.Public().Hex())
 	return nil
 }
