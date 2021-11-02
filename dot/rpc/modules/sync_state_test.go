@@ -74,3 +74,110 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 		})
 	}
 }
+
+func TestNewStateSync(t *testing.T) {
+	g := &genesis.Genesis{
+		Name:       "",
+		ID:         "",
+		Bootnodes:  nil,
+		ProtocolID: "",
+		Genesis: genesis.Fields{
+			Runtime: nil,
+		},
+	}
+	raw := make(map[string][]byte)
+	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI.On("Entries", mock.AnythingOfType("*common.Hash")).Return(raw, nil)
+
+	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("entries error"))
+
+	type args struct {
+		gData      *genesis.Data
+		storageAPI StorageAPI
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK Case",
+			args: args{
+				gData: g.GenesisData(),
+				storageAPI: mockStorageAPI,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Err Case",
+			args: args{
+				gData: g.GenesisData(),
+				storageAPI: mockStorageAPIErr,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewStateSync(tt.args.gData, tt.args.storageAPI)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewStateSync() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func Test_syncState_GenSyncSpec(t *testing.T) {
+	g := &genesis.Genesis{
+		Name:       "",
+		ID:         "",
+		Bootnodes:  nil,
+		ProtocolID: "",
+		Genesis: genesis.Fields{
+			Runtime: nil,
+		},
+	}
+	type fields struct {
+		chainSpecification *genesis.Genesis
+	}
+	type args struct {
+		raw bool
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "GenSyncSpec False",
+			fields: fields{g},
+			args: args{
+				raw: false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GenSyncSpec True",
+			fields: fields{g},
+			args: args{
+				raw: true,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := syncState{
+				chainSpecification: tt.fields.chainSpecification,
+			}
+			_, err := s.GenSyncSpec(tt.args.raw)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GenSyncSpec() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
