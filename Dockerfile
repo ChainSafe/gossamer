@@ -40,7 +40,7 @@ RUN go build \
     -trimpath \
     -o $GOPATH/src/github.com/ChainSafe/gossamer/bin \
     ${GO_BUILD_FLAGS} \
-    cmd/gossamer/main.go
+    ./cmd/gossamer
 
 # Final stage based on Debian
 FROM debian:${DEBIAN_VERSION}

@@ -79,11 +79,11 @@ deps:
 ## build: Builds application binary and stores it in `./bin/gossamer`
 build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
-	go build -trimpath -o ./bin/gossamer cmd/gossamer/main.go
+	go build -trimpath -o ./bin/gossamer ./cmd/gossamer
 
 ## debug: Builds application binary with debug flags and stores it in `./bin/gossamer`
 build-debug: clean
-	go build -trimpath -gcflags=all="-N -l" -o ./bin/gossamer cmd/gossamer/main.go
+	go build -trimpath -gcflags=all="-N -l" -o ./bin/gossamer ./cmd/gossamer
 
 ## init: Initialise gossamer using the default genesis and toml configuration files
 init:
