@@ -19,6 +19,7 @@ RUN wget -O /usr/local/bin/subkey https://chainbridge.ams3.digitaloceanspaces.co
 
 # Polkadot JS dependencies
 WORKDIR /go/src/github.com/ChainSafe/gossamer/tests/polkadotjs_test
+RUN mkdir ./bin
 COPY tests/polkadotjs_test/package.json tests/polkadotjs_test/package-lock.json ./
 RUN npm install
 
