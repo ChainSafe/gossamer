@@ -90,7 +90,7 @@ var (
 		Value: LogFlag.Value,
 	}
 	LogBlockProducerLevelFlag = cli.StringFlag{
-		Name:  "log-blockproducer",
+		Name:  "log-babe",
 		Usage: "Block producer package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
 		Value: LogFlag.Value,
 	}
