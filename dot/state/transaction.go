@@ -96,12 +96,17 @@ func (s *TransactionState) notifyStatus(status transaction.StatusNotification) {
 		return
 	}
 
+	var wg sync.WaitGroup
 	for ch := range s.notifierChannels {
+		wg.Add(1)
 		go func(ch chan transaction.StatusNotification) {
+			defer wg.Done()
+
 			select {
 			case ch <- status:
 			default:
 			}
 		}(ch)
 	}
+	wg.Wait()
 }
