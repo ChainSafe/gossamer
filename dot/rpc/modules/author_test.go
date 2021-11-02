@@ -115,8 +115,9 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	mockHasKey := coremockapi.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
 	mockHasKey.Run(func(args mock.Arguments) {
 		pubKeyHex := args.Get(0).(string)
+		keyType := args.Get(1).(string)
 
-		ok, err := keystore.HasKey(pubKeyHex, globalStore.Acco)
+		ok, err := keystore.HasKey(pubKeyHex, keyType, globalStore.Acco)
 		mockHasKey.ReturnArguments = []interface{}{ok, err}
 	})
 
