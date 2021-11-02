@@ -14,19 +14,19 @@ var (
 	errRequestIDNotAvailable = errors.New("request id not available")
 )
 
-type intBuffer chan int16
+type requestIDBuffer chan int16
 
-func newIntBuffer(buffSize int16) *intBuffer {
+func newIntBuffer(buffSize int16) *requestIDBuffer {
 	b := make(chan int16, buffSize)
 	for i := int16(0); i < buffSize; i++ {
 		b <- i
 	}
 
-	intb := intBuffer(b)
+	intb := requestIDBuffer(b)
 	return &intb
 }
 
-func (b *intBuffer) Get() (int16, error) {
+func (b *requestIDBuffer) Get() (int16, error) {
 	select {
 	case v := <-*b:
 		return v, nil
@@ -35,7 +35,7 @@ func (b *intBuffer) Get() (int16, error) {
 	}
 }
 
-func (b *intBuffer) Put(i int16) error {
+func (b *requestIDBuffer) Put(i int16) error {
 	select {
 	case *b <- i:
 		return nil
@@ -47,7 +47,7 @@ func (b *intBuffer) Put(i int16) error {
 type Set struct {
 	mtx    *sync.Mutex
 	reqs   map[int16]*http.Request
-	idBuff *intBuffer
+	idBuff *requestIDBuffer
 }
 
 func NewSet() *Set {
