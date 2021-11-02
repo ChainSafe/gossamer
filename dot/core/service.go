@@ -457,7 +457,7 @@ func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
 		return false, err
 	}
 
-	return keystore.HasKey(pubKeyStr, keystoreType, ks)
+	return keystore.HasKey(pubKeyStr, ks)
 }
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys

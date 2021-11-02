@@ -328,14 +328,15 @@ func DetermineKeyType(t string) crypto.KeyType {
 	return crypto.UnknownType
 }
 
-// HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
-//  are issues decoding string
-func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
+// HasKey returns true if given hex encoded public key string is found in keystore,
+// false otherwise, error if there are issues decoding string
+func HasKey(pubKeyStr string, keystore Keystore) (bool, error) {
 	keyBytes, err := common.HexToBytes(pubKeyStr)
 	if err != nil {
 		return false, err
 	}
-	cKeyType := DetermineKeyType(keyType)
+
+	cKeyType := keystore.Type()
 
 	var pubKey crypto.PublicKey
 	switch cKeyType {
@@ -344,7 +345,7 @@ func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
 	case crypto.Ed25519Type:
 		pubKey, err = ed25519.NewPublicKey(keyBytes)
 	default:
-		err = fmt.Errorf("unknown key type: %s", keyType)
+		err = fmt.Errorf("unknown crypto key type: %s", cKeyType)
 	}
 
 	if err != nil {
