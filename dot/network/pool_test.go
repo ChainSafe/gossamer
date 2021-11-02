@@ -1,7 +1,10 @@
 package network
 
 import (
+	"context"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,4 +58,52 @@ func Test_sizedBufferPool(t *testing.T) {
 
 	b = pool.get() // third
 	assert.Equal(t, byte(3), b[maxIndex])
+}
+
+func Test_sizedBufferPool_race(t *testing.T) {
+	t.Parallel()
+
+	const preAlloc = 1
+	const maxQueueSize = 2
+
+	pool := newSizedBufferPool(preAlloc, maxQueueSize)
+
+	const parallelism = 4
+
+	readyWait := new(sync.WaitGroup)
+	readyWait.Add(parallelism)
+
+	doneWait := new(sync.WaitGroup)
+	doneWait.Add(parallelism)
+
+	// run for 50ms
+	ctxTimerStarted := make(chan struct{})
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		const timeout = 50 * time.Millisecond
+		readyWait.Wait()
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		close(ctxTimerStarted)
+	}()
+	defer cancel()
+
+	for i := 0; i < parallelism; i++ {
+		go func() {
+			defer doneWait.Done()
+			readyWait.Done()
+			readyWait.Wait()
+			<-ctxTimerStarted
+
+			for ctx.Err() != nil {
+				// test relies on the -race detector
+				// to detect concurrent writes to the buffer.
+				b := pool.get()
+				b[0] = 1
+				pool.put(b)
+			}
+		}()
+	}
+
+	doneWait.Wait()
 }
