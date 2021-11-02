@@ -32,8 +32,11 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-const readyPoolTransactionsMetrics = "gossamer/ready/pool/transaction/metrics"
-const readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
+const (
+	readyPoolTransactionsMetrics   = "gossamer/ready/pool/transaction/metrics"
+	readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
+	substrateNumberLeaves          = "gossamer/substrate_number_leaves/metrics"
+)
 
 var logger = log.New("pkg", "state")
 
@@ -358,5 +361,6 @@ func (s *Service) CollectGauge() map[string]int64 {
 	return map[string]int64{
 		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
 		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
+		substrateNumberLeaves:          int64(len(s.Block.Leaves())),
 	}
 }

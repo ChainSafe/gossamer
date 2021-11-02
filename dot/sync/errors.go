@@ -40,7 +40,10 @@ var (
 	ErrInvalidBlock = errors.New("could not verify block")
 
 	// ErrInvalidBlockRequest is returned when an invalid block request is received
-	ErrInvalidBlockRequest = errors.New("invalid block request")
+	ErrInvalidBlockRequest        = errors.New("invalid block request")
+	errInvalidRequestDirection    = errors.New("invalid request direction")
+	errRequestStartTooHigh        = errors.New("request start number is higher than our best block")
+	errFailedToGetEndHashAncestor = errors.New("failed to get ancestor of end block")
 
 	// chainSync errors
 	errEmptyBlockData               = errors.New("empty block data")
@@ -57,6 +60,9 @@ var (
 	errUnknownParent                = errors.New("parent of first block in block response is unknown")
 	errUnknownBlockForJustification = errors.New("received justification for unknown block")
 	errFailedToGetParent            = errors.New("failed to get parent header")
+	errNilDescendantNumber          = errors.New("descendant number is nil")
+	errStartAndEndMismatch          = errors.New("request start and end hash are not on the same chain")
+	errFailedToGetDescendant        = errors.New("failed to find descendant block")
 )
 
 // ErrNilChannel is returned if a channel is nil

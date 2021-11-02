@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -509,6 +510,134 @@ func (t *Trie) retrieve(parent node, key []byte) *leaf {
 	return value
 }
 
+// ClearPrefixLimit deletes the keys having the prefix till limit reached
+func (t *Trie) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
+	if limit == 0 {
+		return 0, false
+	}
+
+	p := keyToNibbles(prefix)
+	if len(p) > 0 && p[len(p)-1] == 0 {
+		p = p[:len(p)-1]
+	}
+
+	l := limit
+	var allDeleted bool
+	t.root, _, allDeleted = t.clearPrefixLimit(t.root, p, &limit)
+	return l - limit, allDeleted
+}
+
+// clearPrefixLimit deletes the keys having the prefix till limit reached and returns updated trie root node,
+// true if any node in the trie got updated, and next bool returns true if there is no keys left with prefix.
+func (t *Trie) clearPrefixLimit(cn node, prefix []byte, limit *uint32) (node, bool, bool) {
+	curr := t.maybeUpdateGeneration(cn)
+
+	switch c := curr.(type) {
+	case *branch:
+		length := lenCommonPrefix(c.key, prefix)
+		if length == len(prefix) {
+			n, _ := t.deleteNodes(c, []byte{}, limit)
+			if n == nil {
+				return nil, true, true
+			}
+			return n, true, false
+		}
+
+		if len(prefix) == len(c.key)+1 && length == len(prefix)-1 {
+			i := prefix[len(c.key)]
+			c.children[i], _ = t.deleteNodes(c.children[i], []byte{}, limit)
+
+			c.setDirty(true)
+			curr = handleDeletion(c, prefix)
+
+			if c.children[i] == nil {
+				return curr, true, true
+			}
+			return c, true, false
+		}
+
+		if len(prefix) <= len(c.key) || length < len(c.key) {
+			// this node doesn't have the prefix, return
+			return c, false, true
+		}
+
+		i := prefix[len(c.key)]
+
+		var wasUpdated, allDeleted bool
+		c.children[i], wasUpdated, allDeleted = t.clearPrefixLimit(c.children[i], prefix[len(c.key)+1:], limit)
+		if wasUpdated {
+			c.setDirty(true)
+			curr = handleDeletion(c, prefix)
+		}
+
+		return curr, curr.isDirty(), allDeleted
+	case *leaf:
+		length := lenCommonPrefix(c.key, prefix)
+		if length == len(prefix) {
+			*limit--
+			return nil, true, true
+		}
+		// Prefix not found might be all deleted
+		return curr, false, true
+
+	case nil:
+		return nil, false, true
+	}
+
+	return nil, false, true
+}
+
+func (t *Trie) deleteNodes(cn node, prefix []byte, limit *uint32) (node, bool) {
+	curr := t.maybeUpdateGeneration(cn)
+
+	switch c := curr.(type) {
+	case *leaf:
+		if *limit == 0 {
+			return c, false
+		}
+		*limit--
+		return nil, true
+	case *branch:
+		if len(c.key) != 0 {
+			prefix = append(prefix, c.key...)
+		}
+
+		for i, child := range c.children {
+			if child == nil {
+				continue
+			}
+
+			var isDel bool
+			if c.children[i], isDel = t.deleteNodes(child, prefix, limit); !isDel {
+				continue
+			}
+
+			c.setDirty(true)
+			curr = handleDeletion(c, prefix)
+			isAllNil := c.numChildren() == 0
+			if isAllNil && c.value == nil {
+				curr = nil
+			}
+
+			if *limit == 0 {
+				return curr, true
+			}
+		}
+
+		if *limit == 0 {
+			return c, true
+		}
+
+		// Delete the current node as well
+		if c.value != nil {
+			*limit--
+		}
+		return nil, true
+	}
+
+	return curr, true
+}
+
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *Trie) ClearPrefix(prefix []byte) {
 	if len(prefix) == 0 {
@@ -611,10 +740,10 @@ func (t *Trie) delete(parent node, key []byte) (node, bool) {
 		// Key doesn't exist.
 		return p, false
 	case nil:
-		// do nothing
+		return nil, false
+	default:
+		panic(fmt.Sprintf("%T: invalid node: %v (%v)", p, p, key))
 	}
-	// This should never happen.
-	return nil, false
 }
 
 // handleDeletion is called when a value is deleted from a branch
