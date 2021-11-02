@@ -83,6 +83,7 @@ type worker struct {
 	ctx        context.Context
 	id         uint64
 	retryCount uint8
+	peersTried map[peer.ID]struct{}
 
 	startHash    common.Hash
 	startNumber  *big.Int

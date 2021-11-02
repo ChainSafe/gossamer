@@ -403,6 +403,9 @@ func (cs *chainSync) sync() {
 			switch {
 			case errors.Is(res.err.err, context.Canceled):
 				return
+			case errors.Is(res.err.err, errNoPeers):
+				logger.Debug("not able to sync with any peer!", "worker", res)
+				continue
 			case errors.Is(res.err.err, context.DeadlineExceeded):
 				cs.ignorePeer(res.err.who)
 			case strings.Contains(res.err.err.Error(), "dial backoff"):
@@ -433,6 +436,15 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
+			// if we've already tried a peer and there was an error,
+			// then we shouldn't try them again.
+			if res.peersTried != nil {
+				worker.peersTried = res.peersTried
+			} else {
+				worker.peersTried = make(map[peer.ID]struct{})
+			}
+
+			worker.peersTried[res.err.who] = struct{}{}
 			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
 			cs.maybeSwitchMode()
@@ -606,7 +618,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 
 	for _, req := range reqs {
 		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time (#1399)
-		if err := cs.doSync(req); err != nil {
+		if err := cs.doSync(req, w.peersTried); err != nil {
 			// failed to sync, set worker error and put into result queue
 			w.err = err
 			return
@@ -614,21 +626,9 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 }
 
-func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
+func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) *workerError {
 	// determine which peers have the blocks we want to request
-	peers := cs.determineSyncPeers(req)
-
-	if len(peers) == 0 {
-		cs.Lock()
-		for p := range cs.ignorePeers {
-			delete(cs.ignorePeers, p)
-		}
-
-		for p := range cs.peerState {
-			peers = append(peers, p)
-		}
-		cs.Unlock()
-	}
+	peers := cs.determineSyncPeers(req, peersTried)
 
 	if len(peers) == 0 {
 		return &workerError{
@@ -704,14 +704,28 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 }
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
-func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
+// TODO: take into account blocks in request and peer's reported blocks (#?)
+func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) []peer.ID {
 	cs.RLock()
 	defer cs.RUnlock()
+
+	// if we're currently ignoring all our peers, clear out the list.
+	if len(cs.peerState) == len(cs.ignorePeers) {
+		cs.Lock()
+		for p := range cs.ignorePeers {
+			delete(cs.ignorePeers, p)
+		}
+		cs.Unlock()
+	}
 
 	peers := make([]peer.ID, 0, len(cs.peerState))
 
 	for p := range cs.peerState {
 		if _, has := cs.ignorePeers[p]; has {
+			continue
+		}
+
+		if _, has := peersTried[p]; has {
 			continue
 		}
 
