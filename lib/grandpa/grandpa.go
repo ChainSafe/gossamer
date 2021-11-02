@@ -854,18 +854,7 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 
 	for _, votes := range eqv {
 		for _, vote := range votes {
-			var signedVote SignedVote = *vote
-			isDescendant, err := s.blockState.IsDescendantOf(bfc, signedVote.Vote.Hash)
-
-			if err != nil {
-				return nil, err
-			}
-
-			if !isDescendant {
-				continue
-			}
-
-			just = append(just, signedVote)
+			just = append(just, *vote)
 		}
 	}
 
