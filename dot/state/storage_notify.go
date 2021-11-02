@@ -30,7 +30,7 @@ type KeyValue struct {
 }
 
 func (kv KeyValue) String() string {
-	return fmt.Sprintf("{Key: %x, Value: %x}", kv.Key, kv.Value)
+	return fmt.Sprintf("{Key: 0x%x, Value: 0x%x}", kv.Key, kv.Value)
 }
 
 //SubscriptionResult holds results of storage changes
@@ -39,9 +39,9 @@ type SubscriptionResult struct {
 	Changes []KeyValue
 }
 
-// ChangesToString serialises the subscription result changes
+// String serialises the subscription result changes
 // to human readable strings.
-func (s SubscriptionResult) ChangesToString() string {
+func (s SubscriptionResult) String() string {
 	changes := make([]string, len(s.Changes))
 	for i := range s.Changes {
 		changes[i] = s.Changes[i].String()
