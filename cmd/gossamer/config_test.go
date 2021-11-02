@@ -1157,6 +1157,52 @@ func Test_getLogLevel(t *testing.T) {
 	}
 }
 
+func Test_parseLogLevelString(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		logLevelString string
+		logLevel       log.Lvl
+		err            error
+	}{
+		"empty string": {
+			err: errors.New("cannot parse log level string: Unknown level: "),
+		},
+		"valid integer": {
+			logLevelString: "1",
+			logLevel:       log.LvlError,
+		},
+		"minus one": {
+			logLevelString: "-1",
+			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: -1"),
+		},
+		"over 5": {
+			logLevelString: "6",
+			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: 6"),
+		},
+		"valid string": {
+			logLevelString: "error",
+			logLevel:       log.LvlError,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			logLevel, err := parseLogLevelString(testCase.logLevelString)
+
+			if testCase.err != nil {
+				assert.EqualError(t, err, testCase.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, testCase.logLevel, logLevel)
+		})
+	}
+}
+
 func Test_setLogConfig(t *testing.T) {
 	t.Parallel()
 

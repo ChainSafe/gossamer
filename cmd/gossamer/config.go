@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -310,9 +311,14 @@ func getLogLevel(ctx getStringer, flagName, tomlValue string, defaultLevel log.L
 	return parseLogLevelString(tomlValue)
 }
 
+var ErrLogLevelIntegerOutOfRange = errors.New("log level integer can only be between 0 and 5 included")
+
 func parseLogLevelString(logLevelString string) (logLevel log.Lvl, err error) {
 	levelInt, err := strconv.Atoi(logLevelString)
 	if err == nil { // level given as an integer
+		if levelInt < 0 || levelInt > 5 {
+			return 0, fmt.Errorf("%w: log level given: %d", ErrLogLevelIntegerOutOfRange, levelInt)
+		}
 		logLevel = log.Lvl(levelInt)
 		return logLevel, nil
 	}
