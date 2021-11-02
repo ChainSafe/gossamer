@@ -361,9 +361,6 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 
 // GetBlockBody will return Body for a given hash
 func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
-	// bs.RLock()
-	// defer bs.RUnlock()
-
 	block, has := bs.getUnfinalisedBlock(hash)
 	if has {
 		return &block.Body, nil

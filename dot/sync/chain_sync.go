@@ -688,9 +688,7 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 
 	for _, rb := range ready {
 		pendingBlocks.removeBlock(rb.Hash)
-		logger.Trace("pushing ready block to queue...", "number", bd.Header.Number)
 		readyBlocks.push(rb)
-		logger.Trace("pushed ready block to queue", "number", bd.Header.Number)
 	}
 }
 

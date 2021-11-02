@@ -87,14 +87,11 @@ func (s *chainProcessor) processReadyBlocks() {
 		default:
 		}
 
-		logger.Trace("going to pop ready block from queue")
 		bd := s.readyBlocks.pop()
-		logger.Trace("popped ready block", "block", bd)
 		if bd == nil {
 			continue
 		}
 
-		logger.Trace("processing block data", "hash", bd.Hash)
 		if err := s.processBlockData(bd); err != nil {
 			logger.Error("ready block failed", "hash", bd.Hash, "error", err)
 
@@ -114,17 +111,11 @@ func (s *chainProcessor) processReadyBlocks() {
 // processBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
-	defer func() {
-		logger.Info("returning from processBlockData", "hash", bd.Hash)
-	}()
-
 	if bd == nil {
 		return ErrNilBlockData
 	}
 
-	logger.Info("processBlockData HasHeader")
 	hasHeader, _ := s.blockState.HasHeader(bd.Hash)
-	logger.Info("processBlockData hasBody")
 	hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 	if hasHeader && hasBody {
 		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
@@ -168,7 +159,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		return nil
 	}
 
-	logger.Debug("processBlockData: processing block", "hash", bd.Hash)
+	logger.Debug("processing block data", "hash", bd.Hash)
 
 	if bd.Header != nil && bd.Body != nil {
 		if err := s.handleHeader(bd.Header); err != nil {
