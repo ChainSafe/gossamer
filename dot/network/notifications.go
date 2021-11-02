@@ -58,7 +58,7 @@ type (
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 
 	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream in batch processing mode.
-	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*BatchMessage, err error)
+	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage)
 )
 
 // BatchMessage is exported for the mocks of lib/grandpa/mocks/network.go
@@ -222,46 +222,31 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		var (
-			propagate bool
-			err       error
-			msgs      []*BatchMessage
-		)
 		if batchHandler != nil {
-			msgs, err = batchHandler(peer, msg)
-			if err != nil {
-				return err
-			}
+			batchHandler(peer, msg)
+			return nil
+		}
 
-			propagate = len(msgs) > 0
-		} else {
-			propagate, err = messageHandler(peer, msg)
-			if err != nil {
-				return err
-			}
-			msgs = append(msgs, &BatchMessage{
-				msg:  msg,
-				peer: peer,
-			})
+		propagate, err := messageHandler(peer, msg)
+		if err != nil {
+			return err
 		}
 
 		if !propagate || s.noGossip {
 			return nil
 		}
 
-		for _, data := range msgs {
-			seen := s.gossip.hasSeen(data.msg)
-			if !seen {
-				s.broadcastExcluding(info, data.peer, data.msg)
-			}
-
-			// report peer if we get duplicate gossip message.
-			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.DuplicateGossipValue,
-				Reason: peerset.DuplicateGossipReason,
-			}, peer)
+		seen := s.gossip.hasSeen(msg)
+		if !seen {
+			s.broadcastExcluding(info, peer, msg)
+			return nil
 		}
 
+		// report peer if we get duplicate gossip message.
+		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.DuplicateGossipValue,
+			Reason: peerset.DuplicateGossipReason,
+		}, peer)
 		return nil
 	}
 }

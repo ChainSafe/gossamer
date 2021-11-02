@@ -19,12 +19,13 @@ package network
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 var (
@@ -119,36 +120,54 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func (s *Service) createBatchMessageHandler(txnBatch chan *BatchMessage) NotificationsMessageBatchHandler {
-	return func(peer peer.ID, msg NotificationsMessage) (msgs []*BatchMessage, err error) {
+func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) NotificationsMessageBatchHandler {
+	go func() {
+		protocolID := s.host.protocolID + transactionsID
+		ticker := time.NewTicker(1 * time.Second)
+
+		for {
+		out:
+			select {
+			case <-s.ctx.Done():
+				return
+			case <-ticker.C:
+				innerTicker := time.NewTicker(300 * time.Millisecond)
+				for {
+					select {
+					case <-innerTicker.C:
+						break out
+					case txnMsg := <-txnBatchCh:
+						propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
+						if err != nil {
+							s.host.closeProtocolStream(protocolID, txnMsg.peer)
+							continue
+						}
+
+						if s.noGossip || !propagate {
+							continue
+						}
+
+						if !s.gossip.hasSeen(txnMsg.msg) {
+							s.broadcastExcluding(s.notificationsProtocols[TransactionMsgType], txnMsg.peer, txnMsg.msg)
+						}
+					}
+				}
+			}
+		}
+	}()
+
+	return func(peer peer.ID, msg NotificationsMessage) {
 		data := &BatchMessage{
 			msg:  msg,
 			peer: peer,
 		}
-		txnBatch <- data
 
-		if len(txnBatch) < s.batchSize {
-			return nil, nil
+		select {
+		case txnBatchCh <- data:
+		case <-time.After(time.Millisecond * 200):
+			logger.Debug("transaction message not included into batch")
+			return
 		}
-
-		var propagateMsgs []*BatchMessage
-		for txnData := range txnBatch {
-			propagate, err := s.handleTransactionMessage(txnData.peer, txnData.msg)
-			if err != nil {
-				continue
-			}
-			if propagate {
-				propagateMsgs = append(propagateMsgs, &BatchMessage{
-					msg:  txnData.msg,
-					peer: txnData.peer,
-				})
-			}
-			if len(txnBatch) == 0 {
-				break
-			}
-		}
-		// May be use error to compute peer score.
-		return propagateMsgs, nil
 	}
 }
 

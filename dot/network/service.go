@@ -103,8 +103,6 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
-
-	batchSize int
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -141,6 +139,9 @@ func NewService(cfg *Config) (*Service, error) {
 		connectToPeersTimeout = cfg.DiscoveryInterval
 	}
 
+	if cfg.batchSize == 0 {
+		cfg.batchSize = defaultTxnBatchSize
+	}
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -179,7 +180,6 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
-		batchSize:              100,
 	}
 
 	return network, err
@@ -227,7 +227,7 @@ func (s *Service) Start() error {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
-	txnBatch := make(chan *BatchMessage, s.batchSize)
+	txnBatch := make(chan *BatchMessage, s.cfg.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol

@@ -52,6 +52,9 @@ const (
 
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Minute * 5
+
+	// defaultTxnBatchSize is the default size for the transaction batch
+	defaultTxnBatchSize = 100
 )
 
 // DefaultBootnodes the default value for Config.Bootnodes
@@ -104,6 +107,8 @@ type Config struct {
 	telemetryInterval time.Duration
 
 	noPreAllocate bool // internal option
+
+	batchSize int // internal option
 }
 
 // build checks the configuration, sets up the private key for the network service,

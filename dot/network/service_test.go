@@ -66,6 +66,8 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
+	t.Helper()
+
 	if cfg == nil {
 		basePath := utils.NewTestBasePath(t, "node")
 
@@ -84,7 +86,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	if cfg.TransactionHandler == nil {
 		mocktxhandler := &MockTransactionHandler{}
-		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*TransactionMessage")).Return(nil)
+		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(true, nil)
 		mocktxhandler.On("TransactionsCount").Return(0)
 		cfg.TransactionHandler = mocktxhandler
 	}
