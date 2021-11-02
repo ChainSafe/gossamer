@@ -50,6 +50,8 @@ type Set struct {
 	idBuff *requestIDBuffer
 }
 
+// NewHTTPSet creates a offchain http set that can be used
+// by runtime as HTTP clients, the max concurrent requests is 1000
 func NewHTTPSet() *Set {
 	return &Set{
 		mtx:    new(sync.Mutex),
