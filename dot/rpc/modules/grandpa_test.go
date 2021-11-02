@@ -6,7 +6,11 @@ package modules
 import (
 	"errors"
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/stretchr/testify/mock"
 	"net/http"
 	"testing"
@@ -128,6 +132,79 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			}
 			if err := gm.ProveFinality(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("ProveFinality() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestGrandpaModule_RoundState(t *testing.T) {
+	//mockedHash := common.NewHash([]byte{0x01, 0x02})
+	//mockedHashSlice := []common.Hash{mockedHash, mockedHash, mockedHash}
+	//
+	var kr, _ = keystore.NewEd25519Keyring()
+	var voters grandpa.Voters
+
+	for _, k := range kr.Keys {
+		voters = append(voters, types.GrandpaVoter{
+			Key: *k.Public().(*ed25519.PublicKey),
+			ID:  1,
+		})
+	}
+
+	mockBlockAPI := new(apimocks.BlockAPI)
+	mockBlockFinalityAPI := new(apimocks.BlockFinalityAPI)
+	mockBlockFinalityAPI.On("GetVoters").Return(voters)
+	mockBlockFinalityAPI.On("GetSetID").Return(uint64(0))
+	mockBlockFinalityAPI.On("GetRound").Return(uint64(2))
+	mockBlockFinalityAPI.On("PreVotes").Return([]ed25519.PublicKeyBytes{
+		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
+		kr.Dave().Public().(*ed25519.PublicKey).AsBytes(),
+	})
+	mockBlockFinalityAPI.On("PreCommits").Return([]ed25519.PublicKeyBytes{
+		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+	})
+
+	var res RoundStateResponse
+	type fields struct {
+		blockAPI         BlockAPI
+		blockFinalityAPI BlockFinalityAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *EmptyRequest
+		res *RoundStateResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "GetJustification Error",
+			fields: fields{
+				mockBlockAPI,
+				mockBlockFinalityAPI,
+			},
+			args: args{
+				r: nil,
+				req: &EmptyRequest{},
+				res: &res,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gm := &GrandpaModule{
+				blockAPI:         tt.fields.blockAPI,
+				blockFinalityAPI: tt.fields.blockFinalityAPI,
+			}
+			if err := gm.RoundState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("RoundState() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
