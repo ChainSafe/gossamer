@@ -245,6 +245,28 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				NoTelemetry:    true,
 			},
 		},
+		{
+			"Test gossamer --telemetry-url",
+			[]string{"config", "telemetry-url", "name"},
+			[]interface{}{
+				testCfgFile.Name(),
+				[]string{"ws://localhost:8001/submit 0", "ws://foo/bar 0"},
+				testCfg.Global.Name,
+			},
+			dot.GlobalConfig{
+				Name:           testCfg.Global.Name,
+				ID:             testCfg.Global.ID,
+				BasePath:       testCfg.Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    testCfg.Global.MetricsPort,
+				NoTelemetry:    false,
+				TelemetryURLs: []genesis.TelemetryEndpoint{
+					{Endpoint: "ws://localhost:8001/submit", Verbosity: 0},
+					{Endpoint: "ws://foo/bar", Verbosity: 0},
+				},
+			},
+		},
 	}
 
 	for _, c := range testcases {
@@ -256,6 +278,58 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			require.Nil(t, err)
 
 			require.Equal(t, c.expected, cfg.Global)
+		})
+	}
+}
+
+func TestGlobalConfigFromFlagsFails(t *testing.T) {
+	testCfg, testCfgFile := newTestConfigWithFile(t)
+	require.NotNil(t, testCfg)
+	require.NotNil(t, testCfgFile)
+
+	defer utils.RemoveTestDir(t)
+
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	testcases := []struct {
+		description string
+		flags       []string
+		values      []interface{}
+		err         string
+	}{
+		{
+			"Test gossamer --telemetry-url invalid format",
+			[]string{"config", "telemetry-url", "name"},
+			[]interface{}{
+				testCfgFile.Name(),
+				[]string{"ws://localhost:8001/submit"},
+				testCfg.Global.Name,
+			},
+			"could not set global config from flags: telemetry-url must be in the format 'URL VERBOSITY'",
+		},
+		{
+			"Test gossamer invalid --telemetry-url invalid verbosity",
+			[]string{"config", "telemetry-url", "name"},
+			[]interface{}{
+				testCfgFile.Name(),
+				[]string{"ws://foo/bar k"},
+				testCfg.Global.Name,
+			},
+			"could not set global config from flags: could not parse verbosity from telemetry-url: strconv.Atoi: parsing \"k\": invalid syntax",
+		},
+	}
+
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			ctx, err := newTestContext(c.description, c.flags, c.values)
+			require.Nil(t, err)
+
+			cfg, err := createDotConfig(ctx)
+			require.NotNil(t, err)
+			require.Nil(t, cfg)
+			require.Equal(t, c.err, err.Error())
 		})
 	}
 }
@@ -696,6 +770,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
 			MetricsPort:    testCfg.Global.MetricsPort,
+			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,
@@ -749,6 +824,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
 			MetricsPort:    testCfg.Global.MetricsPort,
+			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,
@@ -798,6 +874,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
 			MetricsPort:    testCfg.Global.MetricsPort,
+			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,

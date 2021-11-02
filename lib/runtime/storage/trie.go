@@ -22,7 +22,6 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -138,6 +137,15 @@ func (s *TrieState) ClearPrefix(prefix []byte) error {
 	return nil
 }
 
+// ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
+func (s *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	num, del := s.t.ClearPrefixLimit(prefix, limit)
+	return num, del
+}
+
 // TrieEntries returns every key-value pair in the trie
 func (s *TrieState) TrieEntries() map[string][]byte {
 	s.lock.RLock()
@@ -182,7 +190,7 @@ func (s *TrieState) DeleteChild(key []byte) {
 
 // DeleteChildLimit deletes up to limit of database entries by lexicographic order, return number
 //  deleted, true if all delete otherwise false
-func (s *TrieState) DeleteChildLimit(key []byte, limit *optional.Bytes) (uint32, bool, error) {
+func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (uint32, bool, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	tr, err := s.t.GetChild(key)
@@ -190,11 +198,11 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *optional.Bytes) (uint32,
 		return 0, false, err
 	}
 	qtyEntries := uint32(len(tr.Entries()))
-	if limit == nil || !limit.Exists() {
+	if limit == nil {
 		s.t.DeleteChild(key)
 		return qtyEntries, true, nil
 	}
-	limitUint := binary.LittleEndian.Uint32(limit.Value())
+	limitUint := binary.LittleEndian.Uint32(*limit)
 
 	keys := make([]string, 0, len(tr.Entries()))
 	for k := range tr.Entries() {

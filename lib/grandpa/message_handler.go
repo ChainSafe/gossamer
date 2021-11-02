@@ -195,7 +195,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		return err
 	}
 
-	if (msg.Hash == common.Hash{}) || msg.Number == 0 {
+	if msg.Hash.IsEmpty() || msg.Number == 0 {
 		return ErrGHOSTlessCatchUp
 	}
 
@@ -307,7 +307,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 		}
 	}
 
-	if (prevote == common.Hash{}) {
+	if prevote.IsEmpty() {
 		return prevote, ErrMinVotesNotMet
 	}
 
