@@ -50,7 +50,7 @@ type Set struct {
 	idBuff *requestIDBuffer
 }
 
-func NewSet() *Set {
+func NewHTTPSet() *Set {
 	return &Set{
 		mtx:    new(sync.Mutex),
 		reqs:   make(map[int16]*http.Request),

@@ -158,7 +158,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		Network:         cfg.Network,
 		Transaction:     cfg.Transaction,
 		SigVerifier:     runtime.NewSignatureVerifier(),
-		OffchainHTTPSet: offchain.NewSet(),
+		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 
 	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
