@@ -95,7 +95,7 @@ var (
 		Value: LogFlag.Value,
 	}
 	LogFinalityGadgetLevelFlag = cli.StringFlag{
-		Name:  "log-finalitygadget",
+		Name:  "log-grandpa",
 		Usage: "Finality Gadget package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
 		Value: LogFlag.Value,
 	}
