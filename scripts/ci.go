@@ -78,13 +78,4 @@ func install(debug bool) {
 	if err := cmd.Run(); err != nil {
 		log.Fatal("Error: Could not build Gossamer. ", "error: ", err, ", cmd: ", cmd)
 	}
-
-}
-
-// GOBIN returns the GOBIN environment variable
-func GOBIN() string {
-	if os.Getenv("GOBIN") == "" {
-		log.Fatal("GOBIN is not set")
-	}
-	return os.Getenv("GOBIN")
 }
