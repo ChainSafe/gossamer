@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -287,115 +288,98 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
-func setLogConfig(ctx *cli.Context, cfg *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) error {
+type getStringer interface {
+	String(key string) (value string)
+}
+
+// getLogLevel obtains the log level in the following order:
+// 1. Try to obtain it from the flag value corresponding to flagName.
+// 2. Try to obtain it from the TOML value given, if step 1. failed.
+// 3. Return the default value given if both previous steps failed.
+// For steps 1 and 2, it tries to parse the level as an integer to convert it
+// to a level, and also tries to parse it as a string.
+func getLogLevel(ctx getStringer, flagName, tomlValue string, defaultLevel log.Lvl) (
+	level log.Lvl, err error) {
+	if flagValue := ctx.String(flagName); flagValue != "" {
+		return parseLogLevelString(flagValue)
+	}
+
+	if tomlValue == "" {
+		return defaultLevel, nil
+	}
+
+	return parseLogLevelString(tomlValue)
+}
+
+var regexDigits = regexp.MustCompile("^[0-9]+$")
+
+func parseLogLevelString(logLevelString string) (logLevel log.Lvl, err error) {
+	if regexDigits.MatchString(logLevelString) {
+		levelInt, err := strconv.Atoi(logLevelString)
+		if err != nil { // should never happen
+			return 0, fmt.Errorf("cannot parse log level digits: %w", err)
+		}
+		logLevel = log.Lvl(levelInt)
+		return logLevel, nil
+	}
+
+	logLevel, err = log.LvlFromString(logLevelString)
+	if err != nil {
+		return 0, fmt.Errorf("cannot parse log level string: %w", err)
+	}
+
+	return logLevel, nil
+}
+
+func setLogConfig(ctx getStringer, cfg *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
 	if cfg == nil {
 		cfg = new(ctoml.Config)
 	}
 
-	if lvlStr := ctx.String(LogFlag.Name); lvlStr != "" {
-		if lvlToInt, err := strconv.Atoi(lvlStr); err == nil {
-			lvlStr = log.Lvl(lvlToInt).String()
-		}
-		cfg.Global.LogLvl = lvlStr
-	}
-
-	if cfg.Global.LogLvl == "" {
-		cfg.Global.LogLvl = gssmr.DefaultLvl.String()
-	}
-
-	var err error
-	globalCfg.LogLvl, err = log.LvlFromString(cfg.Global.LogLvl)
+	globalCfg.LogLvl, err = getLogLevel(ctx, LogFlag.Name, cfg.Global.LogLvl, gssmr.DefaultLvl)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get global log level: %w", err)
+	}
+	cfg.Global.LogLvl = globalCfg.LogLvl.String()
+
+	logCfg.CoreLvl, err = getLogLevel(ctx, LogCoreLevelFlag.Name, cfg.Log.CoreLvl, globalCfg.LogLvl)
+	if err != nil {
+		return fmt.Errorf("cannot get core log level: %w", err)
 	}
 
-	// check and set log levels for each pkg
-	if cfg.Log.CoreLvl == "" {
-		logCfg.CoreLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.CoreLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.CoreLvl = lvl
+	logCfg.SyncLvl, err = getLogLevel(ctx, LogSyncLevelFlag.Name, cfg.Log.SyncLvl, globalCfg.LogLvl)
+	if err != nil {
+		return fmt.Errorf("cannot get sync log level: %w", err)
 	}
 
-	if cfg.Log.SyncLvl == "" {
-		logCfg.SyncLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.SyncLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.SyncLvl = lvl
+	logCfg.NetworkLvl, err = getLogLevel(ctx, LogNetworkLevelFlag.Name, cfg.Log.NetworkLvl, globalCfg.LogLvl)
+	if err != nil {
+		return fmt.Errorf("cannot get network log level: %w", err)
 	}
 
-	if cfg.Log.NetworkLvl == "" {
-		logCfg.NetworkLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.NetworkLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.NetworkLvl = lvl
+	logCfg.RPCLvl, err = getLogLevel(ctx, LogRPCLevelFlag.Name, cfg.Log.RPCLvl, globalCfg.LogLvl)
+	if err != nil {
+		return fmt.Errorf("cannot get RPC log level: %w", err)
 	}
 
-	if cfg.Log.RPCLvl == "" {
-		logCfg.RPCLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.RPCLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.RPCLvl = lvl
+	logCfg.StateLvl, err = getLogLevel(ctx, LogStateLevelFlag.Name, cfg.Log.StateLvl, globalCfg.LogLvl)
+	if err != nil {
+		return fmt.Errorf("cannot get state log level: %w", err)
 	}
 
-	if cfg.Log.StateLvl == "" {
-		logCfg.StateLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.StateLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.StateLvl = lvl
+	logCfg.RuntimeLvl, err = getLogLevel(ctx, LogRuntimeLevelFlag.Name, cfg.Log.RuntimeLvl, globalCfg.LogLvl)
+	if err != nil {
+		return fmt.Errorf("cannot get runtime log level: %w", err)
 	}
 
-	if cfg.Log.RuntimeLvl == "" {
-		logCfg.RuntimeLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.RuntimeLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.RuntimeLvl = lvl
+	logCfg.BlockProducerLvl, err = getLogLevel(ctx, LogBlockProducerLevelFlag.Name, cfg.Log.BlockProducerLvl, globalCfg.LogLvl)
+	if err != nil {
+		return fmt.Errorf("cannot get block producer log level: %w", err)
 	}
 
-	if cfg.Log.BlockProducerLvl == "" {
-		logCfg.BlockProducerLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.BlockProducerLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.BlockProducerLvl = lvl
-	}
-
-	if cfg.Log.FinalityGadgetLvl == "" {
-		logCfg.FinalityGadgetLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.FinalityGadgetLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.FinalityGadgetLvl = lvl
+	logCfg.FinalityGadgetLvl, err = getLogLevel(ctx, LogFinalityGadgetLevelFlag.Name, cfg.Log.FinalityGadgetLvl, globalCfg.LogLvl)
+	if err != nil {
+		return fmt.Errorf("cannot get finality gadget log level: %w", err)
 	}
 
 	logger.Debug("set log configuration", "--log", ctx.String(LogFlag.Name), "global", globalCfg.LogLvl)
