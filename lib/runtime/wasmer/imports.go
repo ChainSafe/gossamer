@@ -1701,8 +1701,8 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 		logger.Error("failed to start request", "error", err)
 
 		errRes := scale.NewResult(int16(0), nil)
-		ptr, _ := fromResultToWasm(instanceContext, &errRes, scale.Err, nil)
-		return C.int64_t(ptr)
+		errPtr, _ := fromResultToWasm(instanceContext, &errRes, scale.Err, nil)
+		return C.int64_t(errPtr)
 	}
 
 	return C.int64_t(ptr)

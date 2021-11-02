@@ -238,7 +238,7 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	encMethod, err := scale.Marshal([]byte("GET"))
 	require.NoError(t, err)
 
-	encUri, err := scale.Marshal([]byte("https://chainsafe.io"))
+	encURI, err := scale.Marshal([]byte("https://chainsafe.io"))
 	require.NoError(t, err)
 
 	var optMeta *[]byte
@@ -246,7 +246,7 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	params := append([]byte{}, encMethod...)
-	params = append(params, encUri...)
+	params = append(params, encURI...)
 	params = append(params, encMeta...)
 
 	resReqID := scale.NewResult(int16(0), nil)

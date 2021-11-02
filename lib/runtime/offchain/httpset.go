@@ -10,7 +10,7 @@ const maxConcurrentRequests = 1000
 
 var (
 	errIntBufferEmpty        = errors.New("int buffer exhausted")
-	errIntBufferFull         = errors.New("int buffer is full")
+	errIntBufferFull         = errors.New("int buffer is full") //nolint:unused
 	errRequestIDNotAvailable = errors.New("request id not available")
 )
 
@@ -26,7 +26,7 @@ func newIntBuffer(buffSize int16) *requestIDBuffer {
 	return &intb
 }
 
-func (b *requestIDBuffer) Get() (int16, error) {
+func (b *requestIDBuffer) get() (int16, error) {
 	select {
 	case v := <-*b:
 		return v, nil
@@ -35,7 +35,8 @@ func (b *requestIDBuffer) Get() (int16, error) {
 	}
 }
 
-func (b *requestIDBuffer) Put(i int16) error {
+// nolint:unused
+func (b *requestIDBuffer) put(i int16) error {
 	select {
 	case *b <- i:
 		return nil
@@ -44,7 +45,8 @@ func (b *requestIDBuffer) Put(i int16) error {
 	}
 }
 
-type Set struct {
+// HTTPSet holds a pool of concurrent http request calls
+type HTTPSet struct {
 	mtx    *sync.Mutex
 	reqs   map[int16]*http.Request
 	idBuff *requestIDBuffer
@@ -52,8 +54,8 @@ type Set struct {
 
 // NewHTTPSet creates a offchain http set that can be used
 // by runtime as HTTP clients, the max concurrent requests is 1000
-func NewHTTPSet() *Set {
-	return &Set{
+func NewHTTPSet() *HTTPSet {
+	return &HTTPSet{
 		mtx:    new(sync.Mutex),
 		reqs:   make(map[int16]*http.Request),
 		idBuff: newIntBuffer(maxConcurrentRequests),
@@ -62,11 +64,11 @@ func NewHTTPSet() *Set {
 
 // StartRequest create a new request using the method and the uri, adds the request into the list
 // and then return the position of the request inside the list
-func (p *Set) StartRequest(method, uri string) (int16, error) {
+func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
-	id, err := p.idBuff.Get()
+	id, err := p.idBuff.get()
 	if err != nil {
 		return 0, err
 	}
@@ -85,7 +87,7 @@ func (p *Set) StartRequest(method, uri string) (int16, error) {
 }
 
 // Remove just remove a expecific request from reqs
-func (p *Set) Remove(id int16) {
+func (p *HTTPSet) Remove(id int16) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
@@ -93,6 +95,6 @@ func (p *Set) Remove(id int16) {
 }
 
 // Get returns a request or nil if request not found
-func (p *Set) Get(id int16) *http.Request {
+func (p *HTTPSet) Get(id int16) *http.Request {
 	return p.reqs[id]
 }

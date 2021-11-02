@@ -81,7 +81,7 @@ type Context struct {
 	Network         BasicNetwork
 	Transaction     TransactionState
 	SigVerifier     *SignatureVerifier
-	OffchainHTTPSet *offchain.Set
+	OffchainHTTPSet *offchain.HTTPSet
 }
 
 // NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction
