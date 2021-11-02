@@ -44,10 +44,10 @@ const (
 	POLKADOT_RUNTIME_FP  = "polkadot_runtime.compact.wasm"
 	POLKADOT_RUNTIME_URL = "https://github.com/noot/polkadot/blob/noot/v0.8.25/polkadot_runtime.wasm?raw=true"
 
-	// v0.8 test API wasm
+	// v0.9 test API wasm
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
 	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
-	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/80fa2be272820731b5159e9dc2a3eec3cca02b4d/test/hostapi_runtime.compact.wasm?raw=true"
+	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/9cc27bf7b7f21c106000103f8f6b6c51f7fb8353/test/runtimes/hostapi/hostapi_runtime.compact.wasm?raw=true"
 
 	// v0.8 substrate runtime with modified name and babe C=(1, 1)
 	DEV_RUNTIME     = "dev_runtime"
