@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -311,14 +310,9 @@ func getLogLevel(ctx getStringer, flagName, tomlValue string, defaultLevel log.L
 	return parseLogLevelString(tomlValue)
 }
 
-var regexDigits = regexp.MustCompile("^[0-9]+$")
-
 func parseLogLevelString(logLevelString string) (logLevel log.Lvl, err error) {
-	if regexDigits.MatchString(logLevelString) {
-		levelInt, err := strconv.Atoi(logLevelString)
-		if err != nil { // should never happen
-			return 0, fmt.Errorf("cannot parse log level digits: %w", err)
-		}
+	levelInt, err := strconv.Atoi(logLevelString)
+	if err == nil { // level given as an integer
 		logLevel = log.Lvl(levelInt)
 		return logLevel, nil
 	}
