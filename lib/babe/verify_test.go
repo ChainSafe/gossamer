@@ -18,7 +18,6 @@ package babe
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -184,20 +183,12 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 
 	dig := createSecondaryVRFPreDigest(t, kp, 0, uint64(0), uint64(0), Randomness{})
 
-	// todo (ed) remove after fix (see test below TestCreateSecondaryVRFPreDigestMarshal
-	fmt.Printf("dig %T\n", dig)
-
 	bd := types.NewBabeDigest()
 	err = bd.Set(dig)
 	require.NoError(t, err)
 
 	bdEnc, err := scale.Marshal(bd)
 	require.NoError(t, err)
-
-	// babePreDigest, err := types.DecodeBabePreDigest(digEnc)
-	// require.NoError(t, err)
-	// // todo (ed) remove after fix (see test below TestCreateSecondaryVRFPreDigestMarshal
-	// fmt.Printf("decoded %T\n", babePreDigest)
 
 	// create pre-digest
 	preDigest := &types.PreRuntimeDigest{
@@ -229,35 +220,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 		Body:   nil,
 	}
 	err = vm.VerifyBlock(&block.Header)
-	require.NoError(t, err)
-	// require.EqualError(t, err, "failed to verify pre-runtime digest: could not verify slot claim VRF proof")
-}
-
-func TestCreateSecondaryVRFPreDigestMarshal(t *testing.T) {
-	kp, err := sr25519.GenerateKeypair()
-	require.NoError(t, err)
-
-	dig := createSecondaryVRFPreDigest(t, kp, 0, uint64(0), uint64(0), Randomness{})
-	fmt.Printf("dig %T\n", dig)
-
-	require.IsType(t, types.BabeSecondaryVRFPreDigest{}, *dig)
-
-	// This used to be done with dig.Encode()
-	digEnc, err := scale.Marshal(dig)
-	require.NoError(t, err)
-
-	fmt.Printf("%v", digEnc)
-
-	babeDigest := types.NewBabeDigest()
-	err = scale.Unmarshal(digEnc, &babeDigest)
-	require.NoError(t, err)
-	// Why isn't this type types.BabeSecondaryVRFPreDigest?
-	require.IsType(t, types.BabePrimaryPreDigest{}, babeDigest.Value())
-
-	babePreDigest, err := types.DecodeBabePreDigest(digEnc)
-	require.NoError(t, err)
-	// Why isn't this type types.BabeSecondaryVRFPreDigest?
-	require.IsType(t, types.BabePrimaryPreDigest{}, babePreDigest)
+	require.EqualError(t, err, "failed to verify pre-runtime digest: could not verify slot claim VRF proof")
 }
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
