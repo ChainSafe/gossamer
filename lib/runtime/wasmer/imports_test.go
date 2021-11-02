@@ -23,6 +23,11 @@ import (
 	"sort"
 	"testing"
 
+	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/wasmerio/go-ext-wasm/wasmer"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -34,10 +39,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 var testChildKey = []byte("childKey")
@@ -273,6 +274,78 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 
 	val = inst.ctx.Storage.Get(testkey2)
 	require.NotNil(t, val)
+}
+
+func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	inst.ctx.Storage.Set(testkey, []byte{1})
+
+	testkey2 := []byte("noot1")
+	inst.ctx.Storage.Set(testkey2, []byte{1})
+
+	testkey3 := []byte("noot2")
+	inst.ctx.Storage.Set(testkey3, []byte{1})
+
+	testkey4 := []byte("noot3")
+	inst.ctx.Storage.Set(testkey4, []byte{1})
+
+	testkey5 := []byte("spaghet")
+	testValue5 := []byte{2}
+	inst.ctx.Storage.Set(testkey5, testValue5)
+
+	enc, err := scale.Marshal(testkey[:3])
+	require.NoError(t, err)
+
+	testLimit := uint32(2)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	optLimit, err := scale.Marshal(&testLimitBytes)
+	require.NoError(t, err)
+
+	// clearing prefix for "noo" prefix with limit 2
+	encValue, err := inst.Exec("rtm_ext_storage_clear_prefix_version_2", append(enc, optLimit...))
+	require.NoError(t, err)
+
+	var decVal []byte
+	scale.Unmarshal(encValue, &decVal)
+
+	var numDeleted uint32
+	// numDeleted represents no. of actual keys deleted
+	scale.Unmarshal(decVal[1:], &numDeleted)
+	require.Equal(t, uint32(2), numDeleted)
+
+	var expectedAllDeleted byte
+	// expectedAllDeleted value 0 represents all keys deleted, 1 represents keys are pending with prefix in trie
+	expectedAllDeleted = 1
+	require.Equal(t, expectedAllDeleted, decVal[0])
+
+	val := inst.ctx.Storage.Get(testkey)
+	require.NotNil(t, val)
+
+	val = inst.ctx.Storage.Get(testkey5)
+	require.NotNil(t, val)
+	require.Equal(t, testValue5, val)
+
+	// clearing prefix again for "noo" prefix with limit 2
+	encValue, err = inst.Exec("rtm_ext_storage_clear_prefix_version_2", append(enc, optLimit...))
+	require.NoError(t, err)
+
+	scale.Unmarshal(encValue, &decVal)
+	scale.Unmarshal(decVal[1:], &numDeleted)
+	require.Equal(t, uint32(2), numDeleted)
+
+	expectedAllDeleted = 0
+	require.Equal(t, expectedAllDeleted, decVal[0])
+
+	val = inst.ctx.Storage.Get(testkey)
+	require.Nil(t, val)
+
+	val = inst.ctx.Storage.Get(testkey5)
+	require.NotNil(t, val)
+	require.Equal(t, testValue5, val)
 }
 
 func Test_ext_storage_get_version_1(t *testing.T) {
