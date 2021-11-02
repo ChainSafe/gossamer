@@ -1,4 +1,7 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+//go:build integration
+// +build integration
+
+// Copyright 2020 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -15,3 +18,30 @@
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
 package dot
+
+import (
+	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
+)
+
+// TestExportConfig tests exporting a toml configuration file
+func TestExportConfig(t *testing.T) {
+	cfg, cfgFile := NewTestConfigWithFile(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.Nil(t, err)
+
+	file := ExportConfig(cfg, cfgFile.Name())
+	require.NotNil(t, file)
+}
