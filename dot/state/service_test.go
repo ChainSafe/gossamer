@@ -230,7 +230,10 @@ func TestService_PruneStorage(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
 		digest := types.NewDigest()
-		digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest())
+		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest() //nolint
+		require.NoError(t, err)
+		err = digest.Add(*prd)
+		require.NoError(t, err)
 		block.Header.Digest = digest
 
 		err = serv.Storage.blockState.AddBlock(block)
@@ -368,7 +371,10 @@ func TestService_Import(t *testing.T) {
 	}
 
 	digest := types.NewDigest()
-	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
 	header := &types.Header{
 		Number:    big.NewInt(77),
 		StateRoot: tr.MustHash(),
@@ -410,6 +416,7 @@ func TestStateServiceMetrics(t *testing.T) {
 	ethmetrics.Enabled = true
 	serv := NewService(config)
 	serv.Transaction = NewTransactionState()
+	serv.Block = newTestBlockState(t, testGenesisHeader)
 
 	m := metrics.NewCollector(context.Background())
 	m.AddGauge(serv)
@@ -434,7 +441,7 @@ func TestStateServiceMetrics(t *testing.T) {
 		hashes[i] = h
 	}
 
-	time.Sleep(time.Second + metrics.Refresh)
+	time.Sleep(time.Second + metrics.RefreshInterval)
 	gpool := ethmetrics.GetOrRegisterGauge(readyPoolTransactionsMetrics, nil)
 	gqueue := ethmetrics.GetOrRegisterGauge(readyPriorityQueueTransactions, nil)
 
@@ -444,7 +451,7 @@ func TestStateServiceMetrics(t *testing.T) {
 	serv.Transaction.pool.Remove(hashes[0])
 	serv.Transaction.queue.Pop()
 
-	time.Sleep(time.Second + metrics.Refresh)
+	time.Sleep(time.Second + metrics.RefreshInterval)
 	require.Equal(t, int64(1), gpool.Value())
 	require.Equal(t, int64(1), gqueue.Value())
 }

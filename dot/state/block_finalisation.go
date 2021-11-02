@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -126,7 +127,7 @@ func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 	return header, nil
 }
 
-// SetFinalisedHash sets the latest finalised block header
+// SetFinalisedHash sets the latest finalised block hash
 func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
 	bs.Lock()
 	defer bs.Unlock()
@@ -178,6 +179,22 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		}
 	}
 
+	header, err := bs.GetHeader(hash)
+	if err != nil {
+		return fmt.Errorf("failed to get finalised header, hash: %s, error: %s", hash, err)
+	}
+
+	err = telemetry.GetInstance().SendMessage(
+		telemetry.NewNotifyFinalizedTM(
+			header.Hash(),
+			header.Number.String(),
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("could not send 'notify.finalized' telemetry message, error: %s", err)
+	}
+
+	// return bs.setHighestRoundAndSetID(round, setID)
 	bs.lastFinalised = hash
 	return nil
 }
