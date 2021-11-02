@@ -38,6 +38,10 @@ const (
 	// maxWorkers is the maximum number of parallel sync workers
 	// TODO: determine ideal value (#1659)
 	maxWorkers = 12
+
+	// maxWorkerRetries is the maximum number of times a worker can retry
+	// before being cancelled.
+	maxWorkerRetries = 16
 )
 
 var _ ChainSync = &chainSync{}
@@ -417,6 +421,15 @@ func (cs *chainSync) sync() {
 			}
 
 			if worker == nil {
+				continue
+			}
+
+			worker.retryCount = res.retryCount + 1
+			if worker.retryCount > maxWorkerRetries {
+				logger.Debug("discarding worker, has reached maximum retry count",
+					"worker",
+					worker,
+				)
 				continue
 			}
 

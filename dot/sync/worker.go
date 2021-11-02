@@ -80,8 +80,9 @@ func (s *workerState) reset() {
 // if it fails for some reason, `err` is set.
 // otherwise, we can assume all the blocks have been received and added to the `readyBlocks` queue
 type worker struct {
-	ctx context.Context
-	id  uint64
+	ctx        context.Context
+	id         uint64
+	retryCount uint8
 
 	startHash    common.Hash
 	startNumber  *big.Int
