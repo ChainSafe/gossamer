@@ -620,7 +620,7 @@ func TestChainSync_doSync(t *testing.T) {
 		Max:           &max,
 	}
 
-	workerErr := cs.doSync(req)
+	workerErr := cs.doSync(req, make(map[peer.ID]struct{}))
 	require.NotNil(t, workerErr)
 	require.Equal(t, errNoPeers, workerErr.err)
 
@@ -628,7 +628,7 @@ func TestChainSync_doSync(t *testing.T) {
 		number: big.NewInt(100),
 	}
 
-	workerErr = cs.doSync(req)
+	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.NotNil(t, workerErr)
 	require.Equal(t, errNilResponse, workerErr.err)
 
@@ -646,7 +646,7 @@ func TestChainSync_doSync(t *testing.T) {
 	cs.network = new(syncmocks.Network)
 	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 
-	workerErr = cs.doSync(req)
+	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 	bd := readyBlocks.pop()
 	require.NotNil(t, bd)
@@ -677,7 +677,7 @@ func TestChainSync_doSync(t *testing.T) {
 	req.Direction = network.Descending
 	cs.network = new(syncmocks.Network)
 	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
-	workerErr = cs.doSync(req)
+	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 
 	bd = readyBlocks.pop()
