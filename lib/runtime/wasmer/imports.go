@@ -128,7 +128,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -1693,7 +1692,9 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	httpMethod := asMemorySlice(instanceContext, methodSpan)
 	uri := asMemorySlice(instanceContext, uriSpan)
 
-	reqID, err := offchain.HTTPSet.StartRequest(string(httpMethod), string(uri))
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
+
 	if err != nil {
 		logger.Error("[ext_offchain_http_request_start_version_1] failed to start request", "error", err)
 		ptr, _ := toWasmMemoryResult(instanceContext, nil)
