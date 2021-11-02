@@ -138,9 +138,6 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 }
 
 func TestGrandpaModule_RoundState(t *testing.T) {
-	//mockedHash := common.NewHash([]byte{0x01, 0x02})
-	//mockedHashSlice := []common.Hash{mockedHash, mockedHash, mockedHash}
-	//
 	var kr, _ = keystore.NewEd25519Keyring()
 	var voters grandpa.Voters
 
