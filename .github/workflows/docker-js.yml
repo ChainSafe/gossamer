@@ -20,6 +20,7 @@ jobs:
           with:
             load: true
             file: ./Dockerfile
+            target: builder
             platforms: linux/amd64
             push: false
             tags: chainsafe/gossamer:test
