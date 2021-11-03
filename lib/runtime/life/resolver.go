@@ -777,8 +777,9 @@ func ext_crypto_ed25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1] keystore type for id " +
-			common.BytesToHex(id) + " is " + ks.Type() + " and not the expected ed25519")
+		logger.Warnf(
+			"[ext_crypto_ed25519_public_keys_version_1] keystore type for id 0x%x is %s and not the expected ed25519",
+			id, ks.Type())
 		ret, _ := toWasmMemory(memory, []byte{0})
 		return ret
 	}
@@ -954,15 +955,15 @@ func ext_crypto_sr25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
 
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warnf("[ext_crypto_sr25519_public_keys_version_1] error for id %s: %s",
-			common.BytesToHex(id), err)
+		logger.Warnf("[ext_crypto_sr25519_public_keys_version_1] error for id 0x%x: %s", id, err)
 		ret, _ := toWasmMemory(memory, []byte{0})
 		return ret
 	}
 
 	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1] keystore type for id " +
-			common.BytesToHex(id) + " is " + ks.Type() + " and not the expected sr25519")
+		logger.Warnf(
+			"[ext_crypto_ed25519_public_keys_version_1] keystore type for id 0x%x is %s and not the expected sr25519",
+			id, ks.Type())
 		ret, _ := toWasmMemory(memory, []byte{0})
 		return ret
 	}

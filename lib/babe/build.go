@@ -101,7 +101,7 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp
 }
 
 func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
-	logger.Tracef("build block with parent %s and slot %v", parent, slot)
+	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
 	// create pre-digest
 	preDigest, err := b.buildBlockPreDigest(slot)

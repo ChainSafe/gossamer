@@ -60,7 +60,7 @@ func (s *ServiceRegistry) RegisterService(service Service) {
 func (s *ServiceRegistry) StartAll() {
 	s.logger.Infof("Starting services: %v", s.serviceTypes)
 	for _, typ := range s.serviceTypes {
-		s.logger.Debugf("Starting service %v", typ)
+		s.logger.Debugf("Starting service %s", typ)
 		err := s.services[typ].Start()
 		if err != nil {
 			s.logger.Errorf("Cannot start service %s: %s", typ, err)
@@ -73,7 +73,7 @@ func (s *ServiceRegistry) StartAll() {
 func (s *ServiceRegistry) StopAll() {
 	s.logger.Infof("Stopping services: %v", s.serviceTypes)
 	for _, typ := range s.serviceTypes {
-		s.logger.Debugf("Stopping service %v", typ)
+		s.logger.Debugf("Stopping service %s", typ)
 		err := s.services[typ].Stop()
 		if err != nil {
 			s.logger.Errorf("Error stopping service %s: %s", typ, err)

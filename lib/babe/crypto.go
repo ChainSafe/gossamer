@@ -51,8 +51,8 @@ func claimPrimarySlot(randomness Randomness,
 		return nil, err
 	}
 
-	logger.Tracef("claimPrimarySlot pub=%s slot=%d epoch=%d output=%s proof=%s",
-		keypair.Public().Hex(), slot, epoch, common.BytesToHex(out[:]), common.BytesToHex(proof[:]))
+	logger.Tracef("claimPrimarySlot pub=%s slot=%d epoch=%d output=0x%x proof=0x%x",
+		keypair.Public().Hex(), slot, epoch, out, proof)
 
 	ok := checkPrimaryThreshold(randomness, slot, epoch, out, threshold, keypair.Public().(*sr25519.PublicKey))
 	if !ok {
@@ -78,9 +78,8 @@ func checkPrimaryThreshold(randomness Randomness,
 
 	inoutUint := common.Uint128FromLEBytes(res)
 
-	logger.Tracef("checkPrimaryThreshold pub=%s randomness=%s slot=%d epoch=%d threshold=%s output=%s inout=%s",
-		pub.Hex(), common.BytesToHex(randomness[:]), slot, epoch, common.BytesToHex(threshold.ToLEBytes()),
-		common.BytesToHex(output[:]), common.BytesToHex(res))
+	logger.Tracef("checkPrimaryThreshold pub=%s randomness=0x%x slot=%d epoch=%d threshold=0x%x output=0x%x inout=0x%x",
+		pub.Hex(), randomness, slot, epoch, threshold, output, res)
 
 	return inoutUint.Cmp(threshold) < 0
 }

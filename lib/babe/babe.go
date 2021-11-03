@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
@@ -364,8 +363,8 @@ func (b *Service) invokeBlockAuthoring() error {
 			return err
 		}
 
-		logger.Debugf("initiated epoch with threshold %s, randomness %s and authorities %v",
-			b.epochData.threshold, common.BytesToHex(b.epochData.randomness[:]), b.epochData.authorities)
+		logger.Debugf("initiated epoch with threshold %s, randomness 0x%x and authorities %v",
+			b.epochData.threshold, b.epochData.randomness[:], b.epochData.authorities)
 
 		epochStartSlot, err := b.waitForEpochStart(epoch)
 		if err != nil {

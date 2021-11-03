@@ -284,15 +284,15 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warnf("[ext_crypto_ed25519_public_keys_version_1] error for id "+
-			common.BytesToHex(id)+": %s", err)
+		logger.Warnf("[ext_crypto_ed25519_public_keys_version_1] error for id 0x%x: %s", id, err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
 
 	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1] error for id " +
-			common.BytesToHex(id) + ": keystore type is " + ks.Type() + " and not the expected ed25519")
+		logger.Warnf(
+			"[ext_crypto_ed25519_public_keys_version_1] error for id 0x%x: keystore type is %s and not the expected ed25519",
+			id, ks.Type())
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -603,8 +603,9 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	}
 
 	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
-		logger.Warn("[ext_crypto_sr25519_public_keys_version_1] keystore type for id " +
-			common.BytesToHex(id) + " is " + ks.Type() + " and not expected sr25519")
+		logger.Warnf(
+			"[ext_crypto_sr25519_public_keys_version_1] keystore type for id 0x%x is %s and not expected sr25519",
+			id, ks.Type())
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -1323,8 +1324,7 @@ func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_blake2_256_version_1] data " +
-		common.BytesToHex(data) + " has hash " + hash.String())
+	logger.Debugf("[ext_hashing_blake2_256_version_1] data 0x%x has hash %s", data, hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
@@ -1348,8 +1348,7 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_keccak_256_version_1] data " +
-		common.BytesToHex(data) + " has hash " + hash.String())
+	logger.Debugf("[ext_hashing_keccak_256_version_1] data 0x%x has hash %s", data, hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
@@ -1368,8 +1367,7 @@ func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 	data := asMemorySlice(instanceContext, dataSpan)
 	hash := common.Sha256(data)
 
-	logger.Debug("[ext_hashing_sha2_256_version_1] data " +
-		common.BytesToHex(data) + " has hash " + hash.String())
+	logger.Debugf("[ext_hashing_sha2_256_version_1] data 0x%x has hash %s", data, hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
@@ -1393,8 +1391,7 @@ func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_twox_256_version_1] data " +
-		common.BytesToHex(data) + " has hash " + hash.String())
+	logger.Debugf("[ext_hashing_twox_256_version_1] data 0x%x has hash %s", data, hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {

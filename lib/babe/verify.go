@@ -458,8 +458,8 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, v
 	}
 
 	// validate VRF proof
-	logger.Tracef("verifyPrimarySlotWinner authority index %d, public key %s, randomness %s, slot %d, epoch %d, output %s and proof %s",
-		authorityIndex, pub.Hex(), common.BytesToHex(b.randomness[:]), slot, b.epoch, common.BytesToHex(vrfOutput[:]), common.BytesToHex(vrfProof[:]))
+	logger.Tracef("verifyPrimarySlotWinner authority index %d, public key %s, randomness 0x%x, slot %d, epoch %d, output 0x%x and proof 0x%x",
+		authorityIndex, pub.Hex(), b.randomness, slot, b.epoch, vrfOutput, vrfProof[:])
 
 	t := makeTranscript(b.randomness, slot, b.epoch)
 	return pk.VrfVerify(t, vrfOutput, vrfProof)

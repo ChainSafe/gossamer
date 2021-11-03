@@ -171,17 +171,17 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 
 	stdoutPipe, err := node.Process.StdoutPipe()
 	if err != nil {
-		Logger.Errorf("failed to get stdoutPipe from node %d: %s\n", node.Idx, err)
+		Logger.Errorf("failed to get stdoutPipe from node %d: %s", node.Idx, err)
 		return err
 	}
 
 	stderrPipe, err := node.Process.StderrPipe()
 	if err != nil {
-		Logger.Errorf("failed to get stderrPipe from node %d: %s\n", node.Idx, err)
+		Logger.Errorf("failed to get stderrPipe from node %d: %s", node.Idx, err)
 		return err
 	}
 
-	Logger.Info("starting gossamer at " + node.Process.String() + "...")
+	Logger.Infof("starting gossamer at %s...", node.Process)
 	err = node.Process.Start()
 	if err != nil {
 		Logger.Errorf("Could not execute gossamer cmd: %s", err)

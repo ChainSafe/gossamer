@@ -123,7 +123,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	logger.Debugf(
-		"creating service with authority=%t, pub=%s and voter set %v",
+		"creating service with authority=%t, pub=%s and voter set %s",
 		cfg.Authority, pub, Voters(cfg.Voters))
 
 	// get latest finalised header
@@ -592,7 +592,7 @@ func (s *Service) attemptToFinalize() error {
 		votes := s.getDirectVotes(precommit)
 		logger.Debugf("block was finalised for round %d and set id %d. "+
 			"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
-			s.state.round, s.state.setID, s.head.Hash().String(), votes[*bfc], pc)
+			s.state.round, s.state.setID, s.head.Hash(), votes[*bfc], pc)
 
 		cm, err := s.newCommitMessage(s.head, s.state.round)
 		if err != nil {
