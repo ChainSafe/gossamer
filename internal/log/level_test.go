@@ -68,6 +68,22 @@ func Test_ParseLevel(t *testing.T) {
 		level Level
 		err   error
 	}{
+		"-1": {
+			s:   "-1",
+			err: errors.New("level integer can only be between 0 and 5 included: -1"),
+		},
+		"0": {
+			s:     "0",
+			level: Critical,
+		},
+		"5": {
+			s:     "5",
+			level: Trace,
+		},
+		"6": {
+			s:   "6",
+			err: errors.New("level integer can only be between 0 and 5 included: 6"),
+		},
 		"trace": {
 			s:     "TRCE",
 			level: Trace,

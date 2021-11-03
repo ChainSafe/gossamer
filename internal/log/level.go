@@ -3,6 +3,7 @@ package log
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color" //nolint:misspell
@@ -72,13 +73,23 @@ func (level Level) ColouredString() (s string) {
 	return c.Sprint(level.String())
 }
 
-// ErrLevelNotRecognised is an error returned if the level string is
-// not recognised by the ParseLevel function.
-var ErrLevelNotRecognised = errors.New("level is not recognised")
+var (
+	ErrLevelNotRecognised     = errors.New("level is not recognised")
+	ErrLevelIntegerOutOfRange = errors.New("level integer can only be between 0 and 5 included")
+)
 
 // ParseLevel parses a string into a level, and returns an
-// error if it fails.
+// error if it fails. It accepts integers between 0 (critical)
+// and 5 (trace) as well as strings such as 'trace' or 'dbug'.
 func ParseLevel(s string) (level Level, err error) {
+	n, err := strconv.Atoi(s)
+	if err == nil { // level given as an integer
+		if n < 0 || n > 5 {
+			return 0, fmt.Errorf("%w: %d", ErrLevelIntegerOutOfRange, n)
+		}
+		return Level(n), nil
+	}
+
 	switch strings.ToUpper(s) {
 	case Trace.String(), "TRACE":
 		return Trace, nil
