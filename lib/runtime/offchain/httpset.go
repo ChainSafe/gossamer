@@ -14,7 +14,7 @@ var (
 	errRequestIDNotAvailable = errors.New("request id not available")
 )
 
-// requestIDBuffer created to controll the amount of available non-duplicated ids
+// requestIDBuffer created to control the amount of available non-duplicated ids
 type requestIDBuffer chan int16
 
 // newIntBuffer creates the request id buffer starting from 0 till @buffSize (by default @buffSize is 1000)
