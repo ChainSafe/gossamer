@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -58,5 +59,13 @@ func (s *TransactionState) RemoveExtrinsicFromPool(ext types.Extrinsic) {
 
 // AddToPool adds a transaction to the pool
 func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
-	return s.pool.Insert(vt)
+	hash := s.pool.Insert(vt)
+
+	if err := telemetry.GetInstance().SendMessage(
+		telemetry.NewTxpoolImportTM(uint(s.queue.Len()), uint(s.pool.Len())),
+	); err != nil {
+		logger.Debug("problem sending txpool.import telemetry message", "error", err)
+	}
+
+	return hash
 }
