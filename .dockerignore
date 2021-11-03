@@ -1,0 +1,15 @@
+/.git
+/.githooks
+/.github
+/docs
+/.deepsource.toml
+/.dockerignore
+/.gitattributes
+/.gitignore
+/.releaserc
+/.codecov.yml
+/docker-compose.yml
+/Dockerfile
+/Dockerfile.staging
+/prometheus.yml
+/README.md
