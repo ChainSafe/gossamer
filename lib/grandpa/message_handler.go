@@ -383,7 +383,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 		}
 	}
 
-	if uint64(count)+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
+	if count+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
 		return ErrMinVotesNotMet
 	}
 
