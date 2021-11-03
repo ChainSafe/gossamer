@@ -1368,8 +1368,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
-	var val *[]byte // nolint
-	val = nil
+	var val *[]byte
 	optLimit, err := scale.Marshal(val)
 	require.NoError(t, err)
 

@@ -178,6 +178,10 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+	if block == nil {
+		return ErrNilBlock
+	}
+
 	if err := s.handleBlock(block, state); err != nil {
 		return err
 	}
@@ -192,7 +196,7 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
-		Number:         block.Header.Number,
+		Number:         big.NewInt(int64(block.Header.Number)),
 		StateRoot:      block.Header.StateRoot,
 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
 		Digest:         digest,
@@ -217,9 +221,9 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	// store block in database
 	if err = s.blockState.AddBlock(block); err != nil {
-		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
+		if err == blocktree.ErrParentNotFound && block.Header.Number != 0 {
 			return err
-		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
+		} else if err == blocktree.ErrBlockExists || block.Header.Number == 0 {
 			// this is fine
 		} else {
 			return err

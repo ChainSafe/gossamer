@@ -18,7 +18,6 @@ package modules
 
 import (
 	"io/ioutil"
-	"math/big"
 	"path/filepath"
 	"testing"
 
@@ -63,7 +62,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 
 	expected := &ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
-		Number:         common.BytesToHex(header.Number.Bytes()),
+		Number:         common.Uint64ToHex(uint64(header.Number)), // TODO-1785 is this fine?
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest: ChainBlockHeaderDigest{
@@ -99,7 +98,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 
 	expected := &ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
-		Number:         common.BytesToHex(header.Number.Bytes()),
+		Number:         common.Uint64ToHex(uint64(header.Number)), // TODO-1785 is this fine?
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest: ChainBlockHeaderDigest{
@@ -147,7 +146,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 
 	expectedHeader := &ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
-		Number:         common.BytesToHex(header.Number.Bytes()),
+		Number:         common.Uint64ToHex(uint64(header.Number)), // TODO-1785 is this fine?
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest: ChainBlockHeaderDigest{
@@ -191,7 +190,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 
 	expectedHeader := &ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
-		Number:         common.BytesToHex(header.Number.Bytes()),
+		Number:         common.Uint64ToHex(uint64(header.Number)), // TODO-1785 is this fine?
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest: ChainBlockHeaderDigest{
@@ -254,7 +253,7 @@ func TestChainGetBlockHash_ByNumber(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	expected, err := state.Block.GetBlockByNumber(1)
 	require.NoError(t, err)
 	require.Equal(t, expected.Header.Hash().String(), res)
 }
@@ -270,7 +269,7 @@ func TestChainGetBlockHash_ByHex(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.NoError(t, err)
 
-	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	expected, err := state.Block.GetBlockByNumber(1)
 	require.NoError(t, err)
 	require.Equal(t, expected.Header.Hash().String(), res)
 }
@@ -290,9 +289,9 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	expected0, err := state.Block.GetBlockByNumber(big.NewInt(0))
+	expected0, err := state.Block.GetBlockByNumber(0)
 	require.NoError(t, err)
-	expected1, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	expected1, err := state.Block.GetBlockByNumber(1)
 	require.NoError(t, err)
 	expected := []string{expected0.Header.Hash().String(), expected1.Header.Hash().String()}
 
@@ -331,7 +330,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: genesisHeader.Hash(),
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 	}
 	err = state.Block.AddBlock(&types.Block{
@@ -394,7 +393,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) {
 	header1 := &types.Header{
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     types.NewDigest(),
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
@@ -416,7 +415,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 	require.NoError(t, err)
 
 	header2 := &types.Header{
-		Number:     big.NewInt(2),
+		Number:     1,
 		Digest:     digest,
 		ParentHash: header1.Hash(),
 		StateRoot:  trie.EmptyHash,

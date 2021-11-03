@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -112,7 +111,7 @@ func TestBlockListener_Listen(t *testing.T) {
 
 	//block := types.NewEmptyBlock()
 	block := types.NewBlock(*types.NewEmptyHeader(), *new(types.Body))
-	block.Header.Number = big.NewInt(1)
+	block.Header.Number = 1
 
 	go bl.Listen()
 	defer func() {

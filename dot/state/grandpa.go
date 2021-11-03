@@ -19,7 +19,7 @@ package state
 import (
 	"encoding/binary"
 	"errors"
-	"math/big"
+	"fmt"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -61,7 +61,7 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.
 		return nil, err
 	}
 
-	if err := s.setSetIDChangeAtBlock(genesisSetID, big.NewInt(0)); err != nil {
+	if err := s.setSetIDChangeAtBlock(genesisSetID, 0); err != nil {
 		return nil, err
 	}
 
@@ -152,7 +152,7 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 }
 
 // SetNextChange sets the next authority change
-func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *big.Int) error {
+func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number uint) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
 		return err
@@ -184,22 +184,24 @@ func (s *GrandpaState) IncrementSetID() error {
 }
 
 // setSetIDChangeAtBlock sets a set ID change at a certain block
-func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number *big.Int) error {
-	return s.db.Put(setIDChangeKey(setID), number.Bytes())
+func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number uint) error {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, uint64(number))
+	return s.db.Put(setIDChangeKey(setID), b)
 }
 
 // GetSetIDChange returs the block number where the set ID was updated
-func (s *GrandpaState) GetSetIDChange(setID uint64) (*big.Int, error) {
-	num, err := s.db.Get(setIDChangeKey(setID))
+func (s *GrandpaState) GetSetIDChange(setID uint64) (uint, error) {
+	num, err := s.db.Get(setIDChangeKey(setID)) // TODO-1785 will this return 8 bytes considering how we `.Put` it, but could this return another amount of bytes from other sources??
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return big.NewInt(0).SetBytes(num), nil
+	return uint(binary.LittleEndian.Uint64(num)), nil
 }
 
 // GetSetIDByBlockNumber returns the set ID for a given block number
-func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
+func (s *GrandpaState) GetSetIDByBlockNumber(num uint) (uint64, error) {
 	curr, err := s.GetCurrentSetID()
 	if err != nil {
 		return 0, err
@@ -225,11 +227,11 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 
 		// if the given block number is greater or equal to the block number of the set ID change,
 		// return the current set ID
-		if num.Cmp(changeUpper) < 1 && num.Cmp(changeLower) == 1 {
+		if num <= changeUpper && num > changeLower {
 			return curr, nil
 		}
 
-		if num.Cmp(changeUpper) == 1 {
+		if num > changeUpper {
 			return curr + 1, nil
 		}
 
@@ -242,40 +244,56 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 }
 
 // SetNextPause sets the next grandpa pause at the given block number
-func (s *GrandpaState) SetNextPause(number *big.Int) error {
-	return s.db.Put(pauseKey, number.Bytes())
+func (s *GrandpaState) SetNextPause(number uint) error {
+	// TODO-1785: this was big.Int.Bytes()
+	bytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bytes, uint64(number))
+	return s.db.Put(pauseKey, bytes)
 }
 
-// GetNextPause returns the block number of the next grandpa pause, nil if there is no upcoming pause
-func (s *GrandpaState) GetNextPause() (*big.Int, error) {
+var ErrUnexpectedBytesCount = errors.New("unexpected bytes count")
+
+// GetNextPause returns the block number of the next grandpa pause.
+// It returns the error ErrNoUpcomingPause is there is no upcoming pause.
+func (s *GrandpaState) GetNextPause() (blockNumber uint, err error) {
+	const expectedBytesCount = 8
 	num, err := s.db.Get(pauseKey)
-	if err == chaindb.ErrKeyNotFound {
-		return nil, nil
+	switch {
+	case errors.Is(err, chaindb.ErrKeyNotFound):
+		return 0, nil
+	case err != nil:
+		return 0, err
+	case len(num) != expectedBytesCount:
+		return 0, fmt.Errorf("%w: expected %d bytes but got %d: %v",
+			ErrUnexpectedBytesCount, expectedBytesCount, len(num), num)
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	return big.NewInt(0).SetBytes(num), nil
+	return uint(binary.LittleEndian.Uint64(num)), nil
 }
 
 // SetNextResume sets the next grandpa resume at the given block number
-func (s *GrandpaState) SetNextResume(number *big.Int) error {
-	return s.db.Put(resumeKey, number.Bytes())
+func (s *GrandpaState) SetNextResume(number uint) error {
+	bytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bytes, uint64(number))
+	return s.db.Put(resumeKey, bytes)
 }
 
-// GetNextResume returns the block number of the next grandpa resume, nil if there is no upcoming resume
-func (s *GrandpaState) GetNextResume() (*big.Int, error) {
+// GetNextResume returns the block number of the next grandpa resume.
+// It returns the error ErrNoUpcomingResume is there is no upcoming pause.
+func (s *GrandpaState) GetNextResume() (blockNumber uint, err error) {
+	const expectedBytesCount = 8
 	num, err := s.db.Get(resumeKey)
-	if err == chaindb.ErrKeyNotFound {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
+	switch {
+	case errors.Is(err, chaindb.ErrKeyNotFound):
+		return 0, nil
+	case err != nil:
+		return 0, err
+	case len(num) != expectedBytesCount:
+		return 0, fmt.Errorf("%w: expected %d bytes but got %d: %v",
+			ErrUnexpectedBytesCount, expectedBytesCount, len(num), num)
 	}
 
-	return big.NewInt(0).SetBytes(num), nil
+	return uint(binary.LittleEndian.Uint64(num)), nil
 }
 
 func prevotesKey(round, setID uint64) []byte {

@@ -54,6 +54,9 @@ var (
 	// ErrNotAuthority is returned when trying to perform authority functions when not an authority
 	ErrNotAuthority = errors.New("node is not an authority")
 
+	// ErrBlockHeaderNumberIsNil is returned if the block header number field is nil.
+	ErrBlockHeaderNumberIsNil = errors.New("block header number is nil")
+
 	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
 	errNilBlockState         = errors.New("cannot have nil BlockState")
 	errNilEpochState         = errors.New("cannot have nil EpochState")

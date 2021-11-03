@@ -60,7 +60,7 @@ func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		BlockState:         network.NewMockBlockState(nil),
+		BlockState:         network.NewMockBlockState(1),
 		BasePath:           testDir,
 		Syncer:             network.NewMockSyncer(),
 		TransactionHandler: network.NewMockTransactionHandler(),
@@ -308,7 +308,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	require.NoError(t, err)
 	err = chain.Block.AddBlock(&types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(3),
+			Number:     3,
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
 		},
@@ -359,7 +359,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 func TestSyncState(t *testing.T) {
 	fakeCommonHash := common.NewHash([]byte("fake"))
 	fakeHeader := &types.Header{
-		Number: big.NewInt(int64(49)),
+		Number: 49,
 	}
 
 	blockapiMock := new(mocks.BlockAPI)

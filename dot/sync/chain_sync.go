@@ -61,13 +61,13 @@ func (s chainSyncState) String() string {
 }
 
 // TODO: determine ideal limit for pending blocks set (#1659)
-var pendingBlocksLimit = maxResponseSize * 32
+var pendingBlocksLimit = int(maxResponseSize) * 32
 
 // peerState tracks our peers's best reported blocks
 type peerState struct {
 	who    peer.ID //nolint
 	hash   common.Hash
-	number *big.Int
+	number *uint
 }
 
 // workHandler handles new potential work (ie. reported peer state, block announces), results from dispatched workers,
@@ -86,7 +86,7 @@ type workHandler interface {
 	// check whether it is a duplicate. this function returns whether there is
 	// a worker that covers the scope of the proposed worker; if true,
 	// ignore the proposed worker
-	hasCurrentWorker(*worker, map[uint64]*worker) bool
+	hasCurrentWorker(*worker, map[uint64]*worker) (ok bool, err error)
 
 	// handleTick handles a timer tick
 	handleTick() ([]*worker, error)
@@ -101,7 +101,7 @@ type ChainSync interface {
 	setBlockAnnounce(from peer.ID, header *types.Header) error
 
 	// called upon receiving a BlockAnnounceHandshake
-	setPeerHead(p peer.ID, hash common.Hash, number *big.Int) error
+	setPeerHead(p peer.ID, hash common.Hash, number uint) error
 
 	// syncState returns the current syncing state
 	syncState() chainSyncState
@@ -208,6 +208,7 @@ func (cs *chainSync) syncState() chainSyncState {
 }
 
 func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error {
+	// TODO-1785: can we error if header.Number == nil?
 	// check if we already know of this block, if not,
 	// add to pendingBlocks set
 	has, err := cs.blockState.HasHeader(header.Hash())
@@ -228,11 +229,11 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 }
 
 // setPeerHead sets a peer's best known block and potentially adds the peer's state to the workQueue
-func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) error {
+func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error {
 	ps := &peerState{
 		who:    p,
 		hash:   hash,
-		number: number,
+		number: &number,
 	}
 	cs.Lock()
 	cs.peerState[p] = ps
@@ -245,10 +246,11 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		return err
 	}
 
-	if ps.number.Cmp(head.Number) <= 0 {
+	if *ps.number < head.Number {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
-		ourHash, err := cs.blockState.GetHashByNumber(ps.number) //nolint
+		var ourHash common.Hash
+		ourHash, err = cs.blockState.GetHashByNumber(*ps.number)
 		if err != nil {
 			return err
 		}
@@ -260,7 +262,8 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		// check if their best block is on an invalid chain, if it is,
 		// potentially downscore them
 		// for now, we can remove them from the syncing peers set
-		fin, err := cs.blockState.GetHighestFinalisedHeader()
+		var fin *types.Header
+		fin, err = cs.blockState.GetHighestFinalisedHeader()
 		if err != nil {
 			return err
 		}
@@ -268,7 +271,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		// their block hash doesn't match ours for that number (ie. they are on a different
 		// chain), and also the highest finalised block is higher than that number.
 		// thus the peer is on an invalid chain
-		if fin.Number.Cmp(ps.number) >= 0 {
+		if fin.Number >= *ps.number {
 			// TODO: downscore this peer, or temporarily don't sync from them? (#1399)
 			// perhaps we need another field in `peerState` to mark whether the state is valid or not
 			return errPeerOnInvalidFork
@@ -276,7 +279,8 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 
 		// peer is on a fork, check if we have processed the fork already or not
 		// ie. is their block written to our db?
-		has, err := cs.blockState.HasHeader(ps.hash)
+		var has bool
+		has, err = cs.blockState.HasHeader(ps.hash)
 		if err != nil {
 			return err
 		}
@@ -289,7 +293,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 
 	// the peer has a higher best block than us, or they are on some fork we are not aware of
 	// add it to the disjoint block set
-	if err = cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number); err != nil {
+	if err = cs.pendingBlocks.addHashAndNumber(ps.hash, *ps.number); err != nil {
 		return err
 	}
 
@@ -309,7 +313,7 @@ func (cs *chainSync) logSyncSpeed() {
 		}
 
 		if cs.state == bootstrap {
-			cs.benchmarker.begin(before.Number.Uint64())
+			cs.benchmarker.begin(before.Number)
 		}
 
 		select {
@@ -333,8 +337,11 @@ func (cs *chainSync) logSyncSpeed() {
 
 		switch cs.state {
 		case bootstrap:
-			cs.benchmarker.end(after.Number.Uint64())
-			target := cs.getTarget()
+			cs.benchmarker.end(after.Number)
+			target, err := cs.getTarget()
+			if err != nil {
+				continue
+			}
 
 			logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
 				"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
@@ -420,7 +427,11 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
-			cs.tryDispatchWorker(worker)
+			err = cs.tryDispatchWorker(worker)
+			if err != nil {
+				logger.Error("cannot dispatch worker", "error", err)
+				continue
+			}
 		case <-ticker.C:
 			cs.maybeSwitchMode()
 
@@ -431,7 +442,11 @@ func (cs *chainSync) sync() {
 			}
 
 			for _, worker := range workers {
-				cs.tryDispatchWorker(worker)
+				err = cs.tryDispatchWorker(worker)
+				if err != nil {
+					logger.Error("cannot dispatch worker", "error", err)
+					continue
+				}
 			}
 		case fin := <-cs.finalisedCh:
 			// on finalised block, call pendingBlocks.removeLowerBlocks() to remove blocks on
@@ -450,12 +465,17 @@ func (cs *chainSync) maybeSwitchMode() {
 		return
 	}
 
-	target := cs.getTarget()
+	target, err := cs.getTarget()
+	if err != nil {
+		logger.Error("cannot get target", "error", err)
+		return
+	}
+
 	switch {
-	case big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) < 0:
+	case head.Number+uint(maxResponseSize) < target:
 		// we are at least 128 blocks behind the head, switch to bootstrap
 		cs.setMode(bootstrap)
-	case head.Number.Cmp(target) >= 0:
+	case head.Number >= target:
 		// bootstrap complete, switch state to tip if not already
 		// and begin near-head fork-sync
 		cs.setMode(tip)
@@ -490,25 +510,30 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 // TODO: should we just return the highest? could be an attack vector potentially, if a peer reports some very large
 // head block number, it would leave us in bootstrap mode forever
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
-func (cs *chainSync) getTarget() *big.Int {
-	count := int64(0)
-	sum := big.NewInt(0)
+func (cs *chainSync) getTarget() (peerHeadsAverage uint, err error) {
+	var count int64
+	sum := big.NewInt(0) // big.Int so it can store more than uint
 
 	cs.RLock()
 	defer cs.RUnlock()
 
 	// in practice, this shouldn't happen, as we only start the module once we have some peer states
 	if len(cs.peerState) == 0 {
-		// return max uint32 instead of 0, as returning 0 would switch us to tip mode unexpectedly
-		return big.NewInt(2<<32 - 1)
+		// return max uint instead of 0, as returning 0 would switch us to tip mode unexpectedly
+		return ^uint(0), nil
 	}
 
 	for _, ps := range cs.peerState {
-		sum = big.NewInt(0).Add(sum, ps.number)
+		if ps.number == nil {
+			return 0, fmt.Errorf("peer %s: %w", ps.who, errNilPeerStateNumber)
+		}
+		sum = sum.Add(sum, big.NewInt(int64(*ps.number)))
 		count++
 	}
 
-	return big.NewInt(0).Div(sum, big.NewInt(count))
+	bigIntQuotient := big.NewInt(0).Div(sum, big.NewInt(count))
+
+	return uint(bigIntQuotient.Uint64()), nil
 }
 
 // handleWork handles potential new work that may be triggered on receiving a peer's state
@@ -526,11 +551,15 @@ func (cs *chainSync) handleWork(ps *peerState) error {
 		return nil
 	}
 
-	cs.tryDispatchWorker(worker)
+	err = cs.tryDispatchWorker(worker)
+	if err != nil {
+		return fmt.Errorf("cannot dispatch worker: %w", err)
+	}
+
 	return nil
 }
 
-func (cs *chainSync) tryDispatchWorker(w *worker) {
+func (cs *chainSync) tryDispatchWorker(w *worker) (err error) {
 	// if we already have the maximum number of workers, don't dispatch another
 	if len(cs.workerState.workers) >= maxWorkers {
 		logger.Trace("reached max workers, ignoring potential work")
@@ -539,12 +568,17 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 
 	// check current worker set for workers already working on these blocks
 	// if there are none, dispatch new worker
-	if cs.handler.hasCurrentWorker(w, cs.workerState.workers) {
-		return
+	ok, err := cs.handler.hasCurrentWorker(w, cs.workerState.workers)
+	if err != nil {
+		return fmt.Errorf("%w: %s", errHasCurrentWorkerCheck, err)
+	} else if ok {
+		return nil
 	}
 
 	cs.workerState.add(w)
 	go cs.dispatchWorker(w)
+
+	return nil
 }
 
 // dispatchWorker begins making requests to the network and attempts to receive responses up until the target
@@ -775,7 +809,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 
 		// otherwise, check that this response forms a chain
 		// ie. curr's parent hash is hash of previous header, and curr's number is previous number + 1
-		if !prev.Hash().Equal(curr.ParentHash) || curr.Number.Cmp(big.NewInt(0).Add(prev.Number, big.NewInt(1))) != 0 {
+		if !prev.Hash().Equal(curr.ParentHash) || curr.Number != prev.Number+1 {
 			// the response is missing some blocks, place blocks from curr onwards into pending blocks set
 			for _, bd := range resp.BlockData[i:] {
 				if err := cs.pendingBlocks.addBlock(&types.Block{
@@ -851,35 +885,41 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 		return nil, errWorkerMissingTargetNumber
 	}
 
-	diff := big.NewInt(0).Sub(w.targetNumber, w.startNumber)
-	if diff.Int64() < 0 && w.direction != network.Descending {
+	// Note: `int64` to be able to include max uint32 on
+	// 32 bit systems. Using `int` would imply `int32` on
+	// 32 bit systems, which cannot store max uint32.
+	diff := int64(*w.targetNumber) - int64(*w.startNumber)
+	if diff < 0 && w.direction != network.Descending {
 		return nil, errInvalidDirection
 	}
 
-	if diff.Int64() > 0 && w.direction != network.Ascending {
+	if diff > 0 && w.direction != network.Ascending {
 		return nil, errInvalidDirection
 	}
 
 	// start and end block are the same, just request 1 block
-	if diff.Cmp(big.NewInt(0)) == 0 {
-		diff = big.NewInt(1)
+	if diff == 0 {
+		diff = 1
 	}
 
 	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
 	// take absolute value of difference between start and target
-	numBlocks := int(big.NewInt(0).Abs(diff).Int64())
+	numBlocks := diff
+	if numBlocks < 0 {
+		numBlocks = -numBlocks
+	}
 	numRequests := numBlocks / maxResponseSize
 
 	if numBlocks%maxResponseSize != 0 {
 		numRequests++
 	}
 
-	startNumber := w.startNumber.Uint64()
+	startNumber := *w.startNumber
 	reqs := make([]*network.BlockRequestMessage, numRequests)
 
-	for i := 0; i < numRequests; i++ {
+	for i := int64(0); i < numRequests; i++ {
 		// check if we want to specify a size
-		var max uint32 = maxResponseSize
+		max := uint32(maxResponseSize)
 		if i == numRequests-1 {
 			size := numBlocks % maxResponseSize
 			if size == 0 {
@@ -891,10 +931,10 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 		var start *variadic.Uint64OrHash
 		if w.startHash.IsEmpty() {
 			// worker startHash is unspecified if we are in bootstrap mode
-			start, _ = variadic.NewUint64OrHash(startNumber)
+			start = variadic.MustNewUint64OrHash(startNumber)
 		} else {
 			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
-			start, _ = variadic.NewUint64OrHash(w.startHash)
+			start = variadic.MustNewUint64OrHash(w.startHash)
 
 			// if we're doing descending requests and not at the last (highest starting) request,
 			// then use number as start block

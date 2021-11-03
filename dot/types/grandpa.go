@@ -206,3 +206,10 @@ type GrandpaVote struct {
 func (v *GrandpaVote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.Hash, v.Number)
 }
+
+// DeepCopy deep copies the grandpa vote.
+func (v *GrandpaVote) DeepCopy() (copied *GrandpaVote) {
+	copy(copied.Hash[:], v.Hash[:])
+	copied.Number = v.Number
+	return copied
+}

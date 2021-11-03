@@ -18,7 +18,6 @@ package stress
 
 import (
 	"fmt"
-	"math/big"
 	"math/rand"
 	"os"
 	"strconv"
@@ -174,10 +173,10 @@ func TestSync_MultipleEpoch(t *testing.T) {
 
 	// Just checking that everythings operating as expected
 	header := utils.GetChainHead(t, nodes[0])
-	currentHeight := header.Number.Int64()
-	for i := int64(0); i < currentHeight; i++ {
+	currentHeight := header.Number
+	for i := uint(0); i < currentHeight; i++ {
 		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(int(i)))
+		_, err = compareBlocksByNumberWithRetry(t, nodes, fmt.Sprint(i))
 		require.NoError(t, err, i)
 	}
 }
@@ -212,7 +211,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 
 func TestSync_Bench(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
-	numBlocks := 64
+	const numBlocks uint = 64
 
 	// start block producing node
 	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
@@ -223,8 +222,9 @@ func TestSync_Bench(t *testing.T) {
 		if err != nil {
 			continue
 		}
+		require.NotNil(t, header.Number) // tolerable overhead due to the sleep below.
 
-		if header.Number.Int64() >= int64(numBlocks) {
+		if header.Number >= numBlocks {
 			break
 		}
 
@@ -246,7 +246,7 @@ func TestSync_Bench(t *testing.T) {
 	}()
 
 	// see how long it takes to sync to block numBlocks
-	last := big.NewInt(int64(numBlocks))
+	const last = numBlocks
 	start := time.Now()
 	var end time.Time
 
@@ -260,7 +260,7 @@ func TestSync_Bench(t *testing.T) {
 			continue
 		}
 
-		if head.Number.Cmp(last) >= 0 {
+		if head.Number >= last {
 			end = time.Now()
 			break
 		}
@@ -277,7 +277,7 @@ func TestSync_Bench(t *testing.T) {
 
 	// assert block is correct
 	t.Log("comparing block...", numBlocks)
-	_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(numBlocks))
+	_, err = compareBlocksByNumberWithRetry(t, nodes, fmt.Sprint(numBlocks))
 	require.NoError(t, err, numBlocks)
 	time.Sleep(time.Second * 3)
 }
@@ -429,7 +429,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	// search from child -> parent blocks for extrinsic
 	var (
 		resExts    []gosstypes.Extrinsic
-		extInBlock *big.Int
+		extInBlock uint
 	)
 
 	for i := 0; i < maxRetries; i++ {
@@ -467,6 +467,6 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	require.True(t, included)
 
-	hashes, err := compareBlocksByNumberWithRetry(t, nodes, extInBlock.String())
+	hashes, err := compareBlocksByNumberWithRetry(t, nodes, fmt.Sprint(extInBlock))
 	require.NoError(t, err, hashes)
 }

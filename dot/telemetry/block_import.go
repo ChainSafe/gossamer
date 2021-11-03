@@ -17,20 +17,18 @@
 package telemetry
 
 import (
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // blockImportTM struct to hold block import telemetry messages
 type blockImportTM struct {
 	BestHash *common.Hash `json:"best"`
-	Height   *big.Int     `json:"height"`
+	Height   uint         `json:"height"`
 	Origin   string       `json:"origin"`
 }
 
 // NewBlockImportTM function to create new Block Import Telemetry Message
-func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) Message {
+func NewBlockImportTM(bestHash *common.Hash, height uint, origin string) Message {
 	return &blockImportTM{
 		BestHash: bestHash,
 		Height:   height,

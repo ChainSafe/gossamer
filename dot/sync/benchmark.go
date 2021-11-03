@@ -22,7 +22,7 @@ import (
 
 type syncBenchmarker struct {
 	start           time.Time
-	startBlock      uint64
+	startBlock      uint
 	blocksPerSecond []float64
 }
 
@@ -32,12 +32,12 @@ func newSyncBenchmarker() *syncBenchmarker {
 	}
 }
 
-func (b *syncBenchmarker) begin(block uint64) {
+func (b *syncBenchmarker) begin(block uint) {
 	b.start = time.Now()
 	b.startBlock = block
 }
 
-func (b *syncBenchmarker) end(block uint64) {
+func (b *syncBenchmarker) end(block uint) {
 	duration := time.Since(b.start)
 	blocks := block - b.startBlock
 	if blocks == 0 {

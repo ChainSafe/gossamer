@@ -17,7 +17,6 @@
 package core
 
 import (
-	"math/big"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -34,7 +33,7 @@ import (
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (*big.Int, error)
+	BestBlockNumber() (uint, error)
 	BestBlockStateRoot() (common.Hash, error)
 	BestBlock() (*types.Block, error)
 	AddBlock(*types.Block) error

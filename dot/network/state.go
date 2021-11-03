@@ -17,8 +17,6 @@
 package network
 
 import (
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
@@ -30,11 +28,11 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (*big.Int, error)
+	BestBlockNumber() (uint, error)
 	GenesisHash() common.Hash
 	HasBlockBody(common.Hash) (bool, error)
 	GetHighestFinalisedHeader() (*types.Header, error)
-	GetHashByNumber(num *big.Int) (common.Hash, error)
+	GetHashByNumber(num uint) (common.Hash, error)
 }
 
 //go:generate mockery --name Syncer --structname MockSyncer --case underscore --inpackage

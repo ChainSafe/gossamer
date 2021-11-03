@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -266,6 +265,10 @@ func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 	return s.keypair.Public().(*ed25519.PublicKey).AsBytes()
 }
 
+var (
+	errNewVoteFromHeader = errors.New("cannot create new vote from header")
+)
+
 func (s *Service) initiateRound() error {
 	// if there is an authority change, execute it
 	err := s.updateAuthorities()
@@ -303,8 +306,16 @@ func (s *Service) initiateRound() error {
 	if s.state.round == 0 {
 		s.chanLock.Lock()
 		s.mapLock.Lock()
-		s.preVotedBlock[0] = NewVoteFromHeader(s.head)
-		s.bestFinalCandidate[0] = NewVoteFromHeader(s.head)
+
+		var vote *types.GrandpaVote
+		vote, err = NewVoteFromHeader(s.head)
+		if err != nil {
+			return fmt.Errorf("%w: %s", errNewVoteFromHeader, err)
+		}
+
+		s.preVotedBlock[0] = vote
+		s.bestFinalCandidate[0] = vote.DeepCopy()
+
 		s.mapLock.Unlock()
 		s.chanLock.Unlock()
 	}
@@ -324,7 +335,7 @@ func (s *Service) initiateRound() error {
 		return err
 	}
 
-	if best.Number.Int64() > 0 {
+	if best.Number > 0 {
 		return nil
 	}
 
@@ -368,8 +379,8 @@ func (s *Service) waitForFirstBlock() {
 	// loop until block 1
 	for {
 		select {
-		case block := <-ch:
-			if block != nil && block.Header.Number.Int64() > 0 {
+		case block, ok := <-ch:
+			if !ok || block.Header.Number > 0 {
 				return
 			}
 		case <-s.ctx.Done():
@@ -388,7 +399,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 		return false, nil
 	}
 
-	if s.head.Number.Int64() > 0 {
+	if s.head.Number > 0 {
 		s.primaryBroadcastCommitMessage()
 	}
 
@@ -399,7 +410,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 
 	pv := &Vote{
 		Hash:   best.Hash(),
-		Number: uint32(best.Number.Int64()),
+		Number: uint32(best.Number),
 	}
 
 	// send primary prevote message to network
@@ -577,7 +588,7 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		if bfc.Number < uint32(s.head.Number.Int64()) || pc <= s.state.threshold() {
+		if uint(bfc.Number) < s.head.Number || pc <= s.state.threshold() {
 			continue
 		}
 
@@ -649,7 +660,8 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// otherwise, we simply choose the head of our chain.
 	primary := s.derivePrimary()
 	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
-	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
+
+	if has && uint(prm.Vote.Number) >= s.head.Number {
 		vote = &prm.Vote
 	} else {
 		header, err := s.blockState.BestBlockHeader()
@@ -657,17 +669,23 @@ func (s *Service) determinePreVote() (*Vote, error) {
 			return nil, err
 		}
 
-		vote = NewVoteFromHeader(header)
+		vote, err = NewVoteFromHeader(header)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", errNewVoteFromHeader, err)
+		}
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(vote.Number) > nextChange {
-		headerNum := new(big.Int).SetUint64(nextChange)
+	if uint(vote.Number) > nextChange {
+		headerNum := nextChange
 		header, err := s.blockState.GetHeaderByNumber(headerNum)
 		if err != nil {
 			return nil, err
 		}
-		vote = NewVoteFromHeader(header)
+		vote, err = NewVoteFromHeader(header)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", errNewVoteFromHeader, err)
+		}
 	}
 
 	return vote, nil
@@ -686,13 +704,17 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(pvb.Number) > nextChange {
-		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+	if uint(pvb.Number) > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(nextChange)
 		if err != nil {
 			return nil, err
 		}
 
-		pvb = *NewVoteFromHeader(header)
+		grandpaVote, err := NewVoteFromHeader(header)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", errNewVoteFromHeader, err)
+		}
+		pvb = *grandpaVote
 	}
 	return &pvb, nil
 }
@@ -989,7 +1011,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		Number: uint32(0),
+		Number: 0,
 	}
 
 	for h, n := range blocks {
@@ -1033,7 +1055,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		Number: uint32(0),
+		Number: 0,
 	}
 
 	for h, n := range blocks {
@@ -1123,7 +1145,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, s
 				return nil, err
 			}
 
-			selected[pred] = uint32(h.Number.Int64())
+			selected[pred] = uint32(h.Number)
 		} else {
 			selected, err = s.getPossibleSelectedAncestors(votes, pred, selected, stage, threshold)
 			if err != nil {
@@ -1240,7 +1262,7 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 		b = p
 	}
 
-	return NewVoteFromHeader(b), nil
+	return NewVoteFromHeader(b)
 }
 
 // GetSetID returns the current setID

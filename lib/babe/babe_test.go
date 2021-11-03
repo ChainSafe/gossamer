@@ -19,7 +19,6 @@ package babe
 import (
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
@@ -56,7 +55,7 @@ var (
 
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{
-		Number: big.NewInt(0),
+		Number: 0,
 		Digest: types.NewDigest(),
 	}
 

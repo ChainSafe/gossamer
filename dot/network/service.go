@@ -298,7 +298,7 @@ func (s *Service) collectNetworkMetrics() {
 		if err != nil {
 			syncedBlocks.Update(0)
 		} else {
-			syncedBlocks.Update(num.Int64())
+			syncedBlocks.Update(int64(num))
 		}
 
 		time.Sleep(gssmrmetrics.RefreshInterval)
@@ -726,13 +726,13 @@ func (s *Service) CollectGauge() map[string]int64 {
 }
 
 // HighestBlock returns the highest known block number
-func (*Service) HighestBlock() int64 {
+func (*Service) HighestBlock() uint32 {
 	// TODO: refactor this to get the data from the sync service (#1857)
 	return 0
 }
 
 // StartingBlock return the starting block number that's currently being synced
-func (*Service) StartingBlock() int64 {
+func (*Service) StartingBlock() uint32 {
 	// TODO: refactor this to get the data from the sync service (#1857)
 	return 0
 }

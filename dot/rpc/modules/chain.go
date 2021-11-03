@@ -17,10 +17,10 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
-	"math/big"
 	"net/http"
-	"regexp"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -211,26 +211,23 @@ func (cm *ChainModule) unwindRequest(req interface{}) ([]string, error) {
 	return res, nil
 }
 
+var (
+	errParseBlockNumber = errors.New("cannot parse block number")
+)
+
 // lookupHashByInterface parses given interface to determine block number, then
 //  finds hash for that block number
-func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
-	num := new(big.Int)
+func (cm *ChainModule) lookupHashByInterface(i interface{}) (digest string, err error) {
+	var num uint
 	switch x := i.(type) {
 	case float64:
-		f := big.NewFloat(x)
-		f.Int(num)
+		num = uint(x)
 	case string:
 		// remove leading 0x (if there is one)
-		re, err := regexp.Compile(`0x`)
+		x = strings.ReplaceAll(x, "0x", "")
+		num, err = common.HexToUint(x)
 		if err != nil {
-			return "", err
-		}
-		x = re.ReplaceAllString(x, "")
-
-		// cast string to big.Int
-		_, ok := num.SetString(x, 10)
-		if !ok {
-			return "", fmt.Errorf("error setting number from string")
+			return "", fmt.Errorf("cannot convert hex string %s to uint: %w", x, err)
 		}
 
 	default:
@@ -253,11 +250,8 @@ func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest:         ChainBlockHeaderDigest{},
 	}
-	if header.Number.Int64() == 0 {
-		res.Number = "0x00" // needs two 0 chars for hex decoding to work
-	} else {
-		res.Number = common.BytesToHex(header.Number.Bytes())
-	}
+	// this will produce 16 characters hex strings
+	res.Number = common.Uint64ToHex(uint64(header.Number))
 
 	for _, item := range header.Digest.Types {
 		enc, err := scale.Marshal(item)

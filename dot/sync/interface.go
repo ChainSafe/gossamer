@@ -17,7 +17,6 @@
 package sync
 
 import (
-	"math/big"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -35,10 +34,10 @@ import (
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (*big.Int, error)
+	BestBlockNumber() (uint, error)
 	AddBlock(*types.Block) error
 	CompareAndSetBlockData(bd *types.BlockData) error
-	GetBlockByNumber(*big.Int) (*types.Block, error)
+	GetBlockByNumber(uint) (*types.Block, error)
 	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
 	SetHeader(*types.Header) error
@@ -51,14 +50,14 @@ type BlockState interface {
 	SetJustification(hash common.Hash, data []byte) error
 	SetFinalisedHash(hash common.Hash, round, setID uint64) error
 	AddBlockToBlockTree(header *types.Header) error
-	GetHashByNumber(*big.Int) (common.Hash, error)
+	GetHashByNumber(uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
-	GetHeaderByNumber(num *big.Int) (*types.Header, error)
-	GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error)
+	GetHeaderByNumber(num uint) (*types.Header, error)
+	GetAllBlocksAtNumber(num uint) ([]common.Hash, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 }
 

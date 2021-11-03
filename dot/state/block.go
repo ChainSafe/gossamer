@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
@@ -102,14 +101,23 @@ func NewBlockState(db chaindb.Database) (*BlockState, error) {
 
 	bs.genesisHash = genesisHash
 	bs.lastFinalised = header.Hash()
-	bs.bt = blocktree.NewBlockTreeFromRoot(header)
+	bs.bt, err = blocktree.NewBlockTreeFromRoot(header)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create new block tree from root: %w", err)
+	}
+
 	return bs, nil
 }
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
+	bt, err := blocktree.NewBlockTreeFromRoot(header)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create new block tree from root: %w", err)
+	}
+
 	bs := &BlockState{
-		bt:                         blocktree.NewBlockTreeFromRoot(header),
+		bt:                         bt,
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          new(sync.Map),
@@ -129,7 +137,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	if err := bs.db.Put(headerHashKey(header.Number.Uint64()), header.Hash().ToBytes()); err != nil {
+	if err := bs.db.Put(headerHashKey(uint64(header.Number)), header.Hash().ToBytes()); err != nil {
 		return nil, err
 	}
 
@@ -266,7 +274,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 }
 
 // GetHashByNumber returns the block hash on our best chain with the given number
-func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
+func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	hash, err := bs.bt.GetHashByNumber(num)
 	if err == nil {
 		return hash, nil
@@ -275,7 +283,7 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 	}
 
 	// if error is ErrNumLowerThanRoot, number has already been finalised, so check db
-	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
+	bh, err := bs.db.Get(headerHashKey(uint64(num)))
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", num, err)
 	}
@@ -284,7 +292,7 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 }
 
 // GetHeaderByNumber returns the block header on our best chain with the given number
-func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
+func (bs *BlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 	hash, err := bs.GetHashByNumber(num)
 	if err != nil {
 		return nil, err
@@ -294,7 +302,7 @@ func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 }
 
 // GetBlockByNumber returns the block on our best chain with the given number
-func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
+func (bs *BlockState) GetBlockByNumber(num uint) (*types.Block, error) {
 	hash, err := bs.GetHashByNumber(num)
 	if err != nil {
 		return nil, err
@@ -332,7 +340,7 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 
 // GetBlockHash returns block hash for a given block number
 // TODO: remove in favour of GetHashByNumber
-func (bs *BlockState) GetBlockHash(num *big.Int) (common.Hash, error) {
+func (bs *BlockState) GetBlockHash(num uint) (common.Hash, error) {
 	return bs.GetHashByNumber(num)
 }
 
@@ -445,7 +453,7 @@ func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 }
 
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
-func (bs *BlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) {
+func (bs *BlockState) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
 	header, err := bs.GetHeaderByNumber(num)
 	if err != nil {
 		return nil, err
@@ -466,7 +474,7 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 	}
 
 	// if the new block is ahead of our best block, then it is on our current chain.
-	if header.Number.Cmp(bestBlock.Number) > 0 {
+	if header.Number > bestBlock.Number {
 		return true, nil
 	}
 
@@ -517,15 +525,19 @@ func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (
 	return header.StateRoot, nil
 }
 
-// BestBlockNumber returns the block number of the current head of the chain
-func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
-	header, err := bs.GetHeader(bs.BestBlockHash())
-	if err != nil {
-		return nil, err
-	}
+var (
+	// ErrBestBlockGetHeader is returned when the best block header cannot be obtained.
+	ErrBestBlockGetHeader = errors.New("cannot obtain header for best block")
+)
 
-	if header == nil {
-		return nil, fmt.Errorf("failed to get best block header")
+// BestBlockNumber returns the block number of the current head of the chain
+func (bs *BlockState) BestBlockNumber() (uint, error) {
+	header, err := bs.GetHeader(bs.BestBlockHash())
+	switch {
+	case err != nil:
+		return 0, err
+	case header == nil:
+		return 0, ErrBestBlockGetHeader
 	}
 
 	return header.Number, nil

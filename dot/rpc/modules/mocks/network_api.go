@@ -47,14 +47,14 @@ func (_m *NetworkAPI) Health() common.Health {
 }
 
 // HighestBlock provides a mock function with given fields:
-func (_m *NetworkAPI) HighestBlock() int64 {
+func (_m *NetworkAPI) HighestBlock() uint32 {
 	ret := _m.Called()
 
-	var r0 int64
-	if rf, ok := ret.Get(0).(func() int64); ok {
+	var r0 uint32
+	if rf, ok := ret.Get(0).(func() uint32); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(int64)
+		r0 = ret.Get(0).(uint32)
 	}
 
 	return r0
@@ -153,14 +153,14 @@ func (_m *NetworkAPI) Start() error {
 }
 
 // StartingBlock provides a mock function with given fields:
-func (_m *NetworkAPI) StartingBlock() int64 {
+func (_m *NetworkAPI) StartingBlock() uint32 {
 	ret := _m.Called()
 
-	var r0 int64
-	if rf, ok := ret.Get(0).(func() int64); ok {
+	var r0 uint32
+	if rf, ok := ret.Get(0).(func() uint32); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(int64)
+		r0 = ret.Get(0).(uint32)
 	}
 
 	return r0

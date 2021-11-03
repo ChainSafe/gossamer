@@ -18,13 +18,13 @@ package sync
 
 import (
 	"errors"
-	"math/big"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var _ workHandler = &tipSyncer{}
+var _ workHandler = (*tipSyncer)(nil)
 
 // tipSyncer handles workers when syncing at the tip of the chain
 type tipSyncer struct {
@@ -42,12 +42,14 @@ func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBl
 }
 
 func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
+	if ps.number == nil {
+		return nil, errNilPeerStateNumber
+	}
+
 	fin, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return nil, err
-	}
-
-	if ps.number.Cmp(fin.Number) <= 0 {
+	} else if *ps.number < fin.Number {
 		return nil, nil
 	}
 
@@ -75,26 +77,34 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		return nil, err
 	}
 
+	// Nil checks for comparisons below
+	switch {
+	case res.startNumber == nil:
+		return nil, errNilWorkerStartNumber
+	case res.targetNumber == nil:
+		return nil, errNilWorkerTargetNumber
+	}
+
 	// don't retry if we're requesting blocks lower than finalised
 	switch res.direction {
 	case network.Ascending:
-		if res.targetNumber.Cmp(fin.Number) <= 0 {
+		if *res.targetNumber <= fin.Number {
 			return nil, nil
 		}
 
 		// if start is lower than finalised, increase it to finalised+1
-		if res.startNumber.Cmp(fin.Number) <= 0 {
-			res.startNumber = big.NewInt(0).Add(fin.Number, big.NewInt(1))
+		if *res.startNumber <= fin.Number {
+			*res.startNumber = fin.Number + 1
 			res.startHash = common.Hash{}
 		}
 	case network.Descending:
-		if res.startNumber.Cmp(fin.Number) <= 0 {
+		if *res.startNumber <= fin.Number {
 			return nil, nil
 		}
 
 		// if target is lower than finalised, increase it to finalised+1
-		if res.targetNumber.Cmp(fin.Number) <= 0 {
-			res.targetNumber = big.NewInt(0).Add(fin.Number, big.NewInt(1))
+		if *res.targetNumber <= fin.Number {
+			*res.targetNumber = fin.Number + 1
 			res.targetHash = common.Hash{}
 		}
 	}
@@ -109,9 +119,9 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	}, nil
 }
 
-func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
+func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) (ok bool, err error) {
 	if w == nil || w.startNumber == nil || w.targetNumber == nil {
-		return true
+		return true, nil
 	}
 
 	for _, curr := range workers {
@@ -119,8 +129,14 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 			continue
 		}
 
-		targetDiff := w.targetNumber.Cmp(curr.targetNumber)
-		startDiff := w.startNumber.Cmp(curr.startNumber)
+		if curr.startNumber == nil {
+			return false, fmt.Errorf("worker with id %d: %w", curr.id, errNilWorkerStartNumber)
+		} else if curr.targetNumber == nil {
+			return false, fmt.Errorf("worker with id %d: %w", curr.id, errNilWorkerTargetNumber)
+		}
+
+		targetDiff := int(*w.targetNumber) - int(*curr.targetNumber)
+		startDiff := int(*w.startNumber) - int(*curr.startNumber)
 
 		switch w.direction {
 		case network.Ascending:
@@ -148,11 +164,11 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 		// worker (start, end) is within curr (start, end), if hashes are equal then the request is either
 		// for the same data or some subset of data that is covered by curr
 		if w.startHash.Equal(curr.startHash) || w.targetHash.Equal(curr.targetHash) {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // handleTick traverses the pending blocks set to find which forks still need to be requested
@@ -177,7 +193,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 	var workers []*worker
 
 	for _, block := range s.pendingBlocks.getBlocks() {
-		if block.number.Cmp(fin.Number) <= 0 {
+		if *block.number <= fin.Number {
 			// delete from pending set (this should not happen, it should have already been deleted)
 			s.pendingBlocks.removeBlock(block.hash)
 			continue
@@ -191,7 +207,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 				startHash:    block.hash,
 				startNumber:  block.number,
 				targetHash:   fin.Hash(),
-				targetNumber: fin.Number,
+				targetNumber: uintPtr(fin.Number),
 				direction:    network.Descending,
 				requestData:  bootstrapRequestData,
 			})
@@ -223,11 +239,15 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			continue
 		}
 
+		if block.number == nil {
+			return nil, fmt.Errorf("pending block %s: %w", block.hash, errNilPendingBlockNumber)
+		}
+
 		// request descending chain from (parent of pending block) -> (last finalised block)
 		workers = append(workers, &worker{
 			startHash:    block.header.ParentHash,
-			startNumber:  big.NewInt(0).Sub(block.number, big.NewInt(1)),
-			targetNumber: fin.Number,
+			startNumber:  uintPtr(*block.number - 1),
+			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
 		})

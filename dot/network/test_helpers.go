@@ -16,15 +16,14 @@ import (
 
 const blockRequestSize uint32 = 128
 
+func uint32Ptr(n uint32) *uint32 { return &n }
+
 // NewMockBlockState create and return a network BlockState interface mock
-func NewMockBlockState(n *big.Int) *MockBlockState {
+func NewMockBlockState(n uint) *MockBlockState {
 	parentHash, _ := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	stateRoot, _ := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
 	extrinsicsRoot, _ := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 
-	if n == nil {
-		n = big.NewInt(1)
-	}
 	header := &types.Header{
 		ParentHash:     parentHash,
 		Number:         n,
@@ -37,9 +36,9 @@ func NewMockBlockState(n *big.Int) *MockBlockState {
 	m.On("BestBlockHeader").Return(header, nil)
 	m.On("GetHighestFinalisedHeader").Return(header, nil)
 	m.On("GenesisHash").Return(common.NewHash([]byte{}))
-	m.On("BestBlockNumber").Return(big.NewInt(1), nil)
+	m.On("BestBlockNumber").Return(uint(1), nil)
 	m.On("HasBlockBody", mock.AnythingOfType("common.Hash")).Return(false, nil)
-	m.On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
+	m.On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.Hash{}, nil)
 
 	return m
 }
@@ -67,9 +66,10 @@ func testBlockResponseMessage() *BlockResponseMessage {
 		BlockData: []*types.BlockData{},
 	}
 
-	for i := 0; i < int(blockRequestSize); i++ {
+	for i := uint(0); i < uint(blockRequestSize); i++ {
+		const startBlockNumber uint = 77
 		testHeader := &types.Header{
-			Number: big.NewInt(int64(77 + i)),
+			Number: startBlockNumber + i,
 			Digest: types.NewDigest(),
 		}
 
@@ -166,16 +166,14 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 	}
 }
 
-var starting, _ = variadic.NewUint64OrHash(uint64(1))
-
-var one = uint32(1)
+var starting = variadic.MustNewUint64OrHash(1)
 
 var testBlockRequestMessage = &BlockRequestMessage{
 	RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
 	StartingBlock: *starting,
 	EndBlockHash:  &common.Hash{},
 	Direction:     1,
-	Max:           &one,
+	Max:           uint32Ptr(1),
 }
 
 func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {

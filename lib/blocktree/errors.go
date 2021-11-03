@@ -38,5 +38,7 @@ var (
 	// ErrNumLowerThanRoot is returned when attempting to get a hash by number that is lower than the root node
 	ErrNumLowerThanRoot = errors.New("cannot find node with number lower than root node")
 
+	ErrBlockHeaderNumberIsNil = errors.New("block header number is nil")
+
 	errUnexpectedNumber = errors.New("block number is not parent number + 1")
 )

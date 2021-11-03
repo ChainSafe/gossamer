@@ -3,8 +3,6 @@
 package network
 
 import (
-	big "math/big"
-
 	common "github.com/ChainSafe/gossamer/lib/common"
 	mock "github.com/stretchr/testify/mock"
 
@@ -40,16 +38,14 @@ func (_m *MockBlockState) BestBlockHeader() (*types.Header, error) {
 }
 
 // BestBlockNumber provides a mock function with given fields:
-func (_m *MockBlockState) BestBlockNumber() (*big.Int, error) {
+func (_m *MockBlockState) BestBlockNumber() (uint, error) {
 	ret := _m.Called()
 
-	var r0 *big.Int
-	if rf, ok := ret.Get(0).(func() *big.Int); ok {
+	var r0 uint
+	if rf, ok := ret.Get(0).(func() uint); ok {
 		r0 = rf()
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*big.Int)
-		}
+		r0 = ret.Get(0).(uint)
 	}
 
 	var r1 error
@@ -79,11 +75,11 @@ func (_m *MockBlockState) GenesisHash() common.Hash {
 }
 
 // GetHashByNumber provides a mock function with given fields: num
-func (_m *MockBlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
+func (_m *MockBlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	ret := _m.Called(num)
 
 	var r0 common.Hash
-	if rf, ok := ret.Get(0).(func(*big.Int) common.Hash); ok {
+	if rf, ok := ret.Get(0).(func(uint) common.Hash); ok {
 		r0 = rf(num)
 	} else {
 		if ret.Get(0) != nil {
@@ -92,7 +88,7 @@ func (_m *MockBlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*big.Int) error); ok {
+	if rf, ok := ret.Get(1).(func(uint) error); ok {
 		r1 = rf(num)
 	} else {
 		r1 = ret.Error(1)

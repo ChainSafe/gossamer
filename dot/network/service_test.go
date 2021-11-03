@@ -78,7 +78,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = NewMockBlockState(nil)
+		cfg.BlockState = NewMockBlockState(1)
 	}
 
 	if cfg.TransactionHandler == nil {

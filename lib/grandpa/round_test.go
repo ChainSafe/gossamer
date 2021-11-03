@@ -177,7 +177,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
-		r := rand.Intn(1)
+		r := uint(rand.Int31n(1))
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
 		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
@@ -326,7 +326,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 	// this represents the chains that will be slightly ahead of the others
 	headers := []*types.Header{}
-	diff := 1
+	const diff uint = 1
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
@@ -337,8 +337,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 		outs[i] = out
 		fins[i] = fin
 
-		r := 0
-		r = rand.Intn(diff)
+		r := uint(rand.Int31n(int32(diff)))
 		chain, _ := state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
 		if r == diff-1 {
 			headers = chain
@@ -433,7 +432,7 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 		fins[i] = fin
 
 		// this creates a tree with 2 branches starting at depth 2
-		branches := make(map[int]int)
+		branches := make(map[uint]int)
 		branches[2] = 1
 		state.AddBlocksToStateWithFixedBranches(t, gs.blockState.(*state.BlockState), 4, branches, r)
 	}

@@ -1687,6 +1687,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		valueRes = valueToAppend
 	} else {
 		var currLength *big.Int
+		// TODO does this need to be modified?
 		err := scale.Unmarshal(valueCurr, &currLength)
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)

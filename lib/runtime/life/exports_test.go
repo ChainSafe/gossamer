@@ -1,7 +1,6 @@
 package life
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -121,7 +120,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     types.NewDigest(),
 	}
 
@@ -176,7 +175,7 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 	}
 
@@ -253,7 +252,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe"),
-			Number:         big.NewInt(1),
+			Number:         1,
 			StateRoot:      common.MustHexToHash("0xfabb0c6e92d29e8bb2167f3c6fb0ddeb956a4278a3cf853661af74a076fc9cb7"),
 			ExtrinsicsRoot: common.MustHexToHash("0xa35fb7f7616f5c979d48222b3d2fa7cb2331ef73954726714d91ca945cc34fd8"),
 			Digest:         digest,
@@ -303,7 +302,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
-			Number:         big.NewInt(1),
+			Number:         1,
 			StateRoot:      common.MustHexToHash("0xc56fcd6e7a757926ace3e1ecff9b4010fc78b90d459202a339266a7f6360002f"),
 			ExtrinsicsRoot: common.MustHexToHash("0x9a87f6af64ef97aff2d31bebfdd59f8fe2ef6019278b634b2515a38f1c4c2420"),
 			Digest:         digest,

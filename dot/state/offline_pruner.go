@@ -24,14 +24,14 @@ type OfflinePruner struct {
 	blockState     *BlockState
 	bloom          *bloomState
 	bestBlockHash  common.Hash
-	retainBlockNum int64
+	retainBlockNum uint
 
 	inputDBPath  string
 	prunedDBPath string
 }
 
 // NewOfflinePruner creates an instance of OfflinePruner.
-func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNum int64) (*OfflinePruner, error) {
+func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNum uint) (*OfflinePruner, error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
@@ -85,7 +85,7 @@ func (p *OfflinePruner) SetBloomFilter() error {
 		return fmt.Errorf("failed to get highest finalised header: %w", err)
 	}
 
-	latestBlockNum := header.Number.Int64()
+	latestBlockNum := header.Number
 	keys := make(map[common.Hash]struct{})
 
 	logger.Info("Latest block number", "num", latestBlockNum)
@@ -95,7 +95,7 @@ func (p *OfflinePruner) SetBloomFilter() error {
 	}
 
 	// loop from latest to last `retainBlockNum` blocks
-	for blockNum := header.Number.Int64(); blockNum > 0 && blockNum >= latestBlockNum-p.retainBlockNum; {
+	for blockNum := latestBlockNum; blockNum > 0 && blockNum >= latestBlockNum-p.retainBlockNum; {
 		var tr *trie.Trie
 		tr, err = p.storageState.LoadFromDB(header.StateRoot)
 		if err != nil {
@@ -112,7 +112,8 @@ func (p *OfflinePruner) SetBloomFilter() error {
 		if err != nil {
 			return err
 		}
-		blockNum = header.Number.Int64()
+
+		blockNum = header.Number
 	}
 
 	for key := range keys {

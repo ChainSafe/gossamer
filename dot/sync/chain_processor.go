@@ -187,7 +187,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	}
 
 	if bd.Justification != nil && bd.Header != nil {
-		logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
+		logger.Debug("handling Justification...", "number", bd.NumberString(), "hash", bd.Hash)
 		s.handleJustification(bd.Header, *bd.Justification)
 	}
 

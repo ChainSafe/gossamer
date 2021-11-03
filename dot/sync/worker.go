@@ -18,7 +18,6 @@ package sync
 
 import (
 	"context"
-	"math/big"
 	"sync"
 	"time"
 
@@ -84,9 +83,9 @@ type worker struct {
 	id  uint64
 
 	startHash    common.Hash
-	startNumber  *big.Int
+	startNumber  *uint
 	targetHash   common.Hash
-	targetNumber *big.Int
+	targetNumber *uint
 
 	// bitmap of fields to request
 	requestData byte

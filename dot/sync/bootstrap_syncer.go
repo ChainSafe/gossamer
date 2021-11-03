@@ -18,7 +18,6 @@ package sync
 
 import (
 	"errors"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -40,17 +39,23 @@ func newBootstrapSyncer(blockState BlockState) *bootstrapSyncer {
 }
 
 func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
+	if ps.number == nil {
+		return nil, errNilPeerStateNumber
+	}
+
 	head, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		return nil, err
 	}
 
-	if ps.number.Cmp(head.Number) <= 0 {
+	if *ps.number <= head.Number {
 		return nil, nil
 	}
 
+	startNumber := head.Number + 1
+
 	return &worker{
-		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
+		startNumber:  &startNumber,
 		targetHash:   ps.hash,
 		targetNumber: ps.number,
 		requestData:  bootstrapRequestData,
@@ -64,6 +69,10 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		return nil, nil
 	}
 
+	if res.targetNumber == nil {
+		return nil, errNilWorkerTargetNumber
+	}
+
 	// new worker should update start block and re-dispatch
 	head, err := s.blockState.BestBlockHeader()
 	if err != nil {
@@ -71,11 +80,11 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	}
 
 	// we've reached the target, return
-	if res.targetNumber.Cmp(head.Number) <= 0 {
+	if *res.targetNumber <= head.Number {
 		return nil, nil
 	}
 
-	startNumber := big.NewInt(0).Add(head.Number, big.NewInt(1))
+	startNumber := head.Number + 1
 
 	// in the case we started a block producing node, we might have produced blocks
 	// before fully syncing (this should probably be fixed by connecting sync into BABE)
@@ -90,7 +99,7 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 
 	return &worker{
 		startHash:    common.Hash{}, // for bootstrap, just use number
-		startNumber:  startNumber,
+		startNumber:  &startNumber,
 		targetHash:   res.targetHash,
 		targetNumber: res.targetNumber,
 		requestData:  res.requestData,
@@ -98,9 +107,9 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	}, nil
 }
 
-func (*bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker) bool {
+func (*bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker) (ok bool, _ error) {
 	// we're in bootstrap mode, and there already is a worker, we don't need to dispatch another
-	return len(workers) != 0
+	return len(workers) != 0, nil
 }
 
 func (*bootstrapSyncer) handleTick() ([]*worker, error) {

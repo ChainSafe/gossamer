@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"sort"
 	"strings"
 	"testing"
@@ -541,7 +540,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	b := &types.Block{
 		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
-			Number:     big.NewInt(3),
+			Number:     3,
 			StateRoot:  sr1,
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte{}}),
@@ -555,7 +554,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	chain.Block.StoreRuntime(b.Header.Hash(), rt)
 
-	hash, _ := chain.Block.GetBlockHash(big.NewInt(3))
+	hash, _ := chain.Block.GetBlockHash(3)
 	core := newCoreService(t, chain)
 	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }

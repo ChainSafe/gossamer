@@ -3,8 +3,6 @@
 package mocks
 
 import (
-	big "math/big"
-
 	common "github.com/ChainSafe/gossamer/lib/common"
 	mock "github.com/stretchr/testify/mock"
 
@@ -68,11 +66,11 @@ func (_m *BlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 }
 
 // GetBlockHash provides a mock function with given fields: blockNumber
-func (_m *BlockAPI) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
+func (_m *BlockAPI) GetBlockHash(blockNumber uint) (common.Hash, error) {
 	ret := _m.Called(blockNumber)
 
 	var r0 common.Hash
-	if rf, ok := ret.Get(0).(func(*big.Int) common.Hash); ok {
+	if rf, ok := ret.Get(0).(func(uint) common.Hash); ok {
 		r0 = rf(blockNumber)
 	} else {
 		if ret.Get(0) != nil {
@@ -81,7 +79,7 @@ func (_m *BlockAPI) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*big.Int) error); ok {
+	if rf, ok := ret.Get(1).(func(uint) error); ok {
 		r1 = rf(blockNumber)
 	} else {
 		r1 = ret.Error(1)

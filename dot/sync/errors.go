@@ -29,6 +29,12 @@ var (
 	errNilNetwork            = errors.New("cannot have nil Network")
 	errNilFinalityGadget     = errors.New("cannot have nil FinalityGadget")
 	errNilTransactionState   = errors.New("cannot have nil TransactionState")
+	errNilBlockHeaderNumber  = errors.New("cannot have nil block header number")
+	errNilPeerStateNumber    = errors.New("cannot have nil peer state number")
+	errNilWorkerTargetNumber = errors.New("cannot have nil worker target number")
+	errNilWorkerStartNumber  = errors.New("cannot have nil worker start number")
+	errNilPendingBlockNumber = errors.New("cannot have nil pending block number")
+	errHasCurrentWorkerCheck = errors.New("cannot check if worker handler has the workers already")
 
 	// ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData
 	ErrNilBlockData = errors.New("got nil BlockData")
@@ -60,7 +66,6 @@ var (
 	errUnknownParent                = errors.New("parent of first block in block response is unknown")
 	errUnknownBlockForJustification = errors.New("received justification for unknown block")
 	errFailedToGetParent            = errors.New("failed to get parent header")
-	errNilDescendantNumber          = errors.New("descendant number is nil")
 	errStartAndEndMismatch          = errors.New("request start and end hash are not on the same chain")
 	errFailedToGetDescendant        = errors.New("failed to find descendant block")
 )

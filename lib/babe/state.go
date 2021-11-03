@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"math/big"
 	"sync"
 	"time"
 
@@ -32,20 +31,20 @@ import (
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (*big.Int, error)
+	BestBlockNumber() (uint, error)
 	BestBlock() (*types.Block, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetHeader(common.Hash) (*types.Header, error)
-	GetBlockByNumber(*big.Int) (*types.Block, error)
+	GetBlockByNumber(uint) (*types.Block, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
-	NumberIsFinalised(num *big.Int) (bool, error)
+	NumberIsFinalised(num uint) (bool, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 	ImportedBlockNotifierManager

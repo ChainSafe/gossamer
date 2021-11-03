@@ -18,7 +18,6 @@ package utils
 
 import (
 	"fmt"
-	"math/big"
 	"strconv"
 	"testing"
 
@@ -124,9 +123,8 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	parentHash, err := common.HexToHash(header.ParentHash)
 	require.NoError(t, err)
 
-	nb, err := common.HexToBytes(header.Number)
+	number, err := common.HexToUint(header.Number)
 	require.NoError(t, err)
-	number := big.NewInt(0).SetBytes(nb)
 
 	stateRoot, err := common.HexToHash(header.StateRoot)
 	require.NoError(t, err)

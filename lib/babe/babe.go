@@ -232,7 +232,7 @@ func (b *Service) waitForFirstBlock() error {
 				return errChannelClosed
 			}
 
-			if ok && block.Header.Number.Int64() > 0 {
+			if block.Header.Number > 0 {
 				cleanup()
 				return nil
 			}
@@ -576,7 +576,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 	err = telemetry.GetInstance().SendMessage(
 		telemetry.NewPreparedBlockForProposingTM(
 			block.Header.Hash(),
-			block.Header.Number.String(),
+			fmt.Sprint(block.Header.Number),
 		),
 	)
 	if err != nil {

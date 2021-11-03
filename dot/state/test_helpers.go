@@ -17,10 +17,9 @@
 package state
 
 import (
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
-	"math/big"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -53,11 +52,11 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 // branch tree randomly
 type testBranch struct {
 	hash  common.Hash
-	depth int
+	depth uint
 }
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranches bool) ([]*types.Header, []*types.Header) {
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint, withBranches bool) ([]*types.Header, []*types.Header) {
 	var (
 		currentChain, branchChains []*types.Header
 		branches                   []testBranch
@@ -66,10 +65,11 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranc
 	arrivalTime := time.Now()
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
+	require.NotNil(t, head.Number)
 	previousHash := head.Hash()
 
 	// create base tree
-	startNum := int(head.Number.Int64())
+	startNum := head.Number
 	for i := startNum + 1; i <= depth+startNum; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
 		digest := types.NewDigest()
@@ -81,7 +81,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranc
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)),
+				Number:     i,
 				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
 			},
@@ -96,9 +96,9 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranc
 
 		previousHash = hash
 
-		isBranch, err := rand.Int(rand.Reader, big.NewInt(2))
+		isBranch := rand.Int31n(2) == 1 //nolint:gosec
 		require.NoError(t, err)
-		if isBranch.Cmp(big.NewInt(1)) == 0 {
+		if isBranch {
 			branches = append(branches, testBranch{
 				hash:  hash,
 				depth: i,
@@ -125,7 +125,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranc
 			block := &types.Block{
 				Header: types.Header{
 					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i) + 1),
+					Number:     i + 1,
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
 				},
@@ -148,7 +148,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranc
 
 // AddBlocksToStateWithFixedBranches adds blocks to a BlockState up to depth, with fixed branches
 // branches are provided with a map of depth -> # of branches
-func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth int, branches map[int]int, r byte) {
+func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth uint, branches map[uint]int, r byte) {
 	previousHash := blockState.BestBlockHash()
 	tb := []testBranch{}
 	arrivalTime := time.Now()
@@ -158,9 +158,10 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
+	require.NotNil(t, head.Number)
 
 	// create base tree
-	startNum := int(head.Number.Int64())
+	startNum := head.Number
 	for i := startNum + 1; i <= depth; i++ {
 		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
 		require.NoError(t, err)
@@ -171,7 +172,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)),
+				Number:     i,
 				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
 			},
@@ -212,7 +213,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			block := &types.Block{
 				Header: types.Header{
 					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i) + 1),
+					Number:     i + 1,
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
 				},
@@ -231,7 +232,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	}
 }
 
-func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
+func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 
@@ -255,7 +256,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Has
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: *parent,
-			Number:     big.NewInt(bNum),
+			Number:     bNum,
 			StateRoot:  trieStateRoot,
 		},
 		Body: *body,

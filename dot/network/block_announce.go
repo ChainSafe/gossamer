@@ -35,7 +35,10 @@ var (
 
 // BlockAnnounceMessage is a state block header
 type BlockAnnounceMessage struct {
-	ParentHash     common.Hash
+	ParentHash common.Hash
+	// Number is the block number.
+	// It must be kept to *big.Int for inter-operability
+	// due to the scale encoding and decoding.
 	Number         *big.Int
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
@@ -113,6 +116,7 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Note: msg.Number defaults to 0 and not nil.
 
 	return &msg, nil
 }
@@ -176,7 +180,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 
 	return &BlockAnnounceHandshake{
 		Roles:           s.cfg.Roles,
-		BestBlockNumber: uint32(latestBlock.Number.Uint64()),
+		BestBlockNumber: uint32(latestBlock.Number),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
 	}, nil
@@ -212,10 +216,8 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return err
 	}
 
-	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
-
 	// check if peer block number is greater than host block number
-	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
+	if uint32(latestHeader.Number) >= bhs.BestBlockNumber {
 		return nil
 	}
 

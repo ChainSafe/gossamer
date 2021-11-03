@@ -17,9 +17,7 @@
 package types
 
 import (
-	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -27,8 +25,10 @@ import (
 
 // Header is a state block header
 type Header struct {
-	ParentHash     common.Hash                `json:"parentHash"`
-	Number         *big.Int                   `json:"number"`
+	ParentHash common.Hash `json:"parentHash"`
+	// Number is the block number. It is a `uint` to be able
+	// to be encoded as a compact integer by the scale encoding.
+	Number         uint                       `json:"number,omitempty"`
 	StateRoot      common.Hash                `json:"stateRoot"`
 	ExtrinsicsRoot common.Hash                `json:"extrinsicsRoot"`
 	Digest         scale.VaryingDataTypeSlice `json:"digest"`
@@ -36,12 +36,7 @@ type Header struct {
 }
 
 // NewHeader creates a new block header and sets its hash field
-func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (*Header, error) {
-	if number == nil {
-		// Hash() will panic if number is nil
-		return nil, errors.New("cannot have nil block number")
-	}
-
+func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number uint, digest scale.VaryingDataTypeSlice) (*Header, error) {
 	bh := &Header{
 		ParentHash:     parentHash,
 		Number:         number,
@@ -57,7 +52,6 @@ func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.In
 // NewEmptyHeader returns a new header with all zero values
 func NewEmptyHeader() *Header {
 	return &Header{
-		Number: big.NewInt(0),
 		Digest: NewDigest(),
 	}
 }
@@ -73,7 +67,7 @@ func (bh *Header) Empty() bool {
 	if !bh.StateRoot.IsEmpty() || !bh.ExtrinsicsRoot.IsEmpty() || !bh.ParentHash.IsEmpty() {
 		return false
 	}
-	return (bh.Number.Cmp(big.NewInt(0)) == 0 || bh.Number == nil) && len(bh.Digest.Types) == 0
+	return bh.Number == 0 && len(bh.Digest.Types) == 0
 }
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
@@ -82,13 +76,9 @@ func (bh *Header) DeepCopy() (*Header, error) {
 	copy(cp.ParentHash[:], bh.ParentHash[:])
 	copy(cp.StateRoot[:], bh.StateRoot[:])
 	copy(cp.ExtrinsicsRoot[:], bh.ExtrinsicsRoot[:])
-
-	if bh.Number != nil {
-		cp.Number = new(big.Int).Set(bh.Number)
-	}
+	cp.Number = bh.Number
 
 	if len(bh.Digest.Types) > 0 {
-		cp.Digest = NewDigest()
 		for _, d := range bh.Digest.Types {
 			err := cp.Digest.Add(d.Value())
 			if err != nil {
@@ -110,7 +100,7 @@ func (bh *Header) String() string {
 // If the internal hash field is nil, it hashes the block and sets the hash field.
 // If hashing the header errors, this will panic.
 func (bh *Header) Hash() common.Hash {
-	if bh.hash == [32]byte{} {
+	if bh.hash == (common.Hash{}) {
 		enc, err := scale.Marshal(*bh)
 		if err != nil {
 			panic(err)

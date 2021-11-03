@@ -18,7 +18,6 @@ package blocktree
 
 import (
 	"errors"
-	"math/big"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -68,7 +67,7 @@ func (ls *leafMap) replace(oldNode, newNode *node) {
 // DeepestLeaf searches the stored leaves to the find the one with the greatest number.
 // If there are two leaves with the same number, choose the one with the earliest arrival time.
 func (ls *leafMap) deepestLeaf() *node {
-	max := big.NewInt(-1)
+	max := -1
 
 	var dLeaf *node
 	ls.smap.Range(func(h, n interface{}) bool {
@@ -78,10 +77,10 @@ func (ls *leafMap) deepestLeaf() *node {
 
 		node := n.(*node)
 
-		if max.Cmp(node.number) < 0 {
-			max = node.number
+		if max < int(node.number) {
+			max = int(node.number)
 			dLeaf = node
-		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(dLeaf.arrivalTime) {
+		} else if max == int(node.number) && node.arrivalTime.Before(dLeaf.arrivalTime) {
 			dLeaf = node
 		}
 

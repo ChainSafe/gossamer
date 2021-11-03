@@ -1,7 +1,6 @@
 package state
 
 import (
-	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -63,7 +62,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			StateRoot:  root,
 		},
 		Body: *body,

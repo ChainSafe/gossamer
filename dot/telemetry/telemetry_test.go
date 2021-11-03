@@ -58,7 +58,7 @@ func TestHandler_SendMulti(t *testing.T) {
 
 	go func() {
 		bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
-		GetInstance().SendMessage(NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync"))
+		GetInstance().SendMessage(NewBlockImportTM(&bh, 2, "NetworkInitialSync"))
 
 		wg.Done()
 	}()
@@ -72,8 +72,10 @@ func TestHandler_SendMulti(t *testing.T) {
 	go func() {
 		bestHash := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
 		finalisedHash := common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2")
-		GetInstance().SendMessage(NewBlockIntervalTM(&bestHash, big.NewInt(32375), &finalisedHash,
-			big.NewInt(32256), big.NewInt(0), big.NewInt(1234)))
+		const bestHeight = 32375
+		const finalisedHeight = 32256
+		GetInstance().SendMessage(NewBlockIntervalTM(&bestHash, bestHeight, &finalisedHash,
+			finalisedHeight, big.NewInt(0), big.NewInt(1234)))
 
 		wg.Done()
 	}()
@@ -129,7 +131,7 @@ func TestListenerConcurrency(t *testing.T) {
 	for i := 0; i < qty; i++ {
 		go func() {
 			bestHash := common.Hash{}
-			GetInstance().SendMessage(NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync"))
+			GetInstance().SendMessage(NewBlockImportTM(&bestHash, 2, "NetworkInitialSync"))
 
 			wg.Done()
 		}()
@@ -156,7 +158,7 @@ func TestDisableInstance(t *testing.T) {
 		}
 		go func() {
 			bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
-			GetInstance().SendMessage(NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync"))
+			GetInstance().SendMessage(NewBlockImportTM(&bh, 2, "NetworkInitialSync"))
 			wg.Done()
 		}()
 	}

@@ -17,8 +17,8 @@
 package state
 
 import (
+	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
 
@@ -183,22 +183,34 @@ func (s *Service) Start() error {
 	return nil
 }
 
+var (
+	ErrGetBestBlockNumber   = errors.New("cannot get best block number")
+	ErrBestBlockNumberIsNil = errors.New("best block number is nil")
+)
+
 // Rewind rewinds the chain to the given block number.
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
-func (s *Service) Rewind(toBlock int64) error {
-	num, _ := s.Block.BestBlockNumber()
-	if toBlock > num.Int64() {
+func (s *Service) Rewind(toBlock uint) error {
+	num, err := s.Block.BestBlockNumber()
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGetBestBlockNumber, err)
+	}
+
+	if toBlock > num {
 		return fmt.Errorf("cannot rewind, given height is higher than our current height")
 	}
 
 	logger.Info("rewinding state...", "current height", num, "desired height", toBlock)
 
-	root, err := s.Block.GetBlockByNumber(big.NewInt(toBlock))
+	root, err := s.Block.GetBlockByNumber(toBlock)
 	if err != nil {
 		return err
 	}
 
-	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header)
+	s.Block.bt, err = blocktree.NewBlockTreeFromRoot(&root.Header)
+	if err != nil {
+		return fmt.Errorf("cannot create new block tree from root: %w", err)
+	}
 
 	header, err := s.Block.BestBlockHeader()
 	if err != nil {

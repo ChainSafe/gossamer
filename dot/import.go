@@ -19,6 +19,7 @@ package dot
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -83,6 +84,10 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 	return tr, nil
 }
 
+var (
+	errHeaderNumberFieldNotValid = errors.New("invalid number field in header JSON")
+)
+
 func newHeaderFromFile(filename string) (*types.Header, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(filename))
 	if err != nil {
@@ -97,10 +102,13 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 
 	hexNum, ok := jsonHeader["number"].(string)
 	if !ok {
-		return nil, errors.New("invalid number field in header JSON")
+		return nil, errHeaderNumberFieldNotValid
 	}
 
-	num := common.MustHexToBigInt(hexNum)
+	num, err := common.HexToUint(hexNum)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", errHeaderNumberFieldNotValid, err)
+	}
 
 	parentHashStr, ok := jsonHeader["parentHash"].(string)
 	if !ok {

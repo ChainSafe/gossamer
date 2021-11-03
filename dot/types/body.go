@@ -18,6 +18,7 @@ package types
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -75,7 +76,7 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 	exts := []Extrinsic{}
 	for _, s := range ss {
 		b, err := common.HexToBytes(s)
-		if err == common.ErrNoPrefix {
+		if errors.Is(err, common.ErrHexStringNoPrefix) {
 			b = []byte(s)
 		} else if err != nil {
 			return nil, err

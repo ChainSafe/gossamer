@@ -17,7 +17,6 @@
 package sync
 
 import (
-	"math/big"
 	"testing"
 
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
@@ -29,10 +28,10 @@ import (
 )
 
 func newTestBootstrapSyncer(t *testing.T) *bootstrapSyncer {
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(100), types.NewDigest())
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 100, types.NewDigest())
 	require.NoError(t, err)
 
-	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(200), types.NewDigest())
+	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 200, types.NewDigest())
 	require.NoError(t, err)
 
 	bs := new(syncmocks.BlockState)
@@ -48,13 +47,13 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 	// peer's state is equal or lower than ours
 	// should not create a worker for bootstrap mode
 	w, err := s.handleNewPeerState(&peerState{
-		number: big.NewInt(100),
+		number: uintPtr(100),
 	})
 	require.NoError(t, err)
 	require.Nil(t, w)
 
 	w, err = s.handleNewPeerState(&peerState{
-		number: big.NewInt(99),
+		number: uintPtr(99),
 	})
 	require.NoError(t, err)
 	require.Nil(t, w)
@@ -62,12 +61,12 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 	// if peer's number is highest, return worker w/ their block as target
 	expected := &worker{
 		requestData:  bootstrapRequestData,
-		startNumber:  big.NewInt(101),
+		startNumber:  uintPtr(101),
 		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: big.NewInt(101),
+		targetNumber: uintPtr(101),
 	}
 	w, err = s.handleNewPeerState(&peerState{
-		number: big.NewInt(101),
+		number: uintPtr(101),
 		hash:   common.NewHash([]byte{1}),
 	})
 	require.NoError(t, err)
@@ -75,12 +74,12 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 
 	expected = &worker{
 		requestData:  bootstrapRequestData,
-		startNumber:  big.NewInt(101),
+		startNumber:  uintPtr(101),
 		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: big.NewInt(9999),
+		targetNumber: uintPtr(9999),
 	}
 	w, err = s.handleNewPeerState(&peerState{
-		number: big.NewInt(9999),
+		number: uintPtr(9999),
 		hash:   common.NewHash([]byte{1}),
 	})
 	require.NoError(t, err)
@@ -100,15 +99,15 @@ func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
 	// startNumber = bestBlockNumber + 1 and the same target as previously
 	expected := &worker{
 		requestData:  bootstrapRequestData,
-		startNumber:  big.NewInt(101),
+		startNumber:  uintPtr(101),
 		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: big.NewInt(201),
+		targetNumber: uintPtr(201),
 	}
 
 	res = &worker{
 		requestData:  bootstrapRequestData,
 		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: big.NewInt(201),
+		targetNumber: uintPtr(201),
 		err:          &workerError{},
 	}
 
@@ -124,15 +123,15 @@ func TestBootstrapSyncer_handleWorkerResult_errUnknownParent(t *testing.T) {
 	// startNumber = bestBlockNumber + 1 and the same target as previously
 	expected := &worker{
 		requestData:  bootstrapRequestData,
-		startNumber:  big.NewInt(200),
+		startNumber:  uintPtr(200),
 		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: big.NewInt(300),
+		targetNumber: uintPtr(300),
 	}
 
 	res := &worker{
 		requestData:  bootstrapRequestData,
 		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: big.NewInt(300),
+		targetNumber: uintPtr(300),
 		err: &workerError{
 			err: errUnknownParent,
 		},

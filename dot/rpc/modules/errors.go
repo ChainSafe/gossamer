@@ -18,5 +18,10 @@ package modules
 
 import "errors"
 
-// ErrSubscriptionTransport error sent when trying to access websocket subscriptions via http
-var ErrSubscriptionTransport = errors.New("subscriptions are not available on this transport")
+var (
+	// ErrSubscriptionTransport error sent when trying to access websocket subscriptions via http
+	ErrSubscriptionTransport = errors.New("subscriptions are not available on this transport")
+
+	// ErrBlockHeaderNumberIsNil is returned when the block header number field is nil.
+	ErrBlockHeaderNumberIsNil = errors.New("block header number field is nil")
+)

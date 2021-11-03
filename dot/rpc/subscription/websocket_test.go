@@ -2,7 +2,6 @@ package subscription
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -247,7 +246,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	listener.Listen()
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 
 	fCh <- &types.FinalisationInfo{
@@ -315,7 +314,6 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	fCh <- &types.FinalisationInfo{
 		Header: types.Header{
-			Number: big.NewInt(0),
 			Digest: digest,
 		},
 	}
@@ -331,7 +329,6 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	iCh <- &types.Block{
 		Header: types.Header{
-			Number: big.NewInt(0),
 			Digest: digest,
 		},
 	}

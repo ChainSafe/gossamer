@@ -105,6 +105,38 @@ func TestHexToHash(t *testing.T) {
 	}
 }
 
+func Test_Uint64ToHex(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		in        uint64
+		hexString string
+	}{
+		"zero": {
+			hexString: "0x0000000000000000",
+		},
+		"one": {
+			in:        1,
+			hexString: "0x0100000000000000",
+		},
+		"max": {
+			in:        ^uint64(0),
+			hexString: "0xffffffffffffffff",
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			hexString := Uint64ToHex(testCase.in)
+
+			assert.Equal(t, testCase.hexString, hexString)
+		})
+	}
+}
+
 type concatTest struct {
 	a, b   []byte
 	output []byte
@@ -143,6 +175,38 @@ func TestUint16ToBytes(t *testing.T) {
 		if !bytes.Equal(res, test.expected) {
 			t.Errorf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
 		}
+	}
+}
+
+func Test_uint64ToBytes(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		in  uint64
+		out []byte
+	}{
+		"zero": {
+			out: []byte{0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		"one": {
+			in:  1,
+			out: []byte{1, 0, 0, 0, 0, 0, 0, 0},
+		},
+		"max": {
+			in:  ^uint64(0),
+			out: []byte{255, 255, 255, 255, 255, 255, 255, 255},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			out := uint64ToBytes(testCase.in)
+
+			assert.Equal(t, testCase.out, out)
+		})
 	}
 }
 

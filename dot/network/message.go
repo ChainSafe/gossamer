@@ -77,7 +77,7 @@ const (
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
 	RequestedData byte
-	StartingBlock variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	StartingBlock variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (uint32)
 	EndBlockHash  *common.Hash
 	Direction     SyncDirection // 0 = ascending, 1 = descending
 	Max           *uint32
@@ -135,8 +135,8 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 			Hash: hash[:],
 		}
 	} else if bm.StartingBlock.IsUint64() {
-		buf := make([]byte, 8)
-		binary.LittleEndian.PutUint64(buf, bm.StartingBlock.Uint64())
+		buf := make([]byte, 4) // TODO-1785 fixes #1854
+		binary.LittleEndian.PutUint32(buf, uint32(bm.StartingBlock.Uint64()))
 		msg.FromBlock = &pb.BlockRequest_Number{
 			Number: buf,
 		}
@@ -165,12 +165,10 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	case *pb.BlockRequest_Hash:
 		startingBlock, err = variadic.NewUint64OrHash(common.BytesToHash(from.Hash))
 	case *pb.BlockRequest_Number:
-		// TODO: we are receiving block requests w/ 4-byte From field; this should probably be
-		// 4-bytes as it represents a block number which is uint32 (#1854)
-		if len(from.Number) != 8 {
-			return errors.New("invalid BlockResponseMessage.From; uint64 is not 8 bytes")
+		if len(from.Number) != 4 { // TODO-1785 fixes #1854???
+			return errors.New("invalid BlockResponseMessage.From; uint32 is not 4 bytes")
 		}
-		startingBlock, err = variadic.NewUint64OrHash(binary.LittleEndian.Uint64(from.Number))
+		startingBlock, err = variadic.NewUint64OrHash(uint64(binary.LittleEndian.Uint32(from.Number)))
 	default:
 		err = errors.New("invalid StartingBlock")
 	}

@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -13,16 +12,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
+func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
 	require.Nil(t, err)
 
-	for i := 1; i <= depth; i++ {
+	for i := uint(1); i <= depth; i++ {
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
+				Number:     previousNum + i,
 				StateRoot:  trie.EmptyHash,
 				Digest:     types.NewDigest(),
 			},
@@ -38,10 +37,10 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(maxResponseSize*2), s.blockState)
+	addTestBlocksToState(t, maxResponseSize*2, s.blockState)
 
 	// test ascending
-	start, err := variadic.NewUint64OrHash(uint64(1))
+	start, err := variadic.NewUint64OrHash(uint32(1))
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
@@ -54,9 +53,9 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+	require.Equal(t, maxResponseSize, len(resp.BlockData))
+	require.Equal(t, "1", resp.BlockData[0].NumberString())
+	require.Equal(t, "128", resp.BlockData[127].NumberString())
 
 	max := uint32(maxResponseSize + 100)
 	req = &network.BlockRequestMessage{
@@ -70,8 +69,8 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+	require.Equal(t, "1", resp.BlockData[0].NumberString())
+	require.Equal(t, "128", resp.BlockData[127].NumberString())
 
 	max = uint32(16)
 	req = &network.BlockRequestMessage{
@@ -85,11 +84,11 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(max), len(resp.BlockData))
-	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(16), resp.BlockData[15].Number())
+	require.Equal(t, "1", resp.BlockData[0].NumberString())
+	require.Equal(t, "16", resp.BlockData[15].NumberString())
 
 	// test descending
-	start, err = variadic.NewUint64OrHash(uint64(128))
+	start, err = variadic.NewUint64OrHash(uint32(128))
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -102,12 +101,12 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(128), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(1), resp.BlockData[127].Number())
+	require.Equal(t, maxResponseSize, len(resp.BlockData))
+	require.Equal(t, "128", resp.BlockData[0].NumberString())
+	require.Equal(t, "1", resp.BlockData[127].NumberString())
 
 	max = uint32(maxResponseSize + 100)
-	start, err = variadic.NewUint64OrHash(uint64(256))
+	start, err = variadic.NewUint64OrHash(uint32(256))
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -120,9 +119,9 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(256), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(129), resp.BlockData[127].Number())
+	require.Equal(t, maxResponseSize, len(resp.BlockData))
+	require.Equal(t, "256", resp.BlockData[0].NumberString())
+	require.Equal(t, "129", resp.BlockData[127].NumberString())
 
 	max = uint32(16)
 	req = &network.BlockRequestMessage{
@@ -136,16 +135,16 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(max), len(resp.BlockData))
-	require.Equal(t, big.NewInt(256), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(241), resp.BlockData[15].Number())
+	require.Equal(t, "256", resp.BlockData[0].NumberString())
+	require.Equal(t, "241", resp.BlockData[15].NumberString())
 }
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(maxResponseSize*2), s.blockState)
+	addTestBlocksToState(t, maxResponseSize*2, s.blockState)
 
 	// test ascending with nil endBlockHash
-	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
+	startHash, err := s.blockState.GetHashByNumber(1)
 	require.NoError(t, err)
 
 	start, err := variadic.NewUint64OrHash(startHash)
@@ -162,10 +161,10 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+	require.Equal(t, "1", resp.BlockData[0].NumberString())
+	require.Equal(t, "128", resp.BlockData[127].NumberString())
 
-	endHash, err := s.blockState.GetHashByNumber(big.NewInt(16))
+	endHash, err := s.blockState.GetHashByNumber(16)
 	require.NoError(t, err)
 
 	// test ascending with non-nil endBlockHash
@@ -180,11 +179,11 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(16), len(resp.BlockData))
-	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(16), resp.BlockData[15].Number())
+	require.Equal(t, "1", resp.BlockData[0].NumberString())
+	require.Equal(t, "16", resp.BlockData[15].NumberString())
 
 	// test descending with nil endBlockHash
-	startHash, err = s.blockState.GetHashByNumber(big.NewInt(16))
+	startHash, err = s.blockState.GetHashByNumber(16)
 	require.NoError(t, err)
 
 	start, err = variadic.NewUint64OrHash(startHash)
@@ -201,11 +200,11 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(16), len(resp.BlockData))
-	require.Equal(t, big.NewInt(16), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(1), resp.BlockData[15].Number())
+	require.Equal(t, "16", resp.BlockData[0].NumberString())
+	require.Equal(t, "1", resp.BlockData[15].NumberString())
 
 	// test descending with non-nil endBlockHash
-	endHash, err = s.blockState.GetHashByNumber(big.NewInt(1))
+	endHash, err = s.blockState.GetHashByNumber(1)
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -219,11 +218,11 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(16), len(resp.BlockData))
-	require.Equal(t, big.NewInt(16), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(1), resp.BlockData[15].Number())
+	require.Equal(t, "16", resp.BlockData[0].NumberString())
+	require.Equal(t, "1", resp.BlockData[15].NumberString())
 
 	// test descending with nil endBlockHash and start > maxResponseSize
-	startHash, err = s.blockState.GetHashByNumber(big.NewInt(256))
+	startHash, err = s.blockState.GetHashByNumber(256)
 	require.NoError(t, err)
 
 	start, err = variadic.NewUint64OrHash(startHash)
@@ -240,10 +239,10 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(256), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(129), resp.BlockData[127].Number())
+	require.Equal(t, "256", resp.BlockData[0].NumberString())
+	require.Equal(t, "129", resp.BlockData[127].NumberString())
 
-	startHash, err = s.blockState.GetHashByNumber(big.NewInt(128))
+	startHash, err = s.blockState.GetHashByNumber(128)
 	require.NoError(t, err)
 
 	start, err = variadic.NewUint64OrHash(startHash)
@@ -260,20 +259,20 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(128), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(1), resp.BlockData[127].Number())
+	require.Equal(t, "128", resp.BlockData[0].NumberString())
+	require.Equal(t, "1", resp.BlockData[127].NumberString())
 }
 
 func TestService_CreateBlockResponse_Ascending_EndHash(t *testing.T) {
 	t.Parallel()
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(maxResponseSize+1), s.blockState)
+	addTestBlocksToState(t, uint(maxResponseSize+1), s.blockState)
 
 	// should error if end < start
-	start, err := variadic.NewUint64OrHash(uint64(128))
+	start, err := variadic.NewUint64OrHash(uint32(128))
 	require.NoError(t, err)
 
-	end, err := s.blockState.GetHashByNumber(big.NewInt(1))
+	end, err := s.blockState.GetHashByNumber(1)
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
@@ -288,10 +287,10 @@ func TestService_CreateBlockResponse_Ascending_EndHash(t *testing.T) {
 	require.Error(t, err)
 
 	// base case
-	start, err = variadic.NewUint64OrHash(uint64(1))
+	start, err = variadic.NewUint64OrHash(uint32(1))
 	require.NoError(t, err)
 
-	end, err = s.blockState.GetHashByNumber(big.NewInt(128))
+	end, err = s.blockState.GetHashByNumber(128)
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -304,20 +303,20 @@ func TestService_CreateBlockResponse_Ascending_EndHash(t *testing.T) {
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+	require.Equal(t, maxResponseSize, len(resp.BlockData))
+	require.Equal(t, "1", resp.BlockData[0].NumberString())
+	require.Equal(t, "128", resp.BlockData[127].NumberString())
 }
 
 func TestService_CreateBlockResponse_Descending_EndHash(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(maxResponseSize+1), s.blockState)
+	addTestBlocksToState(t, uint(maxResponseSize+1), s.blockState)
 
 	// should error if start < end
-	start, err := variadic.NewUint64OrHash(uint64(1))
+	start, err := variadic.NewUint64OrHash(uint32(1))
 	require.NoError(t, err)
 
-	end, err := s.blockState.GetHashByNumber(big.NewInt(128))
+	end, err := s.blockState.GetHashByNumber(128)
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
@@ -332,10 +331,10 @@ func TestService_CreateBlockResponse_Descending_EndHash(t *testing.T) {
 	require.Error(t, err)
 
 	// base case
-	start, err = variadic.NewUint64OrHash(uint64(128))
+	start, err = variadic.NewUint64OrHash(uint32(128))
 	require.NoError(t, err)
 
-	end, err = s.blockState.GetHashByNumber(big.NewInt(1))
+	end, err = s.blockState.GetHashByNumber(1)
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -348,25 +347,25 @@ func TestService_CreateBlockResponse_Descending_EndHash(t *testing.T) {
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, big.NewInt(128), resp.BlockData[0].Number())
-	require.Equal(t, big.NewInt(1), resp.BlockData[127].Number())
+	require.Equal(t, maxResponseSize, len(resp.BlockData))
+	require.Equal(t, "128", resp.BlockData[0].NumberString())
+	require.Equal(t, "1", resp.BlockData[127].NumberString())
 }
 
 func TestService_checkOrGetDescendantHash(t *testing.T) {
 	t.Parallel()
 	s := newTestSyncer(t)
-	branches := map[int]int{
+	branches := map[uint]int{
 		8: 1,
 	}
 	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), 16, branches, 1)
 
 	// base case
-	ancestor, err := s.blockState.GetHashByNumber(big.NewInt(1))
+	ancestor, err := s.blockState.GetHashByNumber(1)
 	require.NoError(t, err)
-	descendant, err := s.blockState.GetHashByNumber(big.NewInt(16))
+	descendant, err := s.blockState.GetHashByNumber(16)
 	require.NoError(t, err)
-	descendantNumber := big.NewInt(16)
+	descendantNumber := uint(16)
 
 	res, err := s.checkOrGetDescendantHash(ancestor, &descendant, descendantNumber)
 	require.NoError(t, err)
@@ -376,9 +375,9 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 	leaves := s.blockState.(*state.BlockState).Leaves()
 	require.Equal(t, 2, len(leaves))
 
-	ancestor, err = s.blockState.GetHashByNumber(big.NewInt(1))
+	ancestor, err = s.blockState.GetHashByNumber(1)
 	require.NoError(t, err)
-	descendant, err = s.blockState.GetHashByNumber(big.NewInt(16))
+	descendant, err = s.blockState.GetHashByNumber(16)
 	require.NoError(t, err)
 
 	for _, leaf := range leaves {
@@ -393,14 +392,14 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 	require.Equal(t, descendant, res)
 
 	// supply descedant that's not on same chain as ancestor
-	ancestor, err = s.blockState.GetHashByNumber(big.NewInt(9))
+	ancestor, err = s.blockState.GetHashByNumber(9)
 	require.NoError(t, err)
 	res, err = s.checkOrGetDescendantHash(ancestor, &descendant, descendantNumber)
 	require.Error(t, err)
 
 	// don't supply descendant, should return block on canonical chain
 	// as ancestor is on canonical chain
-	expected, err := s.blockState.GetHashByNumber(big.NewInt(16))
+	expected, err := s.blockState.GetHashByNumber(16)
 	require.NoError(t, err)
 
 	res, err = s.checkOrGetDescendantHash(ancestor, nil, descendantNumber)
@@ -409,9 +408,9 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 
 	// don't supply descendant and provide ancestor not on canonical chain
 	// should return descendant block also not on canonical chain
-	block9s, err := s.blockState.GetAllBlocksAtNumber(big.NewInt(9))
+	block9s, err := s.blockState.GetAllBlocksAtNumber(9)
 	require.NoError(t, err)
-	canonical, err := s.blockState.GetHashByNumber(big.NewInt(9))
+	canonical, err := s.blockState.GetHashByNumber(9)
 	require.NoError(t, err)
 
 	// set ancestor to non-canonical block 9
@@ -442,7 +441,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()
-	bestBlock, err := s.blockState.GetBlockByNumber(big.NewInt(1))
+	bestBlock, err := s.blockState.GetBlockByNumber(1)
 	require.NoError(t, err)
 
 	// set some nils and check no error is thrown
@@ -468,7 +467,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 	}
 
 	endHash := s.blockState.BestBlockHash()
-	start, err := variadic.NewUint64OrHash(uint64(1))
+	start, err := variadic.NewUint64OrHash(uint32(1))
 	require.NoError(t, err)
 
 	err = s.blockState.CompareAndSetBlockData(bds)

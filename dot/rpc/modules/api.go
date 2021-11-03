@@ -1,8 +1,6 @@
 package modules
 
 import (
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -38,7 +36,7 @@ type BlockAPI interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	BestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
-	GetBlockHash(blockNumber *big.Int) (common.Hash, error)
+	GetBlockHash(blockNumber uint) (common.Hash, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
@@ -64,8 +62,8 @@ type NetworkAPI interface {
 	Stop() error
 	Start() error
 	IsStopped() bool
-	HighestBlock() int64
-	StartingBlock() int64
+	HighestBlock() uint32
+	StartingBlock() uint32
 	AddReservedPeers(addrs ...string) error
 	RemoveReservedPeers(addrs ...string) error
 }

@@ -17,7 +17,6 @@
 package dot
 
 import (
-	"math/big"
 	"reflect"
 	"sync"
 	"testing"
@@ -220,7 +219,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
@@ -251,7 +250,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	stateRoot := genesisHeader.StateRoot
-	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 	require.Equal(t, expectedHeader.Hash(), genesisHeader.Hash())
 }

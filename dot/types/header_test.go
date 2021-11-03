@@ -17,7 +17,6 @@
 package types
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -31,7 +30,7 @@ func TestEmptyHeader(t *testing.T) {
 	isEmpty := head.Empty()
 	require.True(t, isEmpty)
 
-	head.Number = big.NewInt(21)
+	head.Number = 21
 	isEmpty = head.Empty()
 	require.False(t, isEmpty)
 
@@ -44,13 +43,13 @@ func TestEmptyHeader(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	head2, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), vdts)
+	head2, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, vdts)
 	require.NoError(t, err)
 
 	isEmpty = head2.Empty()
 	require.False(t, isEmpty)
 
-	head3, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(21), vdts)
+	head3, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 21, vdts)
 	require.NoError(t, err)
 
 	isEmpty = head3.Empty()
@@ -78,7 +77,7 @@ func TestEncodeAndDecodeHeader(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	headerVdt, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), vdts)
+	headerVdt, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, vdts)
 	require.NoError(t, err)
 
 	encVdt, err := scale.Marshal(*headerVdt)
@@ -111,7 +110,7 @@ func TestHeaderDeepCopy(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(1), vdts)
+	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1, vdts)
 	require.NoError(t, err)
 
 	dc, err := header.DeepCopy()

@@ -18,7 +18,6 @@ package blocktree
 
 import (
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
@@ -52,7 +51,7 @@ func NewEmptyBlockTree() *BlockTree {
 
 // NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
 // finalised block (ie the genesis block if the node is just starting.)
-func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
+func NewBlockTreeFromRoot(root *types.Header) (bt *BlockTree, err error) {
 	n := &node{
 		hash:        root.Hash(),
 		parent:      nil,
@@ -66,7 +65,7 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 		leaves:    newLeafMap(n),
 		nodeCache: make(map[Hash]*node),
 		runtime:   &sync.Map{},
-	}
+	}, nil
 }
 
 // GenesisHash returns the hash of the genesis block
@@ -93,10 +92,9 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 		return ErrBlockExists
 	}
 
-	number := big.NewInt(0)
-	number.Add(parent.number, big.NewInt(1))
+	number := parent.number + 1
 
-	if number.Cmp(header.Number) != 0 {
+	if number != header.Number {
 		return errUnexpectedNumber
 	}
 
@@ -124,9 +122,9 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 		return hashes
 	}
 
-	number := big.NewInt(0).Add(bt.getNode(hash).number, big.NewInt(1))
+	number := bt.getNode(hash).number + 1
 
-	if bt.root.number.Cmp(number) == 0 {
+	if bt.root.number == number {
 		hashes = append(hashes, bt.root.hash)
 		return hashes
 	}
@@ -356,24 +354,24 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 
 // GetHashByNumber returns the block hash with the given number that is on the best chain.
 // If the number is lower or higher than the numbers in the blocktree, an error is returned.
-func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
+func (bt *BlockTree) GetHashByNumber(num uint) (common.Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
 
 	deepest := bt.leaves.deepestLeaf()
-	if deepest.number.Cmp(num) == -1 {
+	if deepest.number < num {
 		return common.Hash{}, ErrNumGreaterThanHighest
 	}
 
-	if deepest.number.Cmp(num) == 0 {
+	if deepest.number == num {
 		return deepest.hash, nil
 	}
 
-	if bt.root.number.Cmp(num) == 1 {
+	if bt.root.number > num {
 		return common.Hash{}, ErrNumLowerThanRoot
 	}
 
-	if bt.root.number.Cmp(num) == 0 {
+	if bt.root.number == num {
 		return bt.root.hash, nil
 	}
 
@@ -383,7 +381,7 @@ func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
 			return common.Hash{}, ErrNodeNotFound
 		}
 
-		if curr.number.Cmp(num) == 0 {
+		if curr.number == num {
 			return curr.hash, nil
 		}
 

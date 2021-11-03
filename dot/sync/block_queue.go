@@ -25,13 +25,13 @@ import (
 
 type blockQueue struct {
 	sync.RWMutex
-	cap    int
+	cap    uint32
 	ch     chan *types.BlockData
 	blocks map[common.Hash]*types.BlockData
 }
 
 // newBlockQueue initialises a queue of *types.BlockData with the given capacity.
-func newBlockQueue(cap int) *blockQueue {
+func newBlockQueue(cap uint32) *blockQueue {
 	return &blockQueue{
 		cap:    cap,
 		ch:     make(chan *types.BlockData, cap),

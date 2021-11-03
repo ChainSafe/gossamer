@@ -17,7 +17,6 @@
 package state
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -32,7 +31,6 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	require.NotNil(t, s)
 
 	var genesisHeader = &types.Header{
-		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigest(),
 	}
@@ -48,7 +46,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 
 	header := &types.Header{
 		ParentHash:     parentHash,
-		Number:         big.NewInt(1),
+		Number:         1,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
 		Digest:         types.NewDigest(),

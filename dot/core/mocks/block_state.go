@@ -3,8 +3,6 @@
 package mocks
 
 import (
-	big "math/big"
-
 	common "github.com/ChainSafe/gossamer/lib/common"
 
 	mock "github.com/stretchr/testify/mock"
@@ -98,16 +96,14 @@ func (_m *BlockState) BestBlockHeader() (*types.Header, error) {
 }
 
 // BestBlockNumber provides a mock function with given fields:
-func (_m *BlockState) BestBlockNumber() (*big.Int, error) {
+func (_m *BlockState) BestBlockNumber() (uint, error) {
 	ret := _m.Called()
 
-	var r0 *big.Int
-	if rf, ok := ret.Get(0).(func() *big.Int); ok {
+	var r0 uint
+	if rf, ok := ret.Get(0).(func() uint); ok {
 		r0 = rf()
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*big.Int)
-		}
+		r0 = ret.Get(0).(uint)
 	}
 
 	var r1 error

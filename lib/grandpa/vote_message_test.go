@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -50,12 +49,12 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	vote := NewVoteFromHeader(h)
+	votePtr, err := NewVoteFromHeader(h)
 	require.NoError(t, err)
 
 	for _, v := range voters {
 		equivocated := gs.checkForEquivocation(&v, &SignedVote{
-			Vote: *vote,
+			Vote: *votePtr,
 		}, prevote)
 		require.False(t, equivocated)
 	}
@@ -80,7 +79,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	branches := make(map[int]int)
+	branches := make(map[uint]int)
 	branches[6] = 1
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
 	leaves := gs.blockState.Leaves()
@@ -126,7 +125,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	branches := make(map[int]int)
+	branches := make(map[uint]int)
 	branches[6] = 1
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
 	leaves := gs.blockState.Leaves()
@@ -187,11 +186,13 @@ func TestValidateMessage_Valid(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	vote, err := NewVoteFromHeader(h)
+	require.NoError(t, err)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	vote, err := gs.validateMessage("", msg)
+	vote, err = gs.validateMessage("", msg)
 	require.NoError(t, err)
 	require.Equal(t, h.Hash(), vote.Hash)
 }
@@ -220,7 +221,9 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	vote, err := NewVoteFromHeader(h)
+	require.NoError(t, err)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -253,7 +256,9 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	vote, err := NewVoteFromHeader(h)
+	require.NoError(t, err)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -282,7 +287,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	branches := make(map[int]int)
+	branches := make(map[uint]int)
 	branches[6] = 1
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
 	leaves := gs.blockState.Leaves()
@@ -329,11 +334,13 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	gs.tracker = newTracker(st.Block, gs.messageHandler)
 
 	fake := &types.Header{
-		Number: big.NewInt(77),
+		Number: 77,
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
+	vote, err := NewVoteFromHeader(fake)
+	require.NoError(t, err)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -361,7 +368,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
-	branches := make(map[int]int)
+	branches := make(map[uint]int)
 	branches[6] = 1
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
 	leaves := gs.blockState.Leaves()

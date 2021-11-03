@@ -24,7 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// Uint64OrHash represents an optional interface type (int,hash).
+// Uint64OrHash represents an optional interface type (uint64,hash).
 type Uint64OrHash struct {
 	value interface{}
 }

@@ -41,25 +41,25 @@ func (p Mode) IsValid() bool {
 // Config holds state trie pruning mode and retained blocks
 type Config struct {
 	Mode           Mode
-	RetainedBlocks int64
+	RetainedBlocks uint32
 }
 
 // Pruner is implemented by FullNode and ArchiveNode.
 type Pruner interface {
-	StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error
+	StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum uint) error
 }
 
 // ArchiveNode is a no-op since we don't prune nodes in archive mode.
 type ArchiveNode struct{}
 
 // StoreJournalRecord for archive node doesn't do anything.
-func (a *ArchiveNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error {
+func (a *ArchiveNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum uint) error {
 	return nil
 }
 
 type deathRecord struct {
 	blockHash   common.Hash
-	deletedKeys map[common.Hash]int64 // Mapping from deleted key hash to block number.
+	deletedKeys map[common.Hash]uint // Mapping from deleted key hash to block number.
 }
 
 type deathRow []*deathRecord
@@ -70,9 +70,9 @@ type FullNode struct {
 	deathList     []deathRow
 	storageDB     chaindb.Database
 	journalDB     chaindb.Database
-	deathIndex    map[common.Hash]int64 // Mapping from deleted key hash to block number.
-	pendingNumber int64                 // block number to be pruned. Initial value is set to 1 and is incremented after every block pruning.
-	retainBlocks  int64
+	deathIndex    map[common.Hash]uint // Mapping from deleted key hash to block number.
+	pendingNumber uint                 // block number to be pruned. Initial value is set to 1 and is incremented after every block pruning.
+	retainBlocks  uint
 	sync.RWMutex
 }
 
@@ -86,7 +86,7 @@ type journalRecord struct {
 }
 
 type journalKey struct {
-	blockNum  int64
+	blockNum  uint
 	blockHash common.Hash
 }
 
@@ -99,10 +99,10 @@ func newJournalRecord(hash common.Hash, insertedKeys, deletedKeys []common.Hash)
 }
 
 // NewFullNode creates a Pruner for full node.
-func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Logger) (Pruner, error) {
+func NewFullNode(db, storageDB chaindb.Database, retainBlocks uint, l log.Logger) (Pruner, error) {
 	p := &FullNode{
 		deathList:    make([]deathRow, 0),
-		deathIndex:   make(map[common.Hash]int64),
+		deathIndex:   make(map[common.Hash]uint),
 		storageDB:    storageDB,
 		journalDB:    chaindb.NewTable(db, journalPrefix),
 		retainBlocks: retainBlocks,
@@ -130,7 +130,7 @@ func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Logge
 }
 
 // StoreJournalRecord stores journal record into DB and add deathRow into deathList
-func (p *FullNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error {
+func (p *FullNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum uint) error {
 	jr := newJournalRecord(blockHash, inserted, deleted)
 
 	key := &journalKey{blockNum, blockHash}
@@ -144,7 +144,7 @@ func (p *FullNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash
 	return nil
 }
 
-func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
+func (p *FullNode) addDeathRow(jr *journalRecord, blockNum uint) {
 	if blockNum == 0 {
 		return
 	}
@@ -164,13 +164,13 @@ func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
 		p.deathIndex[k] = blockNum
 	}
 
-	deletedKeys := make(map[common.Hash]int64)
+	deletedKeys := make(map[common.Hash]uint)
 	for _, data := range jr.deletedKeys {
 		deletedKeys[data] = blockNum
 	}
 
-	blockIndex := blockNum - p.pendingNumber
-	for idx := blockIndex - int64(len(p.deathList)); idx >= 0; idx-- {
+	blockIndex := int(blockNum) - int(p.pendingNumber)
+	for idx := blockIndex - len(p.deathList); idx >= 0; idx-- {
 		p.deathList = append(p.deathList, deathRow{})
 	}
 
@@ -207,7 +207,7 @@ func (p *FullNode) start() {
 	checkPruning := func() {
 		p.Lock()
 		defer p.Unlock()
-		if int64(len(p.deathList)) <= p.retainBlocks {
+		if uint(len(p.deathList)) <= p.retainBlocks {
 			canPrune = false
 			return
 		}
@@ -332,7 +332,7 @@ func (p *FullNode) deleteJournalRecord(b chaindb.Batch, key *journalKey) error {
 	return nil
 }
 
-func (p *FullNode) storeLastPrunedIndex(blockNum int64) error {
+func (p *FullNode) storeLastPrunedIndex(blockNum uint) error {
 	encNum, err := scale.Marshal(blockNum)
 	if err != nil {
 		return err
@@ -346,7 +346,7 @@ func (p *FullNode) storeLastPrunedIndex(blockNum int64) error {
 	return nil
 }
 
-func (p *FullNode) getLastPrunedIndex() (int64, error) {
+func (p *FullNode) getLastPrunedIndex() (blockNum uint, err error) {
 	val, err := p.journalDB.Get([]byte(lastPrunedKey))
 	if err == chaindb.ErrKeyNotFound {
 		return 0, nil
@@ -356,7 +356,6 @@ func (p *FullNode) getLastPrunedIndex() (int64, error) {
 		return 0, err
 	}
 
-	blockNum := int64(0)
 	err = scale.Unmarshal(val, &blockNum)
 	if err != nil {
 		return 0, err
@@ -365,7 +364,7 @@ func (p *FullNode) getLastPrunedIndex() (int64, error) {
 	return blockNum, nil
 }
 
-func (p *FullNode) deleteKeys(b chaindb.Batch, nodesHash map[common.Hash]int64) error {
+func (p *FullNode) deleteKeys(b chaindb.Batch, nodesHash map[common.Hash]uint) error {
 	for k := range nodesHash {
 		err := b.Del(k.ToBytes())
 		if err != nil {

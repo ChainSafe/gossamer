@@ -19,7 +19,6 @@ package genesis
 import (
 	"encoding/json"
 	"io/ioutil"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -145,7 +144,7 @@ func newGenesisTrieAndHeader(t *testing.T, gen *Genesis) (*trie.Trie, *types.Hea
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	return genTrie, genesisHeader

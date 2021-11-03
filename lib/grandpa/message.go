@@ -138,10 +138,15 @@ func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitM
 		return nil, err
 	}
 
+	votePtr, err := NewVoteFromHeader(header)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", errNewVoteFromHeader, err)
+	}
+
 	precommits, authData := justificationToCompact(pcs)
 	return &CommitMessage{
 		Round:      round,
-		Vote:       *NewVoteFromHeader(header),
+		Vote:       *votePtr,
 		Precommits: precommits,
 		AuthData:   authData,
 	}, nil
@@ -266,7 +271,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 		PreVoteJustification:   pvs,
 		PreCommitJustification: pcs,
 		Hash:                   header.Hash(),
-		Number:                 uint32(header.Number.Uint64()),
+		Number:                 uint32(header.Number),
 	}, nil
 }
 

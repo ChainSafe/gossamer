@@ -176,7 +176,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		}
 	}
 
-	bdEnc, err := b.Encode()
+	bdEnc, err := scale.Marshal(b)
 	if err != nil {
 		return nil, err
 	}

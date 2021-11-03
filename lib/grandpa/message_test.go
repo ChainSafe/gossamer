@@ -1,7 +1,6 @@
 package grandpa
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -43,9 +42,12 @@ func TestCommitMessageEncode(t *testing.T) {
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
+	votePtr, err := NewVoteFromHeader(gs.head)
+	require.NoError(t, err)
+
 	expected := CommitMessage{
 		Round:      77,
-		Vote:       *NewVoteFromHeader(gs.head),
+		Vote:       *votePtr,
 		Precommits: precommits,
 		AuthData:   authData,
 	}
@@ -123,9 +125,12 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
+	expectedVotePtr, err := NewVoteFromHeader(gs.head)
+	require.NoError(t, err)
+
 	expected := &CommitMessage{
 		Round:      77,
-		Vote:       *NewVoteFromHeader(gs.head),
+		Vote:       *expectedVotePtr,
 		Precommits: precommits,
 		AuthData:   authData,
 	}
@@ -147,7 +152,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     digest,
 		},
 		Body: types.Body{},

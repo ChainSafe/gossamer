@@ -18,7 +18,6 @@ package types
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -40,13 +39,15 @@ func NewEmptyBlockData() *BlockData {
 	return &BlockData{}
 }
 
-// Number returns the BlockNumber of the BlockData's header, nil if it doesn't exist
-func (bd *BlockData) Number() *big.Int {
+// NumberString returns the BlockNumber of the BlockData's header,
+// and <nil> if the block data, block data header, or header number is nil.
+// Note this is only used for debug logs.
+func (bd *BlockData) NumberString() string {
 	if bd == nil || bd.Header == nil {
-		return nil
+		return "<nil>"
 	}
 
-	return bd.Header.Number
+	return fmt.Sprint(bd.Header.Number)
 }
 
 func (bd *BlockData) String() string {

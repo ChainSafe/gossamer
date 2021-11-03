@@ -18,7 +18,6 @@ package babe
 
 import (
 	"bytes"
-	"math/big"
 	"testing"
 	"time"
 
@@ -59,7 +58,7 @@ func TestSeal(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.NewDigest())
+	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	encHeader, err := scale.Marshal(*header)
@@ -188,7 +187,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 	}
 
@@ -259,7 +258,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	err = digest.Add(*preDigest)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), digest)
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, digest)
 	require.NoError(t, err)
 
 	//initialise block header
@@ -279,7 +278,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	digest2 := types.NewDigest()
 	err = digest2.Add(*preDigest2)
 	require.NoError(t, err)
-	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), digest2)
+	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, 2, digest2)
 	require.NoError(t, err)
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
@@ -305,7 +304,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	rt, err := babeService.blockState.GetRuntime(nil)
@@ -411,7 +410,6 @@ func TestBuildBlock_failing(t *testing.T) {
 
 	parentHeader := &types.Header{
 		ParentHash: zeroHash,
-		Number:     big.NewInt(0),
 	}
 
 	duration, err := time.ParseDuration("1s")

@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"testing"
 	"time"
 
@@ -84,7 +83,7 @@ func TestService_Initialise(t *testing.T) {
 	err := state.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	err = state.Initialise(genData, genesisHeader, genTrie)
@@ -155,13 +154,13 @@ func TestService_StorageTriePruning(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	retainBlocks := 2
+	const retainBlocks uint32 = 2
 	config := Config{
 		Path:     testDir,
 		LogLevel: log.LvlInfo,
 		PrunerCfg: pruner.Config{
 			Mode:           pruner.Full,
-			RetainedBlocks: int64(retainBlocks),
+			RetainedBlocks: retainBlocks,
 		},
 	}
 	serv := NewService(config)
@@ -177,9 +176,9 @@ func TestService_StorageTriePruning(t *testing.T) {
 	var blocks []*types.Block
 	parentHash := serv.Block.GenesisHash()
 
-	totalBlock := 10
-	for i := 1; i < totalBlock; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, int64(i))
+	const totalBlock uint = 10
+	for i := uint(1); i < totalBlock; i++ {
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, i)
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -194,12 +193,13 @@ func TestService_StorageTriePruning(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	for _, b := range blocks {
+		require.NotNil(t, b.Header.Number)
 		_, err := serv.Storage.LoadFromDB(b.Header.StateRoot)
-		if b.Header.Number.Int64() >= int64(totalBlock-retainBlocks-1) {
-			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number.Int64()))
+		if b.Header.Number >= totalBlock-uint(retainBlocks)-1 {
+			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number))
 			continue
 		}
-		require.ErrorIs(t, err, chaindb.ErrKeyNotFound, fmt.Sprintf("Expected error for block %d", b.Header.Number.Int64()))
+		require.ErrorIs(t, err, chaindb.ErrKeyNotFound, fmt.Sprintf("Expected error for block %d", b.Header.Number))
 	}
 }
 
@@ -227,8 +227,8 @@ func TestService_PruneStorage(t *testing.T) {
 	}
 
 	var toFinalize common.Hash
-	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
+	for i := uint(0); i < 3; i++ {
+		block, trieState := generateBlockWithRandomTrie(t, serv, nil, i+1)
 		digest := types.NewDigest()
 		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest() //nolint
 		require.NoError(t, err)
@@ -251,8 +251,8 @@ func TestService_PruneStorage(t *testing.T) {
 	// add some blocks to prune, on a different chain from the finalised block
 	var prunedArr []prunedBlock
 	parentHash := serv.Block.GenesisHash()
-	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, int64(i+1))
+	for i := uint(0); i < 3; i++ {
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, i+1)
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -305,13 +305,13 @@ func TestService_Rewind(t *testing.T) {
 	err = serv.Grandpa.setCurrentSetID(3)
 	require.NoError(t, err)
 
-	err = serv.Grandpa.setSetIDChangeAtBlock(1, big.NewInt(5))
+	err = serv.Grandpa.setSetIDChangeAtBlock(1, 5)
 	require.NoError(t, err)
 
-	err = serv.Grandpa.setSetIDChangeAtBlock(2, big.NewInt(8))
+	err = serv.Grandpa.setSetIDChangeAtBlock(2, 8)
 	require.NoError(t, err)
 
-	err = serv.Grandpa.setSetIDChangeAtBlock(3, big.NewInt(10))
+	err = serv.Grandpa.setSetIDChangeAtBlock(3, 10)
 	require.NoError(t, err)
 
 	AddBlocksToState(t, serv.Block, 12, false)
@@ -324,7 +324,7 @@ func TestService_Rewind(t *testing.T) {
 
 	num, err := serv.Block.BestBlockNumber()
 	require.NoError(t, err)
-	require.Equal(t, big.NewInt(6), num)
+	require.Equal(t, uint(6), num)
 
 	setID, err := serv.Grandpa.GetCurrentSetID()
 	require.NoError(t, err)
@@ -376,7 +376,7 @@ func TestService_Import(t *testing.T) {
 	err = digest.Add(*prd)
 	require.NoError(t, err)
 	header := &types.Header{
-		Number:    big.NewInt(77),
+		Number:    77,
 		StateRoot: tr.MustHash(),
 		Digest:    digest,
 	}

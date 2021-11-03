@@ -20,14 +20,36 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"strconv"
 	"strings"
 )
 
-// ErrNoPrefix is returned when trying to convert a hex-encoded string with no 0x prefix
-var ErrNoPrefix = errors.New("could not byteify non 0x prefixed string")
+var (
+	// ErrHexStringNoPrefix is returned when trying to convert a hex-encoded string with no 0x prefix
+	ErrHexStringNoPrefix = errors.New("hex string does not have 0x prefix")
+	errHexStringOddCount = errors.New("cannot decode an odd length hex string")
+)
+
+func validateEvenHexString(s string) (err error) {
+	if !strings.HasPrefix(s, "0x") {
+		return fmt.Errorf("%w: %s", ErrHexStringNoPrefix, s)
+	} else if len(s)%2 != 0 {
+		// Ensure we have an even length, otherwise hex.DecodeString will fail and return zero hash
+		return fmt.Errorf("%w: %d characters: %s",
+			errHexStringOddCount, len(s), s)
+	}
+	return nil
+}
+
+func validateHexString(s string) (err error) {
+	if !strings.HasPrefix(s, "0x") {
+		return fmt.Errorf("%w: %s", ErrHexStringNoPrefix, s)
+	}
+	return nil
+}
 
 // StringToInts turns a string consisting of ints separated by commas into an int array
 func StringToInts(in string) ([]int, error) {
@@ -63,36 +85,53 @@ func BytesToStringArray(in [][]byte) []string {
 
 // HexToBytes turns a 0x prefixed hex string into a byte slice
 func HexToBytes(in string) ([]byte, error) {
-	if len(in) < 2 {
-		return nil, errors.New("invalid string")
+	if err := validateEvenHexString(in); err != nil {
+		return nil, err
 	}
 
-	if strings.Compare(in[:2], "0x") != 0 {
-		return nil, ErrNoPrefix
-	}
-	// Ensure we have an even length, otherwise hex.DecodeString will fail and return zero hash
-	if len(in)%2 != 0 {
-		return nil, errors.New("cannot decode an odd length string")
-	}
 	in = in[2:]
 	out, err := hex.DecodeString(in)
 	return out, err
 }
 
+var (
+	// ErrHexStringMalformed is returned if the hex string is not in the expected format.
+	ErrHexStringMalformed = errors.New("hex string is malformed")
+	// ErrHexStringCharCount is returned if the hex string does not have the expected number of characters.
+	ErrHexStringCharCount = errors.New("hex string does not have the expected number of characters")
+)
+
+// HexToUint turns a 0x prefixed hex string into a uint.
+// The hex string can be 8 characters for uint32 or
+// 16 characters for uint64
+func HexToUint(s string) (n uint, err error) {
+	if err = validateEvenHexString(s); err != nil {
+		return 0, fmt.Errorf("%w: %s", ErrHexStringMalformed, err)
+	}
+
+	s = s[2:]
+
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %s", ErrHexStringMalformed, err)
+	}
+
+	switch len(b) {
+	case 4: // uint32
+		return uint(binary.LittleEndian.Uint32(b)), nil
+	case 8: // uint64
+		return uint(binary.LittleEndian.Uint64(b)), nil
+	default:
+		return 0, fmt.Errorf("%w: was expecting either %d or %d bytes but got %d",
+			ErrHexStringCharCount, 8, 16, len(b))
+	}
+}
+
 // MustHexToBytes turns a 0x prefixed hex string into a byte slice
 // it panic if it cannot decode the string
 func MustHexToBytes(in string) []byte {
-	if len(in) < 2 {
-		panic("invalid string")
-	}
-
-	if strings.Compare(in[:2], "0x") != 0 {
-		panic(ErrNoPrefix)
-	}
-
-	// Ensure we have an even length, otherwise hex.DecodeString will fail and return zero hash
-	if len(in)%2 != 0 {
-		panic("cannot decode an odd length string")
+	if err := validateEvenHexString(in); err != nil {
+		panic(err.Error())
 	}
 
 	in = in[2:]
@@ -107,12 +146,8 @@ func MustHexToBytes(in string) []byte {
 // MustHexToBigInt turns a 0x prefixed hex string into a big.Int
 // it panic if it cannot decode the string
 func MustHexToBigInt(in string) *big.Int {
-	if len(in) < 2 {
-		panic("invalid string")
-	}
-
-	if strings.Compare(in[:2], "0x") != 0 {
-		panic(ErrNoPrefix)
+	if err := validateHexString(in); err != nil {
+		panic(err.Error())
 	}
 
 	in = in[2:]
@@ -136,6 +171,11 @@ func BytesToHex(in []byte) string {
 	return "0x" + s
 }
 
+// Uint64ToHex turns a uint into a 0x prefixed hex string
+func Uint64ToHex(in uint64) (hexString string) {
+	return BytesToHex(uint64ToBytes(in))
+}
+
 // Concat concatenates two byte arrays
 // used instead of append to prevent modifying the original byte array
 func Concat(s1 []byte, s2 ...byte) []byte {
@@ -145,11 +185,20 @@ func Concat(s1 []byte, s2 ...byte) []byte {
 	return r
 }
 
-// Uint16ToBytes converts a uint16 into a 2-byte slice
+// Uint16ToBytes converts a uint16 into a 2-byte slice in
+// little endian format.
 func Uint16ToBytes(in uint16) (out []byte) {
 	out = make([]byte, 2)
 	out[0] = byte(in & 0x00ff)
 	out[1] = byte(in >> 8 & 0x00ff)
+	return out
+}
+
+// uint64ToBytes converts a uint64 into an 8-byte slice in
+// little endian format.
+func uint64ToBytes(in uint64) (out []byte) {
+	out = make([]byte, 8)
+	binary.LittleEndian.PutUint64(out, in)
 	return out
 }
 

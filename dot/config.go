@@ -56,7 +56,7 @@ type GlobalConfig struct {
 	MetricsPort    uint32
 	NoTelemetry    bool
 	TelemetryURLs  []genesis.TelemetryEndpoint
-	RetainBlocks   int64
+	RetainBlocks   uint32
 	Pruning        pruner.Mode
 }
 
@@ -131,7 +131,7 @@ func (r *RPCConfig) isWSEnabled() bool {
 
 // StateConfig is the config for the State service
 type StateConfig struct {
-	Rewind int
+	Rewind uint32
 }
 
 // String will return the json representation for a Config

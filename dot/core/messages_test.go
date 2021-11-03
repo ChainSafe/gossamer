@@ -99,7 +99,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 
 	newBlock := types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(1),
+			Number:     1,
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},
@@ -108,7 +108,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
-		Number:         newBlock.Header.Number,
+		Number:         big.NewInt(int64(newBlock.Header.Number)),
 		StateRoot:      newBlock.Header.StateRoot,
 		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
 		Digest:         digest,

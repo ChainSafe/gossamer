@@ -58,6 +58,12 @@ var (
 	// ErrNilDigestHandler is returned when the DigestHandler interface is nil
 	ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
 
+	// ErrNilBlock is returned when the block is nil
+	ErrNilBlock = errors.New("cannot have nil block")
+
+	// ErrNilBlockHeaderNumber is returned when the block header number is nil
+	ErrNilBlockHeaderNumber = errors.New("cannot have nil block header number")
+
 	errNilCodeSubstitutedState = errors.New("cannot have nil CodeSubstitutedStat")
 )
 

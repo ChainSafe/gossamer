@@ -17,7 +17,7 @@
 package sync
 
 import (
-	"math/big"
+	"fmt"
 	"os"
 	"time"
 
@@ -113,15 +113,20 @@ func (s *Service) Stop() error {
 
 // HandleBlockAnnounceHandshake notifies the `chainSync` module that we have received a BlockAnnounceHandshake from the given peer.
 func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
-	return s.chainSync.setPeerHead(from, msg.BestBlockHash, big.NewInt(int64(msg.BestBlockNumber)))
+	return s.chainSync.setPeerHead(from, msg.BestBlockHash, uint(msg.BestBlockNumber))
 }
 
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.
 func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
 	logger.Debug("received BlockAnnounceMessage")
+	// TODO-1785: network.BlockAnnounceMessage Number remove pointer
+	if msg.Number == nil {
+		return fmt.Errorf("block announce message wit hash %s: %w",
+			msg.Hash(), errNilBlockHeaderNumber)
+	}
 
 	// create header from message
-	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
+	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, uint(msg.Number.Int64()), msg.Digest)
 	if err != nil {
 		return err
 	}

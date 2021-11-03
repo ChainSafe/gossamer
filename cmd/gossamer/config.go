@@ -151,8 +151,8 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
 	setDotRPCConfig(ctx, tomlCfg.RPC, &cfg.RPC)
 
-	if rewind := ctx.GlobalInt(RewindFlag.Name); rewind != 0 {
-		cfg.State.Rewind = rewind
+	if rewind := ctx.GlobalUint(RewindFlag.Name); rewind != 0 {
+		cfg.State.Rewind = uint32(rewind)
 	}
 
 	// set system info
@@ -487,7 +487,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 		cfg.MetricsPort = uint32(metricsPort)
 	}
 
-	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)
+	cfg.RetainBlocks = uint32(ctx.Uint(RetainBlockNumberFlag.Name))
 	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 

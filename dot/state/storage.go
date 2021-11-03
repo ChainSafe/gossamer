@@ -73,7 +73,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, 
 	var p pruner.Pruner
 	if onlinePruner.Mode == pruner.Full {
 		var err error
-		p, err = pruner.NewFullNode(db, storageTable, onlinePruner.RetainedBlocks, logger)
+		p, err = pruner.NewFullNode(db, storageTable, uint(onlinePruner.RetainedBlocks), logger)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +125,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		}
 
 		delKeys := ts.GetDeletedNodeHashes()
-		err = s.pruner.StoreJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
+		err = s.pruner.StoreJournalRecord(delKeys, insKeys, header.Hash(), header.Number)
 		if err != nil {
 			return err
 		}

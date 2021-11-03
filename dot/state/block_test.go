@@ -17,7 +17,6 @@
 package state
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ import (
 var sampleBlockBody = *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
 
 var testGenesisHeader = &types.Header{
-	Number:    big.NewInt(0),
+	Number:    0,
 	StateRoot: trie.EmptyHash,
 	Digest:    types.NewDigest(),
 }
@@ -52,7 +51,7 @@ func TestSetAndGetHeader(t *testing.T) {
 	bs := newTestBlockState(t, nil)
 
 	header := &types.Header{
-		Number:    big.NewInt(0),
+		Number:    0,
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigest(),
 	}
@@ -69,7 +68,6 @@ func TestHasHeader(t *testing.T) {
 	bs := newTestBlockState(t, nil)
 
 	header := &types.Header{
-		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigest(),
 	}
@@ -85,9 +83,11 @@ func TestHasHeader(t *testing.T) {
 func TestGetBlockByNumber(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
+	const blockNumber = 1
+
 	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
-		Number:     big.NewInt(1),
+		Number:     blockNumber,
 		Digest:     types.NewDigest(),
 	}
 
@@ -99,7 +99,7 @@ func TestGetBlockByNumber(t *testing.T) {
 	err := bs.AddBlock(block)
 	require.NoError(t, err)
 
-	retBlock, err := bs.GetBlockByNumber(blockHeader.Number)
+	retBlock, err := bs.GetBlockByNumber(blockNumber)
 	require.NoError(t, err)
 	require.Equal(t, block, retBlock, "Could not validate returned retBlock as expected")
 }
@@ -109,7 +109,7 @@ func TestAddBlock(t *testing.T) {
 
 	// Create header
 	header0 := &types.Header{
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
@@ -126,7 +126,7 @@ func TestAddBlock(t *testing.T) {
 
 	// Create header & blockData for block 2
 	header1 := &types.Header{
-		Number:     big.NewInt(2),
+		Number:     2,
 		Digest:     types.NewDigest(),
 		ParentHash: blockHash0,
 	}
@@ -184,7 +184,7 @@ func TestGetSlotForBlock(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(int64(1)),
+			Number:     1,
 			Digest:     digest,
 		},
 		Body: types.Body{},
@@ -228,9 +228,11 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	bestHash := bs.BestBlockHash()
 	bestHeader, err := bs.BestBlockHeader()
 	require.NoError(t, err)
+	require.NotNil(t, bestHeader.Number)
 
 	var resBlock *types.Block
 	for _, header := range currChain {
+		require.NotNil(t, header.Number)
 		resBlock, err = bs.GetBlockByNumber(header.Number)
 		require.NoError(t, err)
 
@@ -240,6 +242,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	}
 
 	for _, header := range branchChains {
+		require.NotNil(t, header.Number)
 		resBlock, err = bs.GetBlockByNumber(header.Number)
 		require.NoError(t, err)
 
@@ -251,7 +254,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	newBlock := &types.Block{
 		Header: types.Header{
 			ParentHash: bestHash,
-			Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
+			Number:     bestHeader.Number + 1,
 		},
 		Body: types.Body{},
 	}
@@ -325,12 +328,12 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 func TestGetHashByNumber(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	res, err := bs.GetHashByNumber(big.NewInt(0))
+	res, err := bs.GetHashByNumber(0)
 	require.NoError(t, err)
 	require.Equal(t, bs.genesisHash, res)
 
 	header := &types.Header{
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
@@ -343,7 +346,7 @@ func TestGetHashByNumber(t *testing.T) {
 	err = bs.AddBlock(block)
 	require.NoError(t, err)
 
-	res, err = bs.GetHashByNumber(big.NewInt(1))
+	res, err = bs.GetHashByNumber(1)
 	require.NoError(t, err)
 	require.Equal(t, header.Hash(), res)
 }
@@ -353,7 +356,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	header1a := &types.Header{
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
@@ -367,12 +370,12 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	err := bs.AddBlock(block1a)
 	require.NoError(t, err)
 
-	block1hash, err := bs.GetHashByNumber(big.NewInt(1))
+	block1hash, err := bs.GetHashByNumber(1)
 	require.NoError(t, err)
 	require.Equal(t, header1a.Hash(), block1hash)
 
 	header1b := &types.Header{
-		Number:         big.NewInt(1),
+		Number:         1,
 		Digest:         types.NewDigest(),
 		ParentHash:     testGenesisHeader.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
@@ -387,12 +390,12 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 
 	// should still be hash 1a since it arrived first
-	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	block1hash, err = bs.GetHashByNumber(1)
 	require.NoError(t, err)
 	require.Equal(t, header1a.Hash(), block1hash)
 
 	header2b := &types.Header{
-		Number:         big.NewInt(2),
+		Number:         2,
 		Digest:         types.NewDigest(),
 		ParentHash:     header1b.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
@@ -407,16 +410,16 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 
 	// should now be hash 1b since it's on the longer chain
-	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	block1hash, err = bs.GetHashByNumber(1)
 	require.NoError(t, err)
 	require.Equal(t, header1b.Hash(), block1hash)
 
-	block2hash, err := bs.GetHashByNumber(big.NewInt(2))
+	block2hash, err := bs.GetHashByNumber(2)
 	require.NoError(t, err)
 	require.Equal(t, header2b.Hash(), block2hash)
 
 	header2a := &types.Header{
-		Number:     big.NewInt(2),
+		Number:     2,
 		Digest:     types.NewDigest(),
 		ParentHash: header1a.Hash(),
 	}
@@ -430,7 +433,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 
 	header3a := &types.Header{
-		Number:     big.NewInt(3),
+		Number:     3,
 		Digest:     types.NewDigest(),
 		ParentHash: header2a.Hash(),
 	}
@@ -444,16 +447,16 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 
 	// should now be hash 1a since it's on the longer chain
-	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	block1hash, err = bs.GetHashByNumber(1)
 	require.NoError(t, err)
 	require.Equal(t, header1a.Hash(), block1hash)
 
 	// should now be hash 2a since it's on the longer chain
-	block2hash, err = bs.GetHashByNumber(big.NewInt(2))
+	block2hash, err = bs.GetHashByNumber(2)
 	require.NoError(t, err)
 	require.Equal(t, header2a.Hash(), block2hash)
 
-	block3hash, err := bs.GetHashByNumber(big.NewInt(3))
+	block3hash, err := bs.GetHashByNumber(3)
 	require.NoError(t, err)
 	require.Equal(t, header3a.Hash(), block3hash)
 }
@@ -462,7 +465,7 @@ func TestAddBlockToBlockTree(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	header := &types.Header{
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
@@ -477,11 +480,11 @@ func TestAddBlockToBlockTree(t *testing.T) {
 
 func TestNumberIsFinalised(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
-	fin, err := bs.NumberIsFinalised(big.NewInt(0))
+	fin, err := bs.NumberIsFinalised(0)
 	require.NoError(t, err)
 	require.True(t, fin)
 
-	fin, err = bs.NumberIsFinalised(big.NewInt(1))
+	fin, err = bs.NumberIsFinalised(1)
 	require.NoError(t, err)
 	require.False(t, fin)
 
@@ -498,13 +501,13 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.NoError(t, err)
 
 	header1 := types.Header{
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	header2 := types.Header{
-		Number:     big.NewInt(2),
+		Number:     2,
 		Digest:     digest2,
 		ParentHash: header1.Hash(),
 	}
@@ -523,19 +526,19 @@ func TestNumberIsFinalised(t *testing.T) {
 	err = bs.SetFinalisedHash(header2.Hash(), 1, 1)
 	require.NoError(t, err)
 
-	fin, err = bs.NumberIsFinalised(big.NewInt(0))
+	fin, err = bs.NumberIsFinalised(0)
 	require.NoError(t, err)
 	require.True(t, fin)
 
-	fin, err = bs.NumberIsFinalised(big.NewInt(1))
+	fin, err = bs.NumberIsFinalised(1)
 	require.NoError(t, err)
 	require.True(t, fin)
 
-	fin, err = bs.NumberIsFinalised(big.NewInt(2))
+	fin, err = bs.NumberIsFinalised(2)
 	require.NoError(t, err)
 	require.True(t, fin)
 
-	fin, err = bs.NumberIsFinalised(big.NewInt(100))
+	fin, err = bs.NumberIsFinalised(100)
 	require.NoError(t, err)
 	require.False(t, fin)
 }

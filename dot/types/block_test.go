@@ -17,13 +17,12 @@
 package types
 
 import (
-	"bytes"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,7 +44,7 @@ func TestEmptyBlock(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigest())
+	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
 	require.NoError(t, err)
 
 	block = NewBlock(*header, Body{})
@@ -71,7 +70,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigest())
+	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
 	require.NoError(t, err)
 
 	block := NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
@@ -84,9 +83,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	dec := NewBlock(*NewEmptyHeader(), *new(Body))
 	err = scale.Unmarshal(enc, &dec)
 	require.NoError(t, err)
-	if dec.Header.Number != nil {
-		dec.Header.Hash()
-	}
+	dec.Header.Hash()
 	require.Equal(t, block, dec)
 }
 
@@ -105,43 +102,43 @@ func TestDeepCopyBlock(t *testing.T) {
 	require.NotEqual(t, block.Header.ParentHash, bc.Header.ParentHash)
 }
 
-func TestMustEncodeBlock(t *testing.T) {
-	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
+func Test_Block_Encode(t *testing.T) {
+	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, NewDigest())
 	require.NoError(t, err)
 
 	b1 := NewBlock(*h1, *NewBody([]Extrinsic{[]byte{4, 1}}))
-	enc, err := b1.Encode()
+	enc, err := scale.Marshal(b1)
 	require.NoError(t, err)
 
-	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
+	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, 0, NewDigest())
 	require.NoError(t, err)
 
 	b2 := NewBlock(*h2, *NewBody([]Extrinsic{[]byte{0xa, 0xb}}))
-	enc2, err := b2.Encode()
+	enc2, err := scale.Marshal(b2)
 	require.NoError(t, err)
 
 	tests := []struct {
 		name string
-		take *Block
+		take Block
 		want []byte
 	}{
 		{
 			name: "correct",
-			take: &b1,
+			take: b1,
 			want: enc,
 		},
 		{
 			name: "correct2",
-			take: &b2,
+			take: b2,
 			want: enc2,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.take.MustEncode(); !bytes.Equal(got, tt.want) {
-				t.Errorf("MustEncode() = %v, want %v", got, tt.want)
-			}
+			got, err := scale.Marshal(tt.take)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
