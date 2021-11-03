@@ -19,7 +19,6 @@ RUN wget -O /usr/local/bin/subkey https://chainbridge.ams3.digitaloceanspaces.co
 
 # Polkadot JS dependencies
 WORKDIR /go/src/github.com/ChainSafe/gossamer/tests/polkadotjs_test
-RUN mkdir ./bin
 COPY tests/polkadotjs_test/package.json tests/polkadotjs_test/package-lock.json ./
 RUN npm install
 
@@ -39,7 +38,7 @@ COPY . .
 ARG GO_BUILD_FLAGS
 RUN go build \
     -trimpath \
-    -o $GOPATH/src/github.com/ChainSafe/gossamer/bin \
+    -o ./bin/gossamer \
     ${GO_BUILD_FLAGS} \
     ./cmd/gossamer
 
