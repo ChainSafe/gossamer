@@ -17,10 +17,10 @@ var (
 // requestIDBuffer created to control the amount of available non-duplicated ids
 type requestIDBuffer chan int16
 
-// newIntBuffer creates the request id buffer starting from 0 till @buffSize (by default @buffSize is 1000)
+// newIntBuffer creates the request id buffer starting from 1 till @buffSize (by default @buffSize is 1000)
 func newIntBuffer(buffSize int16) *requestIDBuffer {
 	b := make(chan int16, buffSize)
-	for i := int16(0); i < buffSize; i++ {
+	for i := int16(1); i <= buffSize; i++ {
 		b <- i
 	}
 

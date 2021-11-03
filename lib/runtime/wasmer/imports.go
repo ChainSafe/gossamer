@@ -1691,19 +1691,18 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
 
 	if err != nil {
+		result.Set(scale.Err, nil)
+
+		enc, _ := scale.Marshal(result)
+		ptr, _ := toWasmMemory(instanceContext, enc)
+
 		logger.Error("failed to start request", "error", err)
-		ptr, _ := fromResultToWasm(instanceContext, &result, scale.Err, nil)
 		return C.int64_t(ptr)
 	}
 
-	ptr, err := fromResultToWasm(instanceContext, &result, scale.OK, reqID)
-	if err != nil {
-		logger.Error("failed to start request", "error", err)
-
-		errRes := scale.NewResult(int16(0), nil)
-		errPtr, _ := fromResultToWasm(instanceContext, &errRes, scale.Err, nil)
-		return C.int64_t(errPtr)
-	}
+	result.Set(scale.OK, reqID)
+	enc, _ := scale.Marshal(result)
+	ptr, _ := toWasmMemory(instanceContext, enc)
 
 	return C.int64_t(ptr)
 }
@@ -2078,21 +2077,6 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 	}
 
 	return toWasmMemory(context, enc)
-}
-
-// fromResultToWasm wraps a slice in Result type using the pkg/scale.Result and copies result to wasm memory
-func fromResultToWasm(context wasm.InstanceContext, res *scale.Result, m scale.ResultMode, data interface{}) (int64, error) {
-	err := res.Set(m, data)
-	if err != nil {
-		return 0, err
-	}
-
-	encResult, err := scale.Marshal(res)
-	if err != nil {
-		return 0, err
-	}
-
-	return toWasmMemory(context, encResult)
 }
 
 // Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor

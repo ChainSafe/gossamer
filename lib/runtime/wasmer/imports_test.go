@@ -260,7 +260,7 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 
 	requestNumber, err := resReqID.Unwrap()
 	require.NoError(t, err)
-	require.Equal(t, int16(0), requestNumber)
+	require.Equal(t, int16(1), requestNumber)
 
 	// start request number 1
 	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
@@ -271,7 +271,7 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 
 	requestNumber, err = resReqID.Unwrap()
 	require.NoError(t, err)
-	require.Equal(t, int16(1), requestNumber)
+	require.Equal(t, int16(2), requestNumber)
 
 	// start request number 2
 	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
@@ -282,7 +282,7 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 
 	requestNumber, err = resReqID.Unwrap()
 	require.NoError(t, err)
-	require.Equal(t, int16(2), requestNumber)
+	require.Equal(t, int16(3), requestNumber)
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
