@@ -45,7 +45,7 @@ var (
 	interval = time.Second
 	logger   = log.New("pkg", "grandpa")
 
-	errUnsupportedSubround = errors.New("unsupported subround")
+	ErrUnsupportedSubround = errors.New("unsupported subround")
 )
 
 // Service represents the current state of the grandpa protocol
@@ -828,7 +828,7 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 		spc = s.precommits
 		eqv = s.pcEquivocations
 	default:
-		return nil, fmt.Errorf("%w: %v", errUnsupportedSubround, stage)
+		return nil, fmt.Errorf("%w: %v", ErrUnsupportedSubround, stage)
 	}
 
 	spc.Range(func(_, value interface{}) bool {
