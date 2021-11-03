@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBuildFromGenesis(t *testing.T) {
+func TestBuildFromGenesis_Integration(t *testing.T) {
 	file, err := genesis.CreateTestGenesisJSONFile(false)
 	defer os.Remove(file)
 	require.NoError(t, err)
@@ -89,7 +89,7 @@ func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
 		fmt.Sprintf("file %s already exists, rename to avoid overwritten", f.Name()))
 }
 
-func TestWriteGenesisSpecFile(t *testing.T) {
+func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
 
@@ -133,7 +133,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	}
 }
 
-func TestBuildFromDB(t *testing.T) {
+func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
 	cfg := NewTestConfig(t)
 	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
