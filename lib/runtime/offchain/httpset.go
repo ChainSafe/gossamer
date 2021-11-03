@@ -14,9 +14,10 @@ var (
 	errRequestIDNotAvailable = errors.New("request id not available")
 )
 
-// requestIDBuffer created to controll the amount of available ids and to avoid use of randon id generation
+// requestIDBuffer created to controll the amount of available non-duplicated ids
 type requestIDBuffer chan int16
 
+// newIntBuffer creates the request id buffer starting from 0 till @buffSize (by default @buffSize is 1000)
 func newIntBuffer(buffSize int16) *requestIDBuffer {
 	b := make(chan int16, buffSize)
 	for i := int16(0); i < buffSize; i++ {
