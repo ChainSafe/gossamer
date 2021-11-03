@@ -95,3 +95,100 @@ func TestChainModule_GetBlock(t *testing.T) {
 		})
 	}
 }
+
+func TestChainModule_GetBlockHash(t *testing.T) {
+	mockedHash := common.NewHash([]byte{0x01, 0x02})
+	i := make([]interface{}, 1)
+	i[0] = "a"
+
+	mockBlockAPI := new(apimocks.BlockAPI)
+	mockBlockAPI.On("BestBlockHash").Return(mockedHash, nil)
+	mockBlockAPI.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(mockedHash, nil)
+
+	var res ChainHashResponse
+	type fields struct {
+		blockAPI BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *ChainBlockNumberRequest
+		res *ChainHashResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "GetBlockHash nil req OK",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				r: nil,
+				req: &ChainBlockNumberRequest{},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetBlockHash string req OK",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				r: nil,
+				req: &ChainBlockNumberRequest{"21"},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetBlockHash float req OK",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				r: nil,
+				req: &ChainBlockNumberRequest{float64(21)},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetBlockHash unknown request number",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				r: nil,
+				req: &ChainBlockNumberRequest{uintptr(1)},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "GetBlockHash string slice req err",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				r: nil,
+				req: &ChainBlockNumberRequest{i},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &ChainModule{
+				blockAPI: tt.fields.blockAPI,
+			}
+			if err := cm.GetBlockHash(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("GetBlockHash() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
