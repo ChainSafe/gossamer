@@ -221,6 +221,10 @@ func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Blo
 	return block.(*types.Block), true
 }
 
+func (bs *BlockState) deleteUnfinalisedBlock(hash common.Hash) {
+	bs.unfinalisedBlocks.Delete(hash)
+}
+
 // HasHeader returns if the db contains a header with the given hash
 func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	if bs.hasUnfinalisedBlock(hash) {
