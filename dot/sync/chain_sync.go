@@ -232,6 +232,10 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 		return err
 	}
 
+	// we assume that if a peer sends us a block announce for a certain block,
+	// that is also has the chain up until and including that block.
+	// this may not be a valid assumption, but perhaps we can assume that
+	// it is likely they will receive this block and its ancestors before us.
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
