@@ -10,10 +10,11 @@ const maxConcurrentRequests = 1000
 
 var (
 	errIntBufferEmpty        = errors.New("int buffer exhausted")
-	errIntBufferFull         = errors.New("int buffer is full") //nolint:unused
+	errIntBufferFull         = errors.New("int buffer is full")
 	errRequestIDNotAvailable = errors.New("request id not available")
 )
 
+// requestIDBuffer created to controll the amount of available ids and to avoid use of randon id generation
 type requestIDBuffer chan int16
 
 func newIntBuffer(buffSize int16) *requestIDBuffer {
@@ -35,7 +36,6 @@ func (b *requestIDBuffer) get() (int16, error) {
 	}
 }
 
-// nolint:unused
 func (b *requestIDBuffer) put(i int16) error {
 	select {
 	case *b <- i:
@@ -87,11 +87,13 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 }
 
 // Remove just remove a expecific request from reqs
-func (p *HTTPSet) Remove(id int16) {
+func (p *HTTPSet) Remove(id int16) error {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
 	delete(p.reqs, id)
+
+	return p.idBuff.put(id)
 }
 
 // Get returns a request or nil if request not found
