@@ -246,13 +246,35 @@ func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit 
 	return nil
 }
 
+func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{} {
+	eqvVoters := make(map[ed25519.PublicKeyBytes]struct{})
+	voters := make(map[ed25519.PublicKeyBytes]int)
+
+	for _, v := range votes {
+		voters[v.AuthorityID]++
+
+		if voters[v.AuthorityID] > 1 {
+			eqvVoters[v.AuthorityID] = struct{}{}
+		}
+	}
+
+	return eqvVoters
+}
+
 func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
 	if len(fm.Precommits) != len(fm.AuthData) {
 		return ErrPrecommitSignatureMismatch
 	}
 
-	count := 0
+	eqvVoters := getEquivocatoryVoters(fm.AuthData)
+
+	var count int
 	for i, pc := range fm.Precommits {
+		_, ok := eqvVoters[fm.AuthData[i].AuthorityID]
+		if ok {
+			continue
+		}
+
 		just := &SignedVote{
 			Vote:        pc,
 			Signature:   fm.AuthData[i].Signature,
@@ -273,15 +295,10 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 		if isDescendant {
 			count++
 		}
-
-		eqPreCommitVotes, ok := h.grandpa.pcEquivocations[just.AuthorityID]
-		if ok {
-			count += len(eqPreCommitVotes)
-		}
 	}
 
 	// confirm total # signatures >= grandpa threshold
-	if uint64(count) < h.grandpa.state.threshold() {
+	if uint64(count)+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
 		logger.Debug("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
 			"votes received", count)
 		return ErrMinVotesNotMet
@@ -292,26 +309,42 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 }
 
 func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (common.Hash, error) {
+	voters := make(map[ed25519.PublicKeyBytes]map[common.Hash]int)
+	eqVotesByHash := make(map[common.Hash]map[ed25519.PublicKeyBytes]struct{})
+
+	// identify equivocatory votes by hash
+	for _, just := range msg.PreVoteJustification {
+		voters[just.AuthorityID][just.Vote.Hash]++
+
+		if voters[just.AuthorityID][just.Vote.Hash] > 1 {
+			eqVotesByHash[just.Vote.Hash][just.AuthorityID] = struct{}{}
+		}
+	}
+
 	// verify pre-vote justification, returning the pre-voted block if there is one
 	votes := make(map[common.Hash]uint64)
-
 	for _, just := range msg.PreVoteJustification {
+		// if the current voter is on equivocatory map then ignore the vote
+		eqVotersOnHash, ok := eqVotesByHash[just.Vote.Hash]
+		if ok {
+			_, ok = eqVotersOnHash[just.AuthorityID]
+			if ok {
+				continue
+			}
+		}
+
 		err := h.verifyJustification(&just, msg.Round, msg.SetID, prevote) //nolint
 		if err != nil {
 			continue
 		}
 
 		votes[just.Vote.Hash]++
-
-		eqPreVotes, ok := h.grandpa.pvEquivocations[just.AuthorityID]
-		if ok {
-			votes[just.Vote.Hash] += uint64(len(eqPreVotes))
-		}
 	}
 
 	var prevote common.Hash
 	for hash, count := range votes {
-		if count >= h.grandpa.state.threshold() {
+		eqvOnHash := eqVotesByHash[hash]
+		if count+uint64(len(eqvOnHash)) >= h.grandpa.state.threshold() {
 			prevote = hash
 			break
 		}
@@ -325,9 +358,21 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 }
 
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
+	auths := make([]AuthData, len(msg.PreCommitJustification))
+	for i, pcj := range msg.PreCommitJustification {
+		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
+	}
+
+	eqvVoters := getEquivocatoryVoters(auths)
+
 	// verify pre-commit justification
-	count := 0
+	var count uint64
 	for _, just := range msg.PreCommitJustification {
+		_, ok := eqvVoters[just.AuthorityID]
+		if ok {
+			continue
+		}
+
 		err := h.verifyJustification(&just, msg.Round, msg.SetID, precommit) //nolint
 		if err != nil {
 			continue
@@ -336,14 +381,9 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 		if just.Vote.Hash == msg.Hash && just.Vote.Number == msg.Number {
 			count++
 		}
-
-		eqPreCommitVotes, ok := h.grandpa.pcEquivocations[just.AuthorityID]
-		if ok {
-			count += len(eqPreCommitVotes)
-		}
 	}
 
-	if uint64(count) < h.grandpa.state.threshold() {
+	if uint64(count)+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
 		return ErrMinVotesNotMet
 	}
 
@@ -430,9 +470,20 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		"sig count", len(fj.Commit.Precommits),
 	)
 
-	var equivocatoryVotersCount int
+	authPubKeys := make([]AuthData, len(fj.Commit.Precommits))
+	for i, pcj := range fj.Commit.Precommits {
+		authPubKeys[i] = AuthData{AuthorityID: pcj.AuthorityID}
+	}
+
+	eqvVoters := getEquivocatoryVoters(authPubKeys)
+	var count int
 
 	for _, just := range fj.Commit.Precommits {
+		_, ok := eqvVoters[just.AuthorityID]
+		if ok {
+			continue
+		}
+
 		// check if vote was for descendant of committed block
 		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash) //nolint
 		if err != nil {
@@ -441,12 +492,6 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 		if !isDescendant {
 			return ErrPrecommitBlockMismatch
-		}
-
-		// check for equivocatory votes
-		eqPreCommitVotes, ok := s.pcEquivocations[just.AuthorityID]
-		if ok {
-			equivocatoryVotersCount += len(eqPreCommitVotes)
 		}
 
 		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
@@ -477,9 +522,13 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		if !ok {
 			return ErrInvalidSignature
 		}
+
+		count++
 	}
 
-	if len(fj.Commit.Precommits)+equivocatoryVotersCount <= (2 * len(auths) / 3) {
+	// uses the current set of authorities to define the threshold
+	threshold := (2 * len(auths) / 3)
+	if count+len(eqvVoters) <= threshold {
 		return ErrMinVotesNotMet
 	}
 
