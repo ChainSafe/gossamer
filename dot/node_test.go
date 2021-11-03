@@ -17,6 +17,7 @@
 package dot
 
 import (
+	"io/ioutil"
 	"math/big"
 	"reflect"
 	"sync"
@@ -374,8 +375,11 @@ func TestNode_StopFunc(t *testing.T) {
 		testvar = "after"
 	}
 
+	serviceRegistryLogger := log.New(log.SetWriter(ioutil.Discard))
+	servicesRegistry := services.NewServiceRegistry(serviceRegistryLogger)
+
 	node := &Node{
-		Services: &services.ServiceRegistry{},
+		Services: servicesRegistry,
 		StopFunc: stopFunc,
 		wg:       sync.WaitGroup{},
 	}
