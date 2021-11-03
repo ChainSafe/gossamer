@@ -419,12 +419,12 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 		}
 		pub := b.authorities[d.AuthorityIndex].Key
 
-		pk, err := sr25519.NewPublicKey(pub.Encode()) // nolint
+		pk, err := sr25519.NewPublicKey(pub.Encode())
 		if err != nil {
 			return nil, err
 		}
 
-		ok, err = verifySecondarySlotVRF(&d, pk, b.epoch, len(b.authorities), b.randomness) // nolint
+		ok, err = verifySecondarySlotVRF(&d, pk, b.epoch, len(b.authorities), b.randomness)
 		if err != nil {
 			return nil, err
 		}
