@@ -11,6 +11,10 @@ import (
 )
 
 func Test_GlobalLogger(t *testing.T) {
+	// Test is skipped since it might conflict with other parallel tests
+	// using the global logger.
+	t.Skip()
+
 	t.Parallel()
 
 	buffer := bytes.NewBuffer(nil)
