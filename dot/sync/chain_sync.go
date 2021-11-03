@@ -38,10 +38,6 @@ const (
 	// maxWorkers is the maximum number of parallel sync workers
 	// TODO: determine ideal value (#1659)
 	maxWorkers = 12
-
-	// maxWorkerRetries is the maximum number of times a worker can retry
-	// before being cancelled.
-	maxWorkerRetries = 16
 )
 
 var _ ChainSync = &chainSync{}
@@ -160,30 +156,41 @@ type chainSync struct {
 
 	finalisedCh <-chan *types.FinalisationInfo
 
-	minPeers     int
-	slotDuration time.Duration
+	minPeers         int
+	maxWorkerRetries uint16
+	slotDuration     time.Duration
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, minPeers int, slotDuration time.Duration) *chainSync {
+type chainSyncConfig struct {
+	bs                 BlockState
+	net                Network
+	readyBlocks        *blockQueue
+	pendingBlocks      DisjointBlockSet
+	minPeers, maxPeers int
+	slotDuration       time.Duration
+}
+
+func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &chainSync{
-		ctx:           ctx,
-		cancel:        cancel,
-		blockState:    bs,
-		network:       net,
-		workQueue:     make(chan *peerState, 1024),
-		resultQueue:   make(chan *worker, 1024),
-		peerState:     make(map[peer.ID]*peerState),
-		ignorePeers:   make(map[peer.ID]struct{}),
-		workerState:   newWorkerState(),
-		readyBlocks:   readyBlocks,
-		pendingBlocks: pendingBlocks,
-		state:         bootstrap,
-		handler:       newBootstrapSyncer(bs),
-		benchmarker:   newSyncBenchmarker(),
-		finalisedCh:   bs.GetFinalisedNotifierChannel(),
-		minPeers:      minPeers,
-		slotDuration:  slotDuration,
+		ctx:              ctx,
+		cancel:           cancel,
+		blockState:       cfg.bs,
+		network:          cfg.net,
+		workQueue:        make(chan *peerState, 1024),
+		resultQueue:      make(chan *worker, 1024),
+		peerState:        make(map[peer.ID]*peerState),
+		ignorePeers:      make(map[peer.ID]struct{}),
+		workerState:      newWorkerState(),
+		readyBlocks:      cfg.readyBlocks,
+		pendingBlocks:    cfg.pendingBlocks,
+		state:            bootstrap,
+		handler:          newBootstrapSyncer(cfg.bs),
+		benchmarker:      newSyncBenchmarker(),
+		finalisedCh:      cfg.bs.GetFinalisedNotifierChannel(),
+		minPeers:         cfg.minPeers,
+		maxWorkerRetries: uint16(cfg.maxPeers),
+		slotDuration:     cfg.slotDuration,
 	}
 }
 
@@ -428,7 +435,7 @@ func (cs *chainSync) sync() {
 			}
 
 			worker.retryCount = res.retryCount + 1
-			if worker.retryCount > maxWorkerRetries {
+			if worker.retryCount > cs.maxWorkerRetries {
 				logger.Debug("discarding worker, has reached maximum retry count",
 					"worker",
 					worker,

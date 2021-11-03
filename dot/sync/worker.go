@@ -82,7 +82,7 @@ func (s *workerState) reset() {
 type worker struct {
 	ctx        context.Context
 	id         uint64
-	retryCount uint8
+	retryCount uint16
 	peersTried map[peer.ID]struct{}
 
 	startHash    common.Hash

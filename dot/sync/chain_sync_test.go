@@ -38,6 +38,7 @@ import (
 
 const (
 	defaultMinPeers     = 1
+	defaultMaxPeers     = 5
 	testTimeout         = time.Second * 5
 	defaultSlotDuration = time.Second * 6
 )
@@ -55,7 +56,18 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
 	readyBlocks := newBlockQueue(maxResponseSize)
-	cs := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit), defaultMinPeers, defaultSlotDuration)
+
+	cfg := &chainSyncConfig{
+		bs:            bs,
+		net:           net,
+		readyBlocks:   readyBlocks,
+		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
+		minPeers:      defaultMinPeers,
+		maxPeers:      defaultMaxPeers,
+		slotDuration:  defaultSlotDuration,
+	}
+
+	cs := newChainSync(cfg)
 	return cs, readyBlocks
 }
 
