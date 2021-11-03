@@ -754,3 +754,54 @@ func TestHandleReadyBlock(t *testing.T) {
 	require.Equal(t, block2.ToBlockData(), readyBlocks.pop())
 	require.Equal(t, block3.ToBlockData(), readyBlocks.pop())
 }
+
+func TestChainSync_determineSyncPeers(t *testing.T) {
+	cs, _ := newTestChainSync(t)
+
+	req := &network.BlockRequestMessage{}
+	testPeerA := peer.ID("a")
+	testPeerB := peer.ID("b")
+	peersTried := make(map[peer.ID]struct{})
+
+	// test base case
+	cs.peerState[testPeerA] = &peerState{
+		number: big.NewInt(129),
+	}
+	cs.peerState[testPeerB] = &peerState{
+		number: big.NewInt(257),
+	}
+
+	peers := cs.determineSyncPeers(req, peersTried)
+	require.Equal(t, 2, len(peers))
+	require.Contains(t, peers, testPeerA)
+	require.Contains(t, peers, testPeerB)
+
+	// test peer ignored case
+	cs.ignorePeers[testPeerA] = struct{}{}
+	peers = cs.determineSyncPeers(req, peersTried)
+	require.Equal(t, 1, len(peers))
+	require.Equal(t, []peer.ID{testPeerB}, peers)
+
+	// test all peers ignored case
+	cs.ignorePeers[testPeerB] = struct{}{}
+	peers = cs.determineSyncPeers(req, peersTried)
+	require.Equal(t, 2, len(peers))
+	require.Contains(t, peers, testPeerA)
+	require.Contains(t, peers, testPeerB)
+	require.Equal(t, 0, len(cs.ignorePeers))
+
+	// test peer's best block below number case, shouldn't include that peer
+	start, err := variadic.NewUint64OrHash(130)
+	require.NoError(t, err)
+	req.StartingBlock = *start
+	peers = cs.determineSyncPeers(req, peersTried)
+	require.Equal(t, 1, len(peers))
+	require.Equal(t, []peer.ID{testPeerB}, peers)
+
+	// test peer tried case, should ignore peer already tried
+	peersTried[testPeerA] = struct{}{}
+	req.StartingBlock = variadic.Uint64OrHash{}
+	peers = cs.determineSyncPeers(req, peersTried)
+	require.Equal(t, 1, len(peers))
+	require.Equal(t, []peer.ID{testPeerB}, peers)
+}
