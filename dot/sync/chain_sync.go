@@ -396,7 +396,7 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
-			logger.Debug("worker error", "error", res.err.err)
+			logger.Debug("worker error", "worker ID", res.id, "error", res.err.err)
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
@@ -404,7 +404,7 @@ func (cs *chainSync) sync() {
 			case errors.Is(res.err.err, context.Canceled):
 				return
 			case errors.Is(res.err.err, errNoPeers):
-				logger.Debug("not able to sync with any peer!", "worker", res)
+				logger.Debug("not able to sync with any peer!", "worker ID", res.id)
 				continue
 			case errors.Is(res.err.err, context.DeadlineExceeded):
 				cs.ignorePeer(res.err.who)
@@ -704,28 +704,40 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 }
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
-// TODO: take into account blocks in request and peer's reported blocks (#?)
-func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) []peer.ID {
+func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) []peer.ID {
+	var start uint64
+	if req.StartingBlock.IsUint64() {
+		start = req.StartingBlock.Uint64()
+	}
+
 	cs.RLock()
 	defer cs.RUnlock()
 
 	// if we're currently ignoring all our peers, clear out the list.
 	if len(cs.peerState) == len(cs.ignorePeers) {
+		cs.RUnlock()
 		cs.Lock()
 		for p := range cs.ignorePeers {
 			delete(cs.ignorePeers, p)
 		}
 		cs.Unlock()
+		cs.RLock()
 	}
 
 	peers := make([]peer.ID, 0, len(cs.peerState))
 
-	for p := range cs.peerState {
+	for p, state := range cs.peerState {
 		if _, has := cs.ignorePeers[p]; has {
 			continue
 		}
 
 		if _, has := peersTried[p]; has {
+			continue
+		}
+
+		// if peer definitely doesn't have any blocks we want in the request,
+		// don't request from them
+		if start > 0 && state.number.Uint64() < start {
 			continue
 		}
 
