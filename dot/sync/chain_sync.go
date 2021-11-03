@@ -36,7 +36,6 @@ import (
 
 const (
 	// maxWorkers is the maximum number of parallel sync workers
-	// TODO: determine ideal value (#1659)
 	maxWorkers = 12
 )
 
@@ -60,7 +59,6 @@ func (s chainSyncState) String() string {
 	}
 }
 
-// TODO: determine ideal limit for pending blocks set (#1659)
 var pendingBlocksLimit = maxResponseSize * 32
 
 // peerState tracks our peers's best reported blocks
@@ -234,7 +232,6 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 		return err
 	}
 
-	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors? (#1659)
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
