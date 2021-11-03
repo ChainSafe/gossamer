@@ -1560,6 +1560,8 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 
 	for name, testcase := range testcases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			hashEnc, err := scale.Marshal(testcase.root)
 			require.NoError(t, err)
 

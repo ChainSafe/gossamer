@@ -85,8 +85,7 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 		return nil
 	}
 
-	/* #nosec */
-	resp, err := http.DefaultClient.Get(testRuntimeURL)
+	resp, err := http.Get(testRuntimeURL)
 	if err != nil {
 		return err
 	}
@@ -95,7 +94,7 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close() //nolint
+	defer resp.Body.Close() //nolint:errcheck
 
 	return ioutil.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
 }
