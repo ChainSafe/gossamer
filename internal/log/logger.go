@@ -9,6 +9,7 @@ import (
 type Logger struct {
 	settings settings
 	mutex    *sync.Mutex // pointer for child loggers
+	childs   []*Logger   // TODO-1946 remove this field
 }
 
 // New creates a new logger.
@@ -35,8 +36,12 @@ func (l *Logger) New(options ...Option) *Logger {
 	childSettings.mergeWith(newSettings(options))
 	// defaults are already set in parent
 
-	return &Logger{
+	newLogger := &Logger{
 		settings: childSettings,
 		mutex:    l.mutex,
 	}
+
+	l.childs = append(l.childs, newLogger)
+
+	return newLogger
 }
