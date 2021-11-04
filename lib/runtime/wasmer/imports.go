@@ -895,7 +895,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, _, _, _, _ C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a, b, c, d C.int64_t) C.int32_t { //nolint
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
 	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
 	return 0
@@ -1677,7 +1677,7 @@ func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
 }
 
 //export ext_offchain_http_request_start_version_1
-func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpan, uriSpan, _ C.int64_t) C.int64_t {
+func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpan, uriSpan, metaSpan C.int64_t) C.int64_t { //nolint
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
