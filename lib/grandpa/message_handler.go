@@ -475,11 +475,11 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		authPubKeys[i] = AuthData{AuthorityID: pcj.AuthorityID}
 	}
 
-	eqvVoters := getEquivocatoryVoters(authPubKeys)
+	equivocatoryVoters := getEquivocatoryVoters(authPubKeys)
 	var count int
 
 	for _, just := range fj.Commit.Precommits {
-		_, ok := eqvVoters[just.AuthorityID]
+		_, ok := equivocatoryVoters[just.AuthorityID]
 		if ok {
 			continue
 		}
@@ -526,9 +526,10 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		count++
 	}
 
+	// threshold is two-thirds the number of authorities,
 	// uses the current set of authorities to define the threshold
 	threshold := (2 * len(auths) / 3)
-	if count+len(eqvVoters) <= threshold {
+	if count+len(equivocatoryVoters) <= threshold {
 		return ErrMinVotesNotMet
 	}
 
