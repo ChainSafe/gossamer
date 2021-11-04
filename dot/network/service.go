@@ -587,6 +587,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
 			logger.Trace("failed to decode message from peer", "id", stream.ID(), "protocol", stream.Protocol(), "err", err)
+			_ = stream.Close()
 			continue
 		}
 

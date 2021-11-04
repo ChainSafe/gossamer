@@ -352,7 +352,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		logger.Debug("failed to send message to peer", "protocol", info.protocolID, "peer", peer, "error", err)
 		_ = hsData.stream.Close()
 		hsData.stream = nil
+		return
 	}
+
+	logger.Trace("successfully sent message", "protocol", info.protocolID, "peer", peer, "message", msg)
 }
 
 // broadcastExcluding sends a message to each connected peer except the given peer,
