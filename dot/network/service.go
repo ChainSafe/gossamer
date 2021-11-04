@@ -289,10 +289,19 @@ func (s *Service) collectNetworkMetrics() {
 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
 		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
 		syncedBlocks := metrics.GetOrRegisterGauge("service/blocks/sync", metrics.DefaultRegistry)
+		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/inbound", metrics.DefaultRegistry)
+		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/outbound", metrics.DefaultRegistry)
+		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
+		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
 
 		peerCount.Update(int64(s.host.peerCount()))
 		totalConn.Update(int64(len(s.host.h.Network().Conns())))
 		networkLatency.Update(int64(s.host.h.Peerstore().LatencyEWMA(s.host.id())))
+
+		numInboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, true))
+		numOutboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, false))
+		numInboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, false))
+		numOutboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, true))
 
 		num, err := s.blockState.BestBlockNumber()
 		if err != nil {
@@ -303,6 +312,35 @@ func (s *Service) collectNetworkMetrics() {
 
 		time.Sleep(gssmrmetrics.RefreshInterval)
 	}
+}
+
+func (s *Service) getNumStreams(protocolID byte, inbound bool) int64 {
+	np, has := s.notificationsProtocols[protocolID]
+	if !has {
+		return 0
+	}
+
+	var hsData *sync.Map
+	if inbound {
+		hsData = np.inboundHandshakeData
+	} else {
+		hsData = np.outboundHandshakeData
+	}
+
+	var count int64
+	hsData.Range(func(_, data interface{}) bool {
+		if data == nil {
+			return true
+		}
+
+		if data.(*handshakeData).stream != nil {
+			count++
+		}
+
+		return true
+	})
+
+	return count
 }
 
 func (s *Service) logPeerCount() {
