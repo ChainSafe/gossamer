@@ -221,6 +221,10 @@ func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Blo
 	return block.(*types.Block), true
 }
 
+func (bs *BlockState) deleteUnfinalisedBlock(hash common.Hash) {
+	bs.unfinalisedBlocks.Delete(hash)
+}
+
 // HasHeader returns if the db contains a header with the given hash
 func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	if bs.hasUnfinalisedBlock(hash) {
@@ -327,6 +331,7 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &types.Block{Header: *header, Body: *blockBody}, nil
 }
 
@@ -360,9 +365,6 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 
 // GetBlockBody will return Body for a given hash
 func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
-	bs.RLock()
-	defer bs.RUnlock()
-
 	block, has := bs.getUnfinalisedBlock(hash)
 	if has {
 		return &block.Body, nil

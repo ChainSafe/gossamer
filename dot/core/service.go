@@ -323,7 +323,6 @@ func (s *Service) handleBlocksAsync() {
 			}
 
 			s.maintainTransactionPool(block)
-
 		case <-s.ctx.Done():
 			return
 		}

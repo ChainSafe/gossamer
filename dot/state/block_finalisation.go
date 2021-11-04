@@ -226,7 +226,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			continue
 		}
 
-		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
+		block, has := bs.getUnfinalisedBlock(hash)
 		if !has {
 			return fmt.Errorf("failed to find block in unfinalised block map, block=%s", hash)
 		}
@@ -251,6 +251,8 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		if err = batch.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes()); err != nil {
 			return err
 		}
+
+		bs.deleteUnfinalisedBlock(hash)
 	}
 
 	return batch.Flush()

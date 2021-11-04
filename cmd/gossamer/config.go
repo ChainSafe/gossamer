@@ -567,6 +567,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	cfg.Roles = tomlCfg.Roles
 	cfg.BabeAuthority = tomlCfg.Roles == types.AuthorityRole
 	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
+	cfg.GrandpaInterval = time.Second * time.Duration(tomlCfg.GrandpaInterval)
 	cfg.BABELead = ctx.GlobalBool(BABELeadFlag.Name)
 
 	// check --roles flag and update node configuration
@@ -618,8 +619,8 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	}
 
 	logger.Debugf(
-		"core configuration: babe-authority=%t, grandpa-authority=%t wasm-interpreter=%s",
-		cfg.BabeAuthority, cfg.GrandpaAuthority, cfg.WasmInterpreter)
+		"core configuration: babe-authority=%t, grandpa-authority=%t wasm-interpreter=%s grandpa-interval=%s",
+		cfg.BabeAuthority, cfg.GrandpaAuthority, cfg.WasmInterpreter, cfg.GrandpaInterval)
 }
 
 // setDotNetworkConfig sets dot.NetworkConfig using flag values from the cli context
@@ -632,12 +633,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.MinPeers = tomlCfg.MinPeers
 	cfg.MaxPeers = tomlCfg.MaxPeers
 	cfg.PersistentPeers = tomlCfg.PersistentPeers
-
-	if tomlCfg.DiscoveryInterval > 0 {
-		cfg.DiscoveryInterval = time.Second * time.Duration(tomlCfg.DiscoveryInterval)
-	} else {
-		cfg.DiscoveryInterval = 0
-	}
+	cfg.DiscoveryInterval = time.Second * time.Duration(tomlCfg.DiscoveryInterval)
 
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {

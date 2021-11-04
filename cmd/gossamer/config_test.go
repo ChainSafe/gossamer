@@ -409,6 +409,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				BabeAuthority:    true,
 				GrandpaAuthority: true,
 				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+				GrandpaInterval:  testCfg.Core.GrandpaInterval,
 			},
 		},
 		{
@@ -420,6 +421,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				BabeAuthority:    false,
 				GrandpaAuthority: false,
 				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+				GrandpaInterval:  testCfg.Core.GrandpaInterval,
 			},
 		},
 	}
