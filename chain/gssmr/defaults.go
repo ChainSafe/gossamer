@@ -91,6 +91,9 @@ var (
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Second * 10
 
+	// DefaultGrandpaInterval is the default time for a grandpa sub-round
+	DefaultGrandpaInterval = time.Second
+
 	// RPCConfig
 
 	// DefaultRPCHTTPHost rpc host

@@ -82,6 +82,7 @@ type CoreConfig struct {
 	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
 	EpochLength      uint64 `toml:"epoch-length,omitempty"`
 	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
+	GrandpaInterval  uint32 `toml:"grandpa-interval,omitempty"`
 	BABELead         bool   `toml:"babe-lead,omitempty"`
 }
 
