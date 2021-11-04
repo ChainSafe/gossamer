@@ -1691,16 +1691,12 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
 
 	if err != nil {
-		result.Set(scale.Err, nil)
-
-		enc, _ := scale.Marshal(result)
-		ptr, _ := toWasmMemory(instanceContext, enc)
-
 		logger.Error("failed to start request", "error", err)
-		return C.int64_t(ptr)
+		_ = result.Set(scale.Err, nil)
+	} else {
+		_ = result.Set(scale.OK, reqID)
 	}
 
-	result.Set(scale.OK, reqID)
 	enc, _ := scale.Marshal(result)
 	ptr, _ := toWasmMemory(instanceContext, enc)
 
