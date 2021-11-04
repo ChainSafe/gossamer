@@ -336,7 +336,7 @@ func (cs *chainSync) logSyncSpeed() {
 			target := cs.getTarget()
 
 			logger.Infof(
-				"🔗 imported blocks from %d to %d (hashes [%s ... %s ])",
+				"🔗 imported blocks from %d to %d (hashes [%s ... %s])",
 				before.Number, after.Number, before.Hash(), after.Hash())
 
 			logger.Infof(
