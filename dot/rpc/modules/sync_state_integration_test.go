@@ -36,4 +36,3 @@ func TestSyncStateModule(t *testing.T) {
 	err = module.GenSyncSpec(nil, &req, &res)
 	require.NoError(t, err)
 }
-
