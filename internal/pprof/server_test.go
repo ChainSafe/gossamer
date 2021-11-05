@@ -50,6 +50,10 @@ func Test_Server(t *testing.T) {
 		"debug/pprof/profile?seconds=1",
 		"debug/pprof/symbol",
 		"debug/pprof/trace?seconds=0",
+		"debug/pprof/block",
+		"debug/pprof/goroutine",
+		"debug/pprof/heap",
+		"debug/pprof/threadcreate",
 	}
 
 	type httpResult struct {
