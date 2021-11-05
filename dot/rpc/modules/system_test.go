@@ -296,3 +296,76 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		})
 	}
 }
+
+func TestSystemModule_SyncState(t *testing.T) {
+	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+
+	mockBlockAPI := new(apimocks.BlockAPI)
+	mockBlockAPI.On("BestBlockHash").Return(hash)
+	mockBlockAPI.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(types.NewEmptyHeader(), nil)
+
+	mockBlockAPIErr := new(apimocks.BlockAPI)
+	mockBlockAPIErr.On("BestBlockHash").Return(hash)
+	mockBlockAPIErr.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, errors.New("GetHeader Err"))
+
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockNetworkAPI.On("HighestBlock").Return(int64(21))
+	mockNetworkAPI.On("StartingBlock").Return(int64(23))
+
+	var res SyncStateResponse
+	type fields struct {
+		networkAPI NetworkAPI
+		systemAPI  SystemAPI
+		coreAPI    CoreAPI
+		storageAPI StorageAPI
+		txStateAPI TransactionStateAPI
+		blockAPI   BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *EmptyRequest
+		res *SyncStateResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK",
+			fields: fields{mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI},
+			args: args{
+				r: nil,
+				req: &EmptyRequest{},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Err",
+			fields: fields{mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr},
+			args: args{
+				r: nil,
+				req: &EmptyRequest{},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &SystemModule{
+				networkAPI: tt.fields.networkAPI,
+				systemAPI:  tt.fields.systemAPI,
+				coreAPI:    tt.fields.coreAPI,
+				storageAPI: tt.fields.storageAPI,
+				txStateAPI: tt.fields.txStateAPI,
+				blockAPI:   tt.fields.blockAPI,
+			}
+			if err := sm.SyncState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("SyncState() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
