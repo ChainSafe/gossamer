@@ -17,6 +17,7 @@ package modules
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/dot/core"
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -795,6 +796,100 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 			}
 			if err := sm.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorageSize() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestStateModule_QueryStorage(t *testing.T) {
+	qkvc1 := core.QueryKeyValueChanges{}
+	qkvc1["p1"] = "jimmy"
+	qkvc2 := core.QueryKeyValueChanges{}
+	qkvc2["p2"] = "jimbo"
+
+
+	hash1 := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+	hash2 := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+
+	m := map[common.Hash]core.QueryKeyValueChanges{}
+	m[hash1] = qkvc1
+	m[hash2] = qkvc2
+
+	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), mock.AnythingOfType("string")).Return(m, nil)
+
+	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), mock.AnythingOfType("string")).Return(nil, errors.New("QueryStorage Error"))
+
+	var res []StorageChangeSetResponse
+	type fields struct {
+		networkAPI NetworkAPI
+		storageAPI StorageAPI
+		coreAPI    CoreAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *StateStorageQueryRangeRequest
+		res *[]StorageChangeSetResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK Case",
+			fields: fields{nil, nil, mockCoreAPI},
+			args: args{
+				in0: nil,
+				req: &StateStorageQueryRangeRequest{
+					Keys:       []string{"jimbo"},
+					StartBlock: hash1,
+					EndBlock:   hash2,
+				},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "QueryStorage Error",
+			fields: fields{nil, nil, mockCoreAPIErr},
+			args: args{
+				in0: nil,
+				req: &StateStorageQueryRangeRequest{
+					Keys:       []string{"jimbo"},
+					StartBlock: hash1,
+					EndBlock:   hash2,
+				},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Empty Start Block Error",
+			fields: fields{nil, nil, mockCoreAPI},
+			args: args{
+				in0: nil,
+				req: &StateStorageQueryRangeRequest{
+					Keys:       []string{"jimbo"},
+					StartBlock: common.Hash{},
+					EndBlock:   hash2,
+				},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &StateModule{
+				networkAPI: tt.fields.networkAPI,
+				storageAPI: tt.fields.storageAPI,
+				coreAPI:    tt.fields.coreAPI,
+			}
+			if err := sm.QueryStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("QueryStorage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
