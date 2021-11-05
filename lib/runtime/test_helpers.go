@@ -17,12 +17,14 @@
 package runtime
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -85,7 +87,18 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 		return nil
 	}
 
-	resp, err := http.Get(testRuntimeURL)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, testRuntimeURL, nil)
+	if err != nil {
+		return err
+	}
+
+	const runtimeReqTimout = time.Second * 30
+
+	httpcli := http.Client{Timeout: runtimeReqTimout}
+	resp, err := httpcli.Do(req)
 	if err != nil {
 		return err
 	}
