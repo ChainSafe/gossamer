@@ -2,9 +2,10 @@ package modules
 
 import (
 	"errors"
-	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"net/http"
 	"testing"
+
+	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 )
 
 func Test_uint64ToHex(t *testing.T) {
