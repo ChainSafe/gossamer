@@ -501,4 +501,3 @@ func TestAddReservedPeer(t *testing.T) {
 		require.Error(t, sysModule.RemoveReservedPeer(nil, &StringRequest{String: "    "}, nil))
 	})
 }
-

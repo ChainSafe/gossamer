@@ -143,4 +143,3 @@ func TestPaymentQueryInfo(t *testing.T) {
 		runtimeMock.AssertCalled(t, "PaymentQueryInfo", mock.AnythingOfType("[]uint8"))
 	})
 }
-

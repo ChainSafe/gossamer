@@ -562,4 +562,3 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	core := newCoreService(t, chain)
 	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }
-

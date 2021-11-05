@@ -131,4 +131,3 @@ func TestDevControl_EpochLength(t *testing.T) {
 	epochLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(res))
 	require.Equal(t, epochLengthSource, epochLengthFetched)
 }
-

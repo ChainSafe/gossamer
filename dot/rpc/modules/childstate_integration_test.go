@@ -295,4 +295,3 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	hash, _ := st.Block.GetBlockHash(b.Header.Number)
 	return NewChildStateModule(st.Storage, st.Block), hash
 }
-
