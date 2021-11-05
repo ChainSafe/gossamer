@@ -19,6 +19,7 @@ import (
 	"errors"
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -435,6 +436,80 @@ func TestStateModule_GetReadProof(t *testing.T) {
 			}
 			if err := sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetReadProof() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestStateModule_GetRuntimeVersion(t *testing.T) {
+	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+	testAPIItem := runtime.APIItem{
+		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+		Ver:  99,
+	}
+	version := runtime.NewVersionData(
+		[]byte("polkadot"),
+		[]byte("parity-polkadot"),
+		0,
+		25,
+		0,
+		[]runtime.APIItem{testAPIItem},
+		5,
+	)
+
+	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(version, nil)
+
+	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("GetRuntimeVersion Error"))
+
+	var res StateRuntimeVersionResponse
+	type fields struct {
+		networkAPI NetworkAPI
+		storageAPI StorageAPI
+		coreAPI    CoreAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *StateRuntimeVersionRequest
+		res *StateRuntimeVersionResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK Case",
+			fields: fields{nil, nil, mockCoreAPI},
+			args: args{
+				in0: nil,
+				req: &StateRuntimeVersionRequest{&hash},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetRuntimeVersion Error",
+			fields: fields{nil, nil, mockCoreAPIErr},
+			args: args{
+				in0: nil,
+				req: &StateRuntimeVersionRequest{&hash},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &StateModule{
+				networkAPI: tt.fields.networkAPI,
+				storageAPI: tt.fields.storageAPI,
+				coreAPI:    tt.fields.coreAPI,
+			}
+			if err := sm.GetRuntimeVersion(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("GetRuntimeVersion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
