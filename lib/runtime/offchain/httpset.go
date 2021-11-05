@@ -18,28 +18,27 @@ var (
 type requestIDBuffer chan int16
 
 // newIntBuffer creates the request id buffer starting from 1 till @buffSize (by default @buffSize is 1000)
-func newIntBuffer(buffSize int16) *requestIDBuffer {
+func newIntBuffer(buffSize int16) requestIDBuffer {
 	b := make(chan int16, buffSize)
 	for i := int16(1); i <= buffSize; i++ {
 		b <- i
 	}
 
-	intb := requestIDBuffer(b)
-	return &intb
+	return b
 }
 
-func (b *requestIDBuffer) get() (int16, error) {
+func (b requestIDBuffer) get() (int16, error) {
 	select {
-	case v := <-*b:
+	case v := <-b:
 		return v, nil
 	default:
 		return 0, errIntBufferEmpty
 	}
 }
 
-func (b *requestIDBuffer) put(i int16) error {
+func (b requestIDBuffer) put(i int16) error {
 	select {
-	case *b <- i:
+	case b <- i:
 		return nil
 	default:
 		return errIntBufferFull
@@ -50,7 +49,7 @@ func (b *requestIDBuffer) put(i int16) error {
 type HTTPSet struct {
 	mtx    *sync.Mutex
 	reqs   map[int16]*http.Request
-	idBuff *requestIDBuffer
+	idBuff requestIDBuffer
 }
 
 // NewHTTPSet creates a offchain http set that can be used
@@ -99,5 +98,8 @@ func (p *HTTPSet) Remove(id int16) error {
 
 // Get returns a request or nil if request not found
 func (p *HTTPSet) Get(id int16) *http.Request {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
 	return p.reqs[id]
 }
