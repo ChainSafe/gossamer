@@ -518,3 +518,153 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		})
 	}
 }
+
+func TestSystemModule_AddReservedPeer(t *testing.T) {
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockNetworkAPI.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
+
+	mockNetworkAPIErr := new(apimocks.NetworkAPI)
+	mockNetworkAPIErr.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("addReservedPeer error"))
+
+	var res []byte
+	type fields struct {
+		networkAPI NetworkAPI
+		systemAPI  SystemAPI
+		coreAPI    CoreAPI
+		storageAPI StorageAPI
+		txStateAPI TransactionStateAPI
+		blockAPI   BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *StringRequest
+		res *[]byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK",
+			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{"jimbo"},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "AddReservedPeer Error",
+			fields: fields{mockNetworkAPIErr, nil, nil, nil, nil, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{"jimbo"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Empty StringRequest Error",
+			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{""},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &SystemModule{
+				networkAPI: tt.fields.networkAPI,
+				systemAPI:  tt.fields.systemAPI,
+				coreAPI:    tt.fields.coreAPI,
+				storageAPI: tt.fields.storageAPI,
+				txStateAPI: tt.fields.txStateAPI,
+				blockAPI:   tt.fields.blockAPI,
+			}
+			if err := sm.AddReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("AddReservedPeer() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSystemModule_RemoveReservedPeer(t *testing.T) {
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockNetworkAPI.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(nil)
+
+	mockNetworkAPIErr := new(apimocks.NetworkAPI)
+	mockNetworkAPIErr.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("addReservedPeer error"))
+
+	var res []byte
+	type fields struct {
+		networkAPI NetworkAPI
+		systemAPI  SystemAPI
+		coreAPI    CoreAPI
+		storageAPI StorageAPI
+		txStateAPI TransactionStateAPI
+		blockAPI   BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *StringRequest
+		res *[]byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK",
+			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{"jimbo"},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "AddReservedPeer Error",
+			fields: fields{mockNetworkAPIErr, nil, nil, nil, nil, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{"jimbo"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Empty StringRequest Error",
+			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{""},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &SystemModule{
+				networkAPI: tt.fields.networkAPI,
+				systemAPI:  tt.fields.systemAPI,
+				coreAPI:    tt.fields.coreAPI,
+				storageAPI: tt.fields.storageAPI,
+				txStateAPI: tt.fields.txStateAPI,
+				blockAPI:   tt.fields.blockAPI,
+			}
+			if err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("RemoveReservedPeer() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
