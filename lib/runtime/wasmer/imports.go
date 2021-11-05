@@ -90,6 +90,7 @@ package wasmer
 // extern int64_t ext_offchain_timestamp_version_1(void *context);
 // extern void ext_offchain_sleep_until_version_1(void *context, int64_t a);
 // extern int64_t ext_offchain_http_request_start_version_1(void *context, int64_t a, int64_t b, int64_t c);
+// extern int64_t ext_offchain_http_request_add_header_version_1(void *context, int32_t a, int64_t k, int64_t v);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
@@ -1703,6 +1704,32 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	return C.int64_t(ptr)
 }
 
+//export ext_offchain_http_request_add_header_version_1
+func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqID C.int32_t, keySpan, valueSpan C.int64_t) C.int64_t {
+	logger.Debug("executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	key := asMemorySlice(instanceContext, keySpan)
+	value := asMemorySlice(instanceContext, valueSpan)
+
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	offchainReq := runtimeCtx.OffchainHTTPSet.Get(int16(reqID))
+
+	result := scale.NewResult(nil, nil)
+	err := offchainReq.AddHeader(string(key), string(value))
+	if err != nil {
+		logger.Error("failed to add request header", "error", err)
+		result.Set(scale.Err, nil)
+	} else {
+		result.Set(scale.OK, nil)
+	}
+
+	enc, _ := scale.Marshal(result)
+	ptr, _ := toWasmMemory(instanceContext, enc)
+
+	return C.int64_t(ptr)
+}
+
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	nextLength := big.NewInt(1)
 	var valueRes []byte
@@ -2363,6 +2390,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_offchain_http_request_add_header_version_1", ext_offchain_http_request_add_header_version_1, C.ext_offchain_http_request_add_header_version_1)
 	if err != nil {
 		return nil, err
 	}

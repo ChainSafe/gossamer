@@ -2,6 +2,7 @@ package offchain
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 )
@@ -12,45 +13,70 @@ var (
 	errIntBufferEmpty        = errors.New("int buffer exhausted")
 	errIntBufferFull         = errors.New("int buffer is full")
 	errRequestIDNotAvailable = errors.New("request id not available")
+	errInvalidRequest        = errors.New("request is invalid")
+	errRequestAlreadyStarted = errors.New("request has already started")
+	errInvalidHeaderKey      = errors.New("invalid header key")
 )
 
 // requestIDBuffer created to control the amount of available non-duplicated ids
 type requestIDBuffer chan int16
 
 // newIntBuffer creates the request id buffer starting from 1 till @buffSize (by default @buffSize is 1000)
-func newIntBuffer(buffSize int16) *requestIDBuffer {
+func newIntBuffer(buffSize int16) requestIDBuffer {
 	b := make(chan int16, buffSize)
 	for i := int16(1); i <= buffSize; i++ {
 		b <- i
 	}
 
-	intb := requestIDBuffer(b)
-	return &intb
+	return b
 }
 
-func (b *requestIDBuffer) get() (int16, error) {
+func (b requestIDBuffer) get() (int16, error) {
 	select {
-	case v := <-*b:
+	case v := <-b:
 		return v, nil
 	default:
 		return 0, errIntBufferEmpty
 	}
 }
 
-func (b *requestIDBuffer) put(i int16) error {
+func (b requestIDBuffer) put(i int16) error {
 	select {
-	case *b <- i:
+	case b <- i:
 		return nil
 	default:
 		return errIntBufferFull
 	}
 }
 
+type OffchainRequest struct {
+	Request          *http.Request
+	invalid, waiting bool
+}
+
+// AddHeader add a new header into @req property only if request is valid or has not started yet
+func (r *OffchainRequest) AddHeader(k, v string) error {
+	if r.invalid {
+		return errInvalidRequest
+	}
+
+	if r.waiting {
+		return errRequestAlreadyStarted
+	}
+
+	if k == "" {
+		return fmt.Errorf("%w: %s", errInvalidHeaderKey, "empty header key")
+	}
+
+	r.Request.Header.Add(k, v)
+	return nil
+}
+
 // HTTPSet holds a pool of concurrent http request calls
 type HTTPSet struct {
 	mtx    *sync.Mutex
-	reqs   map[int16]*http.Request
-	idBuff *requestIDBuffer
+	reqs   map[int16]*OffchainRequest
+	idBuff requestIDBuffer
 }
 
 // NewHTTPSet creates a offchain http set that can be used
@@ -58,7 +84,7 @@ type HTTPSet struct {
 func NewHTTPSet() *HTTPSet {
 	return &HTTPSet{
 		mtx:    new(sync.Mutex),
-		reqs:   make(map[int16]*http.Request),
+		reqs:   make(map[int16]*OffchainRequest),
 		idBuff: newIntBuffer(maxConcurrentRequests),
 	}
 }
@@ -83,7 +109,12 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 		return 0, err
 	}
 
-	p.reqs[id] = req
+	p.reqs[id] = &OffchainRequest{
+		Request: req,
+		invalid: false,
+		waiting: false,
+	}
+
 	return id, nil
 }
 
@@ -98,6 +129,9 @@ func (p *HTTPSet) Remove(id int16) error {
 }
 
 // Get returns a request or nil if request not found
-func (p *HTTPSet) Get(id int16) *http.Request {
+func (p *HTTPSet) Get(id int16) *OffchainRequest {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
 	return p.reqs[id]
 }
