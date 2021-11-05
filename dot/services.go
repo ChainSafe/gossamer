@@ -99,7 +99,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 	// check if code substitute is in use, if so replace code
 	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
 
-	if !codeSubHash.Equal(common.Hash{}) {
+	if !codeSubHash.IsEmpty() {
 		logger.Info("🔄 detected runtime code substitution, upgrading...", "block", codeSubHash)
 		genData, err := st.Base.LoadGenesisData() // nolint
 		if err != nil {
@@ -385,6 +385,7 @@ func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks
 		Voters:        voters,
 		Authority:     cfg.Core.GrandpaAuthority,
 		Network:       net,
+		Interval:      cfg.Core.GrandpaInterval,
 	}
 
 	if cfg.Core.GrandpaAuthority {

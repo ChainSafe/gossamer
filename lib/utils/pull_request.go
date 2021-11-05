@@ -1,14 +1,19 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 )
 
-const (
-	titleRegex = `[A-Za-z]+\([A-Za-z/]+\):.+[A-Za-z]+`
-	bodyRegex  = `## Changes.*- .*[A-Za-z0-9].*## Tests.*[A-Za-z].*## Issues.*- .*[A-Za-z0-9].*## Primary Reviewer.*- @.+[A-Za-z0-9].*`
+var (
+	// ErrTitlePatternNotValid indicates the title does not match the expected pattern.
+	ErrTitlePatternNotValid = errors.New("title pattern is not valid")
+	// ErrBodySectionNotFound indicates one of the required body section was not found.
+	ErrBodySectionNotFound = errors.New("body section not found")
+	// ErrBodySectionMisplaced indicates one of the required body section was misplaced in the body.
+	ErrBodySectionMisplaced = errors.New("body section misplaced")
 )
 
 var (
@@ -18,9 +23,9 @@ var (
 
 // CheckPRDescription verifies the PR title and body match the expected format.
 func CheckPRDescription(title, body string) error {
-	match, err := regexp.MatchString(titleRegex, title)
-	if err != nil || !match {
-		return fmt.Errorf("title pattern is not valid: %w match %t", err, match)
+	if !titleRegexp.MatchString(title) {
+		return fmt.Errorf("%w: for regular expression %s: '%s'",
+			ErrTitlePatternNotValid, titleRegexp.String(), title)
 	}
 
 	body = commentRegexp.ReplaceAllString(body, "")
@@ -37,6 +42,10 @@ func CheckPRDescription(title, body string) error {
 			// no new line required before the first section
 			textToFind = "\n" + textToFind
 		}
+		if i < len(requiredSections)-1 {
+			// no new line required for last section
+			textToFind += "\n"
+		}
 
 		index := strings.Index(body, textToFind)
 		if index == -1 {
@@ -49,15 +58,6 @@ func CheckPRDescription(title, body string) error {
 		previousIndex = index
 		previousSection = requiredSection
 	}
-	bodyData = bodyData + body
 
-	lineSplit := strings.Split(bodyData, "\n")
-	joinedLine := strings.Join(lineSplit, "")
-
-	// Regex for body data
-	match, err = regexp.MatchString(bodyRegex, joinedLine)
-	if err != nil || !match {
-		return fmt.Errorf("body pattern is not valid: %w match %t", err, match)
-	}
 	return nil
 }

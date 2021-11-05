@@ -115,11 +115,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		return ErrNilBlockData
 	}
 
-	err := s.blockState.CompareAndSetBlockData(bd)
-	if err != nil {
-		return fmt.Errorf("failed to compare and set data: %w", err)
-	}
-
 	hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 	hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 	if hasHeader && hasBody {
@@ -164,8 +159,10 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		return nil
 	}
 
+	logger.Debug("processing block data", "hash", bd.Hash)
+
 	if bd.Header != nil && bd.Body != nil {
-		if err = s.handleHeader(bd.Header); err != nil {
+		if err := s.handleHeader(bd.Header); err != nil {
 			return err
 		}
 
@@ -176,9 +173,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			Body:   *bd.Body,
 		}
 
-		logger.Debug("processing block", "hash", bd.Hash)
-
-		if err = s.handleBlock(block); err != nil {
+		if err := s.handleBlock(block); err != nil {
 			logger.Error("failed to handle block", "number", block.Header.Number, "error", err)
 			return err
 		}
@@ -189,6 +184,10 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if bd.Justification != nil && bd.Header != nil {
 		logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
 		s.handleJustification(bd.Header, *bd.Justification)
+	}
+
+	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
+		return fmt.Errorf("failed to compare and set data: %w", err)
 	}
 
 	return nil

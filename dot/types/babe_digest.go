@@ -17,50 +17,28 @@
 package types
 
 import (
-	"encoding/binary"
 	"errors"
-	"io"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var _ BabePreRuntimeDigest = &BabePrimaryPreDigest{}
-var _ BabePreRuntimeDigest = &BabeSecondaryPlainPreDigest{}
-
-// BabePreRuntimeDigest must be implemented by all BABE pre-runtime digest types
-type BabePreRuntimeDigest interface {
-	Type() byte
-	Encode() []byte
-	Decode(r io.Reader) error
-	AuthorityIndex() uint32
-	SlotNumber() uint64
+// NewBabeDigest returns a new VaryingDataType to represent a BabeDigest
+func NewBabeDigest() scale.VaryingDataType {
+	return scale.MustNewVaryingDataType(BabePrimaryPreDigest{}, BabeSecondaryPlainPreDigest{}, BabeSecondaryVRFPreDigest{})
 }
 
-//nolint
-var (
-	BabePrimaryPreDigestType        = byte(1)
-	BabeSecondaryPlainPreDigestType = byte(2)
-	BabeSecondaryVRFPreDigestType   = byte(3)
-)
-
 // DecodeBabePreDigest decodes the input into a BabePreRuntimeDigest
-func DecodeBabePreDigest(r io.Reader) (BabePreRuntimeDigest, error) {
-	typ, err := common.ReadByte(r)
+func DecodeBabePreDigest(in []byte) (scale.VaryingDataTypeValue, error) {
+	babeDigest := NewBabeDigest()
+	err := scale.Unmarshal(in, &babeDigest)
 	if err != nil {
 		return nil, err
 	}
 
-	switch typ {
-	case BabePrimaryPreDigestType:
-		d := new(BabePrimaryPreDigest)
-		return d, d.Decode(r)
-	case BabeSecondaryPlainPreDigestType:
-		d := new(BabeSecondaryPlainPreDigest)
-		return d, d.Decode(r)
-	case BabeSecondaryVRFPreDigestType:
-		d := new(BabeSecondaryVRFPreDigest)
-		return d, d.Decode(r)
+	switch msg := babeDigest.Value().(type) {
+	case BabePrimaryPreDigest, BabeSecondaryPlainPreDigest, BabeSecondaryVRFPreDigest:
+		return msg, nil
 	}
 
 	return nil, errors.New("cannot decode data with invalid BABE pre-runtime digest type")
@@ -68,235 +46,87 @@ func DecodeBabePreDigest(r io.Reader) (BabePreRuntimeDigest, error) {
 
 // BabePrimaryPreDigest as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
 type BabePrimaryPreDigest struct {
-	authorityIndex uint32
-	slotNumber     uint64
-	vrfOutput      [sr25519.VrfOutputLength]byte
-	vrfProof       [sr25519.VrfProofLength]byte
+	AuthorityIndex uint32
+	SlotNumber     uint64
+	VRFOutput      [sr25519.VRFOutputLength]byte
+	VRFProof       [sr25519.VRFProofLength]byte
 }
 
 // NewBabePrimaryPreDigest returns a new BabePrimaryPreDigest
-func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabePrimaryPreDigest {
+func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VRFProofLength]byte) *BabePrimaryPreDigest {
 	return &BabePrimaryPreDigest{
-		vrfOutput:      vrfOutput,
-		vrfProof:       vrfProof,
-		authorityIndex: authorityIndex,
-		slotNumber:     slotNumber,
+		VRFOutput:      vrfOutput,
+		VRFProof:       vrfProof,
+		AuthorityIndex: authorityIndex,
+		SlotNumber:     slotNumber,
 	}
 }
 
 // ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
-func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
-	return NewBABEPreRuntimeDigest(d.Encode())
-}
-
-// Type returns BabePrimaryPreDigestType
-func (d *BabePrimaryPreDigest) Type() byte {
-	return BabePrimaryPreDigestType
-}
-
-// Encode performs SCALE encoding of a BABEPrimaryPreDigest
-func (d *BabePrimaryPreDigest) Encode() []byte {
-	enc := []byte{BabePrimaryPreDigestType}
-
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, d.authorityIndex)
-	enc = append(enc, buf...)
-
-	buf = make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, d.slotNumber)
-	enc = append(enc, buf...)
-	enc = append(enc, d.vrfOutput[:]...)
-	enc = append(enc, d.vrfProof[:]...)
-	return enc
-}
-
-// Decode performs SCALE decoding of an encoded BabePrimaryPreDigest, assuming type byte is removed
-func (d *BabePrimaryPreDigest) Decode(r io.Reader) (err error) {
-	d.authorityIndex, err = common.ReadUint32(r)
+func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	digest := NewBabeDigest()
+	err := digest.Set(*d)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	d.slotNumber, err = common.ReadUint64(r)
+	enc, err := scale.Marshal(digest)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	d.vrfOutput, err = common.Read32Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	d.vrfProof, err = common.Read64Bytes(r)
-	if err != nil {
-		return err
-	}
-	return nil
+	return NewBABEPreRuntimeDigest(enc), nil
 }
 
-// AuthorityIndex returns the digest's authority index
-func (d *BabePrimaryPreDigest) AuthorityIndex() uint32 {
-	return d.authorityIndex
-}
-
-// SlotNumber returns the digest's slot number
-func (d *BabePrimaryPreDigest) SlotNumber() uint64 {
-	return d.slotNumber
-}
-
-// VrfOutput returns the digest's VRF output
-func (d *BabePrimaryPreDigest) VrfOutput() [sr25519.VrfOutputLength]byte {
-	return d.vrfOutput
-}
-
-// VrfProof returns the digest's VRF proof
-func (d *BabePrimaryPreDigest) VrfProof() [sr25519.VrfProofLength]byte {
-	return d.vrfProof
-}
+// Index Returns VDT index
+func (d BabePrimaryPreDigest) Index() uint { return 1 }
 
 // BabeSecondaryPlainPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryPlainPreDigest struct {
-	authorityIndex uint32
-	slotNumber     uint64
+	AuthorityIndex uint32
+	SlotNumber     uint64
 }
 
 // NewBabeSecondaryPlainPreDigest returns a new BabeSecondaryPlainPreDigest
 func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *BabeSecondaryPlainPreDigest {
 	return &BabeSecondaryPlainPreDigest{
-		authorityIndex: authorityIndex,
-		slotNumber:     slotNumber,
+		AuthorityIndex: authorityIndex,
+		SlotNumber:     slotNumber,
 	}
 }
 
 // ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
-func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
-	return NewBABEPreRuntimeDigest(d.Encode())
-}
-
-// Type returns BabeSecondaryPlainPreDigestType
-func (d *BabeSecondaryPlainPreDigest) Type() byte {
-	return BabeSecondaryPlainPreDigestType
-}
-
-// Encode performs SCALE encoding of a BabeSecondaryPlainPreDigest
-func (d *BabeSecondaryPlainPreDigest) Encode() []byte {
-	enc := []byte{BabeSecondaryPlainPreDigestType}
-
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, d.authorityIndex)
-	enc = append(enc, buf...)
-
-	buf = make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, d.slotNumber)
-	enc = append(enc, buf...)
-	return enc
-}
-
-// Decode performs SCALE decoding of an encoded BabeSecondaryPlainPreDigest
-func (d *BabeSecondaryPlainPreDigest) Decode(r io.Reader) (err error) {
-	d.authorityIndex, err = common.ReadUint32(r)
+func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	digest := NewBabeDigest()
+	err := digest.Set(*d)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	d.slotNumber, err = common.ReadUint64(r)
+	enc, err := scale.Marshal(digest)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	return nil
+	return NewBABEPreRuntimeDigest(enc), nil
 }
 
-// AuthorityIndex returns the digest's authority index
-func (d *BabeSecondaryPlainPreDigest) AuthorityIndex() uint32 {
-	return d.authorityIndex
-}
-
-// SlotNumber returns the digest's slot number
-func (d *BabeSecondaryPlainPreDigest) SlotNumber() uint64 {
-	return d.slotNumber
-}
+// Index Returns VDT index
+func (d BabeSecondaryPlainPreDigest) Index() uint { return 2 }
 
 // BabeSecondaryVRFPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryVRFPreDigest struct {
-	authorityIndex uint32
-	slotNumber     uint64
-	vrfOutput      [sr25519.VrfOutputLength]byte
-	vrfProof       [sr25519.VrfProofLength]byte
+	AuthorityIndex uint32
+	SlotNumber     uint64
+	VrfOutput      [sr25519.VRFOutputLength]byte
+	VrfProof       [sr25519.VRFProofLength]byte
 }
 
 // NewBabeSecondaryVRFPreDigest returns a new NewBabeSecondaryVRFPreDigest
-func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabeSecondaryVRFPreDigest {
+func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VRFProofLength]byte) *BabeSecondaryVRFPreDigest {
 	return &BabeSecondaryVRFPreDigest{
-		vrfOutput:      vrfOutput,
-		vrfProof:       vrfProof,
-		authorityIndex: authorityIndex,
-		slotNumber:     slotNumber,
+		VrfOutput:      vrfOutput,
+		VrfProof:       vrfProof,
+		AuthorityIndex: authorityIndex,
+		SlotNumber:     slotNumber,
 	}
 }
 
-// Type returns BabeSecondaryVRFPreDigestType
-func (d *BabeSecondaryVRFPreDigest) Type() byte {
-	return BabeSecondaryVRFPreDigestType
-}
-
-// Encode performs SCALE encoding of a BABEPrimaryPreDigest
-func (d *BabeSecondaryVRFPreDigest) Encode() []byte {
-	enc := []byte{BabeSecondaryVRFPreDigestType}
-
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, d.authorityIndex)
-	enc = append(enc, buf...)
-
-	buf = make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, d.slotNumber)
-	enc = append(enc, buf...)
-
-	enc = append(enc, d.vrfOutput[:]...)
-	enc = append(enc, d.vrfProof[:]...)
-	return enc
-}
-
-// Decode performs SCALE decoding of an encoded BabeSecondaryVRFPreDigest, assuming type byte is removed
-func (d *BabeSecondaryVRFPreDigest) Decode(r io.Reader) (err error) {
-	d.authorityIndex, err = common.ReadUint32(r)
-	if err != nil {
-		return err
-	}
-
-	d.slotNumber, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	d.vrfOutput, err = common.Read32Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	d.vrfProof, err = common.Read64Bytes(r)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// AuthorityIndex returns the digest's authority index
-func (d *BabeSecondaryVRFPreDigest) AuthorityIndex() uint32 {
-	return d.authorityIndex
-}
-
-// SlotNumber returns the digest's slot number
-func (d *BabeSecondaryVRFPreDigest) SlotNumber() uint64 {
-	return d.slotNumber
-}
-
-// VrfOutput returns the digest's VRF output
-func (d *BabeSecondaryVRFPreDigest) VrfOutput() [sr25519.VrfOutputLength]byte {
-	return d.vrfOutput
-}
-
-// VrfProof returns the digest's VRF proof
-func (d *BabeSecondaryVRFPreDigest) VrfProof() [sr25519.VrfProofLength]byte {
-	return d.vrfProof
-}
+// Index Returns VDT index
+func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }

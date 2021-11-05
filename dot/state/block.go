@@ -221,6 +221,10 @@ func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Blo
 	return block.(*types.Block), true
 }
 
+func (bs *BlockState) deleteUnfinalisedBlock(hash common.Hash) {
+	bs.unfinalisedBlocks.Delete(hash)
+}
+
 // HasHeader returns if the db contains a header with the given hash
 func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	if bs.hasUnfinalisedBlock(hash) {
@@ -327,6 +331,7 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &types.Block{Header: *header, Body: *blockBody}, nil
 }
 
@@ -360,9 +365,6 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 
 // GetBlockBody will return Body for a given hash
 func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
-	bs.RLock()
-	defer bs.RUnlock()
-
 	block, has := bs.getUnfinalisedBlock(hash)
 	if has {
 		return &block.Body, nil
@@ -444,6 +446,16 @@ func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 	return bs.bt.AddBlock(header, arrivalTime)
 }
 
+// GetAllBlocksAtNumber returns all unfinalised blocks with the given number
+func (bs *BlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) {
+	header, err := bs.GetHeaderByNumber(num)
+	if err != nil {
+		return nil, err
+	}
+
+	return bs.GetAllBlocksAtDepth(header.ParentHash), nil
+}
+
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
 func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	return bs.bt.GetAllBlocksAtNumber(hash)
@@ -497,10 +509,11 @@ func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
 }
 
 // GetBlockStateRoot returns the state root of the given block hash
-func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (common.Hash, error) {
+func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (
+	hash common.Hash, err error) {
 	header, err := bs.GetHeader(bhash)
 	if err != nil {
-		return common.EmptyHash, err
+		return hash, err
 	}
 
 	return header.StateRoot, nil
