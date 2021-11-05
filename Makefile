@@ -36,7 +36,6 @@ proto:
 ## test: Runs `go test` on project test files.
 test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
-	#GOBIN=$(PWD)/bin go run scripts/ci.go test
 	git lfs pull
 	go test -short -coverprofile c.out ./... -timeout=30m
 
@@ -80,11 +79,11 @@ deps:
 ## build: Builds application binary and stores it in `./bin/gossamer`
 build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
-	GOBIN=$(PWD)/bin go run scripts/ci.go install
+	go build -trimpath -o ./bin/gossamer ./cmd/gossamer
 
 ## debug: Builds application binary with debug flags and stores it in `./bin/gossamer`
 build-debug: clean
-	cd cmd/gossamer && go build -gcflags=all="-N -l" -o ../../bin/gossamer && cd ../..
+	go build -trimpath -gcflags=all="-N -l" -o ./bin/gossamer ./cmd/gossamer
 
 ## init: Initialise gossamer using the default genesis and toml configuration files
 init:
@@ -120,9 +119,8 @@ docker-build:
 	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
 	docker build -t $(FULLDOCKERNAME) -f Dockerfile .
 
-gossamer: clean
-	cd cmd/gossamer && go build -o ../../bin/gossamer && cd ../..
+gossamer: clean build
 
 ## install: install the gossamer binary in $GOPATH/bin
-install:
-	GOBIN=$(GOPATH)/bin go run scripts/ci.go install
+install: build
+	mv ./bin/gossamer $(GOPATH)/bin/gossamer
