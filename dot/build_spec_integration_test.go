@@ -30,6 +30,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const genesisLocation = "../chain/gssmr/genesis.json"
+
 func TestBuildFromGenesis_Integration(t *testing.T) {
 	file, err := genesis.CreateTestGenesisJSONFile(false)
 	defer os.Remove(file)
@@ -91,7 +93,7 @@ func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
 
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
+	cfg.Init.Genesis = genesisLocation
 
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
@@ -136,7 +138,7 @@ func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
+	cfg.Init.Genesis = genesisLocation
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
 	// initialise node (initialise state database and load genesis data)

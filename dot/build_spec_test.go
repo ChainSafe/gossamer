@@ -17,10 +17,11 @@ package dot
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildSpec_ToJSON(t *testing.T) {
