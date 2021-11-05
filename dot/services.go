@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -30,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	log "github.com/ChainSafe/log15"
 )
 
 func newInMemoryDB(path string) (chaindb.Database, error) {
@@ -408,4 +410,9 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 
 func createDigestHandler(st *state.Service) (*digest.Handler, error) {
 	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
+}
+
+func createPprofService() (service *pprof.Service) {
+	pprofLogger := log.New("pkg", "pprof")
+	return pprof.NewService("localhost:6060", pprofLogger)
 }

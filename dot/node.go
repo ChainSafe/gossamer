@@ -196,6 +196,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		networkSrvc *network.Service
 	)
 
+	nodeSrvcs = append(nodeSrvcs, createPprofService())
+
 	stateSrvc, err := createStateService(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)

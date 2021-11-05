@@ -355,3 +355,11 @@ func TestNewWebSocketServer(t *testing.T) {
 		require.Equal(t, item.expected, message)
 	}
 }
+
+func Test_createPprofService(t *testing.T) {
+	t.Parallel()
+
+	service := createPprofService()
+
+	require.NotNil(t, service)
+}
