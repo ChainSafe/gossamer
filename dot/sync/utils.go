@@ -16,6 +16,11 @@
 
 package sync
 
+type reducer func(prevValue interface{}, newValue interface{}) interface{}
+
+// for comp: comp(x, y) = -1: x<y, 0: x==y, 1: x>y
+type comperator func(prevValue interface{}, newValue interface{}) int
+
 // IQR golang outlier detection
 // 	Q25 = 25th_percentile
 // 	Q75 = 75th_percentile
@@ -23,45 +28,63 @@ package sync
 // 	If x >  Q75  + 1.5 * IQR or  x   < Q25 - 1.5 * IQR THEN  x is a mild outlier
 // 	If x >  Q75  + 3.0 * IQR or  x   < Q25 – 3.0 * IQR THEN  x is a extreme outlier
 // Ref: http://www.mathwords.com/o/outlier.htm
-func outlierDetection(arr []int64) (int, int) {
-	if len(arr) < 3 {
-		return -1, -1
+//
+// returns: reducer output
+func RemoveOutlier(sortedArr []interface{}, reducer reducer, compFn comperator, plusFn reducer, minusFn reducer, divideFn reducer, multiplyFn reducer) interface{} {
+	len := len(sortedArr)
+
+	if len == 0 {
+		return -1
 	}
 
-	q1 := arr[0]
-	q3 := arr[len(arr)-1]
-
-	if q1 == q3 {
-		return -1, -1
+	if len == 1 {
+		return sortedArr[0]
 	}
 
-	iqr := float64(q3 - q1)
-	iqr1_5 := iqr * 1.5
-	lower := float64(q1) - iqr1_5
-	upper := float64(q3) + iqr1_5
+	if len == 2 {
+		return reducer(sortedArr[0], sortedArr[1])
+	}
 
-	lowerIndex := -1
-	upperIndex := -1
+	half := len / 2
+	data1 := sortedArr[:half]
+	var data2 []interface{}
 
-	for i, v := range arr {
-		v := float64(v)
-		if v >= lower && lowerIndex == -1 {
-			lowerIndex = i
+	if len%2 == 0 {
+		data2 = sortedArr[half:]
+	} else {
+		data2 = sortedArr[half+1:]
+	}
+
+	q1 := getMedian(data1, plusFn, divideFn)
+	q3 := getMedian(data2, plusFn, divideFn)
+
+	// if q1 == q3 {
+	// 	todo what to do?
+	// }
+
+	iqr := minusFn(q3, q1)
+	iqr1_5 := multiplyFn(iqr, 1.5)
+	lower := minusFn(q1, iqr1_5)
+	upper := plusFn(q3, iqr1_5)
+
+	var reducedValue interface{}
+	reducedValue = 0
+	for _, v := range sortedArr {
+		//collect valid (non-outlier) values
+		if compFn(v, lower) >= 0 && compFn(v, upper) <= 0 {
+			reducedValue = reducer(reducedValue, v)
 		}
-
-		if v <= upper && upperIndex == -1 {
-			upperIndex = i
-		}
 	}
 
-	return lowerIndex, upperIndex
+	return reducedValue
 }
 
-func getMedian(data []int64) int64 {
-	len:=len(data)
-	half := len/2
-	if ( len % 2 == 0)
-		return data[half] + data[half-1] / 2;
-	else
-		return data.get(data.size() / 2);
+func getMedian(data []interface{}, sum reducer, divide reducer) interface{} {
+	len := len(data)
+	half := len / 2
+	if len%2 == 0 {
+		return divide(sum(data[half], data[half-1]), 2)
+	} else {
+		return data[half]
+	}
 }

@@ -17,28 +17,37 @@
 package sync
 
 import (
-	"fmt"
-	"math/rand"
+	"math/big"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_detectOutlier(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-	min := 10
-	max := 30
+	count := int64(0)
+	arr := []interface{}{*big.NewInt(1), *big.NewInt(20), *big.NewInt(40), *big.NewInt(60), *big.NewInt(80), *big.NewInt(100), *big.NewInt(1000)}
 
-	for i := 0; i < 100; i++ {
-	fmt.Println(rand.Intn(max-min+1) + min)
+	reducerSum := func(a, b interface{}) interface{} {
+		count++
+		return big.NewInt(0).Add(a.(*big.Int), b.(*big.Int))
+	}
 
-	tests := []struct {
-		name string
-	}{
-		// TODO: Add test cases.
+	comp := func(a, b interface{}) int {
+		return a.(*big.Int).Cmp(b.(*big.Int))
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			detectOutlier()
-		})
+
+	plus := func(a, b interface{}) interface{} {
+		return big.NewInt(0).Add(a.(*big.Int), b.(*big.Int))
 	}
+	minus := func(a, b interface{}) interface{} {
+		return big.NewInt(0).Sub(a.(*big.Int), b.(*big.Int))
+	}
+	divide := func(a, b interface{}) interface{} {
+		return big.NewInt(0).Div(a.(*big.Int), b.(*big.Int))
+	}
+	mul := func(a, b interface{}) interface{} {
+		return big.NewInt(0).Mul(a.(*big.Int), b.(*big.Int))
+	}
+	_ = RemoveOutlier(arr, reducerSum, comp, plus, minus, divide, mul).(*big.Int)
+	require.Equal(t, int64(5), count)
 }

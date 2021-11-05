@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -159,6 +160,13 @@ type chainSync struct {
 	minPeers     int
 	slotDuration time.Duration
 }
+
+// ByPeerStateNumber implements sort.Interface to make the it sortable by peerState.number
+type ByPeerStateNumber []interface{}
+
+func (a ByPeerStateNumber) Len() int           { return len(a) }
+func (a ByPeerStateNumber) Less(i, j int) bool { return (a[i]).(*big.Int).Cmp(a[j].(*big.Int)) < 0 }
+func (a ByPeerStateNumber) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, minPeers int, slotDuration time.Duration) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -492,7 +500,6 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
 func (cs *chainSync) getTarget() *big.Int {
 	count := int64(0)
-	sum := big.NewInt(0)
 
 	cs.RLock()
 	defer cs.RUnlock()
@@ -503,12 +510,44 @@ func (cs *chainSync) getTarget() *big.Int {
 		return big.NewInt(2<<32 - 1)
 	}
 
+	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
+	intArr := make([]interface{}, len(cs.peerState))
 	for _, ps := range cs.peerState {
-		sum = big.NewInt(0).Add(sum, ps.number)
+		intArr = append(intArr, *ps.number)
+	}
+	//now sort the array
+	sort.Sort(ByPeerStateNumber(intArr))
+
+	// sortedArr := make([]interface{}, len(cs.peerState))
+	// for _, v := range intArr {
+	// 	sortedArr = append(sortedArr, v)
+	// }
+
+	reducerSum := func(a, b interface{}) interface{} {
 		count++
+		return big.NewInt(0).Add(a.(*big.Int), b.(*big.Int))
 	}
 
-	return big.NewInt(0).Div(sum, big.NewInt(count))
+	comp := func(a, b interface{}) int {
+		return a.(*big.Int).Cmp(b.(*big.Int))
+	}
+
+	plus := func(a, b interface{}) interface{} {
+		return big.NewInt(0).Add(a.(*big.Int), b.(*big.Int))
+	}
+	minus := func(a, b interface{}) interface{} {
+		return big.NewInt(0).Sub(a.(*big.Int), b.(*big.Int))
+	}
+	divide := func(a, b interface{}) interface{} {
+		return big.NewInt(0).Div(a.(*big.Int), b.(*big.Int))
+	}
+	mul := func(a, b interface{}) interface{} {
+		return big.NewInt(0).Mul(a.(*big.Int), b.(*big.Int))
+	}
+
+	sum := RemoveOutlier(intArr, reducerSum, comp, plus, minus, divide, mul).(*big.Int)
+
+	return big.NewInt(0).Div(sum, big.NewInt(count+1))
 }
 
 // handleWork handles potential new work that may be triggered on receiving a peer's state
