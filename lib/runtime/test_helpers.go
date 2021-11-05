@@ -103,7 +103,7 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 type TestRuntimeNetwork struct{}
 
 // NetworkState ...
-func (trn *TestRuntimeNetwork) NetworkState() common.NetworkState {
+func (*TestRuntimeNetwork) NetworkState() common.NetworkState {
 	testAddrs := []ma.Multiaddr(nil)
 
 	// create mock multiaddress
