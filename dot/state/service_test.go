@@ -416,6 +416,7 @@ func TestStateServiceMetrics(t *testing.T) {
 	ethmetrics.Enabled = true
 	serv := NewService(config)
 	serv.Transaction = NewTransactionState()
+	serv.Block = newTestBlockState(t, testGenesisHeader)
 
 	m := metrics.NewCollector(context.Background())
 	m.AddGauge(serv)
@@ -440,7 +441,7 @@ func TestStateServiceMetrics(t *testing.T) {
 		hashes[i] = h
 	}
 
-	time.Sleep(time.Second + metrics.Refresh)
+	time.Sleep(time.Second + metrics.RefreshInterval)
 	gpool := ethmetrics.GetOrRegisterGauge(readyPoolTransactionsMetrics, nil)
 	gqueue := ethmetrics.GetOrRegisterGauge(readyPriorityQueueTransactions, nil)
 
@@ -450,7 +451,7 @@ func TestStateServiceMetrics(t *testing.T) {
 	serv.Transaction.pool.Remove(hashes[0])
 	serv.Transaction.queue.Pop()
 
-	time.Sleep(time.Second + metrics.Refresh)
+	time.Sleep(time.Second + metrics.RefreshInterval)
 	require.Equal(t, int64(1), gpool.Value())
 	require.Equal(t, int64(1), gqueue.Value())
 }

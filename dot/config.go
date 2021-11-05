@@ -103,6 +103,7 @@ type CoreConfig struct {
 	BABELead         bool
 	GrandpaAuthority bool
 	WasmInterpreter  string
+	GrandpaInterval  time.Duration
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -180,6 +181,7 @@ func GssmrConfig() *Config {
 			BabeAuthority:    gssmr.DefaultBabeAuthority,
 			GrandpaAuthority: gssmr.DefaultGrandpaAuthority,
 			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+			GrandpaInterval:  gssmr.DefaultGrandpaInterval,
 		},
 		Network: NetworkConfig{
 			Port:              gssmr.DefaultNetworkPort,

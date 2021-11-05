@@ -137,6 +137,15 @@ func (s *TrieState) ClearPrefix(prefix []byte) error {
 	return nil
 }
 
+// ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
+func (s *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	num, del := s.t.ClearPrefixLimit(prefix, limit)
+	return num, del
+}
+
 // TrieEntries returns every key-value pair in the trie
 func (s *TrieState) TrieEntries() map[string][]byte {
 	s.lock.RLock()

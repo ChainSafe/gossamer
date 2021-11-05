@@ -117,6 +117,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 		Keypair:       kr.Alice().(*ed25519.Keypair),
 		Authority:     true,
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -1274,7 +1275,7 @@ func TestFinalRoundGaugeMetric(t *testing.T) {
 
 	go coll.Start()
 
-	time.Sleep(metrics.Refresh + time.Second)
+	time.Sleep(metrics.RefreshInterval + time.Second)
 	gauge := ethmetrics.GetOrRegisterGauge(finalityGrandpaRoundMetrics, nil)
 	require.Equal(t, gauge.Value(), int64(180))
 }
