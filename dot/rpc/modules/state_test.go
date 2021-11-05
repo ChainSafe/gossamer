@@ -359,3 +359,83 @@ func TestStateModule_GetMetadata(t *testing.T) {
 		})
 	}
 }
+
+func TestStateModule_GetReadProof(t *testing.T) {
+	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+
+	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI.On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).Return(hash, [][]byte{{1, 1, 1}, {1, 1, 1}}, nil)
+
+	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr.On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).Return(nil, nil, errors.New("GetReadProofAt Error"))
+
+	var res StateGetReadProofResponse
+	type fields struct {
+		networkAPI NetworkAPI
+		storageAPI StorageAPI
+		coreAPI    CoreAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *StateGetReadProofRequest
+		res *StateGetReadProofResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK Case",
+			fields: fields{nil, nil, mockCoreAPI},
+			args: args{
+				in0: nil,
+				req: &StateGetReadProofRequest{
+					Keys: []string{"0x1111", "0x2222"},
+					Hash: hash,
+				},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetReadProofAt Error",
+			fields: fields{nil, nil, mockCoreAPIErr},
+			args: args{
+				in0: nil,
+				req: &StateGetReadProofRequest{
+					Keys: []string{"0x1111", "0x2222"},
+					Hash: hash,
+				},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "InvalidKeys Error",
+			fields: fields{nil, nil, mockCoreAPIErr},
+			args: args{
+				in0: nil,
+				req: &StateGetReadProofRequest{
+					Keys: []string{"jimbo", "test"},
+					Hash: hash,
+				},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &StateModule{
+				networkAPI: tt.fields.networkAPI,
+				storageAPI: tt.fields.storageAPI,
+				coreAPI:    tt.fields.coreAPI,
+			}
+			if err := sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("GetReadProof() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
