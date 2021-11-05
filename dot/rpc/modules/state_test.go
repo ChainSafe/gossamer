@@ -609,3 +609,98 @@ func TestStateModule_GetStorage(t *testing.T) {
 		})
 	}
 }
+
+func TestStateModule_GetStorageHash(t *testing.T) {
+	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+
+	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI.On("GetStorageByBlockHash", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return([]byte{21}, nil)
+	mockStorageAPI.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return([]byte{21}, nil)
+
+	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr.On("GetStorageByBlockHash", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, errors.New("GetStorageByBlockHash Error"))
+	mockStorageAPIErr.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, errors.New("GetStorage Error"))
+
+	var res StateStorageHashResponse
+	type fields struct {
+		networkAPI NetworkAPI
+		storageAPI StorageAPI
+		coreAPI    CoreAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *StateStorageHashRequest
+		res *StateStorageHashResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "bHash Not Nil OK",
+			fields: fields{nil, mockStorageAPI, nil},
+			args: args{
+				in0: nil,
+				req: &StateStorageHashRequest{
+					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Bhash: &hash,
+				},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "bHash Nil OK",
+			fields: fields{nil, mockStorageAPI, nil},
+			args: args{
+				in0: nil,
+				req: &StateStorageHashRequest{
+					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Bhash: nil,
+				},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "bHash Not Nil Err",
+			fields: fields{nil, mockStorageAPIErr, nil},
+			args: args{
+				in0: nil,
+				req: &StateStorageHashRequest{
+					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Bhash: &hash,
+				},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "bHash Nil Err",
+			fields: fields{nil, mockStorageAPIErr, nil},
+			args: args{
+				in0: nil,
+				req: &StateStorageHashRequest{
+					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Bhash: nil,
+				},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &StateModule{
+				networkAPI: tt.fields.networkAPI,
+				storageAPI: tt.fields.storageAPI,
+				coreAPI:    tt.fields.coreAPI,
+			}
+			if err := sm.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("GetStorageHash() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
