@@ -214,7 +214,6 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	if err != nil {
 		return err
 	}
-
 	var accountInfo ctypes.AccountInfo
 	err = ctypes.DecodeFromBytes(accountRaw, &accountInfo)
 	if err != nil {

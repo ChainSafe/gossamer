@@ -4,11 +4,17 @@
 package modules
 
 import (
+	"errors"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/stretchr/testify/mock"
+
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/stretchr/testify/require"
 )
 
@@ -166,87 +172,127 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 	}
 }
 
-//func TestSystemModule_AccountNextIndex(t *testing.T) {
-//	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
-//	v := make([]*transaction.ValidTransaction, 1)
-//	v[0] = &transaction.ValidTransaction{
-//		Extrinsic: types.NewExtrinsic(signedExt),
-//		Validity:  new(transaction.Validity),
-//	}
-//
-//	mockTxStateAPI := new(apimocks.TransactionStateAPI)
-//	mockTxStateAPI.On("Pending").Return(v, nil)
-//
-//	mockCoreAPI := new(apimocks.CoreAPI)
-//	mockCoreAPI.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"), nil)
-//
-//	mockStorageAPI := new(apimocks.StorageAPI)
-//	mockStorageAPI.On("GetStorage").Return([]byte{1}, nil)
-//
-//	var res U64Response
-//	type fields struct {
-//		networkAPI NetworkAPI
-//		systemAPI  SystemAPI
-//		coreAPI    CoreAPI
-//		storageAPI StorageAPI
-//		txStateAPI TransactionStateAPI
-//		blockAPI   BlockAPI
-//	}
-//	type args struct {
-//		r   *http.Request
-//		req *StringRequest
-//		res *U64Response
-//	}
-//	tests := []struct {
-//		name    string
-//		fields  fields
-//		args    args
-//		wantErr bool
-//	}{
-//		{
-//			name: "Nil Request",
-//			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
-//			args: args{
-//				r: nil,
-//				req: nil,
-//				res: &res,
-//			},
-//			wantErr: true,
-//		},
-//		{
-//			name: "Found",
-//			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
-//			args: args{
-//				r: nil,
-//				req: &StringRequest{String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
-//				res: &res,
-//			},
-//			wantErr: false,
-//		},
-//		{
-//			name: "Not found",
-//			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
-//			args: args{
-//				r: nil,
-//				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
-//				res: &res,
-//			},
-//			wantErr: false,
-//		},
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			sm := &SystemModule{
-//				networkAPI: tt.fields.networkAPI,
-//				systemAPI:  tt.fields.systemAPI,
-//				coreAPI:    tt.fields.coreAPI,
-//				storageAPI: tt.fields.storageAPI,
-//				txStateAPI: tt.fields.txStateAPI,
-//				blockAPI:   tt.fields.blockAPI,
-//			}
-//			if err := sm.AccountNextIndex(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-//				t.Errorf("AccountNextIndex() error = %v, wantErr %v", err, tt.wantErr)
-//			}
-//		})
-//	}
-//}
+func TestSystemModule_AccountNextIndex(t *testing.T) {
+	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
+	v := make([]*transaction.ValidTransaction, 1)
+	v[0] = &transaction.ValidTransaction{
+		Extrinsic: types.NewExtrinsic(signedExt),
+		Validity:  new(transaction.Validity),
+	}
+
+	mockTxStateAPI := new(apimocks.TransactionStateAPI)
+	mockTxStateAPI.On("Pending").Return(v, nil)
+
+	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(common.MustHexToBytes(testdata.TestData), nil)
+
+	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("getMetadata error"))
+
+	// Magic number mismatch
+	mockCoreAPIMagicNumMismatch := new(apimocks.CoreAPI)
+	mockCoreAPIMagicNumMismatch.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"), nil)
+
+	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(common.MustHexToBytes("0x03000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
+
+	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, errors.New("getStorage error"))
+
+	var res U64Response
+	type fields struct {
+		networkAPI NetworkAPI
+		systemAPI  SystemAPI
+		coreAPI    CoreAPI
+		storageAPI StorageAPI
+		txStateAPI TransactionStateAPI
+		blockAPI   BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *StringRequest
+		res *U64Response
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Nil Request",
+			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
+			args: args{
+				r: nil,
+				req: nil,
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Found",
+			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Not found",
+			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetMetadata Err",
+			fields: fields{nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Magic Number Mismatch",
+			fields: fields{nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "GetStorage Err",
+			fields: fields{nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil},
+			args: args{
+				r: nil,
+				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &SystemModule{
+				networkAPI: tt.fields.networkAPI,
+				systemAPI:  tt.fields.systemAPI,
+				coreAPI:    tt.fields.coreAPI,
+				storageAPI: tt.fields.storageAPI,
+				txStateAPI: tt.fields.txStateAPI,
+				blockAPI:   tt.fields.blockAPI,
+			}
+			if err := sm.AccountNextIndex(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("AccountNextIndex() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
