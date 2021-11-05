@@ -167,11 +167,11 @@ network participants use their private keys to sign messages in order to authori
 informing the Gossamer blockchain client capabilities, the Gossamer keystore is accessible by way of the `account`
 subcommand. The Gossamer keystore manages a number of key types, some of which are listed below:
 
-- `babe` - This key is used for signing messages related to the BABE block production algorithm.
-- `gran` - The GRANDPA key is used for participating in GRANDPA block finalisation.
-- `imon` - The name of this key is a reference to "ImOnline", which is an
+- `babe` - this key is used for signing messages related to the BABE block production algorithm
+- `gran` - the GRANDPA key is used for participating in GRANDPA block finalisation
+- `imon` - the name of this key is a reference to "ImOnline", which is an
   [online message](https://wiki.polkadot.network/docs/glossary#online-message) that Gossamer nodes use to report
-  liveliness.
+  liveliness
 
 ### Runtime
 
