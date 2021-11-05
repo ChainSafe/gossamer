@@ -5,15 +5,15 @@ package modules
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestChainModule_GetBlock(t *testing.T) {
@@ -31,7 +31,6 @@ func TestChainModule_GetBlock(t *testing.T) {
 	bodyBlock.Body = types.BytesArrayToExtrinsics([][]byte{{1}})
 	mockBlockAPIWithBody := new(apimocks.BlockAPI)
 	mockBlockAPIWithBody.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(&bodyBlock, nil)
-
 
 	chainModule := NewChainModule(mockBlockAPI)
 	res := ChainBlockResponse{}
@@ -55,7 +54,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 				chainModule.blockAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainHashRequest{},
 				res: &res,
 			},
@@ -67,7 +66,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 				mockBlockAPIGetHashErr,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainHashRequest{&mockedHash},
 				res: &res,
 			},
@@ -79,7 +78,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 				mockBlockAPIWithBody,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainHashRequest{&mockedHash},
 				res: &res,
 			},
@@ -132,7 +131,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainBlockNumberRequest{},
 				res: &res,
 			},
@@ -144,7 +143,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainBlockNumberRequest{"21"},
 				res: &res,
 			},
@@ -156,7 +155,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainBlockNumberRequest{float64(21)},
 				res: &res,
 			},
@@ -168,7 +167,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainBlockNumberRequest{uintptr(1)},
 				res: &res,
 			},
@@ -180,7 +179,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainBlockNumberRequest{i},
 				res: &res,
 			},
@@ -192,7 +191,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPIErr,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainBlockNumberRequest{"21"},
 				res: &res,
 			},
@@ -241,7 +240,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
@@ -253,7 +252,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 				mockBlockAPIErr,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
@@ -370,7 +369,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainHashRequest{&mockedHash},
 				res: &res,
 			},
@@ -382,7 +381,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 				mockBlockAPIErr,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &ChainHashRequest{&mockedHash},
 				res: &res,
 			},

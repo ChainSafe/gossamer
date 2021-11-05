@@ -17,18 +17,19 @@ package modules
 
 import (
 	"errors"
+	"net/http"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"testing"
 )
 
-func TestStateModule_GetPairs(t *testing.T) {
+func TestStateModuleGetPairs(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	m := make(map[string][]byte)
 	m["a"] = []byte{21, 22}
@@ -83,7 +84,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "GetStateRootFromBlock Error",
+			name:   "GetStateRootFromBlock Error",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				in0: nil,
@@ -96,7 +97,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Nil Prefix OK",
+			name:   "Nil Prefix OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -109,7 +110,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Nil Prefix Err",
+			name:   "Nil Prefix Err",
 			fields: fields{nil, mockStorageAPIEntriesErr, nil},
 			args: args{
 				in0: nil,
@@ -122,7 +123,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "OK Case",
+			name:   "OK Case",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -135,7 +136,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "GetKeysWithPrefix Error",
+			name:   "GetKeysWithPrefix Error",
 			fields: fields{nil, mockStorageAPIGetKeysErr, nil},
 			args: args{
 				in0: nil,
@@ -148,7 +149,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "GetStorage Error",
+			name:   "GetStorage Error",
 			fields: fields{nil, mockStorageAPIGetStorageErr, nil},
 			args: args{
 				in0: nil,
@@ -161,7 +162,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "GetKeysWithPrefix Empty",
+			name:   "GetKeysWithPrefix Empty",
 			fields: fields{nil, mockStorageAPIGetKeysEmpty, nil},
 			args: args{
 				in0: nil,
@@ -188,7 +189,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetKeysPaged(t *testing.T) {
+func TestStateModuleGetKeysPaged(t *testing.T) {
 	mockStorageAPI := new(apimocks.StorageAPI)
 	mockStorageAPI.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return([][]byte{{1}, {2}}, nil)
 
@@ -216,7 +217,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK",
+			name:   "OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -231,7 +232,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "ResCount break",
+			name:   "ResCount break",
 			fields: fields{nil, mockStorageAPI2, nil},
 			args: args{
 				in0: nil,
@@ -246,7 +247,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "GetKeysWithPrefix Error",
+			name:   "GetKeysWithPrefix Error",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				in0: nil,
@@ -261,7 +262,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Request Prefix Error",
+			name:   "Request Prefix Error",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -300,7 +301,7 @@ func TestCall(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestStateModule_GetMetadata(t *testing.T) {
+func TestStateModuleGetMetadata(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
 	mockCoreAPI := new(apimocks.CoreAPI)
@@ -328,7 +329,7 @@ func TestStateModule_GetMetadata(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK Case",
+			name:   "OK Case",
 			fields: fields{nil, nil, mockCoreAPI},
 			args: args{
 				in0: nil,
@@ -338,7 +339,7 @@ func TestStateModule_GetMetadata(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "GetMetadata Error",
+			name:   "GetMetadata Error",
 			fields: fields{nil, nil, mockStateModule.coreAPI},
 			args: args{
 				in0: nil,
@@ -362,7 +363,7 @@ func TestStateModule_GetMetadata(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetReadProof(t *testing.T) {
+func TestStateModuleGetReadProof(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
 	mockCoreAPI := new(apimocks.CoreAPI)
@@ -389,7 +390,7 @@ func TestStateModule_GetReadProof(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK Case",
+			name:   "OK Case",
 			fields: fields{nil, nil, mockCoreAPI},
 			args: args{
 				in0: nil,
@@ -402,7 +403,7 @@ func TestStateModule_GetReadProof(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "GetReadProofAt Error",
+			name:   "GetReadProofAt Error",
 			fields: fields{nil, nil, mockCoreAPIErr},
 			args: args{
 				in0: nil,
@@ -415,7 +416,7 @@ func TestStateModule_GetReadProof(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "InvalidKeys Error",
+			name:   "InvalidKeys Error",
 			fields: fields{nil, nil, mockCoreAPIErr},
 			args: args{
 				in0: nil,
@@ -442,7 +443,7 @@ func TestStateModule_GetReadProof(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetRuntimeVersion(t *testing.T) {
+func TestStateModuleGetRuntimeVersion(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	testAPIItem := runtime.APIItem{
 		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
@@ -482,7 +483,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK Case",
+			name:   "OK Case",
 			fields: fields{nil, nil, mockCoreAPI},
 			args: args{
 				in0: nil,
@@ -492,7 +493,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "GetRuntimeVersion Error",
+			name:   "GetRuntimeVersion Error",
 			fields: fields{nil, nil, mockCoreAPIErr},
 			args: args{
 				in0: nil,
@@ -516,7 +517,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetStorage(t *testing.T) {
+func TestStateModuleGetStorage(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
 	mockStorageAPI := new(apimocks.StorageAPI)
@@ -545,7 +546,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "bHash Not Nil OK",
+			name:   "bHash Not Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -558,7 +559,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "bHash Nil OK",
+			name:   "bHash Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -571,7 +572,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "bHash Not Nil Err",
+			name:   "bHash Not Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				in0: nil,
@@ -584,7 +585,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "bHash Nil Err",
+			name:   "bHash Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				in0: nil,
@@ -611,7 +612,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetStorageHash(t *testing.T) {
+func TestStateModuleGetStorageHash(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
 	mockStorageAPI := new(apimocks.StorageAPI)
@@ -640,7 +641,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "bHash Not Nil OK",
+			name:   "bHash Not Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -653,7 +654,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "bHash Nil OK",
+			name:   "bHash Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -666,7 +667,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "bHash Not Nil Err",
+			name:   "bHash Not Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				in0: nil,
@@ -679,7 +680,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "bHash Nil Err",
+			name:   "bHash Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				in0: nil,
@@ -706,7 +707,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetStorageSize(t *testing.T) {
+func TestStateModuleGetStorageSize(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
 	mockStorageAPI := new(apimocks.StorageAPI)
@@ -735,7 +736,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "bHash Not Nil OK",
+			name:   "bHash Not Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -748,7 +749,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "bHash Nil OK",
+			name:   "bHash Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				in0: nil,
@@ -761,7 +762,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "bHash Not Nil Err",
+			name:   "bHash Not Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				in0: nil,
@@ -774,7 +775,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "bHash Nil Err",
+			name:   "bHash Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				in0: nil,
@@ -801,12 +802,11 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 	}
 }
 
-func TestStateModule_QueryStorage(t *testing.T) {
+func TestStateModuleQueryStorage(t *testing.T) {
 	qkvc1 := core.QueryKeyValueChanges{}
 	qkvc1["p1"] = "jimmy"
 	qkvc2 := core.QueryKeyValueChanges{}
 	qkvc2["p2"] = "jimbo"
-
 
 	hash1 := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	hash2 := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
@@ -839,7 +839,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK Case",
+			name:   "OK Case",
 			fields: fields{nil, nil, mockCoreAPI},
 			args: args{
 				in0: nil,
@@ -853,7 +853,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "QueryStorage Error",
+			name:   "QueryStorage Error",
 			fields: fields{nil, nil, mockCoreAPIErr},
 			args: args{
 				in0: nil,
@@ -867,7 +867,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Empty Start Block Error",
+			name:   "Empty Start Block Error",
 			fields: fields{nil, nil, mockCoreAPI},
 			args: args{
 				in0: nil,

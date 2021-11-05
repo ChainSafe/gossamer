@@ -2,11 +2,11 @@ package modules
 
 import (
 	"errors"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestOffchainModule_LocalStorageGet(t *testing.T) {
@@ -106,9 +106,8 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 
 func TestOffchainModule_LocalStorageSet(t *testing.T) {
 	mockRuntimeStorageAPI := new(apimocks.RuntimeStorageAPI)
-	mockRuntimeStorageAPI.On("SetLocal", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return( nil)
-	mockRuntimeStorageAPI.On("SetPersistent", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return( errors.New("SetPersistent error"))
-
+	mockRuntimeStorageAPI.On("SetLocal", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil)
+	mockRuntimeStorageAPI.On("SetPersistent", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(errors.New("SetPersistent error"))
 
 	var res StringResponse
 	type fields struct {

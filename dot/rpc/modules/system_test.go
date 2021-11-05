@@ -5,17 +5,16 @@ package modules
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/mock"
-
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -116,40 +115,40 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Full",
+			name:   "Full",
 			fields: fields{mockNetworkAPI1, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "LightClient",
+			name:   "LightClient",
 			fields: fields{mockNetworkAPI2, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "Authority",
+			name:   "Authority",
 			fields: fields{mockNetworkAPI3, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "UnknownRole",
+			name:   "UnknownRole",
 			fields: fields{mockNetworkAPI4, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
@@ -221,60 +220,60 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Nil Request",
+			name:   "Nil Request",
 			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: nil,
 				res: &res,
 			},
 			wantErr: true,
 		},
 		{
-			name: "Found",
+			name:   "Found",
 			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "Not found",
+			name:   "Not found",
 			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "GetMetadata Err",
+			name:   "GetMetadata Err",
 			fields: fields{nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 				res: &res,
 			},
 			wantErr: true,
 		},
 		{
-			name: "Magic Number Mismatch",
+			name:   "Magic Number Mismatch",
 			fields: fields{nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 				res: &res,
 			},
 			wantErr: true,
 		},
 		{
-			name: "GetStorage Err",
+			name:   "GetStorage Err",
 			fields: fields{nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 				res: &res,
 			},
@@ -333,20 +332,20 @@ func TestSystemModule_SyncState(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK",
+			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "Err",
+			name:   "Err",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
@@ -407,20 +406,20 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK",
+			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "Empty multiaddress list",
+			name:   "Empty multiaddress list",
 			fields: fields{mockNetworkAPIEmpty, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
@@ -481,20 +480,20 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK",
+			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "Empty peerId",
+			name:   "Empty peerId",
 			fields: fields{mockNetworkAPIEmpty, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
@@ -546,30 +545,30 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK",
+			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{"jimbo"},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "AddReservedPeer Error",
+			name:   "AddReservedPeer Error",
 			fields: fields{mockNetworkAPIErr, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{"jimbo"},
 				res: &res,
 			},
 			wantErr: true,
 		},
 		{
-			name: "Empty StringRequest Error",
+			name:   "Empty StringRequest Error",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{""},
 				res: &res,
 			},
@@ -621,30 +620,30 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK",
+			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{"jimbo"},
 				res: &res,
 			},
 			wantErr: false,
 		},
 		{
-			name: "AddReservedPeer Error",
+			name:   "AddReservedPeer Error",
 			fields: fields{mockNetworkAPIErr, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{"jimbo"},
 				res: &res,
 			},
 			wantErr: true,
 		},
 		{
-			name: "Empty StringRequest Error",
+			name:   "Empty StringRequest Error",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &StringRequest{""},
 				res: &res,
 			},

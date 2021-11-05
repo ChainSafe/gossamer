@@ -2,17 +2,17 @@ package modules
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPaymentModule_QueryInfo(t *testing.T) {
@@ -27,7 +27,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	blockAPIMock := new(apimocks.BlockAPI)
 	blockAPIMock2 := new(apimocks.BlockAPI)
 	blockErrorAPIMock1 := new(apimocks.BlockAPI)
-	blockErrorAPIMock2:= new(apimocks.BlockAPI)
+	blockErrorAPIMock2 := new(apimocks.BlockAPI)
 
 	blockAPIMock.On("BestBlockHash").Return(common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a"), nil)
 	blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
@@ -73,7 +73,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			args: args{
 				in0: nil,
 				req: &PaymentQueryInfoRequest{
-					Ext: "0x0000",
+					Ext:  "0x0000",
 					Hash: &mockedHash,
 				},
 				res: &res,
@@ -88,7 +88,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			args: args{
 				in0: nil,
 				req: &PaymentQueryInfoRequest{
-					Ext: "0x0000",
+					Ext:  "0x0000",
 					Hash: &mockedHash,
 				},
 				res: &res,
@@ -103,7 +103,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			args: args{
 				in0: nil,
 				req: &PaymentQueryInfoRequest{
-					Ext: "0x0",
+					Ext:  "0x0",
 					Hash: nil,
 				},
 				res: &res,
@@ -118,7 +118,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			args: args{
 				in0: nil,
 				req: &PaymentQueryInfoRequest{
-					Ext: "0x0000",
+					Ext:  "0x0000",
 					Hash: nil,
 				},
 				res: &res,
@@ -133,7 +133,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			args: args{
 				in0: nil,
 				req: &PaymentQueryInfoRequest{
-					Ext: "0x0000",
+					Ext:  "0x0000",
 					Hash: &mockedHash,
 				},
 				res: &res,
@@ -148,7 +148,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			args: args{
 				in0: nil,
 				req: &PaymentQueryInfoRequest{
-					Ext: "0x0000",
+					Ext:  "0x0000",
 					Hash: &mockedHash,
 				},
 				res: &res,

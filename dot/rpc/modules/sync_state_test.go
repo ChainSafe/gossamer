@@ -2,12 +2,12 @@ package modules
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestSyncStateModule_GenSyncSpec(t *testing.T) {
@@ -104,7 +104,7 @@ func TestNewStateSync(t *testing.T) {
 		{
 			name: "OK Case",
 			args: args{
-				gData: g.GenesisData(),
+				gData:      g.GenesisData(),
 				storageAPI: mockStorageAPI,
 			},
 			wantErr: false,
@@ -112,7 +112,7 @@ func TestNewStateSync(t *testing.T) {
 		{
 			name: "Err Case",
 			args: args{
-				gData: g.GenesisData(),
+				gData:      g.GenesisData(),
 				storageAPI: mockStorageAPIErr,
 			},
 			wantErr: true,
@@ -152,7 +152,7 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "GenSyncSpec False",
+			name:   "GenSyncSpec False",
 			fields: fields{g},
 			args: args{
 				raw: false,
@@ -160,7 +160,7 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "GenSyncSpec True",
+			name:   "GenSyncSpec True",
 			fields: fields{g},
 			args: args{
 				raw: true,

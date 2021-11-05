@@ -5,6 +5,9 @@ package modules
 
 import (
 	"errors"
+	"net/http"
+	"testing"
+
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -12,8 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/stretchr/testify/mock"
-	"net/http"
-	"testing"
 )
 
 func TestGrandpaModule_ProveFinality(t *testing.T) {
@@ -65,8 +66,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				r: nil,
 				req: &ProveFinalityRequest{
 					blockHashStart: mockedHash,
-					blockHashEnd:  mockedHash,
-					authorityID: uint64(21),
+					blockHashEnd:   mockedHash,
+					authorityID:    uint64(21),
 				},
 				res: &res,
 			},
@@ -82,8 +83,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				r: nil,
 				req: &ProveFinalityRequest{
 					blockHashStart: mockedHash,
-					blockHashEnd:  mockedHash,
-					authorityID: uint64(21),
+					blockHashEnd:   mockedHash,
+					authorityID:    uint64(21),
 				},
 				res: &res,
 			},
@@ -99,8 +100,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				r: nil,
 				req: &ProveFinalityRequest{
 					blockHashStart: mockedHash,
-					blockHashEnd:  mockedHash,
-					authorityID: uint64(21),
+					blockHashEnd:   mockedHash,
+					authorityID:    uint64(21),
 				},
 				res: &res,
 			},
@@ -116,8 +117,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				r: nil,
 				req: &ProveFinalityRequest{
 					blockHashStart: mockedHash,
-					blockHashEnd:  mockedHash,
-					authorityID: uint64(21),
+					blockHashEnd:   mockedHash,
+					authorityID:    uint64(21),
 				},
 				res: &res,
 			},
@@ -187,7 +188,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 				mockBlockFinalityAPI,
 			},
 			args: args{
-				r: nil,
+				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
