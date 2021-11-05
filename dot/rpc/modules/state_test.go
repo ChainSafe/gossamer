@@ -18,8 +18,10 @@ package modules
 import (
 	"errors"
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
 )
@@ -281,6 +283,78 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 			}
 			if err := sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetKeysPaged() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// Implement Tests once function is implemented
+func TestCall(t *testing.T) {
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockStorageAPI := new(apimocks.StorageAPI)
+	sm := NewStateModule(mockNetworkAPI, mockStorageAPI, nil)
+
+	err := sm.Call(nil, nil, nil)
+	require.NoError(t, err)
+}
+
+func TestStateModule_GetMetadata(t *testing.T) {
+	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+
+	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(common.MustHexToBytes(testdata.TestData), nil)
+
+	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("GetMetadata Error"))
+
+	mockStateModule := NewStateModule(nil, nil, mockCoreAPIErr)
+	var res StateMetadataResponse
+	type fields struct {
+		networkAPI NetworkAPI
+		storageAPI StorageAPI
+		coreAPI    CoreAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *StateRuntimeMetadataQuery
+		res *StateMetadataResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK Case",
+			fields: fields{nil, nil, mockCoreAPI},
+			args: args{
+				in0: nil,
+				req: &StateRuntimeMetadataQuery{Bhash: &hash},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetMetadata Error",
+			fields: fields{nil, nil, mockStateModule.coreAPI},
+			args: args{
+				in0: nil,
+				req: &StateRuntimeMetadataQuery{Bhash: &hash},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &StateModule{
+				networkAPI: tt.fields.networkAPI,
+				storageAPI: tt.fields.storageAPI,
+				coreAPI:    tt.fields.coreAPI,
+			}
+			if err := sm.GetMetadata(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("GetMetadata() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
