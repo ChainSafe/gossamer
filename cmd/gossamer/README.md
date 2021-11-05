@@ -15,37 +15,37 @@ of the Gossamer CLI capabilities, follow [the installation instructions](../../R
 
 ### Default Command
 
-This the default Gossamer execution method, which invokes the `gossamerAction` function defined in
+This is the default Gossamer execution method, which invokes the `gossamerAction` function defined in
 [`main.go`](main.go) - it will launch a Gossamer blockchain client. The details of how Gossamer orchestrates a
 blockchain client are [described below in the Client Components section](#client-components).
 
-- `basepath` - the path to the directory where Gossamer will store its data
-- `chain` - specifies the [chain configuration](../../chain) that the
+- `--basepath` - the path to the directory where Gossamer will store its data
+- `--chain` - specifies the [chain configuration](../../chain) that the
   [Gossamer host node](https://chainsafe.github.io/gossamer/getting-started/overview/host-architecture/) should load
-- `key` - specifies a test keyring account to use (e.g. `--key=alice`)
-- `log` - supports levels `crit` (silent), `error`, `warn`, `info`, `debug`, and `trce` (detailed), default is `info`
-- `name` - node name, as it will appear in, e.g., [telemetry](https://telemetry.polkadot.io/)
+- `--key` - specifies a test keyring account to use (e.g. `--key=alice`)
+- `--log` - supports levels `crit` (silent), `error`, `warn`, `info`, `debug`, and `trce` (detailed), default is `info`
+- `--name` - node name, as it will appear in, e.g., [telemetry](https://telemetry.polkadot.io/)
 
 ### Init Subcommand
 
 This subcommand accepts a genesis configuration file and uses it to initialise the Gossamer node and its state. The
 `init` subcommand invokes the `initAction` function defined in [`main.go`](main.go).
 
-- `genesis` - path to the "compiled" genesis configuration file that should be used to initialise the Gossamer node and
-  its state
+- `--genesis` - path to the "compiled" genesis configuration file that should be used to initialise the Gossamer node
+  and its state
 
 ### Account Subcommand
 
 The `account` subcommand provides the user with capabilities related to generating and using `ed25519`, `secp256k1`, and
 `sr25519` [account keys](https://wiki.polkadot.network/docs/learn-keys), and managing the keys present in the
-[Gossamer keystore](#keystore). The `actionAction` function is defined in [account.go](account.go); it is an interface
+[Gossamer keystore](#keystore). The `accountAction` function is defined in [account.go](account.go); it is an interface
 to the capabilities defined in the [`lib/crypto`](../../lib/crypto) and [`lib/keystore`](../../lib/keystore) packages.
 This subcommand provides capabilities that are similar to
 [Parity's Subkey utility](https://docs.substrate.io/v3/tools/subkey).
 
-- `generate` - creates a new key pair; specify `--ed25519`, `--secp256k1`, or `--sr25519` (default)
-- `list` - lists the keys in the Gossamer keystore
-- `password` - allows the user to provide a password to either encrypt a generated key or unlock the Gossamer keystore
+- `--generate` - creates a new key pair; specify `--ed25519`, `--secp256k1`, or `--sr25519` (default)
+- `--list` - lists the keys in the Gossamer keystore
+- `--password` - allows the user to provide a password to either encrypt a generated key or unlock the Gossamer keystore
 
 ### Import Runtime Subcommand
 
@@ -62,8 +62,9 @@ Gossamer node can consume. If the `--genesis` parameter is not provided, the gen
 represent the Gossamer default configuration. The `build-spec` subcommand invokes the `buildSpecAction` function defined
 in [`main.go`](main.go).
 
-- `genesis` - path to the human-readable configuration file that should be compiled into a format that Gossamer can
+- `--genesis` - path to the human-readable configuration file that should be compiled into a format that Gossamer can
   consume
+- `--raw` - when this flag is present, the output will be a raw genesis spec described as a JSON document
 
 ### Import State Subcommand
 
@@ -72,19 +73,21 @@ of a JSON file. The input for this subcommand can be retrieved from
 [the `state_getPairs` RPC endpoint](https://github.com/w3f/PSPs/blob/master/PSPs/drafts/psp-6.md#1114-state_getpairs).
 The `importStateAction` function is defined in [`main.go`](main.go).
 
-- `first-slot` - the first [BABE](https://wiki.polkadot.network/docs/learn-consensus#block-production-babe) slot, which
-  can be found by checking the [digest](https://docs.substrate.io/v3/getting-started/glossary/#digest) for a chain's
-  first block _after_ its [genesis block](https://wiki.polkadot.network/docs/glossary#genesis)
-- `header` - path to a JSON file that describes the block header corresponding to the given state
-- `state` - path to a JSON file that contains the key-value pairs with which to seed Gossamer storage
+- `--first-slot` - the first [BABE](https://wiki.polkadot.network/docs/learn-consensus#block-production-babe) slot,
+  which can be found by checking the
+  [BABE pre-runtime digest](https://crates.parity.io/sp_runtime/enum.DigestItem.html#variant.PreRuntime) for a chain's
+  first block _after_ its [genesis block](https://wiki.polkadot.network/docs/glossary#genesis) (e.g.
+  [Polkadot on Polkascan](https://polkascan.io/polkadot/log/1-0))
+- `--header` - path to a JSON file that describes the block header corresponding to the given state
+- `--state` - path to a JSON file that contains the key-value pairs with which to seed Gossamer storage
 
 ### Export Subcommand
 
 The `export` subcommand transforms a genesis configuration and Gossamer state into a TOML configuration file. This
 subcommand invokes the `exportAction` function defined in [`export.go`](export.go).
 
-- `config` - path to a TOML configuration file (e.g. those defined in [the `chain` directory](../../chain))
-- `basepath` - path to the Gossamer data directory that defines the state to export
+- `--config` - path to a TOML configuration file (e.g. those defined in [the `chain` directory](../../chain))
+- `--basepath` - path to the Gossamer data directory that defines the state to export
 
 ## Client Components
 
@@ -185,6 +188,7 @@ defined in [lib/runtime/wasmer/exports.go](../../lib/runtime/wasmer/exports.go).
 Gossamer publishes telemetry data and also includes an embedded Prometheus server that reports metrics. The metrics
 capabilities are defined in the [dot/metrics](../../dot/metrics) package and build on
 [the metrics library that is included with Go Ethereum](https://github.com/ethereum/go-ethereum/blob/master/metrics/README.md).
-The Gossamer telemetry server publishes telemetry data that is compatible with
+The default port for Prometheus metrics is 9090, and Gossamer allows the user to configure this parameter with the
+`--metrics-port` command-line parameter. The Gossamer telemetry server publishes telemetry data that is compatible with
 [Polkadot Telemetry](https://github.com/paritytech/substrate-telemetry) and
 [its helpful UI](https://telemetry.polkadot.io/).
