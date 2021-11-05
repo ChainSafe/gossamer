@@ -12,25 +12,21 @@ func Test_PR_Checks(t *testing.T) {
 		body  string
 		valid bool
 	}{
-		{
-			title: "",
-			body:  "",
-			valid: false,
+		"all empty": {
+			err: errors.New(`title pattern is not valid: for regular expression ^[A-Za-z-_]+\([-_/A-Za-z ]+\):.+[A-Za-z]+.+$: ''`),
 		},
-		{
-			title: "abc(abc): abc",
-			body:  "",
-			valid: false,
+		"invalid title": {
+			title: "category: something",
+			err:   errors.New(`title pattern is not valid: for regular expression ^[A-Za-z-_]+\([-_/A-Za-z ]+\):.+[A-Za-z]+.+$: 'category: something'`),
 		},
-		{
-			title: `feat(dot/rpc): implement chain_subscribeAllHeads RPC`,
-			body:  `## Changes\n\n<!--\nPlease provide a brief but specific list of changes made, describe the changes\nin functionality rather than the changes in code.\n-->\n\n- changes for demo :123\n\n## Tests\n\n<!--\nDetails on how to run tests relevant to the changes within this pull request.\n-->\n\n- tests for demo:123{}\n\n## Issues\n\n<!--\nPlease link any issues that this pull request is related to and use the GitHub\nsupported format for automatically closing issues (ie, closes #123, fixes #123)\n-->\n\n- issues for demo:43434\n\n## Primary Reviewer\n\n<!--\nPlease indicate one of the code owners that are required to review prior to merging changes (e.g. @noot)\n-->\n\n- @noot for demo:12`,
-			valid: true,
+		"empty body only": {
+			title: "category(subcategory): something",
+			err:   errors.New("body section not found: \"## Changes\\n\" in body: "),
 		},
-		{
-			title: "abc(): abc",
-			body:  "",
-			valid: false,
+		"invalid body": {
+			title: "category(subcategory): something",
+			body:  "##Change\n## Tests ## Issues ## Primary Reviewer",
+			err:   errors.New("body section not found: \"## Changes\\n\" in body: ##Change\\n## Tests ## Issues ## Primary Reviewer"),
 		},
 		{
 			title: "(abc): abc",
