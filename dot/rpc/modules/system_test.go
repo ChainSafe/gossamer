@@ -300,7 +300,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 
 func TestSystemModule_SyncState(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-
 	mockBlockAPI := new(apimocks.BlockAPI)
 	mockBlockAPI.On("BestBlockHash").Return(hash)
 	mockBlockAPI.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(types.NewEmptyHeader(), nil)
