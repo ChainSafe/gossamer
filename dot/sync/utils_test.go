@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_detectOutlier(t *testing.T) {
+func TestRemoveOutlier(t *testing.T) {
 	count := int64(0)
 	arr := []interface{}{*big.NewInt(1), *big.NewInt(20), *big.NewInt(40), *big.NewInt(60), *big.NewInt(80), *big.NewInt(100), *big.NewInt(1000)}
 
