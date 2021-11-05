@@ -183,3 +183,105 @@ func TestStateModule_GetPairs(t *testing.T) {
 		})
 	}
 }
+
+func TestStateModule_GetKeysPaged(t *testing.T) {
+	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return([][]byte{{1}, {2}}, nil)
+
+	mockStorageAPI2 := new(apimocks.StorageAPI)
+	mockStorageAPI2.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return([][]byte{{1, 1, 1}, {1, 1, 1}}, nil)
+
+	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, errors.New("GetKeysWithPrefix Err"))
+
+	var res StateStorageKeysResponse
+	type fields struct {
+		networkAPI NetworkAPI
+		storageAPI StorageAPI
+		coreAPI    CoreAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *StateStorageKeyRequest
+		res *StateStorageKeysResponse
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OK",
+			fields: fields{nil, mockStorageAPI, nil},
+			args: args{
+				in0: nil,
+				req: &StateStorageKeyRequest{
+					Prefix:   "",
+					Qty:      0,
+					AfterKey: "0x01",
+					Block:    nil,
+				},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "ResCount break",
+			fields: fields{nil, mockStorageAPI2, nil},
+			args: args{
+				in0: nil,
+				req: &StateStorageKeyRequest{
+					Prefix:   "",
+					Qty:      1,
+					AfterKey: "0x01",
+					Block:    nil,
+				},
+				res: &res,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetKeysWithPrefix Error",
+			fields: fields{nil, mockStorageAPIErr, nil},
+			args: args{
+				in0: nil,
+				req: &StateStorageKeyRequest{
+					Prefix:   "",
+					Qty:      0,
+					AfterKey: "0x01",
+					Block:    nil,
+				},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Request Prefix Error",
+			fields: fields{nil, mockStorageAPI, nil},
+			args: args{
+				in0: nil,
+				req: &StateStorageKeyRequest{
+					Prefix:   "a",
+					Qty:      0,
+					AfterKey: "0x01",
+					Block:    nil,
+				},
+				res: &res,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &StateModule{
+				networkAPI: tt.fields.networkAPI,
+				storageAPI: tt.fields.storageAPI,
+				coreAPI:    tt.fields.coreAPI,
+			}
+			if err := sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("GetKeysPaged() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

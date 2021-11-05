@@ -226,6 +226,9 @@ func (sm *StateModule) GetKeysPaged(_ *http.Request, req *StateStorageKeyRequest
 		return err
 	}
 	keys, err := sm.storageAPI.GetKeysWithPrefix(req.Block, hPrefix)
+	if err != nil {
+		return err
+	}
 	resCount := uint32(0)
 	for _, k := range keys {
 		fKey := fmt.Sprintf("0x%x", k)
@@ -233,6 +236,7 @@ func (sm *StateModule) GetKeysPaged(_ *http.Request, req *StateStorageKeyRequest
 			// sm.storageAPI.Keys sorts keys in lexicographical order, so we know that keys where strings.Compare = 1
 			//  are after the requested after key.
 			if resCount >= req.Qty {
+				fmt.Print("here")
 				break
 			}
 			*res = append(*res, fKey)
