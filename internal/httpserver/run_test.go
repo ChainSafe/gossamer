@@ -52,7 +52,7 @@ func Test_Server_Run_failure(t *testing.T) {
 
 	server := &Server{
 		name:       "test",
-		address:    "127.0.0.1:X",
+		address:    "127.0.0.1:-1",
 		addressSet: make(chan struct{}),
 		logger:     logger,
 	}
@@ -66,6 +66,6 @@ func Test_Server_Run_failure(t *testing.T) {
 	case <-ready:
 		t.Fatal("server should not be ready")
 	case err := <-done:
-		assert.EqualError(t, err, "listen tcp: address tcp/X: unknown port")
+		assert.EqualError(t, err, "listen tcp: address -1: invalid port")
 	}
 }
