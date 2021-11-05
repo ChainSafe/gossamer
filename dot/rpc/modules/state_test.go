@@ -894,3 +894,33 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		})
 	}
 }
+
+func TestStateModule_SubscribeFunctions(t *testing.T) {
+	//hash1 := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+	//hash2 := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
+	//testAPIItem := runtime.APIItem{
+	//	Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+	//	Ver:  99,
+	//}
+	//version := runtime.NewVersionData(
+	//	[]byte("polkadot"),
+	//	[]byte("parity-polkadot"),
+	//	0,
+	//	25,
+	//	0,
+	//	[]runtime.APIItem{testAPIItem},
+	//	5,
+	//)
+
+	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("GetRuntimeVersion Error"))
+
+	mockStateModule := NewStateModule(nil, nil, mockCoreAPI)
+
+	// Uncomment after I get feedback
+	//err := mockStateModule.SubscribeRuntimeVersion(nil, nil, &StateRuntimeVersionResponse{})
+	//require.Error(t, err)
+
+	err := mockStateModule.SubscribeStorage(nil, nil, nil)
+	require.NoError(t, err)
+}
