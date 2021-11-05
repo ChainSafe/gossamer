@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/mock"
 
 	"net/http"
@@ -365,6 +366,80 @@ func TestSystemModule_SyncState(t *testing.T) {
 			}
 			if err := sm.SyncState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("SyncState() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSystemModule_LocalListenAddresses(t *testing.T) {
+	mockNetworkAPIEmpty := new(apimocks.NetworkAPI)
+	mockNetworkAPIEmpty.On("NetworkState").Return(common.NetworkState{})
+
+	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80")
+	require.NoError(t, err)
+	multiAddy := make([]multiaddr.Multiaddr, 1)
+	multiAddy[0] = addr
+	ns := common.NetworkState{
+		PeerID:     "jimbo",
+		Multiaddrs: multiAddy,
+	}
+
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockNetworkAPI.On("NetworkState").Return(ns, nil)
+
+	var res []string
+	type fields struct {
+		networkAPI NetworkAPI
+		systemAPI  SystemAPI
+		coreAPI    CoreAPI
+		storageAPI StorageAPI
+		txStateAPI TransactionStateAPI
+		blockAPI   BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *EmptyRequest
+		res *[]string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Empty multiaddress list",
+			fields: fields{mockNetworkAPIEmpty, nil, nil, nil, nil, nil},
+			args: args{
+				r: nil,
+				req: &EmptyRequest{},
+				res: &res,
+			},
+			wantErr: true,
+		},
+		{
+			name: "OK",
+			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			args: args{
+				r: nil,
+				req: &EmptyRequest{},
+				res: &res,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &SystemModule{
+				networkAPI: tt.fields.networkAPI,
+				systemAPI:  tt.fields.systemAPI,
+				coreAPI:    tt.fields.coreAPI,
+				storageAPI: tt.fields.storageAPI,
+				txStateAPI: tt.fields.txStateAPI,
+				blockAPI:   tt.fields.blockAPI,
+			}
+			if err := sm.LocalListenAddresses(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("LocalListenAddresses() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
