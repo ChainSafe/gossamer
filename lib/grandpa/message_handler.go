@@ -283,8 +283,9 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	// verify pre-vote justification, returning the pre-voted block if there is one
 	votes := make(map[common.Hash]uint64)
 
-	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, prevote) //nolint
+	for i := range msg.PreVoteJustification {
+		just := &msg.PreVoteJustification[i]
+		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
 		if err != nil {
 			continue
 		}
@@ -310,8 +311,9 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
 	// verify pre-commit justification
 	count := 0
-	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, precommit) //nolint
+	for i := range msg.PreCommitJustification {
+		just := &msg.PreCommitJustification[i]
+		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
 			continue
 		}
