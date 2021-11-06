@@ -219,7 +219,7 @@ func broadcastVotes(from <-chan GrandpaMessage, to []chan *networkVoteMessage, d
 	}
 }
 
-func cleanup(gs *Service, in chan *networkVoteMessage, out chan GrandpaMessage, done *bool) { //nolint
+func cleanup(gs *Service, in chan *networkVoteMessage, done *bool) {
 	*done = true
 	close(in)
 	gs.cancel()
@@ -239,7 +239,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, out, &done)
+		defer cleanup(gs, in, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -318,7 +318,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, out, &done)
+		defer cleanup(gs, in, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -413,7 +413,7 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, out, &done)
+		defer cleanup(gs, in, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -510,7 +510,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, out, &done)
+		defer cleanup(gs, in, &done)
 
 		gss[i] = gs
 		ins[i] = in
