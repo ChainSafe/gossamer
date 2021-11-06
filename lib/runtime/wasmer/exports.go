@@ -183,7 +183,7 @@ func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQuery
 		return nil, err
 	}
 
-	resBytes, err := in.exec(runtime.TransactionPaymentApiQueryInfo, append(ext, encLen...))
+	resBytes, err := in.exec(runtime.TransactionPaymentAPIQueryInfo, append(ext, encLen...))
 	if err != nil {
 		return nil, err
 	}
