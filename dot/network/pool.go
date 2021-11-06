@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: Apache-2.0
+
 package network
 
 // sizedBufferPool is a pool of buffers used for reading from streams

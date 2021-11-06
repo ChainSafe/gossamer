@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: Apache-2.0
+
 package runtime
 
 // Int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
