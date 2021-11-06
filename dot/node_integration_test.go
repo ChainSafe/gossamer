@@ -42,7 +42,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInitNode(t *testing.T) {
+func TestInitNode_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
@@ -73,7 +73,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 }
 
 // TestNodeInitialized
-func TestNodeInitialized(t *testing.T) {
+func TestNodeInitialized_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
@@ -95,7 +95,7 @@ func TestNodeInitialized(t *testing.T) {
 }
 
 // TestNewNode
-func TestNewNode(t *testing.T) {
+func TestNewNode_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 

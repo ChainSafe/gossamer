@@ -93,7 +93,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 	require.Equal(t, expected, header)
 }
 
-func TestImportState(t *testing.T) {
+func TestImportState_Integration(t *testing.T) {
 	basepath, err := ioutil.TempDir("", "gossamer-test-*")
 	require.NoError(t, err)
 
