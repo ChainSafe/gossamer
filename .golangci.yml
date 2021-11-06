@@ -87,6 +87,7 @@ linters:
     - megacheck
     - megacheck
     - misspell
+    - nolintlint
     - revive
     - staticcheck
     - unconvert
@@ -172,6 +173,10 @@ issues:
     - linters:
         - gocyclo
       text: "cyclomatic complexity 42 of func " # codec/decode.go: (*Decoder).DecodeTuple
+
+    - linters:
+        - nolintlint
+      source: "^//nolint:revive"
 
     # Exclude lll issues for long lines with go:generate
     - linters:
