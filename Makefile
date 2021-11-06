@@ -99,9 +99,9 @@ start:
 	./bin/gossamer --key alice
 
 $(ADDLICENSE):
-	go get -u github.com/google/addlicense
+	go install github.com/google/addlicense@v1.0.0
 
-## license: Adds license header to missing files, go gets addLicense if missing. Runs `addlicense -c gossamer -f ./copyright.txt -y 2019 .` on project files.
+## license: Adds license header to missing files, go install addlicense if it's missing.
 .PHONY: license
 license: $(ADDLICENSE)
 	@echo "  >  \033[32mAdding license headers...\033[0m "
