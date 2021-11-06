@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-//nolint
+// EmptyHash is the empty trie hash.
 var EmptyHash, _ = NewEmptyTrie().Hash()
 
 // Trie is a Merkle Patricia Trie.

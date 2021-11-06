@@ -26,8 +26,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-//nolint
 var (
+	// DefaultCfg is the default configuration for the node.
 	DefaultCfg                = dot.GssmrConfig
 	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
 	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
