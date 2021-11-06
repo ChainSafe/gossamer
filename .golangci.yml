@@ -125,6 +125,18 @@ issues:
       linters:
         - govet
 
+    - text: "`finalized` is a misspelling of `finalised`"
+      linters:
+        - misspell
+
+    - text: "`finalize` is a misspelling of `finalise`"
+      linters:
+        - misspell
+
+    - text: "`initialize` is a misspelling of `initialise`"
+      linters:
+        - misspell
+
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
     - path: internal/hmac/

@@ -337,17 +337,17 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		bestHash := best.Hash()
 
-		finalized, err := s.blockState.GetHighestFinalisedHeader() //nolint
+		finalised, err := s.blockState.GetHighestFinalisedHeader()
 		if err != nil {
 			continue
 		}
-		finalizedHash := finalized.Hash()
+		finalizedHash := finalised.Hash()
 
 		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
 			&bestHash,
 			best.Number,
 			&finalizedHash,
-			finalized.Number,
+			finalised.Number,
 			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))

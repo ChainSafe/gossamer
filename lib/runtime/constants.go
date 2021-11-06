@@ -47,7 +47,7 @@ const (
 var (
 	// CoreVersion is the runtime API call Core_version
 	CoreVersion = "Core_version"
-	// CoreInitialiseBlock is the runtime API call Core_initialize_block
+	// CoreInitializeBlock is the runtime API call Core_initialize_block
 	CoreInitializeBlock = "Core_initialize_block"
 	// CoreExecuteBlock is the runtime API call Core_execute_block
 	CoreExecuteBlock = "Core_execute_block"
