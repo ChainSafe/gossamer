@@ -105,7 +105,20 @@ $(ADDLICENSE):
 .PHONY: license
 license: $(ADDLICENSE)
 	@echo "  >  \033[32mAdding license headers...\033[0m "
-	addlicense -c gossamer -f ./copyright.txt -y 2019 .
+	addlicense -v \
+		-s=only \
+		-f ./copyright.txt \
+		-c "ChainSafe Systems (ON)" \
+		-ignore "**/*.md" \
+		-ignore "**/*.html" \
+		-ignore "**/*.css" \
+		-ignore "**/*.scss" \
+		-ignore "**/*.yml" \
+		-ignore "**/*.yaml" \
+		-ignore "**/*.js" \
+		-ignore "**/*.sh" \
+		-ignore "*Dockerfile" \
+		.
 
 docker: docker-build
 	@echo "  >  \033[32mStarting Gossamer Container...\033[0m "
