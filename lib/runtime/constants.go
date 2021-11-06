@@ -9,7 +9,7 @@ import (
 
 var runtimes = []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME, DEV_RUNTIME}
 
-//nolint
+//nolint:revive
 const (
 	// v0.9 substrate runtime
 	NODE_RUNTIME     = "node_runtime"

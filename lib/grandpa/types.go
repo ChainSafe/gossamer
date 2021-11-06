@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
-//nolint
+//nolint:revive
 type (
 	Voter      = types.GrandpaVoter
 	Voters     = types.GrandpaVoters

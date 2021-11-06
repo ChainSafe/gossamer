@@ -2162,7 +2162,7 @@ func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (i
 }
 
 // ImportsNodeRuntime returns the imports for the v0.8 runtime
-func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
+func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	var err error
 
 	imports := wasm.NewImports()
