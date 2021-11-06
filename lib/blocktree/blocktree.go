@@ -259,7 +259,7 @@ func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 
 }
 
-// DeepestLeaf returns leftmost deepest leaf in BlockTree BT
+// deepestLeaf returns the leftmost deepest leaf in the block tree.
 func (bt *BlockTree) deepestLeaf() *node {
 	return bt.leaves.deepestLeaf()
 }

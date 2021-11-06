@@ -133,8 +133,8 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	// pre-allocate pool of buffers used to read from streams.
-	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
-	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
+	// initially allocate as many buffers as likely necessary which is the number of inbound streams we will have,
+	// which should equal the average number of peers times the number of notifications protocols, which is currently 3.
 	preAllocateInPool := cfg.MinPeers * 3
 	poolSize := cfg.MaxPeers * 3
 	if cfg.noPreAllocate { // testing
