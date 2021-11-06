@@ -22,7 +22,6 @@ type (
 // Subround subrounds in a grandpa round
 type Subround byte
 
-//nolint
 var (
 	prevote         Subround
 	precommit       Subround = 1

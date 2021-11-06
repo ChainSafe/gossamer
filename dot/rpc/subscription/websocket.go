@@ -97,7 +97,7 @@ func (c *WSConn) HandleComm() {
 				continue
 			}
 
-			listener, err := setupListener(reqid, params) //nolint
+			listener, err := setupListener(reqid, params)
 			if err != nil {
 				logger.Warnf("failed to create listener (method=%s): %s", method, err)
 				continue
@@ -107,7 +107,7 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		listener, err := c.getUnsubListener(params) //nolint
+		listener, err := c.getUnsubListener(params)
 
 		if err != nil {
 			logger.Warnf("failed to get unsubscriber (method=%s): %s", method, err)

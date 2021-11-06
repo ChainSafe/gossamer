@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic { //nolint
+func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
@@ -276,7 +276,7 @@ func TestInstance_Version_DevRuntime(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
-func balanceKey(t *testing.T, pub []byte) []byte { //nolint
+func balanceKey(t *testing.T, pub []byte) []byte {
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
 	h1, err := common.Twox128Hash([]byte("Account"))
@@ -528,7 +528,6 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Ha
 
 	// apply each inherent extrinsic
 	for _, ext := range exts {
-		//nolint
 		in, err := scale.Marshal(ext)
 		require.NoError(t, err)
 

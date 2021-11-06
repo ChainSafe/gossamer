@@ -307,7 +307,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 
 	// always hash root even if encoding is under 32 bytes
 	if curr == t.root {
-		h, err := common.Blake2bHash(enc) //nolint
+		h, err := common.Blake2bHash(enc)
 		if err != nil {
 			return err
 		}
@@ -355,7 +355,7 @@ func (t *Trie) getInsertedNodeHashes(curr node) ([]common.Hash, error) {
 	}
 
 	if curr == t.root && len(enc) < 32 {
-		h, err := common.Blake2bHash(enc) //nolint
+		h, err := common.Blake2bHash(enc)
 		if err != nil {
 			return nil, err
 		}

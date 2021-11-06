@@ -88,7 +88,6 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
-	//nolint
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 
@@ -206,7 +205,7 @@ func TestSync_Bench(t *testing.T) {
 	require.NoError(t, err)
 
 	for {
-		header, err := utils.GetChainHeadWithError(t, alice) //nolint
+		header, err := utils.GetChainHeadWithError(t, alice)
 		if err != nil {
 			continue
 		}
@@ -242,7 +241,7 @@ func TestSync_Bench(t *testing.T) {
 			t.Fatal("did not sync")
 		}
 
-		head, err := utils.GetChainHeadWithError(t, bob) //nolint
+		head, err := utils.GetChainHeadWithError(t, bob)
 		if err != nil {
 			continue
 		}
@@ -276,7 +275,6 @@ func TestSync_Restart(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
-	//nolint
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigDefault, false, true)
 	require.NoError(t, err)
 

@@ -95,7 +95,7 @@ type Service struct {
 
 // NewService creates a new network service from the configuration and message channels
 func NewService(cfg *Config) (*Service, error) {
-	ctx, cancel := context.WithCancel(context.Background()) //nolint
+	ctx, cancel := context.WithCancel(context.Background())
 
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 	cfg.logger = logger
@@ -104,7 +104,7 @@ func NewService(cfg *Config) (*Service, error) {
 	err := cfg.build()
 	if err != nil {
 		cancel()
-		return nil, err //nolint
+		return nil, err
 	}
 
 	if cfg.MinPeers == 0 {

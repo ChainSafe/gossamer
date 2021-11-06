@@ -868,7 +868,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	}
 
 	for i, val := range values {
-		key, err := scale.Marshal(big.NewInt(int64(i))) //nolint
+		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
 			return 0

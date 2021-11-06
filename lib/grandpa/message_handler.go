@@ -165,7 +165,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	// if we aren't currently expecting a catch up response, return
-	if !h.grandpa.paused.Load().(bool) { //nolint
+	if !h.grandpa.paused.Load().(bool) {
 		logger.Debug("not currently paused, ignoring catch up response")
 		return nil
 	}
@@ -220,7 +220,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 }
 
 // verifyCatchUpResponseCompletability verifies that the pre-commit block is a descendant of, or is, the pre-voted block
-func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit common.Hash) error { //nolint
+func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit common.Hash) error {
 	if prevote == precommit {
 		return nil
 	}
@@ -409,7 +409,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	for _, just := range fj.Commit.Precommits {
 		// check if vote was for descendant of committed block
-		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash) //nolint
+		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash)
 		if err != nil {
 			return err
 		}

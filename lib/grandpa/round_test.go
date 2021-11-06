@@ -120,7 +120,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15, false)
-		pv, err := gs.determinePreVote() //nolint
+		pv, err := gs.determinePreVote()
 		require.NoError(t, err)
 		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
 			Vote: *pv,
@@ -167,7 +167,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 
 		r := rand.Intn(1)
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
-		pv, err := gs.determinePreVote() //nolint
+		pv, err := gs.determinePreVote()
 		require.NoError(t, err)
 		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
 			Vote: *pv,

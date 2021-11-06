@@ -77,7 +77,6 @@ type Node struct {
 
 // InitGossamer initialises given node number and returns node reference
 func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
-	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--config", config,
 		"--basepath", basePath,
@@ -130,7 +129,6 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		params = append(params, "--ws",
 			"--wsport", node.WSPort)
 	}
-	//nolint
 	node.Process = exec.Command(gossamerCMD, params...)
 
 	node.Key = key

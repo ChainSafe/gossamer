@@ -102,7 +102,7 @@ func (t *Trie) DeepCopy() (*Trie, error) {
 }
 
 // RootNode returns the root of the trie
-func (t *Trie) RootNode() node { //nolint
+func (t *Trie) RootNode() node {
 	return t.root
 }
 

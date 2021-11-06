@@ -41,7 +41,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 	block, err := builder.buildBlock(parent, slot, rt)
 
 	// is necessary to enable ethmetrics to be possible register values
-	ethmetrics.Enabled = true //nolint
+	ethmetrics.Enabled = true
 
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)

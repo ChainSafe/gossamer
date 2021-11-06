@@ -490,7 +490,7 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	for i, val := range v {
-		key, err := scale.Marshal(big.NewInt(int64(i))) //nolint
+		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("[ext_blake2_256_enumerated_trie_root]: %s", err)
 			return 0
