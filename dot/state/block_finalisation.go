@@ -164,6 +164,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 			continue
 		}
 
+		// blocks were deleted from the unfinalisedBlockMap in `handleFinalisedBlock()`
 		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
 
 		go func(header *types.Header) {
@@ -252,7 +253,8 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			return err
 		}
 
-		bs.deleteUnfinalisedBlock(hash)
+		// the block will be deleted from the unfinalisedBlockMap in the pruning loop
+		// in `SetFinalisedHash()`, which calls this function
 	}
 
 	return batch.Flush()
