@@ -21,14 +21,15 @@ type reducer func(prevValue interface{}, newValue interface{}) interface{}
 // for comp: comp(x, y) = -1: x<y, 0: x==y, 1: x>y
 type comperator func(prevValue interface{}, newValue interface{}) int
 
-// IQR golang outlier detection
+//RemoveOutlier removes the outlier from the slice
+//  Explanation:
+// 	IQR outlier detection
 // 	Q25 = 25th_percentile
 // 	Q75 = 75th_percentile
 // 	IQR = Q75 - Q25         // inter-quartile range
 // 	If x >  Q75  + 1.5 * IQR or  x   < Q25 - 1.5 * IQR THEN  x is a mild outlier
 // 	If x >  Q75  + 3.0 * IQR or  x   < Q25 – 3.0 * IQR THEN  x is a extreme outlier
 // Ref: http://www.mathwords.com/o/outlier.htm
-//
 // returns: reducer output
 func RemoveOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal interface{}, reducer, plusFn, minusFn, divideFn, multiplyFn reducer) interface{} {
 	length := len(sortedArr)
@@ -78,7 +79,7 @@ func getMedian(data []interface{}, sum, divide reducer) interface{} {
 	half := length / 2
 	if length%2 == 0 {
 		return divide(sum(data[half], data[half-1]), 2)
-	} else {
-		return data[half]
 	}
+
+	return data[half]
 }
