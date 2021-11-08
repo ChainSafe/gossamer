@@ -25,6 +25,8 @@ import (
 )
 
 func TestConfig_String(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		Global  GlobalConfig
 		Log     LogConfig
@@ -189,6 +191,8 @@ func TestConfig_String(t *testing.T) {
 }
 
 func TestDevConfig(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		want *Config
@@ -211,6 +215,8 @@ func TestDevConfig(t *testing.T) {
 }
 
 func TestGssmrConfig(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		want *Config
@@ -233,6 +239,8 @@ func TestGssmrConfig(t *testing.T) {
 }
 
 func TestKusamaConfig(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		want *Config
@@ -255,6 +263,8 @@ func TestKusamaConfig(t *testing.T) {
 }
 
 func TestPolkadotConfig(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		want *Config
@@ -277,6 +287,8 @@ func TestPolkadotConfig(t *testing.T) {
 }
 
 func TestRPCConfig_isRPCEnabled(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		Enabled          bool
 		External         bool
@@ -344,6 +356,8 @@ func TestRPCConfig_isRPCEnabled(t *testing.T) {
 }
 
 func TestRPCConfig_isWSEnabled(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		Enabled          bool
 		External         bool
@@ -411,6 +425,8 @@ func TestRPCConfig_isWSEnabled(t *testing.T) {
 }
 
 func Test_networkServiceEnabled(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		cfg *Config
 	}
