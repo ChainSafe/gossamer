@@ -41,7 +41,7 @@ var (
 type Keystore interface {
 	Name() Name
 	Type() crypto.KeyType
-	Insert(kp crypto.Keypair)
+	Insert(kp crypto.Keypair) error
 	GetKeypairFromAddress(pub common.Address) crypto.Keypair
 	GetKeypair(pub crypto.PublicKey) crypto.Keypair
 	PublicKeys() []crypto.PublicKey

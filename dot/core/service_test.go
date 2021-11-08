@@ -141,7 +141,7 @@ func TestService_InsertKey(t *testing.T) {
 		{
 			description:  "Test that insertKey fails when keystore type is valid but inappropriate",
 			keystoreType: "gran",
-			err:          errors.New("invalid keystore name"),
+			err:          errors.New("this keystore only accepts keys of type ed25519"),
 		},
 		{
 			description:  "Test that insertKey succeeds when keystore type is valid and appropriate ",
@@ -151,15 +151,17 @@ func TestService_InsertKey(t *testing.T) {
 	}
 
 	for _, c := range testCases {
-		c := c
 		t.Run(c.description, func(t *testing.T) {
 			err := s.InsertKey(kr.Alice(), c.keystoreType)
-			require.True(t, errors.Is(err, c.err))
 
 			if c.err == nil {
+				require.Nil(t, err)
 				res, err := s.HasKey(kr.Alice().Public().Hex(), c.keystoreType)
-				require.NoError(t, err)
+				require.Nil(t, err)
 				require.True(t, res)
+			} else {
+				require.NotNil(t, err)
+				require.Equal(t, err.Error(), c.err.Error())
 			}
 		})
 	}

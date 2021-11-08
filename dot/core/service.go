@@ -444,9 +444,7 @@ func (s *Service) InsertKey(kp crypto.Keypair, keystoreType string) error {
 		return err
 	}
 
-	ks.Insert(kp)
-
-	return nil
+	return ks.Insert(kp)
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
