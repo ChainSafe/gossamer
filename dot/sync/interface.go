@@ -21,11 +21,11 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -111,4 +111,7 @@ type Network interface {
 
 	// Peers returns a list of currently connected peers
 	Peers() []common.PeerInfo
+
+	// ReportPeer reports peer based on the peer behaviour.
+	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }

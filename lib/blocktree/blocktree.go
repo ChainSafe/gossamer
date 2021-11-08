@@ -348,7 +348,7 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 	if ancestor == nil {
 		// this case shouldn't happen - any two nodes in the blocktree must
 		// have a common ancestor, the lowest of which is the root node
-		return common.Hash{}, ErrNoCommonAncestor
+		return common.Hash{}, fmt.Errorf("%w: %s and %s", ErrNoCommonAncestor, a, b)
 	}
 
 	return ancestor.hash, nil

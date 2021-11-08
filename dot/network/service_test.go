@@ -24,9 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var TestProtocolID = "/gossamer/test/0"
@@ -48,7 +49,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint32(7001 + i),
+			Port:        uint16(7001 + i),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}

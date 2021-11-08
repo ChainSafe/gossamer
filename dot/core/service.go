@@ -374,7 +374,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		body, err := s.blockState.GetBlockBody(hash)
-		if err != nil {
+		if err != nil || body == nil {
 			continue
 		}
 
