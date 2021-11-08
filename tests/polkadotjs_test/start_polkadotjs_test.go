@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +45,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	command := "npx mocha ./test --timeout 30000"
 	parts := strings.Fields(command)
 	data, err := exec.Command(parts[0], parts[1:]...).Output()
-	require.NoError(t, err, string(data))
+	assert.NoError(t, err, string(data))
 
 	//uncomment this to see log results from javascript tests
 	//fmt.Printf("%s\n", data)
