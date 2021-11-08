@@ -31,26 +31,25 @@ type comperator func(prevValue interface{}, newValue interface{}) int
 //
 // returns: reducer output
 func RemoveOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal interface{}, reducer, plusFn, minusFn, divideFn, multiplyFn reducer) interface{} {
-	len := len(sortedArr)
+	length := len(sortedArr)
 
-	if len == 0 {
+	if length == 0 {
 		return -1
 	}
 
-	if len == 1 {
+	if length == 1 {
 		return sortedArr[0]
 	}
 
-	if len == 2 {
+	if length == 2 {
 		return reducer(sortedArr[0], sortedArr[1])
 	}
 
-	half := len / 2
+	half := length / 2
 	data1 := sortedArr[:half]
-	// data2 := sortedArr[half+1:]
 	var data2 []interface{}
 
-	if len%2 == 0 {
+	if length%2 == 0 {
 		data2 = sortedArr[half:]
 	} else {
 		data2 = sortedArr[half+1:]
@@ -78,9 +77,9 @@ func RemoveOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal
 }
 
 func getMedian(data []interface{}, sum reducer, divide reducer) interface{} {
-	len := len(data)
-	half := len / 2
-	if len%2 == 0 {
+	length := len(data)
+	half := length / 2
+	if length%2 == 0 {
 		return divide(sum(data[half], data[half-1]), 2)
 	} else {
 		return data[half]
