@@ -22,6 +22,7 @@ import (
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	libp2pdiscovery "github.com/libp2p/go-libp2p/p2p/discovery/mdns_legacy"
 )
 
@@ -106,9 +107,7 @@ func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 		"peer", p.ID,
 	)
 
+	n.host.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	// connect to found peer
-	err := n.host.connect(p)
-	if err != nil {
-		n.logger.Error("Failed to connect to peer using mDNS discovery", "error", err)
-	}
+	n.host.cm.peerSetHandler.AddPeer(0, p.ID)
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ -z "${GOPATH}" ]]; then 
+if [[ -z "${GOPATH}" ]]; then
 	export GOPATH=~/go
 fi
 
