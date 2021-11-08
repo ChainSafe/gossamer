@@ -43,8 +43,8 @@ func TestHTTPSetGet(t *testing.T) {
 	req := set.Get(id)
 	require.NotNil(t, req)
 
-	require.Equal(t, http.MethodGet, req.req.Method)
-	require.Equal(t, defaultTestURI, req.req.URL.String())
+	require.Equal(t, http.MethodGet, req.Request.Method)
+	require.Equal(t, defaultTestURI, req.Request.URL.String())
 }
 
 func TestOffchainRequest_AddHeader(t *testing.T) {
@@ -64,12 +64,12 @@ func TestOffchainRequest_AddHeader(t *testing.T) {
 			err:    errRequestAlreadyStarted,
 		},
 		"should add header": {
-			offReq:  OffchainRequest{req: &http.Request{Header: make(http.Header)}},
+			offReq:  OffchainRequest{Request: &http.Request{Header: make(http.Header)}},
 			headerK: "key",
 			headerV: "value",
 		},
 		"should return invalid empty header": {
-			offReq:  OffchainRequest{req: &http.Request{Header: make(http.Header)}},
+			offReq:  OffchainRequest{Request: &http.Request{Header: make(http.Header)}},
 			headerK: "",
 			headerV: "value",
 			err:     fmt.Errorf("%w: %s", errInvalidHeaderKey, "empty header key"),
@@ -88,7 +88,7 @@ func TestOffchainRequest_AddHeader(t *testing.T) {
 				return
 			}
 
-			got := tc.offReq.req.Header.Get(tc.headerK)
+			got := tc.offReq.Request.Header.Get(tc.headerK)
 			require.Equal(t, tc.headerV, got)
 		})
 	}
