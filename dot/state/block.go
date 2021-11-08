@@ -221,10 +221,6 @@ func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Blo
 	return block.(*types.Block), true
 }
 
-func (bs *BlockState) deleteUnfinalisedBlock(hash common.Hash) {
-	bs.unfinalisedBlocks.Delete(hash)
-}
-
 // HasHeader returns if the db contains a header with the given hash
 func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	if bs.hasUnfinalisedBlock(hash) {
@@ -434,16 +430,17 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
 // TODO: remove this func and usage from sync (after sync refactor?)
-func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
+func (bs *BlockState) AddBlockToBlockTree(block *types.Block) error {
 	bs.Lock()
 	defer bs.Unlock()
 
-	arrivalTime, err := bs.GetArrivalTime(header.Hash())
+	arrivalTime, err := bs.GetArrivalTime(block.Header.Hash())
 	if err != nil {
 		arrivalTime = time.Now()
 	}
 
-	return bs.bt.AddBlock(header, arrivalTime)
+	bs.storeUnfinalisedBlock(block)
+	return bs.bt.AddBlock(&block.Header, arrivalTime)
 }
 
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
