@@ -288,7 +288,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		return nil, errors.New("expecting only one parameter")
 	}
 
-	// The passed parameter should be a HEX of a SCALE encoded extrinsics
+	// The passed parameter should be a HEX of a SCALE encoded extrinsic
 	extBytes, err := common.HexToBytes(pA[0].(string))
 	if err != nil {
 		return nil, err
@@ -298,7 +298,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	txStatusChan := c.TxStateAPI.GetStatusNotifierChannel()
+	txStatusChan := c.TxStateAPI.GetStatusNotifierChannel(extBytes)
 	importedChan := c.BlockAPI.GetImportedBlockNotifierChannel()
 	finalizedChan := c.BlockAPI.GetFinalisedNotifierChannel()
 	// listen for built blocks

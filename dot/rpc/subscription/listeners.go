@@ -16,7 +16,6 @@
 package subscription
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -315,14 +314,14 @@ type ExtrinsicSubmitListener struct {
 	// ready queue or future queue.
 	// we are using transaction.PriorityQueue for ready queue and transaction.Pool
 	// for future queue.
-	txStatusChan  chan transaction.StatusNotification
+	txStatusChan  chan transaction.Status
 	done          chan struct{}
 	cancel        chan struct{}
 	cancelTimeout time.Duration
 }
 
 // NewExtrinsicSubmitListener constructor to build new ExtrinsicSubmitListener
-func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte, importedChan chan *types.Block, txStatusChan chan transaction.StatusNotification, finalisedChan chan *types.FinalisationInfo) *ExtrinsicSubmitListener {
+func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte, importedChan chan *types.Block, txStatusChan chan transaction.Status, finalisedChan chan *types.FinalisationInfo) *ExtrinsicSubmitListener {
 	return &ExtrinsicSubmitListener{
 		wsconn:        conn,
 		extrinsic:     types.Extrinsic(extBytes),
@@ -383,16 +382,12 @@ func (l *ExtrinsicSubmitListener) Listen() {
 					resM["finalised"] = info.Header.Hash().String()
 					l.wsconn.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, l.subID, resM))
 				}
-			case txStatusNotification, ok := <-l.txStatusChan:
+			case txStatus, ok := <-l.txStatusChan:
 				if !ok {
 					return
 				}
 
-				if !bytes.Equal(l.extrinsic, txStatusNotification.Ext) {
-					continue
-				}
-
-				l.wsconn.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, l.subID, txStatusNotification.Status))
+				l.wsconn.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, l.subID, txStatus.String()))
 			}
 		}
 	}()

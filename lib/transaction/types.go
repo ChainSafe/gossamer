@@ -18,7 +18,6 @@ package transaction
 
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // Validity struct see: https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L178
@@ -55,13 +54,13 @@ func NewValidTransaction(extrinsic types.Extrinsic, validity *Validity) *ValidTr
 	}
 }
 
-// StatusNotification represents information about a transaction status update.
-type StatusNotification struct {
-	Ext                types.Extrinsic
-	Status             string
-	PeersBroadcastedTo []string
-	BlockHash          *common.Hash
-}
+// // StatusNotification represents information about a transaction status update.
+// type StatusNotification struct {
+// 	Ext                types.Extrinsic
+// 	Status             string
+// 	PeersBroadcastedTo []string
+// 	BlockHash          *common.Hash
+// }
 
 //nolint
 // Status represents possible transaction statuses.

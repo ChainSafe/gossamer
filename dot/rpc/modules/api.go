@@ -86,8 +86,8 @@ type TransactionStateAPI interface {
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 	Pending() []*transaction.ValidTransaction
-	GetStatusNotifierChannel() chan transaction.StatusNotification
-	FreeStatusNotifierChannel(ch chan transaction.StatusNotification)
+	GetStatusNotifierChannel(ext types.Extrinsic) chan transaction.Status
+	FreeStatusNotifierChannel(ch chan transaction.Status)
 }
 
 //go:generate mockery --name CoreAPI --structname CoreAPI --case underscore --keeptree

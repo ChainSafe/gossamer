@@ -47,8 +47,8 @@ func NewMockBlockAPI() *modulesmocks.BlockAPI {
 // NewMockTransactionStateAPI creates and return an rpc TransactionStateAPI interface mock
 func NewMockTransactionStateAPI() *modulesmocks.TransactionStateAPI {
 	m := new(modulesmocks.TransactionStateAPI)
-	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.StatusNotification"))
-	m.On("GetStatusNotifierChannel").Return(make(chan transaction.StatusNotification))
+	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status"))
+	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status))
 	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{})
 	return m
 }

@@ -195,7 +195,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 	notifyImportedChan := make(chan *types.Block, 100)
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
-	txStatusChan := make(chan transaction.StatusNotification)
+	txStatusChan := make(chan transaction.Status)
 
 	BlockAPI := new(mocks.BlockAPI)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))

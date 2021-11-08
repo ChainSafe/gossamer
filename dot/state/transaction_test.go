@@ -66,7 +66,8 @@ func TestTransactionState_Pending(t *testing.T) {
 func TestTransactionState_NotifierChannels(t *testing.T) {
 	ts := NewTransactionState()
 
-	notifierChannel := ts.GetStatusNotifierChannel()
+	ext := types.Extrinsic{}
+	notifierChannel := ts.GetStatusNotifierChannel(ext)
 	defer ts.FreeStatusNotifierChannel(notifierChannel)
 
 	// number of "future" status updates
@@ -76,6 +77,8 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 
 	rand.Seed(time.Now().UnixNano())
 
+	// In practice, one won't see ready and future in this order. This is merely
+	// meant to check that notifier channels work as expected.
 	expectedFutureCount := rand.Intn(10) + 10
 	expectedReadyCount := rand.Intn(5) + 5
 
@@ -83,7 +86,7 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 
 	for i := 0; i < expectedFutureCount; i++ {
 		dummyTransactions[i] = &transaction.ValidTransaction{
-			Extrinsic: types.Extrinsic{},
+			Extrinsic: ext,
 			Validity:  transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false),
 		}
 
@@ -99,10 +102,10 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 	close(notifierChannel)
 
 	for status := range notifierChannel {
-		if status.Status == transaction.Future.String() {
+		if status.String() == transaction.Future.String() {
 			futureCount++
 		}
-		if status.Status == transaction.Ready.String() {
+		if status.String() == transaction.Ready.String() {
 			readyCount++
 		}
 	}

@@ -13,8 +13,9 @@ type TransactionState struct {
 	queue *transaction.PriorityQueue
 	pool  *transaction.Pool
 
-	// notifierChannels channels are used to notify transaction status.
-	notifierChannels map[chan transaction.StatusNotification]struct{}
+	// notifierChannels are used to notify transaction status. It maps a channel to
+	// hex string of the extrinsic it is supposed to notify about.
+	notifierChannels map[chan transaction.Status]string
 	notifierLock     sync.RWMutex
 }
 
@@ -23,13 +24,14 @@ func NewTransactionState() *TransactionState {
 	return &TransactionState{
 		queue:            transaction.NewPriorityQueue(),
 		pool:             transaction.NewPool(),
-		notifierChannels: make(map[chan transaction.StatusNotification]struct{}),
+		notifierChannels: make(map[chan transaction.Status]string),
+		// notifierChannels: make(map[string]chan transaction.Status),
 	}
 }
 
 // Push pushes a transaction to the queue, ordered by priority
 func (s *TransactionState) Push(vt *transaction.ValidTransaction) (common.Hash, error) {
-	s.notifyStatus(transaction.StatusNotification{Ext: vt.Extrinsic, Status: transaction.Ready.String()})
+	s.notifyStatus(vt.Extrinsic, transaction.Ready)
 	return s.queue.Push(vt)
 }
 
@@ -66,29 +68,29 @@ func (s *TransactionState) RemoveExtrinsicFromPool(ext types.Extrinsic) {
 
 // AddToPool adds a transaction to the pool
 func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
-	s.notifyStatus(transaction.StatusNotification{Ext: vt.Extrinsic, Status: transaction.Future.String()})
+	s.notifyStatus(vt.Extrinsic, transaction.Future)
 	return s.pool.Insert(vt)
 }
 
 // GetStatusNotifierChannel creates and returns a status notifier channel.
-func (s *TransactionState) GetStatusNotifierChannel() chan transaction.StatusNotification {
+func (s *TransactionState) GetStatusNotifierChannel(ext types.Extrinsic) chan transaction.Status {
 	s.notifierLock.Lock()
 	defer s.notifierLock.Unlock()
 
-	ch := make(chan transaction.StatusNotification, DEFAULT_BUFFER_SIZE)
-	s.notifierChannels[ch] = struct{}{}
+	ch := make(chan transaction.Status, DEFAULT_BUFFER_SIZE)
+	s.notifierChannels[ch] = ext.String()
 	return ch
 }
 
 // FreeStatusNotifierChannel deletes given status notifier channel from our map.
-func (s *TransactionState) FreeStatusNotifierChannel(ch chan transaction.StatusNotification) {
+func (s *TransactionState) FreeStatusNotifierChannel(ch chan transaction.Status) {
 	s.notifierLock.Lock()
 	defer s.notifierLock.Unlock()
 
 	delete(s.notifierChannels, ch)
 }
 
-func (s *TransactionState) notifyStatus(status transaction.StatusNotification) {
+func (s *TransactionState) notifyStatus(ext types.Extrinsic, status transaction.Status) {
 	s.notifierLock.Lock()
 	defer s.notifierLock.Unlock()
 
@@ -97,9 +99,12 @@ func (s *TransactionState) notifyStatus(status transaction.StatusNotification) {
 	}
 
 	var wg sync.WaitGroup
-	for ch := range s.notifierChannels {
+	for ch, extrinsicStrWithCh := range s.notifierChannels {
+		if extrinsicStrWithCh != ext.String() {
+			continue
+		}
 		wg.Add(1)
-		go func(ch chan transaction.StatusNotification) {
+		go func(ch chan transaction.Status) {
 			defer wg.Done()
 
 			select {
