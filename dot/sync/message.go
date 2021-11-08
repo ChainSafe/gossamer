@@ -406,14 +406,14 @@ func (s *Service) getBlockData(hash common.Hash, requestedData byte) (*types.Blo
 	if (requestedData & network.RequestedDataHeader) == 1 {
 		blockData.Header, err = s.blockState.GetHeader(hash)
 		if err != nil {
-			logger.Debug("failed to get header for block", "hash", hash, "error", err)
+			logger.Warn("failed to get header for block", "hash", hash, "error", err)
 		}
 	}
 
 	if (requestedData&network.RequestedDataBody)>>1 == 1 {
 		blockData.Body, err = s.blockState.GetBlockBody(hash)
 		if err != nil {
-			logger.Debug("failed to get body for block", "hash", hash, "error", err)
+			logger.Warn("failed to get body for block", "hash", hash, "error", err)
 		}
 	}
 

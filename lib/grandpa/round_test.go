@@ -111,6 +111,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *networkVot
 		LogLvl:        log.LvlInfo,
 		Authority:     true,
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
