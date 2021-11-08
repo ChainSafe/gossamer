@@ -73,7 +73,7 @@ func RemoveOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal
 	return reducedValue
 }
 
-func getMedian(data []interface{}, sum reducer, divide reducer) interface{} {
+func getMedian(data []interface{}, sum, divide reducer) interface{} {
 	length := len(data)
 	half := length / 2
 	if length%2 == 0 {
