@@ -31,6 +31,7 @@ jobs:
 
   check-description:
     name: Checks PR has title and body description
+    if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
