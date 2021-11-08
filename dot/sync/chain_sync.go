@@ -518,11 +518,6 @@ func (cs *chainSync) getTarget() *big.Int {
 	//now sort the array
 	sort.Sort(ByPeerStateNumber(intArr))
 
-	// sortedArr := make([]interface{}, len(cs.peerState))
-	// for _, v := range intArr {
-	// 	sortedArr = append(sortedArr, v)
-	// }
-
 	reducerSum := func(a, b interface{}) interface{} {
 		count++
 		return big.NewInt(0).Add(a.(*big.Int), b.(*big.Int))
@@ -539,13 +534,12 @@ func (cs *chainSync) getTarget() *big.Int {
 		return big.NewInt(0).Sub(a.(*big.Int), b.(*big.Int))
 	}
 	divide := func(a, b interface{}) interface{} {
-		return big.NewInt(0).Div(a.(*big.Int), b.(*big.Int))
+		return big.NewInt(0).Div(a.(*big.Int), big.NewInt(int64(b.(int))))
 	}
 	mul := func(a, b interface{}) interface{} {
-		return big.NewInt(0).Mul(a.(*big.Int), b.(*big.Int))
+		return big.NewInt(0).Mul(a.(*big.Int), big.NewInt(int64(b.(float64))))
 	}
-
-	sum := RemoveOutlier(intArr, reducerSum, comp, plus, minus, divide, mul).(*big.Int)
+	sum := RemoveOutlier(intArr, comp, big.NewInt(0), reducerSum, plus, minus, divide, mul).(*big.Int)
 
 	return big.NewInt(0).Div(sum, big.NewInt(count+1))
 }

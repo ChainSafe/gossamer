@@ -30,7 +30,7 @@ type comperator func(prevValue interface{}, newValue interface{}) int
 // Ref: http://www.mathwords.com/o/outlier.htm
 //
 // returns: reducer output
-func RemoveOutlier(sortedArr []interface{}, reducer reducer, compFn comperator, plusFn reducer, minusFn reducer, divideFn reducer, multiplyFn reducer) interface{} {
+func RemoveOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal interface{}, reducer, plusFn, minusFn, divideFn, multiplyFn reducer) interface{} {
 	len := len(sortedArr)
 
 	if len == 0 {
@@ -47,6 +47,7 @@ func RemoveOutlier(sortedArr []interface{}, reducer reducer, compFn comperator, 
 
 	half := len / 2
 	data1 := sortedArr[:half]
+	// data2 := sortedArr[half+1:]
 	var data2 []interface{}
 
 	if len%2 == 0 {
@@ -58,20 +59,17 @@ func RemoveOutlier(sortedArr []interface{}, reducer reducer, compFn comperator, 
 	q1 := getMedian(data1, plusFn, divideFn)
 	q3 := getMedian(data2, plusFn, divideFn)
 
-	// if q1 == q3 {
-	// 	todo what to do?
-	// }
-
 	iqr := minusFn(q3, q1)
 	iqr1_5 := multiplyFn(iqr, 1.5)
 	lower := minusFn(q1, iqr1_5)
 	upper := plusFn(q3, iqr1_5)
 
-	var reducedValue interface{}
-	reducedValue = 0
+	reducedValue := initialReducedVal
 	for _, v := range sortedArr {
 		//collect valid (non-outlier) values
-		if compFn(v, lower) >= 0 && compFn(v, upper) <= 0 {
+		lowPass := compFn(v, lower)
+		highPass := compFn(v, upper)
+		if lowPass >= 0 && highPass <= 0 {
 			reducedValue = reducer(reducedValue, v)
 		}
 	}
