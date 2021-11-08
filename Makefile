@@ -98,13 +98,11 @@ start:
 	@echo "  >  \033[32mStarting node...\033[0m "
 	./bin/gossamer --key alice
 
-$(ADDLICENSE):
-	go install github.com/google/addlicense@v1.0.0
-
 ## license: Adds license header to missing files, go install addlicense if it's missing.
 .PHONY: license
-license: $(ADDLICENSE)
+license:
 	@echo "  >  \033[32mAdding license headers...\033[0m "
+	go install github.com/google/addlicense@v1.0.0
 	addlicense -v \
 		-s=only \
 		-f ./copyright.txt \
