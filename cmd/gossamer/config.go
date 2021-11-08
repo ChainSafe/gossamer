@@ -652,7 +652,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
-		cfg.Port = uint32(port)
+		cfg.Port = uint16(port)
 	}
 
 	// check --bootnodes flag and update node configuration
