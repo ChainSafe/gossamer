@@ -33,15 +33,12 @@ type comperator func(prevValue interface{}, newValue interface{}) int
 func RemoveOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal interface{}, reducer, plusFn, minusFn, divideFn, multiplyFn reducer) interface{} {
 	length := len(sortedArr)
 
-	if length == 0 {
-		return -1
-	}
-
-	if length == 1 {
+	switch length {
+	case 0:
+		return nil
+	case 1:
 		return sortedArr[0]
-	}
-
-	if length == 2 {
+	case 2:
 		return reducer(sortedArr[0], sortedArr[1])
 	}
 
