@@ -161,15 +161,17 @@ type chainSync struct {
 	slotDuration time.Duration
 }
 
-// ByPeerStateNumber implements sort.Interface to make the it sortable by peerState.number
-type ByPeerStateNumber []interface{}
+// BigIntSorter implements sort.Interface to make the it sortable by peerState.number
+type BigIntSorter []interface{}
 
-func (peerArray ByPeerStateNumber) Len() int { return len(peerArray) }
-func (peerArray ByPeerStateNumber) Less(i, j int) bool {
-	return (peerArray[i]).(*big.Int).Cmp(peerArray[j].(*big.Int)) < 0
+func (arr BigIntSorter) Len() int { return len(arr) }
+func (arr BigIntSorter) Less(i, j int) bool {
+	a := arr[i].(*big.Int)
+	b := arr[j].(*big.Int)
+	return a.Cmp(b) < 0
 }
-func (peerArray ByPeerStateNumber) Swap(i, j int) {
-	peerArray[i], peerArray[j] = peerArray[j], peerArray[i]
+func (arr BigIntSorter) Swap(i, j int) {
+	arr[i], arr[j] = arr[j], arr[i]
 }
 
 func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, minPeers int, slotDuration time.Duration) *chainSync {
@@ -520,7 +522,7 @@ func (cs *chainSync) getTarget() *big.Int {
 		intArr = append(intArr, *ps.number)
 	}
 	//now sort the array
-	sort.Sort(ByPeerStateNumber(intArr))
+	sort.Sort(BigIntSorter(intArr))
 
 	reducerSum := func(a, b interface{}) interface{} {
 		count++

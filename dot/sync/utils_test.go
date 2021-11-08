@@ -18,6 +18,7 @@ package sync
 
 import (
 	"math/big"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -26,7 +27,10 @@ import (
 func TestRemoveOutlier(t *testing.T) {
 	t.Parallel()
 	count := int64(0)
-	arr := []interface{}{big.NewInt(-100), big.NewInt(20), big.NewInt(40), big.NewInt(50), big.NewInt(60), big.NewInt(80), big.NewInt(100), big.NewInt(1000)}
+	arr := []interface{}{big.NewInt(100), big.NewInt(-100), big.NewInt(60), big.NewInt(80), big.NewInt(20), big.NewInt(40), big.NewInt(50), big.NewInt(1000)}
+
+	// Sort the array elements
+	sort.Sort(BigIntSorter(arr))
 
 	reducerSum := func(a, b interface{}) interface{} {
 		count++
