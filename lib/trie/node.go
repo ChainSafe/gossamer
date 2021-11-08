@@ -1,5 +1,5 @@
 // Copyright 2021 ChainSafe Systems (ON)
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LGPL-3.0-only
 
 // Modified Merkle-Patricia Trie
 // See https://github.com/w3f/polkadot-spec/blob/master/runtime-environment-spec/polkadot_re_spec.pdf for the full specification.

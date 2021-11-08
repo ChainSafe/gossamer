@@ -105,6 +105,7 @@ license:
 	go install github.com/google/addlicense@v1.0.0
 	addlicense -v \
 		-s=only \
+		-l="LGPL-3.0-only" \
 		-f ./copyright.txt \
 		-c "ChainSafe Systems (ON)" \
 		-ignore "**/*.md" \
