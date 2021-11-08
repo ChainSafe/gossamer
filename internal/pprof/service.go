@@ -48,7 +48,6 @@ func (s *Service) Start() (err error) {
 
 // Stop stops the pprof server service.
 func (s *Service) Stop() (err error) {
-	defer close(s.done)
 	s.cancel()
 	return <-s.done
 }
