@@ -53,6 +53,7 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 
 	net := new(syncmocks.Network)
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
+	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 
 	readyBlocks := newBlockQueue(maxResponseSize)
 	cs := newChainSync(bs, net, readyBlocks, newDisjointBlockSet(pendingBlocksLimit), defaultMinPeers, defaultSlotDuration)
@@ -440,31 +441,32 @@ func TestWorkerToRequests(t *testing.T) {
 }
 
 func TestValidateBlockData(t *testing.T) {
+	cs, _ := newTestChainSync(t)
 	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
 	}
 
-	err := validateBlockData(req, nil)
+	err := cs.validateBlockData(req, nil, "")
 	require.Equal(t, errNilBlockData, err)
 
-	err = validateBlockData(req, &types.BlockData{})
+	err = cs.validateBlockData(req, &types.BlockData{}, "")
 	require.Equal(t, errNilHeaderInResponse, err)
 
-	err = validateBlockData(req, &types.BlockData{
+	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},
-	})
+	}, "")
 	require.Equal(t, errNilBodyInResponse, err)
 
-	err = validateBlockData(req, &types.BlockData{
+	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},
 		Body:   &types.Body{},
-	})
+	}, "")
 	require.NoError(t, err)
 }
 
 func TestChainSync_validateResponse(t *testing.T) {
 	cs, _ := newTestChainSync(t)
-	err := cs.validateResponse(nil, nil)
+	err := cs.validateResponse(nil, nil, "")
 	require.Equal(t, errEmptyBlockData, err)
 
 	req := &network.BlockRequestMessage{
@@ -491,7 +493,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 	hash := (&types.Header{
 		Number: big.NewInt(2),
 	}).Hash()
-	err = cs.validateResponse(req, resp)
+	err = cs.validateResponse(req, resp, "")
 	require.Equal(t, errResponseIsNotChain, err)
 	require.True(t, cs.pendingBlocks.hasBlock(hash))
 	cs.pendingBlocks.removeBlock(hash)
@@ -524,7 +526,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 		ParentHash: parent,
 		Number:     big.NewInt(3),
 	}).Hash()
-	err = cs.validateResponse(req, resp)
+	err = cs.validateResponse(req, resp, "")
 	require.Equal(t, errResponseIsNotChain, err)
 	require.True(t, cs.pendingBlocks.hasBlock(hash))
 	bd := cs.pendingBlocks.getBlock(hash)
@@ -552,7 +554,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 		},
 	}
 
-	err = cs.validateResponse(req, resp)
+	err = cs.validateResponse(req, resp, "")
 	require.NoError(t, err)
 	require.False(t, cs.pendingBlocks.hasBlock(hash))
 
@@ -567,7 +569,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 		},
 	}
 
-	err = cs.validateResponse(req, resp)
+	err = cs.validateResponse(req, resp, "")
 	require.NoError(t, err)
 	require.False(t, cs.pendingBlocks.hasBlock(hash))
 }
@@ -599,7 +601,7 @@ func TestChainSync_validateResponse_firstBlock(t *testing.T) {
 		},
 	}
 
-	err := cs.validateResponse(req, resp)
+	err := cs.validateResponse(req, resp, "")
 	require.True(t, errors.Is(err, errUnknownParent))
 	require.True(t, cs.pendingBlocks.hasBlock(header.Hash()))
 	bd := cs.pendingBlocks.getBlock(header.Hash())

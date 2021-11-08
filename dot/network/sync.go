@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -80,6 +81,10 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 	msg := new(BlockResponseMessage)
 	err = msg.Decode(buf[:n])
 	if err != nil {
+		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.BadMessageValue,
+			Reason: peerset.BadMessageReason,
+		}, stream.Conn().RemotePeer())
 		return nil, fmt.Errorf("failed to decode block response: %w", err)
 	}
 
