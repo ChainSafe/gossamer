@@ -48,7 +48,7 @@ package wasmer
 //
 // extern int32_t ext_trie_blake2_256_root_version_1(void *context, int64_t a);
 // extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
-// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int64_t a, int64_t b, int64_t c, int64_t d);
+// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
 //
 // extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
 // extern void ext_misc_print_hex_version_1(void *context, int64_t a);
@@ -895,7 +895,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a, b, c, d C.int64_t) C.int32_t { // skipcq: RVV-B0012
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t { // skipcq: RVV-B0012
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
 	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
 	return 0
