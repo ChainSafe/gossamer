@@ -117,6 +117,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 		Keypair:       kr.Alice().(*ed25519.Keypair),
 		Authority:     true,
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)

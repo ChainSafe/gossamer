@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -271,6 +272,10 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		if fin.Number.Cmp(ps.number) >= 0 {
 			// TODO: downscore this peer, or temporarily don't sync from them? (#1399)
 			// perhaps we need another field in `peerState` to mark whether the state is valid or not
+			cs.network.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.BadBlockAnnouncementValue,
+				Reason: peerset.BadBlockAnnouncementReason,
+			}, p)
 			return errPeerOnInvalidFork
 		}
 
@@ -400,11 +405,19 @@ func (cs *chainSync) sync() {
 			case errors.Is(res.err.err, context.Canceled):
 				return
 			case errors.Is(res.err.err, context.DeadlineExceeded):
+				cs.network.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.TimeOutValue,
+					Reason: peerset.TimeOutReason,
+				}, res.err.who)
 				cs.ignorePeer(res.err.who)
 			case strings.Contains(res.err.err.Error(), "dial backoff"):
 				cs.ignorePeer(res.err.who)
 				continue
 			case res.err.err.Error() == "protocol not supported":
+				cs.network.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadProtocolValue,
+					Reason: peerset.BadProtocolReason,
+				}, res.err.who)
 				cs.ignorePeer(res.err.who)
 				continue
 			default:
@@ -650,7 +663,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	}
 
 	// perform some pre-validation of response, error if failure
-	if err := cs.validateResponse(req, resp); err != nil {
+	if err := cs.validateResponse(req, resp, who); err != nil {
 		return &workerError{
 			err: err,
 			who: who,
@@ -714,7 +727,7 @@ func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.I
 // 	- the response is not empty
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *network.BlockResponseMessage) error {
+func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *network.BlockResponseMessage, p peer.ID) error {
 	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}
@@ -728,7 +741,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 	headerRequested := (req.RequestedData & network.RequestedDataHeader) == 1
 
 	for i, bd := range resp.BlockData {
-		if err = validateBlockData(req, bd); err != nil {
+		if err = cs.validateBlockData(req, bd, p); err != nil {
 			return err
 		}
 
@@ -737,6 +750,10 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 		} else {
 			// if this is a justification-only request, make sure we have the block for the justification
 			if err = cs.validateJustification(bd); err != nil {
+				cs.network.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadJustificationValue,
+					Reason: peerset.BadJustificationReason,
+				}, p)
 				return err
 			}
 			continue
@@ -801,7 +818,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 }
 
 // validateBlockData checks that the expected fields are in the block data
-func validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData) error {
+func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData, p peer.ID) error {
 	if bd == nil {
 		return errNilBlockData
 	}
@@ -809,6 +826,10 @@ func validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData) er
 	requestedData := req.RequestedData
 
 	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
+		cs.network.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.IncompleteHeaderValue,
+			Reason: peerset.IncompleteHeaderReason,
+		}, p)
 		return errNilHeaderInResponse
 	}
 

@@ -19,21 +19,24 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"os"
 	"sync"
 	"time"
 
-	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/services"
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/metrics"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+
+	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/services"
 )
 
 const (
@@ -96,7 +99,7 @@ type Service struct {
 
 	// telemetry
 	telemetryInterval time.Duration
-	closeCh           chan interface{}
+	closeCh           chan struct{}
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
@@ -172,7 +175,7 @@ func NewService(cfg *Config) (*Service, error) {
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
-		closeCh:                make(chan interface{}),
+		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
@@ -239,7 +242,7 @@ func (s *Service) Start() error {
 		txnBatchHandler,
 	)
 	if err != nil {
-		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+		logger.Warn("failed to register notifications protocol", "sub-protocol", transactionsID, "error", err)
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
@@ -250,9 +253,7 @@ func (s *Service) Start() error {
 		logger.Info("Started listening", "address", addr)
 	}
 
-	if !s.noBootstrap {
-		s.host.bootstrap()
-	}
+	s.startPeerSetHandler()
 
 	if !s.noMDNS {
 		s.mdns.start()
@@ -268,7 +269,6 @@ func (s *Service) Start() error {
 	}
 
 	time.Sleep(time.Millisecond * 500)
-
 	logger.Info("started network service", "supported protocols", s.host.protocols())
 
 	if s.cfg.PublishMetrics {
@@ -319,7 +319,7 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) publishNetworkTelemetry(done chan interface{}) {
+func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
@@ -373,8 +373,9 @@ func (s *Service) sentBlockIntervalTelemetry() {
 	}
 }
 
-func (*Service) handleConn(conn libp2pnetwork.Conn) {
-	// TODO: update this for scoring (#1399)
+func (s *Service) handleConn(conn libp2pnetwork.Conn) {
+	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
+	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -394,6 +395,8 @@ func (s *Service) Stop() error {
 	if err != nil {
 		logger.Error("Failed to close host", "error", err)
 	}
+
+	s.host.cm.peerSetHandler.Stop()
 
 	// check if closeCh is closed, if not, close it.
 mainloop:
@@ -740,4 +743,66 @@ func (*Service) StartingBlock() int64 {
 // IsSynced returns whether we are synced (no longer in bootstrap mode) or not
 func (s *Service) IsSynced() bool {
 	return s.syncer.IsSynced()
+}
+
+// ReportPeer reports ReputationChange according to the peer behaviour.
+func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
+	s.host.cm.peerSetHandler.ReportPeer(change, p)
+}
+
+func (s *Service) startPeerSetHandler() {
+	s.host.cm.peerSetHandler.Start()
+	// wait for peerSetHandler to start.
+	if !s.noBootstrap {
+		s.host.bootstrap()
+	}
+
+	go s.startProcessingMsg()
+}
+
+func (s *Service) processMessage(msg peerset.Message) {
+	peerID := msg.PeerID
+	switch msg.Status {
+	case peerset.Connect:
+		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
+		if len(addrInfo.Addrs) == 0 {
+			var err error
+			addrInfo, err = s.host.discovery.findPeer(peerID)
+			if err != nil {
+				logger.Debug("failed to find peer", "peer", peerID, "error", err)
+				return
+			}
+		}
+
+		err := s.host.connect(addrInfo)
+		if err != nil {
+			logger.Debug("failed to open connection", "peer", peerID, "error", err)
+			return
+		}
+		logger.Debug("connection successful ", "peer", peerID)
+	case peerset.Drop, peerset.Reject:
+		err := s.host.closePeer(peerID)
+		if err != nil {
+			logger.Debug("failed to close connection", "peer", peerID, "error", err)
+			return
+		}
+		logger.Debug("connection dropped successfully ", "peer", peerID)
+	}
+}
+
+func (s *Service) startProcessingMsg() {
+	msgCh := s.host.cm.peerSetHandler.Messages()
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case m := <-msgCh:
+			msg, ok := m.(peerset.Message)
+			if !ok {
+				logger.Error(fmt.Sprintf("failed to get message from peerSet: type is %T instead of peerset.Message", m))
+				continue
+			}
+			s.processMessage(msg)
+		}
+	}
 }
