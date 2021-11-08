@@ -164,7 +164,6 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 			continue
 		}
 
-		// blocks were deleted from the unfinalisedBlockMap in `handleFinalisedBlock()`
 		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
 
 		go func(header *types.Header) {
@@ -195,7 +194,6 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		return fmt.Errorf("could not send 'notify.finalized' telemetry message, error: %s", err)
 	}
 
-	// return bs.setHighestRoundAndSetID(round, setID)
 	bs.lastFinalised = hash
 	return nil
 }
