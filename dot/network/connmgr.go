@@ -21,18 +21,14 @@ import (
 	"crypto/rand"
 	"math/big"
 	"sync"
-	"time"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-
 	ma "github.com/multiformats/go-multiaddr"
-)
 
-var (
-	maxRetries = 12
+	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
 // ConnManager implements connmgr.ConnManager
@@ -51,16 +47,24 @@ type ConnManager struct {
 
 	// persistentPeers contains peers we should remain connected to.
 	persistentPeers *sync.Map // map[peer.ID]struct{}
+
+	peerSetHandler PeerSetHandler
 }
 
-func newConnManager(min, max int) *ConnManager {
+func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
+	psh, err := peerset.NewPeerSetHandler(peerSetCfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ConnManager{
 		min:             min,
 		max:             max,
 		closeHandlerMap: make(map[protocol.ID]func(peerID peer.ID)),
 		protectedPeers:  new(sync.Map),
 		persistentPeers: new(sync.Map),
-	}
+		peerSetHandler:  psh,
+	}, nil
 }
 
 // Notifee is used to monitor changes to a connection
@@ -90,18 +94,18 @@ func (*ConnManager) UpsertTag(peer.ID, string, func(int) int) {}
 func (*ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo { return &connmgr.TagInfo{} }
 
 // TrimOpenConns peer
-func (*ConnManager) TrimOpenConns(ctx context.Context) {}
+func (*ConnManager) TrimOpenConns(context.Context) {}
 
 // Protect peer will add the given peer to the protectedPeerMap which will
 // protect the peer from pruning.
-func (cm *ConnManager) Protect(id peer.ID, tag string) {
+func (cm *ConnManager) Protect(id peer.ID, _ string) {
 	cm.protectedPeers.Store(id, struct{}{})
 }
 
 // Unprotect peer will remove the given peer from prune protection.
 // returns true if we have successfully removed the peer from the
 // protectedPeerMap. False otherwise.
-func (cm *ConnManager) Unprotect(id peer.ID, tag string) bool {
+func (cm *ConnManager) Unprotect(id peer.ID, _ string) bool {
 	_, wasDeleted := cm.protectedPeers.LoadAndDelete(id)
 	return wasDeleted
 }
@@ -110,7 +114,7 @@ func (cm *ConnManager) Unprotect(id peer.ID, tag string) bool {
 func (*ConnManager) Close() error { return nil }
 
 // IsProtected returns whether the given peer is protected from pruning or not.
-func (cm *ConnManager) IsProtected(id peer.ID, tag string) (protected bool) {
+func (cm *ConnManager) IsProtected(id peer.ID, _ string) (protected bool) {
 	_, ok := cm.protectedPeers.Load(id)
 	return ok
 }
@@ -184,7 +188,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 }
 
 // Disconnected is called when a connection closed
-func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
+func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	logger.Trace(
 		"Disconnected from peer",
 		"host", c.LocalPeer(),
@@ -195,57 +199,10 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	if cm.disconnectHandler != nil {
 		cm.disconnectHandler(c.RemotePeer())
 	}
-
-	if !cm.isPersistent(c.RemotePeer()) {
-		return
-	}
-
-	addrs := cm.host.h.Peerstore().Addrs(c.RemotePeer())
-	info := peer.AddrInfo{
-		ID:    c.RemotePeer(),
-		Addrs: addrs,
-	}
-
-	count := 0
-	retry := func() bool {
-		err := cm.host.connect(info)
-		if err != nil {
-			logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
-			return false
-		}
-
-		count++
-		if count > maxRetries {
-			return true
-		}
-		return true
-	}
-
-	go func() {
-		if retry() {
-			return
-		}
-
-		retryTimer := time.NewTicker(time.Minute)
-		defer retryTimer.Stop()
-		for {
-			select {
-			case <-cm.host.ctx.Done():
-				return
-			case <-retryTimer.C:
-				if retry() {
-					return
-				}
-			}
-		}
-	}()
-
-	// TODO: if number of peers falls below the min desired peer count,
-	// we should try to connect to previously discovered peers (#1852)
 }
 
 // OpenedStream is called when a stream opened
-func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
+func (cm *ConnManager) OpenedStream(_ network.Network, s network.Stream) {
 	logger.Trace(
 		"Opened stream",
 		"peer", s.Conn().RemotePeer(),
@@ -258,7 +215,7 @@ func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb func(id p
 }
 
 // ClosedStream is called when a stream closed
-func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
+func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
 	logger.Trace(
 		"Closed stream",
 		"peer", s.Conn().RemotePeer(),

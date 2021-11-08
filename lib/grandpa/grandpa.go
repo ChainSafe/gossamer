@@ -38,6 +38,7 @@ import (
 
 const (
 	finalityGrandpaRoundMetrics = "gossamer/finality/grandpa/round"
+	defaultGrandpaInterval      = time.Second
 )
 
 var (
@@ -147,7 +148,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	if cfg.Interval == 0 {
-		return nil, ErrZeroInterval
+		cfg.Interval = defaultGrandpaInterval
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
