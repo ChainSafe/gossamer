@@ -164,9 +164,13 @@ type chainSync struct {
 // ByPeerStateNumber implements sort.Interface to make the it sortable by peerState.number
 type ByPeerStateNumber []interface{}
 
-func (peerArray ByPeerStateNumber) Len() int           { return len(peerArray) }
-func (peerArray ByPeerStateNumber) Less(i, j int) bool { return (peerArray[i]).(*big.Int).Cmp(peerArray[j].(*big.Int)) < 0 }
-func (peerArray ByPeerStateNumber) Swap(i, j int)      { peerArray[i], peerArray[j] = peerArray[j], peerArray[i] }
+func (peerArray ByPeerStateNumber) Len() int { return len(peerArray) }
+func (peerArray ByPeerStateNumber) Less(i, j int) bool {
+	return (peerArray[i]).(*big.Int).Cmp(peerArray[j].(*big.Int)) < 0
+}
+func (peerArray ByPeerStateNumber) Swap(i, j int) {
+	peerArray[i], peerArray[j] = peerArray[j], peerArray[i]
+}
 
 func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, minPeers int, slotDuration time.Duration) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
