@@ -360,10 +360,10 @@ func TestService_Import(t *testing.T) {
 	tr := trie.NewEmptyTrie()
 	var testCases = []string{
 		"asdf",
-		"ghjk",
+		"ghat",
 		"qwerty",
-		"uiopl",
-		"zxcv",
+		"biol",
+		"zach",
 		"bnm",
 	}
 	for _, tc := range testCases {
