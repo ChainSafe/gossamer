@@ -484,12 +484,12 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	nodes := []*utils.Node{node}
 
 	// Start rest of nodes
-	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, true, false)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
-	node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, true, false)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
+	// node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, true, false)
+	// require.NoError(t, err)
+	// nodes = append(nodes, node)
+	// node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, true, false)
+	// require.NoError(t, err)
+	// nodes = append(nodes, node)
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
@@ -554,5 +554,16 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	var result []byte
 	_, result, err = conn.ReadMessage()
 	require.NoError(t, err)
-	fmt.Println("result:", result)
+	require.Equal(t, "{\"jsonrpc\":\"2.0\",\"result\":1,\"id\":1}\n", string(result))
+
+	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+
+	_, result, err = conn.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, "{\"jsonrpc\":\"2.0\",\"method\":\"author_extrinsicUpdate\",\"params\":{\"result\":\"ready\",\"subscription\":1}}\n", string(result))
+
+	_, result, err = conn.ReadMessage()
+	require.NoError(t, err)
+	require.Contains(t, string(result), "{\"jsonrpc\":\"2.0\",\"method\":\"author_extrinsicUpdate\",\"params\":{\"result\":{\"inBlock\":\"")
+
 }
