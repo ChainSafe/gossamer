@@ -18,21 +18,21 @@ import (
 )
 
 func TestGrandpaModule_ProveFinality(t *testing.T) {
-	mockedHash := common.NewHash([]byte{0x01, 0x02})
-	mockedHashSlice := []common.Hash{mockedHash, mockedHash, mockedHash}
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	testHashSlice := []common.Hash{testHash, testHash, testHash}
 
 	mockBlockFinalityAPI := new(apimocks.BlockFinalityAPI)
 	mockBlockAPI := new(apimocks.BlockAPI)
-	mockBlockAPI.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(mockedHashSlice, nil)
+	mockBlockAPI.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(testHashSlice, nil)
 	mockBlockAPI.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
 	mockBlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return([]byte("test"), nil)
 
 	mockBlockAPIHasJustErr := new(apimocks.BlockAPI)
-	mockBlockAPIHasJustErr.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(mockedHashSlice, nil)
+	mockBlockAPIHasJustErr.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(testHashSlice, nil)
 	mockBlockAPIHasJustErr.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(false, nil)
 
 	mockBlockAPIGetJustErr := new(apimocks.BlockAPI)
-	mockBlockAPIGetJustErr.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(mockedHashSlice, nil)
+	mockBlockAPIGetJustErr.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(testHashSlice, nil)
 	mockBlockAPIGetJustErr.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
 	mockBlockAPIGetJustErr.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(nil, errors.New("GetJustification error"))
 
@@ -63,10 +63,9 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				grandpaModule.blockFinalityAPI,
 			},
 			args: args{
-				r: nil,
 				req: &ProveFinalityRequest{
-					blockHashStart: mockedHash,
-					blockHashEnd:   mockedHash,
+					blockHashStart: testHash,
+					blockHashEnd:   testHash,
 					authorityID:    uint64(21),
 				},
 				res: &res,
@@ -80,15 +79,13 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				mockBlockFinalityAPI,
 			},
 			args: args{
-				r: nil,
 				req: &ProveFinalityRequest{
-					blockHashStart: mockedHash,
-					blockHashEnd:   mockedHash,
+					blockHashStart: testHash,
+					blockHashEnd:   testHash,
 					authorityID:    uint64(21),
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "HasJustification Error",
@@ -97,15 +94,13 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				mockBlockFinalityAPI,
 			},
 			args: args{
-				r: nil,
 				req: &ProveFinalityRequest{
-					blockHashStart: mockedHash,
-					blockHashEnd:   mockedHash,
+					blockHashStart: testHash,
+					blockHashEnd:   testHash,
 					authorityID:    uint64(21),
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetJustification Error",
@@ -114,15 +109,13 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				mockBlockFinalityAPI,
 			},
 			args: args{
-				r: nil,
 				req: &ProveFinalityRequest{
-					blockHashStart: mockedHash,
-					blockHashEnd:   mockedHash,
+					blockHashStart: testHash,
+					blockHashEnd:   testHash,
 					authorityID:    uint64(21),
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -188,11 +181,9 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 				mockBlockFinalityAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

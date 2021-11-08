@@ -40,13 +40,11 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 				syncStateModule.syncStateAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GenSyncSpecRequest{
 					Raw: true,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GenSyncSpec Err",
@@ -54,7 +52,6 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 				mockSyncStateAPIErr,
 			},
 			args: args{
-				in0: nil,
 				req: &GenSyncSpecRequest{
 					Raw: true,
 				},
@@ -76,15 +73,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 }
 
 func TestNewStateSync(t *testing.T) {
-	g := &genesis.Genesis{
-		Name:       "",
-		ID:         "",
-		Bootnodes:  nil,
-		ProtocolID: "",
-		Genesis: genesis.Fields{
-			Runtime: nil,
-		},
-	}
+	g := &genesis.Genesis{}
 	raw := make(map[string][]byte)
 	mockStorageAPI := new(apimocks.StorageAPI)
 	mockStorageAPI.On("Entries", mock.AnythingOfType("*common.Hash")).Return(raw, nil)
@@ -107,7 +96,6 @@ func TestNewStateSync(t *testing.T) {
 				gData:      g.GenesisData(),
 				storageAPI: mockStorageAPI,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Err Case",
@@ -130,15 +118,7 @@ func TestNewStateSync(t *testing.T) {
 }
 
 func Test_syncState_GenSyncSpec(t *testing.T) {
-	g := &genesis.Genesis{
-		Name:       "",
-		ID:         "",
-		Bootnodes:  nil,
-		ProtocolID: "",
-		Genesis: genesis.Fields{
-			Runtime: nil,
-		},
-	}
+	g := &genesis.Genesis{}
 	type fields struct {
 		chainSpecification *genesis.Genesis
 	}
@@ -154,10 +134,6 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 		{
 			name:   "GenSyncSpec False",
 			fields: fields{g},
-			args: args{
-				raw: false,
-			},
-			wantErr: false,
 		},
 		{
 			name:   "GenSyncSpec True",
@@ -165,7 +141,6 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 			args: args{
 				raw: true,
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

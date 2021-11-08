@@ -17,12 +17,12 @@ import (
 )
 
 func TestChainModule_GetBlock(t *testing.T) {
-	mockedHash := common.NewHash([]byte{0x01, 0x02})
+	testHash := common.NewHash([]byte{0x01, 0x02})
 	emptyBlock := types.NewEmptyBlock()
 
 	mockBlockAPI := new(apimocks.BlockAPI)
 	mockBlockAPI.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(&emptyBlock, nil)
-	mockBlockAPI.On("BestBlockHash").Return(mockedHash, nil)
+	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
 
 	mockBlockAPIGetHashErr := new(apimocks.BlockAPI)
 	mockBlockAPIGetHashErr.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, errors.New("GetJustification error"))
@@ -54,11 +54,9 @@ func TestChainModule_GetBlock(t *testing.T) {
 				chainModule.blockAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &ChainHashRequest{},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetBlockByHash Err",
@@ -66,8 +64,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 				mockBlockAPIGetHashErr,
 			},
 			args: args{
-				r:   nil,
-				req: &ChainHashRequest{&mockedHash},
+				req: &ChainHashRequest{&testHash},
 				res: &res,
 			},
 			wantErr: true,
@@ -78,11 +75,9 @@ func TestChainModule_GetBlock(t *testing.T) {
 				mockBlockAPIWithBody,
 			},
 			args: args{
-				r:   nil,
-				req: &ChainHashRequest{&mockedHash},
+				req: &ChainHashRequest{&testHash},
 				res: &res,
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -98,16 +93,16 @@ func TestChainModule_GetBlock(t *testing.T) {
 }
 
 func TestChainModule_GetBlockHash(t *testing.T) {
-	mockedHash := common.NewHash([]byte{0x01, 0x02})
+	testHash := common.NewHash([]byte{0x01, 0x02})
 	i := make([]interface{}, 1)
 	i[0] = "a"
 
 	mockBlockAPI := new(apimocks.BlockAPI)
-	mockBlockAPI.On("BestBlockHash").Return(mockedHash, nil)
-	mockBlockAPI.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(mockedHash, nil)
+	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
+	mockBlockAPI.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(testHash, nil)
 
 	mockBlockAPIErr := new(apimocks.BlockAPI)
-	mockBlockAPIErr.On("BestBlockHash").Return(mockedHash, nil)
+	mockBlockAPIErr.On("BestBlockHash").Return(testHash, nil)
 	mockBlockAPIErr.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(nil, errors.New("GetBlockHash Error"))
 
 	var res ChainHashResponse
@@ -131,11 +126,9 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &ChainBlockNumberRequest{},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetBlockHash string req OK",
@@ -143,11 +136,9 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &ChainBlockNumberRequest{"21"},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetBlockHash float req OK",
@@ -155,11 +146,9 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &ChainBlockNumberRequest{float64(21)},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetBlockHash unknown request number",
@@ -167,7 +156,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &ChainBlockNumberRequest{uintptr(1)},
 				res: &res,
 			},
@@ -179,7 +167,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &ChainBlockNumberRequest{i},
 				res: &res,
 			},
@@ -191,7 +178,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				mockBlockAPIErr,
 			},
 			args: args{
-				r:   nil,
 				req: &ChainBlockNumberRequest{"21"},
 				res: &res,
 			},
@@ -211,10 +197,10 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 }
 
 func TestChainModule_GetFinalizedHead(t *testing.T) {
-	mockedHash := common.NewHash([]byte{0x01, 0x02})
+	testHash := common.NewHash([]byte{0x01, 0x02})
 
 	mockBlockAPI := new(apimocks.BlockAPI)
-	mockBlockAPI.On("GetHighestFinalisedHash").Return(mockedHash, nil)
+	mockBlockAPI.On("GetHighestFinalisedHash").Return(testHash, nil)
 
 	mockBlockAPIErr := new(apimocks.BlockAPI)
 	mockBlockAPIErr.On("GetHighestFinalisedHash").Return(nil, errors.New("GetHighestFinalisedHash Error"))
@@ -240,11 +226,9 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetHighestFinalisedHash ERR",
@@ -252,7 +236,6 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 				mockBlockAPIErr,
 			},
 			args: args{
-				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
@@ -272,10 +255,10 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 }
 
 func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
-	mockedHash := common.NewHash([]byte{0x01, 0x02})
+	testHash := common.NewHash([]byte{0x01, 0x02})
 
 	mockBlockAPI := new(apimocks.BlockAPI)
-	mockBlockAPI.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(mockedHash, nil)
+	mockBlockAPI.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(testHash, nil)
 
 	mockBlockAPIErr := new(apimocks.BlockAPI)
 	mockBlockAPIErr.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(nil, errors.New("GetFinalisedHash Error"))
@@ -301,14 +284,12 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r: nil,
 				req: &ChainFinalizedHeadRequest{
 					Round: uint64(21),
 					SetID: uint64(21),
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetFinalisedHash ERR",
@@ -316,7 +297,6 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 				mockBlockAPIErr,
 			},
 			args: args{
-				r: nil,
 				req: &ChainFinalizedHeadRequest{
 					Round: uint64(21),
 					SetID: uint64(21),
@@ -340,7 +320,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 
 func TestChainModule_GetHeader(t *testing.T) {
 	emptyHeader := types.NewEmptyHeader()
-	mockedHash := common.NewHash([]byte{0x01, 0x02})
+	testHash := common.NewHash([]byte{0x01, 0x02})
 
 	mockBlockAPI := new(apimocks.BlockAPI)
 	mockBlockAPI.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(emptyHeader, nil)
@@ -369,11 +349,9 @@ func TestChainModule_GetHeader(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				r:   nil,
-				req: &ChainHashRequest{&mockedHash},
+				req: &ChainHashRequest{&testHash},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetHeader ERR",
@@ -381,8 +359,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 				mockBlockAPIErr,
 			},
 			args: args{
-				r:   nil,
-				req: &ChainHashRequest{&mockedHash},
+				req: &ChainHashRequest{&testHash},
 				res: &res,
 			},
 			wantErr: true,
@@ -452,14 +429,12 @@ func TestHeaderToJSON(t *testing.T) {
 			args: args{
 				header: *emptyHeader,
 			},
-			wantErr: false,
 		},
 		{
 			name: "HeaderToJSON NonEmpty Header",
 			args: args{
 				header: *header,
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

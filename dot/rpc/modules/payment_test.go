@@ -16,7 +16,7 @@ import (
 )
 
 func TestPaymentModule_QueryInfo(t *testing.T) {
-	mockedHash := common.NewHash([]byte{0x01, 0x02})
+	testHash := common.NewHash([]byte{0x01, 0x02})
 	u, err := scale.NewUint128(new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6}))
 	require.NoError(t, err)
 
@@ -71,14 +71,12 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				paymentModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &PaymentQueryInfoRequest{
 					Ext:  "0x0000",
-					Hash: &mockedHash,
+					Hash: &testHash,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Not Nil Query Info",
@@ -86,14 +84,12 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				blockAPIMock2,
 			},
 			args: args{
-				in0: nil,
 				req: &PaymentQueryInfoRequest{
 					Ext:  "0x0000",
-					Hash: &mockedHash,
+					Hash: &testHash,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Nil Hash",
@@ -101,10 +97,8 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				paymentModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &PaymentQueryInfoRequest{
 					Ext:  "0x0",
-					Hash: nil,
 				},
 				res: &res,
 			},
@@ -116,14 +110,11 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				paymentModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &PaymentQueryInfoRequest{
 					Ext:  "0x0000",
-					Hash: nil,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "PaymentQueryInfo error",
@@ -131,10 +122,9 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				blockErrorAPIMock1,
 			},
 			args: args{
-				in0: nil,
 				req: &PaymentQueryInfoRequest{
 					Ext:  "0x0000",
-					Hash: &mockedHash,
+					Hash: &testHash,
 				},
 				res: &res,
 			},
@@ -146,10 +136,9 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				blockErrorAPIMock2,
 			},
 			args: args{
-				in0: nil,
 				req: &PaymentQueryInfoRequest{
 					Ext:  "0x0000",
-					Hash: &mockedHash,
+					Hash: &testHash,
 				},
 				res: &res,
 			},

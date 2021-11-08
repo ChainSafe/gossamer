@@ -13,7 +13,6 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 	mockRuntimeStorageAPI := new(apimocks.RuntimeStorageAPI)
 	mockRuntimeStorageAPI.On("GetPersistent", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("GetPersistent error"))
 	mockRuntimeStorageAPI.On("GetLocal", mock.AnythingOfType("[]uint8")).Return([]byte("some-value"), nil)
-
 	offChainModule := NewOffchainModule(mockRuntimeStorageAPI)
 
 	var res StringResponse
@@ -37,7 +36,6 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				offChainModule.nodeStorage,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageGet{
 					Kind: offchainPersistent,
 					Key:  "0x11111111111111",
@@ -52,7 +50,6 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				offChainModule.nodeStorage,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageGet{
 					Kind: "invalid kind",
 					Key:  "0x11111111111111",
@@ -67,14 +64,12 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				offChainModule.nodeStorage,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageGet{
 					Kind: offchainLocal,
 					Key:  "0x11111111111111",
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Invalid key",
@@ -82,7 +77,6 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				offChainModule.nodeStorage,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageGet{
 					Kind: offchainLocal,
 					Key:  "0x1",
@@ -130,7 +124,6 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				mockRuntimeStorageAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageSet{
 					Kind:  offchainLocal,
 					Key:   "0x11111111111111",
@@ -138,7 +131,6 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 				in2: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Invalid Key",
@@ -146,7 +138,6 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				mockRuntimeStorageAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageSet{
 					Kind:  offchainLocal,
 					Key:   "0x1",
@@ -162,7 +153,6 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				mockRuntimeStorageAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageSet{
 					Kind:  offchainLocal,
 					Key:   "0x11111111111111",
@@ -178,7 +168,6 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				mockRuntimeStorageAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageSet{
 					Kind:  offchainPersistent,
 					Key:   "0x11111111111111",
@@ -194,7 +183,6 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				mockRuntimeStorageAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &OffchainLocalStorageSet{
 					Kind:  "bad kind",
 					Key:   "0x11111111111111",

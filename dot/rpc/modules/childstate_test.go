@@ -57,7 +57,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 	mockStorageAPI.On("GetStorageChild", &sr, []byte(":child_storage_key")).Return(tr, nil)
 
 	mockErrorStorageAPI1.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	mockErrorStorageAPI1.On("GetStorageChild", mock.AnythingOfType("*common.Hash"), []byte{}).Return(nil, errors.New("GetStorageChild error"))
+	mockErrorStorageAPI1.On("GetStorageChild", mock.AnythingOfType("*common.Hash"), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
 
 	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
 
@@ -85,15 +85,11 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetKeysRequest{
 					Key:    []byte(":child_storage_key"),
-					Prefix: []byte{},
-					Hash:   nil,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Get Keys with Hash",
@@ -102,15 +98,12 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetKeysRequest{
 					Key:    []byte(":child_storage_key"),
-					Prefix: []byte{},
 					Hash:   &hash,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetStorageChild error",
@@ -119,10 +112,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetKeysRequest{
-					Key:    []byte{},
-					Prefix: []byte{},
 					Hash:   &common.Hash{},
 				},
 				res: &res,
@@ -136,11 +126,8 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetKeysRequest{
 					Key:    []byte(":child_storage_key"),
-					Prefix: []byte{},
-					Hash:   nil,
 				},
 				res: &res,
 			},
@@ -176,7 +163,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 	mockStorageAPI.On("GetStorageFromChild", &sr, []byte(":child_storage_key"), []byte(":child_first")).Return([]byte(""), nil)
 
 	mockErrorStorageAPI1.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte{}, []byte{}).Return(nil, errors.New("GetStorageChild error"))
+	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
 
 	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
 
@@ -204,15 +191,12 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetChildStorageRequest{
 					KeyChild: []byte(":child_storage_key"),
 					EntryKey: []byte(":child_first"),
-					Hash:     nil,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Get Keys with Hash",
@@ -221,7 +205,6 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetChildStorageRequest{
 					KeyChild: []byte(":child_storage_key"),
 					EntryKey: []byte(":child_first"),
@@ -229,7 +212,6 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetStorageChild error",
@@ -238,10 +220,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetChildStorageRequest{
-					KeyChild: []byte{},
-					EntryKey: []byte{},
 					Hash:     &hash,
 				},
 				res: &res,
@@ -255,10 +234,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetChildStorageRequest{
-					KeyChild: []byte{},
-					EntryKey: []byte{},
 					Hash:     &hash,
 				},
 				res: &res,
@@ -295,7 +271,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 	mockStorageAPI.On("GetStorageFromChild", &sr, []byte(":child_storage_key"), []byte(":child_first")).Return([]byte(""), nil)
 
 	mockErrorStorageAPI1.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte{}, []byte{}).Return(nil, errors.New("GetStorageChild error"))
+	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
 
 	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
 
@@ -323,15 +299,12 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetStorageHash{
 					KeyChild: []byte(":child_storage_key"),
 					EntryKey: []byte(":child_first"),
-					Hash:     nil,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Get Keys with Hash",
@@ -340,7 +313,6 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetStorageHash{
 					KeyChild: []byte(":child_storage_key"),
 					EntryKey: []byte(":child_first"),
@@ -348,7 +320,6 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetStorageChild error",
@@ -357,10 +328,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetStorageHash{
-					KeyChild: []byte{},
-					EntryKey: []byte{},
 					Hash:     &hash,
 				},
 				res: &res,
@@ -374,10 +342,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &GetStorageHash{
-					KeyChild: []byte{},
-					EntryKey: []byte{},
 					Hash:     &hash,
 				},
 				res: &res,
@@ -414,7 +379,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 	mockStorageAPI.On("GetStorageFromChild", &sr, []byte(":child_storage_key"), []byte(":child_first")).Return([]byte("test"), nil)
 
 	mockErrorStorageAPI1.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte{}, []byte{}).Return(nil, errors.New("GetStorageChild error"))
+	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
 
 	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
 
@@ -442,15 +407,12 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &ChildStateStorageRequest{
 					ChildStorageKey: []byte(":child_storage_key"),
 					Key:             []byte(":child_first"),
-					Hash:            nil,
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Get Keys with Hash",
@@ -459,7 +421,6 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				childStateModule.blockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &ChildStateStorageRequest{
 					ChildStorageKey: []byte(":child_storage_key"),
 					Key:             []byte(":child_first"),
@@ -467,7 +428,6 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "GetStorageChild error",
@@ -476,10 +436,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &ChildStateStorageRequest{
-					ChildStorageKey: []byte{},
-					Key:             []byte{},
 					Hash:            &hash,
 				},
 				res: &res,
@@ -493,10 +450,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				mockBlockAPI,
 			},
 			args: args{
-				in0: nil,
 				req: &ChildStateStorageRequest{
-					ChildStorageKey: []byte{},
-					Key:             []byte{},
 					Hash:            &hash,
 				},
 				res: &res,

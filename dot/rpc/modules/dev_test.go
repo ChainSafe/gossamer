@@ -51,7 +51,6 @@ func Test_uint64ToHex(t *testing.T) {
 func TestDevModule_EpochLength(t *testing.T) {
 	mockBlockProducerAPI := new(apimocks.BlockProducerAPI)
 	mockBlockProducerAPI.On("EpochLength").Return(uint64(23))
-
 	devModule := NewDevModule(mockBlockProducerAPI, nil)
 
 	var res string
@@ -77,11 +76,9 @@ func TestDevModule_EpochLength(t *testing.T) {
 				devModule.blockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -124,11 +121,9 @@ func TestDevModule_SlotDuration(t *testing.T) {
 				mockBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &EmptyRequest{},
 				res: &res,
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -185,7 +180,6 @@ func TestDevModule_Control(t *testing.T) {
 				nil,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"babe", "stop"},
 				res: &res,
 			},
@@ -198,7 +192,6 @@ func TestDevModule_Control(t *testing.T) {
 				mockErrorBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"babe", "stop"},
 				res: &res,
 			},
@@ -211,11 +204,9 @@ func TestDevModule_Control(t *testing.T) {
 				mockBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"babe", "stop"},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Babe Start Error",
@@ -224,7 +215,6 @@ func TestDevModule_Control(t *testing.T) {
 				mockErrorBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"babe", "start"},
 				res: &res,
 			},
@@ -237,11 +227,9 @@ func TestDevModule_Control(t *testing.T) {
 				mockBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"babe", "start"},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Network Stop Error",
@@ -250,7 +238,6 @@ func TestDevModule_Control(t *testing.T) {
 				mockBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"network", "stop"},
 				res: &res,
 			},
@@ -263,11 +250,9 @@ func TestDevModule_Control(t *testing.T) {
 				mockBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"network", "stop"},
 				res: &res,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Network Start Error",
@@ -276,7 +261,6 @@ func TestDevModule_Control(t *testing.T) {
 				mockBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"network", "start"},
 				res: &res,
 			},
@@ -289,11 +273,9 @@ func TestDevModule_Control(t *testing.T) {
 				mockBlockProducerAPI,
 			},
 			args: args{
-				r:   nil,
 				req: &[]string{"network", "start"},
 				res: &res,
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
