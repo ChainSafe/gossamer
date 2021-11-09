@@ -301,7 +301,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	txStatusChan := c.TxStateAPI.GetStatusNotifierChannel(extBytes)
 	importedChan := c.BlockAPI.GetImportedBlockNotifierChannel()
 	finalizedChan := c.BlockAPI.GetFinalisedNotifierChannel()
-	// listen for built blocks
+
 	extSubmitListener := NewExtrinsicSubmitListener(
 		c,
 		extBytes,
@@ -318,8 +318,8 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
 	if errors.Is(err, runtime.ErrInvalidTransaction) || errors.Is(err, runtime.ErrUnknownTransaction) {
 		c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, extSubmitListener.subID, "invalid"))
-	}
-	if err != nil {
+		return nil, err
+	} else if err != nil {
 		c.safeSendError(reqID, nil, err.Error())
 		return nil, err
 	}

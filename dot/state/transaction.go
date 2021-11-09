@@ -25,7 +25,6 @@ func NewTransactionState() *TransactionState {
 		queue:            transaction.NewPriorityQueue(),
 		pool:             transaction.NewPool(),
 		notifierChannels: make(map[chan transaction.Status]string),
-		// notifierChannels: make(map[string]chan transaction.Status),
 	}
 }
 
