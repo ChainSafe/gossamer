@@ -49,15 +49,15 @@ func (b requestIDBuffer) put(i int16) error {
 	}
 }
 
-// OffchainRequest holds the request object and update the invalid and waiting status whenever
+// Request holds the request object and update the invalid and waiting status whenever
 // the request starts or is waiting to be read
-type OffchainRequest struct {
+type Request struct {
 	Request          *http.Request
 	invalid, waiting bool
 }
 
 // AddHeader add a new header into @req property only if request is valid or has not started yet
-func (r *OffchainRequest) AddHeader(k, v string) error {
+func (r *Request) AddHeader(k, v string) error {
 	if r.invalid {
 		return errInvalidRequest
 	}
@@ -77,7 +77,7 @@ func (r *OffchainRequest) AddHeader(k, v string) error {
 // HTTPSet holds a pool of concurrent http request calls
 type HTTPSet struct {
 	*sync.Mutex
-	reqs   map[int16]*OffchainRequest
+	reqs   map[int16]*Request
 	idBuff requestIDBuffer
 }
 
@@ -86,7 +86,7 @@ type HTTPSet struct {
 func NewHTTPSet() *HTTPSet {
 	return &HTTPSet{
 		new(sync.Mutex),
-		make(map[int16]*OffchainRequest),
+		make(map[int16]*Request),
 		newIntBuffer(maxConcurrentRequests),
 	}
 }
@@ -111,7 +111,7 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 		return 0, err
 	}
 
-	p.reqs[id] = &OffchainRequest{
+	p.reqs[id] = &Request{
 		Request: req,
 		invalid: false,
 		waiting: false,
@@ -131,7 +131,7 @@ func (p *HTTPSet) Remove(id int16) error {
 }
 
 // Get returns a request or nil if request not found
-func (p *HTTPSet) Get(id int16) *OffchainRequest {
+func (p *HTTPSet) Get(id int16) *Request {
 	p.Lock()
 	defer p.Unlock()
 
