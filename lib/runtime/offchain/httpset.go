@@ -74,8 +74,8 @@ func (r *OffchainRequest) AddHeader(k, v string) error {
 
 // HTTPSet holds a pool of concurrent http request calls
 type HTTPSet struct {
-	mtx    *sync.Mutex
-	reqs   map[int16]*OffchainRequest
+	*sync.Mutex
+	reqs   map[int16]*http.Request
 	idBuff requestIDBuffer
 }
 
@@ -83,17 +83,17 @@ type HTTPSet struct {
 // by runtime as HTTP clients, the max concurrent requests is 1000
 func NewHTTPSet() *HTTPSet {
 	return &HTTPSet{
-		mtx:    new(sync.Mutex),
-		reqs:   make(map[int16]*OffchainRequest),
-		idBuff: newIntBuffer(maxConcurrentRequests),
+		new(sync.Mutex),
+		make(map[int16]*http.Request),
+		newIntBuffer(maxConcurrentRequests),
 	}
 }
 
 // StartRequest create a new request using the method and the uri, adds the request into the list
 // and then return the position of the request inside the list
 func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
 	id, err := p.idBuff.get()
 	if err != nil {
@@ -120,8 +120,8 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 
 // Remove just remove a expecific request from reqs
 func (p *HTTPSet) Remove(id int16) error {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
 	delete(p.reqs, id)
 
@@ -129,9 +129,9 @@ func (p *HTTPSet) Remove(id int16) error {
 }
 
 // Get returns a request or nil if request not found
-func (p *HTTPSet) Get(id int16) *OffchainRequest {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
+func (p *HTTPSet) Get(id int16) *http.Request {
+	p.Lock()
+	defer p.Unlock()
 
 	return p.reqs[id]
 }
