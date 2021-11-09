@@ -18,11 +18,16 @@ package keystore
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+)
+
+var (
+	ErrKeyTypeNotSupported = errors.New("given key type is not supported by this keystore")
 )
 
 // BasicKeystore holds keys of a certain type
@@ -63,7 +68,7 @@ func (ks *BasicKeystore) Insert(kp crypto.Keypair) error {
 	defer ks.lock.Unlock()
 
 	if kp.Type() != ks.typ {
-		return fmt.Errorf("this keystore only accepts keys of type %s", ks.typ)
+		return fmt.Errorf("%v, passed key type: %s, acceptable key type: %s", ErrKeyTypeNotSupported, kp.Type(), ks.typ)
 	}
 
 	pub := kp.Public()

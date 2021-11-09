@@ -23,6 +23,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
 
+var (
+	ErrInvalidKeystoreName = errors.New("invalid keystore name")
+)
+
 // Name represents a defined keystore name
 type Name string
 
@@ -92,6 +96,6 @@ func (k *GlobalKeystore) GetKeystore(name []byte) (Keystore, error) {
 	case DumyName:
 		return k.Dumy, nil
 	default:
-		return nil, errors.New("invalid keystore name")
+		return nil, ErrInvalidKeystoreName
 	}
 }

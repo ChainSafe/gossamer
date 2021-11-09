@@ -18,6 +18,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -136,12 +137,12 @@ func TestService_InsertKey(t *testing.T) {
 		{
 			description:  "Test that insertKey fails when keystore type is invalid ",
 			keystoreType: "some-invalid-type",
-			err:          errors.New("invalid keystore name"),
+			err:          keystore.ErrInvalidKeystoreName,
 		},
 		{
 			description:  "Test that insertKey fails when keystore type is valid but inappropriate",
 			keystoreType: "gran",
-			err:          errors.New("this keystore only accepts keys of type ed25519"),
+			err:          fmt.Errorf("%v, passed key type: sr25519, acceptable key type: ed25519", keystore.ErrKeyTypeNotSupported),
 		},
 		{
 			description:  "Test that insertKey succeeds when keystore type is valid and appropriate ",
