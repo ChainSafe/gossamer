@@ -10,22 +10,13 @@ import (
 	"testing"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	ma "github.com/multiformats/go-multiaddr"
-
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
-=======
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/google/go-cmp/cmp"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
->>>>>>> fde39566 (revise function, add test)
 	"github.com/stretchr/testify/require"
 )
 
@@ -675,6 +666,8 @@ func TestPeerReputation(t *testing.T) {
 	rep, err := nodeA.host.cm.peerSetHandler.PeerReputation(addrInfoB.ID)
 	require.NoError(t, err)
 	require.Greater(t, rep, int32(0))
+}
+
 func mustNewMultiAddr(s string) ma.Multiaddr {
 	addr, err := ma.NewMultiaddr(s)
 	if err != nil {

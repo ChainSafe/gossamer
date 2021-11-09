@@ -73,9 +73,6 @@ func scanNetInterfaces() (ips []net.IP, err error) {
 				ip = v.IP
 			case *net.IPAddr:
 				ip = v.IP
-			default:
-				// don't know all the types that addr can be, continue to be safe
-				continue
 			}
 			if ip == nil || ip.IsUnspecified() || ip.IsLoopback() {
 				continue
