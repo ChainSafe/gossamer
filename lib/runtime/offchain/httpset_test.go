@@ -25,7 +25,7 @@ func TestHTTPSet_StartRequest_NotAvailableID(t *testing.T) {
 	t.Parallel()
 
 	set := NewHTTPSet()
-	set.reqs[0] = &http.Request{}
+	set.reqs[1] = &http.Request{}
 
 	_, err := set.StartRequest(http.MethodGet, defaultTestURI)
 	require.ErrorIs(t, errRequestIDNotAvailable, err)
