@@ -259,8 +259,11 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	params = append(params, encURI...)
 	params = append(params, encMeta...)
 
+<<<<<<< HEAD
 	fmt.Println(params)
 
+=======
+>>>>>>> development
 	resReqID := scale.NewResult(int16(0), nil)
 
 	// start request number 0

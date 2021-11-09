@@ -445,6 +445,7 @@ func generateDefaultConfig() *ctoml.Config {
 			Roles:            4,
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
+			GrandpaInterval:  1,
 		},
 		Network: ctoml.NetworkConfig{
 			Bootnodes:   nil,
@@ -511,6 +512,7 @@ func generateConfigNoGrandpa() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Core.GrandpaAuthority = false
 	cfg.Core.BABELead = true
+	cfg.Core.GrandpaInterval = 1
 	return cfg
 }
 
