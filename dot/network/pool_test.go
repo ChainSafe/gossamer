@@ -10,7 +10,9 @@ import (
 )
 
 func Benchmark_sizedBufferPool(b *testing.B) {
-	sbp := newSizedBufferPool(100, 200)
+	const preAllocate = 100
+	const poolSize = 200
+	sbp := newSizedBufferPool(preAllocate, poolSize)
 
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {
@@ -31,10 +33,10 @@ func Test_sizedBufferPool(t *testing.T) {
 	t.Parallel()
 
 	const preAlloc = 1
-	const maxQueueSize = 2
+	const poolSize = 2
 	const maxIndex = maxMessageSize - 1
 
-	pool := newSizedBufferPool(preAlloc, maxQueueSize)
+	pool := newSizedBufferPool(preAlloc, poolSize)
 
 	first := pool.get() // pre-allocated one
 	first[maxIndex] = 1
@@ -64,9 +66,9 @@ func Test_sizedBufferPool_race(t *testing.T) {
 	t.Parallel()
 
 	const preAlloc = 1
-	const maxQueueSize = 2
+	const poolSize = 2
 
-	pool := newSizedBufferPool(preAlloc, maxQueueSize)
+	pool := newSizedBufferPool(preAlloc, poolSize)
 
 	const parallelism = 4
 

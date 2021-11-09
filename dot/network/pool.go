@@ -21,10 +21,10 @@ type sizedBufferPool struct {
 	c chan []byte
 }
 
-func newSizedBufferPool(min, max int) (bp *sizedBufferPool) {
-	bufferCh := make(chan []byte, max)
+func newSizedBufferPool(preAllocate, size int) (bp *sizedBufferPool) {
+	bufferCh := make(chan []byte, size)
 
-	for i := 0; i < min; i++ {
+	for i := 0; i < preAllocate; i++ {
 		buf := make([]byte, maxMessageSize)
 		bufferCh <- buf
 	}
