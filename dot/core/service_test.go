@@ -151,7 +151,10 @@ func TestService_InsertKey(t *testing.T) {
 	}
 
 	for _, c := range testCases {
+		c := c
 		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
 			err := s.InsertKey(kr.Alice(), c.keystoreType)
 
 			if c.err == nil {
