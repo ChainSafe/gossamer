@@ -895,10 +895,37 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t { // skipcq: RVV-B0012
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan C.int32_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
-	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	toDecProofs := asMemorySlice(instanceContext, proofSpan)
+	var decProofs [][]byte
+	err := scale.Unmarshal(toDecProofs, &decProofs)
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_verify_proof_version_1]", "error", err)
+		return C.int32_t(0)
+	}
+
+	key := asMemorySlice(instanceContext, keySpan)
+	value := asMemorySlice(instanceContext, valueSpan)
+
+	mem := instanceContext.Memory().Data()
+	trieRoot := mem[rootSpan : rootSpan+32]
+
+	exists, err := trie.VerifyProof(decProofs, trieRoot, []trie.Pair{{Key: key, Value: value}})
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_verify_proof_version_1]", "error", err)
+		return C.int32_t(0)
+	}
+
+	var result C.int32_t = 0
+	if exists {
+		result = 1
+	}
+
+	return result
 }
 
 //export ext_misc_print_hex_version_1
@@ -2131,7 +2158,7 @@ func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) ([]byte, error)
 // Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (int64, error) {
 	var opt [64]byte
-	copy(opt[:], data[:])
+	copy(opt[:], data)
 	enc, err := scale.Marshal(&opt)
 	if err != nil {
 		return 0, err
