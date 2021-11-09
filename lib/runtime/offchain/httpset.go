@@ -128,7 +128,7 @@ func (r *OffchainRequest) WriteBody(data []byte, deadline *int64) error {
 	case err := <-writeDone:
 		return err
 	case <-time.After(time.Duration(*deadline)):
-		return errTimeoutWriteBody
+		return ErrTimeoutWriteBody
 	}
 }
 
