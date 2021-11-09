@@ -89,6 +89,7 @@ package wasmer
 // extern int64_t ext_offchain_submit_transaction_version_1(void *context, int64_t a);
 // extern int64_t ext_offchain_timestamp_version_1(void *context);
 // extern void ext_offchain_sleep_until_version_1(void *context, int64_t a);
+// extern int64_t ext_offchain_http_request_start_version_1(void *context, int64_t a, int64_t b, int64_t c);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
@@ -894,7 +895,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t { // skipcq: RVV-B0012
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
 	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
 	return 0
@@ -1675,6 +1676,33 @@ func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
 	logger.Warn("unimplemented")
 }
 
+//export ext_offchain_http_request_start_version_1
+func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpan, uriSpan, metaSpan C.int64_t) C.int64_t { // skipcq: RVV-B0012
+	logger.Debug("executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	httpMethod := asMemorySlice(instanceContext, methodSpan)
+	uri := asMemorySlice(instanceContext, uriSpan)
+
+	result := scale.NewResult(int16(0), nil)
+
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
+
+	if err != nil {
+		logger.Error("failed to start request", "error", err)
+		_ = result.Set(scale.Err, nil)
+	} else {
+		_ = result.Set(scale.OK, reqID)
+	}
+
+	enc, _ := scale.Marshal(result)
+	ptr, _ := toWasmMemory(instanceContext, enc)
+
+	return C.int64_t(ptr)
+}
+
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	nextLength := big.NewInt(1)
 	var valueRes []byte
@@ -2331,6 +2359,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_offchain_sleep_until_version_1", ext_offchain_sleep_until_version_1, C.ext_offchain_sleep_until_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1)
 	if err != nil {
 		return nil, err
 	}
