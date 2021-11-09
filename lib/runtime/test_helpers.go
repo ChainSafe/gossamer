@@ -18,7 +18,6 @@ package runtime
 
 import (
 	"context"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -103,7 +102,7 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 		return err
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
