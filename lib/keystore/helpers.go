@@ -329,7 +329,7 @@ func DetermineKeyType(t string) crypto.KeyType {
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
-//  are issues decoding string
+// are issues decoding string
 func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
 	keyBytes, err := common.HexToBytes(pubKeyStr)
 	if err != nil {

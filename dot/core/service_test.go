@@ -183,10 +183,11 @@ func TestService_HasKey(t *testing.T) {
 	require.True(t, res)
 
 	res, err = s.HasKey(kr.Alice().Public().Hex(), "babe")
-	require.Error(t, err)
+	require.NoError(t, err)
 	require.False(t, res)
+
 	res, err = s.HasKey(kr.Alice().Public().Hex(), "gran")
-	require.Error(t, err)
+	require.NoError(t, err)
 	require.False(t, res)
 }
 
@@ -202,7 +203,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 	s := NewTestService(t, cfg)
 
 	res, err := s.HasKey(kr.Alice().Public().Hex(), "xxxx")
-	require.EqualError(t, err, "unknown key type: xxxx")
+	require.EqualError(t, err, "invalid keystore name")
 	require.False(t, res)
 }
 
