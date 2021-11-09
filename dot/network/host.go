@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/chyeh/pubip"
 	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
@@ -23,8 +24,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	ma "github.com/multiformats/go-multiaddr"
-
-	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
 var privateCIDRs = []string{
@@ -90,8 +89,7 @@ func scanNetInterfaces() (ips []net.IP, err error) {
 	return
 }
 
-// newHost creates a host wrapper with a new libp2p host instance
-func newHost(ctx context.Context, cfg *Config) (*host, error) {
+func _newHost(ctx context.Context, cfg *Config, pubipGet func() (net.IP, error)) (*host, error) {
 	// create multiaddress (without p2p identity)
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
@@ -99,7 +97,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	var externalAddrs []ma.Multiaddr
-	ip, err := pubip.Get()
+	ip, err := pubipGet()
 	if err != nil {
 		logger.Error("failed to get public IP", "error", err)
 		// use local interface ip addresses as externalAddrs, this is used in the local devnet
@@ -228,6 +226,11 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	cm.host = host
 	return host, nil
+}
+
+// newHost creates a host wrapper with a new libp2p host instance
+func newHost(ctx context.Context, cfg *Config) (*host, error) {
+	return _newHost(ctx, cfg, pubip.Get)
 }
 
 // close closes host services and the libp2p host (host services first)

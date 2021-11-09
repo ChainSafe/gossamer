@@ -4,10 +4,13 @@
 package network
 
 import (
+	"context"
+	"fmt"
 	"net"
 	"testing"
 	"time"
 
+<<<<<<< HEAD
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
@@ -16,6 +19,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+=======
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/google/go-cmp/cmp"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	ma "github.com/multiformats/go-multiaddr"
+>>>>>>> fde39566 (revise function, add test)
 	"github.com/stretchr/testify/require"
 )
 
@@ -665,4 +675,57 @@ func TestPeerReputation(t *testing.T) {
 	rep, err := nodeA.host.cm.peerSetHandler.PeerReputation(addrInfoB.ID)
 	require.NoError(t, err)
 	require.Greater(t, rep, int32(0))
+func mustNewMultiAddr(s string) ma.Multiaddr {
+	addr, err := ma.NewMultiaddr(s)
+	if err != nil {
+		panic(err)
+	}
+	return addr
+}
+
+func Test_newHost(t *testing.T) {
+	var want []ma.Multiaddr
+	ips, err := scanNetInterfaces()
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	for _, ip := range ips {
+		want = append(want, mustNewMultiAddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 0)))
+	}
+
+	type args struct {
+		ctx      context.Context
+		cfg      *Config
+		pubipGet func() (net.IP, error)
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []ma.Multiaddr
+		wantErr bool
+	}{
+		{
+			args: args{
+				ctx: context.Background(),
+				cfg: &Config{},
+				pubipGet: func() (net.IP, error) {
+					return nil, fmt.Errorf("some error")
+				},
+			},
+			want: want,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := _newHost(tt.args.ctx, tt.args.cfg, tt.args.pubipGet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("_newHost() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got.h.Addrs()[1:], tt.want); diff != "" {
+				t.Errorf("%s", diff)
+			}
+		})
+	}
 }
