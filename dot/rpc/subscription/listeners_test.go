@@ -364,7 +364,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	expectedInitialResponse.Params.Result = expectedInitialVersion
 
 	instance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
-	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
+	err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
 	require.NoError(t, err)
 	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
