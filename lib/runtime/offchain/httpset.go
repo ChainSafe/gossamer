@@ -49,6 +49,8 @@ func (b requestIDBuffer) put(i int16) error {
 	}
 }
 
+// OffchainRequest holds the request object and update the invalid and waiting status whenever
+// the request starts or is waiting to be read
 type OffchainRequest struct {
 	Request          *http.Request
 	invalid, waiting bool
