@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -261,6 +262,11 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		"nomdns", cfg.Network.NoMDNS,
 	)
 
+	slotDuration, err := stateSrvc.Epoch.GetSlotDuration()
+	if err != nil {
+		return nil, err
+	}
+
 	// network service configuation
 	networkConfig := network.Config{
 		LogLvl:            cfg.Log.NetworkLvl,
@@ -277,6 +283,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		PublishMetrics:    cfg.Global.PublishMetrics,
 		PersistentPeers:   cfg.Network.PersistentPeers,
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
+		SlotDuration:      slotDuration,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

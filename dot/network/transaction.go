@@ -123,7 +123,7 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) NotificationsMessageBatchHandler {
 	go func() {
 		protocolID := s.host.protocolID + transactionsID
-		ticker := time.NewTicker(1 * time.Second)
+		ticker := time.NewTicker(s.cfg.SlotDuration)
 
 		for {
 		out:
@@ -131,10 +131,10 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) Notif
 			case <-s.ctx.Done():
 				return
 			case <-ticker.C:
-				innerTicker := time.NewTicker(300 * time.Millisecond)
+				timeOut := time.NewTimer(s.cfg.SlotDuration / 3)
 				for {
 					select {
-					case <-innerTicker.C:
+					case <-timeOut.C:
 						break out
 					case txnMsg := <-txnBatchCh:
 						propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
@@ -166,7 +166,6 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) Notif
 		case txnBatchCh <- data:
 		case <-time.After(time.Millisecond * 200):
 			logger.Debug("transaction message not included into batch")
-			return
 		}
 	}
 }

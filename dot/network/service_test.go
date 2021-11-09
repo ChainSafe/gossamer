@@ -91,6 +91,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg.TransactionHandler = mocktxhandler
 	}
 
+	cfg.SlotDuration = time.Second
+
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
 	if cfg.LogLvl == 0 {

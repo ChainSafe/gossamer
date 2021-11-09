@@ -109,6 +109,9 @@ type Config struct {
 	noPreAllocate bool // internal option
 
 	batchSize int // internal option
+
+	// Babe slot duration
+	SlotDuration time.Duration
 }
 
 // build checks the configuration, sets up the private key for the network service,
