@@ -378,10 +378,6 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			continue
 		}
 
-		if body == nil {
-			continue
-		}
-
 		for _, ext := range *body {
 			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
 			encExt, err := scale.Marshal(ext)
