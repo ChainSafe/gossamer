@@ -21,7 +21,7 @@ type reducer func(prevValue interface{}, newValue interface{}) interface{}
 // for comp: comp(x, y) = -1: x<y, 0: x==y, 1: x>y
 type comperator func(prevValue interface{}, newValue interface{}) int
 
-//RemoveOutlier removes the outlier from the slice
+//removeOutlier removes the outlier from the slice
 //  Explanation:
 // 	IQR outlier detection
 // 	Q25 = 25th_percentile
@@ -31,7 +31,7 @@ type comperator func(prevValue interface{}, newValue interface{}) int
 // 	If x >  Q75  + 3.0 * IQR or  x   < Q25 – 3.0 * IQR THEN  x is a extreme outlier
 // Ref: http://www.mathwords.com/o/outlier.htm
 // returns: reducer output
-func RemoveOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal interface{}, reducer, plusFn, minusFn, divideFn, multiplyFn reducer) interface{} {
+func removeOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal interface{}, reducer, plusFn, minusFn, divideFn, multiplyFn reducer) interface{} {
 	length := len(sortedArr)
 
 	switch length {

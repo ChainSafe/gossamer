@@ -161,19 +161,6 @@ type chainSync struct {
 	slotDuration time.Duration
 }
 
-// BigIntSorter implements sort.Interface to make the it sortable by peerState.number
-type BigIntSorter []interface{}
-
-func (arr BigIntSorter) Len() int { return len(arr) }
-func (arr BigIntSorter) Less(i, j int) bool {
-	a := arr[i].(*big.Int)
-	b := arr[j].(*big.Int)
-	return a.Cmp(b) < 0
-}
-func (arr BigIntSorter) Swap(i, j int) {
-	arr[i], arr[j] = arr[j], arr[i]
-}
-
 func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, minPeers int, slotDuration time.Duration) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &chainSync{
@@ -519,10 +506,13 @@ func (cs *chainSync) getTarget() *big.Int {
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
 	intArr := make([]interface{}, len(cs.peerState))
 	for _, ps := range cs.peerState {
-		intArr = append(intArr, *ps.number)
+		intArr = append(intArr, ps.number)
 	}
+
 	//now sort the array
-	sort.Sort(BigIntSorter(intArr))
+	sort.Slice(intArr, func(i, j int) bool {
+		return intArr[i].(*big.Int).Cmp(intArr[j].(*big.Int)) < 0
+	})
 
 	reducerSum := func(a, b interface{}) interface{} {
 		count++
@@ -545,9 +535,9 @@ func (cs *chainSync) getTarget() *big.Int {
 	mul := func(a, b interface{}) interface{} {
 		return big.NewInt(0).Mul(a.(*big.Int), big.NewInt(int64(b.(float64))))
 	}
-	sum := RemoveOutlier(intArr, comp, big.NewInt(0), reducerSum, plus, minus, divide, mul).(*big.Int)
+	sum := removeOutlier(intArr, comp, big.NewInt(0), reducerSum, plus, minus, divide, mul).(*big.Int)
 
-	return big.NewInt(0).Div(sum, big.NewInt(count+1))
+	return big.NewInt(0).Div(sum, big.NewInt(count))
 }
 
 // handleWork handles potential new work that may be triggered on receiving a peer's state
