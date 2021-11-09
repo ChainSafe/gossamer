@@ -75,7 +75,7 @@ func (r *OffchainRequest) AddHeader(k, v string) error {
 // HTTPSet holds a pool of concurrent http request calls
 type HTTPSet struct {
 	*sync.Mutex
-	reqs   map[int16]*http.Request
+	reqs   map[int16]*OffchainRequest
 	idBuff requestIDBuffer
 }
 
@@ -84,7 +84,7 @@ type HTTPSet struct {
 func NewHTTPSet() *HTTPSet {
 	return &HTTPSet{
 		new(sync.Mutex),
-		make(map[int16]*http.Request),
+		make(map[int16]*OffchainRequest),
 		newIntBuffer(maxConcurrentRequests),
 	}
 }
@@ -129,7 +129,7 @@ func (p *HTTPSet) Remove(id int16) error {
 }
 
 // Get returns a request or nil if request not found
-func (p *HTTPSet) Get(id int16) *http.Request {
+func (p *HTTPSet) Get(id int16) *OffchainRequest {
 	p.Lock()
 	defer p.Unlock()
 
