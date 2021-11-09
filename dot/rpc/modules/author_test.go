@@ -323,7 +323,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 
 func TestAuthorModule_InsertKey(t *testing.T) {
 	mockCoreAPI := &apimocks.CoreAPI{}
-	mockCoreAPI.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil)
+	mockCoreAPI.On("InsertKey", mock.Anything, mock.AnythingOfType("string")).Return(nil)
 
 	type fields struct {
 		logger     log.Logger

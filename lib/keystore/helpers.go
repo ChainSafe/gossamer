@@ -157,25 +157,28 @@ func LoadKeystore(key string, ks Keystore) error {
 
 		switch strings.ToLower(key) {
 		case "alice":
-			ks.Insert(kr.Alice())
+			err = ks.Insert(kr.Alice())
 		case "bob":
-			ks.Insert(kr.Bob())
+			err = ks.Insert(kr.Bob())
 		case "charlie":
-			ks.Insert(kr.Charlie())
+			err = ks.Insert(kr.Charlie())
 		case "dave":
-			ks.Insert(kr.Dave())
+			err = ks.Insert(kr.Dave())
 		case "eve":
-			ks.Insert(kr.Eve())
+			err = ks.Insert(kr.Eve())
 		case "ferdie":
-			ks.Insert(kr.Ferdie())
+			err = ks.Insert(kr.Ferdie())
 		case "george":
-			ks.Insert(kr.George())
+			err = ks.Insert(kr.George())
 		case "heather":
-			ks.Insert(kr.Heather())
+			err = ks.Insert(kr.Heather())
 		case "ian":
-			ks.Insert(kr.Ian())
+			err = ks.Insert(kr.Ian())
 		default:
-			return fmt.Errorf("invalid test key provided")
+			err = fmt.Errorf("invalid test key provided")
+		}
+		if err != nil {
+			return err
 		}
 	}
 
@@ -300,7 +303,9 @@ func UnlockKeys(ks Keystore, dir, unlock, password string) error {
 			return fmt.Errorf("failed to create keypair from private key %d: %s", idx, err)
 		}
 
-		ks.Insert(kp)
+		if err = ks.Insert(kp); err != nil {
+			return fmt.Errorf("failed to insert key in keystore: %v", err)
+		}
 	}
 
 	return nil

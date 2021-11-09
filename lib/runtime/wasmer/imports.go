@@ -259,7 +259,11 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	ks.Insert(kp)
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to insert key", "error", err)
+		return 0
+	}
 
 	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
 	if err != nil {
@@ -569,7 +573,12 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	ks.Insert(kp)
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warn("[ext_crypto_sr25519_generate_version_1] failed to insert key", "error", err)
+		return 0
+	}
+
 	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_generate_version_1] failed to allocate memory", "error", err)
