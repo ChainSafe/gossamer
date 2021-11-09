@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
 const (
@@ -57,13 +58,6 @@ type WSConnAPI interface {
 	safeSend(interface{})
 }
 
-// StorageObserver struct to hold data for observer (Observer Design Pattern)
-type StorageObserver struct {
-	id     uint32
-	filter map[string][]byte
-	wsconn *WSConn
-}
-
 // Change type defining key value pair representing change
 type Change [2]string
 
@@ -71,6 +65,13 @@ type Change [2]string
 type ChangeResult struct {
 	Changes []Change `json:"changes"`
 	Block   string   `json:"block"`
+}
+
+// StorageObserver struct to hold data for observer (Observer Design Pattern)
+type StorageObserver struct {
+	id     uint32
+	filter map[string][]byte
+	wsconn *WSConn
 }
 
 // Update is called to notify observer of new value
@@ -309,22 +310,28 @@ type ExtrinsicSubmitListener struct {
 	importedChan  chan *types.Block
 	importedHash  common.Hash
 	finalisedChan chan *types.FinalisationInfo
+	// txStatusChan is used to know when transaction/extrinsic becomes part of the
+	// ready queue or future queue.
+	// we are using transaction.PriorityQueue for ready queue and transaction.Pool
+	// for future queue.
+	txStatusChan  chan transaction.Status
 	done          chan struct{}
 	cancel        chan struct{}
 	cancelTimeout time.Duration
 }
 
 // NewExtrinsicSubmitListener constructor to build new ExtrinsicSubmitListener
-func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte) *ExtrinsicSubmitListener {
-	esl := &ExtrinsicSubmitListener{
+func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte, importedChan chan *types.Block, txStatusChan chan transaction.Status, finalisedChan chan *types.FinalisationInfo) *ExtrinsicSubmitListener {
+	return &ExtrinsicSubmitListener{
 		wsconn:        conn,
 		extrinsic:     types.Extrinsic(extBytes),
-		finalisedChan: make(chan *types.FinalisationInfo),
+		importedChan:  importedChan,
+		txStatusChan:  txStatusChan,
+		finalisedChan: finalisedChan,
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
 	}
-	return esl
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
@@ -334,8 +341,10 @@ func (l *ExtrinsicSubmitListener) Listen() {
 		defer func() {
 			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.importedChan)
 			l.wsconn.BlockAPI.FreeFinalisedNotifierChannel(l.finalisedChan)
+			l.wsconn.TxStateAPI.FreeStatusNotifierChannel(l.txStatusChan)
 			close(l.done)
 			close(l.finalisedChan)
+			close(l.txStatusChan)
 		}()
 
 		for {
@@ -373,6 +382,12 @@ func (l *ExtrinsicSubmitListener) Listen() {
 					resM["finalised"] = info.Header.Hash().String()
 					l.wsconn.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, l.subID, resM))
 				}
+			case txStatus, ok := <-l.txStatusChan:
+				if !ok {
+					return
+				}
+
+				l.wsconn.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, l.subID, txStatus.String()))
 			}
 		}
 	}()

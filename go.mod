@@ -9,12 +9,12 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.0
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/dgraph-io/badger/v2 v2.2007.2
+	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.10.11
-	github.com/go-playground/validator/v10 v10.4.1
+	github.com/go-playground/validator/v10 v10.9.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
@@ -23,7 +23,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1
 	github.com/holiman/bloomfilter/v2 v2.0.3
-	github.com/ipfs/go-ds-badger2 v0.1.0
+	github.com/ipfs/go-ds-badger2 v0.1.1
 	github.com/ipfs/go-ipns v0.1.2 //indirect
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
 	github.com/jpillora/ipfilter v1.2.2

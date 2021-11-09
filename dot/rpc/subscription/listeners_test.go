@@ -37,6 +37,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
@@ -194,6 +195,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 	notifyImportedChan := make(chan *types.Block, 100)
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
+	txStatusChan := make(chan transaction.Status)
 
 	BlockAPI := new(mocks.BlockAPI)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
@@ -201,9 +203,13 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 	wsconn.BlockAPI = BlockAPI
 
+	TxStateAPI := modules.NewMockTransactionStateAPI()
+	wsconn.TxStateAPI = TxStateAPI
+
 	esl := ExtrinsicSubmitListener{
 		importedChan:  notifyImportedChan,
 		finalisedChan: notifyFinalizedChan,
+		txStatusChan:  txStatusChan,
 		wsconn:        wsconn,
 		extrinsic:     types.Extrinsic{1, 2, 3},
 		cancel:        make(chan struct{}),
