@@ -64,7 +64,7 @@ func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Ha
 	if err := telemetry.GetInstance().SendMessage(
 		telemetry.NewTxpoolImportTM(uint(s.queue.Len()), uint(s.pool.Len())),
 	); err != nil {
-		logger.Debug("problem sending txpool.import telemetry message", "error", err)
+		logger.Warn("problem sending txpool.import telemetry message", "error", err)
 	}
 
 	return hash

@@ -260,7 +260,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		block.Header.Number,
 		"NetworkInitialSync"))
 	if err != nil {
-		logger.Debug("problem sending block.import telemetry message", "error", err)
+		logger.Warn("problem sending block.import telemetry message", "error", err)
 	}
 
 	return nil

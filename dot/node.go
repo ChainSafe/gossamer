@@ -381,7 +381,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		strconv.FormatInt(time.Now().UnixNano(), 10),
 		sysSrvc.SystemVersion()))
 	if err != nil {
-		logger.Debug("problem sending system.connected telemetry message", "err", err)
+		logger.Warn("problem sending system.connected telemetry message", "err", err)
 	}
 	return node, nil
 }

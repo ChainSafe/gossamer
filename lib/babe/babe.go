@@ -580,7 +580,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		),
 	)
 	if err != nil {
-		logger.Debug("problem sending 'prepared_block_for_proposing' telemetry message", "error", err)
+		logger.Warn("problem sending 'prepared_block_for_proposing' telemetry message", "error", err)
 	}
 
 	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
