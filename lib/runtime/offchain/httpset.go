@@ -1,11 +1,21 @@
 package offchain
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"sync"
+	"time"
 )
+
+type HTTPError int
+
+func (e HTTPError) Index() uint {
+	return uint(e)
+}
 
 const maxConcurrentRequests = 1000
 
@@ -16,6 +26,13 @@ var (
 	errInvalidRequest        = errors.New("request is invalid")
 	errRequestAlreadyStarted = errors.New("request has already started")
 	errInvalidHeaderKey      = errors.New("invalid header key")
+
+	ErrTimeoutWriteBody = errors.New("deadline reach while writing request body")
+
+	// HTTP error is a varying data type
+	HTTPErrorDeadlineReached HTTPError = 0
+	HTTPErrorIO              HTTPError = 1
+	HTTPErrorInvalidID       HTTPError = 2
 )
 
 // requestIDBuffer created to control the amount of available non-duplicated ids
@@ -70,6 +87,53 @@ func (r *OffchainRequest) AddHeader(k, v string) error {
 
 	r.Request.Header.Add(k, v)
 	return nil
+}
+
+func (r *OffchainRequest) WriteBody(data []byte, deadline *int64) error {
+	writeDone := make(chan error)
+	defer close(writeDone)
+
+	go func() {
+		currBody, err := io.ReadAll(r.Request.Body)
+		defer r.Request.Body.Close()
+		if err != nil {
+			writeDone <- err
+			return
+		}
+
+		currBodyBuff := bytes.NewBuffer(currBody)
+		amountWrite, err := currBodyBuff.Write(data)
+		if err != nil {
+			writeDone <- err
+			return
+		}
+
+		if amountWrite != len(data) {
+			writeDone <- fmt.Errorf("total chunk length: %v, total chunk write: %v", len(data), amountWrite)
+			return
+		}
+
+		r.Request.Body = ioutil.NopCloser(currBodyBuff)
+		r.Request.ContentLength = int64(currBodyBuff.Len())
+		writeDone <- nil
+	}()
+
+	if deadline == nil {
+		// deadline was passed as None then blocks indefinitely
+		err := <-writeDone
+		return err
+	}
+
+	select {
+	case err := <-writeDone:
+		return err
+	case <-time.After(time.Duration(*deadline)):
+		return errTimeoutWriteBody
+	}
+}
+
+func (r *OffchainRequest) IsValid() bool {
+	return !r.invalid
 }
 
 // HTTPSet holds a pool of concurrent http request calls

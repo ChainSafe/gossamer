@@ -91,6 +91,7 @@ package wasmer
 // extern void ext_offchain_sleep_until_version_1(void *context, int64_t a);
 // extern int64_t ext_offchain_http_request_start_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern int64_t ext_offchain_http_request_add_header_version_1(void *context, int32_t a, int64_t k, int64_t v);
+// extern int64_t ext_offchain_http_request_write_body_version_1(void *context, int32_t a, int64_t k, int64_t v);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
@@ -127,6 +128,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -1730,6 +1732,91 @@ func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqI
 	return C.int64_t(ptr)
 }
 
+//export ext_offchain_http_request_write_body_version_1
+func ext_offchain_http_request_write_body_version_1(context unsafe.Pointer, reqID C.int32_t, bodySpan C.int64_t, deadlineSpan C.int64_t) C.int64_t {
+	logger.Debug("executing...")
+	instanceCtx := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceCtx.Data().(*runtime.Context)
+
+	result := scale.NewResult(nil, scale.VaryingDataType{})
+
+	httpErrorEnum, _ := scale.NewVaryingDataType(
+		offchain.HTTPErrorDeadlineReached,
+		offchain.HTTPErrorIO,
+		offchain.HTTPErrorInvalidID,
+	)
+
+	req := runtimeCtx.OffchainHTTPSet.Get(int16(reqID))
+	if req == nil || !req.IsValid() {
+		logger.Error("invalid request id", "error", "request not found or invalid")
+		_ = httpErrorEnum.Set(offchain.HTTPErrorInvalidID)
+		_ = result.Set(scale.Err, httpErrorEnum)
+
+		enc, _ := scale.Marshal(result)
+		ptr, _ := toWasmMemory(instanceCtx, enc)
+
+		return C.int64_t(ptr)
+	}
+
+	encDeadline := asMemorySlice(instanceCtx, deadlineSpan)
+
+	var deadline *int64
+	err := scale.Unmarshal(encDeadline, &deadline)
+	if err != nil {
+		logger.Error("unable to decode deadline option", "error", err)
+		_ = httpErrorEnum.Set(offchain.HTTPErrorIO)
+		_ = result.Set(scale.Err, httpErrorEnum)
+
+		enc, _ := scale.Marshal(result)
+		ptr, _ := toWasmMemory(instanceCtx, enc)
+
+		return C.int64_t(ptr)
+	}
+
+	encBody := asMemorySlice(instanceCtx, bodySpan)
+	var body []byte
+	err = scale.Unmarshal(encBody, &body)
+	if err != nil {
+		logger.Error("unable to decode deadline option", "error", err)
+		_ = httpErrorEnum.Set(offchain.HTTPErrorIO)
+		_ = result.Set(scale.Err, httpErrorEnum)
+
+		enc, _ := scale.Marshal(result)
+		ptr, _ := toWasmMemory(instanceCtx, enc)
+
+		return C.int64_t(ptr)
+	}
+
+	err = req.WriteBody(body, deadline)
+	switch err {
+	case nil:
+		_ = result.Set(scale.OK, nil)
+		enc, _ := scale.Marshal(result)
+		ptr, _ := toWasmMemory(instanceCtx, enc)
+
+		return C.int64_t(ptr)
+
+	case offchain.ErrTimeoutWriteBody:
+		logger.Error("failed to write body", "error", err)
+		_ = httpErrorEnum.Set(offchain.HTTPErrorDeadlineReached)
+		_ = result.Set(scale.Err, httpErrorEnum)
+
+		enc, _ := scale.Marshal(result)
+		ptr, _ := toWasmMemory(instanceCtx, enc)
+
+		return C.int64_t(ptr)
+	default:
+		logger.Error("failed to write body", "error", err)
+		_ = httpErrorEnum.Set(offchain.HTTPErrorIO)
+		_ = result.Set(scale.Err, httpErrorEnum)
+
+		enc, _ := scale.Marshal(result)
+		ptr, _ := toWasmMemory(instanceCtx, enc)
+
+		return C.int64_t(ptr)
+	}
+}
+
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	nextLength := big.NewInt(1)
 	var valueRes []byte
@@ -2394,6 +2481,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_offchain_http_request_add_header_version_1", ext_offchain_http_request_add_header_version_1, C.ext_offchain_http_request_add_header_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_offchain_http_request_write_body_version_1", ext_offchain_http_request_write_body_version_1, C.ext_offchain_http_request_write_body_version_1)
 	if err != nil {
 		return nil, err
 	}
