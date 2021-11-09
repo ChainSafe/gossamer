@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 
 func TestHandler_SendMulti(t *testing.T) {
 	var wg sync.WaitGroup
-	wg.Add(6)
+	wg.Add(9)
 
 	resultCh = make(chan []byte)
 
@@ -92,6 +92,21 @@ func TestHandler_SendMulti(t *testing.T) {
 		wg.Done()
 	}()
 
+	go func() {
+		GetInstance().SendMessage(NewAfgReceivedCommitTM(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"), "1", []string{}))
+		wg.Done()
+	}()
+
+	go func() {
+		GetInstance().SendMessage(NewAfgReceivedPrecommitTM(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"), "1", ""))
+		wg.Done()
+	}()
+
+	go func() {
+		GetInstance().SendMessage(NewAfgReceivedPrevoteTM(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"), "1", ""))
+		wg.Done()
+	}()
+
 	wg.Wait()
 
 	expected1 := []byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`)
@@ -100,13 +115,15 @@ func TestHandler_SendMulti(t *testing.T) {
 	expected4 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","ts":`) // nolint
 	expected5 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":"32375","msg":"notify.finalized","ts":`)
 	expected6 := []byte(`{"hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","msg":"prepared_block_for_proposing","number":"1","ts":`)
-
-	expected := [][]byte{expected1, expected3, expected4, expected5, expected2, expected6}
+	expected7 := []byte(`{"contains_precommits_signed_by":[],"msg":"afg.received_commit","target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","ts":`)
+	expected8 := []byte(`{"msg":"afg.received_precommit","target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","ts":`)
+	expected9 := []byte(`{"msg":"afg.received_prevote","target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","ts":`)
+	expected := [][]byte{expected1, expected3, expected4, expected5, expected2, expected7, expected6, expected8, expected9}
 
 	var actual [][]byte
 	for data := range resultCh {
 		actual = append(actual, data)
-		if len(actual) == 6 {
+		if len(actual) == 9 {
 			break
 		}
 	}

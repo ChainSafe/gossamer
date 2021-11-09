@@ -29,11 +29,14 @@ import (
 
 // telemetry message types
 const (
-	notifyFinalizedMsg    = "notify.finalized"
-	blockImportMsg        = "block.import"
-	systemNetworkStateMsg = "system.network_state"
-	systemConnectedMsg    = "system.connected"
-	systemIntervalMsg     = "system.interval"
+	notifyFinalizedMsg      = "notify.finalized"
+	blockImportMsg          = "block.import"
+	systemNetworkStateMsg   = "system.network_state"
+	systemConnectedMsg      = "system.connected"
+	systemIntervalMsg       = "system.interval"
+	afgReceivedPrecommitMsg = "afg.received_precommit"
+	afgReceivedPrevoteMsg   = "afg.received_prevote"
+	afgReceivedCommitMsg    = "afg.received_commit"
 )
 
 type telemetryConnection struct {

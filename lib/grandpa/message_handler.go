@@ -24,6 +24,7 @@ import (
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -105,6 +106,23 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	logger.Debug("received commit message", "msg", msg)
+
+	contains_precommits_signed_by := make([]string, len(msg.AuthData))
+	for i, authData := range msg.AuthData {
+		contains_precommits_signed_by[i] = authData.AuthorityID.String()
+	}
+
+	err := telemetry.GetInstance().SendMessage(
+		telemetry.NewAfgReceivedCommitTM(
+			msg.Vote.Hash,
+			fmt.Sprintf("%d", msg.Vote.Number),
+			contains_precommits_signed_by,
+		),
+	)
+	if err != nil {
+		logger.Debug("problem sending afg.received_commit telemetry message", "err", err)
+	}
+
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil
 	}

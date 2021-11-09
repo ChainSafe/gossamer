@@ -20,7 +20,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -48,6 +50,31 @@ func (s *Service) receiveMessages(ctx context.Context) {
 
 			logger.Trace("received vote message", "msg", msg.msg, "from", msg.from)
 			vm := msg.msg
+
+			switch vm.Message.Stage {
+			case prevote:
+				err := telemetry.GetInstance().SendMessage(
+					telemetry.NewAfgReceivedPrevoteTM(
+						vm.Message.Hash,
+						fmt.Sprintf("%d", vm.Message.Number),
+						vm.Message.AuthorityID.String(),
+					),
+				)
+				if err != nil {
+					logger.Debug("problem sending afg.received_prevote telemetry message", "err", err)
+				}
+			case precommit:
+				err := telemetry.GetInstance().SendMessage(
+					telemetry.NewAfgReceivedPrecommitTM(
+						vm.Message.Hash,
+						fmt.Sprintf("%d", vm.Message.Number),
+						vm.Message.AuthorityID.String(),
+					),
+				)
+				if err != nil {
+					logger.Debug("problem sending afg.received_precommit telemetry message", "err", err)
+				}
+			}
 
 			v, err := s.validateMessage(msg.from, vm)
 			if err != nil {
