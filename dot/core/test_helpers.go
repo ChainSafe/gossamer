@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -127,6 +126,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		net := new(coremocks.Network)
 		net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
 		net.On("IsSynced").Return(true)
+		net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 		cfg.Network = net
 	}
 
@@ -147,11 +147,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	s, err := NewService(cfg)
 	require.NoError(t, err)
-
-	if net, ok := cfg.Network.(*network.Service); ok {
-		net.SetTransactionHandler(s)
-		_ = net.Stop()
-	}
 
 	return s
 }

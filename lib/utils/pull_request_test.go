@@ -17,20 +17,20 @@ func Test_CheckPRDescription(t *testing.T) {
 		err   error
 	}{
 		"all empty": {
-			err: errors.New("title pattern is not valid: for regular expression ^[A-Za-z]+\\([A-Za-z/]+\\):.+[A-Za-z]+$: ''"),
+			err: errors.New(`title pattern is not valid: for regular expression ^[A-Za-z-_]+\([-_/A-Za-z ]+\):.+[A-Za-z]+.+$: ''`),
 		},
 		"invalid title": {
 			title: "category: something",
-			err:   errors.New("title pattern is not valid: for regular expression ^[A-Za-z]+\\([A-Za-z/]+\\):.+[A-Za-z]+$: 'category: something'"),
+			err:   errors.New(`title pattern is not valid: for regular expression ^[A-Za-z-_]+\([-_/A-Za-z ]+\):.+[A-Za-z]+.+$: 'category: something'`),
 		},
 		"empty body only": {
 			title: "category(subcategory): something",
-			err:   errors.New("body section not found: \"## Changes\\n\""),
+			err:   errors.New("body section not found: \"## Changes\\n\" in body: "),
 		},
 		"invalid body": {
 			title: "category(subcategory): something",
-			body:  "##Changes ## Tests ## Issues ## Primary Reviewer",
-			err:   errors.New("body section not found: \"## Changes\\n\""),
+			body:  "##Change\n## Tests ## Issues ## Primary Reviewer",
+			err:   errors.New("body section not found: \"## Changes\\n\" in body: ##Change\\n## Tests ## Issues ## Primary Reviewer"),
 		},
 		"misplaced section": {
 			title: "category(subcategory): something",

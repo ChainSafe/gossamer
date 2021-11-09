@@ -19,6 +19,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"strings"
@@ -26,6 +27,7 @@ import (
 	"time"
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -96,7 +98,7 @@ type Service struct {
 
 	// telemetry
 	telemetryInterval time.Duration
-	closeCh           chan interface{}
+	closeCh           chan struct{}
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
@@ -170,7 +172,7 @@ func NewService(cfg *Config) (*Service, error) {
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
-		closeCh:                make(chan interface{}),
+		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
@@ -238,7 +240,7 @@ func (s *Service) Start() error {
 		txnBatchHandler,
 	)
 	if err != nil {
-		logger.Warnf("failed to register notifications protocol with block announce id %s: %s", blockAnnounceID, err)
+		logger.Warnf("failed to register notifications protocol with transaction id %s: %s", transactionsID, err)
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
@@ -249,9 +251,7 @@ func (s *Service) Start() error {
 		logger.Infof("Started listening on %s", addr)
 	}
 
-	if !s.noBootstrap {
-		s.host.bootstrap()
-	}
+	s.startPeerSetHandler()
 
 	if !s.noMDNS {
 		s.mdns.start()
@@ -318,7 +318,7 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) publishNetworkTelemetry(done chan interface{}) {
+func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
@@ -372,8 +372,9 @@ func (s *Service) sentBlockIntervalTelemetry() {
 	}
 }
 
-func (*Service) handleConn(conn libp2pnetwork.Conn) {
-	// TODO: update this for scoring (#1399)
+func (s *Service) handleConn(conn libp2pnetwork.Conn) {
+	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
+	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -393,6 +394,8 @@ func (s *Service) Stop() error {
 	if err != nil {
 		logger.Errorf("Failed to close host: %s", err)
 	}
+
+	s.host.cm.peerSetHandler.Stop()
 
 	// check if closeCh is closed, if not, close it.
 mainloop:
@@ -731,4 +734,66 @@ func (*Service) StartingBlock() int64 {
 // IsSynced returns whether we are synced (no longer in bootstrap mode) or not
 func (s *Service) IsSynced() bool {
 	return s.syncer.IsSynced()
+}
+
+// ReportPeer reports ReputationChange according to the peer behaviour.
+func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
+	s.host.cm.peerSetHandler.ReportPeer(change, p)
+}
+
+func (s *Service) startPeerSetHandler() {
+	s.host.cm.peerSetHandler.Start()
+	// wait for peerSetHandler to start.
+	if !s.noBootstrap {
+		s.host.bootstrap()
+	}
+
+	go s.startProcessingMsg()
+}
+
+func (s *Service) processMessage(msg peerset.Message) {
+	peerID := msg.PeerID
+	switch msg.Status {
+	case peerset.Connect:
+		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
+		if len(addrInfo.Addrs) == 0 {
+			var err error
+			addrInfo, err = s.host.discovery.findPeer(peerID)
+			if err != nil {
+				logger.Debugf("failed to find peer id %s: %s", peerID, err)
+				return
+			}
+		}
+
+		err := s.host.connect(addrInfo)
+		if err != nil {
+			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
+			return
+		}
+		logger.Debugf("connection successful with peer %s", peerID)
+	case peerset.Drop, peerset.Reject:
+		err := s.host.closePeer(peerID)
+		if err != nil {
+			logger.Debugf("failed to close connection with peer %s: %s", peerID, err)
+			return
+		}
+		logger.Debugf("connection dropped successfully for peer %s", peerID)
+	}
+}
+
+func (s *Service) startProcessingMsg() {
+	msgCh := s.host.cm.peerSetHandler.Messages()
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case m := <-msgCh:
+			msg, ok := m.(peerset.Message)
+			if !ok {
+				logger.Error(fmt.Sprintf("failed to get message from peerSet: type is %T instead of peerset.Message", m))
+				continue
+			}
+			s.processMessage(msg)
+		}
+	}
 }

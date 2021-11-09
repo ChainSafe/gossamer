@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -251,6 +252,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			if !seen {
 				s.broadcastExcluding(info, data.peer, data.msg)
 			}
+
+			// report peer if we get duplicate gossip message.
+			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.DuplicateGossipValue,
+				Reason: peerset.DuplicateGossipReason,
+			}, peer)
 		}
 
 		return nil
@@ -259,6 +266,11 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
+		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.BadProtocolValue,
+			Reason: peerset.BadProtocolReason,
+		}, peer)
+
 		return
 	}
 
@@ -296,6 +308,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		var hs Handshake
 		select {
 		case <-hsTimer.C:
+			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.TimeOutValue,
+				Reason: peerset.TimeOutReason,
+			}, peer)
+
 			logger.Tracef("handshake timeout reached for peer %s using protocol %s", peer, info.protocolID)
 			_ = stream.Close()
 			info.outboundHandshakeData.Delete(peer)
@@ -350,6 +367,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	if err != nil {
 		logger.Debugf("failed to send message to peer %s: %s", peer, err)
 	}
+
+	s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+		Value:  peerset.GossipSuccessValue,
+		Reason: peerset.GossipSuccessReason,
+	}, peer)
 }
 
 // broadcastExcluding sends a message to each connected peer except the given peer,
@@ -392,6 +414,11 @@ func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDe
 
 		hs, err := decoder(msgBytes[:tot])
 		if err != nil {
+			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.BadMessageValue,
+				Reason: peerset.BadMessageReason,
+			}, stream.Conn().RemotePeer())
+
 			hsC <- &handshakeReader{hs: nil, err: err}
 			return
 		}
