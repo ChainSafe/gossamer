@@ -19,10 +19,12 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
+	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1667,4 +1669,100 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 
 	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
+	t.Parallel()
+
+	tmp, err := ioutil.TempDir("", "*-test-trie")
+	require.NoError(t, err)
+
+	defer os.RemoveAll(tmp)
+
+	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
+		InMemory: true,
+		DataDir:  tmp,
+	})
+	require.NoError(t, err)
+
+	otherTrie := trie.NewEmptyTrie()
+	otherTrie.Put([]byte("simple"), []byte("cat"))
+
+	otherHash, err := otherTrie.Hash()
+	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte("do"), []byte("verb"))
+	tr.Put([]byte("domain"), []byte("website"))
+	tr.Put([]byte("other"), []byte("random"))
+	tr.Put([]byte("otherwise"), []byte("randomstuff"))
+	tr.Put([]byte("cat"), []byte("another animal"))
+
+	err = tr.Store(memdb)
+	require.NoError(t, err)
+
+	hash, err := tr.Hash()
+	require.NoError(t, err)
+
+	keys := [][]byte{
+		[]byte("do"),
+		[]byte("domain"),
+		[]byte("other"),
+		[]byte("otherwise"),
+		[]byte("cat"),
+	}
+
+	root := hash.ToBytes()
+	otherRoot := otherHash.ToBytes()
+
+	proof, err := trie.GenerateProof(root, keys, memdb)
+	require.NoError(t, err)
+
+	testcases := map[string]struct {
+		root, key, value []byte
+		proof            [][]byte
+		expect           bool
+	}{
+		"Proof should be true":                        {root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+		"Root empty, proof should be false":           {root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		"Other root, proof should be false":           {root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		"Value empty, proof should be true":           {root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+		"Unknow key, proof should be false":           {root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+		"Key and value unknow, proof should be false": {root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+		"Empty proof, should be false":                {root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
+	}
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	for name, testcase := range testcases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			hashEnc, err := scale.Marshal(testcase.root)
+			require.NoError(t, err)
+
+			args := []byte{}
+			args = append(args, hashEnc...)
+
+			encProof, err := scale.Marshal(testcase.proof)
+			require.NoError(t, err)
+			args = append(args, encProof...)
+
+			keyEnc, err := scale.Marshal(testcase.key)
+			require.NoError(t, err)
+			args = append(args, keyEnc...)
+
+			valueEnc, err := scale.Marshal(testcase.value)
+			require.NoError(t, err)
+			args = append(args, valueEnc...)
+
+			res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
+			require.NoError(t, err)
+
+			var got bool
+			err = scale.Unmarshal(res, &got)
+			require.NoError(t, err)
+			require.Equal(t, testcase.expect, got)
+		})
+	}
 }

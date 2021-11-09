@@ -60,7 +60,7 @@ func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Ins
 func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl, role byte) (string, *Config) {
 	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(targetRuntime)
 
-	_, err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+	err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
 
 	s, err := storage.NewTrieState(tt)
