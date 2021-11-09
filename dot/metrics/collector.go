@@ -65,7 +65,8 @@ func (c *Collector) AddGauge(g GaugeMetrics) {
 }
 
 func (c *Collector) startCollectGauges() {
-	t := time.NewTicker(Refresh)
+	//TODO: Should we better add individual RefreshInterval for each `GaugeMetrics`or `label inside the gauges map`?
+	t := time.NewTicker(RefreshInterval)
 	defer func() {
 		t.Stop()
 		c.wg.Done()
@@ -89,6 +90,7 @@ func (c *Collector) startCollectGauges() {
 }
 
 func (c *Collector) startCollectProccessMetrics() {
+	//TODO: Should we better add individual RefreshInterval for each `GaugeMetrics`or `label inside the gauges map`?
 	cpuStats := make([]*ethmetrics.CPUStats, 2)
 	memStats := make([]*runtime.MemStats, 2)
 	for i := 0; i < len(memStats); i++ {
@@ -110,7 +112,7 @@ func (c *Collector) startCollectProccessMetrics() {
 		memUsed   = ethmetrics.GetOrRegisterGauge("system/memory/used", ethmetrics.DefaultRegistry)
 	)
 
-	t := time.NewTicker(Refresh)
+	t := time.NewTicker(RefreshInterval)
 	defer func() {
 		t.Stop()
 		c.wg.Done()

@@ -17,8 +17,10 @@
 package kusama
 
 import (
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	log "github.com/ChainSafe/log15"
+
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 var (
@@ -44,6 +46,9 @@ var (
 	// DefaultRetainBlocks is the default retained blocks
 	DefaultRetainBlocks = int64(512)
 
+	// DefaultTelemetryURLs is the default URL of the telemetry server to connect to.
+	DefaultTelemetryURLs []genesis.TelemetryEndpoint
+
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
@@ -68,7 +73,7 @@ var (
 	// NetworkConfig
 
 	// DefaultNetworkPort network port
-	DefaultNetworkPort = uint32(7001)
+	DefaultNetworkPort = uint16(7001)
 	// DefaultNetworkBootnodes network bootnodes
 	DefaultNetworkBootnodes = []string(nil)
 	// DefaultNoBootstrap disables bootstrap

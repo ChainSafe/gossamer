@@ -327,6 +327,7 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &types.Block{Header: *header, Body: *blockBody}, nil
 }
 
@@ -360,9 +361,6 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 
 // GetBlockBody will return Body for a given hash
 func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
-	bs.RLock()
-	defer bs.RUnlock()
-
 	block, has := bs.getUnfinalisedBlock(hash)
 	if has {
 		return &block.Body, nil
@@ -432,16 +430,27 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
 // TODO: remove this func and usage from sync (after sync refactor?)
-func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
+func (bs *BlockState) AddBlockToBlockTree(block *types.Block) error {
 	bs.Lock()
 	defer bs.Unlock()
 
-	arrivalTime, err := bs.GetArrivalTime(header.Hash())
+	arrivalTime, err := bs.GetArrivalTime(block.Header.Hash())
 	if err != nil {
 		arrivalTime = time.Now()
 	}
 
-	return bs.bt.AddBlock(header, arrivalTime)
+	bs.storeUnfinalisedBlock(block)
+	return bs.bt.AddBlock(&block.Header, arrivalTime)
+}
+
+// GetAllBlocksAtNumber returns all unfinalised blocks with the given number
+func (bs *BlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) {
+	header, err := bs.GetHeaderByNumber(num)
+	if err != nil {
+		return nil, err
+	}
+
+	return bs.GetAllBlocksAtDepth(header.ParentHash), nil
 }
 
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one

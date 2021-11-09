@@ -33,7 +33,7 @@ const (
 	DefaultBasePath = "~/.gossamer/gssmr"
 
 	// DefaultPort the default value for Config.Port
-	DefaultPort = uint32(7000)
+	DefaultPort = uint16(7000)
 
 	// DefaultRandSeed the default value for Config.RandSeed (0 = non-deterministic)
 	DefaultRandSeed = int64(0)
@@ -74,7 +74,7 @@ type Config struct {
 	TransactionHandler TransactionHandler
 
 	// Port the network port used for listening
-	Port uint32
+	Port uint16
 	// RandSeed the seed used to generate the network p2p identity (0 = non-deterministic random seed)
 	RandSeed int64
 	// Bootnodes the peer addresses used for bootstrapping

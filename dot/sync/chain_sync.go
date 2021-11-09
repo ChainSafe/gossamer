@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -36,7 +37,6 @@ import (
 
 const (
 	// maxWorkers is the maximum number of parallel sync workers
-	// TODO: determine ideal value (#1659)
 	maxWorkers = 12
 )
 
@@ -60,7 +60,6 @@ func (s chainSyncState) String() string {
 	}
 }
 
-// TODO: determine ideal limit for pending blocks set (#1659)
 var pendingBlocksLimit = maxResponseSize * 32
 
 // peerState tracks our peers's best reported blocks
@@ -156,30 +155,41 @@ type chainSync struct {
 
 	finalisedCh <-chan *types.FinalisationInfo
 
-	minPeers     int
-	slotDuration time.Duration
+	minPeers         int
+	maxWorkerRetries uint16
+	slotDuration     time.Duration
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, minPeers int, slotDuration time.Duration) *chainSync {
+type chainSyncConfig struct {
+	bs                 BlockState
+	net                Network
+	readyBlocks        *blockQueue
+	pendingBlocks      DisjointBlockSet
+	minPeers, maxPeers int
+	slotDuration       time.Duration
+}
+
+func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &chainSync{
-		ctx:           ctx,
-		cancel:        cancel,
-		blockState:    bs,
-		network:       net,
-		workQueue:     make(chan *peerState, 1024),
-		resultQueue:   make(chan *worker, 1024),
-		peerState:     make(map[peer.ID]*peerState),
-		ignorePeers:   make(map[peer.ID]struct{}),
-		workerState:   newWorkerState(),
-		readyBlocks:   readyBlocks,
-		pendingBlocks: pendingBlocks,
-		state:         bootstrap,
-		handler:       newBootstrapSyncer(bs),
-		benchmarker:   newSyncBenchmarker(),
-		finalisedCh:   bs.GetFinalisedNotifierChannel(),
-		minPeers:      minPeers,
-		slotDuration:  slotDuration,
+		ctx:              ctx,
+		cancel:           cancel,
+		blockState:       cfg.bs,
+		network:          cfg.net,
+		workQueue:        make(chan *peerState, 1024),
+		resultQueue:      make(chan *worker, 1024),
+		peerState:        make(map[peer.ID]*peerState),
+		ignorePeers:      make(map[peer.ID]struct{}),
+		workerState:      newWorkerState(),
+		readyBlocks:      cfg.readyBlocks,
+		pendingBlocks:    cfg.pendingBlocks,
+		state:            bootstrap,
+		handler:          newBootstrapSyncer(cfg.bs),
+		benchmarker:      newSyncBenchmarker(),
+		finalisedCh:      cfg.bs.GetFinalisedNotifierChannel(),
+		minPeers:         cfg.minPeers,
+		maxWorkerRetries: uint16(cfg.maxPeers),
+		slotDuration:     cfg.slotDuration,
 	}
 }
 
@@ -223,7 +233,10 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 		return err
 	}
 
-	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors? (#1659)
+	// we assume that if a peer sends us a block announce for a certain block,
+	// that is also has the chain up until and including that block.
+	// this may not be a valid assumption, but perhaps we can assume that
+	// it is likely they will receive this block and its ancestors before us.
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
@@ -271,6 +284,10 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		if fin.Number.Cmp(ps.number) >= 0 {
 			// TODO: downscore this peer, or temporarily don't sync from them? (#1399)
 			// perhaps we need another field in `peerState` to mark whether the state is valid or not
+			cs.network.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.BadBlockAnnouncementValue,
+				Reason: peerset.BadBlockAnnouncementReason,
+			}, p)
 			return errPeerOnInvalidFork
 		}
 
@@ -392,19 +409,30 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
-			logger.Debug("worker error", "error", res.err.err)
+			logger.Debug("worker error", "worker ID", res.id, "error", res.err.err)
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
 			switch {
 			case errors.Is(res.err.err, context.Canceled):
 				return
+			case errors.Is(res.err.err, errNoPeers):
+				logger.Debug("not able to sync with any peer!", "worker ID", res.id)
+				continue
 			case errors.Is(res.err.err, context.DeadlineExceeded):
+				cs.network.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.TimeOutValue,
+					Reason: peerset.TimeOutReason,
+				}, res.err.who)
 				cs.ignorePeer(res.err.who)
 			case strings.Contains(res.err.err.Error(), "dial backoff"):
 				cs.ignorePeer(res.err.who)
 				continue
 			case res.err.err.Error() == "protocol not supported":
+				cs.network.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadProtocolValue,
+					Reason: peerset.BadProtocolReason,
+				}, res.err.who)
 				cs.ignorePeer(res.err.who)
 				continue
 			default:
@@ -420,6 +448,24 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
+			worker.retryCount = res.retryCount + 1
+			if worker.retryCount > cs.maxWorkerRetries {
+				logger.Debug("discarding worker, has reached maximum retry count",
+					"worker",
+					worker,
+				)
+				continue
+			}
+
+			// if we've already tried a peer and there was an error,
+			// then we shouldn't try them again.
+			if res.peersTried != nil {
+				worker.peersTried = res.peersTried
+			} else {
+				worker.peersTried = make(map[peer.ID]struct{})
+			}
+
+			worker.peersTried[res.err.who] = struct{}{}
 			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
 			cs.maybeSwitchMode()
@@ -593,7 +639,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 
 	for _, req := range reqs {
 		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time (#1399)
-		if err := cs.doSync(req); err != nil {
+		if err := cs.doSync(req, w.peersTried); err != nil {
 			// failed to sync, set worker error and put into result queue
 			w.err = err
 			return
@@ -601,21 +647,9 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 }
 
-func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
+func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) *workerError {
 	// determine which peers have the blocks we want to request
-	peers := cs.determineSyncPeers(req)
-
-	if len(peers) == 0 {
-		cs.Lock()
-		for p := range cs.ignorePeers {
-			delete(cs.ignorePeers, p)
-		}
-
-		for p := range cs.peerState {
-			peers = append(peers, p)
-		}
-		cs.Unlock()
-	}
+	peers := cs.determineSyncPeers(req, peersTried)
 
 	if len(peers) == 0 {
 		return &workerError{
@@ -646,13 +680,11 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 
 	if req.Direction == network.Descending {
 		// reverse blocks before pre-validating and placing in ready queue
-		for i, j := 0, len(resp.BlockData)-1; i < j; i, j = i+1, j-1 {
-			resp.BlockData[i], resp.BlockData[j] = resp.BlockData[j], resp.BlockData[i]
-		}
+		reverseBlockData(resp.BlockData)
 	}
 
 	// perform some pre-validation of response, error if failure
-	if err := cs.validateResponse(req, resp); err != nil {
+	if err := cs.validateResponse(req, resp, who); err != nil {
 		return &workerError{
 			err: err,
 			who: who,
@@ -693,14 +725,40 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 }
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
-func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
+func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) []peer.ID {
+	var start uint64
+	if req.StartingBlock.IsUint64() {
+		start = req.StartingBlock.Uint64()
+	}
+
 	cs.RLock()
 	defer cs.RUnlock()
 
+	// if we're currently ignoring all our peers, clear out the list.
+	if len(cs.peerState) == len(cs.ignorePeers) {
+		cs.RUnlock()
+		cs.Lock()
+		for p := range cs.ignorePeers {
+			delete(cs.ignorePeers, p)
+		}
+		cs.Unlock()
+		cs.RLock()
+	}
+
 	peers := make([]peer.ID, 0, len(cs.peerState))
 
-	for p := range cs.peerState {
+	for p, state := range cs.peerState {
 		if _, has := cs.ignorePeers[p]; has {
+			continue
+		}
+
+		if _, has := peersTried[p]; has {
+			continue
+		}
+
+		// if peer definitely doesn't have any blocks we want in the request,
+		// don't request from them
+		if start > 0 && state.number.Uint64() < start {
 			continue
 		}
 
@@ -716,7 +774,7 @@ func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.I
 // 	- the response is not empty
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *network.BlockResponseMessage) error {
+func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *network.BlockResponseMessage, p peer.ID) error {
 	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}
@@ -730,7 +788,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 	headerRequested := (req.RequestedData & network.RequestedDataHeader) == 1
 
 	for i, bd := range resp.BlockData {
-		if err = validateBlockData(req, bd); err != nil {
+		if err = cs.validateBlockData(req, bd, p); err != nil {
 			return err
 		}
 
@@ -739,6 +797,10 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 		} else {
 			// if this is a justification-only request, make sure we have the block for the justification
 			if err = cs.validateJustification(bd); err != nil {
+				cs.network.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadJustificationValue,
+					Reason: peerset.BadJustificationReason,
+				}, p)
 				return err
 			}
 			continue
@@ -803,7 +865,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 }
 
 // validateBlockData checks that the expected fields are in the block data
-func validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData) error {
+func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData, p peer.ID) error {
 	if bd == nil {
 		return errNilBlockData
 	}
@@ -811,6 +873,10 @@ func validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData) er
 	requestedData := req.RequestedData
 
 	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
+		cs.network.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.IncompleteHeaderValue,
+			Reason: peerset.IncompleteHeaderReason,
+		}, p)
 		return errNilHeaderInResponse
 	}
 
@@ -897,10 +963,18 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 		} else {
 			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
 			start, _ = variadic.NewUint64OrHash(w.startHash)
+
+			// if we're doing descending requests and not at the last (highest starting) request,
+			// then use number as start block
+			if w.direction == network.Descending && i != numRequests-1 {
+				start = variadic.MustNewUint64OrHash(startNumber)
+			}
 		}
 
 		var end *common.Hash
-		if !w.targetHash.IsEmpty() {
+		if !w.targetHash.IsEmpty() && i == numRequests-1 {
+			// if we're on our last request (which should contain the target hash),
+			// then add it
 			end = &w.targetHash
 		}
 
@@ -911,7 +985,21 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 			Direction:     w.direction,
 			Max:           &max,
 		}
-		startNumber += maxResponseSize
+
+		switch w.direction {
+		case network.Ascending:
+			startNumber += maxResponseSize
+		case network.Descending:
+			startNumber -= maxResponseSize
+		}
+	}
+
+	// if our direction is descending, we want to send out the request with the lowest
+	// startNumber first
+	if w.direction == network.Descending {
+		for i, j := 0, len(reqs)-1; i < j; i, j = i+1, j-1 {
+			reqs[i], reqs[j] = reqs[j], reqs[i]
+		}
 	}
 
 	return reqs, nil

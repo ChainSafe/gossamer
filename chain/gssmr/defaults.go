@@ -19,8 +19,10 @@ package gssmr
 import (
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	log "github.com/ChainSafe/log15"
+
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 var (
@@ -45,6 +47,9 @@ var (
 	DefaultPruningMode = "archive"
 	// DefaultRetainBlocks is the default retained blocks
 	DefaultRetainBlocks = int64(512)
+
+	// DefaultTelemetryURLs is the default URL of the telemetry server to connect to.
+	DefaultTelemetryURLs []genesis.TelemetryEndpoint
 
 	// InitConfig
 
@@ -74,7 +79,7 @@ var (
 	// NetworkConfig
 
 	// DefaultNetworkPort network port
-	DefaultNetworkPort = uint32(7001)
+	DefaultNetworkPort = uint16(7001)
 	// DefaultNetworkBootnodes network bootnodes
 	DefaultNetworkBootnodes = []string(nil)
 	// DefaultNoBootstrap disables bootstrap
@@ -86,6 +91,9 @@ var (
 
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Second * 10
+
+	// DefaultGrandpaInterval is the default time for a grandpa sub-round
+	DefaultGrandpaInterval = time.Second
 
 	// RPCConfig
 

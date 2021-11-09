@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/chyeh/pubip"
 	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
@@ -36,7 +37,7 @@ import (
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	ma "github.com/multiformats/go-multiaddr"
 
-	"github.com/chyeh/pubip"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
 var privateCIDRs = []string{
@@ -48,7 +49,10 @@ var privateCIDRs = []string{
 	"169.254.0.0/16",
 }
 
-var connectTimeout = time.Second * 5
+const (
+	peerSetSlotAllocTime = time.Second * 2
+	connectTimeout       = time.Second * 5
+)
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
@@ -85,9 +89,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		}
 	}
 
-	// create connection manager
-	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers)
-
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
 	if err != nil {
@@ -96,6 +97,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	// format persistent peers
 	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
+	if err != nil {
+		return nil, err
+	}
+
+	peerCfgSet := peerset.NewConfigSet(uint32(cfg.MaxPeers-cfg.MinPeers), uint32(cfg.MinPeers), false, peerSetSlotAllocTime)
+	// create connection manager
+	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +179,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	bwc := metrics.NewBandwidthCounter()
-	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers)
+	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers, cm.peerSetHandler)
 
 	host := &host{
 		ctx:             ctx,
@@ -238,20 +246,15 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
-	failed := 0
-	var allNodes []peer.AddrInfo
-	allNodes = append(allNodes, h.bootnodes...)
-	allNodes = append(allNodes, h.persistentPeers...)
-	for _, addrInfo := range allNodes {
-		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
-		err := h.connect(addrInfo)
-		if err != nil {
-			logger.Debug("failed to bootstrap to peer", "error", err)
-			failed++
-		}
+	for _, info := range h.persistentPeers {
+		h.h.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+		h.cm.peerSetHandler.AddReservedPeer(0, info.ID)
 	}
-	if failed == len(allNodes) && len(allNodes) != 0 {
-		logger.Error("failed to bootstrap to any bootnode")
+
+	for _, addrInfo := range h.bootnodes {
+		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
+		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
+		h.cm.peerSetHandler.AddPeer(0, addrInfo.ID)
 	}
 }
 
@@ -321,20 +324,17 @@ func (h *host) peers() []peer.ID {
 // addReservedPeers adds the peers `addrs` to the protected peers list and connects to them
 func (h *host) addReservedPeers(addrs ...string) error {
 	for _, addr := range addrs {
-		maddr, err := ma.NewMultiaddr(addr)
+		mAddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
 			return err
 		}
 
-		addinfo, err := peer.AddrInfoFromP2pAddr(maddr)
+		addrInfo, err := peer.AddrInfoFromP2pAddr(mAddr)
 		if err != nil {
 			return err
 		}
-
-		h.h.ConnManager().Protect(addinfo.ID, "")
-		if err := h.connect(*addinfo); err != nil {
-			return err
-		}
+		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
+		h.cm.peerSetHandler.AddReservedPeer(0, addrInfo.ID)
 	}
 
 	return nil
@@ -347,7 +347,7 @@ func (h *host) removeReservedPeers(ids ...string) error {
 		if err != nil {
 			return err
 		}
-
+		h.cm.peerSetHandler.RemoveReservedPeer(0, peerID)
 		h.h.ConnManager().Unprotect(peerID, "")
 	}
 
@@ -395,4 +395,9 @@ func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 // protocols returns all protocols currently supported by the node
 func (h *host) protocols() []string {
 	return h.h.Mux().Protocols()
+}
+
+// closePeer closes connection with peer.
+func (h *host) closePeer(peer peer.ID) error {
+	return h.h.Network().ClosePeer(peer)
 }
