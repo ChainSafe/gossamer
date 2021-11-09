@@ -32,13 +32,13 @@ func (_m *BlockState) AddBlock(_a0 *types.Block) error {
 	return r0
 }
 
-// AddBlockToBlockTree provides a mock function with given fields: header
-func (_m *BlockState) AddBlockToBlockTree(header *types.Header) error {
-	ret := _m.Called(header)
+// AddBlockToBlockTree provides a mock function with given fields: block
+func (_m *BlockState) AddBlockToBlockTree(block *types.Block) error {
+	ret := _m.Called(block)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*types.Header) error); ok {
-		r0 = rf(header)
+	if rf, ok := ret.Get(0).(func(*types.Block) error); ok {
+		r0 = rf(block)
 	} else {
 		r0 = ret.Error(0)
 	}

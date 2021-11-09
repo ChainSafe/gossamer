@@ -420,6 +420,7 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 		BabeVerifier:       verifier,
 		BlockImportHandler: cs,
 		MinPeers:           cfg.Network.MinPeers,
+		MaxPeers:           cfg.Network.MaxPeers,
 		SlotDuration:       slotDuration,
 	}
 

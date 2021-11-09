@@ -37,7 +37,6 @@ import (
 
 const (
 	// maxWorkers is the maximum number of parallel sync workers
-	// TODO: determine ideal value (#1659)
 	maxWorkers = 12
 )
 
@@ -61,7 +60,6 @@ func (s chainSyncState) String() string {
 	}
 }
 
-// TODO: determine ideal limit for pending blocks set (#1659)
 var pendingBlocksLimit = maxResponseSize * 32
 
 // peerState tracks our peers's best reported blocks
@@ -157,30 +155,41 @@ type chainSync struct {
 
 	finalisedCh <-chan *types.FinalisationInfo
 
-	minPeers     int
-	slotDuration time.Duration
+	minPeers         int
+	maxWorkerRetries uint16
+	slotDuration     time.Duration
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, minPeers int, slotDuration time.Duration) *chainSync {
+type chainSyncConfig struct {
+	bs                 BlockState
+	net                Network
+	readyBlocks        *blockQueue
+	pendingBlocks      DisjointBlockSet
+	minPeers, maxPeers int
+	slotDuration       time.Duration
+}
+
+func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &chainSync{
-		ctx:           ctx,
-		cancel:        cancel,
-		blockState:    bs,
-		network:       net,
-		workQueue:     make(chan *peerState, 1024),
-		resultQueue:   make(chan *worker, 1024),
-		peerState:     make(map[peer.ID]*peerState),
-		ignorePeers:   make(map[peer.ID]struct{}),
-		workerState:   newWorkerState(),
-		readyBlocks:   readyBlocks,
-		pendingBlocks: pendingBlocks,
-		state:         bootstrap,
-		handler:       newBootstrapSyncer(bs),
-		benchmarker:   newSyncBenchmarker(),
-		finalisedCh:   bs.GetFinalisedNotifierChannel(),
-		minPeers:      minPeers,
-		slotDuration:  slotDuration,
+		ctx:              ctx,
+		cancel:           cancel,
+		blockState:       cfg.bs,
+		network:          cfg.net,
+		workQueue:        make(chan *peerState, 1024),
+		resultQueue:      make(chan *worker, 1024),
+		peerState:        make(map[peer.ID]*peerState),
+		ignorePeers:      make(map[peer.ID]struct{}),
+		workerState:      newWorkerState(),
+		readyBlocks:      cfg.readyBlocks,
+		pendingBlocks:    cfg.pendingBlocks,
+		state:            bootstrap,
+		handler:          newBootstrapSyncer(cfg.bs),
+		benchmarker:      newSyncBenchmarker(),
+		finalisedCh:      cfg.bs.GetFinalisedNotifierChannel(),
+		minPeers:         cfg.minPeers,
+		maxWorkerRetries: uint16(cfg.maxPeers),
+		slotDuration:     cfg.slotDuration,
 	}
 }
 
@@ -224,7 +233,10 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 		return err
 	}
 
-	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors? (#1659)
+	// we assume that if a peer sends us a block announce for a certain block,
+	// that is also has the chain up until and including that block.
+	// this may not be a valid assumption, but perhaps we can assume that
+	// it is likely they will receive this block and its ancestors before us.
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
@@ -397,13 +409,16 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
-			logger.Debug("worker error", "error", res.err.err)
+			logger.Debug("worker error", "worker ID", res.id, "error", res.err.err)
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
 			switch {
 			case errors.Is(res.err.err, context.Canceled):
 				return
+			case errors.Is(res.err.err, errNoPeers):
+				logger.Debug("not able to sync with any peer!", "worker ID", res.id)
+				continue
 			case errors.Is(res.err.err, context.DeadlineExceeded):
 				cs.network.ReportPeer(peerset.ReputationChange{
 					Value:  peerset.TimeOutValue,
@@ -433,6 +448,24 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
+			worker.retryCount = res.retryCount + 1
+			if worker.retryCount > cs.maxWorkerRetries {
+				logger.Debug("discarding worker, has reached maximum retry count",
+					"worker",
+					worker,
+				)
+				continue
+			}
+
+			// if we've already tried a peer and there was an error,
+			// then we shouldn't try them again.
+			if res.peersTried != nil {
+				worker.peersTried = res.peersTried
+			} else {
+				worker.peersTried = make(map[peer.ID]struct{})
+			}
+
+			worker.peersTried[res.err.who] = struct{}{}
 			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
 			cs.maybeSwitchMode()
@@ -606,7 +639,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 
 	for _, req := range reqs {
 		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time (#1399)
-		if err := cs.doSync(req); err != nil {
+		if err := cs.doSync(req, w.peersTried); err != nil {
 			// failed to sync, set worker error and put into result queue
 			w.err = err
 			return
@@ -614,21 +647,9 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 }
 
-func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
+func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) *workerError {
 	// determine which peers have the blocks we want to request
-	peers := cs.determineSyncPeers(req)
-
-	if len(peers) == 0 {
-		cs.Lock()
-		for p := range cs.ignorePeers {
-			delete(cs.ignorePeers, p)
-		}
-
-		for p := range cs.peerState {
-			peers = append(peers, p)
-		}
-		cs.Unlock()
-	}
+	peers := cs.determineSyncPeers(req, peersTried)
 
 	if len(peers) == 0 {
 		return &workerError{
@@ -704,14 +725,40 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 }
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
-func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
+func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) []peer.ID {
+	var start uint64
+	if req.StartingBlock.IsUint64() {
+		start = req.StartingBlock.Uint64()
+	}
+
 	cs.RLock()
 	defer cs.RUnlock()
 
+	// if we're currently ignoring all our peers, clear out the list.
+	if len(cs.peerState) == len(cs.ignorePeers) {
+		cs.RUnlock()
+		cs.Lock()
+		for p := range cs.ignorePeers {
+			delete(cs.ignorePeers, p)
+		}
+		cs.Unlock()
+		cs.RLock()
+	}
+
 	peers := make([]peer.ID, 0, len(cs.peerState))
 
-	for p := range cs.peerState {
+	for p, state := range cs.peerState {
 		if _, has := cs.ignorePeers[p]; has {
+			continue
+		}
+
+		if _, has := peersTried[p]; has {
+			continue
+		}
+
+		// if peer definitely doesn't have any blocks we want in the request,
+		// don't request from them
+		if start > 0 && state.number.Uint64() < start {
 			continue
 		}
 
