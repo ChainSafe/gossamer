@@ -19,7 +19,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"net/http"
 	"os"
 	"sort"
@@ -260,8 +259,6 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	params := append([]byte{}, encMethod...)
 	params = append(params, encURI...)
 	params = append(params, encMeta...)
-
-	fmt.Println(params)
 
 	resReqID := scale.NewResult(int16(0), nil)
 

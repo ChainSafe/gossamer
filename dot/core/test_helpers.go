@@ -21,8 +21,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -32,9 +35,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 // NewTestService creates a new test core service
@@ -127,6 +127,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		net := new(coremocks.Network)
 		net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
 		net.On("IsSynced").Return(true)
+		net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 		cfg.Network = net
 	}
 
@@ -147,11 +148,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	s, err := NewService(cfg)
 	require.NoError(t, err)
-
-	if net, ok := cfg.Network.(*network.Service); ok {
-		net.SetTransactionHandler(s)
-		_ = net.Stop()
-	}
 
 	return s
 }
