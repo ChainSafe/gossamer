@@ -4,7 +4,7 @@ require (
 	github.com/ChainSafe/chaindb v0.1.5-0.20210608140454-9606fe8c3985
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20210318173838-ccb5cd955283
 	github.com/ChainSafe/log15 v1.0.0
-	github.com/OneOfOne/xxhash v1.2.5
+	github.com/OneOfOne/xxhash v1.2.8
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.0
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
