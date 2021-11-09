@@ -130,7 +130,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 		logger.Debug("skipping block, already have", "hash", bd.Hash, "number", block.Header.Number)
 
-		err = s.blockState.AddBlockToBlockTree(&block.Header)
+		err = s.blockState.AddBlockToBlockTree(block)
 		if errors.Is(err, blocktree.ErrBlockExists) {
 			return nil
 		} else if err != nil {
