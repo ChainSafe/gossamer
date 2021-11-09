@@ -91,7 +91,7 @@ func (r *Request) AddHeader(k, v string) error {
 	return nil
 }
 
-func (r *OffchainRequest) WriteBody(data []byte, deadline *int64) error {
+func (r *Request) WriteBody(data []byte, deadline *int64) error {
 	writeDone := make(chan error)
 	defer close(writeDone)
 
@@ -134,7 +134,7 @@ func (r *OffchainRequest) WriteBody(data []byte, deadline *int64) error {
 	}
 }
 
-func (r *OffchainRequest) IsValid() bool {
+func (r *Request) IsValid() bool {
 	return !r.invalid
 }
 
