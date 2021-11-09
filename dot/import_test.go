@@ -19,15 +19,15 @@ package dot
 import (
 	"encoding/json"
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
-	"reflect"
+	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestImportState(t *testing.T) {
@@ -92,52 +92,85 @@ func TestImportState(t *testing.T) {
 }
 
 func Test_newHeaderFromFile(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		filename string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *types.Header
-		wantErr bool
+		name string
+		args args
+		want *types.Header
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{filename: setupHeaderFile(t)},
+			want: &types.Header{
+				ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),
+				Number:         big.NewInt(1482002),
+				StateRoot:      common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+				ExtrinsicsRoot: common.MustHexToHash("0xda26dc8c1455f8f81cae12e4fc59e23ce961b2c837f6d3f664283af906d344e0"),
+			},
+		},
+		{
+			name: "no arguments",
+			err:  errors.New("read .: is a directory"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := newHeaderFromFile(tt.args.filename)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("newHeaderFromFile() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newHeaderFromFile() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.Equal(t, tt.want.ParentHash, got.ParentHash)
+				assert.Equal(t, tt.want.Number, got.Number)
+				assert.Equal(t, tt.want.StateRoot, got.StateRoot)
+				assert.Equal(t, tt.want.ExtrinsicsRoot, got.ExtrinsicsRoot)
 			}
 		})
 	}
 }
 
 func Test_newTrieFromPairs(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		filename string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *trie.Trie
-		wantErr bool
+		name string
+		args args
+		want common.Hash
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "no arguments",
+			err:  errors.New("read .: is a directory"),
+			want: common.Hash{},
+		},
+		{
+			name: "working example",
+			args: args{filename: setupStateFile(t)},
+			want: common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := newTrieFromPairs(tt.args.filename)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("newTrieFromPairs() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newTrieFromPairs() got = %v, want %v", got, tt.want)
+
+			if !tt.want.IsEmpty() {
+				assert.Equal(t, tt.want, got.MustHash())
 			}
 		})
 	}
