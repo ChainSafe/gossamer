@@ -1,0 +1,59 @@
+services: 
+  alice:
+    build:
+      context: ./..
+      dockerfile: alice.Dockerfile
+    ports:
+      - "7001"
+      - "8545"
+      - "8546"
+      - "8540"
+      - "9876"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.2
+
+  bob:
+    build:
+      context: ./..
+      dockerfile: bob.Dockerfile
+      args:
+        key: "bob"
+    ports:
+      - "7001"
+      - "8545"
+      - "8546"
+      - "8540"
+      - "9876"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.3
+    depends_on:
+      - "alice"
+
+  charlie:
+    build:
+      context: ./..
+      dockerfile: bob.Dockerfile
+      args:
+        key: "charlie"
+    ports:
+      - "7001"
+      - "8545"
+      - "8546"
+      - "8540"
+      - "9876"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.4
+    depends_on:
+      - "alice"
+
+networks:
+  vpcbr:
+    driver: bridge
+    internal: true
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1

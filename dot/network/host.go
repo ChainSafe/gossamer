@@ -56,6 +56,40 @@ type host struct {
 	closeSync       sync.Once
 }
 
+func scanNetInterfaces() (ips []net.IP, err error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return
+	}
+	for _, i := range ifaces {
+		var addrs []net.Addr
+		addrs, err = i.Addrs()
+		if err != nil {
+			return
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			default:
+				// don't know all the types that addr can be, continue to be safe
+				continue
+			}
+			if ip == nil || ip.IsUnspecified() || ip.IsLoopback() {
+				continue
+			}
+			if ip.To4() == nil {
+				continue
+			}
+			ips = append(ips, ip)
+		}
+	}
+	return
+}
+
 // newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create multiaddress (without p2p identity)
@@ -64,16 +98,29 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	var externalAddr ma.Multiaddr
+	var externalAddrs []ma.Multiaddr
 	ip, err := pubip.Get()
 	if err != nil {
-		logger.Errorf("failed to get public IP: %s", err)
-	} else {
-		logger.Debugf("got public IP %s", ip)
-		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		logger.Error("failed to get public IP", "error", err)
+		// use local interface ip addresses as externalAddrs, this is used in the local devnet
+		ips, err := scanNetInterfaces()
 		if err != nil {
 			return nil, err
 		}
+		for _, ip := range ips {
+			externalAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+			if err != nil {
+				return nil, err
+			}
+			externalAddrs = append(externalAddrs, externalAddr)
+		}
+	} else {
+		logger.Info("got public IP", "IP", ip)
+		externalAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		if err != nil {
+			return nil, err
+		}
+		externalAddrs = append(externalAddrs, externalAddr)
 	}
 
 	// format bootnodes
@@ -113,7 +160,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
 	}
 
@@ -137,11 +183,10 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 					addrs = append(addrs, addr)
 				}
 			}
-			if externalAddr == nil {
+			if externalAddrs == nil {
 				return addrs
 			}
-
-			return append(addrs, externalAddr)
+			return append(addrs, externalAddrs...)
 		}),
 	}
 
