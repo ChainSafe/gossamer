@@ -17,8 +17,13 @@
 package dot
 
 import (
+	"errors"
 	"fmt"
-	"reflect"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 
@@ -36,20 +41,42 @@ func TestInitNode(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		wantErr bool
+		err error
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "no arguments",
+			args:    args{cfg: GssmrConfig()},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := InitNode(tt.args.cfg); (err != nil) != tt.wantErr {
-				t.Errorf("InitNode() error = %v, wantErr %v", err, tt.wantErr)
+			// todo (ed) deal with file path to test this
+			fmt.Printf("gen %v\n", tt.args.cfg.Init.Genesis)
+			err := InitNode(tt.args.cfg)
+
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
 }
 
 func TestLoadGlobalNodeName(t *testing.T) {
+	t.Parallel()
+
+	// initialise database using data directory
+	basePath := utils.NewTestBasePath(t, "tmpBase")
+	db, err := utils.SetupDatabase(basePath, false)
+	require.NoError(t, err)
+
+	basestate := state.NewBaseState(db)
+	basestate.Put(common.NodeNameKey, []byte(`nodeName`))
+
+	err = db.Close()
+	require.NoError(t, err)
+
 	type args struct {
 		basepath string
 	}
@@ -57,25 +84,55 @@ func TestLoadGlobalNodeName(t *testing.T) {
 		name         string
 		args         args
 		wantNodename string
-		wantErr      bool
+		err error
 	}{
-		// TODO: Add test cases.
+		{
+			name:         "working example",
+			args: args{basepath: basePath},
+			wantNodename: "nodeName",
+		},
+		{
+			name:         "no arguments",
+			err: errors.New("Key not found"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotNodename, err := LoadGlobalNodeName(tt.args.basepath)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadGlobalNodeName() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if gotNodename != tt.wantNodename {
-				t.Errorf("LoadGlobalNodeName() gotNodename = %v, want %v", gotNodename, tt.wantNodename)
-			}
+
+			assert.Equal(t, tt.wantNodename, gotNodename)
 		})
 	}
 }
 
 func TestNewNode(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	ks := keystore.NewGlobalKeystore()
+	err = keystore.LoadKeystore("alice", ks.Gran)
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe)
+	require.NoError(t, err)
+
+	cfg.Core.Roles = types.FullNodeRole
+
+
 	type args struct {
 		cfg      *Config
 		ks       *keystore.GlobalKeystore
@@ -85,19 +142,36 @@ func TestNewNode(t *testing.T) {
 		name    string
 		args    args
 		want    *Node
-		wantErr bool
+		err error
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "missing keystore",
+			args:    args{
+				cfg: cfg,
+			},
+			err: errors.New("failed to create core service: cannot have nil keystore"),
+		},
+		// todo (ed) this second test fails with; failed to create state service: failed to start state service: Cannot acquire directory lock on "/home/emack/projects/ChainSafe/gossamer/dot/test_data/TestNewNode/db".  Another process is using this Badger database.: resource temporarily unavailable
+		{
+			name:    "working example",
+			args:    args{
+				cfg:      cfg,
+				ks:       ks,
+			},
+			want:    &Node{Name: "Gossamer"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewNode(tt.args.cfg, tt.args.ks, tt.args.stopFunc)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewNode() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewNode() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.Equal(t, tt.want.Name, got.Name)
 			}
 		})
 	}

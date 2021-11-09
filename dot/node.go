@@ -180,7 +180,7 @@ func NodeInitialized(basepath string) bool {
 }
 
 // LoadGlobalNodeName returns the stored global node name from database
-func LoadGlobalNodeName(basepath string) (nodename string, err error) {
+func LoadGlobalNodeName(basepath string) (string, error) {
 	// initialise database using data directory
 	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
@@ -196,7 +196,7 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	}()
 
 	basestate := state.NewBaseState(db)
-	nodename, err = basestate.LoadNodeGlobalName()
+	nodename, err := basestate.LoadNodeGlobalName()
 	if err != nil {
 		logger.Warn(
 			"failed to load global node name",
