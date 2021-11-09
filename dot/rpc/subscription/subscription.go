@@ -6,8 +6,9 @@ import (
 	"strconv"
 )
 
+// RPC methods
 const (
-	authorSubmitAndWatchExtrinsic  string = "author_submitAndWatchExtrinsic" //nolint
+	authorSubmitAndWatchExtrinsic  string = "author_submitAndWatchExtrinsic"
 	chainSubscribeNewHeads         string = "chain_subscribeNewHeads"
 	chainSubscribeNewHead          string = "chain_subscribeNewHead"
 	chainSubscribeFinalizedHeads   string = "chain_subscribeFinalizedHeads"
