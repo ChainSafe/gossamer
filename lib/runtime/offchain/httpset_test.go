@@ -1,10 +1,7 @@
 package offchain
 
 import (
-<<<<<<< HEAD
 	"fmt"
-=======
->>>>>>> development
 	"net/http"
 	"testing"
 
@@ -29,7 +26,7 @@ func TestHTTPSet_StartRequest_NotAvailableID(t *testing.T) {
 	t.Parallel()
 
 	set := NewHTTPSet()
-	set.reqs[1] = &OffchainRequest{}
+	set.reqs[1] = &Request{}
 
 	_, err := set.StartRequest(http.MethodGet, defaultTestURI)
 	require.ErrorIs(t, errRequestIDNotAvailable, err)
@@ -54,25 +51,25 @@ func TestOffchainRequest_AddHeader(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]struct {
-		offReq           OffchainRequest
+		offReq           Request
 		err              error
 		headerK, headerV string
 	}{
 		"should return invalid request": {
-			offReq: OffchainRequest{invalid: true},
+			offReq: Request{invalid: true},
 			err:    errInvalidRequest,
 		},
 		"should return request already started": {
-			offReq: OffchainRequest{waiting: true},
+			offReq: Request{waiting: true},
 			err:    errRequestAlreadyStarted,
 		},
 		"should add header": {
-			offReq:  OffchainRequest{Request: &http.Request{Header: make(http.Header)}},
+			offReq:  Request{Request: &http.Request{Header: make(http.Header)}},
 			headerK: "key",
 			headerV: "value",
 		},
 		"should return invalid empty header": {
-			offReq:  OffchainRequest{Request: &http.Request{Header: make(http.Header)}},
+			offReq:  Request{Request: &http.Request{Header: make(http.Header)}},
 			headerK: "",
 			headerV: "value",
 			err:     fmt.Errorf("%w: %s", errInvalidHeaderKey, "empty header key"),

@@ -66,13 +66,15 @@ func (b requestIDBuffer) put(i int16) error {
 	}
 }
 
-type OffchainRequest struct {
+// Request holds the request object and update the invalid and waiting status whenever
+// the request starts or is waiting to be read
+type Request struct {
 	Request          *http.Request
 	invalid, waiting bool
 }
 
 // AddHeader add a new header into @req property only if request is valid or has not started yet
-func (r *OffchainRequest) AddHeader(k, v string) error {
+func (r *Request) AddHeader(k, v string) error {
 	if r.invalid {
 		return errInvalidRequest
 	}
@@ -138,8 +140,8 @@ func (r *OffchainRequest) IsValid() bool {
 
 // HTTPSet holds a pool of concurrent http request calls
 type HTTPSet struct {
-	mtx    *sync.Mutex
-	reqs   map[int16]*OffchainRequest
+	*sync.Mutex
+	reqs   map[int16]*Request
 	idBuff requestIDBuffer
 }
 
@@ -147,17 +149,17 @@ type HTTPSet struct {
 // by runtime as HTTP clients, the max concurrent requests is 1000
 func NewHTTPSet() *HTTPSet {
 	return &HTTPSet{
-		mtx:    new(sync.Mutex),
-		reqs:   make(map[int16]*OffchainRequest),
-		idBuff: newIntBuffer(maxConcurrentRequests),
+		new(sync.Mutex),
+		make(map[int16]*Request),
+		newIntBuffer(maxConcurrentRequests),
 	}
 }
 
 // StartRequest create a new request using the method and the uri, adds the request into the list
 // and then return the position of the request inside the list
 func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
 	id, err := p.idBuff.get()
 	if err != nil {
@@ -173,7 +175,7 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 		return 0, err
 	}
 
-	p.reqs[id] = &OffchainRequest{
+	p.reqs[id] = &Request{
 		Request: req,
 		invalid: false,
 		waiting: false,
@@ -184,8 +186,8 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 
 // Remove just remove a expecific request from reqs
 func (p *HTTPSet) Remove(id int16) error {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
 	delete(p.reqs, id)
 
@@ -193,9 +195,9 @@ func (p *HTTPSet) Remove(id int16) error {
 }
 
 // Get returns a request or nil if request not found
-func (p *HTTPSet) Get(id int16) *OffchainRequest {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
+func (p *HTTPSet) Get(id int16) *Request {
+	p.Lock()
+	defer p.Unlock()
 
 	return p.reqs[id]
 }

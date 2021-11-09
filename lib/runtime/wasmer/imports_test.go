@@ -19,11 +19,12 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"net/http"
+	"os"
 	"sort"
 	"testing"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wasmerio/go-ext-wasm/wasmer"
@@ -45,19 +46,19 @@ var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
 
-// func TestMain(m *testing.M) {
-// 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-// 	if err != nil {
-// 		log.Error("failed to generate runtime wasm file", err)
-// 		os.Exit(1)
-// 	}
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
 
-// 	// Start all tests
-// 	code := m.Run()
+	// Start all tests
+	code := m.Run()
 
-// 	runtime.RemoveFiles(wasmFilePaths)
-// 	os.Exit(code)
-// }
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	t.Parallel()
@@ -259,11 +260,6 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	params = append(params, encURI...)
 	params = append(params, encMeta...)
 
-<<<<<<< HEAD
-	fmt.Println(params)
-
-=======
->>>>>>> development
 	resReqID := scale.NewResult(int16(0), nil)
 
 	// start request number 0

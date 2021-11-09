@@ -48,7 +48,7 @@ package wasmer
 //
 // extern int32_t ext_trie_blake2_256_root_version_1(void *context, int64_t a);
 // extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
-// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int64_t a, int64_t b, int64_t c, int64_t d);
+// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
 //
 // extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
 // extern void ext_misc_print_hex_version_1(void *context, int64_t a);
@@ -899,10 +899,14 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 
 //export ext_trie_blake2_256_verify_proof_version_1
 <<<<<<< HEAD
+<<<<<<< HEAD
 func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a, b, c, d C.int64_t) C.int32_t { // skipcq: RVV-B0012
 =======
 func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t { // skipcq: RVV-B0012
 >>>>>>> development
+=======
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t { // skipcq: RVV-B0012
+>>>>>>> eclesio/offchain-req-add-headers
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
 	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
 	return 0
@@ -1725,9 +1729,9 @@ func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqI
 	err := offchainReq.AddHeader(string(key), string(value))
 	if err != nil {
 		logger.Error("failed to add request header", "error", err)
-		result.Set(scale.Err, nil)
+		_ = result.Set(scale.Err, nil)
 	} else {
-		result.Set(scale.OK, nil)
+		_ = result.Set(scale.OK, nil)
 	}
 
 	enc, _ := scale.Marshal(result)
@@ -1736,6 +1740,7 @@ func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqI
 	return C.int64_t(ptr)
 }
 
+<<<<<<< HEAD
 //export ext_offchain_http_request_write_body_version_1
 func ext_offchain_http_request_write_body_version_1(context unsafe.Pointer, reqID C.int32_t, bodySpan C.int64_t, deadlineSpan C.int64_t) C.int64_t {
 	logger.Debug("executing...")
@@ -1821,6 +1826,8 @@ func ext_offchain_http_request_write_body_version_1(context unsafe.Pointer, reqI
 	}
 }
 
+=======
+>>>>>>> eclesio/offchain-req-add-headers
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	nextLength := big.NewInt(1)
 	var valueRes []byte
@@ -2488,10 +2495,13 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
+<<<<<<< HEAD
 	_, err = imports.Append("ext_offchain_http_request_write_body_version_1", ext_offchain_http_request_write_body_version_1, C.ext_offchain_http_request_write_body_version_1)
 	if err != nil {
 		return nil, err
 	}
+=======
+>>>>>>> eclesio/offchain-req-add-headers
 	_, err = imports.Append("ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1, C.ext_sandbox_instance_teardown_version_1)
 	if err != nil {
 		return nil, err
