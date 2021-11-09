@@ -156,29 +156,29 @@ func LoadKeystore(key string, ks Keystore) error {
 		}
 
 		switch strings.ToLower(key) {
+		// Insert can error only if kestore type do not match with key
+		// type do not match. Since we have created keyring based on ks.Type(),
+		// Insert would never error here. Thus, ignoring those errors.
 		case "alice":
-			err = ks.Insert(kr.Alice())
+			_ = ks.Insert(kr.Alice())
 		case "bob":
-			err = ks.Insert(kr.Bob())
+			_ = ks.Insert(kr.Bob())
 		case "charlie":
-			err = ks.Insert(kr.Charlie())
+			_ = ks.Insert(kr.Charlie())
 		case "dave":
-			err = ks.Insert(kr.Dave())
+			_ = ks.Insert(kr.Dave())
 		case "eve":
-			err = ks.Insert(kr.Eve())
+			_ = ks.Insert(kr.Eve())
 		case "ferdie":
-			err = ks.Insert(kr.Ferdie())
+			_ = ks.Insert(kr.Ferdie())
 		case "george":
-			err = ks.Insert(kr.George())
+			_ = ks.Insert(kr.George())
 		case "heather":
-			err = ks.Insert(kr.Heather())
+			_ = ks.Insert(kr.Heather())
 		case "ian":
-			err = ks.Insert(kr.Ian())
+			_ = ks.Insert(kr.Ian())
 		default:
-			err = fmt.Errorf("invalid test key provided")
-		}
-		if err != nil {
-			return err
+			return fmt.Errorf("invalid test key provided")
 		}
 	}
 
