@@ -8,7 +8,7 @@ permalink: /getting-started/installation
 
 ## Prerequisites
 
-Install <a target="_blank" rel="noopener noreferrer" href="https://golang.org/">Go</a> version `>=1.15`
+Install <a target="_blank" rel="noopener noreferrer" href="https://golang.org/">Go</a> version `>=1.16`
 
 ## Installation
 
