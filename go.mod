@@ -4,7 +4,7 @@ require (
 	github.com/ChainSafe/chaindb v0.1.5-0.20210608140454-9606fe8c3985
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20210318173838-ccb5cd955283
 	github.com/ChainSafe/log15 v1.0.0
-	github.com/OneOfOne/xxhash v1.2.5
+	github.com/OneOfOne/xxhash v1.2.8
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.0
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
@@ -26,18 +26,18 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/ipfs/go-ds-badger2 v0.1.1
 	github.com/ipfs/go-ipns v0.1.2 //indirect
-	github.com/jpillora/ipfilter v1.2.2
+	github.com/jpillora/ipfilter v1.2.3
 	github.com/libp2p/go-libp2p v0.15.1
 	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/libp2p/go-libp2p-discovery v0.5.1
 	github.com/libp2p/go-libp2p-kad-dht v0.11.1
 	github.com/libp2p/go-libp2p-peerstore v0.3.0
-	github.com/multiformats/go-multiaddr v0.4.0
+	github.com/multiformats/go-multiaddr v0.4.1
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
 	github.com/stretchr/testify v1.7.0
-	github.com/urfave/cli v1.22.1
+	github.com/urfave/cli v1.22.5
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20210813211128-0a44fdfbc16e
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -145,7 +145,7 @@ require (
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/phuslu/iploc v1.0.20200807 // indirect
+	github.com/phuslu/iploc v1.0.20210908 // indirect
 	github.com/pierrec/xxHash v0.1.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
