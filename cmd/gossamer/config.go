@@ -342,44 +342,74 @@ func setLogConfig(ctx getStringer, cfg *ctoml.Config, globalCfg *dot.GlobalConfi
 	}
 	cfg.Global.LogLvl = globalCfg.LogLvl.String()
 
-	logCfg.CoreLvl, err = getLogLevel(ctx, LogCoreLevelFlag.Name, cfg.Log.CoreLvl, globalCfg.LogLvl)
-	if err != nil {
-		return fmt.Errorf("cannot get core log level: %w", err)
+	levelsData := []struct {
+		name      string
+		flagName  string
+		tomlValue string
+		levelPtr  *log.Lvl // pointer to value to modify
+	}{
+		{
+			name:      "core",
+			flagName:  LogCoreLevelFlag.Name,
+			tomlValue: cfg.Log.CoreLvl,
+			levelPtr:  &logCfg.CoreLvl,
+		},
+		{
+			name:      "sync",
+			flagName:  LogSyncLevelFlag.Name,
+			tomlValue: cfg.Log.SyncLvl,
+			levelPtr:  &logCfg.SyncLvl,
+		},
+		{
+			name:      "network",
+			flagName:  LogNetworkLevelFlag.Name,
+			tomlValue: cfg.Log.NetworkLvl,
+			levelPtr:  &logCfg.NetworkLvl,
+		},
+		{
+			name:      "RPC",
+			flagName:  LogRPCLevelFlag.Name,
+			tomlValue: cfg.Log.RPCLvl,
+			levelPtr:  &logCfg.RPCLvl,
+		},
+		{
+			name:      "state",
+			flagName:  LogStateLevelFlag.Name,
+			tomlValue: cfg.Log.StateLvl,
+			levelPtr:  &logCfg.StateLvl,
+		},
+		{
+			name:      "runtime",
+			flagName:  LogRuntimeLevelFlag.Name,
+			tomlValue: cfg.Log.RuntimeLvl,
+			levelPtr:  &logCfg.RuntimeLvl,
+		},
+		{
+			name:      "block producer",
+			flagName:  LogBlockProducerLevelFlag.Name,
+			tomlValue: cfg.Log.BlockProducerLvl,
+			levelPtr:  &logCfg.BlockProducerLvl,
+		},
+		{
+			name:      "finality gadget",
+			flagName:  LogFinalityGadgetLevelFlag.Name,
+			tomlValue: cfg.Log.FinalityGadgetLvl,
+			levelPtr:  &logCfg.FinalityGadgetLvl,
+		},
+		{
+			name:      "sync",
+			flagName:  LogSyncLevelFlag.Name,
+			tomlValue: cfg.Log.SyncLvl,
+			levelPtr:  &logCfg.SyncLvl,
+		},
 	}
 
-	logCfg.SyncLvl, err = getLogLevel(ctx, LogSyncLevelFlag.Name, cfg.Log.SyncLvl, globalCfg.LogLvl)
-	if err != nil {
-		return fmt.Errorf("cannot get sync log level: %w", err)
-	}
-
-	logCfg.NetworkLvl, err = getLogLevel(ctx, LogNetworkLevelFlag.Name, cfg.Log.NetworkLvl, globalCfg.LogLvl)
-	if err != nil {
-		return fmt.Errorf("cannot get network log level: %w", err)
-	}
-
-	logCfg.RPCLvl, err = getLogLevel(ctx, LogRPCLevelFlag.Name, cfg.Log.RPCLvl, globalCfg.LogLvl)
-	if err != nil {
-		return fmt.Errorf("cannot get RPC log level: %w", err)
-	}
-
-	logCfg.StateLvl, err = getLogLevel(ctx, LogStateLevelFlag.Name, cfg.Log.StateLvl, globalCfg.LogLvl)
-	if err != nil {
-		return fmt.Errorf("cannot get state log level: %w", err)
-	}
-
-	logCfg.RuntimeLvl, err = getLogLevel(ctx, LogRuntimeLevelFlag.Name, cfg.Log.RuntimeLvl, globalCfg.LogLvl)
-	if err != nil {
-		return fmt.Errorf("cannot get runtime log level: %w", err)
-	}
-
-	logCfg.BlockProducerLvl, err = getLogLevel(ctx, LogBlockProducerLevelFlag.Name, cfg.Log.BlockProducerLvl, globalCfg.LogLvl)
-	if err != nil {
-		return fmt.Errorf("cannot get block producer log level: %w", err)
-	}
-
-	logCfg.FinalityGadgetLvl, err = getLogLevel(ctx, LogFinalityGadgetLevelFlag.Name, cfg.Log.FinalityGadgetLvl, globalCfg.LogLvl)
-	if err != nil {
-		return fmt.Errorf("cannot get finality gadget log level: %w", err)
+	for _, levelData := range levelsData {
+		level, err := getLogLevel(ctx, levelData.flagName, levelData.tomlValue, globalCfg.LogLvl)
+		if err != nil {
+			return fmt.Errorf("cannot get %s log level: %w", levelData.name, err)
+		}
+		*levelData.levelPtr = level
 	}
 
 	logger.Debug("set log configuration", "--log", ctx.String(LogFlag.Name), "global", globalCfg.LogLvl)
