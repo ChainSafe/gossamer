@@ -386,7 +386,7 @@ func setLogConfig(flagsKVStore stringKVStore, cfg *ctoml.Config, globalCfg *dot.
 		},
 		{
 			name:      "block producer",
-			flagName:  LogBlockProducerLevelFlag.Name,
+			flagName:  LogBabeLevelFlag.Name,
 			tomlValue: cfg.Log.BlockProducerLvl,
 			levelPtr:  &logCfg.BlockProducerLvl,
 		},

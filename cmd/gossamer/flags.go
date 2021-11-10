@@ -89,9 +89,9 @@ var (
 		Usage: "Runtime package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
 		Value: LogFlag.Value,
 	}
-	LogBlockProducerLevelFlag = cli.StringFlag{
+	LogBabeLevelFlag = cli.StringFlag{
 		Name:  "log-babe",
-		Usage: "Block producer package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "BABE package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
 		Value: LogFlag.Value,
 	}
 	LogGrandpaLevelFlag = cli.StringFlag{
@@ -389,7 +389,7 @@ var (
 		LogRPCLevelFlag,
 		LogStateLevelFlag,
 		LogRuntimeLevelFlag,
-		LogBlockProducerLevelFlag,
+		LogBabeLevelFlag,
 		LogGrandpaLevelFlag,
 		NameFlag,
 		ChainFlag,
