@@ -129,6 +129,10 @@ func TestProtectUnprotectPeer(t *testing.T) {
 }
 
 func TestPersistentPeers(t *testing.T) {
+	if testing.Short() {
+		t.Skip() // this sometimes fails on CI
+	}
+
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node-a"),
 		Port:        7000,
@@ -161,6 +165,10 @@ func TestPersistentPeers(t *testing.T) {
 }
 
 func TestRemovePeer(t *testing.T) {
+	if testing.Short() {
+		t.Skip() // this sometimes fails on CI
+	}
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
