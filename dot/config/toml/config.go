@@ -12,6 +12,7 @@ type Config struct {
 	Core    CoreConfig    `toml:"core,omitempty"`
 	Network NetworkConfig `toml:"network,omitempty"`
 	RPC     RPCConfig     `toml:"rpc,omitempty"`
+	Pprof   PprofConfig   `toml:"pprof,omitempty"`
 }
 
 // GlobalConfig is to marshal/unmarshal toml global config vars
@@ -87,4 +88,12 @@ type RPCConfig struct {
 	WSExternal       bool     `toml:"ws-external,omitempty"`
 	WSUnsafe         bool     `toml:"ws-unsafe,omitempty"`
 	WSUnsafeExternal bool     `toml:"ws-unsafe-external,omitempty"`
+}
+
+// PprofConfig contains the configuration for Pprof.
+type PprofConfig struct {
+	Enabled          bool   `toml:"enabled,omitempty"`
+	ListeningAddress string `toml:"listening-address,omitempty"`
+	BlockRate        int    `toml:"block-rate,omitempty"`
+	MutexRate        int    `toml:"mutex-rate,omitempty"`
 }

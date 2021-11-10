@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -359,7 +360,9 @@ func TestNewWebSocketServer(t *testing.T) {
 func Test_createPprofService(t *testing.T) {
 	t.Parallel()
 
-	service := createPprofService()
+	settings := pprof.Settings{}
+
+	service := createPprofService(settings)
 
 	require.NotNil(t, service)
 }

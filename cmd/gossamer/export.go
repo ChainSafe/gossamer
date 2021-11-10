@@ -57,7 +57,14 @@ func exportAction(ctx *cli.Context) error {
 }
 
 func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
-	cfg := &ctoml.Config{}
+	cfg := &ctoml.Config{
+		Pprof: ctoml.PprofConfig{
+			Enabled:          dcfg.Pprof.Enabled,
+			ListeningAddress: dcfg.Pprof.Settings.ListeningAddress,
+			BlockRate:        dcfg.Pprof.Settings.BlockProfileRate,
+			MutexRate:        dcfg.Pprof.Settings.MutexProfileRate,
+		},
+	}
 
 	cfg.Global = ctoml.GlobalConfig{
 		Name:         dcfg.Global.Name,

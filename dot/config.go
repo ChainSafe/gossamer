@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
@@ -32,6 +33,7 @@ type Config struct {
 	RPC     RPCConfig
 	System  types.SystemInfo
 	State   StateConfig
+	Pprof   PprofConfig
 }
 
 // GlobalConfig is used for every node command
@@ -146,6 +148,20 @@ func networkServiceEnabled(cfg *Config) bool {
 	return cfg.Core.Roles != byte(0)
 }
 
+// PprofConfig is the configuration for the pprof HTTP server.
+type PprofConfig struct {
+	Enabled  bool
+	Settings pprof.Settings
+}
+
+func (p PprofConfig) String() string {
+	if !p.Enabled {
+		return "disabled"
+	}
+
+	return p.Settings.String()
+}
+
 // GssmrConfig returns a new test configuration using the provided basepath
 func GssmrConfig() *Config {
 	return &Config{
@@ -197,6 +213,14 @@ func GssmrConfig() *Config {
 			Modules: gssmr.DefaultRPCModules,
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
+		Pprof: PprofConfig{
+			Enabled: gssmr.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: gssmr.DefaultPprofListeningAddress,
+				BlockProfileRate: gssmr.DefaultPprofBlockRate,
+				MutexProfileRate: gssmr.DefaultPprofMutexRate,
+			},
+		},
 	}
 }
 
@@ -246,6 +270,14 @@ func KusamaConfig() *Config {
 			Modules: kusama.DefaultRPCModules,
 			WSPort:  kusama.DefaultRPCWSPort,
 		},
+		Pprof: PprofConfig{
+			Enabled: kusama.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: kusama.DefaultPprofListeningAddress,
+				BlockProfileRate: kusama.DefaultPprofBlockRate,
+				MutexProfileRate: kusama.DefaultPprofMutexRate,
+			},
+		},
 	}
 }
 
@@ -294,6 +326,14 @@ func PolkadotConfig() *Config {
 			Host:    polkadot.DefaultRPCHTTPHost,
 			Modules: polkadot.DefaultRPCModules,
 			WSPort:  polkadot.DefaultRPCWSPort,
+		},
+		Pprof: PprofConfig{
+			Enabled: polkadot.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: polkadot.DefaultPprofListeningAddress,
+				BlockProfileRate: polkadot.DefaultPprofBlockRate,
+				MutexProfileRate: polkadot.DefaultPprofMutexRate,
+			},
 		},
 	}
 }
@@ -348,6 +388,14 @@ func DevConfig() *Config {
 			WSPort:  dev.DefaultRPCWSPort,
 			Enabled: dev.DefaultRPCEnabled,
 			WS:      dev.DefaultWSEnabled,
+		},
+		Pprof: PprofConfig{
+			Enabled: dev.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: dev.DefaultPprofListeningAddress,
+				BlockProfileRate: dev.DefaultPprofBlockRate,
+				MutexProfileRate: dev.DefaultPprofMutexRate,
+			},
 		},
 	}
 }

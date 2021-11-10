@@ -412,12 +412,7 @@ func createDigestHandler(st *state.Service) (*digest.Handler, error) {
 	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
 }
 
-func createPprofService() (service *pprof.Service) {
-	settings := pprof.Settings{
-		ListeningAddress: "localhost:6060",
-		BlockProfileRate: 0,
-		MutexProfileRate: 0,
-	}
+func createPprofService(settings pprof.Settings) (service *pprof.Service) {
 	pprofLogger := log.New("pkg", "pprof")
 	return pprof.NewService(settings, pprofLogger)
 }
