@@ -94,9 +94,9 @@ var (
 		Usage: "Block producer package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
 		Value: LogFlag.Value,
 	}
-	LogFinalityGadgetLevelFlag = cli.StringFlag{
+	LogGrandpaLevelFlag = cli.StringFlag{
 		Name:  "log-grandpa",
-		Usage: "Finality Gadget package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "Grandpa package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
 		Value: LogFlag.Value,
 	}
 
@@ -390,7 +390,7 @@ var (
 		LogStateLevelFlag,
 		LogRuntimeLevelFlag,
 		LogBlockProducerLevelFlag,
-		LogFinalityGadgetLevelFlag,
+		LogGrandpaLevelFlag,
 		NameFlag,
 		ChainFlag,
 		ConfigFlag,

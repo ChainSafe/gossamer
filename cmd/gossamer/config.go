@@ -392,7 +392,7 @@ func setLogConfig(flagsKVStore stringKVStore, cfg *ctoml.Config, globalCfg *dot.
 		},
 		{
 			name:      "finality gadget",
-			flagName:  LogFinalityGadgetLevelFlag.Name,
+			flagName:  LogGrandpaLevelFlag.Name,
 			tomlValue: cfg.Log.FinalityGadgetLvl,
 			levelPtr:  &logCfg.FinalityGadgetLvl,
 		},
