@@ -17,6 +17,13 @@
 package dot
 
 import (
+	"errors"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -37,6 +44,41 @@ import (
 )
 
 func Test_createBABEService(t *testing.T) {
+	t.Parallel()
+
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Core.Roles = types.FullNodeRole
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	ks := keystore.NewGlobalKeystore()
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	ks.Babe.Insert(kr.Alice())
+
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
+	require.NoError(t, err)
+
+	dh, err := createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	require.NoError(t, err)
+
 	type args struct {
 		cfg *Config
 		st  *state.Service
@@ -44,54 +86,126 @@ func Test_createBABEService(t *testing.T) {
 		cs  *core.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *babe.Service
-		wantErr bool
+		name string
+		args args
+		want *babe.Service
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "invalid keystore type test",
+			args: args{
+				cfg: cfg,
+				st:  stateSrvc,
+				ks:  ks.Gran,
+				cs:  coreSrvc,
+			},
+			err: errors.New("invalid keystore type"),
+		},
+		{
+			name: "working example",
+			args: args{
+				cfg: cfg,
+				st:  stateSrvc,
+				ks:  ks.Babe,
+				cs:  coreSrvc,
+			},
+			want: &babe.Service{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createBABEService(tt.args.cfg, tt.args.st, tt.args.ks, tt.args.cs)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createBABEService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createBABEService() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createBlockVerifier(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
 	type args struct {
 		st *state.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *babe.VerificationManager
-		wantErr bool
+		name string
+		args args
+		want *babe.VerificationManager
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "nil BlockState test",
+			args: args{st: &state.Service{}},
+			err:  errors.New("cannot have nil BlockState"),
+		},
+		{
+			name: "working example",
+			args: args{st: stateSrvc},
+			want: &babe.VerificationManager{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createBlockVerifier(tt.args.st)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createBlockVerifier() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createBlockVerifier() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createCoreService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	ks := keystore.NewGlobalKeystore()
+	require.NotNil(t, ks)
+	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	ks.Gran.Insert(ed25519Keyring.Alice())
+
 	type args struct {
 		cfg *Config
 		ks  *keystore.GlobalKeystore
@@ -100,54 +214,124 @@ func Test_createCoreService(t *testing.T) {
 		dh  *digest.Handler
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *core.Service
-		wantErr bool
+		name string
+		args args
+		want *core.Service
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "missing keystore test",
+			args: args{
+				cfg: cfg,
+				st:  stateSrvc,
+			},
+			err: errors.New("cannot have nil keystore"),
+		},
+		{
+			name: "working example",
+			args: args{
+				cfg: cfg,
+				ks:  ks,
+				st:  stateSrvc,
+			},
+			want: &core.Service{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createCoreService(tt.args.cfg, tt.args.ks, tt.args.st, tt.args.net, tt.args.dh)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createCoreService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createCoreService() got = %v, want %v", got, tt.want)
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createDigestHandler(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
 	type args struct {
 		st *state.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *digest.Handler
-		wantErr bool
+		name string
+		args args
+		want *digest.Handler
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{st: stateSrvc},
+			want: &digest.Handler{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createDigestHandler(tt.args.st)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createDigestHandler() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createDigestHandler() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createGRANDPAService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Core.Roles = types.AuthorityRole
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	ks := keystore.NewGlobalKeystore()
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	ks.Gran.Insert(kr.Alice())
+
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+
+	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
+	require.NoError(t, err)
+
+	dh, err := createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
 	type args struct {
 		cfg *Config
 		st  *state.Service
@@ -156,55 +340,120 @@ func Test_createGRANDPAService(t *testing.T) {
 		net *network.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *grandpa.Service
-		wantErr bool
+		name string
+		args args
+		want *grandpa.Service
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "invalid key type test",
+			args: args{
+				cfg: cfg,
+				st:  stateSrvc,
+				dh:  dh,
+				ks:  ks.Babe,
+			},
+			err: errors.New("invalid keystore type"),
+		},
+		{
+			name: "working example",
+			args: args{
+				cfg: cfg,
+				st:  stateSrvc,
+				dh:  dh,
+				ks:  ks.Gran,
+			},
+			want: &grandpa.Service{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createGRANDPAService(tt.args.cfg, tt.args.st, tt.args.dh, tt.args.ks, tt.args.net)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createGRANDPAService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createGRANDPAService() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createNetworkService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
 	type args struct {
 		cfg       *Config
 		stateSrvc *state.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *network.Service
-		wantErr bool
+		name string
+		args args
+		want *network.Service
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				cfg:       cfg,
+				stateSrvc: stateSrvc,
+			},
+			want: &network.Service{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createNetworkService(tt.args.cfg, tt.args.stateSrvc)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createNetworkService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createNetworkService() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createRPCService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
 	type args struct {
 		cfg         *Config
 		ns          *runtime.NodeStorage
@@ -216,28 +465,59 @@ func Test_createRPCService(t *testing.T) {
 		finSrvc     *grandpa.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *rpc.HTTPServer
-		wantErr bool
+		name string
+		args args
+		want *rpc.HTTPServer
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				cfg:       cfg,
+				stateSrvc: stateSrvc,
+			},
+			want: &rpc.HTTPServer{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createRPCService(tt.args.cfg, tt.args.ns, tt.args.stateSrvc, tt.args.coreSrvc, tt.args.networkSrvc, tt.args.bp, tt.args.sysSrvc, tt.args.finSrvc)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createRPCService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createRPCService() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createRuntime(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	_ = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
+
+	runtimeData, err := ioutil.ReadFile(filepath.Clean(runtimeFilePath))
+	require.Nil(t, err)
+
 	type args struct {
 		cfg  *Config
 		ns   runtime.NodeStorage
@@ -247,22 +527,49 @@ func Test_createRuntime(t *testing.T) {
 		code []byte
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    runtime.Instance
-		wantErr bool
+		name string
+		args args
+		want bool
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "empty code test",
+			args: args{
+				cfg: cfg,
+				st:  stateSrvc,
+			},
+			err: errors.New("failed to create runtime executor: code is empty"),
+		},
+		{
+			name: "bad code test",
+			args: args{
+				cfg:  cfg,
+				st:   stateSrvc,
+				code: []byte(`fake code`),
+			},
+			err: errors.New("failed to create runtime executor: Failed to instantiate the module:\n    compile error: Validation error \"Bad magic number\""),
+		},
+		{
+			name: "working example",
+			args: args{
+				cfg:  cfg,
+				st:   stateSrvc,
+				code: runtimeData,
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createRuntime(tt.args.cfg, tt.args.ns, tt.args.st, tt.args.ks, tt.args.net, tt.args.code)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createRuntime() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createRuntime() got = %v, want %v", got, tt.want)
+
+			if tt.want {
+				assert.NotNil(t, got)
 			}
 		})
 	}

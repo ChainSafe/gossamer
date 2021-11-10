@@ -19,7 +19,9 @@ package babe
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"math/big"
+	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -58,12 +60,26 @@ type VerificationManager struct {
 
 // NewVerificationManager returns a new NewVerificationManager
 func NewVerificationManager(blockState BlockState, epochState EpochState) (*VerificationManager, error) {
-	if blockState == nil {
-		return nil, errNilBlockState
+	switch blockState.(type) {
+	case *state.BlockState:
+		if blockState == (*state.BlockState)(nil) {
+			return nil, errNilBlockState
+		}
+	default:
+		if reflect.ValueOf(blockState).IsNil() {
+			return nil, errNilBlockState
+		}
 	}
 
-	if epochState == nil {
-		return nil, errNilEpochState
+	switch epochState.(type) {
+	case *state.EpochState:
+		if epochState == (*state.EpochState)(nil) {
+			return nil, errNilEpochState
+		}
+	default:
+		if reflect.ValueOf(epochState).IsNil() {
+			return nil, errNilEpochState
+		}
 	}
 
 	return &VerificationManager{
