@@ -549,8 +549,10 @@ func (cs *chainSync) getTarget() *big.Int {
 
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
 	intArr := make([]*big.Int, len(cs.peerState))
+	i := 0
 	for _, ps := range cs.peerState {
-		intArr = append(intArr, ps.number)
+		intArr[i] = ps.number
+		i++
 	}
 
 	//now sort the array
