@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"time"
 
+	log "github.com/ChainSafe/log15"
+
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/kusama"
@@ -27,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	log "github.com/ChainSafe/log15"
 )
 
 // TODO: update config to have toml rules and perhaps un-export some fields, since we don't want to expose all
@@ -85,7 +86,7 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port              uint32
+	Port              uint16
 	Bootnodes         []string
 	ProtocolID        string
 	NoBootstrap       bool
@@ -103,6 +104,7 @@ type CoreConfig struct {
 	BABELead         bool
 	GrandpaAuthority bool
 	WasmInterpreter  string
+	GrandpaInterval  time.Duration
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -180,6 +182,7 @@ func GssmrConfig() *Config {
 			BabeAuthority:    gssmr.DefaultBabeAuthority,
 			GrandpaAuthority: gssmr.DefaultGrandpaAuthority,
 			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+			GrandpaInterval:  gssmr.DefaultGrandpaInterval,
 		},
 		Network: NetworkConfig{
 			Port:              gssmr.DefaultNetworkPort,

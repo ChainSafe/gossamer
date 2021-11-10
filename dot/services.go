@@ -385,6 +385,7 @@ func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks
 		Voters:        voters,
 		Authority:     cfg.Core.GrandpaAuthority,
 		Network:       net,
+		Interval:      cfg.Core.GrandpaInterval,
 	}
 
 	if cfg.Core.GrandpaAuthority {
@@ -419,6 +420,7 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 		BabeVerifier:       verifier,
 		BlockImportHandler: cs,
 		MinPeers:           cfg.Network.MinPeers,
+		MaxPeers:           cfg.Network.MaxPeers,
 		SlotDuration:       slotDuration,
 	}
 

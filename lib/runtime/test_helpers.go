@@ -17,12 +17,13 @@
 package runtime
 
 import (
-	"io"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -80,42 +81,41 @@ func GetAbsolutePath(targetDir string) string {
 }
 
 // GetRuntimeBlob checks if the test wasm @testRuntimeFilePath exists and if not, it fetches it from @testRuntimeURL
-func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err error) {
+func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 	if utils.PathExists(testRuntimeFilePath) {
-		return 0, nil
+		return nil
 	}
 
-	out, err := os.Create(testRuntimeFilePath)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, testRuntimeURL, nil)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	/* #nosec */
-	resp, err := http.Get(testRuntimeURL)
+	const runtimeReqTimout = time.Second * 30
+
+	httpcli := http.Client{Timeout: runtimeReqTimout}
+	resp, err := httpcli.Do(req)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
 
-	n, err = io.Copy(out, resp.Body)
+	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return 0, err
+		return err
 	}
+	defer resp.Body.Close() //nolint:errcheck
 
-	if err = out.Close(); err != nil {
-		return 0, err
-	}
-
-	return n, nil
+	return ioutil.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
 }
 
 // TestRuntimeNetwork ...
 type TestRuntimeNetwork struct{}
 
 // NetworkState ...
-func (trn *TestRuntimeNetwork) NetworkState() common.NetworkState {
+func (*TestRuntimeNetwork) NetworkState() common.NetworkState {
 	testAddrs := []ma.Multiaddr(nil)
 
 	// create mock multiaddress
@@ -155,11 +155,12 @@ func GenerateRuntimeWasmFile() ([]string, error) {
 	var wasmFilePaths []string
 	for _, rt := range runtimes {
 		testRuntimeFilePath, testRuntimeURL := GetRuntimeVars(rt)
-		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
-		_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+		err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 		if err != nil {
 			return nil, err
 		}
+
+		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
 	}
 	return wasmFilePaths, nil
 }

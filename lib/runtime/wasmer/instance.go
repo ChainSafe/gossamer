@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
@@ -149,14 +150,15 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	allocator := runtime.NewAllocator(instance.Memory, heapBase)
 
 	runtimeCtx := &runtime.Context{
-		Storage:     cfg.Storage,
-		Allocator:   allocator,
-		Keystore:    cfg.Keystore,
-		Validator:   cfg.Role == byte(4),
-		NodeStorage: cfg.NodeStorage,
-		Network:     cfg.Network,
-		Transaction: cfg.Transaction,
-		SigVerifier: runtime.NewSignatureVerifier(),
+		Storage:         cfg.Storage,
+		Allocator:       allocator,
+		Keystore:        cfg.Keystore,
+		Validator:       cfg.Role == byte(4),
+		NodeStorage:     cfg.NodeStorage,
+		Network:         cfg.Network,
+		Transaction:     cfg.Transaction,
+		SigVerifier:     runtime.NewSignatureVerifier(),
+		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 
 	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
