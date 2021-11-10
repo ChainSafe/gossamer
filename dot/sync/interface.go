@@ -50,7 +50,7 @@ type BlockState interface {
 	GetJustification(common.Hash) ([]byte, error)
 	SetJustification(hash common.Hash, data []byte) error
 	SetFinalisedHash(hash common.Hash, round, setID uint64) error
-	AddBlockToBlockTree(header *types.Header) error
+	AddBlockToBlockTree(block *types.Block) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
