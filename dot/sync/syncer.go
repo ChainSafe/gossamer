@@ -35,6 +35,7 @@ type Service struct {
 	blockState     BlockState
 	chainSync      ChainSync
 	chainProcessor ChainProcessor
+	network        Network
 }
 
 // Config is the configuration for the sync Service.
@@ -47,7 +48,7 @@ type Config struct {
 	TransactionState   TransactionState
 	BlockImportHandler BlockImportHandler
 	BabeVerifier       BabeVerifier
-	MinPeers           int
+	MinPeers, MaxPeers int
 	SlotDuration       time.Duration
 }
 
@@ -87,13 +88,25 @@ func NewService(cfg *Config) (*Service, error) {
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
-	chainSync := newChainSync(cfg.BlockState, cfg.Network, readyBlocks, pendingBlocks, cfg.MinPeers, cfg.SlotDuration)
+
+	csCfg := &chainSyncConfig{
+		bs:            cfg.BlockState,
+		net:           cfg.Network,
+		readyBlocks:   readyBlocks,
+		pendingBlocks: pendingBlocks,
+		minPeers:      cfg.MinPeers,
+		maxPeers:      cfg.MaxPeers,
+		slotDuration:  cfg.SlotDuration,
+	}
+
+	chainSync := newChainSync(csCfg)
 	chainProcessor := newChainProcessor(readyBlocks, pendingBlocks, cfg.BlockState, cfg.StorageState, cfg.TransactionState, cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler)
 
 	return &Service{
 		blockState:     cfg.BlockState,
 		chainSync:      chainSync,
 		chainProcessor: chainProcessor,
+		network:        cfg.Network,
 	}, nil
 }
 
