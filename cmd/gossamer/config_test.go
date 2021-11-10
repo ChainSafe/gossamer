@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -24,12 +25,14 @@ import (
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
+	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -1064,4 +1067,228 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 		require.NotEmpty(t, createdCfg.Global.Name)
 		require.NotEqual(t, cfg.Global.Name, createdCfg.Global.Name)
 	})
+}
+
+type mockGetStringer struct {
+	kv map[string]string
+}
+
+func (m *mockGetStringer) String(key string) (value string) {
+	return m.kv[key]
+}
+
+func newMockGetStringer(keyValue map[string]string) *mockGetStringer {
+	kv := make(map[string]string, len(keyValue))
+	for k, v := range keyValue {
+		kv[k] = v
+	}
+	return &mockGetStringer{kv: kv}
+}
+
+func Test_getLogLevel(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		flagsKVStore stringKVStore
+		flagName     string
+		tomlValue    string
+		defaultLevel log.Lvl
+		level        log.Lvl
+		err          error
+	}{
+		"no value with default": {
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			defaultLevel: log.LvlError,
+			level:        log.LvlError,
+		},
+		"flag integer value": {
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "1"}),
+			flagName:     "x",
+			level:        log.LvlError,
+		},
+		"flag string value": {
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
+			flagName:     "x",
+			level:        log.LvlError,
+		},
+		"flag bad string value": {
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "garbage"}),
+			flagName:     "x",
+			err:          errors.New("cannot parse log level string: Unknown level: garbage"),
+		},
+		"toml integer value": {
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "1",
+			level:        log.LvlError,
+		},
+		"toml string value": {
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "eror",
+			level:        log.LvlError,
+		},
+		"toml bad string value": {
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "garbage",
+			err:          errors.New("cannot parse log level string: Unknown level: garbage"),
+		},
+		"flag takes precedence": {
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
+			flagName:     "x",
+			tomlValue:    "warn",
+			level:        log.LvlError,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			level, err := getLogLevel(testCase.flagsKVStore, testCase.flagName,
+				testCase.tomlValue, testCase.defaultLevel)
+
+			if testCase.err != nil {
+				assert.EqualError(t, err, testCase.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, testCase.level, level)
+		})
+	}
+}
+
+func Test_parseLogLevelString(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		logLevelString string
+		logLevel       log.Lvl
+		err            error
+	}{
+		"empty string": {
+			err: errors.New("cannot parse log level string: Unknown level: "),
+		},
+		"valid integer": {
+			logLevelString: "1",
+			logLevel:       log.LvlError,
+		},
+		"minus one": {
+			logLevelString: "-1",
+			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: -1"),
+		},
+		"over 5": {
+			logLevelString: "6",
+			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: 6"),
+		},
+		"valid string": {
+			logLevelString: "error",
+			logLevel:       log.LvlError,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			logLevel, err := parseLogLevelString(testCase.logLevelString)
+
+			if testCase.err != nil {
+				assert.EqualError(t, err, testCase.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, testCase.logLevel, logLevel)
+		})
+	}
+}
+
+func Test_setLogConfig(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		ctx               stringKVStore
+		initialCfg        ctoml.Config
+		initialGlobalCfg  dot.GlobalConfig
+		initialLogCfg     dot.LogConfig
+		expectedCfg       ctoml.Config
+		expectedGlobalCfg dot.GlobalConfig
+		expectedLogCfg    dot.LogConfig
+		err               error
+	}{
+		"no value": {
+			ctx: newMockGetStringer(map[string]string{}),
+			expectedCfg: ctoml.Config{
+				Global: ctoml.GlobalConfig{
+					LogLvl: log.LvlInfo.String(),
+				},
+			},
+			expectedGlobalCfg: dot.GlobalConfig{
+				LogLvl: log.LvlInfo,
+			},
+			expectedLogCfg: dot.LogConfig{
+				CoreLvl:           log.LvlInfo,
+				SyncLvl:           log.LvlInfo,
+				NetworkLvl:        log.LvlInfo,
+				RPCLvl:            log.LvlInfo,
+				StateLvl:          log.LvlInfo,
+				RuntimeLvl:        log.LvlInfo,
+				BlockProducerLvl:  log.LvlInfo,
+				FinalityGadgetLvl: log.LvlInfo,
+			},
+		},
+		"some values": {
+			ctx: newMockGetStringer(map[string]string{}),
+			initialCfg: ctoml.Config{
+				Log: ctoml.LogConfig{
+					CoreLvl:  log.LvlError.String(),
+					SyncLvl:  log.LvlDebug.String(),
+					StateLvl: log.LvlWarn.String(),
+				},
+			},
+			expectedCfg: ctoml.Config{
+				Global: ctoml.GlobalConfig{
+					LogLvl: log.LvlInfo.String(),
+				},
+				Log: ctoml.LogConfig{
+					CoreLvl:  log.LvlError.String(),
+					SyncLvl:  log.LvlDebug.String(),
+					StateLvl: log.LvlWarn.String(),
+				},
+			},
+			expectedGlobalCfg: dot.GlobalConfig{
+				LogLvl: log.LvlInfo,
+			},
+			expectedLogCfg: dot.LogConfig{
+				CoreLvl:           log.LvlError,
+				SyncLvl:           log.LvlDebug,
+				NetworkLvl:        log.LvlInfo,
+				RPCLvl:            log.LvlInfo,
+				StateLvl:          log.LvlWarn,
+				RuntimeLvl:        log.LvlInfo,
+				BlockProducerLvl:  log.LvlInfo,
+				FinalityGadgetLvl: log.LvlInfo,
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			err := setLogConfig(testCase.ctx, &testCase.initialCfg,
+				&testCase.initialGlobalCfg, &testCase.initialLogCfg)
+
+			if testCase.err != nil {
+				assert.EqualError(t, err, testCase.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, testCase.expectedCfg, testCase.initialCfg)
+			assert.Equal(t, testCase.expectedGlobalCfg, testCase.initialGlobalCfg)
+			assert.Equal(t, testCase.expectedLogCfg, testCase.initialLogCfg)
+		})
+	}
 }

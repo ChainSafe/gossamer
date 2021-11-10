@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -287,118 +288,131 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
-func setLogConfig(ctx *cli.Context, cfg *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) error {
+type stringKVStore interface {
+	String(key string) (value string)
+}
+
+// getLogLevel obtains the log level in the following order:
+// 1. Try to obtain it from the flag value corresponding to flagName.
+// 2. Try to obtain it from the TOML value given, if step 1. failed.
+// 3. Return the default value given if both previous steps failed.
+// For steps 1 and 2, it tries to parse the level as an integer to convert it
+// to a level, and also tries to parse it as a string.
+func getLogLevel(flagsKVStore stringKVStore, flagName, tomlValue string, defaultLevel log.Lvl) (
+	level log.Lvl, err error) {
+	if flagValue := flagsKVStore.String(flagName); flagValue != "" {
+		return parseLogLevelString(flagValue)
+	}
+
+	if tomlValue == "" {
+		return defaultLevel, nil
+	}
+
+	return parseLogLevelString(tomlValue)
+}
+
+var ErrLogLevelIntegerOutOfRange = errors.New("log level integer can only be between 0 and 5 included")
+
+func parseLogLevelString(logLevelString string) (logLevel log.Lvl, err error) {
+	levelInt, err := strconv.Atoi(logLevelString)
+	if err == nil { // level given as an integer
+		if levelInt < 0 || levelInt > 5 {
+			return 0, fmt.Errorf("%w: log level given: %d", ErrLogLevelIntegerOutOfRange, levelInt)
+		}
+		logLevel = log.Lvl(levelInt)
+		return logLevel, nil
+	}
+
+	logLevel, err = log.LvlFromString(logLevelString)
+	if err != nil {
+		return 0, fmt.Errorf("cannot parse log level string: %w", err)
+	}
+
+	return logLevel, nil
+}
+
+func setLogConfig(flagsKVStore stringKVStore, cfg *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
 	if cfg == nil {
 		cfg = new(ctoml.Config)
 	}
 
-	if lvlStr := ctx.String(LogFlag.Name); lvlStr != "" {
-		if lvlToInt, err := strconv.Atoi(lvlStr); err == nil {
-			lvlStr = log.Lvl(lvlToInt).String()
-		}
-		cfg.Global.LogLvl = lvlStr
-	}
-
-	if cfg.Global.LogLvl == "" {
-		cfg.Global.LogLvl = gssmr.DefaultLvl.String()
-	}
-
-	var err error
-	globalCfg.LogLvl, err = log.LvlFromString(cfg.Global.LogLvl)
+	globalCfg.LogLvl, err = getLogLevel(flagsKVStore, LogFlag.Name, cfg.Global.LogLvl, gssmr.DefaultLvl)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get global log level: %w", err)
+	}
+	cfg.Global.LogLvl = globalCfg.LogLvl.String()
+
+	levelsData := []struct {
+		name      string
+		flagName  string
+		tomlValue string
+		levelPtr  *log.Lvl // pointer to value to modify
+	}{
+		{
+			name:      "core",
+			flagName:  LogCoreLevelFlag.Name,
+			tomlValue: cfg.Log.CoreLvl,
+			levelPtr:  &logCfg.CoreLvl,
+		},
+		{
+			name:      "sync",
+			flagName:  LogSyncLevelFlag.Name,
+			tomlValue: cfg.Log.SyncLvl,
+			levelPtr:  &logCfg.SyncLvl,
+		},
+		{
+			name:      "network",
+			flagName:  LogNetworkLevelFlag.Name,
+			tomlValue: cfg.Log.NetworkLvl,
+			levelPtr:  &logCfg.NetworkLvl,
+		},
+		{
+			name:      "RPC",
+			flagName:  LogRPCLevelFlag.Name,
+			tomlValue: cfg.Log.RPCLvl,
+			levelPtr:  &logCfg.RPCLvl,
+		},
+		{
+			name:      "state",
+			flagName:  LogStateLevelFlag.Name,
+			tomlValue: cfg.Log.StateLvl,
+			levelPtr:  &logCfg.StateLvl,
+		},
+		{
+			name:      "runtime",
+			flagName:  LogRuntimeLevelFlag.Name,
+			tomlValue: cfg.Log.RuntimeLvl,
+			levelPtr:  &logCfg.RuntimeLvl,
+		},
+		{
+			name:      "block producer",
+			flagName:  LogBabeLevelFlag.Name,
+			tomlValue: cfg.Log.BlockProducerLvl,
+			levelPtr:  &logCfg.BlockProducerLvl,
+		},
+		{
+			name:      "finality gadget",
+			flagName:  LogGrandpaLevelFlag.Name,
+			tomlValue: cfg.Log.FinalityGadgetLvl,
+			levelPtr:  &logCfg.FinalityGadgetLvl,
+		},
+		{
+			name:      "sync",
+			flagName:  LogSyncLevelFlag.Name,
+			tomlValue: cfg.Log.SyncLvl,
+			levelPtr:  &logCfg.SyncLvl,
+		},
 	}
 
-	// check and set log levels for each pkg
-	if cfg.Log.CoreLvl == "" {
-		logCfg.CoreLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.CoreLvl)
+	for _, levelData := range levelsData {
+		level, err := getLogLevel(flagsKVStore, levelData.flagName, levelData.tomlValue, globalCfg.LogLvl)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot get %s log level: %w", levelData.name, err)
 		}
-
-		logCfg.CoreLvl = lvl
+		*levelData.levelPtr = level
 	}
 
-	if cfg.Log.SyncLvl == "" {
-		logCfg.SyncLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.SyncLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.SyncLvl = lvl
-	}
-
-	if cfg.Log.NetworkLvl == "" {
-		logCfg.NetworkLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.NetworkLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.NetworkLvl = lvl
-	}
-
-	if cfg.Log.RPCLvl == "" {
-		logCfg.RPCLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.RPCLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.RPCLvl = lvl
-	}
-
-	if cfg.Log.StateLvl == "" {
-		logCfg.StateLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.StateLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.StateLvl = lvl
-	}
-
-	if cfg.Log.RuntimeLvl == "" {
-		logCfg.RuntimeLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.RuntimeLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.RuntimeLvl = lvl
-	}
-
-	if cfg.Log.BlockProducerLvl == "" {
-		logCfg.BlockProducerLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.BlockProducerLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.BlockProducerLvl = lvl
-	}
-
-	if cfg.Log.FinalityGadgetLvl == "" {
-		logCfg.FinalityGadgetLvl = globalCfg.LogLvl
-	} else {
-		lvl, err := log.LvlFromString(cfg.Log.FinalityGadgetLvl)
-		if err != nil {
-			return err
-		}
-
-		logCfg.FinalityGadgetLvl = lvl
-	}
-
-	logger.Debug("set log configuration", "--log", ctx.String(LogFlag.Name), "global", globalCfg.LogLvl)
+	logger.Debug("set log configuration", "--log", flagsKVStore.String(LogFlag.Name), "global", globalCfg.LogLvl)
 	return nil
 }
 
