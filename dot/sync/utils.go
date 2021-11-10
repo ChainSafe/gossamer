@@ -16,12 +16,9 @@
 
 package sync
 
-type reducer func(prevValue interface{}, newValue interface{}) interface{}
+import "math/big"
 
-// for comp: comp(x, y) = -1: x<y, 0: x==y, 1: x>y
-type comperator func(prevValue interface{}, newValue interface{}) int
-
-//removeOutlier removes the outlier from the slice
+//	removeOutlier removes the outlier from the slice
 //  Explanation:
 // 	IQR outlier detection
 // 	Q25 = 25th_percentile
@@ -30,22 +27,23 @@ type comperator func(prevValue interface{}, newValue interface{}) int
 // 	If x >  Q75  + 1.5 * IQR or  x   < Q25 - 1.5 * IQR THEN  x is a mild outlier
 // 	If x >  Q75  + 3.0 * IQR or  x   < Q25 – 3.0 * IQR THEN  x is a extreme outlier
 // Ref: http://www.mathwords.com/o/outlier.htm
-// returns: reducer output
-func removeOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal interface{}, reducer, plusFn, minusFn, divideFn, multiplyFn reducer) interface{} {
+//
+// returns: sum of all the non-outliers elements
+func removeOutlier(sortedArr []*big.Int) (*big.Int, int64) {
 	length := len(sortedArr)
 
 	switch length {
 	case 0:
-		return nil
+		return big.NewInt(0), 0
 	case 1:
-		return sortedArr[0]
+		return sortedArr[0], 1
 	case 2:
-		return reducer(sortedArr[0], sortedArr[1])
+		return big.NewInt(0).Add(sortedArr[0], sortedArr[1]), 2
 	}
 
 	half := length / 2
 	data1 := sortedArr[:half]
-	var data2 []interface{}
+	var data2 []*big.Int
 
 	if length%2 == 0 {
 		data2 = sortedArr[half:]
@@ -53,32 +51,35 @@ func removeOutlier(sortedArr []interface{}, compFn comperator, initialReducedVal
 		data2 = sortedArr[half+1:]
 	}
 
-	q1 := getMedian(data1, plusFn, divideFn)
-	q3 := getMedian(data2, plusFn, divideFn)
+	q1 := getMedian(data1)
+	q3 := getMedian(data2)
 
-	iqr := minusFn(q3, q1)
-	iqr1_5 := multiplyFn(iqr, 1.5)
-	lower := minusFn(q1, iqr1_5)
-	upper := plusFn(q3, iqr1_5)
+	iqr := big.NewInt(0).Sub(q3, q1)
+	iqr1_5 := big.NewInt(0).Mul(iqr, big.NewInt(2)) //instead of 1.5 it is 2.0 due to the rounding
+	lower := big.NewInt(0).Sub(q1, iqr1_5)
+	upper := big.NewInt(0).Add(q3, iqr1_5)
 
-	reducedValue := initialReducedVal
+	reducedValue := big.NewInt(0)
+	count := int64(0)
 	for _, v := range sortedArr {
 		//collect valid (non-outlier) values
-		lowPass := compFn(v, lower)
-		highPass := compFn(v, upper)
+		lowPass := v.Cmp(lower)
+		highPass := v.Cmp(upper)
 		if lowPass >= 0 && highPass <= 0 {
-			reducedValue = reducer(reducedValue, v)
+			reducedValue = big.NewInt(0).Add(reducedValue, v)
+			count++
 		}
 	}
 
-	return reducedValue
+	return reducedValue, count
 }
 
-func getMedian(data []interface{}, sum, divide reducer) interface{} {
+func getMedian(data []*big.Int) *big.Int {
 	length := len(data)
 	half := length / 2
 	if length%2 == 0 {
-		return divide(sum(data[half], data[half-1]), 2)
+		sum := big.NewInt(0).Add(data[half], data[half-1])
+		return big.NewInt(0).Div(sum, big.NewInt(2))
 	}
 
 	return data[half]

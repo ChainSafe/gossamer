@@ -492,8 +492,6 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 // head block number, it would leave us in bootstrap mode forever
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
 func (cs *chainSync) getTarget() *big.Int {
-	count := int64(0)
-
 	cs.RLock()
 	defer cs.RUnlock()
 
@@ -504,38 +502,17 @@ func (cs *chainSync) getTarget() *big.Int {
 	}
 
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
-	intArr := make([]interface{}, len(cs.peerState))
+	intArr := make([]*big.Int, len(cs.peerState))
 	for _, ps := range cs.peerState {
 		intArr = append(intArr, ps.number)
 	}
 
 	//now sort the array
 	sort.Slice(intArr, func(i, j int) bool {
-		return intArr[i].(*big.Int).Cmp(intArr[j].(*big.Int)) < 0
+		return intArr[i].Cmp(intArr[j]) < 0
 	})
 
-	reducerSum := func(a, b interface{}) interface{} {
-		count++
-		return big.NewInt(0).Add(a.(*big.Int), b.(*big.Int))
-	}
-
-	comp := func(a, b interface{}) int {
-		return a.(*big.Int).Cmp(b.(*big.Int))
-	}
-
-	plus := func(a, b interface{}) interface{} {
-		return big.NewInt(0).Add(a.(*big.Int), b.(*big.Int))
-	}
-	minus := func(a, b interface{}) interface{} {
-		return big.NewInt(0).Sub(a.(*big.Int), b.(*big.Int))
-	}
-	divide := func(a, b interface{}) interface{} {
-		return big.NewInt(0).Div(a.(*big.Int), big.NewInt(int64(b.(int))))
-	}
-	mul := func(a, b interface{}) interface{} {
-		return big.NewInt(0).Mul(a.(*big.Int), big.NewInt(int64(b.(float64))))
-	}
-	sum := removeOutlier(intArr, comp, big.NewInt(0), reducerSum, plus, minus, divide, mul).(*big.Int)
+	sum, count := removeOutlier(intArr)
 
 	return big.NewInt(0).Div(sum, big.NewInt(count))
 }
