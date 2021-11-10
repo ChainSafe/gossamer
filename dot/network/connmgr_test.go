@@ -204,6 +204,10 @@ func TestRemovePeer(t *testing.T) {
 }
 
 func TestSetReservedPeer(t *testing.T) {
+	if testing.Short() {
+		t.Skip() // this sometimes fails on CI
+	}
+
 	nodes := make([]*Service, 3)
 	for i := range nodes {
 		config := &Config{
