@@ -165,7 +165,7 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) Notif
 		select {
 		case txnBatchCh <- data:
 		case <-time.After(time.Millisecond * 200):
-			logger.Debug("transaction message not included into batch")
+			logger.Debug("transaction message not included into batch", "peer", peer.String(), "msg", msg.String())
 		}
 	}
 }
