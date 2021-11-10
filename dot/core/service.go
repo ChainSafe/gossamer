@@ -314,7 +314,11 @@ func (s *Service) handleBlocksAsync() {
 		prev := s.blockState.BestBlockHash()
 
 		select {
-		case block := <-s.blockAddCh:
+		case block, ok := <-s.blockAddCh:
+			if !ok {
+				return
+			}
+
 			if block == nil {
 				continue
 			}
@@ -353,6 +357,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	// subchain contains the ancestor as well so we need to remove it.
 	if len(subchain) > 0 {
 		subchain = subchain[1:]
+	} else {
+		return nil
 	}
 
 	// Check transaction validation on the best block.
@@ -361,10 +367,14 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return err
 	}
 
+	if rt == nil {
+		return ErrNilRuntime
+	}
+
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		body, err := s.blockState.GetBlockBody(hash)
-		if err != nil {
+		if err != nil || body == nil {
 			continue
 		}
 
@@ -377,9 +387,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 			// decode extrinsic and make sure it's not an inherent.
 			decExt := &types.ExtrinsicData{}
-			err = decExt.DecodeVersion(encExt)
-			if err != nil {
-				return err
+			if err = decExt.DecodeVersion(encExt); err != nil {
+				continue
 			}
 
 			// Inherent are not signed.
@@ -390,7 +399,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Info("failed to validate transaction", "error", err, "extrinsic", ext)
+				logger.Debug("failed to validate transaction", "error", err, "extrinsic", ext)
 				continue
 			}
 
