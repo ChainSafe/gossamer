@@ -618,7 +618,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			return
 		} else if err != nil {
 			logger.Trace("failed to read from stream", "id", stream.ID(), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
-			_ = stream.Close()
+			s.closeInboundStream(stream)
 			return
 		}
 
@@ -628,8 +628,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
 			logger.Trace("failed to decode message from peer", "id", stream.ID(), "protocol", stream.Protocol(), "err", err)
-			_ = stream.Close()
-			continue
+			s.closeInboundStream(stream)
+			return
 		}
 
 		logger.Trace(
@@ -641,12 +641,29 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 		if err = handler(stream, msg); err != nil {
 			logger.Trace("failed to handle message from stream", "id", stream.ID(), "message", msg, "error", err)
-			_ = stream.Close()
+			s.closeInboundStream(stream)
 			return
 		}
 
 		s.host.bwc.LogRecvMessage(int64(tot))
 	}
+}
+
+func (s *Service) closeInboundStream(stream libp2pnetwork.Stream) {
+	protocolID := stream.Protocol()
+
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	for _, prtl := range s.notificationsProtocols {
+		if prtl.protocolID != protocolID {
+			continue
+		}
+
+		prtl.inboundHandshakeData.Delete(stream.Conn().RemotePeer())
+	}
+
+	_ = stream.Close()
 }
 
 func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {
