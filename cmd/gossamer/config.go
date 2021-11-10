@@ -288,7 +288,7 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
-type getStringer interface {
+type stringKVStore interface {
 	String(key string) (value string)
 }
 
@@ -298,9 +298,9 @@ type getStringer interface {
 // 3. Return the default value given if both previous steps failed.
 // For steps 1 and 2, it tries to parse the level as an integer to convert it
 // to a level, and also tries to parse it as a string.
-func getLogLevel(ctx getStringer, flagName, tomlValue string, defaultLevel log.Lvl) (
+func getLogLevel(flagsKVStore stringKVStore, flagName, tomlValue string, defaultLevel log.Lvl) (
 	level log.Lvl, err error) {
-	if flagValue := ctx.String(flagName); flagValue != "" {
+	if flagValue := flagsKVStore.String(flagName); flagValue != "" {
 		return parseLogLevelString(flagValue)
 	}
 
@@ -331,12 +331,12 @@ func parseLogLevelString(logLevelString string) (logLevel log.Lvl, err error) {
 	return logLevel, nil
 }
 
-func setLogConfig(ctx getStringer, cfg *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
+func setLogConfig(flagsKVStore stringKVStore, cfg *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
 	if cfg == nil {
 		cfg = new(ctoml.Config)
 	}
 
-	globalCfg.LogLvl, err = getLogLevel(ctx, LogFlag.Name, cfg.Global.LogLvl, gssmr.DefaultLvl)
+	globalCfg.LogLvl, err = getLogLevel(flagsKVStore, LogFlag.Name, cfg.Global.LogLvl, gssmr.DefaultLvl)
 	if err != nil {
 		return fmt.Errorf("cannot get global log level: %w", err)
 	}
@@ -405,14 +405,14 @@ func setLogConfig(ctx getStringer, cfg *ctoml.Config, globalCfg *dot.GlobalConfi
 	}
 
 	for _, levelData := range levelsData {
-		level, err := getLogLevel(ctx, levelData.flagName, levelData.tomlValue, globalCfg.LogLvl)
+		level, err := getLogLevel(flagsKVStore, levelData.flagName, levelData.tomlValue, globalCfg.LogLvl)
 		if err != nil {
 			return fmt.Errorf("cannot get %s log level: %w", levelData.name, err)
 		}
 		*levelData.levelPtr = level
 	}
 
-	logger.Debug("set log configuration", "--log", ctx.String(LogFlag.Name), "global", globalCfg.LogLvl)
+	logger.Debug("set log configuration", "--log", flagsKVStore.String(LogFlag.Name), "global", globalCfg.LogLvl)
 	return nil
 }
 

@@ -1089,7 +1089,7 @@ func Test_getLogLevel(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		ctx          getStringer
+		flagsKVStore stringKVStore
 		flagName     string
 		tomlValue    string
 		defaultLevel log.Lvl
@@ -1097,45 +1097,45 @@ func Test_getLogLevel(t *testing.T) {
 		err          error
 	}{
 		"no value with default": {
-			ctx:          newMockGetStringer(map[string]string{}),
+			flagsKVStore: newMockGetStringer(map[string]string{}),
 			defaultLevel: log.LvlError,
 			level:        log.LvlError,
 		},
 		"flag integer value": {
-			ctx:      newMockGetStringer(map[string]string{"x": "1"}),
-			flagName: "x",
-			level:    log.LvlError,
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "1"}),
+			flagName:     "x",
+			level:        log.LvlError,
 		},
 		"flag string value": {
-			ctx:      newMockGetStringer(map[string]string{"x": "eror"}),
-			flagName: "x",
-			level:    log.LvlError,
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
+			flagName:     "x",
+			level:        log.LvlError,
 		},
 		"flag bad string value": {
-			ctx:      newMockGetStringer(map[string]string{"x": "garbage"}),
-			flagName: "x",
-			err:      errors.New("cannot parse log level string: Unknown level: garbage"),
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "garbage"}),
+			flagName:     "x",
+			err:          errors.New("cannot parse log level string: Unknown level: garbage"),
 		},
 		"toml integer value": {
-			ctx:       newMockGetStringer(map[string]string{}),
-			tomlValue: "1",
-			level:     log.LvlError,
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "1",
+			level:        log.LvlError,
 		},
 		"toml string value": {
-			ctx:       newMockGetStringer(map[string]string{}),
-			tomlValue: "eror",
-			level:     log.LvlError,
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "eror",
+			level:        log.LvlError,
 		},
 		"toml bad string value": {
-			ctx:       newMockGetStringer(map[string]string{}),
-			tomlValue: "garbage",
-			err:       errors.New("cannot parse log level string: Unknown level: garbage"),
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "garbage",
+			err:          errors.New("cannot parse log level string: Unknown level: garbage"),
 		},
 		"flag takes precedence": {
-			ctx:       newMockGetStringer(map[string]string{"x": "eror"}),
-			flagName:  "x",
-			tomlValue: "warn",
-			level:     log.LvlError,
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
+			flagName:     "x",
+			tomlValue:    "warn",
+			level:        log.LvlError,
 		},
 	}
 
@@ -1144,7 +1144,7 @@ func Test_getLogLevel(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			level, err := getLogLevel(testCase.ctx, testCase.flagName,
+			level, err := getLogLevel(testCase.flagsKVStore, testCase.flagName,
 				testCase.tomlValue, testCase.defaultLevel)
 
 			if testCase.err != nil {
@@ -1207,7 +1207,7 @@ func Test_setLogConfig(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		ctx               getStringer
+		ctx               stringKVStore
 		initialCfg        ctoml.Config
 		initialGlobalCfg  dot.GlobalConfig
 		initialLogCfg     dot.LogConfig
