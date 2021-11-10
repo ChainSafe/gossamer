@@ -18,6 +18,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"sync"
@@ -157,6 +158,8 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler, batchHandler NotificationsMessageBatchHandler) messageHandler {
+	// if this function returns an error, it should *always* delete the inbound handshake data
+	// associated with it, if it exists.
 	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
 			return nil
@@ -196,6 +199,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				err := info.handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+					info.inboundHandshakeData.Delete(peer)
 					return errCannotValidateHandshake
 				}
 
@@ -206,14 +210,17 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				resp, err := info.getHandshake()
 				if err != nil {
 					logger.Warn("failed to get handshake", "protocol", info.protocolID, "error", err)
+					info.inboundHandshakeData.Delete(peer)
 					return err
 				}
 
 				err = s.host.writeToStream(stream, resp)
 				if err != nil {
 					logger.Trace("failed to send handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+					info.inboundHandshakeData.Delete(peer)
 					return err
 				}
+
 				logger.Trace("receiver: sent handshake", "protocol", info.protocolID, "peer", peer)
 			}
 
@@ -233,6 +240,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		if batchHandler != nil {
 			msgs, err = batchHandler(peer, msg)
 			if err != nil {
+				info.inboundHandshakeData.Delete(peer)
 				return err
 			}
 
@@ -240,8 +248,10 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		} else {
 			propagate, err = messageHandler(peer, msg)
 			if err != nil {
+				info.inboundHandshakeData.Delete(peer)
 				return err
 			}
+
 			msgs = append(msgs, &BatchMessage{
 				msg:  msg,
 				peer: peer,
@@ -279,33 +289,42 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	hsData, has := info.getOutboundHandshakeData(peer)
-	if has && !hsData.validated {
-		// peer has sent us an invalid handshake in the past, ignore
+	if info.handshakeValidator == nil {
+		logger.Warn("handshakeValidator is not set for protocol!", "protocol", info.protocolID)
 		return
 	}
 
-	if !has || !hsData.received || hsData.stream == nil {
+	hsData, has := info.getOutboundHandshakeData(peer)
+	if !has {
+		hsData = newHandshakeData(false, false, nil)
+	}
+
+	hsData.Lock()
+	defer hsData.Unlock()
+
+	if has && hsData.received && !hsData.validated {
+		// peer has sent us an invalid handshake in the past, ignore
+		logger.Warn("peer sent us invalid handshake before, ignoring...", "peer", peer, "protocol", info.protocolID)
+		return
+	}
+
+	if !has || !hsData.received /*|| hsData.stream == nil*/ {
 		if !has {
 			hsData = newHandshakeData(false, false, nil)
+		} else if has && hsData.stream == nil {
+			panic(fmt.Sprintf("stream is nil, but it shouldn't be!! %s", info.protocolID))
 		}
-
-		hsData.Lock()
-		defer hsData.Unlock()
 
 		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
 			logger.Trace("failed to send message to peer", "peer", peer, "error", err)
+			_ = stream.Close()
 			return
 		}
 
 		hsData.stream = stream
 		info.outboundHandshakeData.Store(peer, hsData)
-
-		if info.handshakeValidator == nil {
-			return
-		}
 
 		hsTimer := time.NewTimer(handshakeTimeout)
 
@@ -334,10 +353,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			hsData.received = true
 		}
 
-		err = info.handshakeValidator(peer, hs)
-		if err != nil {
+		if err = info.handshakeValidator(peer, hs); err != nil {
 			logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 			hsData.validated = false
+			hsData.stream = nil
+			_ = stream.Close()
 			info.outboundHandshakeData.Store(peer, hsData)
 			return
 		}
@@ -365,7 +385,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	// we've completed the handshake with the peer, send message directly
-	logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
+	logger.Debug("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
 
 	err := s.host.writeToStream(hsData.stream, msg)
 	if err != nil {

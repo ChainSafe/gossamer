@@ -639,8 +639,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			"msg", msg.String(),
 		)
 
-		err = handler(stream, msg)
-		if err != nil {
+		if err = handler(stream, msg); err != nil {
 			logger.Trace("failed to handle message from stream", "id", stream.ID(), "message", msg, "error", err)
 			_ = stream.Close()
 			return
