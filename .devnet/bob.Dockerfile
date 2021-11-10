@@ -24,9 +24,11 @@ COPY . .
 RUN go get ./...
 RUN go build github.com/ChainSafe/gossamer/cmd/gossamer
 
-# RUN gossamer --key bob init
+# use modified genesis-spec.json with only 3 authority nodes
+RUN rm chain/gssmr/genesis-spec.json
+RUN cp .devnet/chain/gssmr/genesis-spec.json chain/gssmr/genesis-spec.json
+
 RUN ["sh", "-c", "gossamer --key=${key} init"]
-# ENTRYPOINT gossamer --key=bob --bootnodes /ip4/10.5.0.2/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU --rpc --rpc-external=true
 ENTRYPOINT ["sh", "-c", "gossamer --key=${key} --bootnodes=/ip4/10.5.0.2/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU --rpc --rpc-external=true"]
 
 EXPOSE 7001 8545 8546 8540 9876

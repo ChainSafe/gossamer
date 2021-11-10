@@ -15,6 +15,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.12
 	github.com/fatih/color v1.13.0
 	github.com/go-playground/validator/v10 v10.9.0
+	github.com/go-yaml/yaml v2.1.0+incompatible // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
@@ -25,7 +26,9 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/ipfs/go-ds-badger2 v0.1.1
 	github.com/ipfs/go-ipns v0.1.2 //indirect
-	github.com/jpillora/ipfilter v1.2.3
+	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
+	github.com/jessevdk/go-flags v1.5.0 // indirect
+	github.com/jpillora/ipfilter v1.2.2
 	github.com/libp2p/go-libp2p v0.15.1
 	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/libp2p/go-libp2p-discovery v0.5.1
@@ -42,6 +45,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	google.golang.org/protobuf v1.27.1
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 require (

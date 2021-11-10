@@ -1,8 +1,10 @@
 services: 
   alice:
     build:
-      context: ./..
+      context: .
       dockerfile: alice.Dockerfile
+      args:
+        DD_API_KEY: ${DD_API_KEY}
     ports:
       - "7001"
       - "8545"
@@ -15,7 +17,7 @@ services:
 
   bob:
     build:
-      context: ./..
+      context: .
       dockerfile: bob.Dockerfile
       args:
         key: "bob"
@@ -33,7 +35,7 @@ services:
 
   charlie:
     build:
-      context: ./..
+      context: .
       dockerfile: bob.Dockerfile
       args:
         key: "charlie"
