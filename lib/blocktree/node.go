@@ -63,10 +63,6 @@ func (n *node) getNode(h common.Hash) *node {
 		return n
 	}
 
-	if len(n.children) == 0 {
-		return nil
-	}
-
 	for _, child := range n.children {
 		if n := child.getNode(h); n != nil {
 			return n
