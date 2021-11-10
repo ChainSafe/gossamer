@@ -14,11 +14,15 @@ func Test_NewService(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 
-	const address = "address"
+	settings := Settings{}
 	logger := NewMockLogger(ctrl)
 
-	service := NewService(address, logger)
+	service := NewService(settings, logger)
 
+	expectedSettings := Settings{
+		ListeningAddress: "localhost:6060",
+	}
+	assert.Equal(t, expectedSettings, service.settings)
 	assert.NotNil(t, service.server)
 	assert.NotNil(t, service.done)
 }
