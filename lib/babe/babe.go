@@ -204,7 +204,7 @@ func (b *Service) waitForFirstBlock() error {
 	ch := b.blockState.GetImportedBlockNotifierChannel()
 	defer b.blockState.FreeImportedBlockNotifierChannel(ch)
 
-	const firstBlockTimeout = time.Minute
+	const firstBlockTimeout = time.Minute * 5
 	timer := time.NewTimer(firstBlockTimeout)
 	cleanup := func() {
 		if !timer.Stop() {
