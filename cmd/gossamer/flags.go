@@ -397,6 +397,7 @@ var (
 		RolesFlag,
 		NoBootstrapFlag,
 		NoMDNSFlag,
+		PublicIPFlag,
 
 		// rpc flags
 		RPCEnabledFlag,

@@ -55,67 +55,34 @@ type host struct {
 	closeSync       sync.Once
 }
 
-func scanNetInterfaces() (ips []net.IP, err error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return
-	}
-	for _, i := range ifaces {
-		var addrs []net.Addr
-		addrs, err = i.Addrs()
-		if err != nil {
-			return
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsUnspecified() || ip.IsLoopback() {
-				continue
-			}
-			if ip.To4() == nil {
-				continue
-			}
-			ips = append(ips, ip)
-		}
-	}
-	return
-}
-
-func _newHost(ctx context.Context, cfg *Config, pubipGet func() (net.IP, error)) (*host, error) {
+func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create multiaddress (without p2p identity)
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
 		return nil, err
 	}
 
-	var externalAddrs []ma.Multiaddr
-	ip, err := pubipGet()
-	if err != nil {
-		logger.Error("failed to get public IP", "error", err)
-		// use local interface ip addresses as externalAddrs, this is used in the local devnet
-		ips, err := scanNetInterfaces()
-		if err != nil {
-			return nil, err
-		}
-		for _, ip := range ips {
-			externalAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+	var externalAddr ma.Multiaddr
+	if cfg.PublicIP != "" {
+		ip := net.ParseIP(cfg.PublicIP)
+		if ip != nil {
+			logger.Debug("using config PublicIP: %s", "IP", ip)
+			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
 			if err != nil {
 				return nil, err
 			}
-			externalAddrs = append(externalAddrs, externalAddr)
 		}
 	} else {
-		logger.Info("got public IP", "IP", ip)
-		externalAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		ip, err := pubip.Get()
 		if err != nil {
-			return nil, err
+			logger.Error("failed to get public IP", "error", err)
+		} else {
+			logger.Debug("got public IP", "IP", ip)
+			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+			if err != nil {
+				return nil, err
+			}
 		}
-		externalAddrs = append(externalAddrs, externalAddr)
 	}
 
 	// format bootnodes
@@ -178,10 +145,10 @@ func _newHost(ctx context.Context, cfg *Config, pubipGet func() (net.IP, error))
 					addrs = append(addrs, addr)
 				}
 			}
-			if externalAddrs == nil {
+			if externalAddr == nil {
 				return addrs
 			}
-			return append(addrs, externalAddrs...)
+			return append(addrs, externalAddr)
 		}),
 	}
 
@@ -223,11 +190,6 @@ func _newHost(ctx context.Context, cfg *Config, pubipGet func() (net.IP, error))
 
 	cm.host = host
 	return host, nil
-}
-
-// newHost creates a host wrapper with a new libp2p host instance
-func newHost(ctx context.Context, cfg *Config) (*host, error) {
-	return _newHost(ctx, cfg, pubip.Get)
 }
 
 // close closes host services and the libp2p host (host services first)

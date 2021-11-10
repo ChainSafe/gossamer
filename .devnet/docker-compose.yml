@@ -5,6 +5,7 @@ services:
       dockerfile: alice.Dockerfile
       args:
         DD_API_KEY: ${DD_API_KEY}
+        pubip: 10.5.0.2
     ports:
       - "7001"
       - "8545"
@@ -21,6 +22,7 @@ services:
       dockerfile: bob.Dockerfile
       args:
         key: "bob"
+        pubip: 10.5.0.3
     ports:
       - "7001"
       - "8545"
@@ -39,6 +41,7 @@ services:
       dockerfile: bob.Dockerfile
       args:
         key: "charlie"
+        pubip: 10.5.0.4
     ports:
       - "7001"
       - "8545"
@@ -54,7 +57,6 @@ services:
 networks:
   vpcbr:
     driver: bridge
-    internal: true
     ipam:
      config:
        - subnet: 10.5.0.0/16

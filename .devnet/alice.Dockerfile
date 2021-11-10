@@ -31,5 +31,5 @@ RUN gossamer --key alice init
 # use a hardcoded key for alice, so we can determine what the peerID is for subsequent nodes
 RUN cp .devnet/alice.node.key ~/.gossamer/gssmr/node.key
 
-ENTRYPOINT service datadog-agent restart && gossamer --key=alice --babe-lead --publish-metrics --rpc
+ENTRYPOINT service datadog-agent restart && gossamer --key=alice --babe-lead --publish-metrics --rpc --rpc-external=true --pubip=10.5.0.2
 EXPOSE 7001 8545 8546 8540 9876
