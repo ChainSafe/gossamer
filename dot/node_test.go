@@ -17,7 +17,7 @@
 package dot
 
 import (
-	"io/ioutil"
+	"io"
 	"math/big"
 	"reflect"
 	"sync"
@@ -375,7 +375,7 @@ func TestNode_StopFunc(t *testing.T) {
 		testvar = "after"
 	}
 
-	serviceRegistryLogger := log.New(log.SetWriter(ioutil.Discard))
+	serviceRegistryLogger := log.New(log.SetWriter(io.Discard))
 	servicesRegistry := services.NewServiceRegistry(serviceRegistryLogger)
 
 	node := &Node{

@@ -17,7 +17,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
@@ -39,7 +39,7 @@ func TestExportCommand(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testName := "testnode"
 	testBootnode := "bootnode"

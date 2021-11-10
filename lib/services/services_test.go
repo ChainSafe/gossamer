@@ -17,7 +17,7 @@
 package services
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -26,7 +26,7 @@ import (
 )
 
 func TestServiceRegistry_RegisterService(t *testing.T) {
-	r := NewServiceRegistry(log.New(log.SetWriter(ioutil.Discard)))
+	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
 
 	r.RegisterService(&mocks.Service{})
 	r.RegisterService(&mocks.Service{})
@@ -35,7 +35,7 @@ func TestServiceRegistry_RegisterService(t *testing.T) {
 }
 
 func TestServiceRegistry_StartStopAll(t *testing.T) {
-	r := NewServiceRegistry(log.New(log.SetWriter(ioutil.Discard)))
+	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
 
 	m := new(mocks.Service)
 	m.On("Start").Return(nil)
@@ -51,7 +51,7 @@ func TestServiceRegistry_StartStopAll(t *testing.T) {
 }
 
 func TestServiceRegistry_Get_Err(t *testing.T) {
-	r := NewServiceRegistry(log.New(log.SetWriter(ioutil.Discard)))
+	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
 
 	a := new(mocks.Service)
 	a.On("Start").Return(nil)

@@ -17,7 +17,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -37,7 +37,7 @@ import (
 // TestConfigFromChainFlag tests createDotConfig using the --chain flag
 func TestConfigFromChainFlag(t *testing.T) {
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -93,7 +93,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -132,7 +132,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -290,7 +290,7 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -343,7 +343,7 @@ func TestAccountConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -392,7 +392,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -447,7 +447,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -548,7 +548,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -952,7 +952,7 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 
 	// call another command and test the name
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -995,7 +995,7 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 
 	// call another command and test the name
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	// when name flag is defined
 	whenNameFlagIsDefined := struct {

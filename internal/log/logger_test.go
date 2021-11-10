@@ -1,7 +1,7 @@
 package log
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"sync"
 	"testing"
@@ -34,13 +34,13 @@ func Test_New(t *testing.T) {
 				SetCallerLine(true),
 				SetCallerFunc(true),
 				SetFormat(FormatConsole),
-				SetWriter(ioutil.Discard),
+				SetWriter(io.Discard),
 				AddContext("key1", "value1"),
 				AddContext("key1", "value2"),
 			},
 			expectedLogger: &Logger{
 				settings: settings{
-					writer: ioutil.Discard,
+					writer: io.Discard,
 					level:  levelPtr(Trace),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(true, true, true),
@@ -110,13 +110,13 @@ func Test_Logger_New(t *testing.T) {
 				SetLevel(Trace),
 				SetCallerFunc(false),
 				SetFormat(FormatConsole),
-				SetWriter(ioutil.Discard),
+				SetWriter(io.Discard),
 				AddContext("key1", "value1.2"),
 				AddContext("key2", "value2"),
 			},
 			expectedLogger: &Logger{
 				settings: settings{
-					writer: ioutil.Discard,
+					writer: io.Discard,
 					level:  levelPtr(Trace),
 					format: formatPtr(FormatConsole),
 					caller: newCallerSettings(true, true, false),

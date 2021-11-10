@@ -3,7 +3,7 @@ package modules
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -36,7 +36,7 @@ func TestAuthorModule_HasSessionKey_WhenScaleDataEmptyOrNil(t *testing.T) {
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
-		logger:  log.New(log.SetWriter(ioutil.Discard)),
+		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
 	req := &HasSessionKeyRequest{
@@ -57,7 +57,7 @@ func TestAuthorModule_HasSessionKey_WhenRuntimeFails(t *testing.T) {
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
-		logger:  log.New(log.SetWriter(ioutil.Discard)),
+		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
 	req := &HasSessionKeyRequest{
@@ -86,7 +86,7 @@ func TestAuthorModule_HasSessionKey_WhenThereIsNoKeys(t *testing.T) {
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
-		logger:  log.New(log.SetWriter(ioutil.Discard)),
+		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
 	req := &HasSessionKeyRequest{
@@ -134,7 +134,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
-		logger:  log.New(log.SetWriter(ioutil.Discard)),
+		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
 	req := &HasSessionKeyRequest{
@@ -207,7 +207,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		{
 			name: "HandleSubmittedExtrinsic error",
 			fields: fields{
-				logger:  log.New(log.SetWriter(ioutil.Discard)),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: errMockCoreAPI,
 			},
 			args: args{
@@ -220,7 +220,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		{
 			name: "happy path",
 			fields: fields{
-				logger:  log.New(log.SetWriter(ioutil.Discard)),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -281,7 +281,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 		{
 			name: "no pending",
 			fields: fields{
-				logger:     log.New(log.SetWriter(ioutil.Discard)),
+				logger:     log.New(log.SetWriter(io.Discard)),
 				txStateAPI: emptyMockTransactionStateAPI,
 			},
 			args: args{
@@ -292,7 +292,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 		{
 			name: "two pending",
 			fields: fields{
-				logger:     log.New(log.SetWriter(ioutil.Discard)),
+				logger:     log.New(log.SetWriter(io.Discard)),
 				txStateAPI: mockTransactionStateAPI,
 			},
 			args: args{
@@ -345,7 +345,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "happy path",
 			fields: fields{
-				logger:  log.New(log.SetWriter(ioutil.Discard)),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -359,7 +359,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "happy path, gran keytype",
 			fields: fields{
-				logger:  log.New(log.SetWriter(ioutil.Discard)),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -373,7 +373,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "invalid key",
 			fields: fields{
-				logger:  log.New(log.SetWriter(ioutil.Discard)),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -387,7 +387,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "unknown key",
 			fields: fields{
-				logger:  log.New(log.SetWriter(ioutil.Discard)),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{

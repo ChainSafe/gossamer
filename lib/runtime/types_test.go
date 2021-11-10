@@ -1,7 +1,7 @@
 package runtime
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 
 func TestBackgroundSignVerification(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(ioutil.Discard)))
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 
@@ -31,7 +31,7 @@ func TestBackgroundSignVerification(t *testing.T) {
 
 func TestBackgroundSignVerificationMultipleStart(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(ioutil.Discard)))
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	for ii := 0; ii < 5; ii++ {
 		require.False(t, signVerify.IsStarted())
@@ -66,7 +66,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 
 	signs = append(signs, signature)
 
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(ioutil.Discard)))
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 	signVerify.Start()
 
 	for _, sig := range signs {
@@ -77,7 +77,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 
 func TestValidSignatureBatch(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(ioutil.Discard)))
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 
@@ -122,7 +122,7 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 		KeyTypeID: crypto.Secp256k1Type,
 	}
 
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(ioutil.Discard)))
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 

@@ -17,7 +17,7 @@
 package network
 
 import (
-	"io/ioutil"
+	"io"
 	"reflect"
 	"testing"
 
@@ -34,7 +34,7 @@ func TestBuildIdentity(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	configA := &Config{
-		logger:   log.New(log.SetWriter(ioutil.Discard)),
+		logger:   log.New(log.SetWriter(io.Discard)),
 		BasePath: testDir,
 	}
 
@@ -44,7 +44,7 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	configB := &Config{
-		logger:   log.New(log.SetWriter(ioutil.Discard)),
+		logger:   log.New(log.SetWriter(io.Discard)),
 		BasePath: testDir,
 	}
 
@@ -58,7 +58,7 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	configC := &Config{
-		logger:   log.New(log.SetWriter(ioutil.Discard)),
+		logger:   log.New(log.SetWriter(io.Discard)),
 		RandSeed: 1,
 	}
 
@@ -68,7 +68,7 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	configD := &Config{
-		logger:   log.New(log.SetWriter(ioutil.Discard)),
+		logger:   log.New(log.SetWriter(io.Discard)),
 		RandSeed: 2,
 	}
 
@@ -91,7 +91,7 @@ func TestBuild(t *testing.T) {
 	testRandSeed := int64(1)
 
 	cfg := &Config{
-		logger:     log.New(log.SetWriter(ioutil.Discard)),
+		logger:     log.New(log.SetWriter(io.Discard)),
 		BlockState: testBlockState,
 		BasePath:   testBasePath,
 		RandSeed:   testRandSeed,

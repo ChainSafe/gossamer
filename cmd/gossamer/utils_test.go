@@ -20,7 +20,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strconv"
 	"testing"
 
@@ -95,7 +95,7 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 
 func Test_setupLogger(t *testing.T) {
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string

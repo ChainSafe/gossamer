@@ -18,7 +18,7 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -50,7 +50,7 @@ func TestService_Methods(t *testing.T) {
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods, len(m))
 
-	authMod := modules.NewAuthorModule(log.New(log.SetWriter(ioutil.Discard)), nil, nil)
+	authMod := modules.NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, nil)
 	rpcService.BuildMethodNames(authMod, "author")
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods+qtyAuthorMethods, len(m))
