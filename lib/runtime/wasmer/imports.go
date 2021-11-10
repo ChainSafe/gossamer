@@ -911,7 +911,7 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 	var decProofs [][]byte
 	err := scale.Unmarshal(toDecProofs, &decProofs)
 	if err != nil {
-		logger.Error("[ext_trie_blake2_256_verify_proof_version_1]", "error", err)
+		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
 		return C.int32_t(0)
 	}
 
@@ -923,7 +923,7 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 
 	exists, err := trie.VerifyProof(decProofs, trieRoot, []trie.Pair{{Key: key, Value: value}})
 	if err != nil {
-		logger.Error("[ext_trie_blake2_256_verify_proof_version_1]", "error", err)
+		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
 		return C.int32_t(0)
 	}
 
@@ -1730,7 +1730,7 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
 
 	if err != nil {
-		logger.Error("failed to start request", "error", err)
+		logger.Errorf("failed to start request: %s", err)
 		_ = result.Set(scale.Err, nil)
 	} else {
 		_ = result.Set(scale.OK, reqID)
