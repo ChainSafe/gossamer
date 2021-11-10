@@ -40,16 +40,16 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 
 func TestPointerSize(t *testing.T) {
 	in := int64(8) + int64(32)<<32
-	ptr, length := int64ToPointerAndSize(in)
+	ptr, length := runtime.Int64ToPointerAndSize(in)
 	require.Equal(t, int32(8), ptr)
 	require.Equal(t, int32(32), length)
-	res := pointerAndSizeToInt64(ptr, length)
+	res := runtime.PointerAndSizeToInt64(ptr, length)
 	require.Equal(t, in, res)
 }
 
 func TestInstance_CheckRuntimeVersion(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
+	err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
 	require.NoError(t, err)
 	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)

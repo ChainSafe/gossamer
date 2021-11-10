@@ -31,7 +31,7 @@ func newInstanceFromGenesis(t *testing.T) runtime.Instance {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 	return instance
 }
@@ -162,8 +162,11 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 
 	res.Number = header.Number
 
-	babeDigest := types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{})
-	data := babeDigest.Encode()
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()
@@ -180,8 +183,8 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	require.Equal(t, expected.ParentHash, res.ParentHash)
 	require.Equal(t, expected.Number, res.Number)
 	require.Equal(t, expected.Digest, res.Digest)
-	require.NotEqual(t, common.Hash{}, res.StateRoot)
-	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
+	require.False(t, res.StateRoot.IsEmpty())
+	require.False(t, res.ExtrinsicsRoot.IsEmpty())
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 
 	return &types.Block{
@@ -230,7 +233,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 4
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
@@ -280,7 +283,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	cfg.Storage = genState
 	cfg.LogLvl = 5
 
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
@@ -308,5 +311,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: fix
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
 }

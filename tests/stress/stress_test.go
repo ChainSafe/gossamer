@@ -33,6 +33,7 @@ import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
 
@@ -102,7 +103,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	// start block producing node first
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
@@ -188,12 +189,12 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false, true)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -210,36 +211,12 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	}
 }
 
-func TestSync_ManyProducers(t *testing.T) {
-	// TODO: this fails with runtime: out of memory
-	// this means when each node is connected to 8 other nodes, too much memory is being used.
-	t.Skip()
-
-	numNodes := 9 // 9 block producers
-	utils.SetLogLevel(log.LvlInfo)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
-	require.NoError(t, err)
-
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	numCmps := 100
-	for i := 0; i < numCmps; i++ {
-		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err, i)
-		time.Sleep(time.Second)
-	}
-}
-
 func TestSync_Bench(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 	numBlocks := 64
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 
 	for {
@@ -260,7 +237,7 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("BABE paused")
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNotAuthority, false)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNotAuthority, false, true)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -314,7 +291,7 @@ func TestSync_Restart(t *testing.T) {
 
 	// start block producing node first
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigDefault, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigDefault, false, true)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
@@ -367,15 +344,15 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	idx := 0 // TODO: randomise this
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
+	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 	nodes := []*utils.Node{node}
 
 	// Start rest of nodes
-	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, false)
+	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
-	node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, false)
+	node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -434,7 +411,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
-	require.NotEqual(t, hash, common.Hash{})
+	require.NotEqual(t, types.Hash{}, hash)
 
 	time.Sleep(time.Second * 20)
 
@@ -493,4 +470,92 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	hashes, err := compareBlocksByNumberWithRetry(t, nodes, extInBlock.String())
 	require.NoError(t, err, hashes)
+}
+
+func Test_SubmitAndWatchExtrinsic(t *testing.T) {
+	t.Log("starting gossamer...")
+
+	// index of node to submit tx to
+	idx := 0 // TODO: randomise this
+
+	// start block producing node first
+	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, true, true)
+	require.NoError(t, err)
+	nodes := []*utils.Node{node}
+
+	defer func() {
+		t.Log("going to tear down gossamer...")
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	// send tx to non-authority node
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%s", nodes[idx].WSPort))
+	require.NoError(t, err)
+
+	meta, err := api.RPC.State.GetMetadataLatest()
+	require.NoError(t, err)
+
+	c, err := types.NewCall(meta, "System.remark", []byte{0xab})
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := types.NewExtrinsic(c)
+
+	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
+	require.NoError(t, err)
+
+	rv, err := api.RPC.State.GetRuntimeVersionLatest()
+	require.NoError(t, err)
+
+	key, err := types.CreateStorageKey(meta, "System", "Account", signature.TestKeyringPairAlice.PublicKey, nil)
+	require.NoError(t, err)
+
+	var accInfo types.AccountInfo
+	ok, err := api.RPC.State.GetStorageLatest(key, &accInfo)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	o := types.SignatureOptions{
+		BlockHash:          genesisHash,
+		Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genesisHash,
+		Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
+		SpecVersion:        rv.SpecVersion,
+		Tip:                types.NewUCompactFromUInt(0),
+		TransactionVersion: rv.TransactionVersion,
+	}
+
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := types.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	message := []byte(`{"id":1, "jsonrpc":"2.0", "method": "author_submitAndWatchExtrinsic", "params":["` + extEnc + `"]}`)
+
+	err = conn.WriteMessage(websocket.TextMessage, message)
+	require.NoError(t, err)
+
+	var result []byte
+	_, result, err = conn.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, "{\"jsonrpc\":\"2.0\",\"result\":1,\"id\":1}\n", string(result))
+
+	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+
+	_, result, err = conn.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, "{\"jsonrpc\":\"2.0\",\"method\":\"author_extrinsicUpdate\",\"params\":{\"result\":\"ready\",\"subscription\":1}}\n", string(result))
+
+	_, result, err = conn.ReadMessage()
+	require.NoError(t, err)
+	require.Contains(t, string(result), "{\"jsonrpc\":\"2.0\",\"method\":\"author_extrinsicUpdate\",\"params\":{\"result\":{\"inBlock\":\"")
+
 }

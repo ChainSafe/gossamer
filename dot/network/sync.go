@@ -21,11 +21,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var maxBlockResponseSize uint64 = 1024 * 1024 * 4 // 4mb
+var (
+	maxBlockResponseSize uint64 = 1024 * 1024 * 4 // 4mb
+	blockRequestTimeout         = time.Second * 5
+)
 
 // DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
 func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
@@ -34,8 +38,7 @@ func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockRe
 	s.host.h.ConnManager().Protect(to, "")
 	defer s.host.h.ConnManager().Unprotect(to, "")
 
-	// TODO: make this a constant
-	ctx, cancel := context.WithTimeout(s.ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(s.ctx, blockRequestTimeout)
 	defer cancel()
 
 	stream, err := s.host.h.NewStream(ctx, to, fullSyncID)
@@ -60,7 +63,7 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 	// thus we should allocate buffers at startup and re-use them instead of allocating new ones each time.
 	//
 	// TODO: should we create another buffer pool for block response buffers?
-	// for bootstrap this is ok since it's not parallelized, but will need to be updated for tip-mode
+	// for bootstrap this is ok since it's not parallelized, but will need to be updated for tip-mode (#1858)
 	s.blockResponseBufMu.Lock()
 	defer s.blockResponseBufMu.Unlock()
 
@@ -78,6 +81,10 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 	msg := new(BlockResponseMessage)
 	err = msg.Decode(buf[:n])
 	if err != nil {
+		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.BadMessageValue,
+			Reason: peerset.BadMessageReason,
+		}, stream.Conn().RemotePeer())
 		return nil, fmt.Errorf("failed to decode block response: %w", err)
 	}
 

@@ -203,8 +203,6 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 	data, ok := np.getInboundHandshakeData(from)
 	if ok {
 		data.handshake = hs
-		// TODO: since this is used only for rpc system_peers only,
-		// we can just set the inbound handshake and use that in Peers()
 		np.inboundHandshakeData.Store(from, data)
 	}
 

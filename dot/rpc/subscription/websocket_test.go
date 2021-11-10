@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -195,32 +196,40 @@ func TestWSConn_HandleComm(t *testing.T) {
 	// test initExtrinsicWatch
 	wsconn.CoreAPI = modules.NewMockCoreAPI()
 	wsconn.BlockAPI = nil
-	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
+	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI()
+	listner, err := wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
-	require.Nil(t, res)
+	require.Nil(t, listner)
 
-	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
+	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.EqualError(t, err, "error BlockAPI not set")
-	require.Nil(t, res)
+	require.Nil(t, listner)
 
 	wsconn.BlockAPI = modules.NewMockBlockAPI()
-	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
+	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
-	require.NotNil(t, res)
+	require.NotNil(t, listner)
 	require.Len(t, wsconn.Subscriptions, 8)
 
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
 
+	// test initExtrinsicWatch with invalid transaction
+	coreAPI := new(mocks.CoreAPI)
+	coreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(runtime.ErrInvalidTransaction)
+	wsconn.CoreAPI = coreAPI
+	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0xa9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019e91c8d44bf01ffe36d54f9e43dade2b2fc653270a0e002daed1581435c2e1755bc4349f1434876089d99c9dac4d4128e511c2a3e0788a2a74dd686519cb7c83000000000104ab"})
+	require.Error(t, err)
+	require.Nil(t, listner)
+
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
+	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"invalid","subscription":9}}`+"\n", string(msg))
 
 	mockedJust := grandpa.Justification{
 		Round: 1,
 		Commit: grandpa.Commit{
-			Hash:       common.Hash{},
 			Number:     1,
 			Precommits: nil,
 		},
@@ -229,7 +238,8 @@ func TestWSConn_HandleComm(t *testing.T) {
 	mockedJustBytes, err := scale.Marshal(mockedJust)
 	require.NoError(t, err)
 
-	BlockAPI := new(mocks.MockBlockAPI)
+	wsconn.CoreAPI = modules.NewMockCoreAPI()
+	BlockAPI := new(mocks.BlockAPI)
 
 	fCh := make(chan *types.FinalisationInfo, 5)
 	BlockAPI.On("GetFinalisedNotifierChannel").Return(fCh)
@@ -244,12 +254,11 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","result":9,"id":0}`+"\n", string(msg))
+	require.Equal(t, `{"jsonrpc":"2.0","result":10,"id":0}`+"\n", string(msg))
 
 	listener.Listen()
 	header := &types.Header{
-		ParentHash: common.Hash{},
-		Number:     big.NewInt(1),
+		Number: big.NewInt(1),
 	}
 
 	fCh <- &types.FinalisationInfo{
@@ -258,7 +267,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":9}}` + "\n"
+	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":10}}` + "\n"
 	expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
@@ -282,7 +291,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	mockBlockAPI := new(mocks.MockBlockAPI)
+	mockBlockAPI := new(mocks.BlockAPI)
 
 	wsconn.BlockAPI = mockBlockAPI
 
@@ -307,9 +316,9 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	expected := fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"chain_allHead","params":{"result":{"parentHash":"%s","number":"0x00","stateRoot":"%s","extrinsicsRoot":"%s","digest":{"logs":["0x064241424504ff"]}},"subscription":1}}`,
-		common.EmptyHash,
-		common.EmptyHash,
-		common.EmptyHash,
+		common.Hash{},
+		common.Hash{},
+		common.Hash{},
 	)
 
 	digest := types.NewDigest()
@@ -317,11 +326,8 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	fCh <- &types.FinalisationInfo{
 		Header: types.Header{
-			ParentHash:     common.EmptyHash,
-			Number:         big.NewInt(0),
-			StateRoot:      common.EmptyHash,
-			ExtrinsicsRoot: common.EmptyHash,
-			Digest:         digest,
+			Number: big.NewInt(0),
+			Digest: digest,
 		},
 	}
 
@@ -336,11 +342,8 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	iCh <- &types.Block{
 		Header: types.Header{
-			ParentHash:     common.EmptyHash,
-			Number:         big.NewInt(0),
-			StateRoot:      common.EmptyHash,
-			ExtrinsicsRoot: common.EmptyHash,
-			Digest:         digest,
+			Number: big.NewInt(0),
+			Digest: digest,
 		},
 	}
 	time.Sleep(time.Millisecond * 500)

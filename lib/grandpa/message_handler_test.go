@@ -41,7 +41,8 @@ var testHash = testHeader.Hash()
 
 func newTestDigest() scale.VaryingDataTypeSlice {
 	digest := types.NewDigest()
-	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, _ := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	digest.Add(*prd)
 	return digest
 }
 
@@ -195,13 +196,15 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Version: 1,
 		Round:   2,
 		SetID:   3,
-		Number:  2,
+		Number:  1,
 	}
 	_, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
-	err = digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(prd)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -209,7 +212,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	block := &types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(2),
+			Number:     big.NewInt(1),
 			ParentHash: st.Block.GenesisHash(),
 			Digest:     digest,
 		},
@@ -253,7 +256,9 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	fm.Vote = *NewVote(testHash, uint32(round))
 
 	digest := types.NewDigest()
-	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
@@ -346,12 +351,14 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	gs.state.round = round + 1
 
 	digest := types.NewDigest()
-	err := digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(prd)
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(2),
+			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
 		Body: types.Body{},

@@ -19,12 +19,18 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
+	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
+	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/wasmerio/go-ext-wasm/wasmer"
+
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -35,8 +41,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/require"
 )
 
 var testChildKey = []byte("childKey")
@@ -83,6 +87,7 @@ func TestMain(m *testing.M) {
 // }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -102,6 +107,7 @@ func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -121,6 +127,7 @@ func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -140,6 +147,7 @@ func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_twox_128_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -159,6 +167,7 @@ func Test_ext_hashing_twox_128_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_twox_64_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -178,6 +187,7 @@ func Test_ext_hashing_twox_64_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -196,6 +206,7 @@ func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_clear_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -211,7 +222,108 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	require.Nil(t, val)
 }
 
+func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("key1")
+	err := inst.NodeStorage().PersistentStorage.Put(testkey, []byte{1})
+	require.NoError(t, err)
+
+	kind := int32(1)
+	encKind, err := scale.Marshal(kind)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
+	require.NoError(t, err)
+
+	val, err := inst.NodeStorage().PersistentStorage.Get(testkey)
+	require.EqualError(t, err, "Key not found")
+	require.Nil(t, val)
+}
+
+func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("key1")
+	err := inst.NodeStorage().LocalStorage.Put(testkey, []byte{1})
+	require.NoError(t, err)
+
+	kind := int32(2)
+	encKind, err := scale.Marshal(kind)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
+	require.NoError(t, err)
+
+	val, err := inst.NodeStorage().LocalStorage.Get(testkey)
+	require.EqualError(t, err, "Key not found")
+	require.Nil(t, val)
+}
+
+func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	encMethod, err := scale.Marshal([]byte("GET"))
+	require.NoError(t, err)
+
+	encURI, err := scale.Marshal([]byte("https://chainsafe.io"))
+	require.NoError(t, err)
+
+	var optMeta *[]byte
+	encMeta, err := scale.Marshal(optMeta)
+	require.NoError(t, err)
+
+	params := append([]byte{}, encMethod...)
+	params = append(params, encURI...)
+	params = append(params, encMeta...)
+
+	resReqID := scale.NewResult(int16(0), nil)
+
+	// start request number 0
+	ret, err := inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	err = scale.Unmarshal(ret, &resReqID)
+	require.NoError(t, err)
+
+	requestNumber, err := resReqID.Unwrap()
+	require.NoError(t, err)
+	require.Equal(t, int16(1), requestNumber)
+
+	// start request number 1
+	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	err = scale.Unmarshal(ret, &resReqID)
+	require.NoError(t, err)
+
+	requestNumber, err = resReqID.Unwrap()
+	require.NoError(t, err)
+	require.Equal(t, int16(2), requestNumber)
+
+	// start request number 2
+	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	err = scale.Unmarshal(ret, &resReqID)
+	require.NoError(t, err)
+
+	requestNumber, err = resReqID.Unwrap()
+	require.NoError(t, err)
+	require.Equal(t, int16(3), requestNumber)
+}
+
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("static")
@@ -234,6 +346,7 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -255,7 +368,81 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 	require.NotNil(t, val)
 }
 
+func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	inst.ctx.Storage.Set(testkey, []byte{1})
+
+	testkey2 := []byte("noot1")
+	inst.ctx.Storage.Set(testkey2, []byte{1})
+
+	testkey3 := []byte("noot2")
+	inst.ctx.Storage.Set(testkey3, []byte{1})
+
+	testkey4 := []byte("noot3")
+	inst.ctx.Storage.Set(testkey4, []byte{1})
+
+	testkey5 := []byte("spaghet")
+	testValue5 := []byte{2}
+	inst.ctx.Storage.Set(testkey5, testValue5)
+
+	enc, err := scale.Marshal(testkey[:3])
+	require.NoError(t, err)
+
+	testLimit := uint32(2)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	optLimit, err := scale.Marshal(&testLimitBytes)
+	require.NoError(t, err)
+
+	// clearing prefix for "noo" prefix with limit 2
+	encValue, err := inst.Exec("rtm_ext_storage_clear_prefix_version_2", append(enc, optLimit...))
+	require.NoError(t, err)
+
+	var decVal []byte
+	scale.Unmarshal(encValue, &decVal)
+
+	var numDeleted uint32
+	// numDeleted represents no. of actual keys deleted
+	scale.Unmarshal(decVal[1:], &numDeleted)
+	require.Equal(t, uint32(2), numDeleted)
+
+	var expectedAllDeleted byte
+	// expectedAllDeleted value 0 represents all keys deleted, 1 represents keys are pending with prefix in trie
+	expectedAllDeleted = 1
+	require.Equal(t, expectedAllDeleted, decVal[0])
+
+	val := inst.ctx.Storage.Get(testkey)
+	require.NotNil(t, val)
+
+	val = inst.ctx.Storage.Get(testkey5)
+	require.NotNil(t, val)
+	require.Equal(t, testValue5, val)
+
+	// clearing prefix again for "noo" prefix with limit 2
+	encValue, err = inst.Exec("rtm_ext_storage_clear_prefix_version_2", append(enc, optLimit...))
+	require.NoError(t, err)
+
+	scale.Unmarshal(encValue, &decVal)
+	scale.Unmarshal(decVal[1:], &numDeleted)
+	require.Equal(t, uint32(2), numDeleted)
+
+	expectedAllDeleted = 0
+	require.Equal(t, expectedAllDeleted, decVal[0])
+
+	val = inst.ctx.Storage.Get(testkey)
+	require.Nil(t, val)
+
+	val = inst.ctx.Storage.Get(testkey5)
+	require.NotNil(t, val)
+	require.Equal(t, testValue5, val)
+}
+
 func Test_ext_storage_get_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -268,15 +455,15 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_storage_get_version_1", enc)
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	value, err := new(optional.Bytes).Decode(buf)
+	var value *[]byte
+	err = scale.Unmarshal(ret, &value)
 	require.NoError(t, err)
-	require.Equal(t, testvalue, value.Value())
+	require.NotNil(t, value)
+	require.Equal(t, testvalue, *value)
 }
 
 func Test_ext_storage_exists_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -300,6 +487,7 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_next_key_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -314,15 +502,15 @@ func Test_ext_storage_next_key_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_storage_next_key_version_1", enc)
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	next, err := new(optional.Bytes).Decode(buf)
+	var next *[]byte
+	err = scale.Unmarshal(ret, &next)
 	require.NoError(t, err)
-	require.Equal(t, nextkey, next.Value())
+	require.NotNil(t, next)
+	require.Equal(t, nextkey, *next)
 }
 
 func Test_ext_storage_read_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -342,16 +530,16 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_storage_read_version_1", append(append(encKey, encOffset...), encBufferSize...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
-	val := read.Value()
+	require.NotNil(t, read)
+	val := *read
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
 }
 
 func Test_ext_storage_read_version_1_again(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -371,17 +559,17 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_storage_read_version_1", append(append(encKey, encOffset...), encBufferSize...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
-	val := read.Value()
-	require.Equal(t, len(testvalue)-int(testoffset), len(val)) // TODO: fix
+
+	val := *read
+	require.Equal(t, len(testvalue)-int(testoffset), len(val))
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
 }
 
 func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -401,16 +589,16 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_storage_read_version_1", append(append(encKey, encOffset...), encBufferSize...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
-	val := read.Value()
+	require.NotNil(t, read)
+	val := *read
 	require.Equal(t, []byte{}, val)
 }
 
 func Test_ext_storage_root_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	ret, err := inst.Exec("rtm_ext_storage_root_version_1", []byte{})
@@ -425,6 +613,7 @@ func Test_ext_storage_root_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_set_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -443,7 +632,8 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_offline_index_set_version_1(t *testing.T) {
-	// TODO this currently fails with error could nat find exported function, determine how else to test this
+	t.Parallel()
+	// TODO this currently fails with error could not find exported function, add rtm_ func to tester wasm (#1026)
 	t.Skip()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -464,6 +654,7 @@ func Test_ext_offline_index_set_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.AccoName)
@@ -473,8 +664,9 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	mnemonic, err := crypto.NewBIP39Mnemonic()
 	require.NoError(t, err)
 
-	data := optional.NewBytes(true, []byte(mnemonic))
-	seedData, err := data.Encode()
+	mnemonicBytes := []byte(mnemonic)
+	var data = &mnemonicBytes
+	seedData, err := scale.Marshal(data)
 	require.NoError(t, err)
 
 	params := append(idData, seedData...)
@@ -495,7 +687,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	mem := inst.vm.Memory.Data()
-	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
+	// this SCALE encoded, but it should just be a 32 byte buffer. may be due to way test runtime is written.
 	pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
 	require.NoError(t, err)
@@ -506,6 +698,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.DumyName)
@@ -540,6 +733,7 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := ed25519.GenerateKeypair()
@@ -564,18 +758,21 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	err = scale.Unmarshal(res, &out)
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(out)
-
-	value, err := new(optional.FixedSizeBytes).Decode(buf)
+	var val *[64]byte
+	err = scale.Unmarshal(out, &val)
 	require.NoError(t, err)
+	require.NotNil(t, val)
 
-	ok, err := kp.Public().Verify(msgData, value.Value())
+	value := make([]byte, 64)
+	copy(value[:], val[:])
+
+	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
 
 func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := ed25519.GenerateKeypair()
@@ -601,16 +798,107 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_crypto_ed25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+}
 
-	read, err := new(optional.Bytes).Decode(buf)
+func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
+	t.Parallel()
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := secp256k1.GenerateKeypair()
 	require.NoError(t, err)
 
-	require.True(t, read.Exists())
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Marshal(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Marshal(msgData)
+	require.NoError(t, err)
+
+	msgHash, err := common.Blake2bHash(msgData)
+	require.NoError(t, err)
+
+	sig, err := kp.Private().Sign(msgHash[:])
+	require.NoError(t, err)
+
+	encSig, err := scale.Marshal(sig)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+
+	require.NotNil(t, read)
+}
+
+func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
+	t.Parallel()
+	testCases := map[string]struct {
+		sig      []byte
+		msg      []byte
+		key      []byte
+		expected []byte
+		err      error
+	}{
+		"valid signature": {
+			sig:      []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			expected: []byte{1, 0, 0, 0},
+		},
+		"invalid signature": {
+			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			expected: []byte{0, 0, 0, 0},
+		},
+		"wrong key": {
+			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 0, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			expected: []byte{0, 0, 0, 0},
+		},
+		"invalid key": {
+			sig: []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key: []byte{132, 2, 39, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			err: wasmer.NewExportedFunctionError("rtm_ext_crypto_ecdsa_verify_version_2", "Failed to call the `%s` exported function."),
+		},
+		"invalid message": {
+			sig: []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100},
+			key: []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			err: wasmer.NewExportedFunctionError("rtm_ext_crypto_ecdsa_verify_version_2", "Failed to call the `%s` exported function."),
+		},
+	}
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+			ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(tc.sig, tc.msg...), tc.key...))
+			assert.Equal(t, tc.expected, ret)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
 
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.AccoName)
@@ -620,8 +908,9 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 	mnemonic, err := crypto.NewBIP39Mnemonic()
 	require.NoError(t, err)
 
-	data := optional.NewBytes(true, []byte(mnemonic))
-	seedData, err := data.Encode()
+	mnemonicBytes := []byte(mnemonic)
+	var data = &mnemonicBytes
+	seedData, err := scale.Marshal(data)
 	require.NoError(t, err)
 
 	params := append(idData, seedData...)
@@ -642,6 +931,7 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	msgData := []byte("Hello world!")
@@ -685,6 +975,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) {
+	t.Parallel()
 	t.Skip("host API tester does not yet contain rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1")
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -728,6 +1019,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) 
 }
 
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.DumyName)
@@ -762,6 +1054,7 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := sr25519.GenerateKeypair()
@@ -788,19 +1081,21 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	err = scale.Unmarshal(res, &out)
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(out)
-
-	value, err := new(optional.FixedSizeBytes).Decode(buf)
+	var val *[64]byte
+	err = scale.Unmarshal(out, &val)
 	require.NoError(t, err)
-	require.True(t, value.Exists())
+	require.NotNil(t, val)
 
-	ok, err := kp.Public().Verify(msgData, value.Value())
+	value := make([]byte, 64)
+	copy(value[:], val[:])
+
+	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
 
 func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := sr25519.GenerateKeypair()
@@ -826,16 +1121,14 @@ func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_crypto_sr25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
-
-	require.True(t, read.Exists())
+	require.NotNil(t, read)
 }
 
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -862,17 +1155,17 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_default_child_storage_read_version_1", append(append(encChildKey, encKey...), append(encOffset, encBufferSize...)...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
+	require.NotNil(t, read)
 
-	val := read.Value()
+	val := *read
 	require.Equal(t, testValue[testOffset:], val[:len(testValue)-int(testOffset)])
 }
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -901,6 +1194,7 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	prefix := []byte("key")
@@ -942,6 +1236,7 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -959,15 +1254,14 @@ func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_default_child_storage_exists_version_1", append(encChildKey, encKey...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
-	require.True(t, read.Exists())
+	require.NotNil(t, read)
 }
 
 func Test_ext_default_child_storage_get_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -985,15 +1279,14 @@ func Test_ext_default_child_storage_get_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
-	require.Equal(t, testValue, read.Value())
+	require.NotNil(t, read)
 }
 
 func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testKeyValuePair := []struct {
@@ -1023,15 +1316,15 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_default_child_storage_next_key_version_1", append(encChildKey, encKey...))
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(ret)
-
-	read, err := new(optional.Bytes).Decode(buf)
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
-	require.Equal(t, testKeyValuePair[1].key, read.Value())
+	require.NotNil(t, read)
+	require.Equal(t, testKeyValuePair[1].key, *read)
 }
 
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1064,6 +1357,7 @@ func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_set_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1092,6 +1386,7 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1113,6 +1408,7 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	tr := trie.NewEmptyTrie()
@@ -1133,7 +1429,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
 
-	optLimit, err := optional.NewBytes(true, testLimitBytes).Encode()
+	optLimit, err := scale.Marshal(&testLimitBytes)
 	require.NoError(t, err)
 
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
@@ -1146,6 +1442,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	tr := trie.NewEmptyTrie()
@@ -1166,7 +1463,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
 
-	optLimit, err := optional.NewBytes(true, testLimitBytes).Encode()
+	optLimit, err := scale.Marshal(&testLimitBytes)
 	require.NoError(t, err)
 
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
@@ -1179,6 +1476,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	tr := trie.NewEmptyTrie()
@@ -1195,7 +1493,9 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
-	optLimit, err := optional.NewBytes(false, nil).Encode()
+	var val *[]byte // nolint
+	val = nil
+	optLimit, err := scale.Marshal(val)
 	require.NoError(t, err)
 
 	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
@@ -1207,7 +1507,55 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	require.Nil(t, child)
 }
 
+func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	tr.Put([]byte(`key3`), []byte(`value3`))
+	err := inst.ctx.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
+	optLimit2 := &testLimitBytes
+
+	testCases := []struct {
+		key      []byte
+		limit    *[]byte
+		expected []byte
+		errMsg   string
+	}{
+		{key: []byte(`fakekey`), limit: optLimit2, expected: []byte{0, 0, 0, 0, 0}, errMsg: "Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function."},
+		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
+		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
+	}
+
+	for _, test := range testCases {
+		encChildKey, err := scale.Marshal(test.key)
+		require.NoError(t, err)
+		encOptLimit, err := scale.Marshal(test.limit)
+		require.NoError(t, err)
+		res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_3", append(encChildKey, encOptLimit...))
+		if test.errMsg != "" {
+			require.Error(t, err)
+			require.EqualError(t, err, test.errMsg)
+			continue
+		}
+		require.NoError(t, err)
+
+		var read *[]byte
+		err = scale.Unmarshal(res, &read)
+		require.NoError(t, err)
+		require.NotNil(t, read)
+		require.Equal(t, test.expected, *read)
+	}
+}
+
 func Test_ext_storage_append_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -1256,6 +1604,7 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_append_version_1_again(t *testing.T) {
+	t.Parallel()
 	DefaultTestLogLvl = 5
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -1305,6 +1654,7 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 }
 
 func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testvalues := []string{"static", "even-keeled", "Future-proofed"}
@@ -1323,6 +1673,7 @@ func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
 }
 
 func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testinput := []string{"noot", "was", "here", "??"}
@@ -1343,4 +1694,100 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 
 	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
+	t.Parallel()
+
+	tmp, err := ioutil.TempDir("", "*-test-trie")
+	require.NoError(t, err)
+
+	defer os.RemoveAll(tmp)
+
+	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
+		InMemory: true,
+		DataDir:  tmp,
+	})
+	require.NoError(t, err)
+
+	otherTrie := trie.NewEmptyTrie()
+	otherTrie.Put([]byte("simple"), []byte("cat"))
+
+	otherHash, err := otherTrie.Hash()
+	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte("do"), []byte("verb"))
+	tr.Put([]byte("domain"), []byte("website"))
+	tr.Put([]byte("other"), []byte("random"))
+	tr.Put([]byte("otherwise"), []byte("randomstuff"))
+	tr.Put([]byte("cat"), []byte("another animal"))
+
+	err = tr.Store(memdb)
+	require.NoError(t, err)
+
+	hash, err := tr.Hash()
+	require.NoError(t, err)
+
+	keys := [][]byte{
+		[]byte("do"),
+		[]byte("domain"),
+		[]byte("other"),
+		[]byte("otherwise"),
+		[]byte("cat"),
+	}
+
+	root := hash.ToBytes()
+	otherRoot := otherHash.ToBytes()
+
+	proof, err := trie.GenerateProof(root, keys, memdb)
+	require.NoError(t, err)
+
+	testcases := map[string]struct {
+		root, key, value []byte
+		proof            [][]byte
+		expect           bool
+	}{
+		"Proof should be true":                        {root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+		"Root empty, proof should be false":           {root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		"Other root, proof should be false":           {root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		"Value empty, proof should be true":           {root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+		"Unknow key, proof should be false":           {root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+		"Key and value unknow, proof should be false": {root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+		"Empty proof, should be false":                {root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
+	}
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	for name, testcase := range testcases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			hashEnc, err := scale.Marshal(testcase.root)
+			require.NoError(t, err)
+
+			args := []byte{}
+			args = append(args, hashEnc...)
+
+			encProof, err := scale.Marshal(testcase.proof)
+			require.NoError(t, err)
+			args = append(args, encProof...)
+
+			keyEnc, err := scale.Marshal(testcase.key)
+			require.NoError(t, err)
+			args = append(args, keyEnc...)
+
+			valueEnc, err := scale.Marshal(testcase.value)
+			require.NoError(t, err)
+			args = append(args, valueEnc...)
+
+			res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
+			require.NoError(t, err)
+
+			var got bool
+			err = scale.Unmarshal(res, &got)
+			require.NoError(t, err)
+			require.Equal(t, testcase.expect, got)
+		})
+	}
 }

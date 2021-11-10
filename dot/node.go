@@ -30,6 +30,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
@@ -211,7 +212,7 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
 	// set garbage collection percent to 10%
-	// can be overwritten by setting the GOGC env veriable, which defaults to 100
+	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
 	if prev != 100 {
 		debug.SetGCPercent(prev)
@@ -282,12 +283,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
-	if err != nil {
-		return nil, err
-	}
-	nodeSrvcs = append(nodeSrvcs, bp)
-
 	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	if err != nil {
 		return nil, err
@@ -305,6 +300,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 	nodeSrvcs = append(nodeSrvcs, syncer)
 
+	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
+	if err != nil {
+		return nil, err
+	}
+	nodeSrvcs = append(nodeSrvcs, bp)
+
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create system service: %s", err)
@@ -313,7 +314,11 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.isRPCEnabled() || cfg.RPC.isWSEnabled(); enabled {
-		rpcSrvc := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
+		var rpcSrvc *rpc.HTTPServer
+		rpcSrvc, err = createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create rpc service: %s", err)
+		}
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
 		logger.Debug("rpc service disabled by default", "rpc", enabled)
@@ -353,7 +358,18 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
 
-	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
+	var telemetryEndpoints []*genesis.TelemetryEndpoint
+	if len(cfg.Global.TelemetryURLs) == 0 {
+		telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
+
+	} else {
+		telemetryURLs := cfg.Global.TelemetryURLs
+		for i := range telemetryURLs {
+			telemetryEndpoints = append(telemetryEndpoints, &telemetryURLs[i])
+		}
+	}
+
+	telemetry.GetInstance().AddConnections(telemetryEndpoints)
 	genesisHash := stateSrvc.Block.GenesisHash()
 	err = telemetry.GetInstance().SendMessage(telemetry.NewSystemConnectedTM(
 		cfg.Core.GrandpaAuthority,
@@ -437,7 +453,7 @@ func loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service,
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {
 		hash := &blocks[i]
-		code, err := stateSrvc.Storage.GetStorageByBlockHash(*hash, []byte(":code"))
+		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))
 		if err != nil {
 			return err
 		}

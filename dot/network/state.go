@@ -19,11 +19,14 @@ package network
 import (
 	"math/big"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+//go:generate mockery --name BlockState --structname MockBlockState --case underscore --inpackage
 
 // BlockState interface for block state methods
 type BlockState interface {
@@ -35,6 +38,8 @@ type BlockState interface {
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 
+//go:generate mockery --name Syncer --structname MockSyncer --case underscore --inpackage
+
 // Syncer is implemented by the syncing service
 type Syncer interface {
 	HandleBlockAnnounceHandshake(from peer.ID, msg *BlockAnnounceHandshake) error
@@ -43,15 +48,49 @@ type Syncer interface {
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
 	HandleBlockAnnounce(from peer.ID, msg *BlockAnnounceMessage) error
 
-	// IsSynced exposes the internal synced state // TODO: use syncQueue for this
+	// IsSynced exposes the internal synced state
 	IsSynced() bool
 
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 }
 
+//go:generate mockery --name TransactionHandler --structname MockTransactionHandler --case underscore --inpackage
+
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {
-	HandleTransactionMessage(*TransactionMessage) (bool, error)
+	HandleTransactionMessage(peer.ID, *TransactionMessage) (bool, error)
 	TransactionsCount() int
+}
+
+// PeerSetHandler is the interface used by the connection manager to handle peerset.
+type PeerSetHandler interface {
+	Start()
+	Stop()
+	ReportPeer(peerset.ReputationChange, ...peer.ID)
+	PeerAdd
+	PeerRemove
+	Peer
+}
+
+// PeerAdd is the interface used by the PeerSetHandler to add peers in peerSet.
+type PeerAdd interface {
+	Incoming(int, ...peer.ID)
+	AddReservedPeer(int, ...peer.ID)
+	AddPeer(int, ...peer.ID)
+	SetReservedPeer(int, ...peer.ID)
+}
+
+// PeerRemove is the interface used by the PeerSetHandler to remove peers from peerSet.
+type PeerRemove interface {
+	DisconnectPeer(int, ...peer.ID)
+	RemoveReservedPeer(int, ...peer.ID)
+	RemovePeer(int, ...peer.ID)
+}
+
+// Peer is the interface used by the PeerSetHandler to get the peer data from peerSet.
+type Peer interface {
+	PeerReputation(peer.ID) (peerset.Reputation, error)
+	SortedPeers(idx int) chan peer.IDSlice
+	Messages() chan interface{}
 }

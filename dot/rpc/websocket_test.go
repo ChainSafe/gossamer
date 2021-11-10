@@ -54,18 +54,22 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 	sysAPI := system.NewService(si, nil)
 	bAPI := modules.NewMockBlockAPI()
 	sAPI := modules.NewMockStorageAPI()
+
+	TxStateAPI := modules.NewMockTransactionStateAPI()
+
 	cfg := &HTTPServerConfig{
-		Modules:     []string{"system", "chain"},
-		RPCExternal: false,
-		RPCPort:     8545,
-		WSPort:      8546,
-		WS:          true,
-		WSExternal:  false,
-		RPCAPI:      NewService(),
-		CoreAPI:     coreAPI,
-		SystemAPI:   sysAPI,
-		BlockAPI:    bAPI,
-		StorageAPI:  sAPI,
+		Modules:             []string{"system", "chain"},
+		RPCExternal:         false,
+		RPCPort:             8545,
+		WSPort:              8546,
+		WS:                  true,
+		WSExternal:          false,
+		RPCAPI:              NewService(),
+		CoreAPI:             coreAPI,
+		SystemAPI:           sysAPI,
+		BlockAPI:            bAPI,
+		StorageAPI:          sAPI,
+		TransactionQueueAPI: TxStateAPI,
 	}
 
 	s := NewHTTPServer(cfg)

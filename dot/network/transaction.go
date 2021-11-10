@@ -119,9 +119,9 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func (s *Service) createBatchMessageHandler(txnBatch chan *batchMessage) NotificationsMessageBatchHandler {
-	return func(peer peer.ID, msg NotificationsMessage) (msgs []*batchMessage, err error) {
-		data := &batchMessage{
+func (s *Service) createBatchMessageHandler(txnBatch chan *BatchMessage) NotificationsMessageBatchHandler {
+	return func(peer peer.ID, msg NotificationsMessage) (msgs []*BatchMessage, err error) {
+		data := &BatchMessage{
 			msg:  msg,
 			peer: peer,
 		}
@@ -131,14 +131,14 @@ func (s *Service) createBatchMessageHandler(txnBatch chan *batchMessage) Notific
 			return nil, nil
 		}
 
-		var propagateMsgs []*batchMessage
+		var propagateMsgs []*BatchMessage
 		for txnData := range txnBatch {
 			propagate, err := s.handleTransactionMessage(txnData.peer, txnData.msg)
 			if err != nil {
 				continue
 			}
 			if propagate {
-				propagateMsgs = append(propagateMsgs, &batchMessage{
+				propagateMsgs = append(propagateMsgs, &BatchMessage{
 					msg:  txnData.msg,
 					peer: txnData.peer,
 				})
@@ -162,11 +162,11 @@ func decodeTransactionMessage(in []byte) (NotificationsMessage, error) {
 	return msg, err
 }
 
-func (s *Service) handleTransactionMessage(_ peer.ID, msg NotificationsMessage) (bool, error) {
+func (s *Service) handleTransactionMessage(peerID peer.ID, msg NotificationsMessage) (bool, error) {
 	txMsg, ok := msg.(*TransactionMessage)
 	if !ok {
 		return false, errors.New("invalid transaction type")
 	}
 
-	return s.transactionHandler.HandleTransactionMessage(txMsg)
+	return s.transactionHandler.HandleTransactionMessage(peerID, txMsg)
 }

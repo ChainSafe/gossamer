@@ -39,7 +39,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	. "github.com/ChainSafe/gossamer/lib/grandpa/mocks"
+	"github.com/ChainSafe/gossamer/lib/grandpa/mocks"
 
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
@@ -56,8 +56,8 @@ var (
 	voters = newTestVoters()
 )
 
-func NewMockDigestHandler() *MockDigestHandler {
-	m := new(MockDigestHandler)
+func NewMockDigestHandler() *mocks.DigestHandler {
+	m := new(mocks.DigestHandler)
 	m.On("NextGrandpaAuthorityChange").Return(uint64(2 ^ 64 - 1))
 	return m
 }
@@ -71,7 +71,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
 	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
 	require.NoError(t, err)
 
@@ -80,7 +80,7 @@ func newTestState(t *testing.T) *state.Service {
 	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
@@ -117,6 +117,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 		Keypair:       kr.Alice().(*ed25519.Keypair),
 		Authority:     true,
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -373,29 +374,23 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
-	expectedAt7, err := st.Block.GetBlockHash(big.NewInt(7))
-	require.NoError(t, err)
-
-	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
-	// which are the nodes at depth 6 and 7.
-	require.Equal(t, 2, len(blocks))
+	// this should return the highest common ancestor of (a, b) and (b, c) with >2/3 votes,
+	// which is the nodes at depth 6.
+	require.Equal(t, 1, len(blocks))
 	require.Equal(t, uint32(6), blocks[expectedAt6])
-	require.Equal(t, uint32(7), blocks[expectedAt7])
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T) {
 	gs, st := newTestService(t)
 
-	// this creates a tree with 1 branch starting at depth 6 and 2 branches starting at depth 7,
+	// this creates a tree with 2 branches starting at depth 6 and 1 branch starting at depth 7,
 	branches := make(map[int]int)
-	branches[6] = 1
-	branches[7] = 2
+	branches[6] = 2
+	branches[7] = 1
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, byte(rand.Intn(256)))
 
 	leaves := gs.blockState.Leaves()
 	require.Equal(t, 4, len(leaves))
-
-	t.Log(st.Block.BlocktreeAsString())
 
 	// 1/3 voters each vote for a block on a different chain
 	voteA, err := NewVoteFromHash(leaves[0], st.Block)
@@ -441,14 +436,10 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
-	expectedAt7, err := st.Block.GetBlockHash(big.NewInt(7))
-	require.NoError(t, err)
-
-	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
-	// which are the nodes at depth 6 and 7.
-	require.Equal(t, 2, len(blocks))
+	// this should return the highest common ancestor of (a, b) and (b, c) with >2/3 votes,
+	// which is the node at depth 6.
+	require.Equal(t, 1, len(blocks))
 	require.Equal(t, uint32(6), blocks[expectedAt6])
-	require.Equal(t, uint32(7), blocks[expectedAt7])
 }
 
 func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
@@ -467,7 +458,7 @@ func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
 	for i, k := range kr.Keys {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
-		if i < 6 {
+		if i < 7 {
 			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
@@ -576,14 +567,10 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
-	expectedAt7, err := st.Block.GetBlockHash(big.NewInt(7))
-	require.NoError(t, err)
-
-	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
-	// which are the nodes at depth 6 and 7.
-	require.Equal(t, 2, len(blocks))
+	// this should return the highest common ancestor of (a, b) and (b, c) with >2/3 votes,
+	// which is the node at depth 6.
+	require.Equal(t, 1, len(blocks))
 	require.Equal(t, uint32(6), blocks[expectedAt6])
-	require.Equal(t, uint32(7), blocks[expectedAt7])
 }
 
 func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
@@ -619,9 +606,13 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 		}
 	}
 
+	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
+	require.NoError(t, err)
+
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
-	require.Equal(t, 2, len(blocks))
+	require.Equal(t, 1, len(blocks))
+	require.Equal(t, uint32(6), blocks[expectedAt6])
 }
 
 func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
@@ -689,7 +680,7 @@ func TestGetPreVotedBlock_OneBlock(t *testing.T) {
 	for i, k := range kr.Keys {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
-		if i < 6 {
+		if i < 7 {
 			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
@@ -744,13 +735,13 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 	}
 
 	// expected block is that with the highest number ie. at depth 7
-	expected, err := st.Block.GetBlockHash(big.NewInt(7))
+	expected, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
 	block, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
 	require.Equal(t, expected, block.Hash)
-	require.Equal(t, uint32(7), block.Number)
+	require.Equal(t, uint32(6), block.Number)
 }
 
 func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
@@ -816,16 +807,14 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 		}
 	}
 
-	t.Log(st.Block.BlocktreeAsString())
-
-	// expected block is at depth 5
-	expected, err := st.Block.GetBlockHash(big.NewInt(5))
+	// expected block is at depth 4
+	expected, err := st.Block.GetBlockHash(big.NewInt(4))
 	require.NoError(t, err)
 
 	block, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
 	require.Equal(t, expected, block.Hash)
-	require.Equal(t, uint32(5), block.Number)
+	require.Equal(t, uint32(4), block.Number)
 }
 
 func TestIsCompletable(t *testing.T) {
@@ -904,7 +893,7 @@ func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 	for i, k := range kr.Keys {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
-		if i < 6 {
+		if i < 7 {
 			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
@@ -947,7 +936,7 @@ func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
 	for i, k := range kr.Keys {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
-		if i < 6 {
+		if i < 7 {
 			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
@@ -987,7 +976,7 @@ func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
 	for i, k := range kr.Keys {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
-		if i < 6 {
+		if i < 7 {
 			gs.prevotes.Store(voter, &SignedVote{
 				Vote: *voteA,
 			})
@@ -1052,7 +1041,7 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 	pv, err := gs.determinePreVote()
 	require.NoError(t, err)
 
@@ -1064,10 +1053,10 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 1)
+	state.AddBlocksToState(t, st.Block, 1, false)
 
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
@@ -1085,7 +1074,7 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
@@ -1095,7 +1084,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 		Vote: *NewVoteFromHeader(header),
 	})
 
-	state.AddBlocksToState(t, st.Block, 5)
+	state.AddBlocksToState(t, st.Block, 5, false)
 	gs.head, err = st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
@@ -1259,8 +1248,6 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 		}
 	}
 
-	t.Log(st.Block.BlocktreeAsString())
-
 	// expected block is that with the most votes ie. block 3
 	expected, err := st.Block.GetBlockHash(big.NewInt(3))
 	require.NoError(t, err)
@@ -1275,28 +1262,6 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	require.Equal(t, block, pv)
 }
 
-func TestGrandpa_NonAuthority(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	gs, st := newTestService(t)
-	gs.authority = false
-	err := gs.Start()
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 100)
-
-	state.AddBlocksToState(t, st.Block, 8)
-	head := st.Block.BestBlockHash()
-	err = st.Block.SetFinalisedHash(head, gs.state.round, gs.state.setID)
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 100)
-
-	require.Equal(t, uint64(2), gs.state.round)
-	require.Equal(t, uint64(0), gs.state.setID)
-}
 func TestFinalRoundGaugeMetric(t *testing.T) {
 	gs, _ := newTestService(t)
 	ethmetrics.Enabled = true
@@ -1310,7 +1275,7 @@ func TestFinalRoundGaugeMetric(t *testing.T) {
 
 	go coll.Start()
 
-	time.Sleep(metrics.Refresh + time.Second)
+	time.Sleep(metrics.RefreshInterval + time.Second)
 	gauge := ethmetrics.GetOrRegisterGauge(finalityGrandpaRoundMetrics, nil)
 	require.Equal(t, gauge.Value(), int64(180))
 }

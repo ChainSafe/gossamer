@@ -29,9 +29,9 @@ import (
 var logger = log.New("pkg", "metrics")
 
 const (
-	// Refresh is the refresh time for publishing metrics.
-	Refresh     = time.Second * 10
-	refreshFreq = int64(Refresh / time.Second)
+	// RefreshInterval is the refresh time for publishing metrics.
+	RefreshInterval = time.Second * 10
+	refreshFreq     = int64(RefreshInterval / time.Second)
 )
 
 // PublishMetrics function will export the /metrics endpoint to prometheus process

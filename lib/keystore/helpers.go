@@ -309,7 +309,6 @@ func UnlockKeys(ks Keystore, dir, unlock, password string) error {
 // DetermineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
 //  and returns the crypto.KeyType
 func DetermineKeyType(t string) crypto.KeyType {
-	// TODO: create separate keystores for different key types, issue #768
 	switch t {
 	case "babe":
 		return crypto.Sr25519Type
@@ -339,7 +338,6 @@ func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
 	cKeyType := DetermineKeyType(keyType)
 
 	var pubKey crypto.PublicKey
-	// TODO: consider handling for different key types, see issue #768
 	switch cKeyType {
 	case crypto.Sr25519Type:
 		pubKey, err = sr25519.NewPublicKey(keyBytes)

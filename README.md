@@ -43,7 +43,7 @@ For more information about Gossamer, the Polkadot ecosystem, and how to use Goss
 
 ### Prerequisites
 
-install go version `>=1.17`
+install go version `>=1.16`
 
 ### Installation
 
@@ -128,7 +128,7 @@ To start the polkadot node:
 
 ## Contribute
 
-- Check out [Contributing Guidelines](.github/CONTRIBUTING.md)  
+- Check out [Contributing Guidelines](.github/CONTRIBUTING.md) and our [code style](.github/CODE_STYLE.md) document
 - Have questions? Say hi on [Discord](https://discord.gg/Xdc5xjE)!
 
 ## Donate
@@ -154,6 +154,6 @@ _GNU Lesser General Public License v3.0_
 
 <br />
 <p align="center">
-	<img src="/docs/assets/img/chainsafe_gopher.png">
+	<img src="/docs/docs/assets/img/chainsafe_gopher.png">
 </p>
 

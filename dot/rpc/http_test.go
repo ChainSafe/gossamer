@@ -39,9 +39,9 @@ import (
 )
 
 func TestRegisterModules(t *testing.T) {
-	rpcapiMocks := new(mocks.MockRPCAPI)
+	rpcapiMocks := new(mocks.RPCAPI)
 
-	mods := []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate"}
+	mods := []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate"}
 
 	for _, modName := range mods {
 		rpcapiMocks.On("BuildMethodNames", mock.Anything, modName).Once()
@@ -125,7 +125,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 func TestUnsafeRPCProtection(t *testing.T) {
 	cfg := &HTTPServerConfig{
-		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev"},
+		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev", "syncstate"},
 		RPCPort:           7878,
 		RPCAPI:            NewService(),
 		RPCUnsafe:         false,
@@ -167,7 +167,7 @@ func TestRPCUnsafeExpose(t *testing.T) {
 	_, err := buf.Write(data)
 	require.NoError(t, err)
 
-	netmock := new(mocks.MockNetworkAPI)
+	netmock := new(mocks.NetworkAPI)
 	netmock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
 
 	cfg := &HTTPServerConfig{
@@ -204,7 +204,7 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	_, err := buf.Write(data)
 	require.NoError(t, err)
 
-	netmock := new(mocks.MockNetworkAPI)
+	netmock := new(mocks.NetworkAPI)
 	netmock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
 
 	cfg := &HTTPServerConfig{
@@ -244,7 +244,7 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	safebuf := new(bytes.Buffer)
 	safebuf.Write(safeData)
 
-	netmock := new(mocks.MockNetworkAPI)
+	netmock := new(mocks.NetworkAPI)
 	netmock.On("NetworkState").Return(common.NetworkState{
 		PeerID: "peer id",
 	})

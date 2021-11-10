@@ -105,6 +105,19 @@ var (
 		Name:  "no-telemetry",
 		Usage: "Disable connecting to the Substrate telemetry server",
 	}
+
+	// TelemetryURLFlag is URL of the telemetry server to connect to.
+	// This flag can be passed multiple times as a means to specify multiple
+	// telemetry endpoints. Verbosity levels range from 0-9, with 0 denoting the
+	// least verbosity.
+	// Expected format is 'URL VERBOSITY', e.g. `--telemetry-url 'wss://foo/bar 0'`.
+	TelemetryURLFlag = cli.StringSliceFlag{
+		Name: "telemetry-url",
+		Usage: `The URL of the telemetry server to connect to, this flag can be
+		passed multiple times, the verbosity levels range from 0-9, with 0 denoting
+		least verbosity.
+		Expected format --telemetry-url 'wss://foo/bar 0'`,
+	}
 )
 
 // Initialization-only flags
@@ -316,6 +329,14 @@ var (
 	}
 )
 
+// BABE flags
+var (
+	BABELeadFlag = cli.BoolFlag{
+		Name:  "babe-lead",
+		Usage: `specify whether node should build block 1 of the network. only used when starting a new network`,
+	}
+)
+
 // flag sets that are shared by multiple commands
 var (
 	// GlobalFlags are flags that are valid for use with the root command and all subcommands
@@ -366,6 +387,10 @@ var (
 
 		// telemetry flags
 		NoTelemetryFlag,
+		TelemetryURLFlag,
+
+		// BABE flags
+		BABELeadFlag,
 	}
 )
 

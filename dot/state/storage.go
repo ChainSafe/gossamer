@@ -17,7 +17,6 @@
 package state
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
@@ -106,7 +105,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 	if s.syncing {
 		// keep only the trie at the head of the chain when syncing
-		// TODO: probably remove this when memory usage improves
+		// TODO: probably remove this when memory usage improves (#1494)
 		s.tries.Range(func(k, _ interface{}) bool {
 			s.tries.Delete(k)
 			return true
@@ -241,33 +240,47 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash
-func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error) {
-	header, err := s.blockState.GetHeader(bhash)
-	if err != nil {
-		return nil, err
+func (s *StorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
+	var (
+		root common.Hash
+		err  error
+	)
+
+	if bhash != nil {
+		header, err := s.blockState.GetHeader(*bhash) //nolint
+		if err != nil {
+			return nil, err
+		}
+
+		root = header.StateRoot
+	} else {
+		root, err = s.StorageRoot()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return s.GetStorage(&header.StateRoot, key)
+	return s.GetStorage(&root, key)
 }
 
 // GetStateRootFromBlock returns the state root hash of a given block hash
 func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
+	if bhash == nil {
+		b := s.blockState.BestBlockHash()
+		bhash = &b
+	}
+
 	header, err := s.blockState.GetHeader(*bhash)
 	if err != nil {
 		return nil, err
 	}
+
 	return &header.StateRoot, nil
 }
 
 // StorageRoot returns the root hash of the current storage trie
 func (s *StorageState) StorageRoot() (common.Hash, error) {
 	return s.blockState.BestBlockStateRoot()
-}
-
-// EnumeratedTrieRoot not implemented
-func (*StorageState) EnumeratedTrieRoot(_ [][]byte) {
-	//TODO
-	panic("not implemented")
 }
 
 // Entries returns Entries from the trie with the given state root
@@ -328,25 +341,6 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 // GenerateTrieProof returns the proofs related to the keys on the state root trie
 func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
 	return trie.GenerateProof(stateRoot[:], keys, s.db)
-}
-
-// GetBalance gets the balance for an account with the given public key
-func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, error) {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return 0, err
-	}
-
-	bal, err := s.GetStorage(hash, skey)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(bal) != 8 {
-		return 0, nil
-	}
-
-	return binary.LittleEndian.Uint64(bal), nil
 }
 
 func (s *StorageState) pruneStorage(closeCh chan interface{}) {

@@ -36,14 +36,6 @@ func NewDigest() scale.VaryingDataTypeSlice {
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.
 type ConsensusEngineID [4]byte
 
-// NewConsensusEngineID casts a byte array to ConsensusEngineID
-// if the input is longer than 4 bytes, it takes the first 4 bytes
-func NewConsensusEngineID(in []byte) (res ConsensusEngineID) {
-	res = [4]byte{}
-	copy(res[:], in)
-	return res
-}
-
 // ToBytes turns ConsensusEngineID to a byte array
 func (h ConsensusEngineID) ToBytes() []byte {
 	b := [4]byte(h)

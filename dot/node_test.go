@@ -17,7 +17,6 @@
 package dot
 
 import (
-	"encoding/binary"
 	"math/big"
 	"reflect"
 	"sync"
@@ -113,7 +112,6 @@ func TestNewNode(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 
 	node, err := NewNode(cfg, ks, nil)
@@ -180,7 +178,6 @@ func TestStartNode(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 
 	node, err := NewNode(cfg, ks, nil)
@@ -314,6 +311,14 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	require.Equal(t, expectedRoot, stateRoot)
 }
 
+// balanceKey returns the storage trie key for the balance of the account with the given public key
+func balanceKey(t *testing.T, key [32]byte) []byte {
+	accKey := append([]byte("balance:"), key[:]...)
+	hash, err := common.Blake2bHash(accKey)
+	require.NoError(t, err)
+	return hash[:]
+}
+
 func TestInitNode_LoadBalances(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -355,13 +360,11 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	kr, _ := keystore.NewSr25519Keyring()
 	alice := kr.Alice().Public().(*sr25519.PublicKey).AsBytes()
 
-	bal, err := stateSrv.Storage.GetBalance(nil, alice)
+	bal, err := stateSrv.Storage.GetStorage(nil, balanceKey(t, alice))
 	require.NoError(t, err)
 
 	genbal := "0x0000000000000001"
-	balbytes, _ := common.HexToBytes(genbal)
-	expected := binary.LittleEndian.Uint64(balbytes)
-
+	expected, _ := common.HexToBytes(genbal)
 	require.Equal(t, expected, bal)
 }
 

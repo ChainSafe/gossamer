@@ -34,6 +34,8 @@ type SubscriptionResult struct {
 	Changes []KeyValue
 }
 
+//go:generate mockery --name Observer --structname MockObserver --case underscore --inpackage
+
 // Observer interface defines functions needed for observers, Observer Design Pattern
 type Observer interface {
 	Update(result *SubscriptionResult)
@@ -93,7 +95,7 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 		ent := t.TrieEntries()
 		for k, v := range ent {
 			if k != ":code" {
-				// todo, currently we're ignoring :code since this is a lot of data
+				// currently we're ignoring :code since this is a lot of data
 				kv := &KeyValue{
 					Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
 					Value: v,

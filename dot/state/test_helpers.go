@@ -56,25 +56,27 @@ type testBranch struct {
 	depth int
 }
 
-// AddBlocksToState adds blocks to a BlockState up to depth, with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types.Header, []*types.Header) {
-	previousHash := blockState.BestBlockHash()
-
-	branches := []testBranch{}
+// AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranches bool) ([]*types.Header, []*types.Header) {
+	var (
+		currentChain, branchChains []*types.Header
+		branches                   []testBranch
+	)
 
 	arrivalTime := time.Now()
-	currentChain := []*types.Header{}
-	branchChains := []*types.Header{}
-
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
+	previousHash := head.Hash()
 
 	// create base tree
 	startNum := int(head.Number.Int64())
-	for i := startNum + 1; i <= depth; i++ {
+	for i := startNum + 1; i <= depth+startNum; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
 		digest := types.NewDigest()
-		_ = digest.Add(*d.ToPreRuntimeDigest())
+		prd, err := d.ToPreRuntimeDigest()
+		require.NoError(t, err)
+		err = digest.Add(*prd)
+		require.NoError(t, err)
 
 		block := &types.Block{
 			Header: types.Header{
@@ -89,7 +91,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		currentChain = append(currentChain, &block.Header)
 
 		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
 
 		previousHash = hash
@@ -104,6 +106,10 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		}
 
 		arrivalTime = arrivalTime.Add(inc)
+	}
+
+	if !withBranches {
+		return currentChain, nil
 	}
 
 	// create tree branches
@@ -156,17 +162,24 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	// create base tree
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
+		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+		require.NoError(t, err)
+		require.NotNil(t, d)
+		digest := types.NewDigest()
+		_ = digest.Add(*d)
+
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
+				Digest:     digest,
 			},
 			Body: types.Body{},
 		}
 
 		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
 
 		blockState.StoreRuntime(hash, rt)
@@ -199,7 +212,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			block := &types.Block{
 				Header: types.Header{
 					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i)),
+					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
 				},

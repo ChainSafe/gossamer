@@ -16,7 +16,6 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 )
 
@@ -95,7 +94,7 @@ func (d *EpochDataRaw) ToEpochData() (*EpochData, error) {
 type ConfigData struct {
 	C1             uint64
 	C2             uint64
-	SecondarySlots byte // TODO: this is unused, will need to update BABE verifier to use this
+	SecondarySlots byte
 }
 
 // GetSlotFromHeader returns the BABE slot from the given header
@@ -109,12 +108,20 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 		return 0, fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	r := &bytes.Buffer{}
-	_, _ = r.Write(preDigest.Data)
-	digest, err := DecodeBabePreDigest(r)
+	digest, err := DecodeBabePreDigest(preDigest.Data)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode BabePreDigest from pre-digest: %s", err)
 	}
 
-	return digest.SlotNumber(), nil
+	var slotNumber uint64
+	switch d := digest.(type) {
+	case BabePrimaryPreDigest:
+		slotNumber = d.SlotNumber
+	case BabeSecondaryVRFPreDigest:
+		slotNumber = d.SlotNumber
+	case BabeSecondaryPlainPreDigest:
+		slotNumber = d.SlotNumber
+	}
+
+	return slotNumber, nil
 }

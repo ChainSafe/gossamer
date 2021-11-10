@@ -91,6 +91,7 @@ type Node struct {
 	basePath string
 	config   string
 	WSPort   string
+	BABELead bool
 }
 
 // InitGossamer initialises given node number and returns node reference
@@ -103,7 +104,6 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 		"--force",
 	)
 
-	//add step for init
 	logger.Info("initialising gossamer...", "cmd", cmdInit)
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
@@ -111,9 +111,7 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 		return nil, err
 	}
 
-	// TODO: get init exit code to see if node was successfully initialised
 	logger.Info("initialised gossamer!", "node", idx)
-
 	return &Node{
 		Idx:      idx,
 		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
@@ -134,6 +132,10 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
 		"--log", "info"}
+
+	if node.BABELead {
+		params = append(params, "--babe-lead")
+	}
 
 	if node.Idx >= len(KeyList) {
 		params = append(params, "--roles", "1")
@@ -218,11 +220,15 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 }
 
 // RunGossamer will initialise and start a gossamer instance
-func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket bool) (*Node, error) {
+func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket, babeLead bool) (*Node, error) {
 	node, err := InitGossamer(idx, basepath, genesis, config)
 	if err != nil {
 		logger.Crit("could not initialise gossamer", "error", err)
 		os.Exit(1)
+	}
+
+	if idx == 0 || babeLead {
+		node.BABELead = true
 	}
 
 	err = StartGossamer(t, node, websocket)
@@ -310,7 +316,7 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 			if i < len(KeyList) {
 				name = KeyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false)
+			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false, false)
 			if err != nil {
 				logger.Error("failed to run gossamer", "i", i)
 			}
@@ -340,7 +346,7 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 			if i < len(KeyList) {
 				name = KeyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true)
+			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true, false)
 			if err != nil {
 				logger.Error("failed to run gossamer", "i", i)
 			}
@@ -439,6 +445,7 @@ func generateDefaultConfig() *ctoml.Config {
 			Roles:            4,
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
+			GrandpaInterval:  1,
 		},
 		Network: ctoml.NetworkConfig{
 			Bootnodes:   nil,
@@ -504,6 +511,8 @@ func CreateConfigNoBabe() {
 func generateConfigNoGrandpa() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BABELead = true
+	cfg.Core.GrandpaInterval = 1
 	return cfg
 }
 

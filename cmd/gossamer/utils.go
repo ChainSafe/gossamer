@@ -85,8 +85,6 @@ func confirmMessage(msg string) bool {
 func newTestConfig(t *testing.T) *dot.Config {
 	dir := utils.NewTestDir(t)
 
-	// TODO: use default config instead of gssmr config for test config #776
-
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{
 			Name:           dot.GssmrConfig().Global.Name,
@@ -97,6 +95,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 			MetricsPort:    dot.GssmrConfig().Global.MetricsPort,
 			RetainBlocks:   dot.GssmrConfig().Global.RetainBlocks,
 			Pruning:        dot.GssmrConfig().Global.Pruning,
+			TelemetryURLs:  dot.GssmrConfig().Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,
