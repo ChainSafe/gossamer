@@ -442,7 +442,10 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 		}
 
 		if tomlCfg.Global.LogLvl != "" {
-			cfg.LogLvl, _ = log.ParseLevel(tomlCfg.Global.LogLvl)
+			level, err := parseLogLevelString(tomlCfg.Global.LogLvl)
+			if err == nil {
+				cfg.LogLvl = level
+			}
 		}
 
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
@@ -465,10 +468,9 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 	}
 
 	// check --log flag
-	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
-		cfg.LogLvl = log.Level(lvlToInt)
-	} else if lvl, err := log.ParseLevel(ctx.String(LogFlag.Name)); err == nil {
-		cfg.LogLvl = lvl
+	logLevel, err := parseLogLevelString(ctx.String(LogFlag.Name))
+	if err == nil {
+		cfg.LogLvl = logLevel
 	}
 
 	cfg.PublishMetrics = ctx.Bool("publish-metrics")
