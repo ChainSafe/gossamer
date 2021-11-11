@@ -256,7 +256,10 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		for _, data := range msgs {
-			s.broadcastExcluding(info, data.peer, data.msg)
+			seen := s.gossip.hasSeen(data.msg)
+			if !seen {
+				s.broadcastExcluding(info, data.peer, data.msg)
+			}
 
 			// report peer if we get duplicate gossip message.
 			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
@@ -311,8 +314,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
 			logger.Trace("failed to send message to peer", "peer", peer, "error", err)
-			_ = stream.Close()
-			info.outboundHandshakeData.Delete(peer)
+			//_ = stream.Close()
+			//info.outboundHandshakeData.Delete(peer)
 			return
 		}
 
@@ -337,8 +340,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			hsTimer.Stop()
 			if hsResponse.err != nil {
 				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
-				_ = stream.Close()
-				info.outboundHandshakeData.Delete(peer)
+				//_ = stream.Close()
+				//info.outboundHandshakeData.Delete(peer)
 				return
 			}
 
