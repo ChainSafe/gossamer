@@ -1114,7 +1114,7 @@ func Test_getLogLevel(t *testing.T) {
 		"flag bad string value": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "garbage"}),
 			flagName:     "x",
-			err:          errors.New("cannot parse log level string: Unknown level: garbage"),
+			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
 		},
 		"toml integer value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
@@ -1129,7 +1129,7 @@ func Test_getLogLevel(t *testing.T) {
 		"toml bad string value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			tomlValue:    "garbage",
-			err:          errors.New("cannot parse log level string: Unknown level: garbage"),
+			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
 		},
 		"flag takes precedence": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
@@ -1166,7 +1166,7 @@ func Test_parseLogLevelString(t *testing.T) {
 		err            error
 	}{
 		"empty string": {
-			err: errors.New("cannot parse log level string: Unknown level: "),
+			err: errors.New("cannot parse log level string: level is not recognised: "),
 		},
 		"valid integer": {
 			logLevelString: "1",
