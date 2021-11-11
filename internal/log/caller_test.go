@@ -31,7 +31,7 @@ func Test_getCallerString(t *testing.T) {
 				line: boolPtr(true),
 				funC: boolPtr(false),
 			},
-			s: "caller_test.go:L55",
+			s: "caller_test.go:L58",
 		},
 		"show all": {
 			settings: callerSettings{
@@ -39,7 +39,7 @@ func Test_getCallerString(t *testing.T) {
 				line: boolPtr(true),
 				funC: boolPtr(true),
 			},
-			s: "caller_test.go:L55:func2",
+			s: "caller_test.go:L58:func2",
 		},
 	}
 
