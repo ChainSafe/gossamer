@@ -210,8 +210,20 @@ func (d *discovery) findPeers(ctx context.Context) {
 
 			logger.Trace("found new peer via DHT", "peer", peer.ID)
 
+			// TODO: this isn't working on the devnet
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
+
+			// found a peer, try to connect if we need more peers
+			if len(d.h.Network().Peers()) < d.maxPeers {
+				err = d.h.Connect(d.ctx, peer)
+				if err != nil {
+					logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+				}
+			} else {
+				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+				return
+			}
 		}
 	}
 }
