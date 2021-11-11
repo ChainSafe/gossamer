@@ -656,7 +656,7 @@ func (s *Service) closeInboundStream(stream libp2pnetwork.Stream) {
 		prtl.inboundHandshakeData.Delete(stream.Conn().RemotePeer())
 	}
 
-	_ = stream.Close()
+	_ = stream.Reset()
 }
 
 func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {
