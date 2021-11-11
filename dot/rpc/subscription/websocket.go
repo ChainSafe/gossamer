@@ -29,10 +29,9 @@ import (
 	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
@@ -42,7 +41,7 @@ type httpclient interface {
 
 var errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
 var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
-var logger = log.New("pkg", "rpc/subscription")
+var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
 
 // DEFAULT_BUFFER_SIZE buffer size for channels
 const DEFAULT_BUFFER_SIZE = 100
@@ -66,18 +65,18 @@ type WSConn struct {
 func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) {
 	_, mbytes, err := c.Wsconn.ReadMessage()
 	if err != nil {
-		logger.Debug("websocket failed to read message", "error", err)
+		logger.Debugf("websocket failed to read message: %s", err)
 		return nil, nil, errCannotReadFromWebsocket
 	}
 
-	logger.Trace("websocket received", "message", string(mbytes))
+	logger.Tracef("websocket message received: %s", string(mbytes))
 
 	// determine if request is for subscribe method type
 	var msg map[string]interface{}
 	err = json.Unmarshal(mbytes, &msg)
 
 	if err != nil {
-		logger.Debug("websocket failed to unmarshal request message", "error", err)
+		logger.Debugf("websocket failed to unmarshal request message: %s", err)
 		return nil, nil, errCannotUnmarshalMessage
 	}
 
@@ -101,7 +100,7 @@ func (c *WSConn) HandleComm() {
 		reqid := msg["id"].(float64)
 		method := msg["method"].(string)
 
-		logger.Debug("ws method called", "method", method, "params", params)
+		logger.Debugf("ws method %s called with params %v", method, params)
 
 		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
 			setupListener := c.getSetupListener(method)
@@ -113,7 +112,7 @@ func (c *WSConn) HandleComm() {
 
 			listener, err := setupListener(reqid, params) //nolint
 			if err != nil {
-				logger.Warn("failed to create listener", "method", method, "error", err)
+				logger.Warnf("failed to create listener (method=%s): %s", method, err)
 				continue
 			}
 
@@ -124,7 +123,7 @@ func (c *WSConn) HandleComm() {
 		listener, err := c.getUnsubListener(params) //nolint
 
 		if err != nil {
-			logger.Warn("failed to get unsubscriber", "method", method, "error", err)
+			logger.Warnf("failed to get unsubscriber (method=%s): %s", method, err)
 
 			if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
 				c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
@@ -139,7 +138,7 @@ func (c *WSConn) HandleComm() {
 
 		err = listener.Stop()
 		if err != nil {
-			logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
+			logger.Warnf("failed to stop listener goroutine (method=%s): %s", method, err)
 			c.safeSend(newBooleanResponseJSON(false, reqid))
 		}
 
@@ -151,14 +150,14 @@ func (c *WSConn) HandleComm() {
 func (c *WSConn) executeRPCCall(data []byte) {
 	request, err := c.prepareRequest(data)
 	if err != nil {
-		logger.Warn("failed while preparing the request", "error", err)
+		logger.Warnf("failed while preparing the request: %s", err)
 		return
 	}
 
 	var wsresponse interface{}
 	err = c.executeRequest(request, &wsresponse)
 	if err != nil {
-		logger.Warn("problems while executing the request", "error", err)
+		logger.Warnf("problems while executing the request: %s", err)
 		return
 	}
 
@@ -393,7 +392,7 @@ func (c *WSConn) safeSend(msg interface{}) {
 	defer c.mu.Unlock()
 	err := c.Wsconn.WriteJSON(msg)
 	if err != nil {
-		logger.Debug("error sending websocket message", "error", err)
+		logger.Debugf("error sending websocket message: %s", err)
 	}
 }
 
@@ -410,20 +409,20 @@ func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string
 	defer c.mu.Unlock()
 	err := c.Wsconn.WriteJSON(res)
 	if err != nil {
-		logger.Debug("error sending websocket message", "error", err)
+		logger.Debugf("error sending websocket message: %s", err)
 	}
 }
 
 func (c *WSConn) prepareRequest(b []byte) (*http.Request, error) {
 	buff := &bytes.Buffer{}
 	if _, err := buff.Write(b); err != nil {
-		logger.Warn("failed to write message to buffer", "error", buff)
+		logger.Warnf("failed to write message to buffer: %s", err)
 		return nil, err
 	}
 
 	req, err := http.NewRequest("POST", c.RPCHost, buff)
 	if err != nil {
-		logger.Warn("failed request to rpc service", "error", err)
+		logger.Warnf("failed request to rpc service: %s", err)
 		return nil, err
 	}
 
@@ -434,26 +433,26 @@ func (c *WSConn) prepareRequest(b []byte) (*http.Request, error) {
 func (c *WSConn) executeRequest(r *http.Request, d interface{}) error {
 	res, err := c.HTTP.Do(r)
 	if err != nil {
-		logger.Warn("websocket error calling rpc", "error", err)
+		logger.Warnf("websocket error calling rpc: %s", err)
 		return err
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		logger.Warn("error reading response body", "error", err)
+		logger.Warnf("error reading response body: %s", err)
 		return err
 	}
 
 	err = res.Body.Close()
 	if err != nil {
-		logger.Warn("error closing response body", "error", err)
+		logger.Warnf("error closing response body: %s", err)
 		return err
 	}
 
 	err = json.Unmarshal(body, d)
 
 	if err != nil {
-		logger.Warn("error unmarshal rpc response", "error", err)
+		logger.Warnf("error unmarshal rpc response: %s", err)
 		return err
 	}
 

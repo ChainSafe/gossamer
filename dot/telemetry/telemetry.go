@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
@@ -46,7 +46,7 @@ type telemetryConnection struct {
 type Handler struct {
 	msg                chan Message
 	connections        []*telemetryConnection
-	log                log.Logger
+	log                log.LeveledLogger
 	sendMessageTimeout time.Duration
 	maxRetries         int
 	retryDelay         time.Duration
@@ -81,7 +81,7 @@ func GetInstance() Instance {
 			func() {
 				handlerInstance = &Handler{
 					msg:                make(chan Message, 256),
-					log:                log.New("pkg", "telemetry"),
+					log:                log.NewFromGlobal(log.AddContext("pkg", "telemetry")),
 					sendMessageTimeout: defaultMessageTimeout,
 					maxRetries:         defaultMaxRetries,
 					retryDelay:         defaultRetryDelay,
@@ -110,7 +110,7 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 		for connAttempts := 0; connAttempts < h.maxRetries; connAttempts++ {
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
-				h.log.Debug("issue adding telemetry connection", "error", err)
+				h.log.Debugf("issue adding telemetry connection: %s", err)
 				time.Sleep(h.retryDelay)
 				continue
 			}
@@ -142,7 +142,7 @@ func (h *Handler) startListening() {
 		go func() {
 			msgBytes, err := h.msgToJSON(msg)
 			if err != nil {
-				h.log.Debug("issue decoding telemetry message", "error", err)
+				h.log.Debugf("issue decoding telemetry message: %s", err)
 				return
 			}
 			for _, conn := range h.connections {
@@ -151,7 +151,7 @@ func (h *Handler) startListening() {
 
 				err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 				if err != nil {
-					h.log.Debug("issue while sending telemetry message", "error", err)
+					h.log.Debugf("issue while sending telemetry message: %s", err)
 				}
 			}
 		}()

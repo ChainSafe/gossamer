@@ -17,16 +17,15 @@
 package metrics
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
 )
 
-var logger = log.New("pkg", "metrics")
+var logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
 
 const (
 	// RefreshInterval is the refresh time for publishing metrics.
@@ -44,10 +43,10 @@ func PublishMetrics(address string) {
 func setupMetricsServer(address string) {
 	m := http.NewServeMux()
 	m.Handle("/metrics", prometheus.Handler(ethmetrics.DefaultRegistry))
-	logger.Info("Starting metrics server", "addr", fmt.Sprintf("http://%s/metrics", address))
+	logger.Info("Starting metrics server at http://" + address + "/metrics")
 	go func() {
 		if err := http.ListenAndServe(address, m); err != nil {
-			log.Error("Failure in running metrics server", "err", err)
+			logger.Errorf("Metrics HTTP server crashed: %s", err)
 		}
 	}()
 }

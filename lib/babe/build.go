@@ -101,7 +101,7 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp
 }
 
 func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
-	logger.Trace("build block", "parent", parent, "slot", slot)
+	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
 	// create pre-digest
 	preDigest, err := b.buildBlockPreDigest(slot)
@@ -137,7 +137,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
 
-	logger.Trace("built block inherents", "encoded inherents", inherents)
+	logger.Tracef("built block encoded inherents: %v", inherents)
 
 	// add block extrinsics
 	included := b.buildBlockExtrinsics(slot, rt)
@@ -258,17 +258,17 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 		}
 
 		extrinsic := txn.Extrinsic
-		logger.Trace("build block", "applying extrinsic", extrinsic)
+		logger.Tracef("build block, applying extrinsic %s", extrinsic)
 
 		ret, err := rt.ApplyExtrinsic(extrinsic)
 		if err != nil {
-			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
+			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
 			continue
 		}
 
 		err = determineErr(ret)
 		if err != nil {
-			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
+			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
 
 			// Failure of the module call dispatching doesn't invalidate the extrinsic.
 			// It is included in the block.
@@ -286,12 +286,12 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 			if errors.Is(e.msg, errExhaustsResources) || errors.Is(e.msg, errInvalidTransaction) {
 				hash, err := b.transactionState.Push(txn)
 				if err != nil {
-					logger.Debug("failed to re-add transaction to queue", "tx", hash, "error", err)
+					logger.Debugf("failed to re-add transaction with hash %s to queue: %s", hash, err)
 				}
 			}
 		}
 
-		logger.Debug("build block applied extrinsic", "extrinsic", extrinsic)
+		logger.Debugf("build block applied extrinsic %s", extrinsic)
 		included = append(included, txn)
 	}
 
@@ -355,9 +355,9 @@ func (b *BlockBuilder) addToQueue(txs []*transaction.ValidTransaction) {
 	for _, t := range txs {
 		hash, err := b.transactionState.Push(t)
 		if err != nil {
-			logger.Trace("Failed to add transaction to queue", "error", err)
+			logger.Tracef("Failed to add transaction to queue: %s", err)
 		} else {
-			logger.Trace("Added transaction to queue", "hash", hash)
+			logger.Tracef("Added transaction with hash %s to queue", hash)
 		}
 	}
 }

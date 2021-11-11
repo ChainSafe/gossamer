@@ -144,7 +144,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 		if errors.Is(err, io.EOF) {
 			return
 		} else if err != nil {
-			logger.Debug("failed to read from stream", "protocol", stream.Protocol(), "error", err)
+			logger.Debugf("failed to read from stream using protocol %s: %s", stream.Protocol(), err)
 			_ = stream.Close()
 			return
 		}
@@ -152,14 +152,14 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
-			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
+			logger.Errorf("failed to decode message from peer %s: %s", peer, err)
 			continue
 		}
 
 		// handle message based on peer status and message type
 		err = handler(stream, msg)
 		if err != nil {
-			logger.Error("Failed to handle message from stream", "message", msg, "error", err)
+			logger.Errorf("failed to handle message %s from stream: %s", msg, err)
 			_ = stream.Close()
 			return
 		}

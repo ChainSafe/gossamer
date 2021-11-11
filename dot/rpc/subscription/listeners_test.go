@@ -178,7 +178,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 
 	head, err := modules.HeaderToJSON(*header)
 	if err != nil {
-		logger.Error("failed to convert header to JSON", "error", err)
+		logger.Errorf("failed to convert header to JSON: %s", err)
 	}
 	expectedResponse := newSubcriptionBaseResponseJSON()
 	expectedResponse.Method = chainFinalizedHeadMethod

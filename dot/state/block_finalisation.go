@@ -164,7 +164,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 			continue
 		}
 
-		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
+		logger.Tracef("pruned block number %s with hash %s", block.Header.Number, hash)
 
 		go func(header *types.Header) {
 			bs.pruneKeyCh <- header

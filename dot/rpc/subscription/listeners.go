@@ -157,7 +157,7 @@ func (l *BlockListener) Listen() {
 				}
 				head, err := modules.HeaderToJSON(block.Header)
 				if err != nil {
-					logger.Error("failed to convert header to JSON", "error", err)
+					logger.Errorf("failed to convert header to JSON: %s", err)
 				}
 
 				res := newSubcriptionBaseResponseJSON()
@@ -207,7 +207,7 @@ func (l *BlockFinalizedListener) Listen() {
 				}
 				head, err := modules.HeaderToJSON(info.Header)
 				if err != nil {
-					logger.Error("failed to convert header to JSON", "error", err)
+					logger.Errorf("failed to convert header to JSON: %s", err)
 				}
 				res := newSubcriptionBaseResponseJSON()
 				res.Method = chainFinalizedHeadMethod
@@ -270,7 +270,7 @@ func (l *AllBlocksListener) Listen() {
 
 				finHead, err := modules.HeaderToJSON(fin.Header)
 				if err != nil {
-					logger.Error("failed to convert finalised block header to JSON", "error", err)
+					logger.Errorf("failed to convert finalised block header to JSON: %s", err)
 					continue
 				}
 
@@ -287,7 +287,7 @@ func (l *AllBlocksListener) Listen() {
 
 				impHead, err := modules.HeaderToJSON(imp.Header)
 				if err != nil {
-					logger.Error("failed to convert imported block header to JSON", "error", err)
+					logger.Errorf("failed to convert imported block header to JSON: %s", err)
 					continue
 				}
 
