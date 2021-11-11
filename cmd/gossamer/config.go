@@ -315,16 +315,16 @@ func parseLogLevelString(logLevelString string) (logLevel log.Level, err error) 
 	return logLevel, nil
 }
 
-func setLogConfig(flagsKVStore stringKVStore, cfg *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
-	if cfg == nil {
-		cfg = new(ctoml.Config)
+func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
+	if tomlConfig == nil {
+		tomlConfig = new(ctoml.Config)
 	}
 
-	globalCfg.LogLvl, err = getLogLevel(flagsKVStore, LogFlag.Name, cfg.Global.LogLvl, gssmr.DefaultLvl)
+	globalCfg.LogLvl, err = getLogLevel(flagsKVStore, LogFlag.Name, tomlConfig.Global.LogLvl, gssmr.DefaultLvl)
 	if err != nil {
 		return fmt.Errorf("cannot get global log level: %w", err)
 	}
-	cfg.Global.LogLvl = globalCfg.LogLvl.String()
+	tomlConfig.Global.LogLvl = globalCfg.LogLvl.String()
 
 	levelsData := []struct {
 		name      string
@@ -335,55 +335,55 @@ func setLogConfig(flagsKVStore stringKVStore, cfg *ctoml.Config, globalCfg *dot.
 		{
 			name:      "core",
 			flagName:  LogCoreLevelFlag.Name,
-			tomlValue: cfg.Log.CoreLvl,
+			tomlValue: tomlConfig.Log.CoreLvl,
 			levelPtr:  &logCfg.CoreLvl,
 		},
 		{
 			name:      "sync",
 			flagName:  LogSyncLevelFlag.Name,
-			tomlValue: cfg.Log.SyncLvl,
+			tomlValue: tomlConfig.Log.SyncLvl,
 			levelPtr:  &logCfg.SyncLvl,
 		},
 		{
 			name:      "network",
 			flagName:  LogNetworkLevelFlag.Name,
-			tomlValue: cfg.Log.NetworkLvl,
+			tomlValue: tomlConfig.Log.NetworkLvl,
 			levelPtr:  &logCfg.NetworkLvl,
 		},
 		{
 			name:      "RPC",
 			flagName:  LogRPCLevelFlag.Name,
-			tomlValue: cfg.Log.RPCLvl,
+			tomlValue: tomlConfig.Log.RPCLvl,
 			levelPtr:  &logCfg.RPCLvl,
 		},
 		{
 			name:      "state",
 			flagName:  LogStateLevelFlag.Name,
-			tomlValue: cfg.Log.StateLvl,
+			tomlValue: tomlConfig.Log.StateLvl,
 			levelPtr:  &logCfg.StateLvl,
 		},
 		{
 			name:      "runtime",
 			flagName:  LogRuntimeLevelFlag.Name,
-			tomlValue: cfg.Log.RuntimeLvl,
+			tomlValue: tomlConfig.Log.RuntimeLvl,
 			levelPtr:  &logCfg.RuntimeLvl,
 		},
 		{
 			name:      "block producer",
 			flagName:  LogBabeLevelFlag.Name,
-			tomlValue: cfg.Log.BlockProducerLvl,
+			tomlValue: tomlConfig.Log.BlockProducerLvl,
 			levelPtr:  &logCfg.BlockProducerLvl,
 		},
 		{
 			name:      "finality gadget",
 			flagName:  LogGrandpaLevelFlag.Name,
-			tomlValue: cfg.Log.FinalityGadgetLvl,
+			tomlValue: tomlConfig.Log.FinalityGadgetLvl,
 			levelPtr:  &logCfg.FinalityGadgetLvl,
 		},
 		{
 			name:      "sync",
 			flagName:  LogSyncLevelFlag.Name,
-			tomlValue: cfg.Log.SyncLvl,
+			tomlValue: tomlConfig.Log.SyncLvl,
 			levelPtr:  &logCfg.SyncLvl,
 		},
 	}
