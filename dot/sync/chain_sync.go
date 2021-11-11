@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -311,7 +310,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	}
 
 	cs.workQueue <- ps
-	logger.Debug("set peer head", "peer", p, "hash", hash, "number", number)
+	logger.Debugf("set peer %s head with block number %s and hash %s", p, number, hash)
 	return nil
 }
 
@@ -353,26 +352,17 @@ func (cs *chainSync) logSyncSpeed() {
 			cs.benchmarker.end(after.Number.Uint64())
 			target := cs.getTarget()
 
-			logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
-				"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
-			)
+			logger.Infof(
+				"🔗 imported blocks from %d to %d (hashes [%s ... %s])",
+				before.Number, after.Number, before.Hash(), after.Hash())
 
-			logger.Info("🚣 currently syncing",
-				"peer count", len(cs.network.Peers()),
-				"target", target,
-				"average blocks/second", cs.benchmarker.mostRecentAverage(),
-				"overall average", cs.benchmarker.average(),
-				"finalised", finalised.Number,
-				"hash", finalised.Hash(),
-			)
+			logger.Infof(
+				"🚣 currently syncing, %d peers connected, target block number %s, %.2f average blocks/second, %.2f overall average, finalised block number %s with hash %s",
+				len(cs.network.Peers()), target, cs.benchmarker.mostRecentAverage(), cs.benchmarker.average(), finalised.Number, finalised.Hash())
 		case tip:
-			logger.Info("💤 node waiting",
-				"peer count", len(cs.network.Peers()),
-				"head", after.Number,
-				"hash", after.Hash(),
-				"finalised", finalised.Number,
-				"hash", finalised.Hash(),
-			)
+			logger.Infof(
+				"💤 node waiting, %d peers connected, head block number %s with hash %s, finalised block number %s with hash %s",
+				len(cs.network.Peers()), after.Number, after.Hash(), finalised.Number, finalised.Hash())
 		}
 	}
 }
@@ -397,7 +387,7 @@ func (cs *chainSync) sync() {
 			cs.maybeSwitchMode()
 
 			if err := cs.handleWork(ps); err != nil {
-				logger.Error("failed to handle chain sync work", "error", err)
+				logger.Errorf("failed to handle chain sync work: %s", err)
 			}
 		case res := <-cs.resultQueue:
 			// delete worker from workers map
@@ -409,7 +399,7 @@ func (cs *chainSync) sync() {
 				continue
 			}
 
-			logger.Debug("worker error", "worker ID", res.id, "error", res.err.err)
+			logger.Debugf("worker id %d failed: %s", res.id, res.err.err)
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
@@ -417,7 +407,7 @@ func (cs *chainSync) sync() {
 			case errors.Is(res.err.err, context.Canceled):
 				return
 			case errors.Is(res.err.err, errNoPeers):
-				logger.Debug("not able to sync with any peer!", "worker ID", res.id)
+				logger.Debugf("worker id %d not able to sync with any peer", res.id)
 				continue
 			case errors.Is(res.err.err, context.DeadlineExceeded):
 				cs.network.ReportPeer(peerset.ReputationChange{
@@ -440,7 +430,7 @@ func (cs *chainSync) sync() {
 
 			worker, err := cs.handler.handleWorkerResult(res)
 			if err != nil {
-				logger.Error("failed to handle worker result", "error", err)
+				logger.Errorf("failed to handle worker result: %s", err)
 				continue
 			}
 
@@ -450,10 +440,9 @@ func (cs *chainSync) sync() {
 
 			worker.retryCount = res.retryCount + 1
 			if worker.retryCount > cs.maxWorkerRetries {
-				logger.Debug("discarding worker, has reached maximum retry count",
-					"worker",
-					worker,
-				)
+				logger.Debugf(
+					"discarding worker id %d: maximum retry count reached",
+					worker.id)
 				continue
 			}
 
@@ -472,7 +461,7 @@ func (cs *chainSync) sync() {
 
 			workers, err := cs.handler.handleTick()
 			if err != nil {
-				logger.Error("failed to handle tick", "error", err)
+				logger.Errorf("failed to handle tick: %s", err)
 				continue
 			}
 
@@ -492,7 +481,7 @@ func (cs *chainSync) sync() {
 func (cs *chainSync) maybeSwitchMode() {
 	head, err := cs.blockState.BestBlockHeader()
 	if err != nil {
-		logger.Error("failed to get best block header", "error", err)
+		logger.Errorf("failed to get best block header: %s", err)
 		return
 	}
 
@@ -529,7 +518,7 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 	}
 
 	cs.state = mode
-	logger.Debug("switched sync mode", "mode", mode)
+	logger.Debugf("switched sync mode to %d", mode)
 }
 
 // getTarget takes the average of all peer heads
@@ -562,7 +551,7 @@ func (cs *chainSync) getTarget() *big.Int {
 // in tip mode, this adds the peer's state to the pendingBlocks set and potentially starts
 // a fork sync
 func (cs *chainSync) handleWork(ps *peerState) error {
-	logger.Trace("handling potential work", "target hash", ps.hash, "target number", ps.number)
+	logger.Tracef("handling potential work for target block number %s and hash %s", ps.number, ps.hash)
 	worker, err := cs.handler.handleNewPeerState(ps)
 	if err != nil {
 		return err
@@ -597,21 +586,16 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // if it fails due to any reason, it sets the worker `err` and returns
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
-	logger.Debug("dispatching sync worker",
-		"id", w.id,
-		"start number", w.startNumber,
-		"start hash", w.startHash,
-		"target hash", w.targetHash,
-		"target number", w.targetNumber,
-		"request data", w.requestData,
-		"direction", w.direction,
-	)
+	logger.Debugf("dispatching sync worker id %d, start number %s, target number %s, start hash %s, target hash %s, request data %d, direction %s",
+		w.id, w.startNumber, w.targetNumber, w.startHash, w.targetHash, w.requestData, w.direction)
 
+	if w.startNumber == nil {
+		logger.Error("a block start number must be provided")
+	}
+	if w.targetNumber == nil {
+		logger.Error("a block target number must be provided")
+	}
 	if w.targetNumber == nil || w.startNumber == nil {
-		logger.Error("must provide a block start and target number",
-			"startNumber==nil?", w.startNumber == nil,
-			"targetNumber==nil?", w.targetNumber == nil,
-		)
 		return
 	}
 
@@ -619,18 +603,20 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	defer func() {
 		end := time.Now()
 		w.duration = end.Sub(start)
-		logger.Debug("sync worker complete",
-			"id", w.id,
-			"success?", w.err == nil,
-			"duration", w.duration,
-		)
+		outcome := "success"
+		if w.err != nil {
+			outcome = "failure"
+		}
+		logger.Debugf(
+			"sync worker completed in %s with %s for worker id %d",
+			w.duration, outcome, w.id)
 		cs.resultQueue <- w
 	}()
 
 	reqs, err := workerToRequests(w)
 	if err != nil {
 		// if we are creating valid workers, this should not happen
-		logger.Crit("failed to create requests from worker", "worker", w, "error", err)
+		logger.Criticalf("failed to create requests from worker id %d: %s", w.id, err)
 		w.err = &workerError{
 			err: err,
 		}
@@ -658,7 +644,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 	}
 
 	// send out request and potentially receive response, error if timeout
-	logger.Trace("sending out block request", "request", req)
+	logger.Tracef("sending out block request: %s", req)
 
 	// TODO: use scoring to determine what peer to try to sync from first (#1399)
 	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
@@ -713,7 +699,7 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 		bd.Header = block.header
 	}
 
-	logger.Trace("new ready block", "hash", bd.Hash, "number", bd.Header.Number)
+	logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)
 
 	ready := []*types.BlockData{bd}
 	ready = pendingBlocks.getReadyDescendants(bd.Hash, ready)
@@ -779,7 +765,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *ne
 		return errEmptyBlockData
 	}
 
-	logger.Trace("validating block response", "start", resp.BlockData[0].Hash)
+	logger.Tracef("validating block response starting at block hash %s", resp.BlockData[0].Hash)
 
 	var (
 		prev, curr *types.Header

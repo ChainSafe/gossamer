@@ -17,8 +17,7 @@
 package dev
 
 import (
-	log "github.com/ChainSafe/log15"
-
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
@@ -39,7 +38,7 @@ var (
 	DefaultMetricsPort = uint32(9876)
 
 	// DefaultLvl is the default log level
-	DefaultLvl = log.LvlInfo
+	DefaultLvl = log.Info
 
 	// DefaultPruningMode is the default pruning mode
 	DefaultPruningMode = "archive"

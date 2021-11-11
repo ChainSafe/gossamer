@@ -64,7 +64,7 @@ func cpuProfile(ctx *cli.Context) (func(), error) {
 	return func() {
 		pprof.StopCPUProfile()
 		if err := cpuFile.Close(); err != nil {
-			logger.Error("failed to close file", "file", cpuFile.Name())
+			logger.Error("failed to close file " + cpuFile.Name())
 		}
 	}, nil
 }
@@ -83,11 +83,11 @@ func memProfile(ctx *cli.Context) (func(), error) {
 	return func() {
 		runtime.GC()
 		if err := pprof.WriteHeapProfile(memFile); err != nil {
-			logger.Error("could not write memory profile", "error", err)
+			logger.Errorf("could not write memory profile: %s", err)
 		}
 
 		if err := memFile.Close(); err != nil {
-			logger.Error("failed to close file", "file", memFile.Name())
+			logger.Error("failed to close file " + memFile.Name())
 		}
 	}, nil
 }

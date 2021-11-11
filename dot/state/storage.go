@@ -131,10 +131,10 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		}
 	}
 
-	logger.Trace("cached trie in storage state", "root", root)
+	logger.Tracef("cached trie in storage state: %s", root)
 
 	if err := ts.Trie().WriteDirty(s.db); err != nil {
-		logger.Warn("failed to write trie to database", "root", root, "error", err)
+		logger.Warnf("failed to write trie with root %s to database: %s", root, err)
 		return err
 	}
 
@@ -176,7 +176,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	logger.Trace("returning trie to be modified", "root", root)
+	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil
 }
 

@@ -17,7 +17,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
@@ -25,7 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -39,7 +39,7 @@ func TestExportCommand(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testName := "testnode"
 	testBootnode := "bootnode"
@@ -55,25 +55,25 @@ func TestExportCommand(t *testing.T) {
 		{
 			"Test gossamer export --config --genesis --basepath --name --log --force",
 			[]string{"config", "genesis", "basepath", "name", "log", "force"},
-			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.LvlInfo.String(), "true"},
+			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.Info.String(), "true"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
 					Name:           testName,
 					ID:             testCfg.Global.ID,
 					BasePath:       testCfg.Global.BasePath,
-					LogLvl:         log.LvlInfo,
+					LogLvl:         log.Info,
 					PublishMetrics: testCfg.Global.PublishMetrics,
 					MetricsPort:    testCfg.Global.MetricsPort,
 				},
 				Log: dot.LogConfig{
-					CoreLvl:           log.LvlInfo,
-					SyncLvl:           log.LvlInfo,
-					NetworkLvl:        log.LvlInfo,
-					RPCLvl:            log.LvlInfo,
-					StateLvl:          log.LvlInfo,
-					RuntimeLvl:        log.LvlInfo,
-					BlockProducerLvl:  log.LvlInfo,
-					FinalityGadgetLvl: log.LvlInfo,
+					CoreLvl:           log.Info,
+					SyncLvl:           log.Info,
+					NetworkLvl:        log.Info,
+					RPCLvl:            log.Info,
+					StateLvl:          log.Info,
+					RuntimeLvl:        log.Info,
+					BlockProducerLvl:  log.Info,
+					FinalityGadgetLvl: log.Info,
 				},
 				Init: dot.InitConfig{
 					Genesis: genFile.Name(),
@@ -102,14 +102,14 @@ func TestExportCommand(t *testing.T) {
 					Genesis: genFile.Name(),
 				},
 				Log: dot.LogConfig{
-					CoreLvl:           log.LvlInfo,
-					SyncLvl:           log.LvlInfo,
-					NetworkLvl:        log.LvlInfo,
-					RPCLvl:            log.LvlInfo,
-					StateLvl:          log.LvlInfo,
-					RuntimeLvl:        log.LvlInfo,
-					BlockProducerLvl:  log.LvlInfo,
-					FinalityGadgetLvl: log.LvlInfo,
+					CoreLvl:           log.Info,
+					SyncLvl:           log.Info,
+					NetworkLvl:        log.Info,
+					RPCLvl:            log.Info,
+					StateLvl:          log.Info,
+					RuntimeLvl:        log.Info,
+					BlockProducerLvl:  log.Info,
+					FinalityGadgetLvl: log.Info,
 				},
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
@@ -135,14 +135,14 @@ func TestExportCommand(t *testing.T) {
 					Genesis: genFile.Name(),
 				},
 				Log: dot.LogConfig{
-					CoreLvl:           log.LvlInfo,
-					SyncLvl:           log.LvlInfo,
-					NetworkLvl:        log.LvlInfo,
-					RPCLvl:            log.LvlInfo,
-					StateLvl:          log.LvlInfo,
-					RuntimeLvl:        log.LvlInfo,
-					BlockProducerLvl:  log.LvlInfo,
-					FinalityGadgetLvl: log.LvlInfo,
+					CoreLvl:           log.Info,
+					SyncLvl:           log.Info,
+					NetworkLvl:        log.Info,
+					RPCLvl:            log.Info,
+					StateLvl:          log.Info,
+					RuntimeLvl:        log.Info,
+					BlockProducerLvl:  log.Info,
+					FinalityGadgetLvl: log.Info,
 				},
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
