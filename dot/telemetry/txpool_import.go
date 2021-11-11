@@ -16,7 +16,6 @@
 
 package telemetry
 
-//nolint
 // txpoolImportTM holds `txpool.import` telemetry message, which is supposed to be
 // sent when a new transaction gets imported in the transaction pool.
 type txpoolImportTM struct {
