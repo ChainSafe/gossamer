@@ -13,7 +13,7 @@ WORKDIR /gossamer
 
 COPY . . 
 
-RUN go run .devnet/cmd/update-dd-agent-confd/main.go -n="gossamer.local.devnet" -t="key:alice" > /tmp/conf.yaml
+RUN go run devnet/cmd/update-dd-agent-confd/main.go -n="gossamer.local.devnet" -t="key:alice" > /tmp/conf.yaml
 RUN mv /tmp/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 # RUN ls -la /etc/datadog-agent/conf.d/openmetrics.d/
 # RUN cat /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
@@ -24,12 +24,12 @@ RUN go build github.com/ChainSafe/gossamer/cmd/gossamer
 
 # use modified genesis-spec.json with only 3 authority nodes
 RUN rm chain/gssmr/genesis-spec.json
-RUN cp .devnet/chain/gssmr/genesis-spec.json chain/gssmr/genesis-spec.json
+RUN cp devnet/chain/gssmr/genesis-spec.json chain/gssmr/genesis-spec.json
 
 RUN gossamer --key alice init
 
 # use a hardcoded key for alice, so we can determine what the peerID is for subsequent nodes
-RUN cp .devnet/alice.node.key ~/.gossamer/gssmr/node.key
+RUN cp devnet/alice.node.key ~/.gossamer/gssmr/node.key
 
 ENTRYPOINT service datadog-agent restart && gossamer --key=alice --babe-lead --publish-metrics --rpc --rpc-external=true --pubip=10.5.0.2
 EXPOSE 7001 8545 8546 8540 9876

@@ -8,42 +8,49 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var opts struct {
+type options struct {
 	Namespace string   `short:"n" long:"namespace" description:"namespace that is prepended to all metrics" required:"true"`
 	Tags      []string `short:"t" long:"tags" description:"tags that are added to all metrics"`
 }
 
 func main() {
+	var opts options
 	_, err := flags.Parse(&opts)
 	if err != nil {
 		log.Panicf("%v", err)
 	}
+	yml, err := marshalYAML(opts)
+	if err != nil {
+		log.Panicf("%v", err)
+	}
+	fmt.Printf("%s", yml)
+}
 
+func marshalYAML(opts options) (yml []byte, err error) {
 	var c conf
 	err = yaml.Unmarshal([]byte(confYAML), &c)
 	if err != nil {
-		log.Panicf("%v", err)
+		return
 	}
 
 	c.Instances[0].Namespace = opts.Namespace
 	c.Instances[0].Tags = opts.Tags
-	yaml, err := yaml.Marshal(c)
-	if err != nil {
-		log.Panicf("%v", err)
-	}
 
-	fmt.Printf("%s", yaml)
+	yml, err = yaml.Marshal(c)
+	return
+}
+
+type instance struct {
+	PrometheusURL      string   `yaml:"prometheus_url"`
+	Namespace          string   `yaml:"namespace"`
+	Metrics            []string `yaml:"metrics"`
+	HealthServiceCheck bool     `yaml:"health_service_check"`
+	Tags               []string `yaml:"tags,omitempty"`
 }
 
 type conf struct {
-	InitConfig struct{} `yaml:"init_config"`
-	Instances  []struct {
-		PrometheusURL      string   `yaml:"prometheus_url"`
-		Namespace          string   `yaml:"namespace"`
-		Metrics            []string `yaml:"metrics"`
-		HealthServiceCheck bool     `yaml:"health_service_check"`
-		Tags               []string `yaml:"tags,omitempty"`
-	} `yaml:"instances"`
+	InitConfig struct{}   `yaml:"init_config"`
+	Instances  []instance `yaml:"instances"`
 }
 
 var confYAML string = `
