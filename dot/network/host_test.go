@@ -40,6 +40,37 @@ func TestExternalAddrs(t *testing.T) {
 	}
 }
 
+func TestExternalAddrsPublicIP(t *testing.T) {
+	config := &Config{
+		BasePath:    utils.NewTestBasePath(t, "node"),
+		PublicIP:    "10.0.5.2",
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	node := createTestService(t, config)
+
+	addrInfo := node.host.addrInfo()
+	privateIPs := ma.NewFilters()
+	for _, cidr := range privateCIDRs {
+		_, ipnet, err := net.ParseCIDR(cidr) //nolint
+		require.NoError(t, err)
+		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
+	}
+
+	for i, addr := range addrInfo.Addrs {
+		switch i {
+		case len(addrInfo.Addrs) - 1:
+			// would be blocked by privateIPs, but this address injected from Config.PublicIP
+			require.True(t, privateIPs.AddrBlocked(addr))
+		default:
+			require.False(t, privateIPs.AddrBlocked(addr))
+		}
+
+	}
+}
+
 // test host connect method
 func TestConnect(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")

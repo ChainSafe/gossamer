@@ -65,12 +65,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	var externalAddr ma.Multiaddr
 	if cfg.PublicIP != "" {
 		ip := net.ParseIP(cfg.PublicIP)
-		if ip != nil {
-			logger.Debug("using config PublicIP: %s", "IP", ip)
-			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
-			if err != nil {
-				return nil, err
-			}
+		if ip == nil {
+			return nil, fmt.Errorf("invalid public ip: %s", cfg.PublicIP)
+		}
+		logger.Debug("using config PublicIP: %s", "IP", ip)
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		if err != nil {
+			return nil, err
 		}
 	} else {
 		ip, err := pubip.Get()

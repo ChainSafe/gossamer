@@ -515,6 +515,21 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				MinPeers:          testCfg.Network.MinPeers,
 			},
 		},
+		{
+			"Test gossamer --pubip",
+			[]string{"config", "pubip"},
+			[]interface{}{testCfgFile.Name(), "10.0.5.2"},
+			dot.NetworkConfig{
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            false,
+				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
+				PublicIP:          "10.0.5.2",
+			},
+		},
 	}
 
 	for _, c := range testcases {
