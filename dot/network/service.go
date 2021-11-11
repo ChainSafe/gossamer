@@ -333,12 +333,12 @@ main:
 			o := s.host.bwc.GetBandwidthTotals()
 			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
 			if err != nil {
-				logger.Warn("problem sending system.interval telemetry message", "error", err)
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
 			}
 
 			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
 			if err != nil {
-				logger.Warn("problem sending system.interval telemetry message", "error", err)
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
 			}
 		}
 	}
@@ -367,7 +367,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))
 		if err != nil {
-			logger.Warn("problem sending system.interval telemetry message", "error", err)
+			logger.Debug("problem sending system.interval telemetry message", "error", err)
 		}
 		time.Sleep(s.telemetryInterval)
 	}

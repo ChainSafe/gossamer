@@ -191,7 +191,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		),
 	)
 	if err != nil {
-		logger.Warn("could not send 'notify.finalized' telemetry message, error: %s", err)
+		logger.Debug("could not send 'notify.finalized' telemetry message, error: %s", err)
 	}
 
 	// return bs.setHighestRoundAndSetID(round, setID)
