@@ -121,7 +121,7 @@ type handshakeData struct {
 	validated bool
 	handshake Handshake
 	stream    libp2pnetwork.Stream
-	*sync.Mutex
+	sync.Mutex
 }
 
 func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) handshakeData {
@@ -129,7 +129,6 @@ func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) han
 		received:  received,
 		validated: validated,
 		stream:    stream,
-		Mutex:     new(sync.Mutex),
 	}
 }
 
@@ -279,6 +278,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
+	if info == nil {
+		panic("info is nil!!!!")
+	}
+
 	if info.handshakeValidator == nil {
 		logger.Warn("handshakeValidator is not set for protocol!", "protocol", info.protocolID)
 		return
@@ -299,9 +302,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if !has || !hsData.received || hsData.stream == nil {
-		if !has {
-			hsData = newHandshakeData(false, false, nil)
-		} else if has && hsData.stream == nil {
+		if has && hsData.stream == nil {
 			panic(fmt.Sprintf("stream is nil, but it shouldn't be!! %s", info.protocolID))
 		}
 
