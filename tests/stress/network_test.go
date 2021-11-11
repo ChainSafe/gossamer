@@ -22,13 +22,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/tests/utils"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNetwork_MaxPeers(t *testing.T) {
 	numNodes := 9 // 9 block producers
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.Patch(log.SetLevel(log.Info))
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 

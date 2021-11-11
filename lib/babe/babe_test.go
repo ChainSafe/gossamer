@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -39,13 +40,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	defaultTestLogLvl = log.LvlInfo
+	defaultTestLogLvl = log.Info
 	emptyHash         = trie.EmptyHash
 	testEpochIndex    = uint64(0)
 
@@ -111,7 +111,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
 		config := state.Config{
 			Path:     testDatadirPath,
-			LogLevel: log.LvlInfo,
+			LogLevel: log.Info,
 		}
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
@@ -166,14 +166,11 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 
-	logger = log.New("pkg", "babe")
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(defaultTestLogLvl, h))
+	logger = log.NewFromGlobal(log.SetLevel(defaultTestLogLvl))
 
 	// Start all tests
 	code := m.Run()
@@ -188,7 +185,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 
 	config := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
@@ -380,7 +377,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 
 func TestStartAndStop(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.LvlCrit,
+		LogLvl: log.Critical,
 	})
 	err := bs.Start()
 	require.NoError(t, err)
@@ -390,7 +387,7 @@ func TestStartAndStop(t *testing.T) {
 
 func TestService_PauseAndResume(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.LvlCrit,
+		LogLvl: log.Critical,
 	})
 	err := bs.Start()
 	require.NoError(t, err)

@@ -19,15 +19,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/perlin-network/life/exec"
 	wasm_validation "github.com/perlin-network/life/wasm-validation"
 )
@@ -38,8 +37,11 @@ const Name = "life"
 // Check that runtime interfaces are satisfied
 var (
 	_      runtime.Instance = (*Instance)(nil)
-	logger                  = log.New("pkg", "runtime", "module", "perlin/life")
-	ctx    *runtime.Context
+	logger                  = log.NewFromGlobal(
+		log.AddContext("pkg", "runtime"),
+		log.AddContext("component", "perlin/life"),
+	)
+	ctx *runtime.Context
 )
 
 // Config represents a life configuration
@@ -96,12 +98,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, errors.New("code is empty")
 	}
 
-	// if cfg.LogLvl set to < 0, then don't change package log level
-	if cfg.LogLvl >= 0 {
-		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-		h = log.CallerFileHandler(h)
-		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
-	}
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	vmCfg := exec.VMConfig{
 		DefaultMemoryPages: 23,
@@ -127,10 +124,10 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		NodeStorage: cfg.NodeStorage,
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
-		SigVerifier: runtime.NewSignatureVerifier(),
+		SigVerifier: runtime.NewSignatureVerifier(logger),
 	}
 
-	logger.Debug("creating new runtime instance", "context", runtimeCtx)
+	logger.Debugf("creating new runtime instance with context: %v", runtimeCtx)
 
 	inst := &Instance{
 		vm: instance,
@@ -139,7 +136,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	ctx = runtimeCtx
 	inst.version, err = inst.Version()
 	if err != nil {
-		logger.Error("error checking instance version", "error", err)
+		logger.Errorf("error checking instance version: %s", err)
 	}
 	return inst, nil
 }
