@@ -1,5 +1,5 @@
 ARG DEBIAN_VERSION=bullseye-slim
-ARG GO_VERSION=1.15-buster
+ARG GO_VERSION=1.17-buster
 
 FROM golang:${GO_VERSION} AS builder
 
@@ -35,7 +35,12 @@ RUN cp /go/pkg/mod/github.com/wasmerio/go-ext-wasm@*/wasmer/libwasmer.so libwasm
 COPY . .
 
 # Build
-RUN GOBIN=$GOPATH/src/github.com/ChainSafe/gossamer/bin go run scripts/ci.go install
+ARG GO_BUILD_FLAGS
+RUN go build \
+    -trimpath \
+    -o ./bin/gossamer \
+    ${GO_BUILD_FLAGS} \
+    ./cmd/gossamer
 
 # Final stage based on Debian
 FROM debian:${DEBIAN_VERSION}

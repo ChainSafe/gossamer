@@ -49,7 +49,7 @@ func TestPointerSize(t *testing.T) {
 
 func TestInstance_CheckRuntimeVersion(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
+	err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
 	require.NoError(t, err)
 	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)

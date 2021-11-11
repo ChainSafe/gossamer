@@ -29,6 +29,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
@@ -58,8 +59,7 @@ type WSConn struct {
 	CoreAPI       modules.CoreAPI
 	TxStateAPI    modules.TransactionStateAPI
 	RPCHost       string
-
-	HTTP httpclient
+	HTTP          httpclient
 }
 
 // readWebsocketMessage will read and parse the message data to a string->interface{} data
@@ -70,7 +70,7 @@ func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) 
 		return nil, nil, errCannotReadFromWebsocket
 	}
 
-	logger.Trace("websocket received", "message", mbytes)
+	logger.Trace("websocket received", "message", string(mbytes))
 
 	// determine if request is for subscribe method type
 	var msg map[string]interface{}
@@ -104,14 +104,14 @@ func (c *WSConn) HandleComm() {
 		logger.Debug("ws method called", "method", method, "params", params)
 
 		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
-			setup := c.getSetupListener(method)
+			setupListener := c.getSetupListener(method)
 
-			if setup == nil {
+			if setupListener == nil {
 				c.executeRPCCall(mbytes)
 				continue
 			}
 
-			listener, err := setup(reqid, params) //nolint
+			listener, err := setupListener(reqid, params) //nolint
 			if err != nil {
 				logger.Warn("failed to create listener", "method", method, "error", err)
 				continue
@@ -234,7 +234,7 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 }
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
-	bfl := &BlockFinalizedListener{
+	blockFinalizedListener := &BlockFinalizedListener{
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
@@ -246,19 +246,19 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Liste
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	bfl.channel = c.BlockAPI.GetFinalisedNotifierChannel()
+	blockFinalizedListener.channel = c.BlockAPI.GetFinalisedNotifierChannel()
 
 	c.mu.Lock()
 
-	bfl.subID = atomic.AddUint32(&c.qtyListeners, 1)
-	c.Subscriptions[bfl.subID] = bfl
+	blockFinalizedListener.subID = atomic.AddUint32(&c.qtyListeners, 1)
+	c.Subscriptions[blockFinalizedListener.subID] = blockFinalizedListener
 
 	c.mu.Unlock()
 
-	initRes := NewSubscriptionResponseJSON(bfl.subID, reqID)
+	initRes := NewSubscriptionResponseJSON(blockFinalizedListener.subID, reqID)
 	c.safeSend(initRes)
 
-	return bfl, nil
+	return blockFinalizedListener, nil
 }
 
 func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener, error) {
@@ -283,42 +283,51 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 
 func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener, error) {
 	pA := params.([]interface{})
+
+	if len(pA) != 1 {
+		return nil, errors.New("expecting only one parameter")
+	}
+
+	// The passed parameter should be a HEX of a SCALE encoded extrinsic
 	extBytes, err := common.HexToBytes(pA[0].(string))
 	if err != nil {
 		return nil, err
 	}
 
-	// listen for built blocks
-	esl := NewExtrinsicSubmitListener(c, extBytes)
-
 	if c.BlockAPI == nil {
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	esl.importedChan = c.BlockAPI.GetImportedBlockNotifierChannel()
+	txStatusChan := c.TxStateAPI.GetStatusNotifierChannel(extBytes)
+	importedChan := c.BlockAPI.GetImportedBlockNotifierChannel()
+	finalizedChan := c.BlockAPI.GetFinalisedNotifierChannel()
 
-	esl.finalisedChan = c.BlockAPI.GetFinalisedNotifierChannel()
+	extSubmitListener := NewExtrinsicSubmitListener(
+		c,
+		extBytes,
+		importedChan,
+		txStatusChan,
+		finalizedChan,
+	)
 
 	c.mu.Lock()
-
-	esl.subID = atomic.AddUint32(&c.qtyListeners, 1)
-	c.Subscriptions[esl.subID] = esl
-
+	extSubmitListener.subID = atomic.AddUint32(&c.qtyListeners, 1)
+	c.Subscriptions[extSubmitListener.subID] = extSubmitListener
 	c.mu.Unlock()
 
 	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
-	if err != nil {
+	if errors.Is(err, runtime.ErrInvalidTransaction) || errors.Is(err, runtime.ErrUnknownTransaction) {
+		c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, extSubmitListener.subID, "invalid"))
+		return nil, err
+	} else if err != nil {
 		c.safeSendError(reqID, nil, err.Error())
 		return nil, err
 	}
-	c.safeSend(NewSubscriptionResponseJSON(esl.subID, reqID))
 
-	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
-	//  should we add a channel to tx queue so we're notified when it's in the queue (#1535)
-	c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, "ready"))
+	c.safeSend(NewSubscriptionResponseJSON(extSubmitListener.subID, reqID))
 
 	// todo (ed) determine which peer extrinsic has been broadcast to, and set status (#1535)
-	return esl, err
+	return extSubmitListener, err
 }
 
 func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Listener, error) {

@@ -36,7 +36,7 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint32(7001 + i),
+			Port:        uint16(7001 + i),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
