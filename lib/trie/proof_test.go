@@ -26,6 +26,7 @@ import (
 
 func TestProofGeneration(t *testing.T) {
 	t.Parallel()
+
 	tmp, err := ioutil.TempDir("", "*-test-trie")
 	require.NoError(t, err)
 

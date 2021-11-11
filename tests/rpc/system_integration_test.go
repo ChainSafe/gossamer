@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/tests/utils"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,10 +31,7 @@ func TestStableNetworkRPC(t *testing.T) {
 	if utils.MODE != "stable" {
 		t.Skip("Integration tests are disabled, going to skip.")
 	}
-	log.Info("Going to run NetworkAPI tests",
-		"HOSTNAME", utils.HOSTNAME,
-		"PORT", utils.PORT,
-	)
+	t.Log("Running NetworkAPI tests with HOSTNAME=" + utils.HOSTNAME + " and PORT=" + utils.PORT)
 
 	networkSize, err := strconv.Atoi(utils.NETWORK_SIZE)
 	if err != nil {

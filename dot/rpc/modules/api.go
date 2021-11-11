@@ -86,13 +86,15 @@ type TransactionStateAPI interface {
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 	Pending() []*transaction.ValidTransaction
+	GetStatusNotifierChannel(ext types.Extrinsic) chan transaction.Status
+	FreeStatusNotifierChannel(ch chan transaction.Status)
 }
 
 //go:generate mockery --name CoreAPI --structname CoreAPI --case underscore --keeptree
 
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
-	InsertKey(kp crypto.Keypair)
+	InsertKey(kp crypto.Keypair, keystoreType string) error
 	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error

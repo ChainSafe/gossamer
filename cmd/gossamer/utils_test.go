@@ -17,12 +17,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -91,10 +93,9 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 	return ctx, nil
 }
 
-// TestSetupLogger
-func TestSetupLogger(t *testing.T) {
+func Test_setupLogger(t *testing.T) {
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -124,7 +125,7 @@ func TestSetupLogger(t *testing.T) {
 			"Test gossamer --log blah",
 			[]string{"log"},
 			[]interface{}{"blah"},
-			fmt.Errorf("Unknown level: blah"),
+			errors.New("level is not recognised: blah"),
 		},
 	}
 
@@ -135,7 +136,11 @@ func TestSetupLogger(t *testing.T) {
 			require.Nil(t, err)
 
 			_, err = setupLogger(ctx)
-			require.Equal(t, c.expected, err)
+			if c.expected != nil {
+				assert.EqualError(t, err, c.expected.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

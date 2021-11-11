@@ -23,10 +23,10 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
 )
 
 // BuildSpec object for working with building genesis JSON files
@@ -109,7 +109,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 
 	config := state.Config{
 		Path:     path,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
 

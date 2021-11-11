@@ -7,7 +7,7 @@ jobs:
   publish-code-coverage:
     strategy:
       matrix:
-        go-version: [1.15.x]
+        go-version: [1.17.x]
     runs-on: ubuntu-latest
     steps:
       - id: go-cache-paths
@@ -45,10 +45,10 @@ jobs:
       - name: Generate coverage report
         run: |
           go test ./... -short -coverprofile=coverage.out -covermode=atomic -timeout=20m
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v2.1.0
         with:
           if_ci_failed: success
-          informational: true 
+          informational: true
           files: ./coverage.out
           flags: unit-tests
           name: coverage

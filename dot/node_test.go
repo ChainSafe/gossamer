@@ -133,6 +133,7 @@ func TestNewNode(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 
 
+
 	type args struct {
 		cfg      *Config
 		ks       *keystore.GlobalKeystore

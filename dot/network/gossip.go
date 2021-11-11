@@ -19,19 +19,19 @@ package network
 import (
 	"sync"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 // gossip submodule
 type gossip struct {
-	logger log.Logger
+	logger log.LeveledLogger
 	seen   *sync.Map
 }
 
 // newGossip creates a new gossip message tracker
 func newGossip() *gossip {
 	return &gossip{
-		logger: logger.New("module", "gossip"),
+		logger: log.NewFromGlobal(log.AddContext("module", "gossip")),
 		seen:   &sync.Map{},
 	}
 }

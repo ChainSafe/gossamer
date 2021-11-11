@@ -18,28 +18,28 @@ package sync
 
 import (
 	"math/big"
-	"os"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var logger = log.New("pkg", "sync")
+var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
 	blockState     BlockState
 	chainSync      ChainSync
 	chainProcessor ChainProcessor
+	network        Network
 }
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	LogLvl             log.Lvl
+	LogLvl             log.Level
 	Network            Network
 	BlockState         BlockState
 	StorageState       StorageState
@@ -47,7 +47,7 @@ type Config struct {
 	TransactionState   TransactionState
 	BlockImportHandler BlockImportHandler
 	BabeVerifier       BabeVerifier
-	MinPeers           int
+	MinPeers, MaxPeers int
 	SlotDuration       time.Duration
 }
 
@@ -81,19 +81,29 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errNilBlockImportHandler
 	}
 
-	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	handler = log.CallerFileHandler(handler)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, handler))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
-	chainSync := newChainSync(cfg.BlockState, cfg.Network, readyBlocks, pendingBlocks, cfg.MinPeers, cfg.SlotDuration)
+
+	csCfg := &chainSyncConfig{
+		bs:            cfg.BlockState,
+		net:           cfg.Network,
+		readyBlocks:   readyBlocks,
+		pendingBlocks: pendingBlocks,
+		minPeers:      cfg.MinPeers,
+		maxPeers:      cfg.MaxPeers,
+		slotDuration:  cfg.SlotDuration,
+	}
+
+	chainSync := newChainSync(csCfg)
 	chainProcessor := newChainProcessor(readyBlocks, pendingBlocks, cfg.BlockState, cfg.StorageState, cfg.TransactionState, cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler)
 
 	return &Service{
 		blockState:     cfg.BlockState,
 		chainSync:      chainSync,
 		chainProcessor: chainProcessor,
+		network:        cfg.Network,
 	}, nil
 }
 

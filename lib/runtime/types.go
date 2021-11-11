@@ -17,9 +17,10 @@
 package runtime
 
 import (
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 )
 
 // NodeStorageType type to identify offchain storage type
@@ -62,7 +63,7 @@ func (n *NodeStorage) GetPersistent(k []byte) ([]byte, error) {
 type InstanceConfig struct {
 	Storage     Storage
 	Keystore    *keystore.GlobalKeystore
-	LogLvl      log.Lvl
+	LogLvl      log.Level
 	Role        byte
 	NodeStorage NodeStorage
 	Network     BasicNetwork
@@ -72,14 +73,15 @@ type InstanceConfig struct {
 
 // Context is the context for the wasm interpreter's imported functions
 type Context struct {
-	Storage     Storage
-	Allocator   *FreeingBumpHeapAllocator
-	Keystore    *keystore.GlobalKeystore
-	Validator   bool
-	NodeStorage NodeStorage
-	Network     BasicNetwork
-	Transaction TransactionState
-	SigVerifier *SignatureVerifier
+	Storage         Storage
+	Allocator       *FreeingBumpHeapAllocator
+	Keystore        *keystore.GlobalKeystore
+	Validator       bool
+	NodeStorage     NodeStorage
+	Network         BasicNetwork
+	Transaction     TransactionState
+	SigVerifier     *SignatureVerifier
+	OffchainHTTPSet *offchain.HTTPSet
 }
 
 // NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction

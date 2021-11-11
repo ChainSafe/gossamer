@@ -18,10 +18,16 @@ package keystore
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+)
+
+var (
+	ErrKeyTypeNotSupported = errors.New("given key type is not supported by this keystore")
 )
 
 // BasicKeystore holds keys of a certain type
@@ -57,17 +63,18 @@ func (ks *BasicKeystore) Size() int {
 }
 
 // Insert adds a keypair to the keystore
-func (ks *BasicKeystore) Insert(kp crypto.Keypair) {
+func (ks *BasicKeystore) Insert(kp crypto.Keypair) error {
 	ks.lock.Lock()
 	defer ks.lock.Unlock()
 
 	if kp.Type() != ks.typ {
-		return
+		return fmt.Errorf("%v, passed key type: %s, acceptable key type: %s", ErrKeyTypeNotSupported, kp.Type(), ks.typ)
 	}
 
 	pub := kp.Public()
 	addr := crypto.PublicKeyToAddress(pub)
 	ks.keys[addr] = kp
+	return nil
 }
 
 // GetKeypair returns a keypair corresponding to the given public key, or nil if it doesn't exist
