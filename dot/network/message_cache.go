@@ -10,7 +10,7 @@ import (
 )
 
 // msgCacheTTL is default duration a key-value will be stored in messageCache.
-var msgCacheTTL = 5 * time.Minute
+var msgCacheTTL = 5 * time.Second
 
 // messageCache is used to detect duplicated messages per peer.
 type messageCache struct {
