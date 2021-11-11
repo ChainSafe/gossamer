@@ -191,7 +191,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		),
 	)
 	if err != nil {
-		return fmt.Errorf("could not send 'notify.finalized' telemetry message, error: %s", err)
+		logger.Debugf("could not send 'notify.finalized' telemetry message, error: %s", err)
 	}
 
 	bs.lastFinalised = hash
