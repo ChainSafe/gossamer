@@ -23,7 +23,7 @@ type txpoolImportTM struct {
 	Future uint `json:"future"`
 }
 
-// NewTxpoolImportTM gets a new txpoolImportTM struct
+// NewTxpoolImportTM creates a new txpoolImportTM struct
 func NewTxpoolImportTM(ready, future uint) Message {
 	return &txpoolImportTM{
 		Ready:  ready,
