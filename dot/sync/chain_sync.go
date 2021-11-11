@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -555,13 +554,7 @@ func (cs *chainSync) getTarget() *big.Int {
 		i++
 	}
 
-	//now sort the array
-	sort.Slice(intArr, func(i, j int) bool {
-		return intArr[i].Cmp(intArr[j]) < 0
-	})
-
 	sum, count := removeOutlier(intArr)
-
 	return big.NewInt(0).Div(sum, big.NewInt(count))
 }
 

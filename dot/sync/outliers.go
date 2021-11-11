@@ -16,7 +16,10 @@
 
 package sync
 
-import "math/big"
+import (
+	"math/big"
+	"sort"
+)
 
 //	removeOutlier removes the outlier from the slice
 //  Explanation:
@@ -29,26 +32,31 @@ import "math/big"
 // Ref: http://www.mathwords.com/o/outlier.htm
 //
 // returns: sum of all the non-outliers elements
-func removeOutlier(sortedArr []*big.Int) (*big.Int, int64) {
-	length := len(sortedArr)
+func removeOutlier(dataArr []*big.Int) (*big.Int, int64) {
+	length := len(dataArr)
 
 	switch length {
 	case 0:
 		return big.NewInt(0), 0
 	case 1:
-		return sortedArr[0], 1
+		return dataArr[0], 1
 	case 2:
-		return big.NewInt(0).Add(sortedArr[0], sortedArr[1]), 2
+		return big.NewInt(0).Add(dataArr[0], dataArr[1]), 2
 	}
 
+	//now sort the array
+	sort.Slice(dataArr, func(i, j int) bool {
+		return dataArr[i].Cmp(dataArr[j]) < 0
+	})
+
 	half := length / 2
-	data1 := sortedArr[:half]
+	data1 := dataArr[:half]
 	var data2 []*big.Int
 
 	if length%2 == 0 {
-		data2 = sortedArr[half:]
+		data2 = dataArr[half:]
 	} else {
-		data2 = sortedArr[half+1:]
+		data2 = dataArr[half+1:]
 	}
 
 	q1 := getMedian(data1)
@@ -61,7 +69,7 @@ func removeOutlier(sortedArr []*big.Int) (*big.Int, int64) {
 
 	reducedValue := big.NewInt(0)
 	count := int64(0)
-	for _, v := range sortedArr {
+	for _, v := range dataArr {
 		//collect valid (non-outlier) values
 		lowPass := v.Cmp(lower)
 		highPass := v.Cmp(upper)
