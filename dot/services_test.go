@@ -24,10 +24,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"path/filepath"
-	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -576,79 +574,152 @@ func Test_createRuntime(t *testing.T) {
 }
 
 func Test_createRuntimeStorage(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
 	type args struct {
 		st *state.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *runtime.NodeStorage
-		wantErr bool
+		name string
+		args args
+		want *runtime.NodeStorage
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{st: stateSrvc},
+			want: &runtime.NodeStorage{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createRuntimeStorage(tt.args.st)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createRuntimeStorage() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createRuntimeStorage() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createStateService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	cfg2 := NewTestConfig(t)
+	cfg2.Global.BasePath = ""
+
 	type args struct {
 		cfg *Config
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *state.Service
-		wantErr bool
+		name string
+		args args
+		want *state.Service
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{cfg: cfg},
+			want: &state.Service{},
+		},
+		{
+			name: "broken config test",
+			args: args{cfg: cfg2},
+			err:  errors.New("failed to start state service: failed to create block state: cannot get block 0: Key not found"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createStateService(tt.args.cfg)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createStateService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createStateService() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_createSystemService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
 	type args struct {
 		cfg       *types.SystemInfo
 		stateSrvc *state.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *system.Service
-		wantErr bool
+		name string
+		args args
+		want *system.Service
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				stateSrvc: stateSrvc,
+			},
+			want: &system.Service{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createSystemService(tt.args.cfg, tt.args.stateSrvc)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("createSystemService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createSystemService() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
@@ -659,28 +730,50 @@ func Test_newInMemoryDB(t *testing.T) {
 		path string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    chaindb.Database
-		wantErr bool
+		name string
+		args args
+		want bool
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{path: ""},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := newInMemoryDB(tt.args.path)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("newInMemoryDB() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newInMemoryDB() got = %v, want %v", got, tt.want)
+
+			if tt.want {
+				assert.NotNil(t, got)
 			}
 		})
 	}
 }
 
 func Test_newSyncService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
 	type args struct {
 		cfg      *Config
 		st       *state.Service
@@ -690,22 +783,40 @@ func Test_newSyncService(t *testing.T) {
 		net      *network.Service
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *sync.Service
-		wantErr bool
+		name string
+		args args
+		want *sync.Service
+		err  error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "missing FinalityGadget test",
+			args: args{
+				cfg: cfg,
+				st:  stateSrvc,
+			},
+			err: errors.New("cannot have nil FinalityGadget"),
+		},
+		{
+			name: "working example",
+			args: args{
+				cfg: cfg,
+				st:  stateSrvc,
+				fg:  &grandpa.Service{},
+			},
+			want: &sync.Service{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := newSyncService(tt.args.cfg, tt.args.st, tt.args.fg, tt.args.verifier, tt.args.cs, tt.args.net)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("newSyncService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newSyncService() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
