@@ -53,7 +53,7 @@ type conf struct {
 	Instances  []instance `yaml:"instances"`
 }
 
-var confYAML string = `
+var confYAML = `
 ## All options defined here are available to all instances.
 #
 init_config:
