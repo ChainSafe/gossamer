@@ -291,16 +291,16 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		hsData = newHandshakeData(false, false, nil)
 	}
 
+	hsData.Lock()
+	defer hsData.Unlock()
+
 	if has && hsData.received && !hsData.validated {
 		// peer has sent us an invalid handshake in the past, ignore
 		logger.Warn("peer sent us invalid handshake before, ignoring...", "peer", peer, "protocol", info.protocolID)
 		return
 	}
 
-	if !has || !hsData.received || hsData.stream == nil {
-		hsData.Lock()
-		defer hsData.Unlock()
-
+	if !has || !hsData.received {
 		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
