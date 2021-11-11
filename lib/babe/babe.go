@@ -21,22 +21,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
-	log "github.com/ChainSafe/log15"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
-var (
-	logger log.Logger
-)
+var logger = log.NewFromGlobal(log.AddContext("pkg", "babe"))
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
@@ -73,7 +70,7 @@ type Service struct {
 
 // ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
-	LogLvl             log.Lvl
+	LogLvl             log.Level
 	BlockState         BlockState
 	StorageState       StorageState
 	TransactionState   TransactionState
@@ -105,10 +102,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errNilBlockImportHandler
 	}
 
-	logger = log.New("pkg", "babe")
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -137,16 +131,11 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	logger.Debug("created service",
-		"epoch", epoch,
-		"block producer", cfg.Authority,
-		"slot duration", babeService.slotDuration,
-		"epoch length (slots)", babeService.epochLength,
-		"authorities", Authorities(babeService.epochData.authorities),
-		"authority index", babeService.epochData.authorityIndex,
-		"threshold", babeService.epochData.threshold,
-		"randomness", babeService.epochData.randomness,
-	)
+	logger.Debugf(
+		"created service with epoch %d, block producer=%t, slot duration %s, epoch length (slots) %d, authorities %v, "+
+			"authority index %d, threshold %v and randomness %s",
+		epoch, cfg.Authority, babeService.slotDuration, babeService.epochLength, Authorities(babeService.epochData.authorities),
+		babeService.epochData.authorityIndex, babeService.epochData.threshold, babeService.epochData.randomness)
 
 	if cfg.Lead {
 		logger.Debug("node designated to build block 1")
@@ -345,44 +334,41 @@ func (b *Service) getSlotDuration() time.Duration {
 
 func (b *Service) initiate() {
 	if b.blockState == nil {
-		logger.Error("block authoring", "error", "blockState is nil")
+		logger.Errorf("block authoring: %s", errNilBlockState)
 		return
 	}
 
 	if b.storageState == nil {
-		logger.Error("block authoring", "error", "storageState is nil")
+		logger.Errorf("block authoring: %s", errNilStorageState)
 		return
 	}
 
 	err := b.invokeBlockAuthoring()
 	if err != nil {
-		logger.Crit("block authoring error", "error", err)
+		logger.Criticalf("block authoring error: %s", err)
 	}
 }
 
 func (b *Service) invokeBlockAuthoring() error {
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
-		logger.Error("failed to get current epoch", "error", err)
+		logger.Errorf("failed to get current epoch: %s", err)
 		return err
 	}
 
 	for {
 		err := b.initiateEpoch(epoch)
 		if err != nil {
-			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
+			logger.Errorf("failed to initiate epoch %d: %s", epoch, err)
 			return err
 		}
 
-		logger.Debug("initiated epoch",
-			"threshold", b.epochData.threshold,
-			"randomness", b.epochData.randomness,
-			"authorities", b.epochData.authorities,
-		)
+		logger.Debugf("initiated epoch with threshold %s, randomness 0x%x and authorities %v",
+			b.epochData.threshold, b.epochData.randomness[:], b.epochData.authorities)
 
 		epochStartSlot, err := b.waitForEpochStart(epoch)
 		if err != nil {
-			logger.Error("failed to wait for epoch start", "epoch", epoch, "error", err)
+			logger.Errorf("failed to wait for epoch %d start: %s", epoch, err)
 			return err
 		}
 
@@ -394,11 +380,9 @@ func (b *Service) invokeBlockAuthoring() error {
 		// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
-			logger.Debug("pausing BABE, need to sync",
-				"slots into epoch",
-				intoEpoch, "startSlot",
-				startSlot, "epochStart", epochStartSlot,
-			)
+			logger.Debugf(
+				"pausing BABE, need to sync since we have %d slots (start slot %d) into the epoch starting at %d",
+				intoEpoch, startSlot, epochStartSlot)
 			return b.Pause()
 		}
 
@@ -406,12 +390,12 @@ func (b *Service) invokeBlockAuthoring() error {
 			intoEpoch = intoEpoch % b.epochLength
 		}
 
-		logger.Info("current epoch", "epoch", epoch, "slots into epoch", intoEpoch)
+		logger.Infof("current epoch %d has %d slots", epoch, intoEpoch)
 
 		// get start slot for current epoch
 		nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
 		if err != nil {
-			logger.Error("failed to get start slot for next epoch", "epoch", epoch, "error", err)
+			logger.Errorf("failed to get start slot for next epoch %d: %s", epoch+1, err)
 			return err
 		}
 
@@ -442,14 +426,12 @@ func (b *Service) invokeBlockAuthoring() error {
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(epoch, slotNum)
 				if err == ErrNotAuthorized {
-					logger.Debug("not authorized to produce a block in this slot",
-						"epoch", epoch,
-						"slot", slotNum,
-						"slots into epoch", slotNum-epochStartSlot,
-					)
+					logger.Debugf(
+						"not authorized to produce a block in slot %d, at epoch %d with %d slots in this epoch",
+						slotNum, epoch, slotNum-epochStartSlot)
 					continue
 				} else if err != nil {
-					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
+					logger.Warnf("failed to handle slot %d: %s", slotNum, err)
 					continue
 				}
 			case <-epochTimer.C:
@@ -464,11 +446,11 @@ func (b *Service) invokeBlockAuthoring() error {
 		// setup next epoch, re-invoke block authoring
 		next, err := b.incrementEpoch()
 		if err != nil {
-			logger.Error("failed to increment epoch", "error", err)
+			logger.Errorf("failed to increment epoch: %s", err)
 			return err
 		}
 
-		logger.Info("epoch complete!", "completed epoch", epoch, "upcoming epoch", next)
+		logger.Infof("epoch %d complete, upcoming epoch: %d", epoch, next)
 		epoch = next
 	}
 }
@@ -477,12 +459,12 @@ func (b *Service) waitForEpochStart(epoch uint64) (uint64, error) {
 	// get start slot for current epoch
 	epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
 	if err != nil {
-		logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
+		logger.Errorf("failed to get start slot for current epoch %d: %s", epoch, err)
 		return 0, err
 	}
 
 	epochStartTime := getSlotStartTime(epochStart, b.slotDuration)
-	logger.Debug("checking if epoch started", "epoch start", epochStartTime, "now", time.Now())
+	logger.Debugf("checking if epoch started with epoch start %s and current time %s", epochStartTime, time.Now())
 
 	// check if it's time to start the epoch yet. if not, wait until it is
 	if time.Since(epochStartTime) < 0 {
@@ -515,13 +497,13 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		logger.Error("block authoring", "error", err)
+		logger.Errorf("block authoring: %s", err)
 		return err
 	}
 
 	if parentHeader == nil {
-		logger.Error("block authoring", "error", "parent header is nil")
-		return err
+		logger.Errorf("block authoring: %s", errNilParentHeader)
+		return errNilParentHeader
 	}
 
 	// there is a chance that the best block header may change in the course of building the block,
@@ -544,7 +526,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 	// if block building is successful, store the resulting trie in the storage state
 	ts, err := b.storageState.TrieState(&parent.StateRoot)
 	if err != nil || ts == nil {
-		logger.Error("failed to get parent trie", "parent state root", parent.StateRoot, "error", err)
+		logger.Errorf("failed to get parent trie with parent state root %s: %s", parent.StateRoot, err)
 		return err
 	}
 
@@ -561,17 +543,12 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		return err
 	}
 
-	logger.Info("built block", "hash", block.Header.Hash().String(),
-		"number", block.Header.Number,
-		"state root", block.Header.StateRoot,
-		"epoch", epoch,
-		"slot", slotNum,
-	)
-	logger.Trace("built block",
-		"header", block.Header,
-		"body", block.Body,
-		"parent", parent.Hash(),
-	)
+	logger.Infof(
+		"built block %d with hash %s, state root %s, epoch %d and slot %d",
+		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slotNum)
+	logger.Tracef(
+		"built block with parent hash %s, header %s and body %s",
+		parent.Hash(), block.Header.String(), block.Body)
 
 	err = telemetry.GetInstance().SendMessage(
 		telemetry.NewPreparedBlockForProposingTM(
@@ -580,11 +557,11 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		),
 	)
 	if err != nil {
-		logger.Debug("problem sending 'prepared_block_for_proposing' telemetry message", "error", err)
+		logger.Debugf("problem sending 'prepared_block_for_proposing' telemetry message: %s", err)
 	}
 
 	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
-		logger.Warn("failed to import built block", "error", err)
+		logger.Warnf("failed to import built block: %s", err)
 		return err
 	}
 

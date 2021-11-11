@@ -76,7 +76,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 						Reason: peerset.BadTransactionReason,
 					}, peerID)
 				}
-				logger.Debug("failed to validate transaction", "err", err)
+				logger.Debugf("failed to validate transaction: %s", err)
 				return nil
 			}
 
@@ -85,7 +85,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 
 			// push to the transaction queue of BABE session
 			hash := s.transactionState.AddToPool(vtx)
-			logger.Trace("added transaction to pool", "hash", hash)
+			logger.Tracef("added transaction with hash %s to pool", hash)
 
 			// find tx(s) that should propagate
 			if val.Propagate {

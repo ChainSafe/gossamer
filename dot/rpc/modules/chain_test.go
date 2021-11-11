@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -34,7 +35,6 @@ import (
 
 	database "github.com/ChainSafe/chaindb"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -356,7 +356,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	config := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()

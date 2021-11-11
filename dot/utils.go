@@ -28,22 +28,15 @@ import (
 	"testing"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
 	"github.com/cosmos/go-bip39"
 	"github.com/naoina/toml"
 	"github.com/stretchr/testify/require"
 )
-
-// setupLogger sets up the gossamer logger
-func setupLogger(cfg *Config) {
-	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	handler = log.CallerFileHandler(handler)
-	logger.SetHandler(log.LvlFilterHandler(cfg.Global.LogLvl, handler))
-}
 
 // NewTestGenesis returns a test genesis instance using "gssmr" raw data
 func NewTestGenesis(t *testing.T) *genesis.Genesis {
@@ -161,7 +154,7 @@ func NewTestConfig(t *testing.T) *Config {
 			Name:     GssmrConfig().Global.Name,
 			ID:       GssmrConfig().Global.ID,
 			BasePath: dir,
-			LogLvl:   log.LvlInfo,
+			LogLvl:   log.Info,
 		},
 		Log:     GssmrConfig().Log,
 		Init:    GssmrConfig().Init,
@@ -189,7 +182,7 @@ func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 func ExportConfig(cfg *Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Error("failed to marshal configuration", "error", err)
+		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(raw, fp)
@@ -199,7 +192,7 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Error("failed to marshal configuration", "error", err)
+		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(raw, fp)
@@ -209,18 +202,18 @@ func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
 func WriteConfig(data []byte, fp string) *os.File {
 	newFile, err := os.Create(filepath.Clean(fp))
 	if err != nil {
-		logger.Error("failed to create configuration file", "error", err)
+		logger.Errorf("failed to create configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	_, err = newFile.Write(data)
 	if err != nil {
-		logger.Error("failed to write to configuration file", "error", err)
+		logger.Errorf("failed to write to configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	if err := newFile.Close(); err != nil {
-		logger.Error("failed to close configuration file", "error", err)
+		logger.Errorf("failed to close configuration file: %s", err)
 		os.Exit(1)
 	}
 
@@ -231,7 +224,7 @@ func WriteConfig(data []byte, fp string) *os.File {
 func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
 	data, err := bs.ToJSONRaw()
 	if err != nil {
-		logger.Error("failed to convert into raw json", "error", err)
+		logger.Errorf("failed to convert into raw json: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(data, fp)

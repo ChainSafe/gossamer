@@ -17,7 +17,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/chain/dev"
@@ -36,7 +36,7 @@ func TestFixFlagOrder(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string

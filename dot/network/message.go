@@ -74,6 +74,17 @@ const (
 	Descending
 )
 
+func (sd SyncDirection) String() string {
+	switch sd {
+	case Ascending:
+		return "ascending"
+	case Descending:
+		return "descending"
+	default:
+		return "invalid"
+	}
+}
+
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
 	RequestedData byte

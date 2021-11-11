@@ -18,17 +18,16 @@ package sync
 
 import (
 	"math/big"
-	"os"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var logger = log.New("pkg", "sync")
+var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
@@ -40,7 +39,7 @@ type Service struct {
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	LogLvl             log.Lvl
+	LogLvl             log.Level
 	Network            Network
 	BlockState         BlockState
 	StorageState       StorageState
@@ -82,9 +81,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errNilBlockImportHandler
 	}
 
-	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	handler = log.CallerFileHandler(handler)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, handler))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)

@@ -17,6 +17,7 @@
 package dot
 
 import (
+	"io"
 	"math/big"
 	"reflect"
 	"sync"
@@ -35,7 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -210,7 +211,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
 
@@ -374,8 +375,11 @@ func TestNode_StopFunc(t *testing.T) {
 		testvar = "after"
 	}
 
+	serviceRegistryLogger := log.New(log.SetWriter(io.Discard))
+	servicesRegistry := services.NewServiceRegistry(serviceRegistryLogger)
+
 	node := &Node{
-		Services: &services.ServiceRegistry{},
+		Services: servicesRegistry,
 		StopFunc: stopFunc,
 		wg:       sync.WaitGroup{},
 	}
