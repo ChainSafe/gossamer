@@ -420,8 +420,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			continue
 		}
 
-		/*go*/
-		s.sendData(peer, hs, info, msg)
+		go s.sendData(peer, hs, info, msg)
 	}
 }
 
