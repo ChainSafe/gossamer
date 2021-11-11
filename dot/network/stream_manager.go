@@ -51,6 +51,8 @@ func (sm *streamManager) start() {
 }
 
 func (sm *streamManager) cleanupStreams() {
+	return
+
 	sm.streamDataMap.Range(func(id, data interface{}) bool {
 		sdata := data.(*streamData)
 		lastReceived := sdata.lastReceivedMessage
