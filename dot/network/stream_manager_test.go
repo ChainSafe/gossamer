@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func testCloseFunc(stream network.Stream) {}
+
 func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, []*streamManager) {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -24,8 +26,8 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 		cancel()
 	})
 
-	smA := newStreamManager(ctx)
-	smB := newStreamManager(ctx)
+	smA := newStreamManager(ctx, testCloseFunc)
+	smB := newStreamManager(ctx, testCloseFunc)
 
 	portA := 7001
 	portB := 7002

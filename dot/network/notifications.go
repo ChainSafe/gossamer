@@ -117,11 +117,11 @@ func (n *notificationsProtocol) getOutboundHandshakeData(pid peer.ID) (handshake
 }
 
 type handshakeData struct {
-	received  bool
-	validated bool
-	handshake Handshake
-	stream    libp2pnetwork.Stream
-	sync.Mutex
+	received    bool
+	validated   bool
+	handshake   Handshake
+	stream      libp2pnetwork.Stream
+	*sync.Mutex // this needs to be a pointer, otherwise a new mutex will be created every time hsData is stored/loaded
 }
 
 func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) handshakeData {
@@ -129,6 +129,7 @@ func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) han
 		received:  received,
 		validated: validated,
 		stream:    stream,
+		Mutex:     new(sync.Mutex),
 	}
 }
 
