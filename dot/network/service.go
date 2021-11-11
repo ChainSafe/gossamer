@@ -75,7 +75,6 @@ type Service struct {
 	cfg           *Config
 	host          *host
 	mdns          *mdns
-	gossip        *gossip
 	bufPool       *sizedBufferPool
 	streamManager *streamManager
 
@@ -165,7 +164,6 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg:                    cfg,
 		host:                   host,
 		mdns:                   newMDNS(host),
-		gossip:                 newGossip(),
 		blockState:             cfg.BlockState,
 		transactionHandler:     cfg.TransactionHandler,
 		noBootstrap:            cfg.NoBootstrap,
@@ -179,7 +177,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		batchSize:              100,
 	}
-	
+
 	network.streamManager = newStreamManager(ctx, network.closeInboundStream)
 	return network, err
 }

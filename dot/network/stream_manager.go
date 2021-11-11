@@ -23,14 +23,14 @@ type streamData struct {
 type streamManager struct {
 	ctx           context.Context
 	streamDataMap *sync.Map //map[string]*streamData
-	closeFunc inboundStreamCloseFunc
+	closeFunc     inboundStreamCloseFunc
 }
 
 func newStreamManager(ctx context.Context, closeFunc inboundStreamCloseFunc) *streamManager {
 	return &streamManager{
 		ctx:           ctx,
 		streamDataMap: new(sync.Map),
-		closeFunc: closeFunc,
+		closeFunc:     closeFunc,
 	}
 }
 

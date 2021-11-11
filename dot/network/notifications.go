@@ -256,10 +256,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		for _, data := range msgs {
-			seen := s.gossip.hasSeen(data.msg)
-			if !seen {
-				s.broadcastExcluding(info, data.peer, data.msg)
-			}
+			s.broadcastExcluding(info, data.peer, data.msg)
 
 			// report peer if we get duplicate gossip message.
 			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
