@@ -10,8 +10,6 @@ import (
 
 var cleanupStreamInterval = time.Minute
 
-type inboundStreamCloseFunc func(stream network.Stream)
-
 type streamData struct {
 	lastReceivedMessage time.Time
 	stream              network.Stream
@@ -23,14 +21,12 @@ type streamData struct {
 type streamManager struct {
 	ctx           context.Context
 	streamDataMap *sync.Map //map[string]*streamData
-	closeFunc     inboundStreamCloseFunc
 }
 
-func newStreamManager(ctx context.Context, closeFunc inboundStreamCloseFunc) *streamManager {
+func newStreamManager(ctx context.Context) *streamManager {
 	return &streamManager{
 		ctx:           ctx,
 		streamDataMap: new(sync.Map),
-		closeFunc:     closeFunc,
 	}
 }
 
@@ -51,15 +47,13 @@ func (sm *streamManager) start() {
 }
 
 func (sm *streamManager) cleanupStreams() {
-	return
-
 	sm.streamDataMap.Range(func(id, data interface{}) bool {
 		sdata := data.(*streamData)
 		lastReceived := sdata.lastReceivedMessage
 		stream := sdata.stream
 
 		if time.Since(lastReceived) > cleanupStreamInterval {
-			sm.closeFunc(stream)
+			_ = stream.Reset()
 			sm.streamDataMap.Delete(id)
 		}
 

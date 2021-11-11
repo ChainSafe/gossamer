@@ -282,7 +282,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if info.handshakeValidator == nil {
-		logger.Warn("handshakeValidator is not set for protocol!", "protocol", info.protocolID)
+		logger.Error("handshakeValidator is not set for protocol!", "protocol", info.protocolID)
 		return
 	}
 
@@ -305,8 +305,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
 			logger.Trace("failed to send message to peer", "peer", peer, "error", err)
-			//_ = stream.Reset()
-			//info.outboundHandshakeData.Delete(peer)
+			_ = stream.Reset()
 			return
 		}
 
@@ -325,14 +324,12 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 			logger.Trace("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
 			_ = stream.Reset()
-			info.outboundHandshakeData.Delete(peer)
 			return
 		case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
 			hsTimer.Stop()
 			if hsResponse.err != nil {
 				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 				_ = stream.Reset()
-				info.outboundHandshakeData.Delete(peer)
 				return
 			}
 
@@ -381,7 +378,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		// the stream was closed or reset, close it on our end and delete it from our peer's data
 		if errors.Is(err, io.EOF) || errors.Is(err, mux.ErrReset) {
 			_ = hsData.stream.Reset()
-			info.outboundHandshakeData.Delete(peer)
+			//info.outboundHandshakeData.Delete(peer)
 		}
 
 		return

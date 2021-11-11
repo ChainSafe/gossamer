@@ -180,7 +180,7 @@ func NewService(cfg *Config) (*Service, error) {
 		batchSize:              100,
 	}
 
-	network.streamManager = newStreamManager(ctx, network.closeInboundStream)
+	network.streamManager = newStreamManager(ctx)
 	return network, err
 }
 
@@ -493,7 +493,7 @@ func (s *Service) RegisterNotificationsProtocol(
 				np.inboundHandshakeData.Delete(peerID)
 			}
 			return
-		}	
+		}
 
 		if _, ok := np.getOutboundHandshakeData(peerID); ok {
 			logger.Trace(
@@ -599,10 +599,6 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, 
 	return msg, err
 }
 
-func isInbound(stream libp2pnetwork.Stream) bool {
-	return stream.Stat().Direction == libp2pnetwork.DirInbound
-}
-
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
 	s.streamManager.logNewStream(stream)
 
@@ -614,17 +610,17 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		tot, err := readStream(stream, msgBytes[:])
 		if err != nil {
 			logger.Trace("failed to read from stream", "id", stream.ID(), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
-			s.closeInboundStream(stream)
+			_ = stream.Reset()
 			return
 		}
 
 		s.streamManager.logMessageReceived(stream.ID())
 
 		// decode message based on message type
-		msg, err := decoder(msgBytes[:tot], peer, true) // stream is always inbound if it passes through service.readStream
+		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream)) // stream shoukd always be inbound if it passes through service.readStream
 		if err != nil {
 			logger.Trace("failed to decode message from peer", "id", stream.ID(), "protocol", stream.Protocol(), "err", err)
-			s.closeInboundStream(stream)
+			_ = stream.Reset()
 			return
 		}
 
@@ -637,29 +633,12 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 		if err = handler(stream, msg); err != nil {
 			logger.Trace("failed to handle message from stream", "id", stream.ID(), "message", msg, "error", err)
-			s.closeInboundStream(stream)
+			_ = stream.Reset()
 			return
 		}
 
 		s.host.bwc.LogRecvMessage(int64(tot))
 	}
-}
-
-func (s *Service) closeInboundStream(stream libp2pnetwork.Stream) {
-	protocolID := stream.Protocol()
-
-	s.notificationsMu.Lock()
-	defer s.notificationsMu.Unlock()
-
-	for _, prtl := range s.notificationsProtocols {
-		if prtl.protocolID != protocolID {
-			continue
-		}
-
-		prtl.inboundHandshakeData.Delete(stream.Conn().RemotePeer())
-	}
-
-	_ = stream.Reset()
 }
 
 func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {
