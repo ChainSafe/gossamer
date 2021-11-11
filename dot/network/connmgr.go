@@ -31,6 +31,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
+type streamCloseHandler func(peerID peer.ID, inbound bool)
+
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
 	sync.Mutex
@@ -39,7 +41,7 @@ type ConnManager struct {
 	disconnectHandler func(peer.ID)
 
 	// closeHandlerMap contains close handler corresponding to a protocol.
-	closeHandlerMap map[protocol.ID]func(peerID peer.ID)
+	closeHandlerMap map[protocol.ID]streamCloseHandler
 
 	// protectedPeers contains a list of peers that are protected from pruning
 	// when we reach the maximum numbers of peers.
@@ -60,7 +62,7 @@ func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, 
 	return &ConnManager{
 		min:             min,
 		max:             max,
-		closeHandlerMap: make(map[protocol.ID]func(peerID peer.ID)),
+		closeHandlerMap: make(map[protocol.ID]streamCloseHandler),
 		protectedPeers:  new(sync.Map),
 		persistentPeers: new(sync.Map),
 		peerSetHandler:  psh,
@@ -210,7 +212,7 @@ func (cm *ConnManager) OpenedStream(_ network.Network, s network.Stream) {
 	)
 }
 
-func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb func(id peer.ID)) {
+func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb streamCloseHandler) {
 	cm.closeHandlerMap[protocolID] = cb
 }
 
@@ -225,7 +227,7 @@ func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
 	cm.Lock()
 	defer cm.Unlock()
 	if closeCB, ok := cm.closeHandlerMap[s.Protocol()]; ok {
-		closeCB(s.Conn().RemotePeer())
+		closeCB(s.Conn().RemotePeer(), isInbound(s))
 	}
 }
 

@@ -481,16 +481,19 @@ func (s *Service) RegisterNotificationsProtocol(
 	s.notificationsProtocols[messageID] = np
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
-	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID) {
-		if _, ok := np.getInboundHandshakeData(peerID); ok {
-			logger.Trace(
-				"Cleaning up inbound handshake data",
-				"peer", peerID,
-				"protocol", protocolID,
-			)
+	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID, inbound bool) {
+		if inbound {
+			if _, ok := np.getInboundHandshakeData(peerID); ok {
+				logger.Trace(
+					"Cleaning up inbound handshake data",
+					"peer", peerID,
+					"protocol", protocolID,
+				)
 
-			np.inboundHandshakeData.Delete(peerID)
-		}
+				np.inboundHandshakeData.Delete(peerID)
+			}
+			return
+		}	
 
 		if _, ok := np.getOutboundHandshakeData(peerID); ok {
 			logger.Trace(

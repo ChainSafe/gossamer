@@ -18,7 +18,6 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"reflect"
 	"sync"
@@ -282,10 +281,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	if info == nil {
-		panic("info is nil!!!!")
-	}
-
 	if info.handshakeValidator == nil {
 		logger.Warn("handshakeValidator is not set for protocol!", "protocol", info.protocolID)
 		return
@@ -296,9 +291,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		hsData = newHandshakeData(false, false, nil)
 	}
 
-	hsData.Lock()
-	defer hsData.Unlock()
-
 	if has && hsData.received && !hsData.validated {
 		// peer has sent us an invalid handshake in the past, ignore
 		logger.Warn("peer sent us invalid handshake before, ignoring...", "peer", peer, "protocol", info.protocolID)
@@ -306,9 +298,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if !has || !hsData.received || hsData.stream == nil {
-		if has && hsData.stream == nil {
-			panic(fmt.Sprintf("stream is nil, but it shouldn't be!! %s", info.protocolID))
-		}
+		hsData.Lock()
+		defer hsData.Unlock()
 
 		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 		stream, err := s.host.send(peer, info.protocolID, hs)
@@ -374,8 +365,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		// only when they are for already finalised rounds; currently this causes issues
 		// because a vote might be received slightly too early, causing a round mismatch err,
 		// causing grandpa to discard the vote. (#1855)
-		//_, isConsensusMsg := msg.(*ConsensusMessage)
-		if !added /*&& !isConsensusMsg*/ {
+		_, isConsensusMsg := msg.(*ConsensusMessage)
+		if !added && !isConsensusMsg {
 			return
 		}
 	}
