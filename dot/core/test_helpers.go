@@ -51,7 +51,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		if err != nil {
 			t.Fatal(err)
 		}
-		cfg.Keystore.Acco.Insert(kp)
+		err = cfg.Keystore.Acco.Insert(kp)
+		require.NoError(t, err)
 	}
 
 	cfg.LogLvl = 3

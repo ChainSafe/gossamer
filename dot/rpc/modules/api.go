@@ -94,7 +94,7 @@ type TransactionStateAPI interface {
 
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
-	InsertKey(kp crypto.Keypair)
+	InsertKey(kp crypto.Keypair, keystoreType string) error
 	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error

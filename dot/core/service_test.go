@@ -18,6 +18,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -117,6 +118,59 @@ func TestAnnounceBlock(t *testing.T) {
 	net.AssertCalled(t, "GossipMessage", expected)
 }
 
+func TestService_InsertKey(t *testing.T) {
+	ks := keystore.NewGlobalKeystore()
+
+	cfg := &Config{
+		Keystore: ks,
+	}
+	s := NewTestService(t, cfg)
+
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	testCases := []struct {
+		description  string
+		keystoreType string
+		err          error
+	}{
+		{
+			description:  "Test that insertKey fails when keystore type is invalid ",
+			keystoreType: "some-invalid-type",
+			err:          keystore.ErrInvalidKeystoreName,
+		},
+		{
+			description:  "Test that insertKey fails when keystore type is valid but inappropriate",
+			keystoreType: "gran",
+			err:          fmt.Errorf("%v, passed key type: sr25519, acceptable key type: ed25519", keystore.ErrKeyTypeNotSupported),
+		},
+		{
+			description:  "Test that insertKey succeeds when keystore type is valid and appropriate ",
+			keystoreType: "acco",
+			err:          nil,
+		},
+	}
+
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			err := s.InsertKey(kr.Alice(), c.keystoreType)
+
+			if c.err == nil {
+				require.Nil(t, err)
+				res, err := s.HasKey(kr.Alice().Public().Hex(), c.keystoreType)
+				require.Nil(t, err)
+				require.True(t, res)
+			} else {
+				require.NotNil(t, err)
+				require.Equal(t, err.Error(), c.err.Error())
+			}
+		})
+	}
+}
+
 func TestService_HasKey(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	kr, err := keystore.NewSr25519Keyring()
@@ -128,9 +182,17 @@ func TestService_HasKey(t *testing.T) {
 	}
 	s := NewTestService(t, cfg)
 
-	res, err := s.HasKey(kr.Alice().Public().Hex(), "babe")
+	res, err := s.HasKey(kr.Alice().Public().Hex(), "acco")
 	require.NoError(t, err)
 	require.True(t, res)
+
+	res, err = s.HasKey(kr.Alice().Public().Hex(), "babe")
+	require.NoError(t, err)
+	require.False(t, res)
+
+	res, err = s.HasKey(kr.Alice().Public().Hex(), "gran")
+	require.NoError(t, err)
+	require.False(t, res)
 }
 
 func TestService_HasKey_UnknownType(t *testing.T) {
@@ -145,7 +207,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 	s := NewTestService(t, cfg)
 
 	res, err := s.HasKey(kr.Alice().Public().Hex(), "xxxx")
-	require.EqualError(t, err, "unknown key type: xxxx")
+	require.EqualError(t, err, "invalid keystore name")
 	require.False(t, res)
 }
 
