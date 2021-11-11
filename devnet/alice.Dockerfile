@@ -15,8 +15,6 @@ COPY . .
 
 RUN go run devnet/cmd/update-dd-agent-confd/main.go -n="gossamer.local.devnet" -t="key:alice" > /tmp/conf.yaml
 RUN mv /tmp/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
-# RUN ls -la /etc/datadog-agent/conf.d/openmetrics.d/
-# RUN cat /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 RUN service datadog-agent start
 
 RUN go get ./...
