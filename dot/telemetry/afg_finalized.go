@@ -20,23 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-//nolint
-// notifyFinalizedTM holds `notify.finalized` telemetry message, which is
-// supposed to be send when a new block gets finalized.
-type notifyFinalizedTM struct {
-	Best common.Hash `json:"best"`
-	// Height is same as block.Header.Number
-	Height string `json:"height"`
-}
-
-// NewNotifyFinalizedTM gets a new notifyFinalizedTM struct.
-func NewNotifyFinalizedTM(best common.Hash, height string) Message {
-	return &notifyFinalizedTM{
-		Best:   best,
-		Height: height,
-	}
-}
-
-func (notifyFinalizedTM) messageType() string {
-	return notifyFinalizedMsg
+// TODO: Why is this not being sent by substrate?
+type afgFinalizedTM struct {
+	FinalizedHash   *common.Hash `json:"finalized_hash"`
+	FinalizedNumber string       `json:"finalized_number"`
 }

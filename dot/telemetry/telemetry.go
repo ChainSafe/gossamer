@@ -29,11 +29,13 @@ import (
 
 // telemetry message types
 const (
-	notifyFinalizedMsg    = "notify.finalized"
-	blockImportMsg        = "block.import"
-	systemNetworkStateMsg = "system.network_state"
-	systemConnectedMsg    = "system.connected"
-	systemIntervalMsg     = "system.interval"
+	notifyFinalizedMsg        = "notify.finalized"
+	blockImportMsg            = "block.import"
+	systemNetworkStateMsg     = "system.network_state"
+	systemConnectedMsg        = "system.connected"
+	systemIntervalMsg         = "system.interval"
+	afgFinalizedBlocksUpToMsg = "afg.finalized_blocks_up_to"
+	afgAuthoritySetMsg        = "afg.authority_set"
 )
 
 type telemetryConnection struct {

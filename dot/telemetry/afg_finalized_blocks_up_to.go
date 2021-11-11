@@ -20,23 +20,21 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-//nolint
-// notifyFinalizedTM holds `notify.finalized` telemetry message, which is
-// supposed to be send when a new block gets finalized.
-type notifyFinalizedTM struct {
-	Best common.Hash `json:"best"`
-	// Height is same as block.Header.Number
-	Height string `json:"height"`
+// afgFinalizedBlocksUpToTM holds telemetry message of type `afg.finalized_blocks_up_to`,
+// which is supposed to be send GRANDPA client finalizes new blocks.
+type afgFinalizedBlocksUpToTM struct {
+	Hash   common.Hash `json:"hash"`
+	Number string      `json:"number"`
 }
 
-// NewNotifyFinalizedTM gets a new notifyFinalizedTM struct.
-func NewNotifyFinalizedTM(best common.Hash, height string) Message {
-	return &notifyFinalizedTM{
-		Best:   best,
-		Height: height,
+// NewAfgFinalizedBlocksUpToTM creates a new afgFinalizedBlocksUpToTM struct.
+func NewAfgFinalizedBlocksUpToTM(hash common.Hash, number string) Message {
+	return &afgFinalizedBlocksUpToTM{
+		Hash:   hash,
+		Number: number,
 	}
 }
 
-func (notifyFinalizedTM) messageType() string {
-	return notifyFinalizedMsg
+func (afgFinalizedBlocksUpToTM) messageType() string {
+	return afgFinalizedBlocksUpToMsg
 }
