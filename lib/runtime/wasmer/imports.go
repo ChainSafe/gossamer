@@ -1757,7 +1757,7 @@ func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqI
 	result := scale.NewResult(nil, nil)
 	err := offchainReq.AddHeader(string(key), string(value))
 	if err != nil {
-		logger.Error("failed to add request header", "error", err)
+		logger.Errorf("failed to add request header: %s", err)
 		_ = result.Set(scale.Err, nil)
 	} else {
 		_ = result.Set(scale.OK, nil)
