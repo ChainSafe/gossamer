@@ -480,37 +480,37 @@ func (s *Service) RegisterNotificationsProtocol(
 	}
 	s.notificationsProtocols[messageID] = np
 
-	connMgr := s.host.h.ConnManager().(*ConnManager)
-	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID, inbound bool) {
-		if inbound {
-			if hsData, has := np.getInboundHandshakeData(peerID); has {
-				logger.Debug(
-					"Cleaning up inbound handshake data",
-					"peer", peerID,
-					"protocol", protocolID,
-				)
+	// connMgr := s.host.h.ConnManager().(*ConnManager)
+	// connMgr.registerCloseHandler(protocolID, func(peerID peer.ID, inbound bool) {
+	// 	if inbound {
+	// 		if hsData, has := np.getInboundHandshakeData(peerID); has {
+	// 			logger.Debug(
+	// 				"Cleaning up inbound handshake data",
+	// 				"peer", peerID,
+	// 				"protocol", protocolID,
+	// 			)
 
-				np.inboundHandshakeData.Delete(peerID)
-				if has && hsData.stream != nil {
-					_ = hsData.stream.Reset()
-				}
-			}
-			return
-		}
+	// 			np.inboundHandshakeData.Delete(peerID)
+	// 			if has && hsData.stream != nil {
+	// 				_ = hsData.stream.Reset()
+	// 			}
+	// 		}
+	// 		return
+	// 	}
 
-		if hsData, has := np.getOutboundHandshakeData(peerID); has {
-			logger.Debug(
-				"Cleaning up outbound handshake data",
-				"peer", peerID,
-				"protocol", protocolID,
-			)
+	// 	if hsData, has := np.getOutboundHandshakeData(peerID); has {
+	// 		logger.Debug(
+	// 			"Cleaning up outbound handshake data",
+	// 			"peer", peerID,
+	// 			"protocol", protocolID,
+	// 		)
 
-			np.outboundHandshakeData.Delete(peerID)
-			if has && hsData.stream != nil {
-				_ = hsData.stream.Reset()
-			}
-		}
-	})
+	// 		np.outboundHandshakeData.Delete(peerID)
+	// 		if has && hsData.stream != nil {
+	// 			_ = hsData.stream.Reset()
+	// 		}
+	// 	}
+	// })
 
 	info := s.notificationsProtocols[messageID]
 
@@ -606,6 +606,7 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, 
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
+	defer s.closeInboundStream(stream)
 	s.streamManager.logNewStream(stream)
 
 	peer := stream.Conn().RemotePeer()
@@ -616,7 +617,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		tot, err := readStream(stream, msgBytes[:])
 		if err != nil {
 			logger.Trace("failed to read from stream", "id", stream.ID(), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
-			_ = stream.Close()
+			//_ = stream.Close()
 			return
 		}
 
@@ -640,12 +641,36 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 		if err = handler(stream, msg); err != nil {
 			logger.Trace("failed to handle message from stream", "id", stream.ID(), "message", msg, "error", err)
-			_ = stream.Close()
+			//_ = stream.Close()
 			return
 		}
 
 		s.host.bwc.LogRecvMessage(int64(tot))
 	}
+}
+
+func (s *Service) closeInboundStream(stream libp2pnetwork.Stream) {
+	protocolID := stream.Protocol()
+	peerID := stream.Conn().RemotePeer()
+
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	for _, prtl := range s.notificationsProtocols {
+		if prtl.protocolID != protocolID {
+			continue
+		}
+
+		prtl.inboundHandshakeData.Delete(peerID)
+	}
+
+	logger.Debug(
+		"Cleaning up inbound handshake data",
+		"peer", peerID,
+		"protocol", protocolID,
+	)
+
+	_ = stream.Close()
 }
 
 func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {

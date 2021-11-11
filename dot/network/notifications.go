@@ -271,6 +271,17 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 	}
 }
 
+func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream libp2pnetwork.Stream) {
+	logger.Debug(
+		"Cleaning up outbound handshake data",
+		"peer", peerID,
+		"protocol", stream.Protocol(),
+	)
+
+	info.outboundHandshakeData.Delete(peerID)
+	_ = stream.Close()
+}
+
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
@@ -318,6 +329,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		if err != nil {
 			logger.Trace("failed to send message to peer", "peer", peer, "error", err)
 			//_ = stream.Reset()
+			closeOutboundStream(info, peer, stream)
 			return
 		}
 
@@ -335,15 +347,17 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			}, peer)
 
 			logger.Trace("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
-			_ = stream.Close()
-			info.outboundHandshakeData.Delete(peer)
+			// _ = stream.Close()
+			// info.outboundHandshakeData.Delete(peer)
+			closeOutboundStream(info, peer, stream)
 			return
 		case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
 			hsTimer.Stop()
 			if hsResponse.err != nil {
 				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
-				_ = stream.Close()
-				info.outboundHandshakeData.Delete(peer)
+				// _ = stream.Close()
+				// info.outboundHandshakeData.Delete(peer)
+				closeOutboundStream(info, peer, stream)
 				return
 			}
 
@@ -355,8 +369,9 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 			hsData.validated = false
 			hsData.stream = nil
-			_ = stream.Reset()
-			info.outboundHandshakeData.Store(peer, hsData)
+			// _ = stream.Reset()
+			// info.outboundHandshakeData.Store(peer, hsData)
+			closeOutboundStream(info, peer, stream)
 			return
 		}
 
@@ -391,8 +406,9 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 		// the stream was closed or reset, close it on our end and delete it from our peer's data
 		if errors.Is(err, io.EOF) || errors.Is(err, mux.ErrReset) {
-			_ = hsData.stream.Close()
-			info.outboundHandshakeData.Delete(peer)
+			// _ = hsData.stream.Close()
+			// info.outboundHandshakeData.Delete(peer)
+			closeOutboundStream(info, peer, hsData.stream)
 		}
 
 		return
