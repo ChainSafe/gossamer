@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"os"
 	"sync"
@@ -614,9 +613,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])
-		if errors.Is(err, io.EOF) {
-			return
-		} else if err != nil {
+		if err != nil {
 			logger.Trace("failed to read from stream", "id", stream.ID(), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
 			s.closeInboundStream(stream)
 			return

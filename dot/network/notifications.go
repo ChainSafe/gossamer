@@ -222,7 +222,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return nil
 		}
 
-		logger.Trace("received message on notifications sub-protocol", "protocol", info.protocolID,
+		logger.Debug("received message on notifications sub-protocol", "protocol", info.protocolID,
 			"message", msg,
 			"peer", stream.Conn().RemotePeer(),
 		)
