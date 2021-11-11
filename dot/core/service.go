@@ -445,15 +445,24 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 }
 
 // InsertKey inserts keypair into the account keystore
-// TODO: define which keystores need to be updated and create separate insert funcs for each (#1850)
-func (s *Service) InsertKey(kp crypto.Keypair) {
-	s.keys.Acco.Insert(kp)
+func (s *Service) InsertKey(kp crypto.Keypair, keystoreType string) error {
+	ks, err := s.keys.GetKeystore([]byte(keystoreType))
+	if err != nil {
+		return err
+	}
+
+	return ks.Insert(kp)
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
-//  are issues decoding string
-func (s *Service) HasKey(pubKeyStr, keyType string) (bool, error) {
-	return keystore.HasKey(pubKeyStr, keyType, s.keys.Acco)
+// are issues decoding string
+func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
+	ks, err := s.keys.GetKeystore([]byte(keystoreType))
+	if err != nil {
+		return false, err
+	}
+
+	return keystore.HasKey(pubKeyStr, keystoreType, ks)
 }
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys

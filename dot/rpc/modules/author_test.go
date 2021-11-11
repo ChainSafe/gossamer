@@ -107,7 +107,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	globalStore := keystore.NewGlobalKeystore()
 
 	coremockapi := new(apimocks.CoreAPI)
-	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
+	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"), mock.AnythingOfType("string")).Return(nil)
 	mockInsertKey.Run(func(args mock.Arguments) {
 		kp := args.Get(0).(*sr25519.Keypair)
 		globalStore.Acco.Insert(kp)
@@ -146,7 +146,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 		Seed:      "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8",
 		PublicKey: "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026",
 	}, nil)
-	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
+	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"), mock.AnythingOfType("string"))
 	require.NoError(t, err)
 	require.Equal(t, 1, globalStore.Acco.Size())
 
@@ -324,7 +324,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 
 func TestAuthorModule_InsertKey(t *testing.T) {
 	mockCoreAPI := &apimocks.CoreAPI{}
-	mockCoreAPI.On("InsertKey", mock.Anything).Return(nil)
+	mockCoreAPI.On("InsertKey", mock.Anything, mock.AnythingOfType("string")).Return(nil)
 
 	type fields struct {
 		logger     log.LeveledLogger
