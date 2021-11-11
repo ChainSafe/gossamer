@@ -610,7 +610,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		tot, err := readStream(stream, msgBytes[:])
 		if err != nil {
 			logger.Trace("failed to read from stream", "id", stream.ID(), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
-			_ = stream.Reset()
+			_ = stream.Close()
 			return
 		}
 
@@ -620,8 +620,9 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream)) // stream shoukd always be inbound if it passes through service.readStream
 		if err != nil {
 			logger.Trace("failed to decode message from peer", "id", stream.ID(), "protocol", stream.Protocol(), "err", err)
-			_ = stream.Reset()
-			return
+			//_ = stream.Reset()
+			//return
+			continue
 		}
 
 		logger.Trace(
@@ -633,7 +634,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 		if err = handler(stream, msg); err != nil {
 			logger.Trace("failed to handle message from stream", "id", stream.ID(), "message", msg, "error", err)
-			_ = stream.Reset()
+			_ = stream.Close()
 			return
 		}
 
