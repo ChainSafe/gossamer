@@ -221,7 +221,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return nil
 		}
 
-		logger.Debug("received message on notifications sub-protocol", "protocol", info.protocolID,
+		logger.Trace("received message on notifications sub-protocol", "protocol", info.protocolID,
 			"message", msg,
 			"peer", stream.Conn().RemotePeer(),
 		)
@@ -354,8 +354,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		if err = info.handshakeValidator(peer, hs); err != nil {
 			logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 			hsData.validated = false
-			//hsData.stream = nil
-			//_ = stream.Reset()
+			hsData.stream = nil
+			_ = stream.Reset()
 			info.outboundHandshakeData.Store(peer, hsData)
 			return
 		}
@@ -391,7 +391,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 		// the stream was closed or reset, close it on our end and delete it from our peer's data
 		if errors.Is(err, io.EOF) || errors.Is(err, mux.ErrReset) {
-			_ = hsData.stream.Reset()
+			_ = hsData.stream.Close()
 			info.outboundHandshakeData.Delete(peer)
 		}
 

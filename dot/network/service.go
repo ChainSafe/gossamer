@@ -181,7 +181,6 @@ func NewService(cfg *Config) (*Service, error) {
 		batchSize:              100,
 	}
 
-	network.streamManager = newStreamManager(ctx)
 	return network, err
 }
 
@@ -484,26 +483,32 @@ func (s *Service) RegisterNotificationsProtocol(
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID, inbound bool) {
 		if inbound {
-			if _, ok := np.getInboundHandshakeData(peerID); ok {
-				logger.Trace(
+			if hsData, has := np.getInboundHandshakeData(peerID); has {
+				logger.Debug(
 					"Cleaning up inbound handshake data",
 					"peer", peerID,
 					"protocol", protocolID,
 				)
 
 				np.inboundHandshakeData.Delete(peerID)
+				if has && hsData.stream != nil {
+					_ = hsData.stream.Reset()
+				}
 			}
 			return
 		}
 
-		if _, ok := np.getOutboundHandshakeData(peerID); ok {
-			logger.Trace(
+		if hsData, has := np.getOutboundHandshakeData(peerID); has {
+			logger.Debug(
 				"Cleaning up outbound handshake data",
 				"peer", peerID,
 				"protocol", protocolID,
 			)
 
 			np.outboundHandshakeData.Delete(peerID)
+			if has && hsData.stream != nil {
+				_ = hsData.stream.Reset()
+			}
 		}
 	})
 
