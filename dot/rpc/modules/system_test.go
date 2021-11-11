@@ -26,10 +26,12 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -38,13 +40,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
 var (
@@ -53,7 +52,7 @@ var (
 		IsSyncing:       true,
 		ShouldHavePeers: true,
 	}
-	testPeers = []common.PeerInfo{}
+	testPeers []common.PeerInfo
 )
 
 func newNetworkService(t *testing.T) *network.Service {
@@ -88,17 +87,15 @@ func newNetworkService(t *testing.T) *network.Service {
 
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
-	net := newNetworkService(t)
-	net.Stop()
-	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
+	networkMock := new(mocks.NetworkAPI)
+	networkMock.On("Health").Return(testHealth)
+
+	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
 	require.NoError(t, err)
-
-	if *res != SystemHealthResponse(testHealth) {
-		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, *res)
-	}
+	require.Equal(t, SystemHealthResponse(testHealth), *res)
 }
 
 // Test RPC's System.NetworkState() response
@@ -324,7 +321,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.Info)
 	ks := keystore.NewGlobalKeystore()
 	t.Cleanup(func() {
 		rt.Stop()

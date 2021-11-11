@@ -17,19 +17,22 @@
 package main
 
 import (
-	"io/ioutil"
+	"errors"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
+	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -37,7 +40,7 @@ import (
 // TestConfigFromChainFlag tests createDotConfig using the --chain flag
 func TestConfigFromChainFlag(t *testing.T) {
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -93,7 +96,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -132,7 +135,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -148,7 +151,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 			},
@@ -161,7 +164,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           dot.KusamaConfig().Global.Name,
 				ID:             "ksmcc3",
 				BasePath:       dot.KusamaConfig().Global.BasePath,
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 			},
@@ -174,7 +177,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           "test_name",
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 			},
@@ -187,7 +190,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       "test_basepath",
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 			},
@@ -200,7 +203,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 			},
@@ -213,7 +216,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: true,
 				MetricsPort:    testCfg.Global.MetricsPort,
 			},
@@ -226,7 +229,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    uint32(9871),
 			},
@@ -239,7 +242,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 				NoTelemetry:    true,
@@ -257,7 +260,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.LvlInfo,
+				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
 				NoTelemetry:    false,
@@ -290,7 +293,7 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -343,7 +346,7 @@ func TestAccountConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -392,7 +395,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -409,6 +412,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				BabeAuthority:    true,
 				GrandpaAuthority: true,
 				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+				GrandpaInterval:  testCfg.Core.GrandpaInterval,
 			},
 		},
 		{
@@ -420,6 +424,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				BabeAuthority:    false,
 				GrandpaAuthority: false,
 				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+				GrandpaInterval:  testCfg.Core.GrandpaInterval,
 			},
 		},
 	}
@@ -445,7 +450,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -546,7 +551,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -773,14 +778,14 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
-			CoreLvl:           log.LvlInfo,
-			SyncLvl:           log.LvlInfo,
-			NetworkLvl:        log.LvlInfo,
-			RPCLvl:            log.LvlInfo,
-			StateLvl:          log.LvlInfo,
-			RuntimeLvl:        log.LvlInfo,
-			BlockProducerLvl:  log.LvlInfo,
-			FinalityGadgetLvl: log.LvlInfo,
+			CoreLvl:           log.Info,
+			SyncLvl:           log.Info,
+			NetworkLvl:        log.Info,
+			RPCLvl:            log.Info,
+			StateLvl:          log.Info,
+			RuntimeLvl:        log.Info,
+			BlockProducerLvl:  log.Info,
+			FinalityGadgetLvl: log.Info,
 		},
 		Init: dot.InitConfig{
 			Genesis: genFile.Name(),
@@ -827,14 +832,14 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
-			CoreLvl:           log.LvlInfo,
-			SyncLvl:           log.LvlInfo,
-			NetworkLvl:        log.LvlInfo,
-			RPCLvl:            log.LvlInfo,
-			StateLvl:          log.LvlInfo,
-			RuntimeLvl:        log.LvlInfo,
-			BlockProducerLvl:  log.LvlInfo,
-			FinalityGadgetLvl: log.LvlInfo,
+			CoreLvl:           log.Info,
+			SyncLvl:           log.Info,
+			NetworkLvl:        log.Info,
+			RPCLvl:            log.Info,
+			StateLvl:          log.Info,
+			RuntimeLvl:        log.Info,
+			BlockProducerLvl:  log.Info,
+			FinalityGadgetLvl: log.Info,
 		},
 		Init: dot.InitConfig{
 			Genesis: DefaultCfg().Init.Genesis,
@@ -877,14 +882,14 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
-			CoreLvl:           log.LvlInfo,
-			SyncLvl:           log.LvlInfo,
-			NetworkLvl:        log.LvlInfo,
-			RPCLvl:            log.LvlInfo,
-			StateLvl:          log.LvlInfo,
-			RuntimeLvl:        log.LvlInfo,
-			BlockProducerLvl:  log.LvlInfo,
-			FinalityGadgetLvl: log.LvlInfo,
+			CoreLvl:           log.Info,
+			SyncLvl:           log.Info,
+			NetworkLvl:        log.Info,
+			RPCLvl:            log.Info,
+			StateLvl:          log.Info,
+			RuntimeLvl:        log.Info,
+			BlockProducerLvl:  log.Info,
+			FinalityGadgetLvl: log.Info,
 		},
 		Init: dot.InitConfig{
 			Genesis: genFile.Name(),
@@ -950,7 +955,7 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 
 	// call another command and test the name
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -993,7 +998,7 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 
 	// call another command and test the name
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	// when name flag is defined
 	whenNameFlagIsDefined := struct {
@@ -1062,4 +1067,228 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 		require.NotEmpty(t, createdCfg.Global.Name)
 		require.NotEqual(t, cfg.Global.Name, createdCfg.Global.Name)
 	})
+}
+
+type mockGetStringer struct {
+	kv map[string]string
+}
+
+func (m *mockGetStringer) String(key string) (value string) {
+	return m.kv[key]
+}
+
+func newMockGetStringer(keyValue map[string]string) *mockGetStringer {
+	kv := make(map[string]string, len(keyValue))
+	for k, v := range keyValue {
+		kv[k] = v
+	}
+	return &mockGetStringer{kv: kv}
+}
+
+func Test_getLogLevel(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		flagsKVStore stringKVStore
+		flagName     string
+		tomlValue    string
+		defaultLevel log.Level
+		level        log.Level
+		err          error
+	}{
+		"no value with default": {
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			defaultLevel: log.Error,
+			level:        log.Error,
+		},
+		"flag integer value": {
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "1"}),
+			flagName:     "x",
+			level:        log.Error,
+		},
+		"flag string value": {
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
+			flagName:     "x",
+			level:        log.Error,
+		},
+		"flag bad string value": {
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "garbage"}),
+			flagName:     "x",
+			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
+		},
+		"toml integer value": {
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "1",
+			level:        log.Error,
+		},
+		"toml string value": {
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "eror",
+			level:        log.Error,
+		},
+		"toml bad string value": {
+			flagsKVStore: newMockGetStringer(map[string]string{}),
+			tomlValue:    "garbage",
+			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
+		},
+		"flag takes precedence": {
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
+			flagName:     "x",
+			tomlValue:    "warn",
+			level:        log.Error,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			level, err := getLogLevel(testCase.flagsKVStore, testCase.flagName,
+				testCase.tomlValue, testCase.defaultLevel)
+
+			if testCase.err != nil {
+				assert.EqualError(t, err, testCase.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, testCase.level, level)
+		})
+	}
+}
+
+func Test_parseLogLevelString(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		logLevelString string
+		logLevel       log.Level
+		err            error
+	}{
+		"empty string": {
+			err: errors.New("cannot parse log level string: level is not recognised: "),
+		},
+		"valid integer": {
+			logLevelString: "1",
+			logLevel:       log.Error,
+		},
+		"minus one": {
+			logLevelString: "-1",
+			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: -1"),
+		},
+		"over 5": {
+			logLevelString: "6",
+			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: 6"),
+		},
+		"valid string": {
+			logLevelString: "error",
+			logLevel:       log.Error,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			logLevel, err := parseLogLevelString(testCase.logLevelString)
+
+			if testCase.err != nil {
+				assert.EqualError(t, err, testCase.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, testCase.logLevel, logLevel)
+		})
+	}
+}
+
+func Test_setLogConfig(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		ctx               stringKVStore
+		initialCfg        ctoml.Config
+		initialGlobalCfg  dot.GlobalConfig
+		initialLogCfg     dot.LogConfig
+		expectedCfg       ctoml.Config
+		expectedGlobalCfg dot.GlobalConfig
+		expectedLogCfg    dot.LogConfig
+		err               error
+	}{
+		"no value": {
+			ctx: newMockGetStringer(map[string]string{}),
+			expectedCfg: ctoml.Config{
+				Global: ctoml.GlobalConfig{
+					LogLvl: log.Info.String(),
+				},
+			},
+			expectedGlobalCfg: dot.GlobalConfig{
+				LogLvl: log.Info,
+			},
+			expectedLogCfg: dot.LogConfig{
+				CoreLvl:           log.Info,
+				SyncLvl:           log.Info,
+				NetworkLvl:        log.Info,
+				RPCLvl:            log.Info,
+				StateLvl:          log.Info,
+				RuntimeLvl:        log.Info,
+				BlockProducerLvl:  log.Info,
+				FinalityGadgetLvl: log.Info,
+			},
+		},
+		"some values": {
+			ctx: newMockGetStringer(map[string]string{}),
+			initialCfg: ctoml.Config{
+				Log: ctoml.LogConfig{
+					CoreLvl:  log.Error.String(),
+					SyncLvl:  log.Debug.String(),
+					StateLvl: log.Warn.String(),
+				},
+			},
+			expectedCfg: ctoml.Config{
+				Global: ctoml.GlobalConfig{
+					LogLvl: log.Info.String(),
+				},
+				Log: ctoml.LogConfig{
+					CoreLvl:  log.Error.String(),
+					SyncLvl:  log.Debug.String(),
+					StateLvl: log.Warn.String(),
+				},
+			},
+			expectedGlobalCfg: dot.GlobalConfig{
+				LogLvl: log.Info,
+			},
+			expectedLogCfg: dot.LogConfig{
+				CoreLvl:           log.Error,
+				SyncLvl:           log.Debug,
+				NetworkLvl:        log.Info,
+				RPCLvl:            log.Info,
+				StateLvl:          log.Warn,
+				RuntimeLvl:        log.Info,
+				BlockProducerLvl:  log.Info,
+				FinalityGadgetLvl: log.Info,
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			err := setLogConfig(testCase.ctx, &testCase.initialCfg,
+				&testCase.initialGlobalCfg, &testCase.initialLogCfg)
+
+			if testCase.err != nil {
+				assert.EqualError(t, err, testCase.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, testCase.expectedCfg, testCase.initialCfg)
+			assert.Equal(t, testCase.expectedGlobalCfg, testCase.initialGlobalCfg)
+			assert.Equal(t, testCase.expectedLogCfg, testCase.initialLogCfg)
+		})
+	}
 }

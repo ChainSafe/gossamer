@@ -55,17 +55,20 @@ func (n *node) createTree(tree gotree.Tree) {
 
 // getNode recursively searches for a node with a given hash
 func (n *node) getNode(h common.Hash) *node {
+	if n == nil {
+		return nil
+	}
+
 	if n.hash == h {
 		return n
-	} else if len(n.children) == 0 {
-		return nil
-	} else {
-		for _, child := range n.children {
-			if n := child.getNode(h); n != nil {
-				return n
-			}
+	}
+
+	for _, child := range n.children {
+		if n := child.getNode(h); n != nil {
+			return n
 		}
 	}
+
 	return nil
 }
 

@@ -75,7 +75,7 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 		return
 	}
 
-	logger.Trace("notifying imported block chans...", "chans", bs.imported)
+	logger.Trace("notifying imported block channels...")
 	for ch := range bs.imported {
 		go func(ch chan *types.Block) {
 			select {
@@ -96,11 +96,11 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		logger.Error("failed to get finalised header", "hash", hash, "error", err)
+		logger.Errorf("failed to get finalised header for hash %s: %s", hash, err)
 		return
 	}
 
-	logger.Debug("notifying finalised block chans...", "chans", bs.finalised)
+	logger.Debug("notifying finalised block channels...")
 	info := &types.FinalisationInfo{
 		Header: *header,
 		Round:  round,
@@ -125,7 +125,7 @@ func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
 		return
 	}
 
-	logger.Debug("notifying runtime updated chans...", "chans", bs.runtimeUpdateSubscriptions)
+	logger.Debug("notifying runtime updated channels...")
 	var wg sync.WaitGroup
 	wg.Add(len(bs.runtimeUpdateSubscriptions))
 	for _, ch := range bs.runtimeUpdateSubscriptions {

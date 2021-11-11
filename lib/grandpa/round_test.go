@@ -26,10 +26,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/require"
@@ -108,9 +108,10 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *networkVot
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kp,
-		LogLvl:        log.LvlInfo,
+		LogLvl:        log.Info,
 		Authority:     true,
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)

@@ -28,7 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 // ImportState imports the state in the given files to the database with the given path.
@@ -43,11 +43,11 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 		return err
 	}
 
-	log.Info("ImportState", "header", header)
+	logger.Infof("ImportState with header: %v", header)
 
 	config := state.Config{
 		Path:     basepath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	srv := state.NewService(config)
 	return srv.Import(header, tr, firstSlot)

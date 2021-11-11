@@ -17,15 +17,21 @@
 package core
 
 import (
+	"errors"
+
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
 // returns boolean for transaction propagation, true - transactions should be propagated
-func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (bool, error) {
+func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.TransactionMessage) (bool, error) {
 	logger.Debug("received TransactionMessage")
 
 	if !s.net.IsSynced() {
@@ -64,7 +70,13 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 			val, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Debug("failed to validate transaction", "err", err)
+				if errors.Is(err, runtime.ErrInvalidTransaction) {
+					s.net.ReportPeer(peerset.ReputationChange{
+						Value:  peerset.BadTransactionValue,
+						Reason: peerset.BadTransactionReason,
+					}, peerID)
+				}
+				logger.Debugf("failed to validate transaction: %s", err)
 				return nil
 			}
 
@@ -73,7 +85,7 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 
 			// push to the transaction queue of BABE session
 			hash := s.transactionState.AddToPool(vtx)
-			logger.Trace("added transaction to pool", "hash", hash)
+			logger.Tracef("added transaction with hash %s to pool", hash)
 
 			// find tx(s) that should propagate
 			if val.Propagate {
@@ -87,6 +99,11 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 			return false, err
 		}
 	}
+
+	s.net.ReportPeer(peerset.ReputationChange{
+		Value:  peerset.GoodTransactionValue,
+		Reason: peerset.GoodTransactionReason,
+	}, peerID)
 
 	msg.Extrinsics = toPropagate
 	return len(msg.Extrinsics) > 0, nil

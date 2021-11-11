@@ -46,13 +46,8 @@ func verifySecondarySlotPlain(authorityIndex uint32, slot uint64, numAuths int, 
 		return err
 	}
 
-	logger.Trace("verifySecondarySlotPlain",
-		"index", authorityIndex,
-		"number of authorities", numAuths,
-		"slot", slot,
-		"randomness", randomness,
-		"expected index", expected,
-	)
+	logger.Tracef("verifySecondarySlotPlain authority index %d, %d authorities, slot number %d, randomness 0x%x and expected index %d",
+		authorityIndex, numAuths, slot, randomness, expected)
 
 	if authorityIndex != expected {
 		return ErrBadSecondarySlotClaim
@@ -73,15 +68,8 @@ func verifySecondarySlotVRF(digest *types.BabeSecondaryVRFPreDigest,
 		return false, err
 	}
 
-	logger.Trace("verifySecondarySlotPlain",
-		"index", digest.AuthorityIndex,
-		"pub", pk.Hex(),
-		"number of authorities", numAuths,
-		"slot", digest.SlotNumber,
-		"epoch", epoch,
-		"randomness", randomness,
-		"expected index", expected,
-	)
+	logger.Tracef("verifySecondarySlotVRF authority index %d, public key %s, %d authorities, slot number %d, epoch %d, randomness 0x%x and expected index %d",
+		digest.AuthorityIndex, pk.Hex(), numAuths, digest.SlotNumber, epoch, randomness, expected)
 
 	if digest.AuthorityIndex != expected {
 		return false, ErrBadSecondarySlotClaim
