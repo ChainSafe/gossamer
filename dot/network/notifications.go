@@ -19,14 +19,14 @@ package network
 import (
 	"errors"
 	"fmt"
-	"io"
+	//"io"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 
-	"github.com/libp2p/go-libp2p-core/mux"
+	//"github.com/libp2p/go-libp2p-core/mux"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -385,10 +385,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		logger.Debug("failed to send message to peer", "protocol", info.protocolID, "peer", peer, "error", err)
 
 		// the stream was closed or reset, close it on our end and delete it from our peer's data
-		if errors.Is(err, io.EOF) || errors.Is(err, mux.ErrReset) {
-			_ = hsData.stream.Close()
-			info.outboundHandshakeData.Delete(peer)
-		}
+		//if errors.Is(err, io.EOF) || errors.Is(err, mux.ErrReset) {
+		_ = hsData.stream.Close()
+		info.outboundHandshakeData.Delete(peer)
+		//}
 
 		return
 	}

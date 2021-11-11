@@ -487,9 +487,7 @@ func (s *Service) RegisterNotificationsProtocol(
 				"protocol", protocolID,
 			)
 
-			//hsData.Lock()
 			np.inboundHandshakeData.Delete(peerID)
-			//hsData.Unlock()
 		}
 
 		if _, ok := np.getOutboundHandshakeData(peerID); ok {
@@ -499,9 +497,7 @@ func (s *Service) RegisterNotificationsProtocol(
 				"protocol", protocolID,
 			)
 
-			//hsData.Lock()
 			np.outboundHandshakeData.Delete(peerID)
-			//hsData.Unlock()
 		}
 	})
 
@@ -512,12 +508,6 @@ func (s *Service) RegisterNotificationsProtocol(
 
 	s.host.registerStreamHandler(protocolID, func(stream libp2pnetwork.Stream) {
 		logger.Trace("received stream", "sub-protocol", protocolID)
-		conn := stream.Conn()
-		if conn == nil {
-			logger.Error("Failed to get connection from stream")
-			return
-		}
-
 		s.readStream(stream, decoder, handlerWithValidate)
 	})
 
@@ -626,7 +616,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		s.streamManager.logMessageReceived(stream.ID())
 
 		// decode message based on message type
-		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
+		msg, err := decoder(msgBytes[:tot], peer, true) // stream is always inbound if it passes through service.readStream
 		if err != nil {
 			logger.Trace("failed to decode message from peer", "id", stream.ID(), "protocol", stream.Protocol(), "err", err)
 			s.closeInboundStream(stream)
