@@ -176,11 +176,11 @@ func NewService(cfg *Config) (*Service, error) {
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
-		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		batchSize:              100,
 	}
-
+	
+	network.streamManager = newStreamManager(ctx, network.closeInboundStream)
 	return network, err
 }
 
