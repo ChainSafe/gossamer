@@ -1774,20 +1774,7 @@ func ext_offchain_http_request_write_body_version_1(context unsafe.Pointer, reqI
 	}
 
 	encBody := asMemorySlice(instanceCtx, bodySpan)
-	var body []byte
-	err = scale.Unmarshal(encBody, &body)
-	if err != nil {
-		logger.Error("unable to decode deadline option", "error", err)
-		_ = httpErrorEnum.Set(offchain.HTTPErrorIO)
-		_ = result.Set(scale.Err, httpErrorEnum)
-
-		enc, _ := scale.Marshal(result)
-		ptr, _ := toWasmMemory(instanceCtx, enc)
-
-		return C.int64_t(ptr)
-	}
-
-	err = req.WriteBody(body, deadline)
+	err = req.WriteBody(encBody, deadline)
 	switch err {
 	case nil:
 		_ = result.Set(scale.OK, nil)
@@ -1805,6 +1792,7 @@ func ext_offchain_http_request_write_body_version_1(context unsafe.Pointer, reqI
 		ptr, _ := toWasmMemory(instanceCtx, enc)
 
 		return C.int64_t(ptr)
+
 	default:
 		logger.Error("failed to write body", "error", err)
 		_ = httpErrorEnum.Set(offchain.HTTPErrorIO)

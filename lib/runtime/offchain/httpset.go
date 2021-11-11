@@ -93,9 +93,10 @@ func (r *Request) AddHeader(k, v string) error {
 
 func (r *Request) WriteBody(data []byte, deadline *int64) error {
 	writeDone := make(chan error)
-	defer close(writeDone)
 
 	go func() {
+		defer close(writeDone)
+
 		currBody, err := io.ReadAll(r.Request.Body)
 		defer r.Request.Body.Close()
 		if err != nil {
@@ -121,9 +122,7 @@ func (r *Request) WriteBody(data []byte, deadline *int64) error {
 	}()
 
 	if deadline == nil {
-		// deadline was passed as None then blocks indefinitely
-		err := <-writeDone
-		return err
+		return <-writeDone
 	}
 
 	select {

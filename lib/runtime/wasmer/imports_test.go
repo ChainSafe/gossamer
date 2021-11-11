@@ -19,12 +19,13 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 	"sort"
 	"testing"
+	"time"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wasmerio/go-ext-wasm/wasmer"
@@ -46,19 +47,19 @@ var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
 
-func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
-		os.Exit(1)
-	}
+// func TestMain(m *testing.M) {
+// 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+// 	if err != nil {
+// 		log.Error("failed to generate runtime wasm file", err)
+// 		os.Exit(1)
+// 	}
 
-	// Start all tests
-	code := m.Run()
+// 	// Start all tests
+// 	code := m.Run()
 
-	runtime.RemoveFiles(wasmFilePaths)
-	os.Exit(code)
-}
+// 	runtime.RemoveFiles(wasmFilePaths)
+// 	os.Exit(code)
+// }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	t.Parallel()
@@ -364,6 +365,45 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 			require.Nil(t, ok)
 		})
 	}
+}
+
+func Test_ext_offchain_http_request_write_body_version_1(t *testing.T) {
+	t.Parallel()
+
+	testStructToJSON := struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}{
+		Name: "Test Name",
+		Age:  10,
+	}
+
+	testJsonBytes, err := json.Marshal(testStructToJSON)
+	require.NoError(t, err)
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	reqID, err := inst.ctx.OffchainHTTPSet.StartRequest(http.MethodGet, "http://uri.example")
+	require.NoError(t, err)
+
+	encID, err := scale.Marshal(uint32(reqID))
+	require.NoError(t, err)
+
+	encBody, err := scale.Marshal(testJsonBytes)
+	require.NoError(t, err)
+
+	deadline := time.Now().Add(time.Duration(time.Minute * 2)).Unix()
+	encDeadline, err := scale.Marshal(&deadline)
+	require.NoError(t, err)
+
+	params := append([]byte{}, encID...)
+	params = append(params, encBody...)
+	params = append(params, encDeadline...)
+
+	ret, err := inst.Exec("rtm_ext_offchain_http_request_write_body_version_1", params)
+	require.NoError(t, err)
+
+	fmt.Println(ret)
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
