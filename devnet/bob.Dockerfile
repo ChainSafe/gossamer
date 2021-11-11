@@ -21,7 +21,7 @@ COPY . .
 RUN ["sh", "-c", "go run .devnet/cmd/update-dd-agent-confd/main.go -n=gossamer.local.devnet -t=key:${key} > /tmp/conf.yaml"]
 RUN mv /tmp/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 RUN cat /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
-# RUN service datadog-agent start
+RUN service datadog-agent start
 
 RUN go get ./...
 RUN go build github.com/ChainSafe/gossamer/cmd/gossamer
