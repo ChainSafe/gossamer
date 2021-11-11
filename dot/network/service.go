@@ -176,6 +176,7 @@ func NewService(cfg *Config) (*Service, error) {
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
+		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		batchSize:              100,
 	}

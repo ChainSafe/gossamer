@@ -53,7 +53,7 @@ func (sm *streamManager) cleanupStreams() {
 		stream := sdata.stream
 
 		if time.Since(lastReceived) > cleanupStreamInterval {
-			_ = stream.Reset()
+			_ = stream.Close()
 			sm.streamDataMap.Delete(id)
 		}
 

@@ -392,7 +392,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		// the stream was closed or reset, close it on our end and delete it from our peer's data
 		if errors.Is(err, io.EOF) || errors.Is(err, mux.ErrReset) {
 			_ = hsData.stream.Reset()
-			//info.outboundHandshakeData.Delete(peer)
+			info.outboundHandshakeData.Delete(peer)
 		}
 
 		return
