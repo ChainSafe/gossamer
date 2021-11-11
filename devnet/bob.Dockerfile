@@ -18,7 +18,7 @@ WORKDIR /gossamer
 
 COPY . .
 
-RUN ["sh", "-c", "go run .devnet/cmd/update-dd-agent-confd/main.go -n=gossamer.local.devnet -t=key:${key} > /tmp/conf.yaml"]
+RUN ["sh", "-c", "go run devnet/cmd/update-dd-agent-confd/main.go -n=gossamer.local.devnet -t=key:${key} > /tmp/conf.yaml"]
 RUN mv /tmp/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 RUN cat /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 RUN service datadog-agent start
@@ -28,7 +28,7 @@ RUN go build github.com/ChainSafe/gossamer/cmd/gossamer
 
 # use modified genesis-spec.json with only 3 authority nodes
 RUN rm chain/gssmr/genesis-spec.json
-RUN cp .devnet/chain/gssmr/genesis-spec.json chain/gssmr/genesis-spec.json
+RUN cp devnet/chain/gssmr/genesis-spec.json chain/gssmr/genesis-spec.json
 
 RUN ["sh", "-c", "gossamer --key=${key} init"]
 ENTRYPOINT ["sh", "-c", "service datadog-agent restart && gossamer --key=${key} --bootnodes=/ip4/10.5.0.2/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU --publish-metrics --rpc --pubip=${pubip}"]
