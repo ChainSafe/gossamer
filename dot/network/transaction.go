@@ -124,6 +124,7 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) Notif
 	go func() {
 		protocolID := s.host.protocolID + transactionsID
 		ticker := time.NewTicker(s.cfg.SlotDuration)
+		defer ticker.Stop()
 
 		for {
 		out:
