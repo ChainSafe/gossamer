@@ -5,7 +5,6 @@ package utils
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
@@ -115,7 +114,7 @@ func KeystoreFiles(basepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get keystore directory: %s", err)
 	}
 
-	files, err := ioutil.ReadDir(keystorepath)
+	files, err := os.ReadDir(keystorepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read keystore directory: %s", err)
 	}

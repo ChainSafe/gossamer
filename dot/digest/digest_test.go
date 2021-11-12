@@ -4,8 +4,8 @@
 package digest
 
 import (
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -23,7 +23,7 @@ import (
 )
 
 func newTestHandler(t *testing.T) *Handler {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
 	config := state.Config{

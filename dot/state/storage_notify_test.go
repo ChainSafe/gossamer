@@ -6,7 +6,6 @@ package state
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"sync"
@@ -173,7 +172,7 @@ func Test_Example(t *testing.T) {
 	bValue := []byte("b-value")
 
 	// Open the DB.
-	dir, err := ioutil.TempDir("", "badger-test")
+	dir, err := os.MkdirTemp("", "badger-test")
 	if err != nil {
 		log.Fatal(err)
 	}

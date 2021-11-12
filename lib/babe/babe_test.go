@@ -5,7 +5,6 @@ package babe
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -91,7 +90,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.TransactionState = state.NewTransactionState()
 	}
 
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
+	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*") //nolint
 	require.NoError(t, err)
 
 	var dbSrv *state.Service
@@ -167,7 +166,7 @@ func TestMain(m *testing.M) {
 }
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
 	config := state.Config{

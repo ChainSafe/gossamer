@@ -6,7 +6,7 @@ package life
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -68,7 +68,7 @@ func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
-	bytes, err := ioutil.ReadFile(filepath.Clean(fp))
+	bytes, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}

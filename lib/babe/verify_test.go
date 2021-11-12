@@ -5,8 +5,8 @@ package babe
 
 import (
 	"errors"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -21,7 +21,7 @@ import (
 )
 
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
 	config := state.Config{

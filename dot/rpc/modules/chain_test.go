@@ -4,8 +4,8 @@
 package modules
 
 import (
-	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -338,7 +338,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 }
 
 func newTestStateService(t *testing.T) *state.Service {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
 	config := state.Config{

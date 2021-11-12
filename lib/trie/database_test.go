@@ -6,7 +6,6 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -16,7 +15,7 @@ import (
 )
 
 func newTestDB(t *testing.T) chaindb.Database {
-	testDatadirPath, _ := ioutil.TempDir(os.TempDir(), "test-datadir-*")
+	testDatadirPath, _ := os.MkdirTemp(os.TempDir(), "test-datadir-*")
 	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 	return chaindb.NewTable(db, "trie")

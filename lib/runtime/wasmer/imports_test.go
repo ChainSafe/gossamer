@@ -6,7 +6,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
@@ -1660,7 +1659,7 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	t.Parallel()
 
-	tmp, err := ioutil.TempDir("", "*-test-trie")
+	tmp, err := os.MkdirTemp("", "*-test-trie")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmp)

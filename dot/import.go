@@ -6,7 +6,7 @@ package dot
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -41,7 +41,7 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 }
 
 func newTrieFromPairs(filename string) (*trie.Trie, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(filename))
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 }
 
 func newHeaderFromFile(filename string) (*types.Header, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(filename))
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
 	}

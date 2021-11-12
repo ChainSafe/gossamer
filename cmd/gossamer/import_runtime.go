@@ -6,7 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -15,7 +15,7 @@ import (
 var defaultGenesisSpecPath = "./chain/gssmr/genesis-spec.json"
 
 func createGenesisWithRuntime(fp string) (string, error) {
-	runtime, err := ioutil.ReadFile(filepath.Clean(fp))
+	runtime, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return "", err
 	}

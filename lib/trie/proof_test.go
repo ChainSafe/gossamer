@@ -4,7 +4,7 @@
 package trie
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -14,7 +14,7 @@ import (
 func TestProofGeneration(t *testing.T) {
 	t.Parallel()
 
-	tmp, err := ioutil.TempDir("", "*-test-trie")
+	tmp, err := os.MkdirTemp("", "*-test-trie")
 	require.NoError(t, err)
 
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
@@ -55,7 +55,7 @@ func TestProofGeneration(t *testing.T) {
 func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][]byte, []Pair) {
 	t.Helper()
 
-	tmp, err := ioutil.TempDir("", "*-test-trie")
+	tmp, err := os.MkdirTemp("", "*-test-trie")
 	require.NoError(t, err)
 
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{

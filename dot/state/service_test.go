@@ -6,8 +6,8 @@ package state
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -38,7 +38,7 @@ func newTestService(t *testing.T) (state *Service) {
 }
 
 func newTestMemDBService() *Service {
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, _ := os.MkdirTemp("/tmp", "test-datadir-*")
 	config := Config{
 		Path:     testDatadirPath,
 		LogLevel: log.Info,

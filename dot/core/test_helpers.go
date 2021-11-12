@@ -4,7 +4,7 @@
 package core
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -45,7 +45,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.LogLvl = 3
 
 	var stateSrvc *state.Service
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)

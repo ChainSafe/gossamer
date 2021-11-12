@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"reflect"
 )
@@ -286,7 +285,7 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 		}
 		dstv.Set(reflect.ValueOf(res))
 	default:
-		bytes, _ := ioutil.ReadAll(ds.Reader)
+		bytes, _ := io.ReadAll(ds.Reader)
 		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, bytes)
 	}
 	return
@@ -319,7 +318,7 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 			dstv.Set(tempElem)
 		}
 	default:
-		bytes, _ := ioutil.ReadAll(ds.Reader)
+		bytes, _ := io.ReadAll(ds.Reader)
 		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, bytes)
 	}
 	return

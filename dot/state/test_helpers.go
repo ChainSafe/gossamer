@@ -6,8 +6,8 @@ package state
 import (
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -25,7 +25,7 @@ var inc, _ = time.ParseDuration("1s")
 
 // NewInMemoryDB creates a new in-memory database
 func NewInMemoryDB(t *testing.T) chaindb.Database {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)

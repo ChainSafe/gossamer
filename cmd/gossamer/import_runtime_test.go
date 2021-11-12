@@ -5,7 +5,6 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -20,11 +19,11 @@ func TestCreateGenesisWithRuntime(t *testing.T) {
 
 	testCode := []byte("somecode")
 	testHex := common.BytesToHex(testCode)
-	testFile, err := ioutil.TempFile("", "testcode-*.wasm")
+	testFile, err := os.CreateTemp("", "testcode-*.wasm")
 	require.NoError(t, err)
 	defer os.Remove(testFile.Name())
 
-	err = ioutil.WriteFile(testFile.Name(), testCode, 0777)
+	err = os.WriteFile(testFile.Name(), testCode, 0777)
 	require.NoError(t, err)
 
 	out, err := createGenesisWithRuntime(testFile.Name())

@@ -6,7 +6,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -110,7 +109,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	cfg := newTestConfig(t)
 
-	file, err := ioutil.TempFile(cfg.Global.BasePath, "config-")
+	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
 	require.NoError(t, err)
 
 	tomlCfg := dotConfigToToml(cfg)

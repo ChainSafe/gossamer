@@ -5,9 +5,9 @@ package grandpa
 
 import (
 	"context"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -50,7 +50,7 @@ func NewMockDigestHandler() *mocks.DigestHandler {
 }
 
 func newTestState(t *testing.T) *state.Service {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)
