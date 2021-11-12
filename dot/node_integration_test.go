@@ -38,7 +38,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
+	log "github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -159,42 +159,6 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NotNil(t, fg)
 }
 
-// TestStartNode
-func TestStartNode(t *testing.T) {
-	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
-
-	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
-	cfg.Core.GrandpaAuthority = false
-
-	err := InitNode(cfg)
-	require.NoError(t, err)
-
-	ks := keystore.NewGlobalKeystore()
-	err = keystore.LoadKeystore("alice", ks.Gran)
-	require.NoError(t, err)
-	err = keystore.LoadKeystore("alice", ks.Babe)
-	require.NoError(t, err)
-
-	cfg.Core.Roles = types.FullNodeRole
-
-	node, err := NewNode(cfg, ks, nil)
-	require.NoError(t, err)
-
-	go func() {
-		<-node.started
-		node.Stop()
-	}()
-
-	err = node.Start()
-	require.NoError(t, err)
-}
-
 // TestInitNode_LoadGenesisData
 func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
@@ -213,7 +177,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
 

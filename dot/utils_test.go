@@ -17,14 +17,14 @@
 package dot
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateJSONRawFile(t *testing.T) {

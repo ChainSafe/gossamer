@@ -19,19 +19,17 @@ package dot
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitNode(t *testing.T) {
@@ -39,13 +37,13 @@ func TestInitNode(t *testing.T) {
 		cfg *Config
 	}
 	tests := []struct {
-		name    string
-		args    args
-		err error
+		name string
+		args args
+		err  error
 	}{
 		{
-			name:    "no arguments",
-			args:    args{cfg: GssmrConfig()},
+			name: "no arguments",
+			args: args{cfg: GssmrConfig()},
 		},
 	}
 	for _, tt := range tests {
@@ -84,16 +82,16 @@ func TestLoadGlobalNodeName(t *testing.T) {
 		name         string
 		args         args
 		wantNodename string
-		err error
+		err          error
 	}{
 		{
 			name:         "working example",
-			args: args{basepath: basePath},
+			args:         args{basepath: basePath},
 			wantNodename: "nodeName",
 		},
 		{
-			name:         "no arguments",
-			err: errors.New("Key not found"),
+			name: "no arguments",
+			err:  errors.New("Key not found"),
 		},
 	}
 	for _, tt := range tests {
@@ -132,34 +130,32 @@ func TestNewNode(t *testing.T) {
 
 	cfg.Core.Roles = types.FullNodeRole
 
-
-
 	type args struct {
 		cfg      *Config
 		ks       *keystore.GlobalKeystore
 		stopFunc func()
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *Node
-		err error
+		name string
+		args args
+		want *Node
+		err  error
 	}{
 		{
-			name:    "missing keystore",
-			args:    args{
+			name: "missing keystore",
+			args: args{
 				cfg: cfg,
 			},
 			err: errors.New("failed to create core service: cannot have nil keystore"),
 		},
 		// todo (ed) this second test fails with; failed to create state service: failed to start state service: Cannot acquire directory lock on "/home/emack/projects/ChainSafe/gossamer/dot/test_data/TestNewNode/db".  Another process is using this Badger database.: resource temporarily unavailable
 		{
-			name:    "working example",
-			args:    args{
-				cfg:      cfg,
-				ks:       ks,
+			name: "working example",
+			args: args{
+				cfg: cfg,
+				ks:  ks,
 			},
-			want:    &Node{Name: "Gossamer"},
+			want: &Node{Name: "Gossamer"},
 		},
 	}
 	for _, tt := range tests {
@@ -179,6 +175,19 @@ func TestNewNode(t *testing.T) {
 }
 
 func TestNodeInitialized(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
 	type args struct {
 		basepath string
 	}
@@ -187,7 +196,16 @@ func TestNodeInitialized(t *testing.T) {
 		args args
 		want bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "blank base path",
+			args: args{basepath: ""},
+			want: false,
+		},
+		{
+			name: "working example",
+			args: args{basepath: cfg.Global.BasePath},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -198,63 +216,41 @@ func TestNodeInitialized(t *testing.T) {
 	}
 }
 
-func TestNode_Start(t *testing.T) {
-	type fields struct {
-		Name     string
-		Services *services.ServiceRegistry
-		StopFunc func()
-		wg       sync.WaitGroup
-		started  chan struct{}
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			n := &Node{
-				Name:     tt.fields.Name,
-				Services: tt.fields.Services,
-				StopFunc: tt.fields.StopFunc,
-				wg:       tt.fields.wg,
-				started:  tt.fields.started,
-			}
-			if err := n.Start(); (err != nil) != tt.wantErr {
-				t.Errorf("Start() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
+// TestStartNode
+func TestStartNode(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
 
-func TestNode_Stop(t *testing.T) {
-	type fields struct {
-		Name     string
-		Services *services.ServiceRegistry
-		StopFunc func()
-		wg       sync.WaitGroup
-		started  chan struct{}
-	}
-	tests := []struct {
-		name   string
-		fields fields
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			n := &Node{
-				Name:     tt.fields.Name,
-				Services: tt.fields.Services,
-				StopFunc: tt.fields.StopFunc,
-				wg:       tt.fields.wg,
-				started:  tt.fields.started,
-			}
-			fmt.Printf("node %v\n", n)
-		})
-	}
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+	cfg.Core.GrandpaAuthority = false
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	ks := keystore.NewGlobalKeystore()
+	err = keystore.LoadKeystore("alice", ks.Gran)
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe)
+	require.NoError(t, err)
+
+	cfg.Core.Roles = types.FullNodeRole
+
+	node, err := NewNode(cfg, ks, nil)
+	require.NoError(t, err)
+
+	go func() {
+		<-node.started
+		fmt.Printf("######################node started\n")
+		node.Stop()
+	}()
+
+	err = node.Start()
+	require.NoError(t, err)
 }
 
 func Test_loadRuntime(t *testing.T) {
