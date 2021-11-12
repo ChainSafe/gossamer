@@ -1,6 +1,5 @@
 /.git
 /.githooks
-/.github
 /docs
 /.deepsource.toml
 /.dockerignore
