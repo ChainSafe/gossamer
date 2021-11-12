@@ -23,6 +23,7 @@ import (
 	"os"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -61,32 +62,32 @@ func TestMain(m *testing.M) {
 }
 
 func Test_ext_offchain_timestamp_version_1(t *testing.T) {
-	t.Skip()
-	// TODO: Fix me: https://github.com/ChainSafe/gossamer/issues/1902
-	// inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	// runtimeFunc, ok := inst.vm.Imports["rtm_ext_offchain_timestamp_version_1"]
-	// require.True(t, ok)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	runtimeFunc, ok := inst.vm.Exports["rtm_ext_offchain_timestamp_version_1"]
+	require.True(t, ok)
 
-	// res, err := runtimeFunc(0, 0)
-	// require.NoError(t, err)
+	res, err := runtimeFunc(0, 0)
+	require.NoError(t, err)
 
-	// expected := time.Now().Unix()
-	// require.GreaterOrEqual(t, expected, res.ToI64())
+	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
+	data := inst.load(offset, length)
+	var timestamp int64
+	err = scale.Unmarshal(data, &timestamp)
+	require.NoError(t, err)
 
-	// _, err := inst.Exec("rtm_ext_offchain_timestamp_version_1", nil)
-	// require.NoError(t, err)
+	expected := time.Now().Unix()
+	require.GreaterOrEqual(t, expected, timestamp)
 }
 
 func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
-	t.Skip()
-	// TODO: Fix me: https://github.com/ChainSafe/gossamer/issues/1902
-	// inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	// enc := make([]byte, 8)
-	// binary.LittleEndian.PutUint64(enc, uint64(time.Now().UnixMilli()))
+	input := time.Now().UnixMilli()
+	enc, err := scale.Marshal(input)
+	require.NoError(t, err)
 
-	// _, err := inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc)
-	// require.NoError(t, err)
+	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) //auto conversion to i64
+	require.NoError(t, err)
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
