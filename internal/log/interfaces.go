@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package log
 
 // ChildConstructor is the interface to create child loggers.

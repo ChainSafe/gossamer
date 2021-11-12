@@ -1,0 +1,39 @@
+name: Copyright check
+on:
+  pull_request:
+    branches:
+      - development
+    paths:
+      - .github/workflows/copyright.yml
+      - "**/*.go"
+      - "**/*.proto"
+
+jobs:
+  copyright-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "^1.17"
+
+      - run: go install github.com/google/addlicense@v1.0.0
+
+      - name: copyright check with addlicense
+        run: |
+          addlicense -v -check \
+            -s=only \
+            -l="LGPL-3.0-only" \
+            -f ./copyright.txt \
+            -c "ChainSafe Systems (ON)" \
+            -ignore "**/*.md" \
+            -ignore "**/*.html" \
+            -ignore "**/*.css" \
+            -ignore "**/*.scss" \
+            -ignore "**/*.yml" \
+            -ignore "**/*.yaml" \
+            -ignore "**/*.js" \
+            -ignore "**/*.sh" \
+            -ignore "*Dockerfile" \
+            .
