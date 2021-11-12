@@ -210,7 +210,9 @@ func (d *discovery) findPeers(ctx context.Context) {
 
 			logger.Tracef("found new peer %s via DHT", peer.ID)
 
-			// TODO: this isn't working on the devnet
+			// TODO: this isn't working on the devnet (#2026)
+			// can remove the code block below this that directly connects
+			// once that's fixed
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
 

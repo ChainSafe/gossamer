@@ -6,8 +6,8 @@ import (
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
 	// we NEED to reset the stream if we ever return from this function, as if we return,
-	// the stream will never again be read by us, so we need to tell the remote side we aren't
-	// reading from this stream.
+	// the stream will never again be read by us, so we need to tell the remote side we're
+	// done with this stream, and they should also forget about it.
 	defer s.resetInboundStream(stream)
 	s.streamManager.logNewStream(stream)
 
@@ -60,6 +60,7 @@ func (s *Service) resetInboundStream(stream libp2pnetwork.Stream) {
 		}
 
 		prtl.inboundHandshakeData.Delete(peerID)
+		break
 	}
 
 	logger.Debugf(
