@@ -470,7 +470,10 @@ func TestAddBlockToBlockTree(t *testing.T) {
 	err := bs.setArrivalTime(header.Hash(), time.Now())
 	require.NoError(t, err)
 
-	err = bs.AddBlockToBlockTree(header)
+	err = bs.AddBlockToBlockTree(&types.Block{
+		Header: *header,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
 	require.Equal(t, bs.BestBlockHash(), header.Hash())
 }

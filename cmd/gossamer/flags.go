@@ -18,7 +18,7 @@ package main
 
 import (
 	"github.com/ChainSafe/gossamer/chain/dev"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/urfave/cli"
 )
 
@@ -56,9 +56,50 @@ var (
 	// LogFlag cli service settings
 	LogFlag = cli.StringFlag{
 		Name:  "log",
-		Usage: "Supports levels crit (silent) to trce (trace)",
-		Value: log.LvlInfo.String(),
+		Usage: "Global log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: log.Info.String(),
 	}
+	LogCoreLevelFlag = cli.StringFlag{
+		Name:  "log-core",
+		Usage: "Core package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: LogFlag.Value,
+	}
+	LogSyncLevelFlag = cli.StringFlag{
+		Name:  "log-sync",
+		Usage: "Sync package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: LogFlag.Value,
+	}
+	LogNetworkLevelFlag = cli.StringFlag{
+		Name:  "log-network",
+		Usage: "Network package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: LogFlag.Value,
+	}
+	LogRPCLevelFlag = cli.StringFlag{
+		Name:  "log-rpc",
+		Usage: "RPC package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: LogFlag.Value,
+	}
+	LogStateLevelFlag = cli.StringFlag{
+		Name:  "log-state",
+		Usage: "State package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: LogFlag.Value,
+	}
+	LogRuntimeLevelFlag = cli.StringFlag{
+		Name:  "log-runtime",
+		Usage: "Runtime package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: LogFlag.Value,
+	}
+	LogBabeLevelFlag = cli.StringFlag{
+		Name:  "log-babe",
+		Usage: "BABE package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: LogFlag.Value,
+	}
+	LogGrandpaLevelFlag = cli.StringFlag{
+		Name:  "log-grandpa",
+		Usage: "Grandpa package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Value: LogFlag.Value,
+	}
+
 	// NameFlag node implementation name
 	NameFlag = cli.StringFlag{
 		Name:  "name",
@@ -342,6 +383,14 @@ var (
 	// GlobalFlags are flags that are valid for use with the root command and all subcommands
 	GlobalFlags = []cli.Flag{
 		LogFlag,
+		LogCoreLevelFlag,
+		LogSyncLevelFlag,
+		LogNetworkLevelFlag,
+		LogRPCLevelFlag,
+		LogStateLevelFlag,
+		LogRuntimeLevelFlag,
+		LogBabeLevelFlag,
+		LogGrandpaLevelFlag,
 		NameFlag,
 		ChainFlag,
 		ConfigFlag,
@@ -456,7 +505,7 @@ var (
 // `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
-		trace := "trace"
+		const trace = "trace"
 
 		// loop through all flags (global and local)
 		for _, flagName := range ctx.FlagNames() {
@@ -465,7 +514,7 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 			if ctx.GlobalIsSet(flagName) {
 				// log global flag if log equals trace
 				if ctx.String(LogFlag.Name) == trace {
-					log.Trace("[cmd] global flag set", "name", flagName)
+					logger.Trace("[cmd] global flag set with name: " + flagName)
 				}
 			} else if ctx.IsSet(flagName) {
 				// check if global flag using set as global flag
@@ -473,12 +522,12 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 				if err == nil {
 					// log fixed global flag if log equals trace
 					if ctx.String(LogFlag.Name) == trace {
-						log.Trace("[cmd] global flag fixed", "name", flagName)
+						logger.Trace("[cmd] global flag fixed with name: " + flagName)
 					}
 				} else {
 					// if not global flag, log local flag if log equals trace
 					if ctx.String(LogFlag.Name) == trace {
-						log.Trace("[cmd] local flag set", "name", flagName)
+						logger.Trace("[cmd] local flag set with name: " + flagName)
 					}
 				}
 			}

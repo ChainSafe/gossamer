@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -34,7 +35,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +44,7 @@ func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	state = NewService(config)
 	return state
@@ -54,7 +54,7 @@ func newTestMemDBService() *Service {
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
 	config := Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	state := NewService(config)
 	state.UseMemDB()
@@ -120,7 +120,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateA := NewService(config)
 
@@ -158,7 +158,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	retainBlocks := 2
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 		PrunerCfg: pruner.Config{
 			Mode:           pruner.Full,
 			RetainedBlocks: int64(retainBlocks),
@@ -209,7 +209,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -290,7 +290,7 @@ func TestService_Rewind(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -346,7 +346,7 @@ func TestService_Import(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -411,7 +411,7 @@ func TestStateServiceMetrics(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	ethmetrics.Enabled = true
 	serv := NewService(config)

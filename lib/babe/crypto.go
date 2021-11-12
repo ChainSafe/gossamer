@@ -17,7 +17,6 @@ package babe
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 
@@ -52,12 +51,8 @@ func claimPrimarySlot(randomness Randomness,
 		return nil, err
 	}
 
-	logger.Trace("claimPrimarySlot", "pub", keypair.Public().Hex(),
-		"slot", slot,
-		"epoch", epoch,
-		"output", fmt.Sprintf("0x%x", out),
-		"proof", fmt.Sprintf("0x%x", proof),
-	)
+	logger.Tracef("claimPrimarySlot pub=%s slot=%d epoch=%d output=0x%x proof=0x%x",
+		keypair.Public().Hex(), slot, epoch, out, proof)
 
 	ok := checkPrimaryThreshold(randomness, slot, epoch, out, threshold, keypair.Public().(*sr25519.PublicKey))
 	if !ok {
@@ -83,14 +78,8 @@ func checkPrimaryThreshold(randomness Randomness,
 
 	inoutUint := common.Uint128FromLEBytes(res)
 
-	logger.Trace("checkPrimaryThreshold", "pub", pub.Hex(),
-		"randomness", randomness,
-		"slot", slot,
-		"epoch", epoch,
-		"threshold", threshold.ToLEBytes(),
-		"output", fmt.Sprintf("0x%x", output),
-		"inout", res,
-	)
+	logger.Tracef("checkPrimaryThreshold pub=%s randomness=0x%x slot=%d epoch=%d threshold=0x%x output=0x%x inout=0x%x",
+		pub.Hex(), randomness, slot, epoch, threshold, output, res)
 
 	return inoutUint.Cmp(threshold) < 0
 }
