@@ -31,12 +31,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
-var (
-	errCannotValidateHandshake = errors.New("failed to validate handshake")
-	maxHandshakeSize           = reflect.TypeOf(BlockAnnounceHandshake{}).Size()
-)
-
 const handshakeTimeout = time.Second * 10
+
+var maxHandshakeSize = reflect.TypeOf(BlockAnnounceHandshake{}).Size()
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
@@ -128,11 +125,10 @@ func (n *notificationsProtocol) getOutboundHandshakeData(pid peer.ID) (*handshak
 }
 
 type handshakeData struct {
-	received    bool
-	validated   bool
-	handshake   Handshake
-	stream      libp2pnetwork.Stream
-	*sync.Mutex // this needs to be a pointer, otherwise a new mutex will be created every time hsData is stored/loaded
+	received  bool
+	validated bool
+	handshake Handshake
+	stream    libp2pnetwork.Stream
 }
 
 func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) *handshakeData {
@@ -140,7 +136,6 @@ func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) *ha
 		received:  received,
 		validated: validated,
 		stream:    stream,
-		Mutex:     new(sync.Mutex),
 	}
 }
 
@@ -182,7 +177,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		)
 
 		if msg, ok = m.(NotificationsMessage); !ok {
-			return errors.New("message is not NotificationsMessage")
+			return errInvalidNotificationsMessage
 		}
 
 		if msg.IsHandshake() {
@@ -191,7 +186,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 			hs, ok := msg.(Handshake)
 			if !ok {
-				return errors.New("failed to convert message to Handshake")
+				return errMessageIsNotHandshake
 			}
 
 			// if we are the receiver and haven't received the handshake already, validate it
@@ -354,7 +349,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 	mu, has := info.outboundHandshakeMutexes.Load(peer)
 	if !has || mu == nil {
 		// this should not happen
-		return nil, errors.New("outboundHandshakeMutex does not exist")
+		return nil, errMissingHandshakeMutex
 	}
 
 	// multiple processes could each call this upcoming section, opening multiple streams and
@@ -365,7 +360,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 	hsData, has := info.getOutboundHandshakeData(peer)
 	if has && !hsData.validated {
 		// peer has sent us an invalid handshake in the past, ignore
-		return nil, errors.New("peer previously sent invalid handshake")
+		return nil, errInvalidHandshakeForPeer
 	}
 
 	if has && hsData.validated {
@@ -399,7 +394,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 
 		logger.Tracef("handshake timeout reached for peer %s using protocol %s", peer, info.protocolID)
 		closeOutboundStream(info, peer, stream)
-		return nil, errors.New("handshake timeout reached")
+		return nil, errHandshakeTimeout
 	case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
 		hsTimer.Stop()
 		if hsResponse.err != nil {
