@@ -245,7 +245,15 @@ func (s *Service) Start() error {
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
+	// NOTE: this only handles *incoming* connections
 	s.host.h.Network().SetConnHandler(s.handleConn)
+
+	// this handles all new connections (incoming and outgoing)
+	s.host.cm.setConnectHandler(func(peerID peer.ID) {
+		for _, prtl := range s.notificationsProtocols {
+			prtl.sendDataMutexes.Store(peerID, new(sync.Mutex))
+		}
+	})
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
@@ -292,6 +300,8 @@ func (s *Service) collectNetworkMetrics() {
 		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/outbound", metrics.DefaultRegistry)
 		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
 		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
+		totalInboundStreams := metrics.GetOrRegisterGauge("network/streams/total/inbound", metrics.DefaultRegistry)
+		totalOutboundStreams := metrics.GetOrRegisterGauge("network/streams/total/outbound", metrics.DefaultRegistry)
 
 		peerCount.Update(int64(s.host.peerCount()))
 		totalConn.Update(int64(len(s.host.h.Network().Conns())))
@@ -299,8 +309,10 @@ func (s *Service) collectNetworkMetrics() {
 
 		numInboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, true))
 		numOutboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, false))
-		numInboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, false))
-		numOutboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, true))
+		numInboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, true))
+		numOutboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, false))
+		totalInboundStreams.Update(s.getTotalStreams(true))
+		totalOutboundStreams.Update(s.getTotalStreams(false))
 
 		num, err := s.blockState.BestBlockNumber()
 		if err != nil {
@@ -311,6 +323,18 @@ func (s *Service) collectNetworkMetrics() {
 
 		time.Sleep(gssmrmetrics.RefreshInterval)
 	}
+}
+
+func (s *Service) getTotalStreams(inbound bool) int64 {
+	var count int64
+	for _, conn := range s.host.h.Network().Conns() {
+		for _, stream := range conn.GetStreams() {
+			if isInbound(stream) && inbound || !isInbound(stream) && !inbound {
+				count++
+			}
+		}
+	}
+	return count
 }
 
 func (s *Service) getNumStreams(protocolID byte, inbound bool) int64 {
@@ -475,6 +499,7 @@ func (s *Service) RegisterNotificationsProtocol(
 		getHandshake:          handshakeGetter,
 		handshakeValidator:    handshakeValidator,
 		handshakeDecoder:      handshakeDecoder,
+		sendDataMutexes:       new(sync.Map),
 		inboundHandshakeData:  new(sync.Map),
 		outboundHandshakeData: new(sync.Map),
 	}
@@ -606,6 +631,9 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, 
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
+	// we NEED to close the stream if we ever return from this function, as if we return,
+	// the stream will never again be read by us, so we need to tell the remote side we aren't
+	// reading from this stream.
 	defer s.closeInboundStream(stream)
 	s.streamManager.logNewStream(stream)
 
@@ -670,7 +698,7 @@ func (s *Service) closeInboundStream(stream libp2pnetwork.Stream) {
 		"protocol", protocolID,
 	)
 
-	_ = stream.Close()
+	_ = stream.Reset()
 }
 
 func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {

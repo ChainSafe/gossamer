@@ -38,6 +38,7 @@ type ConnManager struct {
 	sync.Mutex
 	host              *host
 	min, max          int
+	connectHandler func(peer.ID)
 	disconnectHandler func(peer.ID)
 
 	// closeHandlerMap contains close handler corresponding to a protocol.
@@ -151,6 +152,10 @@ func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
 	return unprot
 }
 
+func (cm *ConnManager) setConnectHandler(handler func(peer.ID)) {
+	cm.connectHandler = handler
+}
+
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Trace(
@@ -158,6 +163,8 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 		"host", c.LocalPeer(),
 		"peer", c.RemotePeer(),
 	)
+
+	cm.connectHandler(c.RemotePeer())
 
 	cm.Lock()
 	defer cm.Unlock()
@@ -167,6 +174,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 		return
 	}
 
+	// TODO: peer scoring doesn't seem to prevent us from going over the max
 	// if over the max peer count, disconnect from (total_peers - maximum) peers
 	for i := 0; i < over; i++ {
 		unprotPeers := cm.unprotectedPeers(n.Peers())
@@ -216,7 +224,9 @@ func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb streamClo
 	cm.closeHandlerMap[protocolID] = cb
 }
 
-// ClosedStream is called when a stream closed
+// ClosedStream is called when a stream closed by the remote side.
+// Only inbound streams pass through this function.
+// Outbound streams 
 func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
 	logger.Trace(
 		"Closed stream",
