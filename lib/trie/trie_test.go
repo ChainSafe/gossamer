@@ -1131,7 +1131,7 @@ func TestNextKey_Random(t *testing.T) {
 	}
 }
 
-func Benchmark_RootHashParallel(b *testing.B) {
+func Benchmark_Trie_Hash(b *testing.B) {
 	rt := GenerateRandomTests(b, 1000000)
 	trie := NewEmptyTrie()
 	for i := range rt {
