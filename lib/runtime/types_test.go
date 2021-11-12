@@ -1,9 +1,11 @@
 package runtime
 
 import (
+	"io"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -14,7 +16,7 @@ import (
 
 func TestBackgroundSignVerification(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier()
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 
@@ -29,7 +31,7 @@ func TestBackgroundSignVerification(t *testing.T) {
 
 func TestBackgroundSignVerificationMultipleStart(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier()
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	for ii := 0; ii < 5; ii++ {
 		require.False(t, signVerify.IsStarted())
@@ -64,7 +66,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 
 	signs = append(signs, signature)
 
-	signVerify := NewSignatureVerifier()
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 	signVerify.Start()
 
 	for _, sig := range signs {
@@ -75,7 +77,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 
 func TestValidSignatureBatch(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier()
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 
@@ -120,7 +122,7 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 		KeyTypeID: crypto.Secp256k1Type,
 	}
 
-	signVerify := NewSignatureVerifier()
+	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 

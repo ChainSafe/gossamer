@@ -19,16 +19,15 @@ package wasmer
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -40,7 +39,10 @@ var (
 	_ runtime.Instance = (*Instance)(nil)
 	_ runtime.Memory   = (*wasm.Memory)(nil)
 
-	logger = log.New("pkg", "runtime", "module", "go-wasmer")
+	logger = log.NewFromGlobal(
+		log.AddContext("pkg", "runtime"),
+		log.AddContext("module", "go-wasmer"),
+	)
 )
 
 // Config represents a wasmer configuration
@@ -99,20 +101,11 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg *Config) (*Instance, error) {
-	return newInstance(code, cfg)
-}
-
-func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}
 
-	// if cfg.LogLvl set to < 0, then don't change package log level
-	if cfg.LogLvl >= 0 {
-		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-		h = runtime.CustomFileHandler(h)
-		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
-	}
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	imports, err := cfg.Imports()
 	if err != nil {
@@ -157,11 +150,11 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		NodeStorage:     cfg.NodeStorage,
 		Network:         cfg.Network,
 		Transaction:     cfg.Transaction,
-		SigVerifier:     runtime.NewSignatureVerifier(),
+		SigVerifier:     runtime.NewSignatureVerifier(logger),
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 
-	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
+	logger.Debugf("NewInstance called with runtimeCtx: %v", runtimeCtx)
 	instance.SetContextData(runtimeCtx)
 
 	inst := &Instance{

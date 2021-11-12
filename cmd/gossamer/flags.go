@@ -18,7 +18,7 @@ package main
 
 import (
 	"github.com/ChainSafe/gossamer/chain/dev"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/urfave/cli"
 )
 
@@ -57,7 +57,7 @@ var (
 	LogFlag = cli.StringFlag{
 		Name:  "log",
 		Usage: "Global log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: log.LvlInfo.String(),
+		Value: log.Info.String(),
 	}
 	LogCoreLevelFlag = cli.StringFlag{
 		Name:  "log-core",
@@ -505,7 +505,7 @@ var (
 // `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
-		trace := "trace"
+		const trace = "trace"
 
 		// loop through all flags (global and local)
 		for _, flagName := range ctx.FlagNames() {
@@ -514,7 +514,7 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 			if ctx.GlobalIsSet(flagName) {
 				// log global flag if log equals trace
 				if ctx.String(LogFlag.Name) == trace {
-					log.Trace("[cmd] global flag set", "name", flagName)
+					logger.Trace("[cmd] global flag set with name: " + flagName)
 				}
 			} else if ctx.IsSet(flagName) {
 				// check if global flag using set as global flag
@@ -522,12 +522,12 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 				if err == nil {
 					// log fixed global flag if log equals trace
 					if ctx.String(LogFlag.Name) == trace {
-						log.Trace("[cmd] global flag fixed", "name", flagName)
+						logger.Trace("[cmd] global flag fixed with name: " + flagName)
 					}
 				} else {
 					// if not global flag, log local flag if log equals trace
 					if ctx.String(LogFlag.Name) == trace {
-						log.Trace("[cmd] local flag set", "name", flagName)
+						logger.Trace("[cmd] local flag set with name: " + flagName)
 					}
 				}
 			}

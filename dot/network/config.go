@@ -21,7 +21,7 @@ import (
 	"path"
 	"time"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
@@ -59,8 +59,8 @@ var DefaultBootnodes = []string(nil)
 
 // Config is used to configure a network service
 type Config struct {
-	LogLvl  log.Lvl
-	logger  log.Logger
+	LogLvl  log.Level
+	logger  log.LeveledLogger
 	ErrChan chan<- error
 
 	// BasePath the data directory for the node
@@ -175,11 +175,9 @@ func (c *Config) buildIdentity() error {
 
 		// generate key if no key exists
 		if key == nil {
-			c.logger.Info(
-				"Generating p2p identity",
-				"RandSeed", c.RandSeed,
-				"KeyFile", path.Join(c.BasePath, DefaultKeyFile),
-			)
+			c.logger.Infof(
+				"Generating p2p identity with seed %d and key file %s",
+				c.RandSeed, path.Join(c.BasePath, DefaultKeyFile))
 
 			// generate key
 			key, err = generateKey(c.RandSeed, c.BasePath)
@@ -191,11 +189,9 @@ func (c *Config) buildIdentity() error {
 		// set private key
 		c.privateKey = key
 	} else {
-		c.logger.Info(
-			"Generating p2p identity from seed",
-			"RandSeed", c.RandSeed,
-			"KeyFile", path.Join(c.BasePath, DefaultKeyFile),
-		)
+		c.logger.Infof(
+			"Generating p2p identity with seed %d and key file %s",
+			c.RandSeed, path.Join(c.BasePath, DefaultKeyFile))
 
 		// generate temporary deterministic key
 		key, err := generateKey(c.RandSeed, c.BasePath)
@@ -213,10 +209,7 @@ func (c *Config) buildIdentity() error {
 // buildProtocol verifies and applies defaults to the protocol configuration
 func (c *Config) buildProtocol() error {
 	if c.ProtocolID == "" {
-		c.logger.Warn(
-			"ProtocolID not defined, using DefaultProtocolID",
-			"DefaultProtocolID", DefaultProtocolID,
-		)
+		c.logger.Warn("ProtocolID not defined, using default protocol id " + DefaultProtocolID)
 		c.ProtocolID = DefaultProtocolID
 	}
 

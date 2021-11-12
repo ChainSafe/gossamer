@@ -165,7 +165,9 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		}
 	case nil:
 	default:
-		logger.Warn("unexpected type returned from message handler", "response", resp)
+		logger.Warnf(
+			"unexpected type %T returned from message handler: %v",
+			resp, resp)
 	}
 
 	switch m.(type) {
@@ -186,7 +188,7 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 	}
 
 	s.network.GossipMessage(cm)
-	logger.Trace("sent message", "msg", msg)
+	logger.Tracef("sent message: %v", msg)
 	return nil
 }
 
@@ -217,7 +219,7 @@ func (s *Service) sendNeighbourMessage() {
 
 		cm, err := s.neighbourMessage.ToConsensusMessage()
 		if err != nil {
-			logger.Warn("failed to convert NeighbourMessage to network message", "error", err)
+			logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
 			continue
 		}
 

@@ -3,18 +3,19 @@ package modules
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	log "github.com/ChainSafe/log15"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func TestAuthorModule_HasSessionKey_WhenScaleDataEmptyOrNil(t *testing.T) {
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
-		logger:  log.New("service", "RPC", "module", "author"),
+		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
 	req := &HasSessionKeyRequest{
@@ -56,7 +57,7 @@ func TestAuthorModule_HasSessionKey_WhenRuntimeFails(t *testing.T) {
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
-		logger:  log.New("service", "RPC", "module", "author"),
+		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
 	req := &HasSessionKeyRequest{
@@ -85,7 +86,7 @@ func TestAuthorModule_HasSessionKey_WhenThereIsNoKeys(t *testing.T) {
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
-		logger:  log.New("service", "RPC", "module", "author"),
+		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
 	req := &HasSessionKeyRequest{
@@ -106,7 +107,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	globalStore := keystore.NewGlobalKeystore()
 
 	coremockapi := new(apimocks.CoreAPI)
-	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
+	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"), mock.AnythingOfType("string")).Return(nil)
 	mockInsertKey.Run(func(args mock.Arguments) {
 		kp := args.Get(0).(*sr25519.Keypair)
 		globalStore.Acco.Insert(kp)
@@ -133,7 +134,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
-		logger:  log.New("service", "RPC", "module", "author"),
+		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
 	req := &HasSessionKeyRequest{
@@ -145,7 +146,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 		Seed:      "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8",
 		PublicKey: "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026",
 	}, nil)
-	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
+	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"), mock.AnythingOfType("string"))
 	require.NoError(t, err)
 	require.Equal(t, 1, globalStore.Acco.Size())
 
@@ -178,7 +179,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 143}
 
 	type fields struct {
-		logger     log.Logger
+		logger     log.LeveledLogger
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -206,7 +207,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		{
 			name: "HandleSubmittedExtrinsic error",
 			fields: fields{
-				logger:  log.New("service", "RPC", "module", "author"),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: errMockCoreAPI,
 			},
 			args: args{
@@ -219,7 +220,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		{
 			name: "happy path",
 			fields: fields{
-				logger:  log.New("service", "RPC", "module", "author"),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -261,7 +262,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 	})
 
 	type fields struct {
-		logger     log.Logger
+		logger     log.LeveledLogger
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -280,7 +281,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 		{
 			name: "no pending",
 			fields: fields{
-				logger:     log.New("service", "RPC", "module", "author"),
+				logger:     log.New(log.SetWriter(io.Discard)),
 				txStateAPI: emptyMockTransactionStateAPI,
 			},
 			args: args{
@@ -291,7 +292,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 		{
 			name: "two pending",
 			fields: fields{
-				logger:     log.New("service", "RPC", "module", "author"),
+				logger:     log.New(log.SetWriter(io.Discard)),
 				txStateAPI: mockTransactionStateAPI,
 			},
 			args: args{
@@ -323,10 +324,10 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 
 func TestAuthorModule_InsertKey(t *testing.T) {
 	mockCoreAPI := &apimocks.CoreAPI{}
-	mockCoreAPI.On("InsertKey", mock.Anything).Return(nil)
+	mockCoreAPI.On("InsertKey", mock.Anything, mock.AnythingOfType("string")).Return(nil)
 
 	type fields struct {
-		logger     log.Logger
+		logger     log.LeveledLogger
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -344,7 +345,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "happy path",
 			fields: fields{
-				logger:  log.New("service", "RPC", "module", "author"),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -358,7 +359,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "happy path, gran keytype",
 			fields: fields{
-				logger:  log.New("service", "RPC", "module", "author"),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -372,7 +373,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "invalid key",
 			fields: fields{
-				logger:  log.New("service", "RPC", "module", "author"),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -386,7 +387,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "unknown key",
 			fields: fields{
-				logger:  log.New("service", "RPC", "module", "author"),
+				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
@@ -430,7 +431,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	}
 
 	type fields struct {
-		logger     log.Logger
+		logger     log.LeveledLogger
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}

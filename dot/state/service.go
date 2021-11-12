@@ -19,17 +19,16 @@ package state
 import (
 	"fmt"
 	"math/big"
-	"os"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
 )
 
 const (
@@ -38,12 +37,14 @@ const (
 	substrateNumberLeaves          = "gossamer/substrate_number_leaves/metrics"
 )
 
-var logger = log.New("pkg", "state")
+var logger = log.NewFromGlobal(
+	log.AddContext("pkg", "state"),
+)
 
 // Service is the struct that holds storage, block and network states
 type Service struct {
 	dbPath      string
-	logLvl      log.Lvl
+	logLvl      log.Level
 	db          chaindb.Database
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
 	Base        *BaseState
@@ -65,15 +66,13 @@ type Service struct {
 // Config is the default configuration used by state service.
 type Config struct {
 	Path      string
-	LogLevel  log.Lvl
+	LogLevel  log.Level
 	PrunerCfg pruner.Config
 }
 
 // NewService create a new instance of Service
 func NewService(config Config) *Service {
-	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	handler = log.CallerFileHandler(handler)
-	logger.SetHandler(log.LvlFilterHandler(config.LogLevel, handler))
+	logger.Patch(log.SetLevel(config.LogLevel))
 
 	return &Service{
 		dbPath:    config.Path,
@@ -138,7 +137,7 @@ func (s *Service) Start() error {
 	}
 
 	stateRoot := bestHeader.StateRoot
-	logger.Debug("start", "latest state root", stateRoot)
+	logger.Debugf("start with latest state root: %s", stateRoot)
 
 	pr, err := s.Base.loadPruningData()
 	if err != nil {
@@ -172,11 +171,10 @@ func (s *Service) Start() error {
 	}
 
 	num, _ := s.Block.BestBlockNumber()
-	logger.Info("created state service",
-		"head", s.Block.BestBlockHash(),
-		"highest number", num,
-		"genesis hash", s.Block.genesisHash,
-	)
+	logger.Info("created state service with head " +
+		s.Block.BestBlockHash().String() +
+		", highest number " + num.String() +
+		" and genesis hash " + s.Block.genesisHash.String())
 
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
@@ -191,7 +189,9 @@ func (s *Service) Rewind(toBlock int64) error {
 		return fmt.Errorf("cannot rewind, given height is higher than our current height")
 	}
 
-	logger.Info("rewinding state...", "current height", num, "desired height", toBlock)
+	logger.Infof(
+		"rewinding state from current height %s to desired height %d...",
+		num, toBlock)
 
 	root, err := s.Block.GetBlockByNumber(big.NewInt(toBlock))
 	if err != nil {
@@ -206,7 +206,9 @@ func (s *Service) Rewind(toBlock int64) error {
 	}
 
 	s.Block.lastFinalised = header.Hash()
-	logger.Info("rewinding state...", "new height", header.Number, "best block hash", header.Hash())
+	logger.Infof(
+		"rewinding state for new height %s and best block hash %s...",
+		header.Number, header.Hash())
 
 	epoch, err := s.Epoch.GetEpochForBlock(header)
 	if err != nil {
@@ -265,7 +267,7 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	logger.Debug("stop", "best finalised hash", hash)
+	logger.Debugf("stop with best finalised hash %s", hash)
 
 	if err = s.db.Flush(); err != nil {
 		return err
@@ -313,7 +315,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	if err := s.Base.storeSkipToEpoch(skipTo); err != nil {
 		return err
 	}
-	logger.Debug("skip BABE verification up to epoch", "epoch", skipTo)
+	logger.Debugf("skip BABE verification up to epoch %d", skipTo)
 
 	if err := epoch.SetCurrentEpoch(blockEpoch); err != nil {
 		return err
@@ -324,7 +326,8 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
 
-	logger.Info("importing storage trie...", "basepath", s.dbPath, "root", root)
+	logger.Info("importing storage trie from base path " +
+		s.dbPath + " with root " + root.String() + "...")
 
 	if err := t.Store(storage.db); err != nil {
 		return err
@@ -343,7 +346,9 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	logger.Debug("Import", "best block hash", hash, "latest state root", root)
+	logger.Debugf(
+		"Import best block hash %s with latest state root %s",
+		hash, root)
 	if err := s.db.Flush(); err != nil {
 		return err
 	}

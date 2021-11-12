@@ -164,7 +164,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 			continue
 		}
 
-		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
+		logger.Tracef("pruned block number %s with hash %s", block.Header.Number, hash)
 
 		go func(header *types.Header) {
 			bs.pruneKeyCh <- header
@@ -191,7 +191,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		),
 	)
 	if err != nil {
-		return fmt.Errorf("could not send 'notify.finalized' telemetry message, error: %s", err)
+		logger.Debugf("could not send 'notify.finalized' telemetry message, error: %s", err)
 	}
 
 	bs.lastFinalised = hash

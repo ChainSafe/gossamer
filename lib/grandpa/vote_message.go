@@ -46,24 +46,18 @@ func (s *Service) receiveMessages(ctx context.Context) {
 				return
 			}
 
-			logger.Trace("received vote message", "msg", msg.msg, "from", msg.from)
+			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
 			vm := msg.msg
 
 			v, err := s.validateMessage(msg.from, vm)
 			if err != nil {
-				logger.Debug("failed to validate vote message", "message", vm, "error", err)
+				logger.Debugf("failed to validate vote message %v: %s", vm, err)
 				continue
 			}
 
-			logger.Debug("validated vote message",
-				"vote", v,
-				"from", vm.Message.AuthorityID,
-				"round", vm.Round,
-				"subround", vm.Message.Stage,
-				"prevote count", s.lenVotes(prevote),
-				"precommit count", s.lenVotes(precommit),
-				"votes needed", s.state.threshold()+1,
-			)
+			logger.Debugf(
+				"validated vote message %v from %s, round %d, subround %d, prevote count %d, precommit count %d, votes needed %d",
+				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage, s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
 			return
@@ -167,7 +161,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 			}
 
 			if err = s.network.SendMessage(from, msg); err != nil {
-				logger.Warn("failed to send CommitMessage", "error", err)
+				logger.Warnf("failed to send CommitMessage: %s", err)
 			}
 		} else {
 			// round is higher than ours, perhaps we are behind. store vote in tracker for now

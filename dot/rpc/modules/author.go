@@ -22,16 +22,15 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
-	log "github.com/ChainSafe/log15"
 )
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
-	logger     log.Logger
+	logger     log.LeveledLogger
 	coreAPI    CoreAPI
 	txStateAPI TransactionStateAPI
 }
@@ -104,13 +103,10 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, txStateAPI TransactionStateAPI) *AuthorModule {
-	if logger == nil {
-		logger = log.New("service", "RPC", "module", "author")
-	}
-
+func NewAuthorModule(logger *log.Logger, coreAPI CoreAPI, txStateAPI TransactionStateAPI) *AuthorModule {
+	logger = logger.New(log.AddContext("service", "RPC"), log.AddContext("module", "author"))
 	return &AuthorModule{
-		logger:     logger.New("module", "author"),
+		logger:     logger,
 		coreAPI:    coreAPI,
 		txStateAPI: txStateAPI,
 	}
@@ -168,7 +164,6 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return err
 	}
 
-	// TODO: correctly use keystore type (#1850)
 	keyPair, err := keystore.DecodeKeyPairFromHex(keyBytes, keystore.DetermineKeyType(keyReq.Type))
 	if err != nil {
 		return err
@@ -179,8 +174,12 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return errors.New("generated public key does not equal provide public key")
 	}
 
-	am.coreAPI.InsertKey(keyPair)
-	am.logger.Info("inserted key into keystore", "key", keyPair.Public().Hex())
+	err = am.coreAPI.InsertKey(keyPair, keyReq.Type)
+	if err != nil {
+		return err
+	}
+
+	am.logger.Info("inserted key " + keyPair.Public().Hex() + " into keystore")
 	return nil
 }
 
@@ -226,7 +225,7 @@ func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		return err
 	}
 	ext := types.Extrinsic(extBytes)
-	am.logger.Crit("[rpc]", "extrinsic", ext)
+	am.logger.Criticalf("[rpc] extrinsic is %s", ext)
 
 	*res = ExtrinsicHashResponse(ext.Hash().String())
 	err = am.coreAPI.HandleSubmittedExtrinsic(ext)

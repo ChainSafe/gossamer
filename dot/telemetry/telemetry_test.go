@@ -42,74 +42,65 @@ func TestMain(m *testing.M) {
 }
 
 func TestHandler_SendMulti(t *testing.T) {
-	var wg sync.WaitGroup
-	wg.Add(6)
+	expected := [][]byte{
+		[]byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`),
+		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`),
+		[]byte(`{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1,"ts":`),
+		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","ts":`), //nolint
+		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":"32375","msg":"notify.finalized","ts":`),
+		[]byte(`{"hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","msg":"prepared_block_for_proposing","number":"1","ts":`),
+		[]byte(`{"future":2,"msg":"txpool.import","ready":1,"ts":`),
+	}
+
+	messages := []Message{
+		NewBandwidthTM(2, 3, 1),
+		NewTxpoolImportTM(1, 2),
+
+		func(genesisHash common.Hash) Message {
+			return NewSystemConnectedTM(false, "chain", &genesisHash,
+				"systemName", "nodeName", "netID", "startTime", "0.1")
+		}(common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")),
+
+		func(bh common.Hash) Message {
+			return NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync")
+		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")),
+
+		func(bestHash, finalisedHash common.Hash) Message {
+			return NewBlockIntervalTM(&bestHash, big.NewInt(32375), &finalisedHash,
+				big.NewInt(32256), big.NewInt(0), big.NewInt(1234))
+		}(
+			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
+			common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2"),
+		),
+
+		NewNotifyFinalizedTM(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"), "32375"),
+		NewPreparedBlockForProposingTM(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"), "1"),
+	}
 
 	resultCh = make(chan []byte)
 
-	go func() {
-		genesisHash := common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")
-
-		GetInstance().SendMessage(NewSystemConnectedTM(false, "chain", &genesisHash,
-			"systemName", "nodeName", "netID", "startTime", "0.1"))
-
-		wg.Done()
-	}()
-
-	go func() {
-		bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
-		GetInstance().SendMessage(NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync"))
-
-		wg.Done()
-	}()
-
-	go func() {
-		GetInstance().SendMessage(NewBandwidthTM(2, 3, 1))
-
-		wg.Done()
-	}()
-
-	go func() {
-		bestHash := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
-		finalisedHash := common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2")
-		GetInstance().SendMessage(NewBlockIntervalTM(&bestHash, big.NewInt(32375), &finalisedHash,
-			big.NewInt(32256), big.NewInt(0), big.NewInt(1234)))
-
-		wg.Done()
-	}()
-
-	go func() {
-		bestHash := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
-		GetInstance().SendMessage(NewNotifyFinalizedTM(bestHash, "32375"))
-
-		wg.Done()
-	}()
-
-	go func() {
-		bestHash := common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c")
-		GetInstance().SendMessage(NewPreparedBlockForProposingTM(bestHash, "1"))
-
-		wg.Done()
-	}()
+	var wg sync.WaitGroup
+	for _, message := range messages {
+		wg.Add(1)
+		go func(msg Message) {
+			GetInstance().SendMessage(msg)
+			wg.Done()
+		}(message)
+	}
 
 	wg.Wait()
-
-	expected1 := []byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`)
-	expected2 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`)
-	expected3 := []byte(`{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1,"ts":`)
-	expected4 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","ts":`) // nolint
-	expected5 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":"32375","msg":"notify.finalized","ts":`)
-	expected6 := []byte(`{"hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","msg":"prepared_block_for_proposing","number":"1","ts":`)
-
-	expected := [][]byte{expected1, expected3, expected4, expected5, expected2, expected6}
 
 	var actual [][]byte
 	for data := range resultCh {
 		actual = append(actual, data)
-		if len(actual) == 6 {
+		if len(actual) == len(expected) {
 			break
 		}
 	}
+
+	sort.Slice(expected, func(i, j int) bool {
+		return bytes.Compare(expected[i], expected[j]) < 0
+	})
 
 	sort.Slice(actual, func(i, j int) bool {
 		return bytes.Compare(actual[i], actual[j]) < 0
