@@ -21,10 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
+
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -434,8 +437,9 @@ func Test_AddReservedPeers(t *testing.T) {
 	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
 	require.NoError(t, err)
 
-	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
-	require.True(t, isProtected)
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, 1, nodeA.host.peerCount())
 }
 
 func Test_RemoveReservedPeers(t *testing.T) {
@@ -465,11 +469,17 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
 	require.NoError(t, err)
 
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, 1, nodeA.host.peerCount())
 	pID := nodeB.host.addrInfo().ID.String()
 
 	err = nodeA.host.removeReservedPeers(pID)
 	require.NoError(t, err)
 
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, 1, nodeA.host.peerCount())
 	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
 	require.False(t, isProtected)
 
@@ -523,4 +533,149 @@ func TestStreamCloseEOF(t *testing.T) {
 	time.Sleep(TestBackoffTimeout)
 
 	require.True(t, handler.exit)
+}
+
+// Test to check the nodes connection by peer set manager
+func TestPeerConnect(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		MinPeers:    1,
+		MaxPeers:    2,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		MinPeers:    1,
+		MaxPeers:    3,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	addrInfoB := nodeB.host.addrInfo()
+	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
+
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, 1, nodeA.host.peerCount())
+	require.Equal(t, 1, nodeB.host.peerCount())
+}
+
+// Test to check banned peer disconnection by peer set manager
+func TestBannedPeer(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		MinPeers:    1,
+		MaxPeers:    3,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		MinPeers:    1,
+		MaxPeers:    2,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	addrInfoB := nodeB.host.addrInfo()
+	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
+
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, 1, nodeA.host.peerCount())
+	require.Equal(t, 1, nodeB.host.peerCount())
+
+	nodeA.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+		Value:  peerset.BannedThresholdValue - 1,
+		Reason: peerset.BannedReason,
+	}, addrInfoB.ID)
+
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, 0, nodeA.host.peerCount())
+	require.Equal(t, 0, nodeB.host.peerCount())
+
+	time.Sleep(3 * time.Second)
+
+	require.Equal(t, 1, nodeA.host.peerCount())
+	require.Equal(t, 1, nodeB.host.peerCount())
+}
+
+// Test to check reputation updated by peer set manager
+func TestPeerReputation(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		MinPeers:    1,
+		MaxPeers:    3,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		MinPeers:    1,
+		MaxPeers:    3,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	addrInfoB := nodeB.host.addrInfo()
+	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
+
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, 1, nodeA.host.peerCount())
+	require.Equal(t, 1, nodeB.host.peerCount())
+
+	nodeA.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+		Value:  peerset.GoodTransactionValue,
+		Reason: peerset.GoodTransactionReason,
+	}, addrInfoB.ID)
+
+	time.Sleep(100 * time.Millisecond)
+
+	rep, err := nodeA.host.cm.peerSetHandler.PeerReputation(addrInfoB.ID)
+	require.NoError(t, err)
+	require.Greater(t, rep, int32(0))
 }

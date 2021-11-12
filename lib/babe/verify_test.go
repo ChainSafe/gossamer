@@ -19,18 +19,18 @@ package babe
 import (
 	"errors"
 	"io/ioutil"
-	"os"
+	"math/big"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
@@ -39,7 +39,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 
 	config := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
@@ -57,10 +57,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
 	require.NoError(t, err)
 
-	logger = log.New("pkg", "babe")
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(defaultTestLogLvl, h))
+	logger.Patch(log.SetLevel(defaultTestLogLvl))
 
 	vm, err := NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
 	require.NoError(t, err)
@@ -160,6 +157,66 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
 	err = vm.VerifyBlock(&block.Header)
 	require.NoError(t, err)
+}
+
+func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
+	babeService := createTestService(t, nil)
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.C1 = 1
+	cfg.C2 = 1
+	cfg.SecondarySlots = 0
+
+	vm := newTestVerificationManager(t, cfg)
+
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	dig := createSecondaryVRFPreDigest(t, kp, 0, uint64(0), uint64(0), Randomness{})
+
+	bd := types.NewBabeDigest()
+	err = bd.Set(dig)
+	require.NoError(t, err)
+
+	bdEnc, err := scale.Marshal(bd)
+	require.NoError(t, err)
+
+	// create pre-digest
+	preDigest := &types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              bdEnc,
+	}
+
+	// create new block header
+	number := big.NewInt(1)
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+
+	// create seal and add to digest
+	seal := &types.SealDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              []byte{0},
+	}
+	require.NoError(t, err)
+
+	err = digest.Add(*seal)
+	require.NoError(t, err)
+
+	header, err := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, number, digest)
+	require.NoError(t, err)
+
+	block := types.Block{
+		Header: *header,
+		Body:   nil,
+	}
+	err = vm.VerifyBlock(&block.Header)
+	require.EqualError(t, err, "failed to verify pre-runtime digest: could not verify slot claim VRF proof")
 }
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {

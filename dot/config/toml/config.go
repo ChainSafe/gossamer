@@ -63,7 +63,7 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port              uint32   `toml:"port,omitempty"`
+	Port              uint16   `toml:"port,omitempty"`
 	Bootnodes         []string `toml:"bootnodes,omitempty"`
 	ProtocolID        string   `toml:"protocol,omitempty"`
 	NoBootstrap       bool     `toml:"nobootstrap,omitempty"`
@@ -82,6 +82,7 @@ type CoreConfig struct {
 	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
 	EpochLength      uint64 `toml:"epoch-length,omitempty"`
 	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
+	GrandpaInterval  uint32 `toml:"grandpa-interval,omitempty"`
 	BABELead         bool   `toml:"babe-lead,omitempty"`
 }
 

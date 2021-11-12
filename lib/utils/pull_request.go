@@ -17,7 +17,7 @@ var (
 )
 
 var (
-	titleRegexp   = regexp.MustCompile(`^[A-Za-z]+\([A-Za-z/]+\):.+[A-Za-z]+$`)
+	titleRegexp   = regexp.MustCompile(`^[A-Za-z-_]+\([-_/A-Za-z ]+\):.+[A-Za-z]+.+$`)
 	commentRegexp = regexp.MustCompile(`<!--(.|\n)*?-->`)
 )
 
@@ -29,6 +29,7 @@ func CheckPRDescription(title, body string) error {
 	}
 
 	body = commentRegexp.ReplaceAllString(body, "")
+	body = strings.ReplaceAll(body, "\r", "")
 
 	// Required subheading sections in order
 	requiredSections := []string{"Changes", "Tests", "Issues", "Primary Reviewer"}
@@ -48,7 +49,8 @@ func CheckPRDescription(title, body string) error {
 
 		index := strings.Index(body, textToFind)
 		if index == -1 {
-			return fmt.Errorf("%w: %q", ErrBodySectionNotFound, textToFind)
+			body = strings.ReplaceAll(body, "\n", "\\n") // for error logs in one line
+			return fmt.Errorf("%w: %q in body: %s", ErrBodySectionNotFound, textToFind, body)
 		} else if i > 0 && index < previousIndex {
 			return fmt.Errorf("%w: section %q cannot be before section %q",
 				ErrBodySectionMisplaced, requiredSection, previousSection)

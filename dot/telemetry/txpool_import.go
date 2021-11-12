@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2021 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,12 +14,23 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package scale
+package telemetry
 
-func reverseBytes(a []byte) []byte {
-	for i := len(a)/2 - 1; i >= 0; i-- {
-		opp := len(a) - 1 - i
-		a[i], a[opp] = a[opp], a[i]
+// txpoolImportTM holds `txpool.import` telemetry message, which is supposed to be
+// sent when a new transaction gets imported in the transaction pool.
+type txpoolImportTM struct {
+	Ready  uint `json:"ready"`
+	Future uint `json:"future"`
+}
+
+// NewTxpoolImportTM creates a new txpoolImportTM struct
+func NewTxpoolImportTM(ready, future uint) Message {
+	return &txpoolImportTM{
+		Ready:  ready,
+		Future: future,
 	}
-	return a
+}
+
+func (txpoolImportTM) messageType() string {
+	return txPoolImportMsg
 }

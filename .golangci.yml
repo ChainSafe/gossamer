@@ -117,6 +117,14 @@ issues:
       linters:
         - revive
 
+    - text: 'shadow: declaration of "err" shadows declaration*'
+      linters:
+        - govet
+
+    - text: 'shadow: declaration of "ok" shadows declaration*'
+      linters:
+        - govet
+
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
     - path: internal/hmac/

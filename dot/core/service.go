@@ -19,11 +19,11 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"os"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -34,12 +34,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
 )
 
 var (
 	_      services.Service = &Service{}
-	logger log.Logger       = log.New("pkg", "core")
+	logger                  = log.NewFromGlobal(log.AddContext("pkg", "core"))
 )
 
 // QueryKeyValueChanges represents the key-value data inside a block storage
@@ -72,7 +71,7 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
-	LogLvl log.Lvl
+	LogLvl log.Level
 
 	BlockState       BlockState
 	EpochState       EpochState
@@ -114,9 +113,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errNilCodeSubstitutedState
 	}
 
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	blockAddCh := make(chan *types.Block, 256)
 
@@ -211,7 +208,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	// store updates state trie nodes in database
 	err := s.storageState.StoreTrie(state, &block.Header)
 	if err != nil {
-		logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
+		logger.Warnf("failed to store state trie for imported block %s: %s",
+			block.Header.Hash(), err)
 		return err
 	}
 
@@ -226,7 +224,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
-	logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
+	logger.Debugf("imported block %s and stored state trie with root %s",
+		block.Header.Hash(), state.MustRoot())
 
 	// handle consensus digests
 	s.digestHandler.HandleDigests(&block.Header)
@@ -238,13 +237,13 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	// check for runtime changes
 	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
-		logger.Crit("failed to update runtime code", "error", err)
+		logger.Criticalf("failed to update runtime code: %s", err)
 		return err
 	}
 
 	// check if there was a runtime code substitution
 	if err := s.handleCodeSubstitution(block.Header.Hash(), state); err != nil {
-		logger.Crit("failed to substitute runtime code", "error", err)
+		logger.Criticalf("failed to substitute runtime code: %s", err)
 		return err
 	}
 
@@ -267,7 +266,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.Trie
 		return nil
 	}
 
-	logger.Info("🔄 detected runtime code substitution, upgrading...", "block", hash)
+	logger.Infof("🔄 detected runtime code substitution, upgrading for block %s...", hash)
 	code := common.MustHexToBytes(value)
 	if len(code) == 0 {
 		return ErrEmptyRuntimeCode
@@ -314,17 +313,20 @@ func (s *Service) handleBlocksAsync() {
 		prev := s.blockState.BestBlockHash()
 
 		select {
-		case block := <-s.blockAddCh:
+		case block, ok := <-s.blockAddCh:
+			if !ok {
+				return
+			}
+
 			if block == nil {
 				continue
 			}
 
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+				logger.Warnf("failed to re-add transactions to chain upon re-org: %s", err)
 			}
 
 			s.maintainTransactionPool(block)
-
 		case <-s.ctx.Done():
 			return
 		}
@@ -354,6 +356,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	// subchain contains the ancestor as well so we need to remove it.
 	if len(subchain) > 0 {
 		subchain = subchain[1:]
+	} else {
+		return nil
 	}
 
 	// Check transaction validation on the best block.
@@ -362,15 +366,19 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return err
 	}
 
+	if rt == nil {
+		return ErrNilRuntime
+	}
+
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		body, err := s.blockState.GetBlockBody(hash)
-		if err != nil {
+		if err != nil || body == nil {
 			continue
 		}
 
 		for _, ext := range *body {
-			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
@@ -378,9 +386,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 			// decode extrinsic and make sure it's not an inherent.
 			decExt := &types.ExtrinsicData{}
-			err = decExt.DecodeVersion(encExt)
-			if err != nil {
-				return err
+			if err = decExt.DecodeVersion(encExt); err != nil {
+				continue
 			}
 
 			// Inherent are not signed.
@@ -391,7 +398,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Info("failed to validate transaction", "error", err, "extrinsic", ext)
+				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
 
@@ -433,20 +440,29 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 		}
 
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
-		logger.Trace("moved transaction to queue", "hash", h)
+		logger.Tracef("moved transaction %s to queue", h)
 	}
 }
 
 // InsertKey inserts keypair into the account keystore
-// TODO: define which keystores need to be updated and create separate insert funcs for each (#1850)
-func (s *Service) InsertKey(kp crypto.Keypair) {
-	s.keys.Acco.Insert(kp)
+func (s *Service) InsertKey(kp crypto.Keypair, keystoreType string) error {
+	ks, err := s.keys.GetKeystore([]byte(keystoreType))
+	if err != nil {
+		return err
+	}
+
+	return ks.Insert(kp)
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
-//  are issues decoding string
-func (s *Service) HasKey(pubKeyStr, keyType string) (bool, error) {
-	return keystore.HasKey(pubKeyStr, keyType, s.keys.Acco)
+// are issues decoding string
+func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
+	ks, err := s.keys.GetKeystore([]byte(keystoreType))
+	if err != nil {
+		return false, err
+	}
+
+	return keystore.HasKey(pubKeyStr, keystoreType, ks)
 }
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys
@@ -499,7 +515,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	rt, err := s.blockState.GetRuntime(nil)
 	if err != nil {
-		logger.Crit("failed to get runtime")
+		logger.Critical("failed to get runtime")
 		return err
 	}
 

@@ -164,7 +164,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 			continue
 		}
 
-		logger.Trace("pruned block", "hash", hash, "number", block.Header.Number)
+		logger.Tracef("pruned block number %s with hash %s", block.Header.Number, hash)
 
 		go func(header *types.Header) {
 			bs.pruneKeyCh <- header
@@ -191,10 +191,9 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		),
 	)
 	if err != nil {
-		return fmt.Errorf("could not send 'notify.finalized' telemetry message, error: %s", err)
+		logger.Debugf("could not send 'notify.finalized' telemetry message, error: %s", err)
 	}
 
-	// return bs.setHighestRoundAndSetID(round, setID)
 	bs.lastFinalised = hash
 	return nil
 }
@@ -226,7 +225,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			continue
 		}
 
-		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
+		block, has := bs.getUnfinalisedBlock(hash)
 		if !has {
 			return fmt.Errorf("failed to find block in unfinalised block map, block=%s", hash)
 		}
@@ -251,6 +250,9 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		if err = batch.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes()); err != nil {
 			return err
 		}
+
+		// the block will be deleted from the unfinalisedBlockMap in the pruning loop
+		// in `SetFinalisedHash()`, which calls this function
 	}
 
 	return batch.Flush()

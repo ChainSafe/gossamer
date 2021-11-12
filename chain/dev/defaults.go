@@ -17,8 +17,9 @@
 package dev
 
 import (
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	log "github.com/ChainSafe/log15"
 )
 
 var (
@@ -37,12 +38,15 @@ var (
 	DefaultMetricsPort = uint32(9876)
 
 	// DefaultLvl is the default log level
-	DefaultLvl = log.LvlInfo
+	DefaultLvl = log.Info
 
 	// DefaultPruningMode is the default pruning mode
 	DefaultPruningMode = "archive"
 	// DefaultRetainBlocks is the default retained blocks
 	DefaultRetainBlocks = int64(512)
+
+	// DefaultTelemetryURLs is the default URL of the telemetry server to connect to.
+	DefaultTelemetryURLs []genesis.TelemetryEndpoint
 
 	// InitConfig
 
@@ -72,7 +76,7 @@ var (
 	// NetworkConfig
 
 	// DefaultNetworkPort network port
-	DefaultNetworkPort = uint32(7001)
+	DefaultNetworkPort = uint16(7001)
 	// DefaultNetworkBootnodes network bootnodes
 	DefaultNetworkBootnodes = []string(nil)
 	// DefaultNoBootstrap disables bootstrap
