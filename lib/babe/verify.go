@@ -19,11 +19,11 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"math/big"
 	"reflect"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"

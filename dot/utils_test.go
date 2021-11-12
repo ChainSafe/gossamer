@@ -17,8 +17,10 @@
 package dot
 
 import (
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/stretchr/testify/assert"
 	"os"
-	"reflect"
+	"strings"
 	"testing"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -35,12 +37,20 @@ func TestCreateJSONRawFile(t *testing.T) {
 		args args
 		want *os.File
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				bs: &BuildSpec{genesis: NewTestGenesis(t)},
+				fp: "test.json",
+			},
+			want: &os.File{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateJSONRawFile(tt.args.bs, tt.args.fp); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CreateJSONRawFile() = %v, want %v", got, tt.want)
+			got := CreateJSONRawFile(tt.args.bs, tt.args.fp)
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
@@ -56,12 +66,20 @@ func TestExportConfig(t *testing.T) {
 		args args
 		want *os.File
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				cfg: &Config{},
+				fp:  "test.json",
+			},
+			want: &os.File{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ExportConfig(tt.args.cfg, tt.args.fp); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ExportConfig() = %v, want %v", got, tt.want)
+			got := ExportConfig(tt.args.cfg, tt.args.fp)
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
@@ -77,12 +95,20 @@ func TestExportTomlConfig(t *testing.T) {
 		args args
 		want *os.File
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				cfg: &ctoml.Config{},
+				fp:  "test.json",
+			},
+			want: &os.File{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ExportTomlConfig(tt.args.cfg, tt.args.fp); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ExportTomlConfig() = %v, want %v", got, tt.want)
+			got := ExportTomlConfig(tt.args.cfg, tt.args.fp)
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
@@ -97,12 +123,77 @@ func TestNewTestConfig(t *testing.T) {
 		args args
 		want *Config
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{t: t},
+			want: &Config{
+				Global: GlobalConfig{
+					Name:           "Gossamer",
+					ID:             "gssmr",
+					BasePath:       "test_data/TestNewTestConfig",
+					LogLvl:         3,
+					PublishMetrics: false,
+					MetricsPort:    0,
+					NoTelemetry:    false,
+					TelemetryURLs:  nil,
+					RetainBlocks:   0,
+					Pruning:        "",
+				},
+				Log: LogConfig{
+					CoreLvl:           3,
+					SyncLvl:           3,
+					NetworkLvl:        3,
+					RPCLvl:            3,
+					StateLvl:          3,
+					RuntimeLvl:        3,
+					BlockProducerLvl:  3,
+					FinalityGadgetLvl: 3,
+				},
+				Init: InitConfig{Genesis: "./chain/gssmr/genesis-spec.json"},
+				Core: CoreConfig{
+					Roles:            4,
+					BabeAuthority:    true,
+					BABELead:         false,
+					GrandpaAuthority: true,
+					WasmInterpreter:  "wasmer",
+					GrandpaInterval:  1000000000,
+				},
+				Network: NetworkConfig{
+					Port:              7001,
+					Bootnodes:         nil,
+					ProtocolID:        "",
+					NoBootstrap:       false,
+					NoMDNS:            false,
+					MinPeers:          1,
+					MaxPeers:          0,
+					PersistentPeers:   nil,
+					DiscoveryInterval: 10000000000,
+				},
+				RPC: RPCConfig{
+					Enabled:          false,
+					External:         false,
+					Unsafe:           false,
+					UnsafeExternal:   false,
+					Port:             8545,
+					Host:             "localhost",
+					Modules:          []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"},
+					WSPort:           8546,
+					WS:               false,
+					WSExternal:       false,
+					WSUnsafe:         false,
+					WSUnsafeExternal: false,
+				},
+				System: types.SystemInfo{},
+				State:  StateConfig{},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewTestConfig(tt.args.t); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTestConfig() = %v, want %v", got, tt.want)
+			got := NewTestConfig(tt.args.t)
+			if tt.want != nil {
+				assert.Equal(t, tt.want, got)
+				assert.NotNil(t, got)
 			}
 		})
 	}
@@ -118,16 +209,79 @@ func TestNewTestConfigWithFile(t *testing.T) {
 		want  *Config
 		want1 *os.File
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{t: t},
+			want: &Config{
+				Global: GlobalConfig{
+					Name:           "Gossamer",
+					ID:             "gssmr",
+					BasePath:       "test_data/TestNewTestConfigWithFile",
+					LogLvl:         3,
+					PublishMetrics: false,
+					MetricsPort:    0,
+					NoTelemetry:    false,
+					TelemetryURLs:  nil,
+					RetainBlocks:   0,
+					Pruning:        "",
+				},
+				Log: LogConfig{
+					CoreLvl:           3,
+					SyncLvl:           3,
+					NetworkLvl:        3,
+					RPCLvl:            3,
+					StateLvl:          3,
+					RuntimeLvl:        3,
+					BlockProducerLvl:  3,
+					FinalityGadgetLvl: 3,
+				},
+				Init: InitConfig{Genesis: "./chain/gssmr/genesis-spec.json"},
+				Core: CoreConfig{
+					Roles:            4,
+					BabeAuthority:    true,
+					BABELead:         false,
+					GrandpaAuthority: true,
+					WasmInterpreter:  "wasmer",
+					GrandpaInterval:  1000000000,
+				},
+				Network: NetworkConfig{
+					Port:              7001,
+					Bootnodes:         nil,
+					ProtocolID:        "",
+					NoBootstrap:       false,
+					NoMDNS:            false,
+					MinPeers:          1,
+					MaxPeers:          0,
+					PersistentPeers:   nil,
+					DiscoveryInterval: 10000000000,
+				},
+				RPC: RPCConfig{
+					Enabled:          false,
+					External:         false,
+					Unsafe:           false,
+					UnsafeExternal:   false,
+					Port:             8545,
+					Host:             "localhost",
+					Modules:          []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"},
+					WSPort:           8546,
+					WS:               false,
+					WSExternal:       false,
+					WSUnsafe:         false,
+					WSUnsafeExternal: false,
+				},
+				System: types.SystemInfo{},
+				State:  StateConfig{},
+			},
+			want1: &os.File{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := NewTestConfigWithFile(tt.args.t)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTestConfigWithFile() got = %v, want %v", got, tt.want)
-			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("NewTestConfigWithFile() got1 = %v, want %v", got1, tt.want1)
+
+			assert.Equal(t, tt.want, got)
+			if tt.want1 != nil {
+				assert.NotNil(t, got1)
 			}
 		})
 	}
@@ -142,12 +296,17 @@ func TestNewTestGenesis(t *testing.T) {
 		args args
 		want *genesis.Genesis
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{t: t},
+			want: &genesis.Genesis{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewTestGenesis(tt.args.t); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTestGenesis() = %v, want %v", got, tt.want)
+			got := NewTestGenesis(tt.args.t)
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
@@ -162,13 +321,16 @@ func TestNewTestGenesisAndRuntime(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{t: t},
+			want: "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewTestGenesisAndRuntime(tt.args.t); got != tt.want {
-				t.Errorf("NewTestGenesisAndRuntime() = %v, want %v", got, tt.want)
-			}
+			got := NewTestGenesisAndRuntime(tt.args.t)
+			assert.True(t, strings.HasPrefix(got, "test_data/TestNewTestGenesisAndRuntime/genesis"))
 		})
 	}
 }
@@ -183,12 +345,20 @@ func TestNewTestGenesisFile(t *testing.T) {
 		args args
 		want *os.File
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				t:   t,
+				cfg: &Config{},
+			},
+			want: &os.File{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewTestGenesisFile(tt.args.t, tt.args.cfg); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTestGenesisFile() = %v, want %v", got, tt.want)
+			got := NewTestGenesisFile(tt.args.t, tt.args.cfg)
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
@@ -204,12 +374,20 @@ func TestNewTestGenesisRawFile(t *testing.T) {
 		args args
 		want *os.File
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				t:   t,
+				cfg: &Config{},
+			},
+			want: &os.File{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewTestGenesisRawFile(tt.args.t, tt.args.cfg); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTestGenesisRawFile() = %v, want %v", got, tt.want)
+			got := NewTestGenesisRawFile(tt.args.t, tt.args.cfg)
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
 		})
 	}
@@ -220,13 +398,14 @@ func TestRandomNodeName(t *testing.T) {
 		name string
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := RandomNodeName(); got != tt.want {
-				t.Errorf("RandomNodeName() = %v, want %v", got, tt.want)
-			}
+			got := RandomNodeName()
+			assert.Greater(t, len(got), 3)
 		})
 	}
 }
@@ -241,29 +420,21 @@ func TestWriteConfig(t *testing.T) {
 		args args
 		want *os.File
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{
+				data: nil,
+				fp:   "test.json",
+			},
+			want: &os.File{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := WriteConfig(tt.args.data, tt.args.fp); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("WriteConfig() = %v, want %v", got, tt.want)
+			got := WriteConfig(tt.args.data, tt.args.fp)
+			if tt.want != nil {
+				assert.NotNil(t, got)
 			}
-		})
-	}
-}
-
-func Test_setupLogger(t *testing.T) {
-	type args struct {
-		cfg *Config
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
 		})
 	}
 }
