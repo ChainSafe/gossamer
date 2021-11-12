@@ -8,12 +8,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -198,88 +196,6 @@ func TestNodeInitialized(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := NodeInitialized(tt.args.basepath); got != tt.want {
 				t.Errorf("NodeInitialized() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-// TestStartNode
-func TestStartNode(t *testing.T) {
-	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
-
-	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
-	cfg.Core.GrandpaAuthority = false
-
-	err := InitNode(cfg)
-	require.NoError(t, err)
-
-	ks := keystore.NewGlobalKeystore()
-	err = keystore.LoadKeystore("alice", ks.Gran)
-	require.NoError(t, err)
-	err = keystore.LoadKeystore("alice", ks.Babe)
-	require.NoError(t, err)
-
-	cfg.Core.Roles = types.FullNodeRole
-
-	node, err := NewNode(cfg, ks, nil)
-	require.NoError(t, err)
-
-	go func() {
-		<-node.started
-		fmt.Printf("######################node started\n")
-		node.Stop()
-	}()
-
-	err = node.Start()
-	require.NoError(t, err)
-}
-
-func Test_loadRuntime(t *testing.T) {
-	type args struct {
-		cfg       *Config
-		ns        *runtime.NodeStorage
-		stateSrvc *state.Service
-		ks        *keystore.GlobalKeystore
-		net       *network.Service
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := loadRuntime(tt.args.cfg, tt.args.ns, tt.args.stateSrvc, tt.args.ks, tt.args.net); (err != nil) != tt.wantErr {
-				t.Errorf("loadRuntime() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_storeGlobalNodeName(t *testing.T) {
-	type args struct {
-		name     string
-		basepath string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := storeGlobalNodeName(tt.args.name, tt.args.basepath); (err != nil) != tt.wantErr {
-				t.Errorf("storeGlobalNodeName() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

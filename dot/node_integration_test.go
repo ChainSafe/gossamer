@@ -335,6 +335,42 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	require.Equal(t, expected, bal)
 }
 
+// TestStartNode
+func TestStartNode(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+	cfg.Core.GrandpaAuthority = false
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	ks := keystore.NewGlobalKeystore()
+	err = keystore.LoadKeystore("alice", ks.Gran)
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe)
+	require.NoError(t, err)
+
+	cfg.Core.Roles = types.FullNodeRole
+
+	node, err := NewNode(cfg, ks, nil)
+	require.NoError(t, err)
+
+	go func() {
+		<-node.started
+		node.Stop()
+	}()
+
+	err = node.Start()
+	require.NoError(t, err)
+}
+
 func TestNode_StopFunc(t *testing.T) {
 	testvar := "before"
 	stopFunc := func() {
