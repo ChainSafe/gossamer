@@ -623,7 +623,7 @@ func Test_createStateService(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg2 := NewTestConfig(t)
-	cfg2.Global.BasePath = ""
+	cfg2.Global.BasePath = "test_data"
 
 	type args struct {
 		cfg *Config
@@ -724,7 +724,7 @@ func Test_newInMemoryDB(t *testing.T) {
 	}{
 		{
 			name: "working example",
-			args: args{path: ""},
+			args: args{path: "test_data"},
 			want: true,
 		},
 	}

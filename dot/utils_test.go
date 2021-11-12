@@ -28,7 +28,7 @@ func TestCreateJSONRawFile(t *testing.T) {
 			name: "working example",
 			args: args{
 				bs: &BuildSpec{genesis: NewTestGenesis(t)},
-				fp: "test.json",
+				fp: "test_data/test.json",
 			},
 			want: &os.File{},
 		},
@@ -57,7 +57,7 @@ func TestExportConfig(t *testing.T) {
 			name: "working example",
 			args: args{
 				cfg: &Config{},
-				fp:  "test.json",
+				fp:  "test_data/test.json",
 			},
 			want: &os.File{},
 		},
@@ -86,7 +86,7 @@ func TestExportTomlConfig(t *testing.T) {
 			name: "working example",
 			args: args{
 				cfg: &ctoml.Config{},
-				fp:  "test.json",
+				fp:  "test_data/test.json",
 			},
 			want: &os.File{},
 		},
@@ -411,7 +411,7 @@ func TestWriteConfig(t *testing.T) {
 			name: "working example",
 			args: args{
 				data: nil,
-				fp:   "test.json",
+				fp:   "test_data/test.json",
 			},
 			want: &os.File{},
 		},
