@@ -467,7 +467,7 @@ func TestValidateBlockData(t *testing.T) {
 	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},
 	}, "")
-	require.True(t, errors.Is(err, errNilBodyInResponse))
+	require.ErrorIs(t, err, errNilBodyInResponse)
 
 	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},

@@ -289,17 +289,17 @@ func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream lib
 }
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
+	if info.handshakeValidator == nil {
+		logger.Errorf("handshakeValidator is not set for protocol %s", info.protocolID)
+		return
+	}
+
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
 			Reason: peerset.BadProtocolReason,
 		}, peer)
 
-		return
-	}
-
-	if info.handshakeValidator == nil {
-		logger.Errorf("handshakeValidator is not set for protocol %s", info.protocolID)
 		return
 	}
 
@@ -358,16 +358,13 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 	defer mu.(*sync.Mutex).Unlock()
 
 	hsData, has := info.getOutboundHandshakeData(peer)
-	if has && !hsData.validated {
+	switch {
+	case has && !hsData.validated:
 		// peer has sent us an invalid handshake in the past, ignore
 		return nil, errInvalidHandshakeForPeer
-	}
-
-	if has && hsData.validated {
+	case has && hsData.validated:
 		return hsData.stream, nil
-	}
-
-	if !has {
+	case !has:
 		hsData = newHandshakeData(false, false, nil)
 	}
 
@@ -396,7 +393,10 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		closeOutboundStream(info, peer, stream)
 		return nil, errHandshakeTimeout
 	case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
-		hsTimer.Stop()
+		if !hsTimer.Stop() {
+			<-hsTimer.C
+		}
+
 		if hsResponse.err != nil {
 			logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
 			closeOutboundStream(info, peer, stream)

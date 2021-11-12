@@ -21,20 +21,16 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, 
 	defer s.lightRequestMu.RUnlock()
 
 	// check if we are the requester
-	if _, requested := s.lightRequest[peer]; requested {
+	if _, ok := s.lightRequest[peer]; ok {
 		// if we are, decode the bytes as a LightResponse
-		msg := NewLightResponse()
-		err := msg.Decode(in)
-		return msg, err
+		return newLightResponseFromBytes(in)
 	}
 
 	// otherwise, decode bytes as LightRequest
-	msg := NewLightRequest()
-	err := msg.Decode(in)
-	return msg, err
+	return newLightRequestFromBytes(in)
 }
 
-func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {
+func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) (err error) {
 	defer func() {
 		_ = stream.Close()
 	}()
@@ -45,7 +41,6 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	}
 
 	resp := NewLightResponse()
-	var err error
 	switch {
 	case lr.RemoteCallRequest != nil:
 		resp.RemoteCallResponse, err = remoteCallResp(lr.RemoteCallRequest)
@@ -63,7 +58,6 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	}
 
 	if err != nil {
-		logger.Errorf("failed to get the response: %s", err)
 		return err
 	}
 
@@ -110,6 +104,12 @@ func NewLightRequest() *LightRequest {
 		RemoteReadChildRequest: newRemoteReadChildRequest(),
 		RemoteChangesRequest:   &rcr,
 	}
+}
+
+func newLightRequestFromBytes(in []byte) (msg *LightRequest, err error) {
+	msg = NewLightRequest()
+	err = msg.Decode(in)
+	return
 }
 
 func newRequest() *request {
@@ -186,6 +186,12 @@ func NewLightResponse() *LightResponse {
 		RemoteHeaderResponse:  newRemoteHeaderResponse(),
 		RemoteChangesResponse: newRemoteChangesResponse(),
 	}
+}
+
+func newLightResponseFromBytes(in []byte) (msg *LightResponse, err error) {
+	msg = NewLightResponse()
+	err = msg.Decode(in)
+	return
 }
 
 func newResponse() *response {

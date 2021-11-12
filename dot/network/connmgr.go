@@ -140,6 +140,10 @@ func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
 }
 
 func (cm *ConnManager) setConnectHandler(handler func(peer.ID)) {
+	if cm.connectHandler != nil {
+		return
+	}
+
 	cm.connectHandler = handler
 }
 
@@ -162,6 +166,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 
 	// TODO: peer scoring doesn't seem to prevent us from going over the max.
 	// if over the max peer count, disconnect from (total_peers - maximum) peers
+	// (#2039)
 	for i := 0; i < over; i++ {
 		unprotPeers := cm.unprotectedPeers(n.Peers())
 		if len(unprotPeers) == 0 {
@@ -184,6 +189,10 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 }
 
 func (cm *ConnManager) setDisconnectHandler(handler func(peer.ID)) {
+	if cm.disconnectHandler != nil {
+		return
+	}
+
 	cm.disconnectHandler = handler
 }
 
