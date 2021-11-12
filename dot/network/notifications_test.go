@@ -17,6 +17,7 @@
 package network
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -62,7 +63,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// haven't received handshake from peer
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-	info.inboundHandshakeData.Store(testPeerID, handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, &handshakeData{
 		received: false,
 	})
 
@@ -147,7 +148,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage, nil)
 
 	// set handshake data to received
-	info.inboundHandshakeData.Store(testPeerID, handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, &handshakeData{
 		received:  true,
 		validated: true,
 	})
@@ -263,16 +264,14 @@ func Test_HandshakeTimeout(t *testing.T) {
 	nodeB.noGossip = true
 
 	// create info and handler
-	info := &notificationsProtocol{
-		protocolID:            nodeA.host.protocolID + blockAnnounceID,
-		getHandshake:          nodeA.getBlockAnnounceHandshake,
-		handshakeValidator:    nodeA.validateBlockAnnounceHandshake,
-		inboundHandshakeData:  new(sync.Map),
-		outboundHandshakeData: new(sync.Map),
+	testHandshakeDecoder := func([]byte) (Handshake, error) {
+		return nil, errors.New("unimplemented")
 	}
+	info := newNotificationsProtocol(nodeA.host.protocolID+blockAnnounceID,
+		nodeA.getBlockAnnounceHandshake, testHandshakeDecoder, nodeA.validateBlockAnnounceHandshake)
 
 	nodeB.host.h.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
-		fmt.Println("never respond a handshake message")
+		fmt.Println("never responded to a handshake message")
 	})
 
 	addrInfosB := nodeB.host.addrInfo()
@@ -293,13 +292,14 @@ func Test_HandshakeTimeout(t *testing.T) {
 	}
 	nodeA.GossipMessage(testHandshakeMsg)
 
+	info.outboundHandshakeMutexes.Store(nodeB.host.id(), new(sync.Mutex))
 	go nodeA.sendData(nodeB.host.id(), testHandshakeMsg, info, nil)
 
 	time.Sleep(time.Second)
 
-	// Verify that handshake data exists.
+	// handshake data shouldn't exist, as nodeB hasn't responded yet
 	_, ok := info.getOutboundHandshakeData(nodeB.host.id())
-	require.True(t, ok)
+	require.False(t, ok)
 
 	// a stream should be open until timeout
 	connAToB := nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
@@ -309,7 +309,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	// after the timeout
 	time.Sleep(handshakeTimeout)
 
-	// handshake data should be removed
+	// handshake data shouldn't exist still
 	_, ok = info.getOutboundHandshakeData(nodeB.host.id())
 	require.False(t, ok)
 
@@ -374,7 +374,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	handler := s.createNotificationsMessageHandler(info, s.handleTransactionMessage, txnBatchHandler)
 
 	// set handshake data to received
-	info.inboundHandshakeData.Store(testPeerID, handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, &handshakeData{
 		received:  true,
 		validated: true,
 	})

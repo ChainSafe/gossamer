@@ -247,9 +247,19 @@ func (s *Service) Start() error {
 	s.host.h.Network().SetConnHandler(s.handleConn)
 
 	// this handles all new connections (incoming and outgoing)
+	// it creates a per-protocol mutex for sending outbound handshakes to the peer
 	s.host.cm.setConnectHandler(func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
-			prtl.sendDataMutexes.Store(peerID, new(sync.Mutex))
+			prtl.outboundHandshakeMutexes.Store(peerID, new(sync.Mutex))
+		}
+	})
+
+	// when a peer gets disconnected, we should clear all handshake data we have for it.
+	s.host.cm.setDisconnectHandler(func(peerID peer.ID) {
+		for _, prtl := range s.notificationsProtocols {
+			prtl.outboundHandshakeMutexes.Delete(peerID)
+			prtl.inboundHandshakeData.Delete(peerID)
+			prtl.outboundHandshakeData.Delete(peerID)
 		}
 	})
 
@@ -493,15 +503,7 @@ func (s *Service) RegisterNotificationsProtocol(
 		return errors.New("notifications protocol with message type already exists")
 	}
 
-	np := &notificationsProtocol{
-		protocolID:            protocolID,
-		getHandshake:          handshakeGetter,
-		handshakeValidator:    handshakeValidator,
-		handshakeDecoder:      handshakeDecoder,
-		sendDataMutexes:       new(sync.Map),
-		inboundHandshakeData:  new(sync.Map),
-		outboundHandshakeData: new(sync.Map),
-	}
+	np := newNotificationsProtocol(protocolID, handshakeGetter, handshakeDecoder, handshakeValidator)
 	s.notificationsProtocols[messageID] = np
 	decoder := createDecoder(np, handshakeDecoder, messageDecoder)
 	handlerWithValidate := s.createNotificationsMessageHandler(np, messageHandler, batchHandler)
@@ -565,139 +567,6 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	}
 
 	return errors.New("message not supported by any notifications protocol")
-}
-
-// handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
-func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
-	s.readStream(stream, s.decodeLightMessage, s.handleLightMsg)
-}
-
-func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, error) {
-	s.lightRequestMu.RLock()
-	defer s.lightRequestMu.RUnlock()
-
-	// check if we are the requester
-	if _, requested := s.lightRequest[peer]; requested {
-		// if we are, decode the bytes as a LightResponse
-		msg := NewLightResponse()
-		err := msg.Decode(in)
-		return msg, err
-	}
-
-	// otherwise, decode bytes as LightRequest
-	msg := NewLightRequest()
-	err := msg.Decode(in)
-	return msg, err
-}
-
-func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
-	// we NEED to reset the stream if we ever return from this function, as if we return,
-	// the stream will never again be read by us, so we need to tell the remote side we aren't
-	// reading from this stream.
-	defer s.resetInboundStream(stream)
-	s.streamManager.logNewStream(stream)
-
-	peer := stream.Conn().RemotePeer()
-	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(&msgBytes)
-
-	for {
-		tot, err := readStream(stream, msgBytes[:])
-		if err != nil {
-			logger.Tracef(
-				"failed to read from stream id %s of peer %s using protocol %s: %s",
-				stream.ID(), stream.Conn().RemotePeer(), stream.Protocol(), err)
-			return
-		}
-
-		s.streamManager.logMessageReceived(stream.ID())
-
-		// decode message based on message type
-		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream)) // stream shoukd always be inbound if it passes through service.readStream
-		if err != nil {
-			logger.Tracef("failed to decode message from stream id %s using protocol %s: %s",
-				stream.ID(), stream.Protocol(), err)
-			continue
-		}
-
-		logger.Tracef(
-			"host %s received message from peer %s: %s",
-			s.host.id(), peer, msg.String())
-
-		if err = handler(stream, msg); err != nil {
-			logger.Tracef("failed to handle message %s from stream id %s: %s", msg, stream.ID(), err)
-			return
-		}
-
-		s.host.bwc.LogRecvMessage(int64(tot))
-	}
-}
-
-func (s *Service) resetInboundStream(stream libp2pnetwork.Stream) {
-	protocolID := stream.Protocol()
-	peerID := stream.Conn().RemotePeer()
-
-	s.notificationsMu.Lock()
-	defer s.notificationsMu.Unlock()
-
-	for _, prtl := range s.notificationsProtocols {
-		if prtl.protocolID != protocolID {
-			continue
-		}
-
-		prtl.inboundHandshakeData.Delete(peerID)
-	}
-
-	logger.Debugf(
-		"cleaning up inbound handshake data for protocol=%s, peer=%s",
-		stream.Protocol(),
-		peerID,
-	)
-
-	_ = stream.Reset()
-}
-
-func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {
-	defer func() {
-		_ = stream.Close()
-	}()
-
-	lr, ok := msg.(*LightRequest)
-	if !ok {
-		return nil
-	}
-
-	resp := NewLightResponse()
-	var err error
-	switch {
-	case lr.RemoteCallRequest != nil:
-		resp.RemoteCallResponse, err = remoteCallResp(lr.RemoteCallRequest)
-	case lr.RemoteHeaderRequest != nil:
-		resp.RemoteHeaderResponse, err = remoteHeaderResp(lr.RemoteHeaderRequest)
-	case lr.RemoteChangesRequest != nil:
-		resp.RemoteChangesResponse, err = remoteChangeResp(lr.RemoteChangesRequest)
-	case lr.RemoteReadRequest != nil:
-		resp.RemoteReadResponse, err = remoteReadResp(lr.RemoteReadRequest)
-	case lr.RemoteReadChildRequest != nil:
-		resp.RemoteReadResponse, err = remoteReadChildResp(lr.RemoteReadChildRequest)
-	default:
-		logger.Warn("ignoring LightRequest without request data")
-		return nil
-	}
-
-	if err != nil {
-		logger.Errorf("failed to get the response: %s", err)
-		return err
-	}
-
-	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage. (#1856)
-	logger.Debugf("LightResponse message: %s", resp)
-
-	err = s.host.writeToStream(stream, resp)
-	if err != nil {
-		logger.Warnf("failed to send LightResponse message to peer %s: %s", stream.Conn().RemotePeer(), err)
-	}
-	return err
 }
 
 // Health returns information about host needed for the rpc server

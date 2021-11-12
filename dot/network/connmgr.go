@@ -155,7 +155,9 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Tracef(
 		"Host %s connected to peer %s", n.LocalPeer(), c.RemotePeer())
 
-	cm.connectHandler(c.RemotePeer())
+	if cm.connectHandler != nil {
+		cm.connectHandler(c.RemotePeer())
+	}
 
 	cm.Lock()
 	defer cm.Unlock()
@@ -186,6 +188,10 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 			logger.Tracef("failed to close connection to peer %s", up)
 		}
 	}
+}
+
+func (cm *ConnManager) setDisconnectHandler(handler func(peer.ID)) {
+	cm.disconnectHandler = handler
 }
 
 // Disconnected is called when a connection closed

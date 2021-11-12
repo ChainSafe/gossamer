@@ -78,14 +78,25 @@ type handshakeReader struct {
 }
 
 type notificationsProtocol struct {
-	protocolID         protocol.ID
-	getHandshake       HandshakeGetter
-	handshakeDecoder   HandshakeDecoder
-	handshakeValidator HandshakeValidator
-	sendDataMutexes    *sync.Map //map[peer.ID]*sync.Mutex
+	protocolID               protocol.ID
+	getHandshake             HandshakeGetter
+	handshakeDecoder         HandshakeDecoder
+	handshakeValidator       HandshakeValidator
+	outboundHandshakeMutexes *sync.Map //map[peer.ID]*sync.Mutex
+	inboundHandshakeData     *sync.Map //map[peer.ID]*handshakeData
+	outboundHandshakeData    *sync.Map //map[peer.ID]*handshakeData
+}
 
-	inboundHandshakeData  *sync.Map //map[peer.ID]*handshakeData
-	outboundHandshakeData *sync.Map //map[peer.ID]*handshakeData
+func newNotificationsProtocol(protocolID protocol.ID, handshakeGetter HandshakeGetter, handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator) *notificationsProtocol {
+	return &notificationsProtocol{
+		protocolID:               protocolID,
+		getHandshake:             handshakeGetter,
+		handshakeValidator:       handshakeValidator,
+		handshakeDecoder:         handshakeDecoder,
+		outboundHandshakeMutexes: new(sync.Map),
+		inboundHandshakeData:     new(sync.Map),
+		outboundHandshakeData:    new(sync.Map),
+	}
 }
 
 func (n *notificationsProtocol) getInboundHandshakeData(pid peer.ID) (*handshakeData, bool) {
@@ -157,6 +168,7 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 	}
 }
 
+// createNotificationsMessageHandler returns a function that is called by the handler of *inbound* streams.
 func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler, batchHandler NotificationsMessageBatchHandler) messageHandler {
 	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
@@ -339,13 +351,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 }
 
 func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsProtocol) (libp2pnetwork.Stream, error) {
-	mu, has := info.sendDataMutexes.Load(peer)
+	mu, has := info.outboundHandshakeMutexes.Load(peer)
 	if !has || mu == nil {
-		panic("no sendDataMutex!!")
-	}
-
-	if _, ok := mu.(*sync.Mutex); !ok {
-		panic("sendDataMutex is not *sync.Mutex!!!")
+		// this should not happen
+		return nil, errors.New("outboundHandshakeMutex does not exist")
 	}
 
 	// multiple processes could each call this upcoming section, opening multiple streams and
