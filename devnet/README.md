@@ -20,7 +20,7 @@ cd ~/dev/gossamer
 
 ln -s devnet/alice.Dockerfile alice.Dockerfile
 ln -s devnet/bob.Dockerfile bob.Dockerfile
-ln -s docker-compose.yml docker-compose.yml
+ln -s devnet/docker-compose.yml docker-compose.yml
 ```
 
 ## Running the Devnet
