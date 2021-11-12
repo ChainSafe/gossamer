@@ -17,10 +17,10 @@
 package runtime
 
 import (
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
-	log "github.com/ChainSafe/log15"
 )
 
 // NodeStorageType type to identify offchain storage type
@@ -63,7 +63,7 @@ func (n *NodeStorage) GetPersistent(k []byte) ([]byte, error) {
 type InstanceConfig struct {
 	Storage     Storage
 	Keystore    *keystore.GlobalKeystore
-	LogLvl      log.Lvl
+	LogLvl      log.Level
 	Role        byte
 	NodeStorage NodeStorage
 	Network     BasicNetwork

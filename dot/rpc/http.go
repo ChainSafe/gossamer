@@ -20,14 +20,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	log "github.com/ChainSafe/log15"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
@@ -36,7 +35,7 @@ import (
 
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
-	logger       log.Logger
+	logger       *log.Logger
 	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
 	wsConns      []*subscription.WSConn
@@ -44,7 +43,7 @@ type HTTPServer struct {
 
 // HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
-	LogLvl              log.Lvl
+	LogLvl              log.Level
 	BlockAPI            modules.BlockAPI
 	StorageAPI          modules.StorageAPI
 	NetworkAPI          modules.NetworkAPI
@@ -86,14 +85,12 @@ func (h *HTTPServerConfig) exposeRPC() bool {
 	return h.RPCExternal || h.RPCUnsafeExternal
 }
 
-var logger log.Logger
+var logger *log.Logger
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
-	logger = log.New("pkg", "rpc")
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	logger = log.NewFromGlobal(log.AddContext("pkg", "rpc"))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	server := &HTTPServer{
 		logger:       logger,
@@ -108,7 +105,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 // RegisterModules registers the RPC services associated with the given API modules
 func (h *HTTPServer) RegisterModules(mods []string) {
 	for _, mod := range mods {
-		h.logger.Debug("Enabling rpc module", "module", mod)
+		h.logger.Debug("Enabling rpc module " + mod)
 		var srvc interface{}
 		switch mod {
 		case "system":
@@ -135,13 +132,13 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "payment":
 			srvc = modules.NewPaymentModule(h.serverConfig.BlockAPI)
 		default:
-			h.logger.Warn("Unrecognised module", "module", mod)
+			h.logger.Warn("Unrecognised module: " + mod)
 			continue
 		}
 
 		err := h.rpcServer.RegisterService(srvc, mod)
 		if err != nil {
-			h.logger.Warn("Failed to register module", "mod", mod, "err", err)
+			h.logger.Warnf("Failed to register module %s: %s", mod, err)
 		}
 
 		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod)
@@ -156,7 +153,7 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
 
-	h.logger.Info("Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.RPCPort)
+	h.logger.Infof("Starting HTTP Server on host %s and port %d...", h.serverConfig.Host, h.serverConfig.RPCPort)
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 
@@ -169,7 +166,7 @@ func (h *HTTPServer) Start() error {
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {
-			h.logger.Error("http error", "err", err)
+			h.logger.Errorf("http error: %s", err)
 		}
 	}()
 
@@ -177,13 +174,14 @@ func (h *HTTPServer) Start() error {
 		return nil
 	}
 
-	h.logger.Info("Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
+	h.logger.Infof("Starting WebSocket Server on host %s and port %d...",
+		h.serverConfig.Host, h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
-			h.logger.Error("http error", "err", err)
+			h.logger.Errorf("http error: %s", err)
 		}
 	}()
 
@@ -206,7 +204,7 @@ func (h *HTTPServer) Stop() error {
 
 			err := conn.Wsconn.Close()
 			if err != nil {
-				h.logger.Error("error closing websocket connection", "error", err)
+				h.logger.Errorf("error closing websocket connection: %s", err)
 			}
 		}
 	}
@@ -218,9 +216,9 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			if !h.serverConfig.exposeWS() {
-				ip, _, error := net.SplitHostPort(r.RemoteAddr)
-				if error != nil {
-					logger.Error("unable to parse IP", "error")
+				ip, _, err := net.SplitHostPort(r.RemoteAddr)
+				if err != nil {
+					logger.Errorf("unable to parse remote address %s: %s", ip, err)
 					return false
 				}
 
@@ -229,7 +227,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return true
 				}
 
-				logger.Debug("external websocket request refused", "error")
+				logger.Debug("external websocket request refused")
 				return false
 			}
 
@@ -239,7 +237,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := upg.Upgrade(w, r, nil)
 	if err != nil {
-		h.logger.Error("websocket upgrade failed", "error", err)
+		h.logger.Errorf("websocket upgrade failed: %s", err)
 		return
 	}
 	// create wsConn

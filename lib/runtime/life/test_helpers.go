@@ -20,16 +20,16 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
 // DefaultTestLogLvl is the log level used for test runtime instances
-var DefaultTestLogLvl = log.LvlInfo
+var DefaultTestLogLvl = log.Info
 
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
@@ -37,7 +37,7 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 }
 
 // NewTestInstanceWithTrie will create a new runtime instance with the supplied trie as the storage
-func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl) *Instance {
+func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Level) *Instance {
 	fp, cfg := setupConfig(t, targetRuntime, tt, lvl, 0)
 	r, err := NewInstanceFromFile(fp, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
@@ -45,7 +45,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	return r
 }
 
-func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl, role byte) (string, *Config) {
+func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Level, role byte) (string, *Config) {
 	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(targetRuntime)
 
 	err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)

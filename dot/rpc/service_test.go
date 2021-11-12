@@ -18,11 +18,13 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/gorilla/rpc/v2"
 	"github.com/stretchr/testify/require"
@@ -48,7 +50,7 @@ func TestService_Methods(t *testing.T) {
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods, len(m))
 
-	authMod := modules.NewAuthorModule(nil, nil, nil)
+	authMod := modules.NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, nil)
 	rpcService.BuildMethodNames(authMod, "author")
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods+qtyAuthorMethods, len(m))

@@ -124,20 +124,14 @@ func (cm *ConnManager) IsProtected(id peer.ID, _ string) (protected bool) {
 
 // Listen is called when network starts listening on an address
 func (cm *ConnManager) Listen(n network.Network, addr ma.Multiaddr) {
-	logger.Trace(
-		"Started listening",
-		"host", n.LocalPeer(),
-		"address", addr,
-	)
+	logger.Tracef(
+		"Host %s started listening on address %s", n.LocalPeer(), addr)
 }
 
 // ListenClose is called when network stops listening on an address
 func (cm *ConnManager) ListenClose(n network.Network, addr ma.Multiaddr) {
-	logger.Trace(
-		"Stopped listening",
-		"host", n.LocalPeer(),
-		"address", addr,
-	)
+	logger.Tracef(
+		"Host %s stopped listening on address %s", n.LocalPeer(), addr)
 }
 
 // returns a slice of peers that are unprotected and may be pruned.
@@ -158,11 +152,8 @@ func (cm *ConnManager) setConnectHandler(handler func(peer.ID)) {
 
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
-	logger.Trace(
-		"Connected to peer",
-		"host", c.LocalPeer(),
-		"peer", c.RemotePeer(),
-	)
+	logger.Tracef(
+		"Host %s connected to peer %s", n.LocalPeer(), c.RemotePeer())
 
 	cm.connectHandler(c.RemotePeer())
 
@@ -184,26 +175,22 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 
 		i, err := rand.Int(rand.Reader, big.NewInt(int64(len(unprotPeers))))
 		if err != nil {
-			logger.Error("error generating random number", "error", err)
+			logger.Errorf("error generating random number: %s", err)
 			return
 		}
 
 		up := unprotPeers[i.Int64()]
-		logger.Trace("Over max peer count, disconnecting from random unprotected peer", "peer", up)
+		logger.Tracef("Over max peer count, disconnecting from random unprotected peer %s", up)
 		err = n.ClosePeer(up)
 		if err != nil {
-			logger.Trace("failed to close connection to peer", "peer", up, "num peers", len(n.Peers()))
+			logger.Tracef("failed to close connection to peer %s", up)
 		}
 	}
 }
 
 // Disconnected is called when a connection closed
 func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
-	logger.Trace(
-		"Disconnected from peer",
-		"host", c.LocalPeer(),
-		"peer", c.RemotePeer(),
-	)
+	logger.Tracef("Host %s disconnected from peer %s", c.LocalPeer(), c.RemotePeer())
 
 	cm.Unprotect(c.RemotePeer(), "")
 	if cm.disconnectHandler != nil {
@@ -213,11 +200,8 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 
 // OpenedStream is called when a stream opened
 func (cm *ConnManager) OpenedStream(_ network.Network, s network.Stream) {
-	logger.Trace(
-		"Opened stream",
-		"peer", s.Conn().RemotePeer(),
-		"protocol", s.Protocol(),
-	)
+	logger.Tracef("Stream opened with peer %s using protocol %s",
+		s.Conn().RemotePeer(), s.Protocol())
 }
 
 func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb streamCloseHandler) {
@@ -228,11 +212,8 @@ func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb streamClo
 // Only inbound streams pass through this function.
 // Outbound streams
 func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
-	logger.Trace(
-		"Closed stream",
-		"peer", s.Conn().RemotePeer(),
-		"protocol", s.Protocol(),
-	)
+	logger.Tracef("Stream closed with peer %s using protocol %s",
+		s.Conn().RemotePeer(), s.Protocol())
 
 	cm.Lock()
 	defer cm.Unlock()

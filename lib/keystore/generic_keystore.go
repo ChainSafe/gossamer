@@ -58,13 +58,14 @@ func (ks *GenericKeystore) Size() int {
 }
 
 // Insert adds a keypair to the keystore
-func (ks *GenericKeystore) Insert(kp crypto.Keypair) {
+func (ks *GenericKeystore) Insert(kp crypto.Keypair) error {
 	ks.lock.Lock()
 	defer ks.lock.Unlock()
 
 	pub := kp.Public()
 	addr := crypto.PublicKeyToAddress(pub)
 	ks.keys[addr] = kp
+	return nil
 }
 
 // GetKeypair returns a keypair corresponding to the given public key, or nil if it doesn't exist

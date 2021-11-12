@@ -23,9 +23,9 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
@@ -41,7 +41,7 @@ const (
 
 // app is the cli application
 var app = cli.NewApp()
-var logger = log.New("pkg", "cmd")
+var logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
 
 var (
 	// exportCommand defines the "export" subcommand (ie, `gossamer export`)
@@ -179,7 +179,7 @@ func importStateAction(ctx *cli.Context) error {
 
 	cfg, err := createImportStateConfig(ctx)
 	if err != nil {
-		logger.Error("failed to create node configuration", "error", err)
+		logger.Errorf("failed to create node configuration: %s", err)
 		return err
 	}
 	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
@@ -222,7 +222,7 @@ func gossamerAction(ctx *cli.Context) error {
 	// setup gossamer logger
 	lvl, err := setupLogger(ctx)
 	if err != nil {
-		logger.Error("failed to setup logger", "error", err)
+		logger.Errorf("failed to setup logger: %s", err)
 		return err
 	}
 
@@ -230,7 +230,7 @@ func gossamerAction(ctx *cli.Context) error {
 	// cli application from the flag values provided)
 	cfg, err := createDotConfig(ctx)
 	if err != nil {
-		logger.Error("failed to create node configuration", "error", err)
+		logger.Errorf("failed to create node configuration: %s", err)
 		return err
 	}
 
@@ -244,7 +244,7 @@ func gossamerAction(ctx *cli.Context) error {
 		// initialise node (initialise state database and load genesis data)
 		err = dot.InitNode(cfg)
 		if err != nil {
-			logger.Error("failed to initialise node", "error", err)
+			logger.Errorf("failed to initialise node: %s", err)
 			return err
 		}
 	}
@@ -253,7 +253,7 @@ func gossamerAction(ctx *cli.Context) error {
 	// but do not overwrite configuration if the corresponding flag value is set
 	err = updateDotConfigFromGenesisData(ctx, cfg)
 	if err != nil {
-		logger.Error("failed to update config from genesis data", "error", err)
+		logger.Errorf("failed to update config from genesis data: %s", err)
 		return err
 	}
 
@@ -261,48 +261,48 @@ func gossamerAction(ctx *cli.Context) error {
 	// load built-in test keys if specified by `cfg.Account.Key`
 	err = keystore.LoadKeystore(cfg.Account.Key, ks.Acco)
 	if err != nil {
-		logger.Error("failed to load account keystore", "error", err)
+		logger.Errorf("failed to load account keystore: %s", err)
 		return err
 	}
 
 	err = keystore.LoadKeystore(cfg.Account.Key, ks.Babe)
 	if err != nil {
-		logger.Error("failed to load BABE keystore", "error", err)
+		logger.Errorf("failed to load BABE keystore: %s", err)
 		return err
 	}
 
 	err = keystore.LoadKeystore(cfg.Account.Key, ks.Gran)
 	if err != nil {
-		logger.Error("failed to load grandpa keystore", "error", err)
+		logger.Errorf("failed to load grandpa keystore: %s", err)
 		return err
 	}
 
 	// load user keys if specified
 	err = unlockKeystore(ks.Acco, cfg.Global.BasePath, cfg.Account.Unlock, ctx.String(PasswordFlag.Name))
 	if err != nil {
-		logger.Error("failed to unlock keystore", "error", err)
+		logger.Errorf("failed to unlock keystore: %s", err)
 		return err
 	}
 
 	err = unlockKeystore(ks.Babe, cfg.Global.BasePath, cfg.Account.Unlock, ctx.String(PasswordFlag.Name))
 	if err != nil {
-		logger.Error("failed to unlock keystore", "error", err)
+		logger.Errorf("failed to unlock keystore: %s", err)
 		return err
 	}
 
 	err = unlockKeystore(ks.Gran, cfg.Global.BasePath, cfg.Account.Unlock, ctx.String(PasswordFlag.Name))
 	if err != nil {
-		logger.Error("failed to unlock keystore", "error", err)
+		logger.Errorf("failed to unlock keystore: %s", err)
 		return err
 	}
 
 	node, err := dot.NewNode(cfg, ks, stopFunc)
 	if err != nil {
-		logger.Error("failed to create node services", "error", err)
+		logger.Errorf("failed to create node services: %s", err)
 		return err
 	}
 
-	logger.Info("starting node...", "name", node.Name)
+	logger.Info("starting node " + node.Name + "...")
 
 	// start node
 	err = node.Start()
@@ -318,13 +318,13 @@ func gossamerAction(ctx *cli.Context) error {
 func initAction(ctx *cli.Context) error {
 	lvl, err := setupLogger(ctx)
 	if err != nil {
-		logger.Error("failed to setup logger", "error", err)
+		logger.Errorf("failed to setup logger: %s", err)
 		return err
 	}
 
 	cfg, err := createInitConfig(ctx)
 	if err != nil {
-		logger.Error("failed to create node configuration", "error", err)
+		logger.Errorf("failed to create node configuration: %s", err)
 		return err
 	}
 
@@ -341,15 +341,9 @@ func initAction(ctx *cli.Context) error {
 
 		// prompt user to confirm reinitialization
 		if force || confirmMessage("Are you sure you want to reinitialise the node? [Y/n]") {
-			logger.Info(
-				"reinitialising node...",
-				"basepath", cfg.Global.BasePath,
-			)
+			logger.Info("reinitialising node at base path " + cfg.Global.BasePath + "...")
 		} else {
-			logger.Warn(
-				"exiting without reinitialising the node",
-				"basepath", cfg.Global.BasePath,
-			)
+			logger.Warn("exiting without reinitialising the node at base path " + cfg.Global.BasePath + "...")
 			return nil // exit if reinitialization is not confirmed
 		}
 	}
@@ -357,7 +351,7 @@ func initAction(ctx *cli.Context) error {
 	// initialise node (initialise state database and load genesis data)
 	err = dot.InitNode(cfg)
 	if err != nil {
-		logger.Error("failed to initialise node", "error", err)
+		logger.Errorf("failed to initialise node: %s", err)
 		return err
 	}
 
@@ -429,7 +423,7 @@ func buildSpecAction(ctx *cli.Context) error {
 func pruneState(ctx *cli.Context) error {
 	tomlCfg, _, err := setupConfigFromChain(ctx)
 	if err != nil {
-		logger.Error("failed to load chain configuration", "error", err)
+		logger.Errorf("failed to load chain configuration: %s", err)
 		return err
 	}
 

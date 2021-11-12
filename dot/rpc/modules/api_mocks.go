@@ -56,7 +56,7 @@ func NewMockTransactionStateAPI() *modulesmocks.TransactionStateAPI {
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
 func NewMockCoreAPI() *modulesmocks.CoreAPI {
 	m := new(modulesmocks.CoreAPI)
-	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"))
+	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil)
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(NewMockVersion(), nil)
 	m.On("IsBlockProducer").Return(false)
