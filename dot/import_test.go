@@ -78,8 +78,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 }
 
 func TestImportState(t *testing.T) {
-	basepath, err := os.MkdirTemp("", "gossamer-test-*")
-	require.NoError(t, err)
+	basepath := t.TempDir()
 
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -92,7 +91,7 @@ func TestImportState(t *testing.T) {
 	cfg.Init.Genesis = genFile.Name()
 
 	cfg.Global.BasePath = basepath
-	err = InitNode(cfg)
+	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)

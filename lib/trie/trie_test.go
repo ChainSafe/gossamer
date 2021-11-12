@@ -460,8 +460,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	testDataDirPath, _ := os.MkdirTemp(t.TempDir(), "test-badger-datadir")
-	defer os.RemoveAll(testDataDirPath)
+	testDataDirPath := t.TempDir()
 
 	cfg := &chaindb.Config{
 		DataDir:  testDataDirPath,

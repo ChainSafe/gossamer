@@ -5,7 +5,6 @@ package modules
 
 import (
 	"math/big"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -338,8 +337,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 }
 
 func newTestStateService(t *testing.T) *state.Service {
-	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	config := state.Config{
 		Path:     testDatadirPath,
@@ -350,7 +348,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
-	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
+	err := stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()

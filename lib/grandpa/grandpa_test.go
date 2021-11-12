@@ -7,7 +7,6 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
-	"os"
 	"sort"
 	"testing"
 	"time"
@@ -50,8 +49,7 @@ func NewMockDigestHandler() *mocks.DigestHandler {
 }
 
 func newTestState(t *testing.T) *state.Service {
-	testDatadirPath, err := os.MkdirTemp("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)

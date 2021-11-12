@@ -219,8 +219,7 @@ func TestInvalidCommand(t *testing.T) {
 func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	genesisPath := utils.GetGssmrGenesisRawPath()
 
-	tempDir, err := os.MkdirTemp("", "gossamer-maintest-")
-	require.Nil(t, err)
+	tempDir := t.TempDir()
 
 	nodeName := dot.RandomNodeName()
 	init := runTestGossamer(t,
@@ -233,7 +232,6 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	)
 
 	stdout, stderr := init.GetOutput()
-	require.Nil(t, err)
 
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
@@ -249,7 +247,6 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	)
 
 	stdout, stderr = init.GetOutput()
-	require.Nil(t, err)
 
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
