@@ -47,26 +47,26 @@ type VerificationManager struct {
 
 // NewVerificationManager returns a new NewVerificationManager
 func NewVerificationManager(blockState BlockState, epochState EpochState) (*VerificationManager, error) {
+	var isNilBlock bool
 	switch blockState.(type) {
 	case *state.BlockState:
-		if blockState == (*state.BlockState)(nil) {
-			return nil, errNilBlockState
-		}
+		isNilBlock = blockState == (*state.BlockState)(nil)
 	default:
-		if reflect.ValueOf(blockState).IsNil() {
-			return nil, errNilBlockState
-		}
+		isNilBlock = reflect.ValueOf(blockState).IsNil()
+	}
+	if isNilBlock {
+		return nil, errNilBlockState
 	}
 
+	var isNilEpoch bool
 	switch epochState.(type) {
 	case *state.EpochState:
-		if epochState == (*state.EpochState)(nil) {
-			return nil, errNilEpochState
-		}
+		isNilEpoch = epochState == (*state.EpochState)(nil)
 	default:
-		if reflect.ValueOf(epochState).IsNil() {
-			return nil, errNilEpochState
-		}
+		isNilEpoch = reflect.ValueOf(epochState).IsNil()
+	}
+	if isNilEpoch {
+		return nil, errNilEpochState
 	}
 
 	return &VerificationManager{

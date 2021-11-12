@@ -32,10 +32,8 @@ func Test_createBABEService(t *testing.T) {
 	t.Parallel()
 
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -108,6 +106,8 @@ func Test_createBABEService(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -115,10 +115,8 @@ func Test_createBABEService(t *testing.T) {
 
 func Test_createBlockVerifier(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -161,6 +159,8 @@ func Test_createBlockVerifier(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -168,10 +168,8 @@ func Test_createBlockVerifier(t *testing.T) {
 
 func Test_createCoreService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -232,6 +230,8 @@ func Test_createCoreService(t *testing.T) {
 			}
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -239,10 +239,8 @@ func Test_createCoreService(t *testing.T) {
 
 func Test_createDigestHandler(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -280,6 +278,8 @@ func Test_createDigestHandler(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -287,10 +287,8 @@ func Test_createDigestHandler(t *testing.T) {
 
 func Test_createGRANDPAService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -362,6 +360,8 @@ func Test_createGRANDPAService(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -369,10 +369,8 @@ func Test_createGRANDPAService(t *testing.T) {
 
 func Test_createNetworkService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -414,6 +412,8 @@ func Test_createNetworkService(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -421,10 +421,8 @@ func Test_createNetworkService(t *testing.T) {
 
 func Test_createRPCService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -475,6 +473,8 @@ func Test_createRPCService(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -482,10 +482,8 @@ func Test_createRPCService(t *testing.T) {
 
 func Test_createRuntime(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -555,6 +553,8 @@ func Test_createRuntime(t *testing.T) {
 
 			if tt.want {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -562,10 +562,8 @@ func Test_createRuntime(t *testing.T) {
 
 func Test_createRuntimeStorage(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -603,6 +601,8 @@ func Test_createRuntimeStorage(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -610,10 +610,8 @@ func Test_createRuntimeStorage(t *testing.T) {
 
 func Test_createStateService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -656,6 +654,8 @@ func Test_createStateService(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -663,10 +663,8 @@ func Test_createStateService(t *testing.T) {
 
 func Test_createSystemService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -707,6 +705,8 @@ func Test_createSystemService(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -739,6 +739,8 @@ func Test_newInMemoryDB(t *testing.T) {
 
 			if tt.want {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
@@ -746,10 +748,8 @@ func Test_newInMemoryDB(t *testing.T) {
 
 func Test_newSyncService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
@@ -804,6 +804,8 @@ func Test_newSyncService(t *testing.T) {
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}

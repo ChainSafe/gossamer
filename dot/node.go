@@ -146,7 +146,7 @@ func NodeInitialized(basepath string) bool {
 }
 
 // LoadGlobalNodeName returns the stored global node name from database
-func LoadGlobalNodeName(basepath string) (string, error) {
+func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
 	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
@@ -154,21 +154,19 @@ func LoadGlobalNodeName(basepath string) (string, error) {
 	}
 
 	defer func() {
-		err = db.Close()
-		if err != nil {
-			logger.Errorf("failed to close database: %s", err)
+		e := db.Close()
+		if e != nil {
+			logger.Errorf("failed to close database: %s", e)
 			return
 		}
 	}()
 
 	basestate := state.NewBaseState(db)
-	nodename, err := basestate.LoadNodeGlobalName()
+	nodename, err = basestate.LoadNodeGlobalName()
 	if err != nil {
 		logger.Warnf("failed to load global node name from base path %s: %s", basepath, err)
-		return "", err
 	}
-
-	return nodename, err
+	return
 }
 
 // NewNode creates a new dot node from a dot node configuration
