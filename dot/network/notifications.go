@@ -170,10 +170,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		if msg.IsHandshake() {
-			logger.Trace("received handshake on notifications sub-protocol", "protocol", info.protocolID,
-				"message", msg,
-				"peer", stream.Conn().RemotePeer(),
-			)
+			logger.Tracef("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
+				info.protocolID, stream.Conn().RemotePeer(), msg)
 
 			hs, ok := msg.(Handshake)
 			if !ok {
@@ -185,14 +183,16 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// ie it is an inbound stream and we only send the handshake over it.
 			// we do not send any other data over this stream, we would need to open a new outbound stream.
 			if _, has := info.getInboundHandshakeData(peer); !has {
-				logger.Trace("receiver: validating handshake", "protocol", info.protocolID)
+				logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
 
 				hsData := newHandshakeData(true, false, stream)
 				info.inboundHandshakeData.Store(peer, hsData)
 
 				err := info.handshakeValidator(peer, hs)
 				if err != nil {
-					logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+					logger.Tracef(
+						"failed to validate handshake from peer %s using protocol %s: %s",
+						peer, info.protocolID, err)
 					return errCannotValidateHandshake
 				}
 
@@ -202,25 +202,23 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
 				if err != nil {
-					logger.Warn("failed to get handshake", "protocol", info.protocolID, "error", err)
+					logger.Warnf("failed to get handshake using protocol %s: %s", info.protocolID, err)
 					return err
 				}
 
 				err = s.host.writeToStream(stream, resp)
 				if err != nil {
-					logger.Trace("failed to send handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+					logger.Tracef("failed to send handshake to peer %s using protocol %s: %s", peer, info.protocolID, err)
 					return err
 				}
-				logger.Trace("receiver: sent handshake", "protocol", info.protocolID, "peer", peer)
+				logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
 			}
 
 			return nil
 		}
 
-		logger.Trace("received message on notifications sub-protocol", "protocol", info.protocolID,
-			"message", msg,
-			"peer", stream.Conn().RemotePeer(),
-		)
+		logger.Tracef("received message on notifications sub-protocol %s from peer %s, message is: %s",
+			info.protocolID, stream.Conn().RemotePeer(), msg)
 
 		var (
 			propagate bool
@@ -290,10 +288,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		hsData.Lock()
 		defer hsData.Unlock()
 
-		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
+		logger.Tracef("sending outbound handshake to peer %s using protocol %s, message: %s",
+			peer, info.protocolID, hs)
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
-			logger.Trace("failed to send message to peer", "peer", peer, "error", err)
+			logger.Tracef("failed to send message to peer %s: %s", peer, err)
 			return
 		}
 
@@ -314,14 +313,14 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 				Reason: peerset.TimeOutReason,
 			}, peer)
 
-			logger.Trace("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
+			logger.Tracef("handshake timeout reached for peer %s using protocol %s", peer, info.protocolID)
 			_ = stream.Close()
 			info.outboundHandshakeData.Delete(peer)
 			return
 		case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
 			hsTimer.Stop()
 			if hsResponse.err != nil {
-				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+				logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
 				_ = stream.Close()
 				info.outboundHandshakeData.Delete(peer)
 				return
@@ -333,7 +332,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 		err = info.handshakeValidator(peer, hs)
 		if err != nil {
-			logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+			logger.Tracef("failed to validate handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
 			hsData.validated = false
 			info.outboundHandshakeData.Store(peer, hsData)
 			return
@@ -341,13 +340,13 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 		hsData.validated = true
 		info.outboundHandshakeData.Store(peer, hsData)
-		logger.Trace("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
+		logger.Tracef("sender: validated handshake from peer %s using protocol %s", peer, info.protocolID)
 	}
 
 	if s.host.messageCache != nil {
 		added, err := s.host.messageCache.put(peer, msg)
 		if err != nil {
-			logger.Error("failed to add message to cache", "peer", peer, "error", err)
+			logger.Errorf("failed to add message to cache for peer %s: %s", peer, err)
 			return
 		}
 
@@ -362,11 +361,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	// we've completed the handshake with the peer, send message directly
-	logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
+	logger.Tracef("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
 
 	err := s.host.writeToStream(hsData.stream, msg)
 	if err != nil {
-		logger.Debug("failed to send message to peer", "peer", peer, "error", err)
+		logger.Debugf("failed to send message to peer %s: %s", peer, err)
 	}
 
 	s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
@@ -379,14 +378,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 // and peers that have previously sent us the message or who we have already sent the message to.
 // used for notifications sub-protocols to gossip a message
 func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg NotificationsMessage) {
-	logger.Trace(
-		"broadcasting message from notifications sub-protocol",
-		"protocol", info.protocolID,
-	)
+	logger.Tracef("broadcasting message from notifications sub-protocol %s", info.protocolID)
 
 	hs, err := info.getHandshake()
 	if err != nil {
-		logger.Error("failed to get handshake", "protocol", info.protocolID, "error", err)
+		logger.Errorf("failed to get handshake using protocol %s: %s", info.protocolID, err)
 		return
 	}
 

@@ -80,9 +80,9 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	var externalAddr ma.Multiaddr
 	ip, err := pubip.Get()
 	if err != nil {
-		logger.Error("failed to get public IP", "error", err)
+		logger.Errorf("failed to get public IP: %s", err)
 	} else {
-		logger.Debug("got public IP", "IP", ip)
+		logger.Debugf("got public IP %s", ip)
 		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
 		if err != nil {
 			return nil, err
@@ -203,27 +203,27 @@ func (h *host) close() error {
 	// close DHT service
 	err := h.discovery.stop()
 	if err != nil {
-		logger.Error("Failed to close DHT service", "error", err)
+		logger.Errorf("Failed to close DHT service: %s", err)
 		return err
 	}
 
 	// close libp2p host
 	err = h.h.Close()
 	if err != nil {
-		logger.Error("Failed to close libp2p host", "error", err)
+		logger.Errorf("Failed to close libp2p host: %s", err)
 		return err
 	}
 
 	h.closeSync.Do(func() {
 		err = h.h.Peerstore().Close()
 		if err != nil {
-			logger.Error("Failed to close libp2p peerstore", "error", err)
+			logger.Errorf("Failed to close libp2p peerstore: %s", err)
 			return
 		}
 
 		err = h.ds.Close()
 		if err != nil {
-			logger.Error("Failed to close libp2p host datastore", "error", err)
+			logger.Errorf("Failed to close libp2p host datastore: %s", err)
 			return
 		}
 	})
@@ -252,7 +252,7 @@ func (h *host) bootstrap() {
 	}
 
 	for _, addrInfo := range h.bootnodes {
-		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
+		logger.Debugf("bootstrapping to peer %s", addrInfo.ID)
 		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 		h.cm.peerSetHandler.AddPeer(0, addrInfo.ID)
 	}
@@ -264,29 +264,22 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stre
 	// open outbound stream with host protocol id
 	stream, err := h.h.NewStream(h.ctx, p, pid)
 	if err != nil {
-		logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
+		logger.Tracef("failed to open new stream with peer %s using protocol %s: %s", p, pid, err)
 		return nil, err
 	}
 
-	logger.Trace(
-		"Opened stream",
-		"host", h.id(),
-		"peer", p,
-		"protocol", pid,
-	)
+	logger.Tracef(
+		"Opened stream with host %s, peer %s and protocol %s",
+		h.id(), p, pid)
 
 	err = h.writeToStream(stream, msg)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Trace(
-		"Sent message to peer",
-		"protocol", pid,
-		"host", h.id(),
-		"peer", p,
-		"message", msg.String(),
-	)
+	logger.Tracef(
+		"Sent message %s to peer %s using protocol %s and host %s",
+		msg, p, pid, h.id())
 
 	return stream, nil
 }

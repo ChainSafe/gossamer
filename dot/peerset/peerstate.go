@@ -235,7 +235,7 @@ func (ps *PeersState) hasFreeIncomingSlot(set int) bool {
 // has no effect if the node was already in the group.
 func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) {
 	if _, ok := ps.sets[idx].noSlotNodes[peerID]; ok {
-		logger.Debug("peer is already exists in no slot node", "peer", peerID)
+		logger.Debugf("peer %s already exists in no slot node", peerID)
 		return
 	}
 

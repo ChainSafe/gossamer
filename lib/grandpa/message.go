@@ -55,7 +55,7 @@ type SignedMessage struct {
 }
 
 // String returns the SignedMessage as a string
-func (m *SignedMessage) String() string {
+func (m SignedMessage) String() string {
 	return fmt.Sprintf("stage=%s hash=%s number=%d authorityID=%s", m.Stage, m.Hash, m.Number, m.AuthorityID)
 }
 

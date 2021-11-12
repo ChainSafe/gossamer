@@ -30,7 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -157,7 +157,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 func TestBuildBlock_ok(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LvlInfo,
+		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -207,7 +207,7 @@ func TestBuildBlock_ok(t *testing.T) {
 func TestApplyExtrinsic(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LvlInfo,
+		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -298,7 +298,7 @@ func TestApplyExtrinsic(t *testing.T) {
 func TestBuildAndApplyExtrinsic(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LvlInfo,
+		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)

@@ -3,7 +3,6 @@ module github.com/ChainSafe/gossamer
 require (
 	github.com/ChainSafe/chaindb v0.1.5-0.20210608140454-9606fe8c3985
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20210318173838-ccb5cd955283
-	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.0
@@ -14,6 +13,7 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.10.12
+	github.com/fatih/color v1.13.0
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
@@ -45,6 +45,7 @@ require (
 )
 
 require (
+	github.com/ChainSafe/log15 v1.0.0 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
@@ -123,8 +124,8 @@ require (
 	github.com/libp2p/go-yamux/v2 v2.2.0 // indirect
 	github.com/libp2p/zeroconf/v2 v2.1.0 // indirect
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/mattn/go-isatty v0.0.13 // indirect
+	github.com/mattn/go-colorable v0.1.9 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/dns v1.1.43 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect

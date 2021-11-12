@@ -35,7 +35,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/sync/mocks"
@@ -44,7 +44,7 @@ import (
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 
@@ -82,7 +82,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 	scfg := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
@@ -130,7 +130,7 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
 		// store updates state trie nodes in database
 		if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
-			logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
+			logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
 			return err
 		}
 
@@ -139,13 +139,14 @@ func newTestSyncer(t *testing.T) *Service {
 		require.NoError(t, err)
 
 		stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
-		logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", ts.MustRoot())
+		logger.Debugf("imported block %s and stored state trie with root %s",
+			block.Header.Hash(), ts.MustRoot())
 		return nil
 	})
 
 	cfg.TransactionState = stateSrvc.Transaction
 	cfg.BabeVerifier = newMockBabeVerifier()
-	cfg.LogLvl = log.LvlTrace
+	cfg.LogLvl = log.Trace
 	cfg.FinalityGadget = newMockFinalityGadget()
 	cfg.Network = newMockNetwork()
 

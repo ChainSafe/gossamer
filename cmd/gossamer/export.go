@@ -39,24 +39,17 @@ func exportAction(ctx *cli.Context) error {
 
 	// check if configuration file already exists at export destination
 	if utils.PathExists(config) {
-		logger.Warn(
-			"toml configuration file already exists",
-			"config", config,
-		)
+		logger.Warn("toml configuration file " + config + "already exists")
 
 		// use --force value to force overwrite the toml configuration file
 		force := ctx.Bool(ForceFlag.Name)
 
 		// prompt user to confirm overwriting existing toml configuration file
 		if force || confirmMessage("Are you sure you want to overwrite the file? [Y/n]") {
-			logger.Warn(
-				"overwriting toml configuration file",
-				"config", config,
-			)
+			logger.Warn("overwriting toml configuration file " + config)
 		} else {
 			logger.Warn(
-				"exiting without exporting toml configuration file",
-				"config", config,
+				"exiting without exporting toml configuration file " + config,
 			)
 			return nil // exit if reinitialization is not confirmed
 		}
@@ -71,7 +64,7 @@ func exportAction(ctx *cli.Context) error {
 	file := exportConfig(tomlCfg, config)
 	// export config will exit and log error on error
 
-	logger.Info("exported toml configuration file", "path", file.Name())
+	logger.Info("exported toml configuration to " + file.Name())
 
 	return nil
 }

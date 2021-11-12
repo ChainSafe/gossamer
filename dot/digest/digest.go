@@ -23,17 +23,16 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
-	log "github.com/ChainSafe/log15"
 )
 
 var maxUint64 = uint64(math.MaxUint64)
 
 var (
-	_      services.Service = &Handler{}
-	logger log.Logger       = log.New("pkg", "digest") // TODO: add to config options (#1851)
+	_      services.Service  = &Handler{}
+	logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "digest")) // TODO: add to config options (#1851)
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -135,7 +134,8 @@ func (h *Handler) HandleDigests(header *types.Header) {
 		if ok {
 			err := h.handleConsensusDigest(&val, header)
 			if err != nil {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", d.Value(), "error", err)
+				logger.Errorf("cannot handle digests for block number %s, index %d, digest %s: %s",
+					header.Number, i, d.Value(), err)
 			}
 		}
 	}
@@ -190,12 +190,12 @@ func (h *Handler) handleGrandpaConsensusDigest(digest scale.VaryingDataType, hea
 func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
-		logger.Debug("handling BABENextEpochData", "data", digest)
+		logger.Debugf("handling BABENextEpochData data: %v", digest)
 		return h.handleNextEpochData(val, header)
 	case types.BABEOnDisabled:
 		return h.handleBABEOnDisabled(val, header)
 	case types.NextConfigData:
-		logger.Debug("handling BABENextConfigData", "data", digest)
+		logger.Debugf("handling BABENextConfigData data: %v", digest)
 		return h.handleNextConfigData(val, header)
 	}
 
@@ -212,7 +212,7 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 
 			err := h.handleGrandpaChangesOnImport(block.Header.Number)
 			if err != nil {
-				logger.Error("failed to handle grandpa changes on block import", "error", err)
+				logger.Errorf("failed to handle grandpa changes on block import: %s", err)
 			}
 		case <-ctx.Done():
 			return
@@ -230,7 +230,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 
 			err := h.handleGrandpaChangesOnFinalization(info.Header.Number)
 			if err != nil {
-				logger.Error("failed to handle grandpa changes on block finalisation", "error", err)
+				logger.Errorf("failed to handle grandpa changes on block finalisation: %s", err)
 			}
 		case <-ctx.Done():
 			return
@@ -257,7 +257,7 @@ func (h *Handler) handleGrandpaChangesOnImport(num *big.Int) error {
 			return err
 		}
 
-		logger.Debug("incremented grandpa set ID", "set ID", curr)
+		logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
 	return nil
@@ -282,7 +282,7 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 			return err
 		}
 
-		logger.Debug("incremented grandpa set ID", "set ID", curr)
+		logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
 	// if blocks get finalised before forced change takes place, disregard it
@@ -300,7 +300,7 @@ func (h *Handler) handleScheduledChange(sc types.GrandpaScheduledChange, header 
 		return nil
 	}
 
-	logger.Debug("handling GrandpaScheduledChange", "data", sc)
+	logger.Debugf("handling GrandpaScheduledChange data: %v", sc)
 
 	c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
 	if err != nil {
@@ -313,7 +313,8 @@ func (h *Handler) handleScheduledChange(sc types.GrandpaScheduledChange, header 
 	if err != nil {
 		return err
 	}
-	logger.Debug("setting GrandpaScheduledChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
+	logger.Debugf("setting GrandpaScheduledChange at block %s",
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))),
@@ -329,7 +330,7 @@ func (h *Handler) handleForcedChange(fc types.GrandpaForcedChange, header *types
 		return errors.New("already have forced change scheduled")
 	}
 
-	logger.Debug("handling GrandpaForcedChange", "data", fc)
+	logger.Debugf("handling GrandpaForcedChange with data %v", fc)
 
 	c, err := newGrandpaChange(fc.Auths, fc.Delay, header.Number)
 	if err != nil {
@@ -343,7 +344,8 @@ func (h *Handler) handleForcedChange(fc types.GrandpaForcedChange, header *types
 		return err
 	}
 
-	logger.Debug("setting GrandpaForcedChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
+	logger.Debugf("setting GrandpaForcedChange at block %s",
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))),
@@ -394,8 +396,7 @@ func newGrandpaChange(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock
 }
 
 func (h *Handler) handleBABEOnDisabled(d types.BABEOnDisabled, _ *types.Header) error {
-	od := &types.BABEOnDisabled{}
-	logger.Debug("handling BABEOnDisabled", "data", od)
+	logger.Debug("handling BABEOnDisabled")
 	return nil
 }
 
@@ -411,7 +412,8 @@ func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Hea
 		return err
 	}
 
-	logger.Debug("setting epoch data", "blocknum", header.Number, "epoch", currEpoch+1, "data", data)
+	logger.Debugf("setting data for block number %s and epoch %d with data: %v",
+		header.Number, currEpoch+1, data)
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
@@ -421,7 +423,8 @@ func (h *Handler) handleNextConfigData(config types.NextConfigData, header *type
 		return err
 	}
 
-	logger.Debug("setting BABE config data", "blocknum", header.Number, "epoch", currEpoch+1, "data", config.ToConfigData())
+	logger.Debugf("setting BABE config data for block number %s and epoch %d with data: %v",
+		header.Number, currEpoch+1, config.ToConfigData())
 	// set EpochState config data for upcoming epoch
 	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())
 }

@@ -34,10 +34,9 @@ func NewPreparedBlockForProposingTM(hash common.Hash, number string) Message {
 	return &preparedBlockForProposingTM{
 		Hash:   hash,
 		Number: number,
-		Msg:    "prepared_block_for_proposing",
 	}
 }
 
-func (tm *preparedBlockForProposingTM) messageType() string {
-	return tm.Msg
+func (preparedBlockForProposingTM) messageType() string {
+	return preparedBlockForProposingMsg
 }

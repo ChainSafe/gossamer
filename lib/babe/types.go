@@ -51,6 +51,11 @@ func NewSlot(start time.Time, duration time.Duration, number uint64) *Slot {
 	}
 }
 
+func (s Slot) String() string {
+	return fmt.Sprintf("slot number %d started at %s for a duration of %s",
+		s.number, s.start, s.duration)
+}
+
 // Authorities is an alias for []*types.Authority
 type Authorities []types.Authority
 
