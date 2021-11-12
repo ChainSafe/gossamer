@@ -38,7 +38,7 @@ type ConnManager struct {
 	sync.Mutex
 	host              *host
 	min, max          int
-	connectHandler func(peer.ID)
+	connectHandler    func(peer.ID)
 	disconnectHandler func(peer.ID)
 
 	// closeHandlerMap contains close handler corresponding to a protocol.
@@ -226,7 +226,7 @@ func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb streamClo
 
 // ClosedStream is called when a stream closed by the remote side.
 // Only inbound streams pass through this function.
-// Outbound streams 
+// Outbound streams
 func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
 	logger.Trace(
 		"Closed stream",

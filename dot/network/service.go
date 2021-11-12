@@ -356,7 +356,7 @@ func (s *Service) getNumStreams(protocolID byte, inbound bool) int64 {
 			return true
 		}
 
-		if data.(handshakeData).stream != nil {
+		if data.(*handshakeData).stream != nil {
 			count++
 		}
 
