@@ -4,6 +4,7 @@
 package trie
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -25,15 +26,22 @@ func (t *Trie) String() string {
 func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 	switch c := curr.(type) {
 	case *branch:
-		hasher := newHasher(false)
-		defer hasher.returnToPool()
-		c.encoding, _ = hasher.encode(c)
+		buffer := encodingBufferPool.Get().(*bytes.Buffer)
+		buffer.Reset()
+
+		const parallel = false
+		_ = encodeBranch(c, buffer, parallel)
+		c.encoding = buffer.Bytes()
+
 		var bstr string
 		if len(c.encoding) > 1024 {
 			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.encoding), c.generation)
 		} else {
 			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.encoding, c.generation)
 		}
+
+		encodingBufferPool.Put(buffer)
+
 		sub := tree.Add(bstr)
 		for i, child := range c.children {
 			if child != nil {
@@ -41,22 +49,23 @@ func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 			}
 		}
 	case *leaf:
-		hasher := newHasher(false)
-		defer hasher.returnToPool()
-		c.encoding, _ = hasher.encode(c)
+		buffer := encodingBufferPool.Get().(*bytes.Buffer)
+		buffer.Reset()
+
+		_ = encodeLeaf(c, buffer)
+		c.encoding = buffer.Bytes()
+
 		var bstr string
 		if len(c.encoding) > 1024 {
 			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.encoding), c.generation)
 		} else {
 			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.encoding, c.generation)
 		}
+
+		encodingBufferPool.Put(buffer)
+
 		tree.Add(bstr)
 	default:
 		return
 	}
-}
-
-// Print prints the trie through pre-order traversal
-func (t *Trie) Print() {
-	fmt.Println(t.String())
 }
