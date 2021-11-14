@@ -1,4 +1,4 @@
-Copyright 2019 ChainSafe Systems (ON) Corp.
+Copyright 2021 ChainSafe Systems (ON) Corp.
 This file is part of gossamer.
 
 The gossamer library is free software: you can redistribute it and/or modify
