@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2021 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,21 +14,23 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package telemetry
 
-import (
-	"fmt"
-	"path/filepath"
-	"strings"
+// txpoolImportTM holds `txpool.import` telemetry message, which is supposed to be
+// sent when a new transaction gets imported in the transaction pool.
+type txpoolImportTM struct {
+	Ready  uint `json:"ready"`
+	Future uint `json:"future"`
+}
 
-	log "github.com/ChainSafe/log15"
-)
+// NewTxpoolImportTM creates a new txpoolImportTM struct
+func NewTxpoolImportTM(ready, future uint) Message {
+	return &txpoolImportTM{
+		Ready:  ready,
+		Future: future,
+	}
+}
 
-// CustomFileHandler returns a Handler that adds the name of the calling function to the context with key "func"
-//  and the line number and file of the calling function to the context with key "caller".
-func CustomFileHandler(h log.Handler) log.Handler {
-	return log.FuncHandler(func(r *log.Record) error {
-		r.Ctx = append(r.Ctx, "func", strings.TrimLeft(filepath.Ext(r.Call.Frame().Function), "."), "caller", fmt.Sprint(r.Call))
-		return h.Log(r)
-	})
+func (txpoolImportTM) messageType() string {
+	return txPoolImportMsg
 }

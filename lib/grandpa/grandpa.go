@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
@@ -22,18 +9,16 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
-	log "github.com/ChainSafe/log15"
 )
 
 const (
@@ -42,7 +27,7 @@ const (
 )
 
 var (
-	logger = log.New("pkg", "grandpa")
+	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
 )
 
 // Service represents the current state of the grandpa protocol
@@ -85,7 +70,7 @@ type Service struct {
 
 // Config represents a GRANDPA service configuration
 type Config struct {
-	LogLvl        log.Lvl
+	LogLvl        log.Level
 	BlockState    BlockState
 	GrandpaState  GrandpaState
 	DigestHandler DigestHandler
@@ -118,16 +103,16 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilNetwork
 	}
 
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	var pub string
 	if cfg.Authority {
 		pub = cfg.Keypair.Public().Hex()
 	}
 
-	logger.Debug("creating service", "authority", cfg.Authority, "key", pub, "voter set", Voters(cfg.Voters))
+	logger.Debugf(
+		"creating service with authority=%t, pub=%s and voter set %s",
+		cfg.Authority, pub, Voters(cfg.Voters))
 
 	// get latest finalised header
 	head, err := cfg.BlockState.GetFinalisedHeader(0, 0)
@@ -198,7 +183,7 @@ func (s *Service) Start() error {
 
 	go func() {
 		if err := s.initiate(); err != nil {
-			logger.Crit("failed to initiate", "error", err)
+			logger.Criticalf("failed to initiate: %s", err)
 		}
 	}()
 
@@ -285,7 +270,9 @@ func (s *Service) initiateRound() error {
 	}
 
 	if round > s.state.round && setID == s.state.setID {
-		logger.Debug("found block finalised in higher round, updating our round...", "new round", round)
+		logger.Debugf(
+			"found block finalised in higher round, updating our round to be %d...",
+			round)
 		s.state.round = round
 		err = s.grandpaState.SetLatestRound(round)
 		if err != nil {
@@ -294,14 +281,14 @@ func (s *Service) initiateRound() error {
 	}
 
 	if setID > s.state.setID {
-		logger.Debug("found block finalised in higher setID, updating our setID...", "new setID", setID)
+		logger.Debugf("found block finalised in higher setID, updating our setID to be %d...", setID)
 		s.state.setID = setID
 		s.state.round = round
 	}
 
 	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
 	if err != nil {
-		logger.Crit("failed to get finalised header", "round", s.state.round, "error", err)
+		logger.Criticalf("failed to get finalised header for round %d: %s", round, err)
 		return err
 	}
 
@@ -318,7 +305,7 @@ func (s *Service) initiateRound() error {
 	// make sure no votes can be validated while we are incrementing rounds
 	s.roundLock.Lock()
 	s.state.round++
-	logger.Debug("incrementing grandpa round", "next round", s.state.round)
+	logger.Debugf("incrementing grandpa round, next round will be %d", s.state.round)
 	s.prevotes = new(sync.Map)
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
@@ -344,7 +331,7 @@ func (s *Service) initiate() error {
 	for {
 		err := s.initiateRound()
 		if err != nil {
-			logger.Warn("failed to initiate round", "round", s.state.round, "error", err)
+			logger.Warnf("failed to initiate round for round %d: %s", s.state.round, err)
 			return err
 		}
 
@@ -357,7 +344,7 @@ func (s *Service) initiate() error {
 		}
 
 		if err != nil {
-			logger.Warn("failed to play grandpa round", "error", err)
+			logger.Warnf("failed to play grandpa round: %s", err)
 			continue
 		}
 
@@ -436,7 +423,7 @@ func (s *Service) primaryBroadcastCommitMessage() {
 	// send finalised block from previous round to network
 	msg, err := cm.ToConsensusMessage()
 	if err != nil {
-		logger.Warn("failed to encode finalisation message", "error", err)
+		logger.Warnf("failed to encode finalisation message: %s", err)
 	}
 
 	s.network.GossipMessage(msg)
@@ -445,7 +432,8 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
-	logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
+	logger.Debugf("starting round %d with set id %d",
+		s.state.round, s.state.setID)
 	start := time.Now()
 
 	ctx, cancel := context.WithCancel(s.ctx)
@@ -479,7 +467,7 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	logger.Debug("sending pre-vote message...", "vote", pv)
+	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
 	defer close(roundComplete)
 
@@ -506,17 +494,17 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	s.precommits.Store(s.publicKeyBytes(), spc)
-	logger.Debug("sending pre-commit message...", "vote", pc)
+	logger.Debugf("sending pre-commit message %s...", pc)
 
 	// continue to send precommit messages until round is done
 	go s.sendVoteMessage(precommit, pcm, roundComplete)
 
 	if err = s.attemptToFinalize(); err != nil {
-		logger.Error("failed to finalise", "error", err)
+		logger.Errorf("failed to finalise: %s", err)
 		return err
 	}
 
-	logger.Debug("round completed", "duration", time.Since(start))
+	logger.Debugf("round completed in %s", time.Since(start))
 	return nil
 }
 
@@ -530,9 +518,9 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 		}
 
 		if err := s.sendMessage(msg); err != nil {
-			logger.Warn("could not send message", "stage", stage, "error", err)
+			logger.Warnf("could not send message for stage %s: %s", stage, err)
 		} else {
-			logger.Trace("sent vote message", "stage", stage, "vote", msg)
+			logger.Tracef("sent vote message for stage %s: %s", stage, msg.Message)
 		}
 
 		select {
@@ -560,18 +548,20 @@ func (s *Service) attemptToFinalize() error {
 
 		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 		if has {
-			logger.Debug("block was finalised!", "round", s.state.round)
+			logger.Debugf("block was finalised for round %d", s.state.round)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
 		highestRound, highestSetID, _ := s.blockState.GetHighestRoundAndSetID()
 		if highestRound > s.state.round {
-			logger.Debug("block was finalised!", "round", highestRound, "setID", highestSetID)
+			logger.Debugf("block was finalised for round %d and set id %d",
+				highestRound, highestSetID)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
 		if highestSetID > s.state.setID {
-			logger.Debug("block was finalised!", "round", highestRound, "setID", highestSetID)
+			logger.Debugf("block was finalised for round %d and set id %d",
+				highestRound, highestSetID)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
@@ -595,13 +585,9 @@ func (s *Service) attemptToFinalize() error {
 
 		// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
 		votes := s.getDirectVotes(precommit)
-		logger.Debug("finalised block!!!",
-			"setID", s.state.setID,
-			"round", s.state.round,
-			"hash", s.head.Hash(),
-			"direct votes for bfc", votes[*bfc],
-			"total votes for bfc", pc,
-		)
+		logger.Debugf("block was finalised for round %d and set id %d. "+
+			"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
+			s.state.round, s.state.setID, s.head.Hash(), votes[*bfc], pc)
 
 		cm, err := s.newCommitMessage(s.head, s.state.round)
 		if err != nil {
@@ -613,7 +599,7 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		logger.Debug("sending CommitMessage", "msg", cm)
+		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
 		return nil
 	}

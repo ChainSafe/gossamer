@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
@@ -28,22 +15,15 @@ import (
 	"testing"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
 	"github.com/cosmos/go-bip39"
 	"github.com/naoina/toml"
 	"github.com/stretchr/testify/require"
 )
-
-// setupLogger sets up the gossamer logger
-func setupLogger(cfg *Config) {
-	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	handler = log.CallerFileHandler(handler)
-	logger.SetHandler(log.LvlFilterHandler(cfg.Global.LogLvl, handler))
-}
 
 // NewTestGenesis returns a test genesis instance using "gssmr" raw data
 func NewTestGenesis(t *testing.T) *genesis.Genesis {
@@ -161,7 +141,7 @@ func NewTestConfig(t *testing.T) *Config {
 			Name:     GssmrConfig().Global.Name,
 			ID:       GssmrConfig().Global.ID,
 			BasePath: dir,
-			LogLvl:   log.LvlInfo,
+			LogLvl:   log.Info,
 		},
 		Log:     GssmrConfig().Log,
 		Init:    GssmrConfig().Init,
@@ -189,7 +169,7 @@ func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 func ExportConfig(cfg *Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Error("failed to marshal configuration", "error", err)
+		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(raw, fp)
@@ -199,7 +179,7 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Error("failed to marshal configuration", "error", err)
+		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(raw, fp)
@@ -209,18 +189,18 @@ func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
 func WriteConfig(data []byte, fp string) *os.File {
 	newFile, err := os.Create(filepath.Clean(fp))
 	if err != nil {
-		logger.Error("failed to create configuration file", "error", err)
+		logger.Errorf("failed to create configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	_, err = newFile.Write(data)
 	if err != nil {
-		logger.Error("failed to write to configuration file", "error", err)
+		logger.Errorf("failed to write to configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	if err := newFile.Close(); err != nil {
-		logger.Error("failed to close configuration file", "error", err)
+		logger.Errorf("failed to close configuration file: %s", err)
 		os.Exit(1)
 	}
 
@@ -231,7 +211,7 @@ func WriteConfig(data []byte, fp string) *os.File {
 func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
 	data, err := bs.ToJSONRaw()
 	if err != nil {
-		logger.Error("failed to convert into raw json", "error", err)
+		logger.Errorf("failed to convert into raw json: %s", err)
 		os.Exit(1)
 	}
 	return WriteConfig(data, fp)

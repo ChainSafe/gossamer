@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
@@ -219,10 +206,6 @@ func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Blo
 	}
 
 	return block.(*types.Block), true
-}
-
-func (bs *BlockState) deleteUnfinalisedBlock(hash common.Hash) {
-	bs.unfinalisedBlocks.Delete(hash)
 }
 
 // HasHeader returns if the db contains a header with the given hash
@@ -434,16 +417,17 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
 // TODO: remove this func and usage from sync (after sync refactor?)
-func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
+func (bs *BlockState) AddBlockToBlockTree(block *types.Block) error {
 	bs.Lock()
 	defer bs.Unlock()
 
-	arrivalTime, err := bs.GetArrivalTime(header.Hash())
+	arrivalTime, err := bs.GetArrivalTime(block.Header.Hash())
 	if err != nil {
 		arrivalTime = time.Now()
 	}
 
-	return bs.bt.AddBlock(header, arrivalTime)
+	bs.storeUnfinalisedBlock(block)
+	return bs.bt.AddBlock(&block.Header, arrivalTime)
 }
 
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
@@ -617,7 +601,8 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		return nil
 	}
 
-	logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash, "previous code hash", codeHash, "new code hash", currCodeHash)
+	logger.Infof("🔄 detected runtime code change, upgrading with block %s from previous code hash %s to new code hash %s...",
+		bHash, codeHash, currCodeHash)
 	code := newState.LoadCode()
 	if len(code) == 0 {
 		return errors.New("new :code is empty")
@@ -639,9 +624,9 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 			return nil
 		}
 
-		logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash,
-			"previous code hash", codeHash, "new code hash", currCodeHash,
-			"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
+		logger.Infof(
+			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...",
+			bHash, codeHash, previousVersion.SpecVersion(), currCodeHash, newVersion.SpecVersion())
 	}
 
 	rtCfg := &wasmer.Config{

@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package babe
 
@@ -28,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -39,13 +27,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	defaultTestLogLvl = log.LvlInfo
+	defaultTestLogLvl = log.Info
 	emptyHash         = trie.EmptyHash
 	testEpochIndex    = uint64(0)
 
@@ -111,7 +98,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
 		config := state.Config{
 			Path:     testDatadirPath,
-			LogLevel: log.LvlInfo,
+			LogLevel: log.Info,
 		}
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
@@ -166,14 +153,11 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 
-	logger = log.New("pkg", "babe")
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(defaultTestLogLvl, h))
+	logger = log.NewFromGlobal(log.SetLevel(defaultTestLogLvl))
 
 	// Start all tests
 	code := m.Run()
@@ -188,7 +172,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 
 	config := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
@@ -380,7 +364,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 
 func TestStartAndStop(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.LvlCrit,
+		LogLvl: log.Critical,
 	})
 	err := bs.Start()
 	require.NoError(t, err)
@@ -390,7 +374,7 @@ func TestStartAndStop(t *testing.T) {
 
 func TestService_PauseAndResume(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.LvlCrit,
+		LogLvl: log.Critical,
 	})
 	err := bs.Start()
 	require.NoError(t, err)

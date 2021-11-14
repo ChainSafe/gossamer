@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
@@ -20,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -91,16 +79,13 @@ func createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {
 }
 
 func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service, code []byte) (runtime.Instance, error) {
-	logger.Info(
-		"creating runtime...",
-		"interpreter", cfg.Core.WasmInterpreter,
-	)
+	logger.Info("creating runtime with interpreter " + cfg.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code
 	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
 
 	if !codeSubHash.IsEmpty() {
-		logger.Info("🔄 detected runtime code substitution, upgrading...", "block", codeSubHash)
+		logger.Infof("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash)
 		genData, err := st.Base.LoadGenesisData() // nolint
 		if err != nil {
 			return nil, err
@@ -162,18 +147,23 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 	return rt, nil
 }
 
+func asAuthority(authority bool) string {
+	if authority {
+		return " as authority"
+	}
+	return ""
+}
+
 func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service) (*babe.Service, error) {
-	logger.Info(
-		"creating BABE service...",
-		"authority", cfg.Core.BabeAuthority,
-	)
+	logger.Info("creating BABE service" +
+		asAuthority(cfg.Core.BabeAuthority) + "...")
 
 	if ks.Name() != "babe" || ks.Type() != crypto.Sr25519Type {
 		return nil, ErrInvalidKeystoreType
 	}
 
 	kps := ks.Keypairs()
-	logger.Info("keystore", "keys", kps)
+	logger.Infof("keystore with keys %v", kps)
 	if len(kps) == 0 && cfg.Core.BabeAuthority {
 		return nil, ErrNoKeysProvided
 	}
@@ -197,7 +187,7 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 	// create new BABE service
 	bs, err := babe.NewService(bcfg)
 	if err != nil {
-		logger.Error("failed to initialise BABE service", "error", err)
+		logger.Errorf("failed to initialise BABE service: %s", err)
 		return nil, err
 	}
 
@@ -208,10 +198,9 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 
 // createCoreService creates the core service from the provided core configuration
 func createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
-	logger.Debug(
-		"creating core service...",
-		"authority", cfg.Core.Roles == types.AuthorityRole,
-	)
+	logger.Debug("creating core service" +
+		asAuthority(cfg.Core.Roles == types.AuthorityRole) +
+		"...")
 
 	genesisData, err := st.Base.LoadGenesisData()
 	if err != nil {
@@ -240,7 +229,7 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Servi
 	// create new core service
 	coreSrvc, err := core.NewService(coreConfig)
 	if err != nil {
-		logger.Error("failed to create core service", "error", err)
+		logger.Errorf("failed to create core service: %s", err)
 		return nil, err
 	}
 
@@ -251,15 +240,10 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Servi
 
 // createNetworkService creates a network service from the command configuration and genesis data
 func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error) {
-	logger.Debug(
-		"creating network service...",
-		"roles", cfg.Core.Roles,
-		"port", cfg.Network.Port,
-		"bootnodes", cfg.Network.Bootnodes,
-		"protocol", cfg.Network.ProtocolID,
-		"nobootstrap", cfg.Network.NoBootstrap,
-		"nomdns", cfg.Network.NoMDNS,
-	)
+	logger.Debugf(
+		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
+		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
+		cfg.Network.NoBootstrap, cfg.Network.NoMDNS)
 
 	// network service configuation
 	networkConfig := network.Config{
@@ -281,7 +265,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 
 	networkSrvc, err := network.NewService(&networkConfig)
 	if err != nil {
-		logger.Error("failed to create network service", "error", err)
+		logger.Errorf("failed to create network service: %s", err)
 		return nil, err
 	}
 
@@ -292,15 +276,10 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 
 // createRPCService creates the RPC service from the provided core configuration
 func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
-	logger.Info(
-		"creating rpc service...",
-		"host", cfg.RPC.Host,
-		"external", cfg.RPC.External,
-		"rpc port", cfg.RPC.Port,
-		"mods", cfg.RPC.Modules,
-		"ws", cfg.RPC.WS,
-		"ws port", cfg.RPC.WSPort,
-		"ws external", cfg.RPC.WSExternal,
+	logger.Infof(
+		"creating rpc service with host %s, external=%t, port %d, modules %s, ws=%t, ws port %d and ws external=%t",
+		cfg.RPC.Host, cfg.RPC.External, cfg.RPC.Port, strings.Join(cfg.RPC.Modules, ","), cfg.RPC.WS,
+		cfg.RPC.WSPort, cfg.RPC.WSExternal,
 	)
 	rpcService := rpc.NewService()
 

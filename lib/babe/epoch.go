@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package babe
 
@@ -28,7 +15,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		err       error
 	)
 
-	logger.Debug("initiating epoch", "epoch", epoch)
+	logger.Debugf("initiating epoch %d", epoch)
 
 	if epoch == 0 {
 		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
@@ -42,7 +29,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 
 		if !has {
-			logger.Crit("no epoch data for next BABE epoch", "epoch", epoch)
+			logger.Criticalf("%s, for epoch %d", errNoEpochData, epoch)
 			return errNoEpochData
 		}
 
@@ -102,7 +89,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 			return err
 		}
 
-		logger.Debug("estimated first slot based on building block 1", "slot", startSlot)
+		logger.Debugf("estimated first slot as %d based on building block 1", startSlot)
 		for i := startSlot; i < startSlot+b.epochLength; i++ {
 			proof, err := b.runLottery(i, epoch) //nolint
 			if err != nil {
@@ -122,7 +109,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 	}
 
-	logger.Info("initiating epoch", "epoch", epoch, "start slot", startSlot)
+	logger.Infof("initiating epoch %d with start slot %d", epoch, startSlot)
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
 		if epoch > 0 {
@@ -136,7 +123,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 		if proof != nil {
 			b.slotToProof[i] = proof
-			logger.Trace("claimed slot!", "slot", startSlot, "slots into epoch", i-startSlot)
+			logger.Tracef("claimed slot %d, there are now %d slots into epoch", startSlot, i-startSlot)
 		}
 	}
 

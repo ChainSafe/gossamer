@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
 
@@ -136,19 +123,13 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Debug("handling BlockRequestMessage",
-			"start", startNumber,
-			"end", endNumber,
-			"direction", req.Direction,
-		)
+		logger.Debugf("handling BlockRequestMessage with direction %s from start block with number %d to end block with number %d",
+			req.Direction, startNumber, endNumber)
 		return s.handleAscendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debug("handling BlockRequestMessage",
-		"start", *startHash,
-		"end", *endHash,
-		"direction", req.Direction,
-	)
+	logger.Debugf("handling BlockRequestMessage with direction %s from start block with hash %s to end block with hash %s",
+		req.Direction, *startHash, *endHash)
 	return s.handleChainByHash(*startHash, *endHash, max, req.RequestedData, req.Direction)
 }
 
@@ -222,19 +203,13 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Debug("handling BlockRequestMessage",
-			"start", startNumber,
-			"end", endNumber,
-			"direction", req.Direction,
-		)
+		logger.Debugf("handling BlockRequestMessage with direction %s from start block with number %d to end block with number %d",
+			req.Direction, startNumber, endNumber)
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debug("handling BlockRequestMessage",
-		"start", *startHash,
-		"end", *endHash,
-		"direction", req.Direction,
-	)
+	logger.Debugf("handling BlockRequestMessage with direction %s from start block with hash %s to end block with hash %s",
+		req.Direction, *startHash, *endHash)
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)
 }
 
@@ -313,11 +288,8 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash, descendant *com
 		descendant = &hash
 	}
 
-	logger.Trace("determined descendant",
-		"ancestor", ancestor,
-		"descendant", *descendant,
-		"number", descendantNumber,
-	)
+	logger.Tracef("determined descendant %s with number %s and ancestor %s",
+		*descendant, descendantNumber, ancestor)
 	return *descendant, nil
 }
 
@@ -406,14 +378,14 @@ func (s *Service) getBlockData(hash common.Hash, requestedData byte) (*types.Blo
 	if (requestedData & network.RequestedDataHeader) == 1 {
 		blockData.Header, err = s.blockState.GetHeader(hash)
 		if err != nil {
-			logger.Debug("failed to get header for block", "hash", hash, "error", err)
+			logger.Debugf("failed to get header for block with hash %s: %s", hash, err)
 		}
 	}
 
 	if (requestedData&network.RequestedDataBody)>>1 == 1 {
 		blockData.Body, err = s.blockState.GetBlockBody(hash)
 		if err != nil {
-			logger.Debug("failed to get body for block", "hash", hash, "error", err)
+			logger.Debugf("failed to get body for block with hash %s: %s", hash, err)
 		}
 	}
 

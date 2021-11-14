@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package trie
 
@@ -27,21 +14,23 @@ import (
 )
 
 var (
-	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
+	// ErrEmptyTrieRoot ...
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
 
-	// ErrValueNotFound indicates that a returned verify proof value doesnt match with the expected value on items array
+	// ErrValueNotFound ...
 	ErrValueNotFound = errors.New("expected value not found in the trie")
 
-	// ErrDuplicateKeys not allowed to verify proof with duplicate keys
+	// ErrKeyNotFound ...
+	ErrKeyNotFound = errors.New("expected key not found in the trie")
+
+	// ErrDuplicateKeys ...
 	ErrDuplicateKeys = errors.New("duplicate keys on verify proof")
 
-	// ErrLoadFromProof occurs when there are problems with the proof slice while building the partial proof trie
+	// ErrLoadFromProof ...
 	ErrLoadFromProof = errors.New("failed to build the proof trie")
 )
 
 // GenerateProof receive the keys to proof, the trie root and a reference to database
-// will
 func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
 	trackedProofs := make(map[string][]byte)
 
@@ -100,9 +89,11 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 
 	for _, item := range items {
 		recValue := proofTrie.Get(item.Key)
-
+		if recValue == nil {
+			return false, ErrKeyNotFound
+		}
 		// here we need to compare value only if the caller pass the value
-		if item.Value != nil && !bytes.Equal(item.Value, recValue) {
+		if len(item.Value) > 0 && !bytes.Equal(item.Value, recValue) {
 			return false, ErrValueNotFound
 		}
 	}

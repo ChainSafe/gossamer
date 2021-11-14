@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package subscription
 
@@ -37,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
@@ -177,7 +165,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 
 	head, err := modules.HeaderToJSON(*header)
 	if err != nil {
-		logger.Error("failed to convert header to JSON", "error", err)
+		logger.Errorf("failed to convert header to JSON: %s", err)
 	}
 	expectedResponse := newSubcriptionBaseResponseJSON()
 	expectedResponse.Method = chainFinalizedHeadMethod
@@ -194,6 +182,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 	notifyImportedChan := make(chan *types.Block, 100)
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
+	txStatusChan := make(chan transaction.Status)
 
 	BlockAPI := new(mocks.BlockAPI)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
@@ -201,9 +190,13 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 	wsconn.BlockAPI = BlockAPI
 
+	TxStateAPI := modules.NewMockTransactionStateAPI()
+	wsconn.TxStateAPI = TxStateAPI
+
 	esl := ExtrinsicSubmitListener{
 		importedChan:  notifyImportedChan,
 		finalisedChan: notifyFinalizedChan,
+		txStatusChan:  txStatusChan,
 		wsconn:        wsconn,
 		extrinsic:     types.Extrinsic{1, 2, 3},
 		cancel:        make(chan struct{}),
@@ -358,7 +351,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	expectedInitialResponse.Params.Result = expectedInitialVersion
 
 	instance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
-	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
+	err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
 	require.NoError(t, err)
 	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)

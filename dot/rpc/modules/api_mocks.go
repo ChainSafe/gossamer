@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package modules
 
 import (
@@ -5,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -43,10 +47,19 @@ func NewMockBlockAPI() *modulesmocks.BlockAPI {
 	return m
 }
 
+// NewMockTransactionStateAPI creates and return an rpc TransactionStateAPI interface mock
+func NewMockTransactionStateAPI() *modulesmocks.TransactionStateAPI {
+	m := new(modulesmocks.TransactionStateAPI)
+	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status"))
+	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status))
+	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{})
+	return m
+}
+
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
 func NewMockCoreAPI() *modulesmocks.CoreAPI {
 	m := new(modulesmocks.CoreAPI)
-	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"))
+	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil)
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(NewMockVersion(), nil)
 	m.On("IsBlockProducer").Return(false)

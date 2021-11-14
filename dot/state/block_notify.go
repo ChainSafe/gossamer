@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
@@ -75,7 +62,7 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 		return
 	}
 
-	logger.Trace("notifying imported block chans...", "chans", bs.imported)
+	logger.Trace("notifying imported block channels...")
 	for ch := range bs.imported {
 		go func(ch chan *types.Block) {
 			select {
@@ -96,11 +83,11 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		logger.Error("failed to get finalised header", "hash", hash, "error", err)
+		logger.Errorf("failed to get finalised header for hash %s: %s", hash, err)
 		return
 	}
 
-	logger.Debug("notifying finalised block chans...", "chans", bs.finalised)
+	logger.Debug("notifying finalised block channels...")
 	info := &types.FinalisationInfo{
 		Header: *header,
 		Round:  round,
@@ -125,7 +112,7 @@ func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
 		return
 	}
 
-	logger.Debug("notifying runtime updated chans...", "chans", bs.runtimeUpdateSubscriptions)
+	logger.Debug("notifying runtime updated channels...")
 	var wg sync.WaitGroup
 	wg.Add(len(bs.runtimeUpdateSubscriptions))
 	for _, ch := range bs.runtimeUpdateSubscriptions {

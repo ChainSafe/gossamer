@@ -1,34 +1,20 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
 
 import (
 	"math/big"
-	"os"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var logger = log.New("pkg", "sync")
+var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
@@ -40,7 +26,7 @@ type Service struct {
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	LogLvl             log.Lvl
+	LogLvl             log.Level
 	Network            Network
 	BlockState         BlockState
 	StorageState       StorageState
@@ -82,9 +68,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errNilBlockImportHandler
 	}
 
-	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	handler = log.CallerFileHandler(handler)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, handler))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)

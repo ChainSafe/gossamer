@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package core
 
@@ -21,12 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -35,6 +19,8 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // NewTestService creates a new test core service
@@ -52,7 +38,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		if err != nil {
 			t.Fatal(err)
 		}
-		cfg.Keystore.Acco.Insert(kp)
+		err = cfg.Keystore.Acco.Insert(kp)
+		require.NoError(t, err)
 	}
 
 	cfg.LogLvl = 3
@@ -66,7 +53,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
 		config := state.Config{
 			Path:     testDatadirPath,
-			LogLevel: log.LvlInfo,
+			LogLevel: log.Info,
 		}
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
