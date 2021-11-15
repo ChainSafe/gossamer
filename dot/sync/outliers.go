@@ -60,7 +60,7 @@ func removeOutlier(dataArr []*big.Int) (sum *big.Int, count int64) {
 		lowPass := v.Cmp(lower)
 		highPass := v.Cmp(upper)
 		if lowPass >= 0 && highPass <= 0 {
-			sum = sum.Add(sum, v)
+			sum.Add(sum, v)
 			count++
 		}
 	}
