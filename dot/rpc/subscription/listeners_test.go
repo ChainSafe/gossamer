@@ -6,11 +6,11 @@ package subscription
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -355,7 +355,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	require.NoError(t, err)
 	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
-	code, err := ioutil.ReadFile(fp)
+	code, err := os.ReadFile(fp)
 	require.NoError(t, err)
 	version, err := instance.CheckRuntimeVersion(code)
 	require.NoError(t, err)

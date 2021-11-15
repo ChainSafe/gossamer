@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"sync"
@@ -91,7 +90,7 @@ func (tt *TestExecCommand) Run(name string, args ...string) {
 func (tt *TestExecCommand) ExpectExit() {
 	var output []byte
 	tt.withKillTimeout(func() {
-		output, _ = ioutil.ReadAll(tt.stdout)
+		output, _ = io.ReadAll(tt.stdout)
 	})
 	tt.WaitExit()
 	if tt.Cleanup != nil {
@@ -104,7 +103,7 @@ func (tt *TestExecCommand) ExpectExit() {
 
 func (tt *TestExecCommand) GetOutput() (stdout []byte, stderr []byte) {
 	tt.withSigTimeout(func() {
-		stdout, _ = ioutil.ReadAll(tt.stdout)
+		stdout, _ = io.ReadAll(tt.stdout)
 		stderr = tt.stderr.buf.Bytes()
 	})
 	tt.WaitExit()
@@ -220,8 +219,7 @@ func TestInvalidCommand(t *testing.T) {
 func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	genesisPath := utils.GetGssmrGenesisRawPath()
 
-	tempDir, err := ioutil.TempDir("", "gossamer-maintest-")
-	require.Nil(t, err)
+	tempDir := t.TempDir()
 
 	nodeName := dot.RandomNodeName()
 	init := runTestGossamer(t,
@@ -234,7 +232,6 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	)
 
 	stdout, stderr := init.GetOutput()
-	require.Nil(t, err)
 
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
@@ -250,7 +247,6 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	)
 
 	stdout, stderr = init.GetOutput()
-	require.Nil(t, err)
 
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 

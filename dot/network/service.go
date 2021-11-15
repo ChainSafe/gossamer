@@ -135,14 +135,13 @@ func NewService(cfg *Config) (*Service, error) {
 	// pre-allocate pool of buffers used to read from streams.
 	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
 	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
-	var bufPool *sizedBufferPool
-	if cfg.noPreAllocate {
-		bufPool = &sizedBufferPool{
-			c: make(chan *[maxMessageSize]byte, cfg.MinPeers*3),
-		}
-	} else {
-		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
+	preAllocateInPool := cfg.MinPeers * 3
+	poolSize := cfg.MaxPeers * 3
+	if cfg.noPreAllocate { // testing
+		preAllocateInPool = 0
+		poolSize = cfg.MinPeers * 3
 	}
+	bufPool := newSizedBufferPool(preAllocateInPool, poolSize)
 
 	network := &Service{
 		ctx:                    ctx,
@@ -550,7 +549,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 	peer := stream.Conn().RemotePeer()
 	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(&msgBytes)
+	defer s.bufPool.put(msgBytes)
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -181,7 +180,7 @@ func ImportKeypair(fp, dir string) (string, error) {
 		return "", fmt.Errorf("failed to create keystore directory: %s", err)
 	}
 
-	keyData, err := ioutil.ReadFile(filepath.Clean(fp))
+	keyData, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return "", fmt.Errorf("failed to read keystore file: %s", err)
 	}
@@ -197,7 +196,7 @@ func ImportKeypair(fp, dir string) (string, error) {
 		return "", fmt.Errorf("failed to create keystore filepath: %s", err)
 	}
 
-	err = ioutil.WriteFile(keyFilePath, keyData, 0600)
+	err = os.WriteFile(keyFilePath, keyData, 0600)
 	if err != nil {
 		return "", fmt.Errorf("failed to write to keystore file: %s", err)
 	}

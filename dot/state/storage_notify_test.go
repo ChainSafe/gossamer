@@ -6,9 +6,7 @@ package state
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -173,16 +171,6 @@ func Test_Example(t *testing.T) {
 	bValue := []byte("b-value")
 
 	// Open the DB.
-	dir, err := ioutil.TempDir("", "badger-test")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = os.RemoveAll(dir); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	db := NewInMemoryDB(t)
 
 	// Create the context here so we can cancel it after sending the writes.
@@ -200,14 +188,14 @@ func Test_Example(t *testing.T) {
 			}
 			return nil
 		}
-		if err = db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
+		if err := db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
 			log.Fatal(err)
 		}
 		log.Printf("subscription closed")
 	}()
 
 	// Write both keys, but only one should be printed in the Output.
-	err = db.Put(aKey, aValue)
+	err := db.Put(aKey, aValue)
 	if err != nil {
 		log.Fatal(err)
 	}

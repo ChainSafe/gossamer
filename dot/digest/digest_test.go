@@ -4,7 +4,6 @@
 package digest
 
 import (
-	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -23,8 +22,7 @@ import (
 )
 
 func newTestHandler(t *testing.T) *Handler {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	config := state.Config{
 		Path:     testDatadirPath,
@@ -34,7 +32,7 @@ func newTestHandler(t *testing.T) *Handler {
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err = stateSrvc.Initialise(gen, genHeader, genTrie)
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()

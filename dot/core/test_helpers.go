@@ -4,7 +4,6 @@
 package core
 
 import (
-	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -45,8 +44,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.LogLvl = 3
 
 	var stateSrvc *state.Service
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
@@ -58,7 +56,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err = stateSrvc.Initialise(gen, genHeader, genTrie)
+		err := stateSrvc.Initialise(gen, genHeader, genTrie)
 		require.Nil(t, err)
 
 		err = stateSrvc.Start()
@@ -88,6 +86,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
 
+		var err error
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 		require.NoError(t, err)
 
