@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
@@ -21,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,7 +44,7 @@ func NewTestGenesis(t *testing.T) *genesis.Genesis {
 func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
 	dir := utils.NewTestDir(t)
 
-	file, err := ioutil.TempFile(dir, "genesis-")
+	file, err := os.CreateTemp(dir, "genesis-")
 	require.Nil(t, err)
 
 	fp := utils.GetGssmrGenesisRawPath()
@@ -87,7 +73,7 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
 func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 	dir := utils.NewTestDir(t)
 
-	file, err := ioutil.TempFile(dir, "genesis-")
+	file, err := os.CreateTemp(dir, "genesis-")
 	require.Nil(t, err)
 
 	fp := utils.GetGssmrGenesisPath()
@@ -120,7 +106,7 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 	_ = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
 
-	runtimeData, err := ioutil.ReadFile(filepath.Clean(runtimeFilePath))
+	runtimeData, err := os.ReadFile(filepath.Clean(runtimeFilePath))
 	require.Nil(t, err)
 
 	gen := NewTestGenesis(t)
@@ -133,7 +119,7 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 	gen.Genesis.Raw["top"]["0x3a636f6465"] = "0x" + hex
 	gen.Genesis.Raw["top"]["0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f"] = "0x0000000000000001"
 
-	genFile, err := ioutil.TempFile(dir, "genesis-")
+	genFile, err := os.CreateTemp(dir, "genesis-")
 	require.Nil(t, err)
 
 	genData, err := json.Marshal(gen)
@@ -171,7 +157,7 @@ func NewTestConfig(t *testing.T) *Config {
 func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 	cfg := NewTestConfig(t)
 
-	file, err := ioutil.TempFile(cfg.Global.BasePath, "config-")
+	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
 	require.NoError(t, err)
 
 	cfgFile := ExportConfig(cfg, file.Name())
