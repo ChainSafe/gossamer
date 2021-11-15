@@ -70,7 +70,7 @@ func removeOutlier(dataArr []*big.Int) (*big.Int, int64) {
 	reducedValue := big.NewInt(0)
 	count := int64(0)
 	for _, v := range dataArr {
-		//collect valid (non-outlier) values
+		// collect valid (non-outlier) values
 		lowPass := v.Cmp(lower)
 		highPass := v.Cmp(upper)
 		if lowPass >= 0 && highPass <= 0 {
