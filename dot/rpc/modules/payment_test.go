@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,25 +28,22 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	blockErrorAPIMock1 := new(apimocks.BlockAPI)
 	blockErrorAPIMock2 := new(apimocks.BlockAPI)
 
-	blockAPIMock.On("BestBlockHash").Return(common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a"), nil)
-	blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
+	blockAPIMock.On("BestBlockHash").Return(testHash, nil)
+	blockAPIMock.On("GetRuntime", &testHash).Return(runtimeMock, nil)
 
-	blockAPIMock2.On("BestBlockHash").Return(common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a"), nil)
-	blockAPIMock2.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock2, nil)
+	blockAPIMock2.On("GetRuntime", &testHash).Return(runtimeMock2, nil)
 
-	blockErrorAPIMock1.On("BestBlockHash").Return(common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a"), nil)
-	blockErrorAPIMock1.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeErrorMock, nil)
+	blockErrorAPIMock1.On("GetRuntime", &testHash).Return(runtimeErrorMock, nil)
 
-	blockErrorAPIMock2.On("BestBlockHash").Return(common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a"), nil)
-	blockErrorAPIMock2.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("GetRuntime error"))
+	blockErrorAPIMock2.On("GetRuntime", &testHash).Return(nil, errors.New("GetRuntime error"))
 
-	runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, nil)
-	runtimeMock2.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(&types.TransactionPaymentQueryInfo{
+	runtimeMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, nil)
+	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.TransactionPaymentQueryInfo{
 		Weight:     uint64(21),
 		Class:      21,
 		PartialFee: u,
 	}, nil)
-	runtimeErrorMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("PaymentQueryInfo error"))
+	runtimeErrorMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, errors.New("PaymentQueryInfo error"))
 
 	paymentModule := NewPaymentModule(blockAPIMock)
 	var res PaymentQueryInfoResponse

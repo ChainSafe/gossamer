@@ -54,7 +54,7 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	if err != nil {
 		return err
 	}
-
+	
 	encQueryInfo, err := r.PaymentQueryInfo(ext)
 	if err != nil {
 		return err
