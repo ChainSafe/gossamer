@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -45,6 +46,35 @@ func TestMain(m *testing.M) {
 
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
+}
+
+func Test_ext_offchain_timestamp_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	runtimeFunc, ok := inst.vm.Exports["rtm_ext_offchain_timestamp_version_1"]
+	require.True(t, ok)
+
+	res, err := runtimeFunc(0, 0)
+	require.NoError(t, err)
+
+	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
+	data := inst.load(offset, length)
+	var timestamp int64
+	err = scale.Unmarshal(data, &timestamp)
+	require.NoError(t, err)
+
+	expected := time.Now().Unix()
+	require.GreaterOrEqual(t, expected, timestamp)
+}
+
+func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	input := time.Now().UnixMilli()
+	enc, err := scale.Marshal(input)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) //auto conversion to i64
+	require.NoError(t, err)
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
@@ -1454,8 +1484,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
-	var val *[]byte // nolint
-	val = nil
+	var val *[]byte
 	optLimit, err := scale.Marshal(val)
 	require.NoError(t, err)
 
