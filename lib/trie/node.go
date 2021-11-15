@@ -230,13 +230,13 @@ func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
 	b.encoding = make([]byte, len(bufferBytes))
 	encoding = make([]byte, len(bufferBytes))
 	copy(b.encoding, bufferBytes)
-	copy(encoding, bufferBytes)
+	encoding = b.encoding // no need to copy
 
 	if buffer.Len() < 32 {
 		b.hash = make([]byte, len(bufferBytes))
 		hash = make([]byte, len(bufferBytes))
 		copy(b.hash, bufferBytes)
-		copy(hash, bufferBytes)
+		hash = b.hash // no need to copy
 		return encoding, hash, nil
 	}
 
@@ -246,7 +246,7 @@ func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
 		return nil, nil, err
 	}
 	b.hash = hashArray[:]
-	hash = hashArray[:]
+	hash = b.hash // no need to copy
 
 	return encoding, hash, nil
 }
@@ -268,15 +268,13 @@ func (l *leaf) encodeAndHash() (encoding, hash []byte, err error) {
 	bufferBytes := buffer.Bytes()
 
 	l.encoding = make([]byte, len(bufferBytes))
-	encoding = make([]byte, len(bufferBytes))
 	copy(l.encoding, bufferBytes)
-	copy(encoding, bufferBytes)
+	encoding = l.encoding // no need to copy
 
 	if len(bufferBytes) < 32 {
 		l.hash = make([]byte, len(bufferBytes))
-		hash = make([]byte, len(bufferBytes))
 		copy(l.hash, bufferBytes)
-		copy(hash, bufferBytes)
+		hash = l.hash // no need to copy
 		return encoding, hash, nil
 	}
 
@@ -287,7 +285,7 @@ func (l *leaf) encodeAndHash() (encoding, hash []byte, err error) {
 	}
 
 	l.hash = hashArray[:]
-	hash = hashArray[:]
+	hash = l.hash // no need to copy
 
 	return encoding, hash, nil
 }
