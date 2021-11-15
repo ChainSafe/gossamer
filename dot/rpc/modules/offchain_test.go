@@ -2,17 +2,17 @@ package modules
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestOffchainModule_LocalStorageGet(t *testing.T) {
 	mockRuntimeStorageAPI := new(apimocks.RuntimeStorageAPI)
-	mockRuntimeStorageAPI.On("GetPersistent", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("GetPersistent error"))
-	mockRuntimeStorageAPI.On("GetLocal", mock.AnythingOfType("[]uint8")).Return([]byte("some-value"), nil)
+	mockRuntimeStorageAPI.On("GetPersistent", common.MustHexToBytes("0x11111111111111")).Return(nil, errors.New("GetPersistent error"))
+	mockRuntimeStorageAPI.On("GetLocal", common.MustHexToBytes("0x11111111111111")).Return([]byte("some-value"), nil)
 	offChainModule := NewOffchainModule(mockRuntimeStorageAPI)
 
 	var res StringResponse
@@ -100,8 +100,8 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 
 func TestOffchainModule_LocalStorageSet(t *testing.T) {
 	mockRuntimeStorageAPI := new(apimocks.RuntimeStorageAPI)
-	mockRuntimeStorageAPI.On("SetLocal", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil)
-	mockRuntimeStorageAPI.On("SetPersistent", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(errors.New("SetPersistent error"))
+	mockRuntimeStorageAPI.On("SetLocal", common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).Return(nil)
+	mockRuntimeStorageAPI.On("SetPersistent", common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).Return(errors.New("SetPersistent error"))
 
 	var res StringResponse
 	type fields struct {
