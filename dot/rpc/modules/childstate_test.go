@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,8 +55,8 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&sr, nil)
 	mockStorageAPI.On("GetStorageChild", &sr, []byte(":child_storage_key")).Return(tr, nil)
 
-	mockErrorStorageAPI1.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	mockErrorStorageAPI1.On("GetStorageChild", mock.AnythingOfType("*common.Hash"), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
+	mockErrorStorageAPI1.On("GetStateRootFromBlock", &common.Hash{}).Return(nil, nil)
+	mockErrorStorageAPI1.On("GetStorageChild", (*common.Hash)(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
 
 	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
 
@@ -162,8 +161,8 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&sr, nil)
 	mockStorageAPI.On("GetStorageFromChild", &sr, []byte(":child_storage_key"), []byte(":child_first")).Return([]byte(""), nil)
 
-	mockErrorStorageAPI1.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
+	mockErrorStorageAPI1.On("GetStateRootFromBlock", &hash).Return(nil, nil)
+	mockErrorStorageAPI1.On("GetStorageFromChild", (*common.Hash)(nil), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
 
 	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
 
@@ -270,8 +269,8 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&sr, nil)
 	mockStorageAPI.On("GetStorageFromChild", &sr, []byte(":child_storage_key"), []byte(":child_first")).Return([]byte(""), nil)
 
-	mockErrorStorageAPI1.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
+	mockErrorStorageAPI1.On("GetStateRootFromBlock", &hash).Return(nil, nil)
+	mockErrorStorageAPI1.On("GetStorageFromChild", (*common.Hash)(nil), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
 
 	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
 
@@ -378,8 +377,8 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&sr, nil)
 	mockStorageAPI.On("GetStorageFromChild", &sr, []byte(":child_storage_key"), []byte(":child_first")).Return([]byte("test"), nil)
 
-	mockErrorStorageAPI1.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	mockErrorStorageAPI1.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
+	mockErrorStorageAPI1.On("GetStateRootFromBlock", &hash).Return(nil, nil)
+	mockErrorStorageAPI1.On("GetStorageFromChild", (*common.Hash)(nil), []byte(nil), []byte(nil)).Return(nil, errors.New("GetStorageChild error"))
 
 	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
 
