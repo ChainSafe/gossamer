@@ -44,7 +44,6 @@ func removeOutlier(dataArr []*big.Int) (*big.Int, int64) {
 		return big.NewInt(0).Add(dataArr[0], dataArr[1]), 2
 	}
 
-	//now sort the array
 	sort.Slice(dataArr, func(i, j int) bool {
 		return dataArr[i].Cmp(dataArr[j]) < 0
 	})
