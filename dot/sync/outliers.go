@@ -36,17 +36,17 @@ func removeOutlier(dataArr []*big.Int) (sum *big.Int, count int64) {
 	})
 
 	half := length / 2
-	data1 := dataArr[:half]
-	var data2 []*big.Int
+	firstHalf := dataArr[:half]
+	var secondHalf []*big.Int
 
 	if length%2 == 0 {
-		data2 = dataArr[half:]
+		secondHalf = dataArr[half:]
 	} else {
-		data2 = dataArr[half+1:]
+		secondHalf = dataArr[half+1:]
 	}
 
-	q1 := getMedian(data1)
-	q3 := getMedian(data2)
+	q1 := getMedian(firstHalf)
+	q3 := getMedian(secondHalf)
 
 	iqr := big.NewInt(0).Sub(q3, q1)
 	iqr1_5 := big.NewInt(0).Mul(iqr, big.NewInt(2)) // instead of 1.5 it is 2.0 due to the rounding
@@ -60,7 +60,7 @@ func removeOutlier(dataArr []*big.Int) (sum *big.Int, count int64) {
 		lowPass := v.Cmp(lower)
 		highPass := v.Cmp(upper)
 		if lowPass >= 0 && highPass <= 0 {
-			sum = big.NewInt(0).Add(sum, v)
+			sum = sum.Add(sum, v)
 			count++
 		}
 	}
@@ -73,7 +73,7 @@ func getMedian(data []*big.Int) *big.Int {
 	half := length / 2
 	if length%2 == 0 {
 		sum := big.NewInt(0).Add(data[half], data[half-1])
-		return big.NewInt(0).Div(sum, big.NewInt(2))
+		return sum.Div(sum, big.NewInt(2))
 	}
 
 	return data[half]
