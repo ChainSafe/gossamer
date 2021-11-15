@@ -204,7 +204,7 @@ func TestChainSync_getTarget(t *testing.T) {
 
 	cs.peerState = map[peer.ID]*peerState{
 		"a": {
-			number: big.NewInt(-100), //outlier
+			number: big.NewInt(-100), // outlier
 		},
 		"b": {
 			number: big.NewInt(10),
