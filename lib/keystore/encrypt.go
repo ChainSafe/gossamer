@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -148,7 +147,7 @@ func ReadFromFileAndDecrypt(filename string, password []byte) (crypto.PrivateKey
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	data, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}

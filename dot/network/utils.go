@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
 	"os"
 	"path"
@@ -78,7 +77,7 @@ func loadKey(fp string) (crypto.PrivKey, error) {
 	if _, err := os.Stat(pth); os.IsNotExist(err) {
 		return nil, nil
 	}
-	keyData, err := ioutil.ReadFile(filepath.Clean(pth))
+	keyData, err := os.ReadFile(filepath.Clean(pth))
 	if err != nil {
 		return nil, err
 	}

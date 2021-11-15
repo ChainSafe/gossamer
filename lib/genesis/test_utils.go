@@ -5,8 +5,8 @@ package genesis
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -65,7 +65,7 @@ var TestFieldsRaw = Fields{
 // CreateTestGenesisJSONFile utility to create mock test genesis JSON file
 func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 	// Create temp file
-	file, err := ioutil.TempFile("", "genesis-test")
+	file, err := os.CreateTemp("", "genesis-test")
 	if err != nil {
 		return "", err
 	}

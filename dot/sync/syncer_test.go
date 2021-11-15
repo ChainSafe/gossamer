@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -65,7 +64,7 @@ func newTestSyncer(t *testing.T) *Service {
 	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath := t.TempDir()
 
 	scfg := state.Config{
 		Path:     testDatadirPath,

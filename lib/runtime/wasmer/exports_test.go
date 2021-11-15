@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -1137,7 +1137,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 }
 
 func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	require.NoError(t, err)
 
 	rpcPairs := make(map[string]interface{})

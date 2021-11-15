@@ -5,7 +5,6 @@ package babe
 
 import (
 	"errors"
-	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -21,8 +20,7 @@ import (
 )
 
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	config := state.Config{
 		Path:     testDatadirPath,
@@ -36,7 +34,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	}
 
 	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
-	err = dbSrv.Initialise(gen, genHeader, genTrie)
+	err := dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()

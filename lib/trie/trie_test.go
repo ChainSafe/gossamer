@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -116,7 +115,7 @@ func writeToTestFile(tests []Test) error {
 		return err
 	}
 	os.Remove(fp)
-	err = ioutil.WriteFile(fp, []byte(testString), 0644)
+	err = os.WriteFile(fp, []byte(testString), 0644)
 	if err != nil {
 		return err
 	}
@@ -278,7 +277,7 @@ func TestFailingTests(t *testing.T) {
 		t.Error(err)
 	}
 
-	data, err := ioutil.ReadFile(fp)
+	data, err := os.ReadFile(fp)
 	if err != nil {
 		t.SkipNow()
 	}
@@ -461,8 +460,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	testDataDirPath, _ := ioutil.TempDir(t.TempDir(), "test-badger-datadir")
-	defer os.RemoveAll(testDataDirPath)
+	testDataDirPath := t.TempDir()
 
 	cfg := &chaindb.Config{
 		DataDir:  testDataDirPath,

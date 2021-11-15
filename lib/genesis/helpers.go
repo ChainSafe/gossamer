@@ -8,9 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
+	"os"
 	"path/filepath"
 	"reflect"
 
@@ -49,7 +49,7 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	data, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func NewGenesisSpecFromJSON(file string) (*Genesis, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	data, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}

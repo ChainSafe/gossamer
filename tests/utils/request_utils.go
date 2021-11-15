@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -52,7 +52,7 @@ func PostRPC(method, host, params string) ([]byte, error) {
 		_ = resp.Body.Close()
 	}()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 
 	return respBody, err
 

@@ -6,7 +6,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"sort"
@@ -549,7 +548,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
 	require.NoError(t, err)
 
-	testRuntime, err := ioutil.ReadFile(updateNodeRuntimeWasmPath)
+	testRuntime, err := os.ReadFile(updateNodeRuntimeWasmPath)
 	require.NoError(t, err)
 
 	ts.Set(common.CodeKey, testRuntime)
@@ -578,7 +577,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 func TestService_HandleCodeSubstitutes(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
@@ -626,7 +625,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
-	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 
 	ts, err = s.storageState.TrieState(nil)

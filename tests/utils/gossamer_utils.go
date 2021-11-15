@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -193,7 +192,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		Logger.Infof("node started with key %s and cmd.Process.Pid %d", key, node.Process.Process.Pid)
 	} else {
 		Logger.Criticalf("node didn't start: %s", err)
-		errFileContents, _ := ioutil.ReadFile(errfile.Name())
+		errFileContents, _ := os.ReadFile(errfile.Name())
 		t.Logf("%s\n", errFileContents)
 		return err
 	}
@@ -256,7 +255,7 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 // InitNodes initialises given number of nodes
 func InitNodes(num int, config string) ([]*Node, error) {
 	var nodes []*Node
-	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
+	tempDir, err := os.MkdirTemp("", "gossamer-stress-")
 	if err != nil {
 		return nil, err
 	}

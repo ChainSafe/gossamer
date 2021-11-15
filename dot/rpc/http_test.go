@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"testing"
@@ -279,7 +278,7 @@ func PostRequest(t *testing.T, url string, data io.Reader) (int, []byte) {
 
 	defer res.Body.Close()
 
-	resBody, err := ioutil.ReadAll(res.Body)
+	resBody, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 
 	responseData := new(bytes.Buffer)
