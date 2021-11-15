@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -586,4 +587,132 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
+}
+
+func Test_getEquivocatoryVoters(t *testing.T) {
+	// many of equivocatory votes
+	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	fakeAuthorities := make([]*ed25519.Keypair, 0)
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ferdie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Heather().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Heather().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ian().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ian().(*ed25519.Keypair))
+
+	authData := make([]AuthData, len(fakeAuthorities))
+
+	for i, auth := range fakeAuthorities {
+		authData[i] = AuthData{
+			AuthorityID: auth.Public().(*ed25519.PublicKey).AsBytes(),
+		}
+	}
+
+	eqv := getEquivocatoryVoters(authData)
+	require.Len(t, eqv, 5)
+}
+
+func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *testing.T) {
+	t.Parallel()
+
+	const fakeRound = 2
+
+	gs, st := newTestService(t)
+	h := NewMessageHandler(gs, st.Block)
+
+	// add 10 previous blocks
+	addBlocksToState(t, st.Block, 10)
+
+	// create a new fake block to fake authorites commit on
+	previousHash := st.Block.BestBlockHash()
+	previusHead, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	bfcNumber := int(previusHead.Number.Int64() + 1)
+
+	d, err := types.NewBabePrimaryPreDigest(0, uint64(bfcNumber), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	digest := types.NewDigest()
+	_ = digest.Add(*d)
+
+	bfcBlock := &types.Block{
+		Header: types.Header{
+			ParentHash: previousHash,
+			Number:     big.NewInt(int64(bfcNumber)),
+			StateRoot:  trie.EmptyHash,
+			Digest:     digest,
+		},
+		Body: types.Body{},
+	}
+
+	bfcHash := bfcBlock.Header.Hash()
+	err = st.Block.AddBlockWithArrivalTime(bfcBlock, time.Now())
+	require.Nil(t, err)
+
+	// many of equivocatory votes
+	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	fakeAuthorities := make([]*ed25519.Keypair, 0)
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ferdie().(*ed25519.Keypair))
+
+	authData := make([]AuthData, len(fakeAuthorities))
+	precommits := make([]Vote, len(fakeAuthorities))
+
+	for i, auth := range fakeAuthorities {
+		msg, err := scale.Marshal(FullVote{
+			Stage: precommit,
+			Vote: types.GrandpaVote{
+				Hash:   bfcHash,
+				Number: uint32(bfcNumber),
+			},
+			Round: fakeRound,
+			SetID: gs.state.setID,
+		})
+		require.NoError(t, err)
+
+		var sig [64]byte
+		privSig, err := auth.Private().Sign(msg)
+		require.NoError(t, err)
+
+		copy(sig[:], privSig)
+
+		authData[i] = AuthData{
+			Signature:   sig,
+			AuthorityID: auth.Public().(*ed25519.PublicKey).AsBytes(),
+		}
+		precommits[i] = Vote{Hash: bfcHash, Number: uint32(bfcNumber)}
+	}
+
+	// Charlie has an equivocatory vote
+	testCommitData := &CommitMessage{
+		Round: fakeRound,
+		Vote: Vote{
+			Hash:   previousHash,
+			Number: uint32(previusHead.Number.Int64()),
+		},
+		Precommits: precommits,
+		AuthData:   authData,
+	}
+
+	err = h.verifyCommitMessageJustification(testCommitData)
+	require.NoError(t, err)
 }

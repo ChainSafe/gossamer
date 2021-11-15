@@ -280,6 +280,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
+			fmt.Println(err)
 			logger.Warnf("verifyCommitMessageJustification: %s", err)
 			continue
 		}
@@ -288,6 +289,11 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 			count++
 		}
 	}
+
+	fmt.Println(uint64(count))
+	fmt.Println(uint64(len(eqvVoters)))
+
+	fmt.Println(uint64(count)+uint64(len(eqvVoters)), h.grandpa.state.threshold())
 
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count)+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
