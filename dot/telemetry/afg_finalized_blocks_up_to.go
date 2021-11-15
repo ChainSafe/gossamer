@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+//nolint
 // afgFinalizedBlocksUpToTM holds telemetry message of type `afg.finalized_blocks_up_to`,
 // which is supposed to be send GRANDPA client finalizes new blocks.
 type afgFinalizedBlocksUpToTM struct {
