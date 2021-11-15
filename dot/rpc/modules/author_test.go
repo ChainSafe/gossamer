@@ -30,7 +30,7 @@ func TestAuthorModule_HasSessionKey_WhenScaleDataEmptyOrNil(t *testing.T) {
 
 	coremockapi := new(apimocks.CoreAPI)
 
-	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
+	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", common.MustHexToBytes("0x0400"))
 	decodeSessionKeysMock.Run(func(args mock.Arguments) {
 		b := args.Get(0).([]byte)
 		dec, err := runtimeInstance.DecodeSessionKeys(b)
@@ -51,12 +51,12 @@ func TestAuthorModule_HasSessionKey_WhenScaleDataEmptyOrNil(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, bool(res))
 
-	coremockapi.AssertCalled(t, "DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
+	coremockapi.AssertCalled(t, "DecodeSessionKeys", common.MustHexToBytes("0x0400"))
 }
 
 func TestAuthorModule_HasSessionKey_WhenRuntimeFails(t *testing.T) {
 	coremockapi := new(apimocks.CoreAPI)
-	coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("problems with runtime"))
+	coremockapi.On("DecodeSessionKeys", common.MustHexToBytes("0x0400")).Return(nil, errors.New("problems with runtime"))
 
 	module := &AuthorModule{
 		coreAPI: coremockapi,
@@ -77,10 +77,11 @@ func TestAuthorModule_HasSessionKey_WhenThereIsNoKeys(t *testing.T) {
 	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 
+	expKey := common.MustHexToBytes("0x0102d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026")
 	coremockapi := new(apimocks.CoreAPI)
-	coremockapi.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
+	coremockapi.On("HasKey", "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", "gran").Return(false, nil)
 
-	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
+	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", expKey)
 	decodeSessionKeysMock.Run(func(args mock.Arguments) {
 		b := args.Get(0).([]byte)
 		dec, err := runtimeInstance.DecodeSessionKeys(b)
@@ -101,8 +102,8 @@ func TestAuthorModule_HasSessionKey_WhenThereIsNoKeys(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, bool(res))
 
-	coremockapi.AssertCalled(t, "DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
-	coremockapi.AssertCalled(t, "HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
+	coremockapi.AssertCalled(t, "DecodeSessionKeys", expKey)
+	coremockapi.AssertCalled(t, "HasKey", "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", "gran")
 	coremockapi.AssertNumberOfCalls(t, "HasKey", 1)
 }
 
@@ -110,6 +111,10 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	globalStore := keystore.NewGlobalKeystore()
 
 	coremockapi := new(apimocks.CoreAPI)
+
+	//kp, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes("0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8"))
+	//require.NoError(t, err)
+
 	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"), mock.AnythingOfType("string")).Return(nil)
 	mockInsertKey.Run(func(args mock.Arguments) {
 		kp := args.Get(0).(*sr25519.Keypair)

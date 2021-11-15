@@ -164,6 +164,11 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return errors.New("generated public key does not equal provide public key")
 	}
 
+	fmt.Println("param1")
+	fmt.Println(keyPair)
+	fmt.Println("param2")
+	fmt.Println(keyReq.Type)
+
 	err = am.coreAPI.InsertKey(keyPair, keyReq.Type)
 	if err != nil {
 		return err
