@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
 
@@ -21,18 +8,18 @@ import (
 	"sort"
 )
 
-//	removeOutlier removes the outlier from the slice
-//  Explanation:
-// 	IQR outlier detection
-// 	Q25 = 25th_percentile
-// 	Q75 = 75th_percentile
-// 	IQR = Q75 - Q25         // inter-quartile range
-// 	If x >  Q75  + 1.5 * IQR or  x   < Q25 - 1.5 * IQR THEN  x is a mild outlier
-// 	If x >  Q75  + 3.0 * IQR or  x   < Q25 – 3.0 * IQR THEN  x is a extreme outlier
+// removeOutlier removes the outlier from the slice
+// Explanation:
+// IQR outlier detection
+// Q25 = 25th_percentile
+// Q75 = 75th_percentile
+// IQR = Q75 - Q25         // inter-quartile range
+// If x >  Q75  + 1.5 * IQR or  x   < Q25 - 1.5 * IQR THEN  x is a mild outlier
+// If x >  Q75  + 3.0 * IQR or  x   < Q25 – 3.0 * IQR THEN  x is a extreme outlier
 // Ref: http://www.mathwords.com/o/outlier.htm
 //
 // returns: sum of all the non-outliers elements
-func removeOutlier(dataArr []*big.Int) (*big.Int, int64) {
+func removeOutlier(dataArr []*big.Int) (sum *big.Int, count int64) {
 	length := len(dataArr)
 
 	switch length {
@@ -66,19 +53,19 @@ func removeOutlier(dataArr []*big.Int) (*big.Int, int64) {
 	lower := big.NewInt(0).Sub(q1, iqr1_5)
 	upper := big.NewInt(0).Add(q3, iqr1_5)
 
-	reducedValue := big.NewInt(0)
-	count := int64(0)
+	sum = big.NewInt(0)
+	count = int64(0)
 	for _, v := range dataArr {
 		// collect valid (non-outlier) values
 		lowPass := v.Cmp(lower)
 		highPass := v.Cmp(upper)
 		if lowPass >= 0 && highPass <= 0 {
-			reducedValue = big.NewInt(0).Add(reducedValue, v)
+			sum = big.NewInt(0).Add(sum, v)
 			count++
 		}
 	}
 
-	return reducedValue, count
+	return sum, count
 }
 
 func getMedian(data []*big.Int) *big.Int {
