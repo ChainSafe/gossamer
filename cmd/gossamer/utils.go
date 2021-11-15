@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -24,10 +23,9 @@ const confirmCharacter = "Y"
 
 // setupLogger sets up the global Gossamer logger.
 func setupLogger(ctx *cli.Context) (level log.Level, err error) {
-	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
-		level = log.Level(lvlToInt)
-	} else if level, err = log.ParseLevel(ctx.String(LogFlag.Name)); err != nil {
-		return 0, err
+	level, err = getLogLevel(ctx, LogFlag.Name, "", log.Info)
+	if err != nil {
+		return level, err
 	}
 
 	log.Patch(
