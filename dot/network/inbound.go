@@ -13,7 +13,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 	peer := stream.Conn().RemotePeer()
 	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(&msgBytes)
+	defer s.bufPool.put(msgBytes)
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])

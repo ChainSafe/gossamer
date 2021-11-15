@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -147,14 +134,13 @@ func NewService(cfg *Config) (*Service, error) {
 	// pre-allocate pool of buffers used to read from streams.
 	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
 	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
-	var bufPool *sizedBufferPool
-	if cfg.noPreAllocate {
-		bufPool = &sizedBufferPool{
-			c: make(chan *[maxMessageSize]byte, cfg.MinPeers*3),
-		}
-	} else {
-		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
+	preAllocateInPool := cfg.MinPeers * 3
+	poolSize := cfg.MaxPeers * 3
+	if cfg.noPreAllocate { // testing
+		preAllocateInPool = 0
+		poolSize = cfg.MinPeers * 3
 	}
+	bufPool := newSizedBufferPool(preAllocateInPool, poolSize)
 
 	network := &Service{
 		ctx:                    ctx,
