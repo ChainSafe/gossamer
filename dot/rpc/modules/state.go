@@ -185,7 +185,10 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 		return nil
 	}
 
-	reqBytes, _ := common.HexToBytes(*req.Prefix)
+	reqBytes, err := common.HexToBytes(*req.Prefix)
+	if err != nil {
+		return err
+	}
 	keys, err := sm.storageAPI.GetKeysWithPrefix(stateRootHash, reqBytes)
 	if err != nil {
 		return err
@@ -236,7 +239,6 @@ func (sm *StateModule) GetKeysPaged(_ *http.Request, req *StateStorageKeyRequest
 			// sm.storageAPI.Keys sorts keys in lexicographical order, so we know that keys where strings.Compare = 1
 			//  are after the requested after key.
 			if resCount >= req.Qty {
-				fmt.Print("here")
 				break
 			}
 			*res = append(*res, fKey)
