@@ -56,7 +56,7 @@ func NewAfgReceivedPrevoteTM(targetHash common.Hash, targetNumber, voter string)
 	}
 }
 
-func (t afgReceivedPrevoteTM) messageType() string {
+func (afgReceivedPrevoteTM) messageType() string {
 	return afgReceivedPrevoteMsg
 }
 
