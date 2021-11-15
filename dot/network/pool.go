@@ -5,15 +5,15 @@ package network
 
 // sizedBufferPool is a pool of buffers used for reading from streams
 type sizedBufferPool struct {
-	c chan *[maxMessageSize]byte
+	c chan []byte
 }
 
-func newSizedBufferPool(min, max int) (bp *sizedBufferPool) {
-	bufferCh := make(chan *[maxMessageSize]byte, max)
+func newSizedBufferPool(preAllocate, size int) (bp *sizedBufferPool) {
+	bufferCh := make(chan []byte, size)
 
-	for i := 0; i < min; i++ {
-		buf := [maxMessageSize]byte{}
-		bufferCh <- &buf
+	for i := 0; i < preAllocate; i++ {
+		buf := make([]byte, maxMessageSize)
+		bufferCh <- buf
 	}
 
 	return &sizedBufferPool{
@@ -23,20 +23,19 @@ func newSizedBufferPool(min, max int) (bp *sizedBufferPool) {
 
 // get gets a buffer from the sizedBufferPool, or creates a new one if none are
 // available in the pool. Buffers have a pre-allocated capacity.
-func (bp *sizedBufferPool) get() [maxMessageSize]byte {
-	var buff *[maxMessageSize]byte
+func (bp *sizedBufferPool) get() (b []byte) {
 	select {
-	case buff = <-bp.c:
-	// reuse existing buffer
+	case b = <-bp.c:
+		// reuse existing buffer
+		return b
 	default:
 		// create new buffer
-		buff = &[maxMessageSize]byte{}
+		return make([]byte, maxMessageSize)
 	}
-	return *buff
 }
 
 // put returns the given buffer to the sizedBufferPool.
-func (bp *sizedBufferPool) put(b *[maxMessageSize]byte) {
+func (bp *sizedBufferPool) put(b []byte) {
 	select {
 	case bp.c <- b:
 	default: // Discard the buffer if the pool is full.

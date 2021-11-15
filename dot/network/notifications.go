@@ -389,7 +389,7 @@ func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDe
 	go func() {
 		msgBytes := s.bufPool.get()
 		defer func() {
-			s.bufPool.put(&msgBytes)
+			s.bufPool.put(msgBytes)
 			close(hsC)
 		}()
 
