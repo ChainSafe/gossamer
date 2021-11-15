@@ -1,25 +1,12 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -54,7 +41,7 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 }
 
 func newTrieFromPairs(filename string) (*trie.Trie, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(filename))
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +71,7 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 }
 
 func newHeaderFromFile(filename string) (*types.Header, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(filename))
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
 	}

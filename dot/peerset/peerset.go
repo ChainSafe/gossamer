@@ -1,16 +1,20 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package peerset
 
 import (
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 var (
-	logger = log.New("pkg", "peerset")
+	logger = log.NewFromGlobal(log.AddContext("pkg", "peerset"))
 )
 
 const (
@@ -55,6 +59,15 @@ type action struct {
 	reputation    ReputationChange
 	peers         peer.IDSlice
 	resultPeersCh chan peer.IDSlice
+}
+
+func (a action) String() string {
+	peersStrings := make([]string, len(a.peers))
+	for i := range a.peers {
+		peersStrings[i] = a.peers[i].String()
+	}
+	return fmt.Sprintf("{call=%d, set-id=%d, reputation change %v, peers=[%s]",
+		a.actionCall, a.setID, a.reputation, strings.Join(peersStrings, ", "))
 }
 
 // Status represents the enum value for Message
@@ -361,7 +374,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 
 		n := peerState.nodes[peerID]
 		if n.getReputation() < BannedThresholdValue {
-			logger.Crit("highest rated peer is below bannedThresholdValue")
+			logger.Critical("highest rated peer is below bannedThresholdValue")
 			break
 		}
 
@@ -375,7 +388,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			PeerID: peerID,
 		}
 
-		logger.Debug("Sent connect message", "peer", peerID)
+		logger.Debugf("Sent connect message to peer %s", peerID)
 	}
 	return nil
 }
@@ -383,7 +396,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 	for _, peerID := range peers {
 		if _, ok := ps.reservedNode[peerID]; ok {
-			logger.Debug("peer already exists in peerSet", "peer", peerID)
+			logger.Debugf("peer %s already exists in peerSet", peerID)
 			return nil
 		}
 
@@ -399,7 +412,7 @@ func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 	for _, peerID := range peers {
 		if _, ok := ps.reservedNode[peerID]; !ok {
-			logger.Debug("peer doesn't exists in the peerSet", "peerID", peerID)
+			logger.Debugf("peer %s doesn't exist in the peerSet", peerID)
 			return nil
 		}
 
@@ -473,7 +486,7 @@ func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 	for _, pid := range peers {
 		if _, ok := ps.reservedNode[pid]; ok {
-			logger.Debug("peer is reserved and cannot be removed", "peer", pid)
+			logger.Debugf("peer %s is reserved and cannot be removed", pid)
 			return nil
 		}
 
@@ -610,7 +623,7 @@ func (ps *PeerSet) doWork() {
 			l := ps.peerState.getSetLength()
 			for i := 0; i < l; i++ {
 				if err := ps.allocSlots(i); err != nil {
-					logger.Debug("failed to do action on peerSet ", "error", err)
+					logger.Debugf("failed to do action on peerSet: %s", err)
 				}
 			}
 		case act, ok := <-ps.actionQueue:
@@ -645,7 +658,7 @@ func (ps *PeerSet) doWork() {
 			}
 
 			if err != nil {
-				logger.Error("failed to do action on peerSet", "action", act, "error", err)
+				logger.Errorf("failed to do action %s on peerSet: %s", act, err)
 			}
 		}
 	}

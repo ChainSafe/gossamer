@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
@@ -21,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"sync"
@@ -104,7 +90,7 @@ func (tt *TestExecCommand) Run(name string, args ...string) {
 func (tt *TestExecCommand) ExpectExit() {
 	var output []byte
 	tt.withKillTimeout(func() {
-		output, _ = ioutil.ReadAll(tt.stdout)
+		output, _ = io.ReadAll(tt.stdout)
 	})
 	tt.WaitExit()
 	if tt.Cleanup != nil {
@@ -117,7 +103,7 @@ func (tt *TestExecCommand) ExpectExit() {
 
 func (tt *TestExecCommand) GetOutput() (stdout []byte, stderr []byte) {
 	tt.withSigTimeout(func() {
-		stdout, _ = ioutil.ReadAll(tt.stdout)
+		stdout, _ = io.ReadAll(tt.stdout)
 		stderr = tt.stderr.buf.Bytes()
 	})
 	tt.WaitExit()
@@ -233,8 +219,7 @@ func TestInvalidCommand(t *testing.T) {
 func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	genesisPath := utils.GetGssmrGenesisRawPath()
 
-	tempDir, err := ioutil.TempDir("", "gossamer-maintest-")
-	require.Nil(t, err)
+	tempDir := t.TempDir()
 
 	nodeName := dot.RandomNodeName()
 	init := runTestGossamer(t,
@@ -247,7 +232,6 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	)
 
 	stdout, stderr := init.GetOutput()
-	require.Nil(t, err)
 
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
@@ -263,7 +247,6 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 	)
 
 	stdout, stderr = init.GetOutput()
-	require.Nil(t, err)
 
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
