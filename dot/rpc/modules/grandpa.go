@@ -4,6 +4,7 @@
 package modules
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -69,6 +70,7 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	}
 
 	for _, block := range blocksToCheck {
+		fmt.Println(block)
 		hasJustification, _ := gm.blockAPI.HasJustification(block)
 		if !hasJustification {
 			continue

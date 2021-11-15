@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestGrandpaModule_ProveFinality(t *testing.T) {
@@ -23,21 +22,21 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 
 	mockBlockFinalityAPI := new(apimocks.BlockFinalityAPI)
 	mockBlockAPI := new(apimocks.BlockAPI)
-	mockBlockAPI.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(testHashSlice, nil)
-	mockBlockAPI.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
-	mockBlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return([]byte("test"), nil)
+	mockBlockAPI.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
+	mockBlockAPI.On("HasJustification", testHash).Return(true, nil)
+	mockBlockAPI.On("GetJustification", testHash).Return([]byte("test"), nil)
 
 	mockBlockAPIHasJustErr := new(apimocks.BlockAPI)
-	mockBlockAPIHasJustErr.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(testHashSlice, nil)
-	mockBlockAPIHasJustErr.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(false, nil)
+	mockBlockAPIHasJustErr.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
+	mockBlockAPIHasJustErr.On("HasJustification", testHash).Return(false, nil)
 
 	mockBlockAPIGetJustErr := new(apimocks.BlockAPI)
-	mockBlockAPIGetJustErr.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(testHashSlice, nil)
-	mockBlockAPIGetJustErr.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
-	mockBlockAPIGetJustErr.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(nil, errors.New("GetJustification error"))
+	mockBlockAPIGetJustErr.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
+	mockBlockAPIGetJustErr.On("HasJustification", testHash).Return(true, nil)
+	mockBlockAPIGetJustErr.On("GetJustification", testHash).Return(nil, errors.New("GetJustification error"))
 
 	mockBlockAPISubChainErr := new(apimocks.BlockAPI)
-	mockBlockAPISubChainErr.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(nil, errors.New("SubChain error"))
+	mockBlockAPISubChainErr.On("SubChain", testHash, testHash).Return(nil, errors.New("SubChain error"))
 
 	grandpaModule := NewGrandpaModule(mockBlockAPISubChainErr, mockBlockFinalityAPI)
 	var res ProveFinalityResponse
