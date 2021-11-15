@@ -333,6 +333,7 @@ func DevConfig() *Config {
 			BabeAuthority:    dev.DefaultBabeAuthority,
 			GrandpaAuthority: dev.DefaultGrandpaAuthority,
 			WasmInterpreter:  dev.DefaultWasmInterpreter,
+			BABELead:         dev.DefaultBabeAuthority,
 		},
 		Network: NetworkConfig{
 			Port:        dev.DefaultNetworkPort,
