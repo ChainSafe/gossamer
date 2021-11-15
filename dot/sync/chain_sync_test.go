@@ -222,7 +222,7 @@ func TestChainSync_getTarget(t *testing.T) {
 			number: big.NewInt(50),
 		},
 		"g": {
-			number: big.NewInt(1000), //outlier
+			number: big.NewInt(1000), // outlier
 		},
 	}
 
