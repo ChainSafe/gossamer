@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
@@ -51,7 +38,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // if it is a CommitMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
 func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.NotificationsMessage, error) {
-	logger.Trace("handling grandpa message", "msg", m)
+	logger.Tracef("handling grandpa message: %v", m)
 
 	switch msg := m.(type) {
 	case *VoteMessage:
@@ -98,13 +85,13 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 		return nil
 	}
 
-	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
+	logger.Debugf("got neighbour message with number %d, set id %d and round %d", msg.Number, msg.SetID, msg.Round)
 	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
 	return nil
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
-	logger.Debug("received commit message", "msg", msg)
+	logger.Debugf("received commit message %v", msg)
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil
 	}
@@ -141,7 +128,8 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMe
 		return nil, nil
 	}
 
-	logger.Debug("received catch up request", "round", msg.Round, "setID", msg.SetID)
+	logger.Debugf("received catch up request for round %d and set id %d",
+		msg.Round, msg.SetID)
 
 	if msg.SetID != h.grandpa.state.setID {
 		return nil, ErrSetIDMismatch
@@ -156,7 +144,9 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMe
 		return nil, err
 	}
 
-	logger.Debug("sending catch up response", "round", msg.Round, "setID", msg.SetID, "hash", resp.Hash)
+	logger.Debugf(
+		"sending catch up response with hash %s for round %d and set id %d",
+		resp.Hash, msg.Round, msg.SetID)
 	return resp.ToConsensusMessage()
 }
 
@@ -165,7 +155,9 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		return nil
 	}
 
-	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
+	logger.Debugf(
+		"received catch up response with hash %s for round %d and set id %d",
+		msg.Hash, msg.Round, msg.SetID)
 
 	// TODO: re-add catch-up logic (#1531)
 	if true {
@@ -223,7 +215,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	close(h.grandpa.resumed)
 	h.grandpa.resumed = make(chan struct{})
 	h.grandpa.paused.Store(false)
-	logger.Debug("caught up to round; unpaused service", "round", h.grandpa.state.round)
+	logger.Debugf("caught up to round; unpaused service and grandpa state round is %d", h.grandpa.state.round)
 	return nil
 }
 
@@ -266,7 +258,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
-			logger.Warn("verifyCommitMessageJustification", "error", err)
+			logger.Warnf("verifyCommitMessageJustification: %s", err)
 			continue
 		}
 
@@ -277,12 +269,13 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count) < h.grandpa.state.threshold() {
-		logger.Debug("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
-			"votes received", count)
+		logger.Debugf(
+			"minimum votes not met for finalisation message. Need %d votes and received %d votes.",
+			h.grandpa.state.threshold(), count)
 		return ErrMinVotesNotMet
 	}
 
-	logger.Debug("validated commit message", "msg", fm)
+	logger.Debugf("validated commit message: %v", fm)
 	return nil
 }
 
@@ -406,13 +399,9 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return fmt.Errorf("cannot get authorities for set ID: %w", err)
 	}
 
-	logger.Debug("verifying justification",
-		"setID", setID,
-		"round", fj.Round,
-		"hash", fj.Commit.Hash,
-		"number", fj.Commit.Number,
-		"sig count", len(fj.Commit.Precommits),
-	)
+	logger.Debugf(
+		"verifying justification: set id %d, round %d, hash %s, number %d, sig count %d",
+		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits))
 
 	if len(fj.Commit.Precommits) < (2 * len(auths) / 3) {
 		return ErrMinVotesNotMet
@@ -465,7 +454,9 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return err
 	}
 
-	logger.Debug("set finalised block", "hash", hash, "round", fj.Round, "setID", setID)
+	logger.Debugf(
+		"set finalised block with hash %s, round %d and set id %d",
+		hash, fj.Round, setID)
 	return nil
 }
 

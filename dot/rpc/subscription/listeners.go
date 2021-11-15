@@ -1,18 +1,6 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package subscription
 
 import (
@@ -157,7 +145,7 @@ func (l *BlockListener) Listen() {
 				}
 				head, err := modules.HeaderToJSON(block.Header)
 				if err != nil {
-					logger.Error("failed to convert header to JSON", "error", err)
+					logger.Errorf("failed to convert header to JSON: %s", err)
 				}
 
 				res := newSubcriptionBaseResponseJSON()
@@ -207,7 +195,7 @@ func (l *BlockFinalizedListener) Listen() {
 				}
 				head, err := modules.HeaderToJSON(info.Header)
 				if err != nil {
-					logger.Error("failed to convert header to JSON", "error", err)
+					logger.Errorf("failed to convert header to JSON: %s", err)
 				}
 				res := newSubcriptionBaseResponseJSON()
 				res.Method = chainFinalizedHeadMethod
@@ -270,7 +258,7 @@ func (l *AllBlocksListener) Listen() {
 
 				finHead, err := modules.HeaderToJSON(fin.Header)
 				if err != nil {
-					logger.Error("failed to convert finalised block header to JSON", "error", err)
+					logger.Errorf("failed to convert finalised block header to JSON: %s", err)
 					continue
 				}
 
@@ -287,7 +275,7 @@ func (l *AllBlocksListener) Listen() {
 
 				impHead, err := modules.HeaderToJSON(imp.Header)
 				if err != nil {
-					logger.Error("failed to convert imported block header to JSON", "error", err)
+					logger.Errorf("failed to convert imported block header to JSON: %s", err)
 					continue
 				}
 

@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package stress
 
@@ -27,9 +14,9 @@ import (
 	"time"
 
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
-	log "github.com/ChainSafe/log15"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -59,18 +46,17 @@ func TestMain(m *testing.M) {
 		os.Remove(utils.ConfigNotAuthority)
 	}()
 
-	logLvl := log.LvlInfo
+	logLvl := log.Info
 	if utils.LOGLEVEL != "" {
 		var err error
-		logLvl, err = log.LvlFromString(utils.LOGLEVEL)
+		logLvl, err = log.ParseLevel(utils.LOGLEVEL)
 		if err != nil {
-			panic(fmt.Sprint("Invalid log level: ", err))
+			panic(fmt.Sprintf("Invalid log level: %s", err))
 		}
 	}
 
-	utils.SetLogLevel(logLvl)
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(log.LvlFilterHandler(logLvl, h))
+	utils.Logger.Patch(log.SetLevel(logLvl))
+	logger.Patch(log.SetLevel(logLvl))
 
 	utils.GenerateGenesisThreeAuth()
 
@@ -99,7 +85,7 @@ func TestRestartNode(t *testing.T) {
 
 func TestSync_SingleBlockProducer(t *testing.T) {
 	numNodes := 4
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
 	//nolint
@@ -154,7 +140,7 @@ func TestSync_Basic(t *testing.T) {
 func TestSync_MultipleEpoch(t *testing.T) {
 	t.Skip("skipping TestSync_MultipleEpoch")
 	numNodes := 3
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
@@ -186,7 +172,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 func TestSync_SingleSyncingNode(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_SingleSyncingNode")
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node
 	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false, true)
@@ -212,7 +198,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 }
 
 func TestSync_Bench(t *testing.T) {
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.Patch(log.SetLevel(log.Info))
 	numBlocks := 64
 
 	// start block producing node
@@ -287,7 +273,7 @@ func TestSync_Restart(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_Restart")
 	numNodes := 3
-	utils.SetLogLevel(log.LvlInfo)
+	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
 	//nolint
@@ -441,12 +427,12 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		}
 
 		header = &block.Header
-		logger.Debug("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
+		logger.Debugf("got block with header %s and body %v from node with key %s", header, block.Body, nodes[idx].Key)
 
 		if block.Body != nil {
 			resExts = block.Body
 
-			logger.Debug("extrinsics", "exts", resExts)
+			logger.Debugf("extrinsics: %v", resExts)
 			if len(resExts) >= 2 {
 				extInBlock = block.Header.Number
 				break
@@ -460,7 +446,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	var included bool
 	for _, ext := range resExts {
-		logger.Debug("comparing", "expected", extEnc, "in block", common.BytesToHex(ext))
+		logger.Debugf("comparing extrinsic 0x%x against expected 0x%x", ext, extEnc)
 		if strings.Compare(extEnc, common.BytesToHex(ext)) == 0 {
 			included = true
 		}

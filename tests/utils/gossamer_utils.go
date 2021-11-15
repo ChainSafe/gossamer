@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package utils
 
@@ -20,7 +7,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,18 +18,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
 )
 
-var logger = log.New("pkg", "test/utils")
+// Logger is the utils package local logger.
+var Logger = log.NewFromGlobal(log.AddContext("pkg", "test/utils"))
 var maxRetries = 24
-
-// SetLogLevel sets the logging level for this package
-func SetLogLevel(lvl log.Lvl) {
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(log.LvlFilterHandler(lvl, h))
-}
 
 var (
 	// KeyList is the list of built-in keys
@@ -104,14 +85,14 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 		"--force",
 	)
 
-	logger.Info("initialising gossamer...", "cmd", cmdInit)
+	Logger.Info("initialising gossamer using " + cmdInit.String() + "...")
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
 		fmt.Printf("%s", stdOutInit)
 		return nil, err
 	}
 
-	logger.Info("initialised gossamer!", "node", idx)
+	Logger.Infof("initialised gossamer node %d!", idx)
 	return &Node{
 		Idx:      idx,
 		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
@@ -157,14 +138,14 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	// create log file
 	outfile, err := os.Create(filepath.Join(node.basePath, "log.out"))
 	if err != nil {
-		logger.Error("Error when trying to set a log file for gossamer output", "error", err)
+		Logger.Errorf("Error when trying to set a log file for gossamer output: %s", err)
 		return err
 	}
 
 	// create error log file
 	errfile, err := os.Create(filepath.Join(node.basePath, "error.out"))
 	if err != nil {
-		logger.Error("Error when trying to set a log file for gossamer output", "error", err)
+		Logger.Errorf("Error when trying to set a log file for gossamer output: %s", err)
 		return err
 	}
 
@@ -176,20 +157,20 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 
 	stdoutPipe, err := node.Process.StdoutPipe()
 	if err != nil {
-		logger.Error("failed to get stdoutPipe from node %d: %s\n", node.Idx, err)
+		Logger.Errorf("failed to get stdoutPipe from node %d: %s", node.Idx, err)
 		return err
 	}
 
 	stderrPipe, err := node.Process.StderrPipe()
 	if err != nil {
-		logger.Error("failed to get stderrPipe from node %d: %s\n", node.Idx, err)
+		Logger.Errorf("failed to get stderrPipe from node %d: %s", node.Idx, err)
 		return err
 	}
 
-	logger.Info("starting gossamer...", "cmd", node.Process)
+	Logger.Infof("starting gossamer at %s...", node.Process)
 	err = node.Process.Start()
 	if err != nil {
-		logger.Error("Could not execute gossamer cmd", "err", err)
+		Logger.Errorf("Could not execute gossamer cmd: %s", err)
 		return err
 	}
 
@@ -208,10 +189,10 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	if started {
-		logger.Info("node started", "key", key, "cmd.Process.Pid", node.Process.Process.Pid)
+		Logger.Infof("node started with key %s and cmd.Process.Pid %d", key, node.Process.Process.Pid)
 	} else {
-		logger.Crit("node didn't start!", "err", err)
-		errFileContents, _ := ioutil.ReadFile(errfile.Name())
+		Logger.Criticalf("node didn't start: %s", err)
+		errFileContents, _ := os.ReadFile(errfile.Name())
 		t.Logf("%s\n", errFileContents)
 		return err
 	}
@@ -223,7 +204,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket, babeLead bool) (*Node, error) {
 	node, err := InitGossamer(idx, basepath, genesis, config)
 	if err != nil {
-		logger.Crit("could not initialise gossamer", "error", err)
+		Logger.Criticalf("could not initialise gossamer: %s", err)
 		os.Exit(1)
 	}
 
@@ -233,7 +214,7 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 
 	err = StartGossamer(t, node, websocket)
 	if err != nil {
-		logger.Crit("could not start gossamer", "error", err)
+		Logger.Criticalf("could not start gossamer: %s", err)
 		os.Exit(1)
 	}
 
@@ -274,7 +255,7 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 // InitNodes initialises given number of nodes
 func InitNodes(num int, config string) ([]*Node, error) {
 	var nodes []*Node
-	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
+	tempDir, err := os.MkdirTemp("", "gossamer-stress-")
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +263,7 @@ func InitNodes(num int, config string) ([]*Node, error) {
 	for i := 0; i < num; i++ {
 		node, err := InitGossamer(i, tempDir+strconv.Itoa(i), GenesisDefault, config)
 		if err != nil {
-			logger.Error("failed to run gossamer", "i", i)
+			Logger.Errorf("failed to initialise Gossamer for node index %d", i)
 			return nil, err
 		}
 
@@ -318,7 +299,7 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 			}
 			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false, false)
 			if err != nil {
-				logger.Error("failed to run gossamer", "i", i)
+				Logger.Errorf("failed to run Gossamer for node index %d", i)
 			}
 
 			nodeMu.Lock()
@@ -348,7 +329,7 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 			}
 			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true, false)
 			if err != nil {
-				logger.Error("failed to run gossamer", "i", i)
+				Logger.Errorf("failed to run Gossamer for node index %d", i)
 			}
 
 			nodes = append(nodes, node)
@@ -367,7 +348,7 @@ func StopNodes(t *testing.T, nodes []*Node) (errs []error) {
 		cmd := nodes[i].Process
 		err := KillProcess(t, cmd)
 		if err != nil {
-			logger.Error("failed to kill gossamer", "i", i, "cmd", cmd)
+			Logger.Errorf("failed to kill Gossamer (cmd %s) for node index %d", cmd, i)
 			errs = append(errs, err)
 		}
 	}
@@ -381,13 +362,13 @@ func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
 		cmd := nodes[i].Process
 		err := KillProcess(t, cmd)
 		if err != nil {
-			logger.Error("failed to kill gossamer", "i", i, "cmd", cmd)
+			Logger.Errorf("failed to kill Gossamer (cmd %s) for node index %d", cmd, i)
 			errorList = append(errorList, err)
 		}
 
 		err = os.RemoveAll(node.basePath)
 		if err != nil {
-			logger.Error("failed to remove directory", "basepath", node.basePath)
+			Logger.Error("failed to remove base path directory " + node.basePath)
 			errorList = append(errorList, err)
 		}
 	}
@@ -404,7 +385,7 @@ func TestDir(t *testing.T, name string) string {
 func GenerateGenesisThreeAuth() {
 	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 3)
 	if err != nil {
-		logger.Error("genesis file not found", "error", err)
+		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
 	}
 	_ = dot.CreateJSONRawFile(bs, GenesisThreeAuths)
@@ -414,7 +395,7 @@ func GenerateGenesisThreeAuth() {
 func GenerateGenesisSixAuth() {
 	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 6)
 	if err != nil {
-		logger.Error("genesis file not found", "error", err)
+		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
 	}
 	_ = dot.CreateJSONRawFile(bs, GenesisSixAuths)

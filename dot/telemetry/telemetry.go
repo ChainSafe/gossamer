@@ -1,18 +1,5 @@
-// Copyright 2021 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package telemetry
 
@@ -22,18 +9,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
 // telemetry message types
 const (
-	notifyFinalizedMsg    = "notify.finalized"
-	blockImportMsg        = "block.import"
-	systemNetworkStateMsg = "system.network_state"
-	systemConnectedMsg    = "system.connected"
-	systemIntervalMsg     = "system.interval"
+	systemConnectedMsg           = "system.connected"
+	systemIntervalMsg            = "system.interval"
+	systemNetworkStateMsg        = "system.network_state"
+	blockImportMsg               = "block.import"
+	notifyFinalizedMsg           = "notify.finalized"
+	txPoolImportMsg              = "txpool.import"
+	preparedBlockForProposingMsg = "prepared_block_for_proposing"
 )
 
 type telemetryConnection struct {
@@ -46,7 +35,7 @@ type telemetryConnection struct {
 type Handler struct {
 	msg                chan Message
 	connections        []*telemetryConnection
-	log                log.Logger
+	log                log.LeveledLogger
 	sendMessageTimeout time.Duration
 	maxRetries         int
 	retryDelay         time.Duration
@@ -81,7 +70,7 @@ func GetInstance() Instance {
 			func() {
 				handlerInstance = &Handler{
 					msg:                make(chan Message, 256),
-					log:                log.New("pkg", "telemetry"),
+					log:                log.NewFromGlobal(log.AddContext("pkg", "telemetry")),
 					sendMessageTimeout: defaultMessageTimeout,
 					maxRetries:         defaultMaxRetries,
 					retryDelay:         defaultRetryDelay,
@@ -110,7 +99,7 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 		for connAttempts := 0; connAttempts < h.maxRetries; connAttempts++ {
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
-				h.log.Debug("issue adding telemetry connection", "error", err)
+				h.log.Debugf("issue adding telemetry connection: %s", err)
 				time.Sleep(h.retryDelay)
 				continue
 			}
@@ -142,7 +131,7 @@ func (h *Handler) startListening() {
 		go func() {
 			msgBytes, err := h.msgToJSON(msg)
 			if err != nil {
-				h.log.Debug("issue decoding telemetry message", "error", err)
+				h.log.Debugf("issue decoding telemetry message: %s", err)
 				return
 			}
 			for _, conn := range h.connections {
@@ -151,7 +140,7 @@ func (h *Handler) startListening() {
 
 				err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 				if err != nil {
-					h.log.Debug("issue while sending telemetry message", "error", err)
+					h.log.Debugf("issue while sending telemetry message: %s", err)
 				}
 			}
 		}()

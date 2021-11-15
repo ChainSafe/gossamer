@@ -1,35 +1,18 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
 
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/wasmerio/go-ext-wasm/wasmer"
-
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -41,6 +24,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 var testChildKey = []byte("childKey")
@@ -50,7 +36,7 @@ var testValue = []byte("value")
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 
@@ -61,30 +47,34 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// func Test_ext_offchain_timestamp_version_1(t *testing.T) {
-// 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-// 	// runtimeFunc, ok := inst.vm.Imports["rtm_ext_offchain_timestamp_version_1"]
-// 	// require.True(t, ok)
+func Test_ext_offchain_timestamp_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	runtimeFunc, ok := inst.vm.Exports["rtm_ext_offchain_timestamp_version_1"]
+	require.True(t, ok)
 
-// 	// res, err := runtimeFunc(0, 0)
-// 	// require.NoError(t, err)
+	res, err := runtimeFunc(0, 0)
+	require.NoError(t, err)
 
-// 	// expected := time.Now().Unix()
-// 	// require.GreaterOrEqual(t, expected, res.ToI64())
+	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
+	data := inst.load(offset, length)
+	var timestamp int64
+	err = scale.Unmarshal(data, &timestamp)
+	require.NoError(t, err)
 
-// 	_, err := inst.Exec("rtm_ext_offchain_timestamp_version_1", nil)
-// 	require.NoError(t, err)
-// }
+	expected := time.Now().Unix()
+	require.GreaterOrEqual(t, expected, timestamp)
+}
 
-// func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
-// 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-// 	enc := make([]byte, 8)
-// 	binary.LittleEndian.PutUint64(enc, uint64(time.Now().UnixMilli()))
+	input := time.Now().UnixMilli()
+	enc, err := scale.Marshal(input)
+	require.NoError(t, err)
 
-// 	_, err := inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc)
-// 	require.NoError(t, err)
-// }
+	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) //auto conversion to i64
+	require.NoError(t, err)
+}
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	t.Parallel()
@@ -1493,8 +1483,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
-	var val *[]byte // nolint
-	val = nil
+	var val *[]byte
 	optLimit, err := scale.Marshal(val)
 	require.NoError(t, err)
 
@@ -1699,10 +1688,7 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	t.Parallel()
 
-	tmp, err := ioutil.TempDir("", "*-test-trie")
-	require.NoError(t, err)
-
-	defer os.RemoveAll(tmp)
+	tmp := t.TempDir()
 
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
 		InMemory: true,

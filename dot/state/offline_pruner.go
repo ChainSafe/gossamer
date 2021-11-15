@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package state
 
 import (
@@ -88,7 +91,7 @@ func (p *OfflinePruner) SetBloomFilter() error {
 	latestBlockNum := header.Number.Int64()
 	keys := make(map[common.Hash]struct{})
 
-	logger.Info("Latest block number", "num", latestBlockNum)
+	logger.Infof("Latest block number is %d", latestBlockNum)
 
 	if latestBlockNum-p.retainBlockNum <= 0 {
 		return fmt.Errorf("not enough block to perform pruning")
@@ -122,7 +125,7 @@ func (p *OfflinePruner) SetBloomFilter() error {
 		}
 	}
 
-	logger.Info("Total keys added in bloom filter", "keysCount", len(keys))
+	logger.Infof("Total keys added in bloom filter: %d", len(keys))
 	return nil
 }
 

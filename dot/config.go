@@ -1,26 +1,12 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
 import (
-	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
-
-	log "github.com/ChainSafe/log15"
 
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
@@ -28,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
@@ -52,7 +39,7 @@ type GlobalConfig struct {
 	Name           string
 	ID             string
 	BasePath       string
-	LogLvl         log.Lvl
+	LogLvl         log.Level
 	PublishMetrics bool
 	MetricsPort    uint32
 	NoTelemetry    bool
@@ -63,14 +50,14 @@ type GlobalConfig struct {
 
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
-	CoreLvl           log.Lvl
-	SyncLvl           log.Lvl
-	NetworkLvl        log.Lvl
-	RPCLvl            log.Lvl
-	StateLvl          log.Lvl
-	RuntimeLvl        log.Lvl
-	BlockProducerLvl  log.Lvl
-	FinalityGadgetLvl log.Lvl
+	CoreLvl           log.Level
+	SyncLvl           log.Level
+	NetworkLvl        log.Level
+	RPCLvl            log.Level
+	StateLvl          log.Level
+	RuntimeLvl        log.Level
+	BlockProducerLvl  log.Level
+	FinalityGadgetLvl log.Level
 }
 
 // InitConfig is the configuration for the node initialization
@@ -131,15 +118,27 @@ func (r *RPCConfig) isWSEnabled() bool {
 	return r.WS || r.WSExternal || r.WSUnsafe || r.WSUnsafeExternal
 }
 
+// Strings returns the configuration in the format
+// field1=value1 field2=value2.
+func (r *RPCConfig) String() string {
+	return "" +
+		"enabled=" + fmt.Sprint(r.Enabled) + " " +
+		"external=" + fmt.Sprint(r.External) + " " +
+		"unsafe=" + fmt.Sprint(r.Unsafe) + " " +
+		"unsafeexternal=" + fmt.Sprint(r.UnsafeExternal) + " " +
+		"port=" + fmt.Sprint(r.Port) + " " +
+		"host=" + r.Host + " " +
+		"modules=" + strings.Join(r.Modules, ",") + " " +
+		"wsport=" + fmt.Sprint(r.WSPort) + " " +
+		"ws=" + fmt.Sprint(r.WS) + " " +
+		"wsexternal=" + fmt.Sprint(r.WSExternal) + " " +
+		"wsunsafe=" + fmt.Sprint(r.WSUnsafe) + " " +
+		"wsunsafeexternal=" + fmt.Sprint(r.WSUnsafeExternal)
+}
+
 // StateConfig is the config for the State service
 type StateConfig struct {
 	Rewind int
-}
-
-// String will return the json representation for a Config
-func (c *Config) String() string {
-	out, _ := json.MarshalIndent(c, "", "\t")
-	return string(out)
 }
 
 // networkServiceEnabled returns true if the network service is enabled
@@ -334,6 +333,7 @@ func DevConfig() *Config {
 			BabeAuthority:    dev.DefaultBabeAuthority,
 			GrandpaAuthority: dev.DefaultGrandpaAuthority,
 			WasmInterpreter:  dev.DefaultWasmInterpreter,
+			BABELead:         dev.DefaultBabeAuthority,
 		},
 		Network: NetworkConfig{
 			Port:        dev.DefaultNetworkPort,

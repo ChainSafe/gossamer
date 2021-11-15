@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package peerset
 
 import "github.com/libp2p/go-libp2p-core/peer"

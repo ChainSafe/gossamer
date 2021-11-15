@@ -1,25 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -27,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -34,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
@@ -44,17 +30,17 @@ func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	state = NewService(config)
 	return state
 }
 
-func newTestMemDBService() *Service {
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+func newTestMemDBService(t *testing.T) *Service {
+	testDatadirPath := t.TempDir()
 	config := Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	state := NewService(config)
 	state.UseMemDB()
@@ -99,7 +85,7 @@ func TestService_Initialise(t *testing.T) {
 }
 
 func TestMemDB_Start(t *testing.T) {
-	state := newTestMemDBService()
+	state := newTestMemDBService(t)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
@@ -120,7 +106,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateA := NewService(config)
 
@@ -158,7 +144,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	retainBlocks := 2
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 		PrunerCfg: pruner.Config{
 			Mode:           pruner.Full,
 			RetainedBlocks: int64(retainBlocks),
@@ -209,7 +195,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -290,7 +276,7 @@ func TestService_Rewind(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -346,7 +332,7 @@ func TestService_Import(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -411,7 +397,7 @@ func TestStateServiceMetrics(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	ethmetrics.Enabled = true
 	serv := NewService(config)

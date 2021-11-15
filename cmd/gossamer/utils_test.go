@@ -1,28 +1,17 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -91,10 +80,9 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 	return ctx, nil
 }
 
-// TestSetupLogger
-func TestSetupLogger(t *testing.T) {
+func Test_setupLogger(t *testing.T) {
 	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	testApp.Writer = io.Discard
 
 	testcases := []struct {
 		description string
@@ -124,7 +112,7 @@ func TestSetupLogger(t *testing.T) {
 			"Test gossamer --log blah",
 			[]string{"log"},
 			[]interface{}{"blah"},
-			fmt.Errorf("Unknown level: blah"),
+			errors.New("level is not recognised: blah"),
 		},
 	}
 
@@ -135,7 +123,11 @@ func TestSetupLogger(t *testing.T) {
 			require.Nil(t, err)
 
 			_, err = setupLogger(ctx)
-			require.Equal(t, c.expected, err)
+			if c.expected != nil {
+				assert.EqualError(t, err, c.expected.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

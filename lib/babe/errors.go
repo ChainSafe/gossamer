@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 // The gossamer library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -57,6 +60,8 @@ var (
 	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
 	errNilBlockState         = errors.New("cannot have nil BlockState")
 	errNilEpochState         = errors.New("cannot have nil EpochState")
+	errNilStorageState       = errors.New("storage state is nil")
+	errNilParentHeader       = errors.New("parent header is nil")
 	errInvalidResult         = errors.New("invalid error value")
 	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
 	errFirstBlockTimeout     = errors.New("timed out waiting for first block")

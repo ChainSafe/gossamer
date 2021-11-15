@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -22,21 +9,20 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"os"
+	"strings"
 	"sync"
 	"time"
-
-	log "github.com/ChainSafe/log15"
-	"github.com/ethereum/go-ethereum/metrics"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ethereum/go-ethereum/metrics"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 const (
@@ -56,7 +42,7 @@ const (
 
 var (
 	_        services.Service = &Service{}
-	logger                    = log.New("pkg", "network")
+	logger                    = log.NewFromGlobal(log.AddContext("pkg", "network"))
 	maxReads                  = 256
 )
 
@@ -111,9 +97,7 @@ type Service struct {
 func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background()) //nolint
 
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 	cfg.logger = logger
 
 	// build configuration
@@ -151,14 +135,13 @@ func NewService(cfg *Config) (*Service, error) {
 	// pre-allocate pool of buffers used to read from streams.
 	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
 	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
-	var bufPool *sizedBufferPool
-	if cfg.noPreAllocate {
-		bufPool = &sizedBufferPool{
-			c: make(chan *[maxMessageSize]byte, cfg.MinPeers*3),
-		}
-	} else {
-		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
+	preAllocateInPool := cfg.MinPeers * 3
+	poolSize := cfg.MaxPeers * 3
+	if cfg.noPreAllocate { // testing
+		preAllocateInPool = 0
+		poolSize = cfg.MinPeers * 3
 	}
+	bufPool := newSizedBufferPool(preAllocateInPool, poolSize)
 
 	network := &Service{
 		ctx:                    ctx,
@@ -224,7 +207,8 @@ func (s *Service) Start() error {
 		nil,
 	)
 	if err != nil {
-		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+		logger.Warnf("failed to register notifications protocol with block announce id %s: %s",
+			blockAnnounceID, err)
 	}
 
 	txnBatch := make(chan *BatchMessage, s.batchSize)
@@ -242,7 +226,7 @@ func (s *Service) Start() error {
 		txnBatchHandler,
 	)
 	if err != nil {
-		logger.Warn("failed to register notifications protocol", "sub-protocol", transactionsID, "error", err)
+		logger.Warnf("failed to register notifications protocol with transaction id %s: %s", transactionsID, err)
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
@@ -250,7 +234,7 @@ func (s *Service) Start() error {
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
-		logger.Info("Started listening", "address", addr)
+		logger.Infof("Started listening on %s", addr)
 	}
 
 	s.startPeerSetHandler()
@@ -263,13 +247,14 @@ func (s *Service) Start() error {
 		go func() {
 			err = s.host.discovery.start()
 			if err != nil {
-				logger.Error("failed to begin DHT discovery", "error", err)
+				logger.Errorf("failed to begin DHT discovery: %s", err)
 			}
 		}()
 	}
 
 	time.Sleep(time.Millisecond * 500)
-	logger.Info("started network service", "supported protocols", s.host.protocols())
+
+	logger.Info("started network service with supported protocols " + strings.Join(s.host.protocols(), ", "))
 
 	if s.cfg.PublishMetrics {
 		go s.collectNetworkMetrics()
@@ -312,7 +297,7 @@ func (s *Service) logPeerCount() {
 	for {
 		select {
 		case <-ticker.C:
-			logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
+			logger.Debugf("peer count %d, min=%d and max=%d", s.host.peerCount(), s.cfg.MinPeers, s.cfg.MaxPeers)
 		case <-s.ctx.Done():
 			return
 		}
@@ -333,12 +318,12 @@ main:
 			o := s.host.bwc.GetBandwidthTotals()
 			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
 			if err != nil {
-				logger.Debug("problem sending system.interval telemetry message", "error", err)
+				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
 
 			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
 			if err != nil {
-				logger.Debug("problem sending system.interval telemetry message", "error", err)
+				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
 		}
 	}
@@ -367,7 +352,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))
 		if err != nil {
-			logger.Debug("problem sending system.interval telemetry message", "error", err)
+			logger.Debugf("problem sending system.interval telemetry message: %s", err)
 		}
 		time.Sleep(s.telemetryInterval)
 	}
@@ -387,13 +372,13 @@ func (s *Service) Stop() error {
 	// close mDNS discovery service
 	err := s.mdns.close()
 	if err != nil {
-		logger.Error("Failed to close mDNS discovery service", "error", err)
+		logger.Errorf("Failed to close mDNS discovery service: %s", err)
 	}
 
 	// close host and host services
 	err = s.host.close()
 	if err != nil {
-		logger.Error("Failed to close host", "error", err)
+		logger.Errorf("Failed to close host: %s", err)
 	}
 
 	s.host.cm.peerSetHandler.Stop()
@@ -446,20 +431,16 @@ func (s *Service) RegisterNotificationsProtocol(
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID) {
 		if _, ok := np.getInboundHandshakeData(peerID); ok {
-			logger.Trace(
-				"Cleaning up inbound handshake data",
-				"peer", peerID,
-				"protocol", protocolID,
-			)
+			logger.Tracef(
+				"Cleaning up inbound handshake data for peer %s and protocol %s",
+				peerID, protocolID)
 			np.inboundHandshakeData.Delete(peerID)
 		}
 
 		if _, ok := np.getOutboundHandshakeData(peerID); ok {
-			logger.Trace(
-				"Cleaning up outbound handshake data",
-				"peer", peerID,
-				"protocol", protocolID,
-			)
+			logger.Tracef(
+				"Cleaning up outbound handshake data for peer %s and protocol %s",
+				peerID, protocolID)
 			np.outboundHandshakeData.Delete(peerID)
 		}
 	})
@@ -470,7 +451,7 @@ func (s *Service) RegisterNotificationsProtocol(
 	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler, batchHandler)
 
 	s.host.registerStreamHandler(protocolID, func(stream libp2pnetwork.Stream) {
-		logger.Trace("received stream", "sub-protocol", protocolID)
+		logger.Tracef("received stream using sub-protocol %s", protocolID)
 		conn := stream.Conn()
 		if conn == nil {
 			logger.Error("Failed to get connection from stream")
@@ -480,7 +461,7 @@ func (s *Service) RegisterNotificationsProtocol(
 		s.readStream(stream, decoder, handlerWithValidate)
 	})
 
-	logger.Info("registered notifications sub-protocol", "protocol", protocolID)
+	logger.Infof("registered notifications sub-protocol %s", protocolID)
 	return nil
 }
 
@@ -495,12 +476,8 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 		return
 	}
 
-	logger.Debug(
-		"gossiping message",
-		"host", s.host.id(),
-		"type", msg.Type(),
-		"message", msg,
-	)
+	logger.Debugf("gossiping from host %s message of type %d: %s",
+		s.host.id(), msg.Type(), msg)
 
 	// check if the message is part of a notifications protocol
 	s.notificationsMu.Lock()
@@ -515,7 +492,7 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 		return
 	}
 
-	logger.Error("message not supported by any notifications protocol", "msg type", msg.Type())
+	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())
 }
 
 // SendMessage sends a message to the given peer
@@ -572,14 +549,16 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 	peer := stream.Conn().RemotePeer()
 	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(&msgBytes)
+	defer s.bufPool.put(msgBytes)
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])
 		if errors.Is(err, io.EOF) {
 			return
 		} else if err != nil {
-			logger.Trace("failed to read from stream", "id", stream.ID(), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
+			logger.Tracef(
+				"failed to read from stream id %s of peer %s using protocol %s: %s",
+				stream.ID(), stream.Conn().RemotePeer(), stream.Protocol(), err)
 			_ = stream.Close()
 			return
 		}
@@ -589,20 +568,18 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
-			logger.Trace("failed to decode message from peer", "id", stream.ID(), "protocol", stream.Protocol(), "err", err)
+			logger.Tracef("failed to decode message from stream id %s using protocol %s: %s",
+				stream.ID(), stream.Protocol(), err)
 			continue
 		}
 
-		logger.Trace(
-			"received message from peer",
-			"host", s.host.id(),
-			"peer", peer,
-			"msg", msg.String(),
-		)
+		logger.Tracef(
+			"host %s received message from peer %s: %s",
+			s.host.id(), peer, msg.String())
 
 		err = handler(stream, msg)
 		if err != nil {
-			logger.Trace("failed to handle message from stream", "id", stream.ID(), "message", msg, "error", err)
+			logger.Tracef("failed to handle message %s from stream id %s: %s", msg, stream.ID(), err)
 			_ = stream.Close()
 			return
 		}
@@ -640,16 +617,16 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 	}
 
 	if err != nil {
-		logger.Error("failed to get the response", "err", err)
+		logger.Errorf("failed to get the response: %s", err)
 		return err
 	}
 
 	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage. (#1856)
-	logger.Debug("LightResponse", "msg", resp.String())
+	logger.Debugf("LightResponse message: %s", resp)
 
 	err = s.host.writeToStream(stream, resp)
 	if err != nil {
-		logger.Warn("failed to send LightResponse message", "peer", stream.Conn().RemotePeer(), "err", err)
+		logger.Warnf("failed to send LightResponse message to peer %s: %s", stream.Conn().RemotePeer(), err)
 	}
 	return err
 }
@@ -769,24 +746,24 @@ func (s *Service) processMessage(msg peerset.Message) {
 			var err error
 			addrInfo, err = s.host.discovery.findPeer(peerID)
 			if err != nil {
-				logger.Debug("failed to find peer", "peer", peerID, "error", err)
+				logger.Debugf("failed to find peer id %s: %s", peerID, err)
 				return
 			}
 		}
 
 		err := s.host.connect(addrInfo)
 		if err != nil {
-			logger.Debug("failed to open connection", "peer", peerID, "error", err)
+			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
-		logger.Debug("connection successful ", "peer", peerID)
+		logger.Debugf("connection successful with peer %s", peerID)
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
-			logger.Debug("failed to close connection", "peer", peerID, "error", err)
+			logger.Debugf("failed to close connection with peer %s: %s", peerID, err)
 			return
 		}
-		logger.Debug("connection dropped successfully ", "peer", peerID)
+		logger.Debugf("connection dropped successfully for peer %s", peerID)
 	}
 }
 

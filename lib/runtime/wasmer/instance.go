@@ -1,34 +1,20 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
 
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -40,7 +26,10 @@ var (
 	_ runtime.Instance = (*Instance)(nil)
 	_ runtime.Memory   = (*wasm.Memory)(nil)
 
-	logger = log.New("pkg", "runtime", "module", "go-wasmer")
+	logger = log.NewFromGlobal(
+		log.AddContext("pkg", "runtime"),
+		log.AddContext("module", "go-wasmer"),
+	)
 )
 
 // Config represents a wasmer configuration
@@ -99,20 +88,11 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg *Config) (*Instance, error) {
-	return newInstance(code, cfg)
-}
-
-func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}
 
-	// if cfg.LogLvl set to < 0, then don't change package log level
-	if cfg.LogLvl >= 0 {
-		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-		h = runtime.CustomFileHandler(h)
-		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
-	}
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	imports, err := cfg.Imports()
 	if err != nil {
@@ -157,11 +137,11 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		NodeStorage:     cfg.NodeStorage,
 		Network:         cfg.Network,
 		Transaction:     cfg.Transaction,
-		SigVerifier:     runtime.NewSignatureVerifier(),
+		SigVerifier:     runtime.NewSignatureVerifier(logger),
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 
-	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
+	logger.Debugf("NewInstance called with runtimeCtx: %v", runtimeCtx)
 	instance.SetContextData(runtimeCtx)
 
 	inst := &Instance{

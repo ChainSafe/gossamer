@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
@@ -32,13 +19,13 @@ import (
 func loadConfig(cfg *ctoml.Config, fp string) error {
 	fp, err := filepath.Abs(fp)
 	if err != nil {
-		logger.Error("failed to create absolute path for toml configuration file", "error", err)
+		logger.Errorf("failed to create absolute path for toml configuration file: %s", err)
 		return err
 	}
 
 	file, err := os.Open(filepath.Clean(fp))
 	if err != nil {
-		logger.Error("failed to open toml configuration file", "error", err)
+		logger.Errorf("failed to open toml configuration file: %s", err)
 		return err
 	}
 
@@ -59,7 +46,7 @@ func loadConfig(cfg *ctoml.Config, fp string) error {
 	}
 
 	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
-		logger.Error("failed to decode configuration", "error", err)
+		logger.Errorf("failed to decode configuration: %s", err)
 		return err
 	}
 
@@ -75,24 +62,24 @@ func exportConfig(cfg *ctoml.Config, fp string) *os.File {
 	)
 
 	if raw, err = toml.Marshal(*cfg); err != nil {
-		logger.Error("failed to marshal configuration", "error", err)
+		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
 
 	newFile, err = os.Create(filepath.Clean(fp))
 	if err != nil {
-		logger.Error("failed to create configuration file", "error", err)
+		logger.Errorf("failed to create configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	_, err = newFile.Write(raw)
 	if err != nil {
-		logger.Error("failed to write to configuration file", "error", err)
+		logger.Errorf("failed to write to configuration file: %s", err)
 		os.Exit(1)
 	}
 
 	if err := newFile.Close(); err != nil {
-		logger.Error("failed to close configuration file", "error", err)
+		logger.Errorf("failed to close configuration file: %s", err)
 		os.Exit(1)
 	}
 

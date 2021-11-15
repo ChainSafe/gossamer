@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
@@ -131,10 +118,10 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		}
 	}
 
-	logger.Trace("cached trie in storage state", "root", root)
+	logger.Tracef("cached trie in storage state: %s", root)
 
 	if err := ts.Trie().WriteDirty(s.db); err != nil {
-		logger.Warn("failed to write trie to database", "root", root, "error", err)
+		logger.Warnf("failed to write trie with root %s to database: %s", root, err)
 		return err
 	}
 
@@ -176,7 +163,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	logger.Trace("returning trie to be modified", "root", root)
+	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil
 }
 

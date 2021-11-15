@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
@@ -46,24 +33,18 @@ func (s *Service) receiveMessages(ctx context.Context) {
 				return
 			}
 
-			logger.Trace("received vote message", "msg", msg.msg, "from", msg.from)
+			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
 			vm := msg.msg
 
 			v, err := s.validateMessage(msg.from, vm)
 			if err != nil {
-				logger.Debug("failed to validate vote message", "message", vm, "error", err)
+				logger.Debugf("failed to validate vote message %v: %s", vm, err)
 				continue
 			}
 
-			logger.Debug("validated vote message",
-				"vote", v,
-				"from", vm.Message.AuthorityID,
-				"round", vm.Round,
-				"subround", vm.Message.Stage,
-				"prevote count", s.lenVotes(prevote),
-				"precommit count", s.lenVotes(precommit),
-				"votes needed", s.state.threshold()+1,
-			)
+			logger.Debugf(
+				"validated vote message %v from %s, round %d, subround %d, prevote count %d, precommit count %d, votes needed %d",
+				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage, s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
 			return
@@ -167,7 +148,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 			}
 
 			if err = s.network.SendMessage(from, msg); err != nil {
-				logger.Warn("failed to send CommitMessage", "error", err)
+				logger.Warnf("failed to send CommitMessage: %s", err)
 			}
 		} else {
 			// round is higher than ours, perhaps we are behind. store vote in tracker for now

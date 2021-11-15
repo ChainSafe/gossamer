@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
 
@@ -93,7 +80,7 @@ func (s *chainProcessor) processReadyBlocks() {
 		}
 
 		if err := s.processBlockData(bd); err != nil {
-			logger.Error("ready block failed", "hash", bd.Hash, "error", err)
+			logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
 
 			// depending on the error, we might want to save this block for later
 			if errors.Is(err, errFailedToGetParent) {
@@ -101,7 +88,7 @@ func (s *chainProcessor) processReadyBlocks() {
 					Header: *bd.Header,
 					Body:   *bd.Body,
 				}); err != nil {
-					logger.Debug("failed to re-add block to pending blocks", "error", err)
+					logger.Debugf("failed to re-add block to pending blocks: %s", err)
 				}
 			}
 		}
@@ -124,22 +111,22 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// code block can be removed (#1784)
 		block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
 		if err != nil {
-			logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
+			logger.Debugf("failed to get block header for hash %s: %s", bd.Hash, err)
 			return err
 		}
 
-		logger.Debug("skipping block, already have", "hash", bd.Hash, "number", block.Header.Number)
+		logger.Debugf("skipping block number %s with hash %s, already have", block.Header.Number, bd.Hash) // TODO is this valid?
 
 		err = s.blockState.AddBlockToBlockTree(block)
 		if errors.Is(err, blocktree.ErrBlockExists) {
 			return nil
 		} else if err != nil {
-			logger.Warn("failed to add block to blocktree", "hash", bd.Hash, "error", err)
+			logger.Warnf("failed to add block with hash %s to blocktree: %s", bd.Hash, err)
 			return err
 		}
 
 		if bd.Justification != nil {
-			logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
+			logger.Debugf("handling Justification for block number %s with hash %s...", block.Header.Number, bd.Hash)
 			s.handleJustification(&block.Header, *bd.Justification)
 		}
 
@@ -148,18 +135,18 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// is rewinded or if the node shuts down unexpectedly (#1784)
 		state, err := s.storageState.TrieState(&block.Header.StateRoot)
 		if err != nil {
-			logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
+			logger.Warnf("failed to load state for block with hash %s: %s", block.Header.Hash(), err)
 			return err
 		}
 
 		if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
-			logger.Warn("failed to handle block import", "error", err)
+			logger.Warnf("failed to handle block import: %s", err)
 		}
 
 		return nil
 	}
 
-	logger.Debug("processing block data", "hash", bd.Hash)
+	logger.Debugf("processing block data with hash %s", bd.Hash)
 
 	if bd.Header != nil && bd.Body != nil {
 		if err := s.handleHeader(bd.Header); err != nil {
@@ -174,15 +161,15 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if err := s.handleBlock(block); err != nil {
-			logger.Error("failed to handle block", "number", block.Header.Number, "error", err)
+			logger.Errorf("failed to handle block number %s: %s", block.Header.Number, err)
 			return err
 		}
 
-		logger.Debug("block processed", "hash", bd.Hash)
+		logger.Debugf("block with hash %s processed", bd.Hash)
 	}
 
 	if bd.Justification != nil && bd.Header != nil {
-		logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
+		logger.Debugf("handling Justification for block number %s with hash %s...", bd.Number(), bd.Hash)
 		s.handleJustification(bd.Header, *bd.Justification)
 	}
 
@@ -251,7 +238,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+	logger.Debugf("🔗 imported block number %s with hash %s", block.Header.Number, block.Header.Hash())
 
 	blockHash := block.Header.Hash()
 	err = telemetry.GetInstance().SendMessage(telemetry.NewBlockImportTM(
@@ -259,7 +246,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		block.Header.Number,
 		"NetworkInitialSync"))
 	if err != nil {
-		logger.Debug("problem sending block.import telemetry message", "error", err)
+		logger.Debugf("problem sending block.import telemetry message: %s", err)
 	}
 
 	return nil
@@ -272,15 +259,15 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 
 	err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
 	if err != nil {
-		logger.Warn("failed to verify block justification", "hash", header.Hash(), "number", header.Number, "error", err)
+		logger.Warnf("failed to verify block number %s and hash %s justification: %s", header.Number, header.Hash(), err)
 		return
 	}
 
 	err = s.blockState.SetJustification(header.Hash(), justification)
 	if err != nil {
-		logger.Error("failed tostore justification", "error", err)
+		logger.Errorf("failed tostore justification: %s", err)
 		return
 	}
 
-	logger.Info("🔨 finalised block", "number", header.Number, "hash", header.Hash())
+	logger.Infof("🔨 finalised block number %s with hash %s", header.Number, header.Hash())
 }

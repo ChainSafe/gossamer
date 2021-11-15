@@ -1,22 +1,10 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
 import (
+	"io"
 	"math/big"
 	"reflect"
 	"sync"
@@ -35,7 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -210,7 +198,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
 
@@ -374,8 +362,11 @@ func TestNode_StopFunc(t *testing.T) {
 		testvar = "after"
 	}
 
+	serviceRegistryLogger := log.New(log.SetWriter(io.Discard))
+	servicesRegistry := services.NewServiceRegistry(serviceRegistryLogger)
+
 	node := &Node{
-		Services: &services.ServiceRegistry{},
+		Services: servicesRegistry,
 		StopFunc: stopFunc,
 		wg:       sync.WaitGroup{},
 	}

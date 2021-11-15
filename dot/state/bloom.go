@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package state
 
 import (
@@ -5,7 +8,6 @@ import (
 	"errors"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	log "github.com/ChainSafe/log15"
 	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
@@ -36,7 +38,7 @@ func newBloomState(size uint64) (*bloomState, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Info("initialised state bloom", "size", float64(bloom.M()/8))
+	logger.Infof("initialised state bloom with size %f", float64(bloom.M()/8))
 	return &bloomState{bloom: bloom}, nil
 }
 

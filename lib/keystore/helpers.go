@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package keystore
 
@@ -21,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -156,24 +142,27 @@ func LoadKeystore(key string, ks Keystore) error {
 		}
 
 		switch strings.ToLower(key) {
+		// Insert can error only if kestore type do not match with key
+		// type do not match. Since we have created keyring based on ks.Type(),
+		// Insert would never error here. Thus, ignoring those errors.
 		case "alice":
-			ks.Insert(kr.Alice())
+			_ = ks.Insert(kr.Alice())
 		case "bob":
-			ks.Insert(kr.Bob())
+			_ = ks.Insert(kr.Bob())
 		case "charlie":
-			ks.Insert(kr.Charlie())
+			_ = ks.Insert(kr.Charlie())
 		case "dave":
-			ks.Insert(kr.Dave())
+			_ = ks.Insert(kr.Dave())
 		case "eve":
-			ks.Insert(kr.Eve())
+			_ = ks.Insert(kr.Eve())
 		case "ferdie":
-			ks.Insert(kr.Ferdie())
+			_ = ks.Insert(kr.Ferdie())
 		case "george":
-			ks.Insert(kr.George())
+			_ = ks.Insert(kr.George())
 		case "heather":
-			ks.Insert(kr.Heather())
+			_ = ks.Insert(kr.Heather())
 		case "ian":
-			ks.Insert(kr.Ian())
+			_ = ks.Insert(kr.Ian())
 		default:
 			return fmt.Errorf("invalid test key provided")
 		}
@@ -191,7 +180,7 @@ func ImportKeypair(fp, dir string) (string, error) {
 		return "", fmt.Errorf("failed to create keystore directory: %s", err)
 	}
 
-	keyData, err := ioutil.ReadFile(filepath.Clean(fp))
+	keyData, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return "", fmt.Errorf("failed to read keystore file: %s", err)
 	}
@@ -207,7 +196,7 @@ func ImportKeypair(fp, dir string) (string, error) {
 		return "", fmt.Errorf("failed to create keystore filepath: %s", err)
 	}
 
-	err = ioutil.WriteFile(keyFilePath, keyData, 0600)
+	err = os.WriteFile(keyFilePath, keyData, 0600)
 	if err != nil {
 		return "", fmt.Errorf("failed to write to keystore file: %s", err)
 	}
@@ -300,7 +289,9 @@ func UnlockKeys(ks Keystore, dir, unlock, password string) error {
 			return fmt.Errorf("failed to create keypair from private key %d: %s", idx, err)
 		}
 
-		ks.Insert(kp)
+		if err = ks.Insert(kp); err != nil {
+			return fmt.Errorf("failed to insert key in keystore: %v", err)
+		}
 	}
 
 	return nil
@@ -329,7 +320,7 @@ func DetermineKeyType(t string) crypto.KeyType {
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
-//  are issues decoding string
+// are issues decoding string
 func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
 	keyBytes, err := common.HexToBytes(pubKeyStr)
 	if err != nil {

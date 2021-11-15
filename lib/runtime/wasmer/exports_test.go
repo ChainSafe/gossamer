@@ -1,15 +1,19 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package wasmer
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -17,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -350,7 +353,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 
 	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.Info)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -377,7 +380,7 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 
 	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt, log.LvlInfo)
+	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt, log.Info)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -444,7 +447,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 
 	tt.Put(runtime.BABEAuthoritiesKey(), avalue)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.Info)
 
 	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -1134,7 +1137,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 }
 
 func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	require.NoError(t, err)
 
 	rpcPairs := make(map[string]interface{})

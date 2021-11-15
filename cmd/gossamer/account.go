@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
@@ -35,7 +22,7 @@ func accountAction(ctx *cli.Context) error {
 	// create dot configuration
 	cfg, err := createDotConfig(ctx)
 	if err != nil {
-		logger.Error("failed to create dot configuration", "error", err)
+		logger.Errorf("failed to create dot configuration: %s", err)
 		return err
 	}
 
@@ -58,11 +45,11 @@ func accountAction(ctx *cli.Context) error {
 
 		file, err = keystore.GenerateKeypair(keytype, nil, basepath, getKeystorePassword(ctx))
 		if err != nil {
-			logger.Error("failed to generate keypair", "error", err)
+			logger.Errorf("failed to generate keypair: %s", err)
 			return err
 		}
 
-		logger.Info("generated key", "file", file)
+		logger.Info("keypair generated and saved to " + file)
 	}
 
 	// check if --import is set
@@ -72,7 +59,7 @@ func accountAction(ctx *cli.Context) error {
 		// import keypair
 		_, err = keystore.ImportKeypair(keyimport, basepath)
 		if err != nil {
-			logger.Error("failed to import key", "error", err)
+			logger.Errorf("failed to import keypair: %s", err)
 			return err
 		}
 	}
@@ -81,7 +68,7 @@ func accountAction(ctx *cli.Context) error {
 	if keylist := ctx.Bool(ListFlag.Name); keylist {
 		_, err = utils.KeystoreFilepaths(basepath)
 		if err != nil {
-			logger.Error("failed to list keys", "error", err)
+			logger.Errorf("failed to list keys: %s", err)
 			return err
 		}
 	}
@@ -90,11 +77,11 @@ func accountAction(ctx *cli.Context) error {
 	if importraw := ctx.String(ImportRawFlag.Name); importraw != "" {
 		file, err = keystore.ImportRawPrivateKey(importraw, keytype, basepath, getKeystorePassword(ctx))
 		if err != nil {
-			logger.Error("failed to import private key", "error", err)
+			logger.Errorf("failed to import private key: %s", err)
 			return err
 		}
 
-		logger.Info("imported key", "file", file)
+		logger.Info("imported private key and saved it to " + file)
 	}
 
 	return nil

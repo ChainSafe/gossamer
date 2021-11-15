@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
@@ -64,7 +51,7 @@ func cpuProfile(ctx *cli.Context) (func(), error) {
 	return func() {
 		pprof.StopCPUProfile()
 		if err := cpuFile.Close(); err != nil {
-			logger.Error("failed to close file", "file", cpuFile.Name())
+			logger.Error("failed to close file " + cpuFile.Name())
 		}
 	}, nil
 }
@@ -83,11 +70,11 @@ func memProfile(ctx *cli.Context) (func(), error) {
 	return func() {
 		runtime.GC()
 		if err := pprof.WriteHeapProfile(memFile); err != nil {
-			logger.Error("could not write memory profile", "error", err)
+			logger.Errorf("could not write memory profile: %s", err)
 		}
 
 		if err := memFile.Close(); err != nil {
-			logger.Error("failed to close file", "file", memFile.Name())
+			logger.Error("failed to close file " + memFile.Name())
 		}
 	}, nil
 }
