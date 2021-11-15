@@ -30,11 +30,11 @@ type OffchainLocalStorageSet struct {
 
 // OffchainModule defines the RPC module to Offchain methods
 type OffchainModule struct {
-	nodeStorage OffchainStorageAPI
+	nodeStorage RuntimeStorageAPI
 }
 
 // NewOffchainModule creates a RPC module to Offchain methods
-func NewOffchainModule(ns OffchainStorageAPI) *OffchainModule {
+func NewOffchainModule(ns RuntimeStorageAPI) *OffchainModule {
 	return &OffchainModule{
 		nodeStorage: ns,
 	}
