@@ -2,21 +2,21 @@ package modules
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 	g := new(genesis.Genesis)
 	mockSyncStateAPI := new(apimocks.SyncStateAPI)
-	mockSyncStateAPI.On("GenSyncSpec", mock.AnythingOfType("bool")).Return(g, nil)
+	mockSyncStateAPI.On("GenSyncSpec", true).Return(g, nil)
 
 	mockSyncStateAPIErr := new(apimocks.SyncStateAPI)
-	mockSyncStateAPIErr.On("GenSyncSpec", mock.AnythingOfType("bool")).Return(nil, errors.New("GenSyncSpec error"))
+	mockSyncStateAPIErr.On("GenSyncSpec", true).Return(nil, errors.New("GenSyncSpec error"))
 
 	syncStateModule := NewSyncStateModule(mockSyncStateAPI)
 	var res genesis.Genesis
@@ -76,10 +76,10 @@ func TestNewStateSync(t *testing.T) {
 	g := &genesis.Genesis{}
 	raw := make(map[string][]byte)
 	mockStorageAPI := new(apimocks.StorageAPI)
-	mockStorageAPI.On("Entries", mock.AnythingOfType("*common.Hash")).Return(raw, nil)
+	mockStorageAPI.On("Entries", (*common.Hash)(nil)).Return(raw, nil)
 
 	mockStorageAPIErr := new(apimocks.StorageAPI)
-	mockStorageAPIErr.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("entries error"))
+	mockStorageAPIErr.On("Entries", (*common.Hash)(nil)).Return(nil, errors.New("entries error"))
 
 	type args struct {
 		gData      *genesis.Data
