@@ -6,7 +6,6 @@ package network
 import (
 	"errors"
 	"io"
-	//"reflect"
 	"sync"
 	"time"
 
