@@ -1,6 +1,7 @@
 /.git
 /.githooks
 /.github
+!/.github/workflows/staging
 /docs
 /.deepsource.toml
 /.dockerignore
