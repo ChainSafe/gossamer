@@ -253,6 +253,14 @@ func (s *Service) updateAuthorities() error {
 	s.state.setID = currSetID
 	s.state.round = 0 // round resets to 1 after a set ID change, setting to 0 before incrementing indicates the setID has been increased
 
+	return nil
+}
+
+func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
+	return s.keypair.Public().(*ed25519.PublicKey).AsBytes()
+}
+
+func (s *Service) sendTelemetryAuthoritySet() {
 	authorityID := s.keypair.Public().Hex()
 	authorities := make([]string, len(s.state.voters))
 	for i, voter := range s.state.voters {
@@ -261,7 +269,8 @@ func (s *Service) updateAuthorities() error {
 
 	authoritiesBytes, err := json.Marshal(authorities)
 	if err != nil {
-		return err
+		logger.Debugf("could not marshal authorities: %s", err)
+		return
 	}
 
 	err = telemetry.GetInstance().SendMessage(
@@ -274,12 +283,6 @@ func (s *Service) updateAuthorities() error {
 	if err != nil {
 		logger.Debugf("problem sending afg.authority_set telemetry message: %s", err)
 	}
-
-	return nil
-}
-
-func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
-	return s.keypair.Public().(*ed25519.PublicKey).AsBytes()
 }
 
 func (s *Service) initiateRound() error {
@@ -288,6 +291,8 @@ func (s *Service) initiateRound() error {
 	if err != nil {
 		return err
 	}
+
+	s.sendTelemetryAuthoritySet()
 
 	round, setID, err := s.blockState.GetHighestRoundAndSetID()
 	if err != nil {
