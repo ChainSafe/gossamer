@@ -392,12 +392,10 @@ func TestChainModule_ErrSubscriptionTransport(t *testing.T) {
 
 	err = cm.SubscribeNewHeads(nil, req, res)
 	require.Equal(t, err, ErrSubscriptionTransport)
-
 }
 
 func TestHeaderToJSON(t *testing.T) {
 	emptyHeader := types.NewEmptyHeader()
-
 	vdts := types.NewDigest()
 	err := vdts.Add(
 		types.PreRuntimeDigest{

@@ -141,7 +141,6 @@ func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainFinali
 //GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
 	hash := cm.hashLookup(req)
-	fmt.Println("Hash: ", hash)
 	header, err := cm.blockAPI.GetHeader(hash)
 	if err != nil {
 		return err
@@ -225,7 +224,6 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 		return "", fmt.Errorf("unknown request number type: %T", x)
 	}
 
-	fmt.Println(num)
 	h, err := cm.blockAPI.GetBlockHash(num)
 	if err != nil {
 		return "", err

@@ -110,38 +110,42 @@ func TestAuthorModule_HasSessionKey_WhenThereIsNoKeys(t *testing.T) {
 func TestAuthorModule_HasSessionKey(t *testing.T) {
 	globalStore := keystore.NewGlobalKeystore()
 
-	coremockapi := new(apimocks.CoreAPI)
+	// First
+	coremockapi1 := new(apimocks.CoreAPI)
 
-	//kp, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes("0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8"))
-	//require.NoError(t, err)
+	kp1, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes("0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8"))
+	require.NoError(t, err)
 
-	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"), mock.AnythingOfType("string")).Return(nil)
-	mockInsertKey.Run(func(args mock.Arguments) {
+	mockInsertKey1 := coremockapi1.On("InsertKey", kp1, "babe").Return(nil)
+	mockInsertKey1.Run(func(args mock.Arguments) {
 		kp := args.Get(0).(*sr25519.Keypair)
 		globalStore.Acco.Insert(kp)
 	})
 
-	mockHasKey := coremockapi.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
-	mockHasKey.Run(func(args mock.Arguments) {
+	// Kept mock.AnythingOfType here to test multiple keys and key types
+	mockHasKey1 := coremockapi1.On("HasKey",mock.AnythingOfType("string"), mock.AnythingOfType("string"))
+	mockHasKey1.Run(func(args mock.Arguments) {
 		pubKeyHex := args.Get(0).(string)
 		keyType := args.Get(1).(string)
 
 		ok, err := keystore.HasKey(pubKeyHex, keyType, globalStore.Acco)
-		mockHasKey.ReturnArguments = []interface{}{ok, err}
+		mockHasKey1.ReturnArguments = []interface{}{ok, err}
 	})
 
 	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 
-	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
-	decodeSessionKeysMock.Run(func(args mock.Arguments) {
+	inputPkeys := common.MustHexToBytes("0x0102d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026")
+
+	decodeSessionKeysMock1 := coremockapi1.On("DecodeSessionKeys", inputPkeys)
+	decodeSessionKeysMock1.Run(func(args mock.Arguments) {
 		b := args.Get(0).([]byte)
 		dec, err := runtimeInstance.DecodeSessionKeys(b)
-		decodeSessionKeysMock.ReturnArguments = []interface{}{dec, err}
+		decodeSessionKeysMock1.ReturnArguments = []interface{}{dec, err}
 	})
 
-	module := &AuthorModule{
-		coreAPI: coremockapi,
+	module1 := &AuthorModule{
+		coreAPI: coremockapi1,
 		logger:  log.New(log.SetWriter(io.Discard)),
 	}
 
@@ -149,16 +153,48 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 		PublicKeys: keys,
 	}
 
-	err := module.InsertKey(nil, &KeyInsertRequest{
+	err = module1.InsertKey(nil, &KeyInsertRequest{
 		Type:      "babe",
 		Seed:      "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8",
 		PublicKey: "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026",
 	}, nil)
-	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"), mock.AnythingOfType("string"))
+	coremockapi1.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"), mock.AnythingOfType("string"))
 	require.NoError(t, err)
 	require.Equal(t, 1, globalStore.Acco.Size())
 
-	err = module.InsertKey(nil, &KeyInsertRequest{
+	// Second
+	coremockapi2 := new(apimocks.CoreAPI)
+	kp2, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"))
+	require.NoError(t, err)
+
+	mockInsertKey2 := coremockapi2.On("InsertKey", kp2, "babe").Return(nil)
+	mockInsertKey2.Run(func(args mock.Arguments) {
+		kp := args.Get(0).(*sr25519.Keypair)
+		globalStore.Acco.Insert(kp)
+	})
+
+	mockHasKey2 := coremockapi2.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
+	mockHasKey2.Run(func(args mock.Arguments) {
+		pubKeyHex := args.Get(0).(string)
+		keyType := args.Get(1).(string)
+
+		ok, err := keystore.HasKey(pubKeyHex, keyType, globalStore.Acco)
+		mockHasKey2.ReturnArguments = []interface{}{ok, err}
+	})
+
+	decodeSessionKeysMock2 := coremockapi2.On("DecodeSessionKeys", inputPkeys)
+	decodeSessionKeysMock2.Run(func(args mock.Arguments) {
+		b := args.Get(0).([]byte)
+		dec, err := runtimeInstance.DecodeSessionKeys(b)
+		decodeSessionKeysMock2.ReturnArguments = []interface{}{dec, err}
+	})
+
+	module2 := &AuthorModule{
+		coreAPI: coremockapi2,
+		logger:  log.New(log.SetWriter(io.Discard)),
+	}
+
+	err = module2.InsertKey(nil, &KeyInsertRequest{
 		Type:      "babe",
 		Seed:      "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a",
 		PublicKey: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
@@ -167,9 +203,14 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	require.Equal(t, 2, globalStore.Acco.Size())
 
 	var res HasSessionKeyResponse
-	err = module.HasSessionKeys(nil, req, &res)
+	err = module1.HasSessionKeys(nil, req, &res)
 	require.NoError(t, err)
 	require.True(t, bool(res))
+
+	var res2 HasSessionKeyResponse
+	err = module2.HasSessionKeys(nil, req, &res2)
+	require.NoError(t, err)
+	require.True(t, bool(res2))
 }
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
