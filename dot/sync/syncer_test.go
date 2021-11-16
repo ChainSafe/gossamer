@@ -4,34 +4,83 @@
 package sync
 
 import (
+	"errors"
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"reflect"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestNewService(t *testing.T) {
+	cfg := &Config{}
+	testDatadirPath := t.TempDir()
+
+	cfg.Network = newMockNetwork()
+
 	type args struct {
 		cfg *Config
 	}
+	scfg := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.Info,
+	}
+	stateSrvc := state.NewService(scfg)
+	stateSrvc.UseMemDB()
+
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.NoError(t, err)
+
+	cfg.BlockState = stateSrvc.Block
+
+	cfg.StorageState = stateSrvc.Storage
+
+	cfg.TransactionState = stateSrvc.Transaction
+
+	cfg.BabeVerifier = newMockBabeVerifier()
+
+	cfg.FinalityGadget = newMockFinalityGadget()
+
+	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
+
 	tests := []struct {
 		name    string
 		args    args
 		want    *Service
-		wantErr bool
+		err error
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "empty config",
+			args:    args{cfg: &Config{}},
+			err: errors.New("cannot have nil Network"),
+		},
+		{
+			name:    "working example",
+			args:    args{cfg: cfg},
+			want:    &Service{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewService(tt.args.cfg)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewService() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewService() got = %v, want %v", got, tt.want)
+
+			if tt.want != nil {
+				assert.NotNil(t, got)
+			} else {
+				assert.Nil(t, got)
 			}
 		})
 	}
