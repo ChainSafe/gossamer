@@ -8,9 +8,33 @@ import (
 	"testing"
 )
 
-func Test_bootstrapSyncer_handleNewPeerState(t *testing.T) {
+func Test_newTipSyncer(t *testing.T) {
+	type args struct {
+		blockState    BlockState
+		pendingBlocks DisjointBlockSet
+		readyBlocks   *blockQueue
+	}
+	tests := []struct {
+		name string
+		args args
+		want *tipSyncer
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := newTipSyncer(tt.args.blockState, tt.args.pendingBlocks, tt.args.readyBlocks); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("newTipSyncer() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 	type fields struct {
-		blockState BlockState
+		blockState    BlockState
+		pendingBlocks DisjointBlockSet
+		readyBlocks   *blockQueue
 	}
 	type args struct {
 		ps *peerState
@@ -26,8 +50,10 @@ func Test_bootstrapSyncer_handleNewPeerState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &bootstrapSyncer{
-				blockState: tt.fields.blockState,
+			s := &tipSyncer{
+				blockState:    tt.fields.blockState,
+				pendingBlocks: tt.fields.pendingBlocks,
+				readyBlocks:   tt.fields.readyBlocks,
 			}
 			got, err := s.handleNewPeerState(tt.args.ps)
 			if (err != nil) != tt.wantErr {
@@ -41,9 +67,11 @@ func Test_bootstrapSyncer_handleNewPeerState(t *testing.T) {
 	}
 }
 
-func Test_bootstrapSyncer_handleTick(t *testing.T) {
+func Test_tipSyncer_handleTick(t *testing.T) {
 	type fields struct {
-		blockState BlockState
+		blockState    BlockState
+		pendingBlocks DisjointBlockSet
+		readyBlocks   *blockQueue
 	}
 	tests := []struct {
 		name    string
@@ -55,10 +83,12 @@ func Test_bootstrapSyncer_handleTick(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bo := &bootstrapSyncer{
-				blockState: tt.fields.blockState,
+			s := &tipSyncer{
+				blockState:    tt.fields.blockState,
+				pendingBlocks: tt.fields.pendingBlocks,
+				readyBlocks:   tt.fields.readyBlocks,
 			}
-			got, err := bo.handleTick()
+			got, err := s.handleTick()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("handleTick() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -70,9 +100,11 @@ func Test_bootstrapSyncer_handleTick(t *testing.T) {
 	}
 }
 
-func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
+func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 	type fields struct {
-		blockState BlockState
+		blockState    BlockState
+		pendingBlocks DisjointBlockSet
+		readyBlocks   *blockQueue
 	}
 	type args struct {
 		res *worker
@@ -88,8 +120,10 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &bootstrapSyncer{
-				blockState: tt.fields.blockState,
+			s := &tipSyncer{
+				blockState:    tt.fields.blockState,
+				pendingBlocks: tt.fields.pendingBlocks,
+				readyBlocks:   tt.fields.readyBlocks,
 			}
 			got, err := s.handleWorkerResult(tt.args.res)
 			if (err != nil) != tt.wantErr {
@@ -103,12 +137,14 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	}
 }
 
-func Test_bootstrapSyncer_hasCurrentWorker(t *testing.T) {
+func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 	type fields struct {
-		blockState BlockState
+		blockState    BlockState
+		pendingBlocks DisjointBlockSet
+		readyBlocks   *blockQueue
 	}
 	type args struct {
-		in0     *worker
+		w       *worker
 		workers map[uint64]*worker
 	}
 	tests := []struct {
@@ -121,31 +157,13 @@ func Test_bootstrapSyncer_hasCurrentWorker(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bo := &bootstrapSyncer{
-				blockState: tt.fields.blockState,
+			ti := &tipSyncer{
+				blockState:    tt.fields.blockState,
+				pendingBlocks: tt.fields.pendingBlocks,
+				readyBlocks:   tt.fields.readyBlocks,
 			}
-			if got := bo.hasCurrentWorker(tt.args.in0, tt.args.workers); got != tt.want {
+			if got := ti.hasCurrentWorker(tt.args.w, tt.args.workers); got != tt.want {
 				t.Errorf("hasCurrentWorker() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_newBootstrapSyncer(t *testing.T) {
-	type args struct {
-		blockState BlockState
-	}
-	tests := []struct {
-		name string
-		args args
-		want *bootstrapSyncer
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := newBootstrapSyncer(tt.args.blockState); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newBootstrapSyncer() = %v, want %v", got, tt.want)
 			}
 		})
 	}
