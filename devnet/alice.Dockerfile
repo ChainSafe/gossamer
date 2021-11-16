@@ -27,4 +27,4 @@ RUN gossamer --key alice init
 RUN cp devnet/alice.node.key ~/.gossamer/gssmr/node.key
 
 ENTRYPOINT service datadog-agent restart && gossamer --key=alice --babe-lead --publish-metrics --rpc --rpc-external=true --pubip=10.5.0.2
-EXPOSE 7001 8545 8546 8540 9876
+EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp
