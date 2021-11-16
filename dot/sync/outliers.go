@@ -8,7 +8,7 @@ import (
 	"sort"
 )
 
-// removeOutlier removes the outlier from the slice
+// removeOutliers removes the outlier from the slice
 // Explanation:
 // IQR outlier detection
 // Q25 = 25th_percentile
@@ -19,7 +19,7 @@ import (
 // Ref: http://www.mathwords.com/o/outlier.htm
 //
 // returns: sum of all the non-outliers elements
-func removeOutlier(dataArr []*big.Int) (sum *big.Int, count int64) {
+func removeOutliers(dataArr []*big.Int) (sum *big.Int, count int64) {
 	length := len(dataArr)
 
 	switch length {

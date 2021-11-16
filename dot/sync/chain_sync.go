@@ -528,7 +528,7 @@ func (cs *chainSync) getTarget() *big.Int {
 		intArr = append(intArr, ps.number)
 	}
 
-	sum, count := removeOutlier(intArr)
+	sum, count := removeOutliers(intArr)
 	return big.NewInt(0).Div(sum, big.NewInt(count))
 }
 

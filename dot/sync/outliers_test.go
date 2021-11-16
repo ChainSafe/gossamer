@@ -19,7 +19,7 @@ func TestRemoveOutlier(t *testing.T) {
 	}
 	expectedSum := big.NewInt(350) // excluding the outlier -100 and 1000
 
-	sum, count := removeOutlier(arr)
+	sum, count := removeOutliers(arr)
 	require.Equal(t, int64(6), count)
 	require.Equal(t, expectedSum, sum)
 }
