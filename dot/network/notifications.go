@@ -331,7 +331,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsProtocol) (libp2pnetwork.Stream, error) {
 	mu, has := info.outboundHandshakeMutexes.Load(peer)
-	if !has || mu == nil {
+	if !has {
 		// this should not happen
 		return nil, errMissingHandshakeMutex
 	}

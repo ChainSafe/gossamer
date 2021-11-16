@@ -109,10 +109,10 @@ func NewLightRequest() *LightRequest {
 	}
 }
 
-func newLightRequestFromBytes(in []byte) (msg *LightRequest, err error) {
-	msg = NewLightRequest()
-	err = msg.Decode(in)
-	return
+func newLightRequestFromBytes(in []byte) (*LightRequest, error) {
+	msg := NewLightRequest()
+	err := msg.Decode(in)
+	return msg, err
 }
 
 func newRequest() *request {
@@ -191,10 +191,10 @@ func NewLightResponse() *LightResponse {
 	}
 }
 
-func newLightResponseFromBytes(in []byte) (msg *LightResponse, err error) {
-	msg = NewLightResponse()
-	err = msg.Decode(in)
-	return
+func newLightResponseFromBytes(in []byte) (*LightResponse, error) {
+	msg := NewLightResponse()
+	err := msg.Decode(in)
+	return msg, err
 }
 
 func newResponse() *response {

@@ -320,11 +320,10 @@ func (s *Service) collectNetworkMetrics() {
 	}
 }
 
-func (s *Service) getTotalStreams(inbound bool) int64 {
-	var count int64
+func (s *Service) getTotalStreams(inbound bool) (count int64) {
 	for _, conn := range s.host.h.Network().Conns() {
 		for _, stream := range conn.GetStreams() {
-			if isInbound(stream) && inbound || !isInbound(stream) && !inbound {
+			if (isInbound(stream) && inbound) || (!isInbound(stream) && !inbound) {
 				count++
 			}
 		}
@@ -332,7 +331,7 @@ func (s *Service) getTotalStreams(inbound bool) int64 {
 	return count
 }
 
-func (s *Service) getNumStreams(protocolID byte, inbound bool) int64 {
+func (s *Service) getNumStreams(protocolID byte, inbound bool) (count int64) {
 	np, has := s.notificationsProtocols[protocolID]
 	if !has {
 		return 0
@@ -345,7 +344,6 @@ func (s *Service) getNumStreams(protocolID byte, inbound bool) int64 {
 		hsData = np.outboundHandshakeData
 	}
 
-	var count int64
 	hsData.Range(func(_, data interface{}) bool {
 		if data == nil {
 			return true
