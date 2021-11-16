@@ -1116,39 +1116,43 @@ func TestNextKey_Random(t *testing.T) {
 	}
 }
 
-func TestRootHashNonParallel(t *testing.T) {
-	rt := GenerateRandomTests(t, 1000000)
+func Benchmark_Trie_Hash(b *testing.B) {
+	rt := GenerateRandomTests(b, 1000000)
 	trie := NewEmptyTrie()
 	for i := range rt {
 		test := &rt[i]
 		trie.Put(test.key, test.value)
 	}
 
-	t.Run("Non Parallel Hash", func(t *testing.T) {
+	trieTwo, err := trie.DeepCopy()
+	require.NoError(b, err)
+
+	b.Run("Sequential hash", func(b *testing.B) {
 		trie.parallel = false
+
+		b.StartTimer()
 		_, err := trie.Hash()
-		require.NoError(t, err)
-		PrintMemUsage()
+		b.StopTimer()
+
+		require.NoError(b, err)
+
+		printMemUsage()
+	})
+
+	b.Run("Parallel hash", func(b *testing.B) {
+		trieTwo.parallel = true
+
+		b.StartTimer()
+		_, err := trieTwo.Hash()
+		b.StopTimer()
+
+		require.NoError(b, err)
+
+		printMemUsage()
 	})
 }
 
-func TestRootHashParallel(t *testing.T) {
-	rt := GenerateRandomTests(t, 1000000)
-	trie := NewEmptyTrie()
-	for i := range rt {
-		test := &rt[i]
-		trie.Put(test.key, test.value)
-	}
-
-	t.Run("Parallel Hash", func(t *testing.T) {
-		trie.parallel = true
-		_, err := trie.Hash()
-		require.NoError(t, err)
-		PrintMemUsage()
-	})
-}
-
-func PrintMemUsage() {
+func printMemUsage() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
