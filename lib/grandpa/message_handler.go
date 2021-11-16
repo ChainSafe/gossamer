@@ -240,7 +240,7 @@ func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit 
 
 func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{} {
 	eqvVoters := make(map[ed25519.PublicKeyBytes]struct{})
-	voters := make(map[ed25519.PublicKeyBytes]int)
+	voters := make(map[ed25519.PublicKeyBytes]int, len(votes))
 
 	for _, v := range votes {
 		voters[v.AuthorityID]++
@@ -290,11 +290,6 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 		}
 	}
 
-	fmt.Println(uint64(count))
-	fmt.Println(uint64(len(eqvVoters)))
-
-	fmt.Println(uint64(count)+uint64(len(eqvVoters)), h.grandpa.state.threshold())
-
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count)+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
 		logger.Debugf(
@@ -308,36 +303,44 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 }
 
 func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (common.Hash, error) {
-	voters := make(map[ed25519.PublicKeyBytes]map[common.Hash]int)
+	voters := make(map[ed25519.PublicKeyBytes]map[common.Hash]int, len(msg.PreVoteJustification))
 	eqVotesByHash := make(map[common.Hash]map[ed25519.PublicKeyBytes]struct{})
 
 	// identify equivocatory votes by hash
-	for _, just := range msg.PreVoteJustification {
-		voters[just.AuthorityID][just.Vote.Hash]++
+	for _, justification := range msg.PreVoteJustification {
+		if _, ok := voters[justification.AuthorityID]; !ok {
+			voters[justification.AuthorityID] = make(map[common.Hash]int)
+		}
 
-		if voters[just.AuthorityID][just.Vote.Hash] > 1 {
-			eqVotesByHash[just.Vote.Hash][just.AuthorityID] = struct{}{}
+		voters[justification.AuthorityID][justification.Vote.Hash]++
+
+		if voters[justification.AuthorityID][justification.Vote.Hash] > 1 {
+			if _, ok := eqVotesByHash[justification.Vote.Hash]; !ok {
+				eqVotesByHash[justification.Vote.Hash] = make(map[ed25519.PublicKeyBytes]struct{})
+			}
+
+			eqVotesByHash[justification.Vote.Hash][justification.AuthorityID] = struct{}{}
 		}
 	}
 
 	// verify pre-vote justification, returning the pre-voted block if there is one
 	votes := make(map[common.Hash]uint64)
-	for _, just := range msg.PreVoteJustification {
+	for _, justification := range msg.PreVoteJustification {
 		// if the current voter is on equivocatory map then ignore the vote
-		eqVotersOnHash, ok := eqVotesByHash[just.Vote.Hash]
+		eqVotersOnHash, ok := eqVotesByHash[justification.Vote.Hash]
 		if ok {
-			_, ok = eqVotersOnHash[just.AuthorityID]
+			_, ok = eqVotersOnHash[justification.AuthorityID]
 			if ok {
 				continue
 			}
 		}
 
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, prevote) //nolint
+		err := h.verifyJustification(&justification, msg.Round, msg.SetID, prevote) //nolint
 		if err != nil {
 			continue
 		}
 
-		votes[just.Vote.Hash]++
+		votes[justification.Vote.Hash]++
 	}
 
 	var prevote common.Hash

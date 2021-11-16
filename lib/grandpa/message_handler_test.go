@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -630,34 +629,9 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	h := NewMessageHandler(gs, st.Block)
 
 	// add 10 previous blocks
-	addBlocksToState(t, st.Block, 10)
-
-	// create a new fake block to fake authorites commit on
-	previousHash := st.Block.BestBlockHash()
-	previusHead, err := st.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	bfcNumber := int(previusHead.Number.Int64() + 1)
-
-	d, err := types.NewBabePrimaryPreDigest(0, uint64(bfcNumber), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	require.NotNil(t, d)
-	digest := types.NewDigest()
-	_ = digest.Add(*d)
-
-	bfcBlock := &types.Block{
-		Header: types.Header{
-			ParentHash: previousHash,
-			Number:     big.NewInt(int64(bfcNumber)),
-			StateRoot:  trie.EmptyHash,
-			Digest:     digest,
-		},
-		Body: types.Body{},
-	}
-
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10)
 	bfcHash := bfcBlock.Header.Hash()
-	err = st.Block.AddBlockWithArrivalTime(bfcBlock, time.Now())
-	require.Nil(t, err)
+	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// many of equivocatory votes
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
@@ -678,22 +652,14 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	precommits := make([]Vote, len(fakeAuthorities))
 
 	for i, auth := range fakeAuthorities {
-		msg, err := scale.Marshal(FullVote{
-			Stage: precommit,
-			Vote: types.GrandpaVote{
-				Hash:   bfcHash,
-				Number: uint32(bfcNumber),
-			},
-			Round: fakeRound,
-			SetID: gs.state.setID,
-		})
-		require.NoError(t, err)
+		vote := types.GrandpaVote{
+			Hash:   bfcHash,
+			Number: uint32(bfcNumber),
+		}
 
-		var sig [64]byte
-		privSig, err := auth.Private().Sign(msg)
-		require.NoError(t, err)
-
-		copy(sig[:], privSig)
+		sig := signFakeFullVote(
+			t, auth, precommit, vote, fakeRound, gs.state.setID,
+		)
 
 		authData[i] = AuthData{
 			Signature:   sig,
@@ -706,13 +672,166 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	testCommitData := &CommitMessage{
 		Round: fakeRound,
 		Vote: Vote{
-			Hash:   previousHash,
-			Number: uint32(previusHead.Number.Int64()),
+			Hash:   bfcHash,
+			Number: uint32(bfcNumber),
 		},
 		Precommits: precommits,
 		AuthData:   authData,
 	}
 
-	err = h.verifyCommitMessageJustification(testCommitData)
+	err := h.verifyCommitMessageJustification(testCommitData)
 	require.NoError(t, err)
+}
+
+func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
+	t.Parallel()
+
+	gs, st := newTestService(t)
+	h := NewMessageHandler(gs, st.Block)
+
+	// add 10 previous blocks
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10)
+
+	bfcHash := bfcBlock.Header.Hash()
+	bfcNumber := bfcBlock.Header.Number.Int64()
+
+	// many of equivocatory votes
+	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	fakeAuthorities := make([]*ed25519.Keypair, 0)
+
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ferdie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ian().(*ed25519.Keypair))
+
+	prevotesJustification := make([]SignedVote, len(fakeAuthorities))
+	for idx, fakeAuthority := range fakeAuthorities {
+		var vote types.GrandpaVote
+
+		// put one vote on a different hash
+		if idx == 1 {
+			vote = types.GrandpaVote{
+				Hash:   bfcBlock.Header.ParentHash,
+				Number: uint32(bfcNumber - 1),
+			}
+		} else {
+			vote = types.GrandpaVote{
+				Hash:   bfcHash,
+				Number: uint32(bfcNumber),
+			}
+		}
+
+		sig := signFakeFullVote(
+			t, fakeAuthority, prevote, vote, gs.state.round, gs.state.setID)
+
+		prevotesJustification[idx] = SignedVote{
+			Vote:        vote,
+			Signature:   sig,
+			AuthorityID: fakeAuthority.Public().(*ed25519.PublicKey).AsBytes(),
+		}
+	}
+
+	testCatchUpResponse := &CatchUpResponse{
+		SetID:                gs.state.setID,
+		Round:                gs.state.round,
+		PreVoteJustification: prevotesJustification,
+		Hash:                 bfcHash,
+		Number:               uint32(bfcNumber),
+	}
+
+	hash, err := h.verifyPreVoteJustification(testCatchUpResponse)
+	require.NoError(t, err)
+	require.Equal(t, hash, bfcHash)
+}
+
+func Test_VerifyPreCommitJustification(t *testing.T) {
+	t.Parallel()
+
+	gs, st := newTestService(t)
+	h := NewMessageHandler(gs, st.Block)
+
+	// add 10 previous blocks
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10)
+
+	bfcHash := bfcBlock.Header.Hash()
+	bfcNumber := bfcBlock.Header.Number.Int64()
+
+	// many of equivocatory votes
+	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	fakeAuthorities := make([]*ed25519.Keypair, 0)
+
+	// Alice, Charlie, David - Equivocatory
+	// Bob, Eve, Ferdie, Ian - Legit
+	// total of votes 4 legit + 3 equivocatory
+	// the threshold for testing is 9, so 2/3 of 9 = 6
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ferdie().(*ed25519.Keypair))
+	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ian().(*ed25519.Keypair))
+
+	prevotesJustification := make([]SignedVote, len(fakeAuthorities))
+	for idx, fakeAuthority := range fakeAuthorities {
+		vote := types.GrandpaVote{
+			Hash:   bfcHash,
+			Number: uint32(bfcNumber),
+		}
+
+		sig := signFakeFullVote(
+			t, fakeAuthority, precommit, vote, gs.state.round, gs.state.setID)
+
+		prevotesJustification[idx] = SignedVote{
+			Vote:        vote,
+			Signature:   sig,
+			AuthorityID: fakeAuthority.Public().(*ed25519.PublicKey).AsBytes(),
+		}
+	}
+
+	testCatchUpResponse := &CatchUpResponse{
+		SetID:                  gs.state.setID,
+		Round:                  gs.state.round,
+		PreCommitJustification: prevotesJustification,
+		Hash:                   bfcHash,
+		Number:                 uint32(bfcNumber),
+	}
+
+	err := h.verifyPreCommitJustification(testCatchUpResponse)
+	require.NoError(t, err)
+}
+
+func signFakeFullVote(
+	t *testing.T, auth *ed25519.Keypair,
+	stage Subround, v types.GrandpaVote,
+	round, setID uint64) [64]byte {
+
+	msg, err := scale.Marshal(FullVote{
+		Stage: stage,
+		Vote:  v,
+		Round: round,
+		SetID: setID,
+	})
+	require.NoError(t, err)
+
+	var sig [64]byte
+	privSig, err := auth.Private().Sign(msg)
+	require.NoError(t, err)
+
+	copy(sig[:], privSig)
+
+	return sig
 }

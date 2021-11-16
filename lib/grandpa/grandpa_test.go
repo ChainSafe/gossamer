@@ -1273,7 +1273,7 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 	gs, st := newTestService(t)
 	addBlocksToState(t, st.Block, 10)
 
-	// create a new fake block to fake authorites vote on
+	// create a new fake block to fake authorities vote on
 	previousHash := st.Block.BestBlockHash()
 	previusHead, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -1388,4 +1388,37 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth int) {
 		blockState.StoreRuntime(hash, rt)
 		previousHash = hash
 	}
+}
+
+func addBlocksAndReturnTheLastOne(t *testing.T, blockState *state.BlockState, depth int) *types.Block {
+	t.Helper()
+	addBlocksToState(t, blockState, depth)
+
+	// create a new fake block to fake authorities commit on
+	previousHash := blockState.BestBlockHash()
+	previusHead, err := blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	bfcNumber := int(previusHead.Number.Int64() + 1)
+
+	d, err := types.NewBabePrimaryPreDigest(0, uint64(bfcNumber), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	digest := types.NewDigest()
+	_ = digest.Add(*d)
+
+	bfcBlock := &types.Block{
+		Header: types.Header{
+			ParentHash: previousHash,
+			Number:     big.NewInt(int64(bfcNumber)),
+			StateRoot:  trie.EmptyHash,
+			Digest:     digest,
+		},
+		Body: types.Body{},
+	}
+
+	err = blockState.AddBlockWithArrivalTime(bfcBlock, time.Now())
+	require.Nil(t, err)
+
+	return bfcBlock
 }

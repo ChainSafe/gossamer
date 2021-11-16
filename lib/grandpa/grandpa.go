@@ -27,10 +27,9 @@ const (
 )
 
 var (
-	// TODO: make this configurable; currently 1s is same as substrate; total round length is interval * 2 (#1869)
-	interval = time.Second
-	logger   = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
+	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
 
+	// ErrUnsupportedSubround ...
 	ErrUnsupportedSubround = errors.New("unsupported subround")
 )
 
