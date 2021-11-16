@@ -6,23 +6,6 @@ Docker container and Docker Compose for a Gossamer Devnet currently with three a
 
 - Docker Compose (https://docs.docker.com/desktop/mac/install/)
 
-## Setup
-
-The following files need to be on the root of the Gossamer repo to work.
-- `alice.Dockerfile`
-- `bob.Dockerfile`
-- `docker-compose.yml`
-
-To symlink to the repository root
-```
-# cd into your Gossamer root
-cd ~/dev/gossamer
-
-ln -s devnet/alice.Dockerfile alice.Dockerfile
-ln -s devnet/bob.Dockerfile bob.Dockerfile
-ln -s devnet/docker-compose.yml docker-compose.yml
-```
-
 ## Running the Devnet
 
 From the Gossamer root run the following commands to run the devnet
