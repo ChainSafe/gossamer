@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"testing"
@@ -241,6 +242,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
 		wantRes ExtrinsicHashResponse
 	}{
 		{
@@ -250,6 +252,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				res: new(ExtrinsicHashResponse),
 			},
 			wantErr: true,
+			err: fmt.Errorf("could not byteify non 0x prefixed string"),
 			wantRes: ExtrinsicHashResponse(""),
 		},
 		{
@@ -263,6 +266,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				res: new(ExtrinsicHashResponse),
 			},
 			wantErr: true,
+			err: fmt.Errorf("some error"),
 			wantRes: ExtrinsicHashResponse(types.Extrinsic(testInvalidExt).Hash().String()),
 		},
 		{
@@ -285,8 +289,9 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
+			// TODO Is error checking actually happening here?? Doesnt seem to actually be happening
 			if err := am.SubmitExtrinsic(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("AuthorModule.SubmitExtrinsic() error = %v, wantErr %v", err, tt.wantErr)
+				assert.ErrorIs(t, err, tt.err)
 			}
 			if diff := cmp.Diff(tt.wantRes, *tt.args.res); diff != "" {
 				t.Errorf("unexpected response: %s", diff)

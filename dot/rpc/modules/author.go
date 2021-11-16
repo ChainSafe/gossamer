@@ -210,12 +210,11 @@ func (am *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic,
 func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
 	extBytes, err := common.HexToBytes(req.Data)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 	ext := types.Extrinsic(extBytes)
 	am.logger.Criticalf("[rpc] extrinsic is %s", ext)
-
-	fmt.Println(ext)
 
 	*res = ExtrinsicHashResponse(ext.Hash().String())
 	err = am.coreAPI.HandleSubmittedExtrinsic(ext)
