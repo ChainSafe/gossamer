@@ -60,7 +60,7 @@ func TestOffchainRequest_AddHeader(t *testing.T) {
 	}{
 		"should return invalid request": {
 			offReq: Request{invalid: true},
-			err:    errInvalidRequest,
+			err:    errRequestInvalid,
 		},
 		"should return request already started": {
 			offReq: Request{waiting: true},
@@ -80,6 +80,8 @@ func TestOffchainRequest_AddHeader(t *testing.T) {
 	}
 
 	for name, tc := range cases {
+		tc := tc
+
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
@@ -90,6 +92,8 @@ func TestOffchainRequest_AddHeader(t *testing.T) {
 				require.Equal(t, tc.err.Error(), err.Error())
 				return
 			}
+
+			require.NoError(t, err)
 
 			got := tc.offReq.Request.Header.Get(tc.headerK)
 			require.Equal(t, tc.headerV, got)

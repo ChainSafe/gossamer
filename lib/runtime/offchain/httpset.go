@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -16,7 +17,7 @@ var (
 	errIntBufferEmpty        = errors.New("int buffer exhausted")
 	errIntBufferFull         = errors.New("int buffer is full")
 	errRequestIDNotAvailable = errors.New("request id not available")
-	errInvalidRequest        = errors.New("request is invalid")
+	errRequestInvalid        = errors.New("request is invalid")
 	errRequestAlreadyStarted = errors.New("request has already started")
 	errInvalidHeaderKey      = errors.New("invalid header key")
 )
@@ -59,21 +60,22 @@ type Request struct {
 	invalid, waiting bool
 }
 
-// AddHeader add a new header into @req property only if request is valid or has not started yet
-func (r *Request) AddHeader(k, v string) error {
+// AddHeader adds a new HTTP header into request property, only if request is valid and has not started yet
+func (r *Request) AddHeader(name, value string) error {
 	if r.invalid {
-		return errInvalidRequest
+		return errRequestInvalid
 	}
 
 	if r.waiting {
 		return errRequestAlreadyStarted
 	}
 
-	if k == "" {
-		return fmt.Errorf("%w: %s", errInvalidHeaderKey, "empty header key")
+	name = strings.TrimSpace(name)
+	if len(name) == 0 {
+		return fmt.Errorf("%w: empty header key", errInvalidHeaderKey)
 	}
 
-	r.Request.Header.Add(k, v)
+	r.Request.Header.Add(name, value)
 	return nil
 }
 
@@ -116,8 +118,6 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 
 	p.reqs[id] = &Request{
 		Request: req,
-		invalid: false,
-		waiting: false,
 	}
 
 	return id, nil

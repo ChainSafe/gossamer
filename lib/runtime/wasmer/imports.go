@@ -1728,45 +1728,76 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	uri := asMemorySlice(instanceContext, uriSpan)
 
 	result := scale.NewResult(int16(0), nil)
+	var resultSetErr error
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
 
 	if err != nil {
 		logger.Errorf("failed to start request: %s", err)
-		_ = result.Set(scale.Err, nil)
+		resultSetErr = result.Set(scale.Err, nil)
 	} else {
-		_ = result.Set(scale.OK, reqID)
+		resultSetErr = result.Set(scale.OK, reqID)
 	}
 
-	enc, _ := scale.Marshal(result)
-	ptr, _ := toWasmMemory(instanceContext, enc)
+	if resultSetErr != nil {
+		logger.Errorf("failed to set the result data: %s", err)
+		return C.int64_t(0)
+	}
+
+	enc, err := scale.Marshal(result)
+	if err != nil {
+		logger.Errorf("failed to scale marshal the result: %s", err)
+		return C.int64_t(0)
+	}
+
+	ptr, err := toWasmMemory(instanceContext, enc)
+	if err != nil {
+		logger.Errorf("failed to allocate result on memory: %s", err)
+		return C.int64_t(0)
+	}
 
 	return C.int64_t(ptr)
 }
 
 //export ext_offchain_http_request_add_header_version_1
-func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqID C.int32_t, keySpan, valueSpan C.int64_t) C.int64_t {
+func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqID C.int32_t, nameSpan, valueSpan C.int64_t) C.int64_t {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	key := asMemorySlice(instanceContext, keySpan)
+	name := asMemorySlice(instanceContext, nameSpan)
 	value := asMemorySlice(instanceContext, valueSpan)
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	offchainReq := runtimeCtx.OffchainHTTPSet.Get(int16(reqID))
 
 	result := scale.NewResult(nil, nil)
-	err := offchainReq.AddHeader(string(key), string(value))
+	var resultSetErr error
+
+	err := offchainReq.AddHeader(string(name), string(value))
 	if err != nil {
 		logger.Errorf("failed to add request header: %s", err)
-		_ = result.Set(scale.Err, nil)
+		resultSetErr = result.Set(scale.Err, nil)
 	} else {
-		_ = result.Set(scale.OK, nil)
+		resultSetErr = result.Set(scale.OK, nil)
 	}
 
-	enc, _ := scale.Marshal(result)
-	ptr, _ := toWasmMemory(instanceContext, enc)
+	if resultSetErr != nil {
+		logger.Errorf("failed to set the result data: %s", err)
+		return C.int64_t(0)
+	}
+
+	enc, err := scale.Marshal(result)
+	if err != nil {
+		logger.Errorf("failed to scale marshal the result: %s", err)
+		return C.int64_t(0)
+	}
+
+	ptr, err := toWasmMemory(instanceContext, enc)
+	if err != nil {
+		logger.Errorf("failed to allocate result on memory: %s", err)
+		return C.int64_t(0)
+	}
 
 	return C.int64_t(ptr)
 }

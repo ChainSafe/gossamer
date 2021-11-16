@@ -365,18 +365,13 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 			ok, err := gotResult.Unwrap()
 			if tcase.expectedErr {
 				require.Error(t, err)
-
-				offchainReq := inst.ctx.OffchainHTTPSet.Get(reqID)
-				gotValue := offchainReq.Request.Header.Get(tcase.key)
-				require.Empty(t, gotValue)
-
 			} else {
 				require.NoError(t, err)
-
-				offchainReq := inst.ctx.OffchainHTTPSet.Get(reqID)
-				gotValue := offchainReq.Request.Header.Get(tcase.key)
-				require.Equal(t, tcase.value, gotValue)
 			}
+
+			offchainReq := inst.ctx.OffchainHTTPSet.Get(reqID)
+			gotValue := offchainReq.Request.Header.Get(tcase.key)
+			require.Equal(t, tcase.value, gotValue)
 
 			require.Nil(t, ok)
 		})
