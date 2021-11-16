@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -165,6 +164,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 }
 
 func TestSystemModule_AccountNextIndex(t *testing.T) {
+	storageKeyHex := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da93116aec311d8421cece41129ffaac05aa7f9580382edb384b1b43cbcf3d1b1e7f1a1d232cf4139bd48eaafb9656da27d")
 	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
 	v := make([]*transaction.ValidTransaction, 1)
 	v[0] = &transaction.ValidTransaction{
@@ -176,20 +176,20 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	mockTxStateAPI.On("Pending").Return(v, nil)
 
 	mockCoreAPI := new(apimocks.CoreAPI)
-	mockCoreAPI.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(common.MustHexToBytes(testdata.TestData), nil)
+	mockCoreAPI.On("GetMetadata", (*common.Hash)(nil)).Return(common.MustHexToBytes(testdata.TestData), nil)
 
 	mockCoreAPIErr := new(apimocks.CoreAPI)
-	mockCoreAPIErr.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("getMetadata error"))
+	mockCoreAPIErr.On("GetMetadata", (*common.Hash)(nil)).Return(nil, errors.New("getMetadata error"))
 
 	// Magic number mismatch
 	mockCoreAPIMagicNumMismatch := new(apimocks.CoreAPI)
-	mockCoreAPIMagicNumMismatch.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"), nil)
+	mockCoreAPIMagicNumMismatch.On("GetMetadata", (*common.Hash)(nil)).Return(storageKeyHex, nil)
 
 	mockStorageAPI := new(apimocks.StorageAPI)
-	mockStorageAPI.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(common.MustHexToBytes("0x03000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
+	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(common.MustHexToBytes("0x03000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
 
 	mockStorageAPIErr := new(apimocks.StorageAPI)
-	mockStorageAPIErr.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, errors.New("getStorage error"))
+	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
 
 	var res U64Response
 	type fields struct {
@@ -284,11 +284,11 @@ func TestSystemModule_SyncState(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	mockBlockAPI := new(apimocks.BlockAPI)
 	mockBlockAPI.On("BestBlockHash").Return(hash)
-	mockBlockAPI.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(types.NewEmptyHeader(), nil)
+	mockBlockAPI.On("GetHeader", hash).Return(types.NewEmptyHeader(), nil)
 
 	mockBlockAPIErr := new(apimocks.BlockAPI)
 	mockBlockAPIErr.On("BestBlockHash").Return(hash)
-	mockBlockAPIErr.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, errors.New("GetHeader Err"))
+	mockBlockAPIErr.On("GetHeader", hash).Return(nil, errors.New("GetHeader Err"))
 
 	mockNetworkAPI := new(apimocks.NetworkAPI)
 	mockNetworkAPI.On("HighestBlock").Return(int64(21))
@@ -493,10 +493,10 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 
 func TestSystemModule_AddReservedPeer(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
-	mockNetworkAPI.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
+	mockNetworkAPI.On("AddReservedPeers", "jimbo").Return(nil)
 
 	mockNetworkAPIErr := new(apimocks.NetworkAPI)
-	mockNetworkAPIErr.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("addReservedPeer error"))
+	mockNetworkAPIErr.On("AddReservedPeers", "jimbo").Return(errors.New("addReservedPeer error"))
 
 	var res []byte
 	type fields struct {
@@ -564,10 +564,10 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 
 func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
-	mockNetworkAPI.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(nil)
+	mockNetworkAPI.On("RemoveReservedPeers", "jimbo").Return(nil)
 
 	mockNetworkAPIErr := new(apimocks.NetworkAPI)
-	mockNetworkAPIErr.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("addReservedPeer error"))
+	mockNetworkAPIErr.On("RemoveReservedPeers", "jimbo").Return(errors.New("addReservedPeer error"))
 
 	var res []byte
 	type fields struct {
