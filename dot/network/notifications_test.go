@@ -5,7 +5,6 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"reflect"
 	"sync"
