@@ -234,20 +234,20 @@ func (s *Service) Start() error {
 
 	// this handles all new connections (incoming and outgoing)
 	// it creates a per-protocol mutex for sending outbound handshakes to the peer
-	s.host.cm.setConnectHandler(func(peerID peer.ID) {
+	s.host.cm.connectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
 			prtl.outboundHandshakeMutexes.Store(peerID, new(sync.Mutex))
 		}
-	})
+	}
 
 	// when a peer gets disconnected, we should clear all handshake data we have for it.
-	s.host.cm.setDisconnectHandler(func(peerID peer.ID) {
+	s.host.cm.disconnectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
 			prtl.outboundHandshakeMutexes.Delete(peerID)
 			prtl.inboundHandshakeData.Delete(peerID)
 			prtl.outboundHandshakeData.Delete(peerID)
 		}
-	})
+	}
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {

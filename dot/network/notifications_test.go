@@ -22,10 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHandshake_SizeOf(t *testing.T) {
-	require.Equal(t, uint32(maxHandshakeSize), uint32(72))
-}
-
 func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
@@ -258,7 +254,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 		nodeA.getBlockAnnounceHandshake, testHandshakeDecoder, nodeA.validateBlockAnnounceHandshake)
 
 	nodeB.host.h.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
-		fmt.Println("never responded to a handshake message")
+		// should not respond to a handshake message
 	})
 
 	addrInfosB := nodeB.host.addrInfo()

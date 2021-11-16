@@ -6,7 +6,7 @@ package network
 import (
 	"errors"
 	"io"
-	"reflect"
+	//"reflect"
 	"sync"
 	"time"
 
@@ -19,8 +19,6 @@ import (
 )
 
 const handshakeTimeout = time.Second * 10
-
-var maxHandshakeSize = reflect.TypeOf(BlockAnnounceHandshake{}).Size()
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
