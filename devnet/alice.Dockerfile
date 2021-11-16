@@ -12,8 +12,7 @@ WORKDIR /gossamer
 
 COPY . . 
 
-RUN go run devnet/cmd/update-dd-agent-confd/main.go -n="gossamer.local.devnet" -t="key:alice" > /tmp/conf.yaml
-RUN mv /tmp/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+RUN go run devnet/cmd/update-dd-agent-confd/main.go -n="gossamer.local.devnet" -t="key:alice" > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 RUN service datadog-agent start
 
 RUN go get ./...
