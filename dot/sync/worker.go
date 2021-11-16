@@ -89,6 +89,7 @@ type worker struct {
 	startNumber  *big.Int
 	targetHash   common.Hash
 	targetNumber *big.Int
+	pendingBlock *pendingBlock // if this worker is tied to a specific pending block, this field is set
 
 	// bitmap of fields to request
 	requestData byte

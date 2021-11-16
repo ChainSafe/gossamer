@@ -204,6 +204,7 @@ func (cs *chainSync) start() {
 		time.Sleep(time.Millisecond * 100)
 	}
 
+	cs.pendingBlocks.start(cs.ctx)
 	go cs.sync()
 	go cs.logSyncSpeed()
 }
@@ -443,6 +444,13 @@ func (cs *chainSync) sync() {
 				logger.Debugf(
 					"discarding worker id %d: maximum retry count reached",
 					worker.id)
+
+				// if this worker was triggered due to a block in the pending blocks set,
+				// we want to remove it from the set, as we asked all our peers for it
+				// and none replied with the info we need.
+				if worker.pendingBlock != nil {
+					cs.pendingBlocks.removeBlock(worker.pendingBlock.hash)
+				}
 				continue
 			}
 

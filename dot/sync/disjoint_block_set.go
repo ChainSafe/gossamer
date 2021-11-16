@@ -17,12 +17,20 @@
 package sync
 
 import (
+	"context"
 	"errors"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+)
+
+const (
+	// ttl is the time that a block can stay in this set before being cleared.
+	ttl                 = time.Minute * 10
+	clearBlocksInterval = time.Minute
 )
 
 var (
@@ -33,6 +41,7 @@ var (
 // DisjointBlockSet represents a set of incomplete blocks, or blocks
 // with an unknown parent. it is implemented by *disjointBlockSet
 type DisjointBlockSet interface {
+	start(ctx context.Context)
 	addHashAndNumber(common.Hash, *big.Int) error
 	addHeader(*types.Header) error
 	addBlock(*types.Block) error
@@ -57,6 +66,10 @@ type pendingBlock struct {
 	header        *types.Header
 	body          *types.Body
 	justification []byte
+
+	// the time when this block should be cleared from the set.
+	// if the block is re-added to the set, this time get updated.
+	clearAt time.Time
 }
 
 func (b *pendingBlock) toBlockData() *types.BlockData {
@@ -103,6 +116,35 @@ func newDisjointBlockSet(limit int) *disjointBlockSet {
 	}
 }
 
+func (s *disjointBlockSet) start(ctx context.Context) {
+	timer := time.NewTimer(clearBlocksInterval)
+
+	go func() {
+		for {
+			select {
+			case <-timer.C:
+				s.clearBlocks()
+			case <-ctx.Done():
+				if !timer.Stop() {
+					<-timer.C
+				}
+				return
+			}
+		}
+	}()
+}
+
+func (s *disjointBlockSet) clearBlocks() {
+	s.Lock()
+	defer s.Unlock()
+
+	for _, block := range s.blocks {
+		if time.Since(block.clearAt) > 0 {
+			s.removeBlockInner(block.hash)
+		}
+	}
+}
+
 func (s *disjointBlockSet) addToParentMap(parent, child common.Hash) {
 	children, has := s.parentToChildren[parent]
 	if !has {
@@ -117,7 +159,8 @@ func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) e
 	s.Lock()
 	defer s.Unlock()
 
-	if _, has := s.blocks[hash]; has {
+	if b, has := s.blocks[hash]; has {
+		b.clearAt = time.Now().Add(ttl)
 		return nil
 	}
 
@@ -126,8 +169,9 @@ func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) e
 	}
 
 	s.blocks[hash] = &pendingBlock{
-		hash:   hash,
-		number: number,
+		hash:    hash,
+		number:  number,
+		clearAt: time.Now().Add(ttl),
 	}
 
 	return nil
@@ -138,9 +182,9 @@ func (s *disjointBlockSet) addHeader(header *types.Header) error {
 	defer s.Unlock()
 
 	hash := header.Hash()
-	b, has := s.blocks[hash]
-	if has {
+	if b, has := s.blocks[hash]; has {
 		b.header = header
+		b.clearAt = time.Now().Add(ttl)
 		return nil
 	}
 
@@ -149,10 +193,12 @@ func (s *disjointBlockSet) addHeader(header *types.Header) error {
 	}
 
 	s.blocks[hash] = &pendingBlock{
-		hash:   hash,
-		number: header.Number,
-		header: header,
+		hash:    hash,
+		number:  header.Number,
+		header:  header,
+		clearAt: time.Now().Add(ttl),
 	}
+
 	s.addToParentMap(header.ParentHash, hash)
 	return nil
 }
@@ -162,10 +208,10 @@ func (s *disjointBlockSet) addBlock(block *types.Block) error {
 	defer s.Unlock()
 
 	hash := block.Header.Hash()
-	b, has := s.blocks[hash]
-	if has {
+	if b, has := s.blocks[hash]; has {
 		b.header = &block.Header
 		b.body = &block.Body
+		b.clearAt = time.Now().Add(ttl)
 		return nil
 	}
 
@@ -174,11 +220,13 @@ func (s *disjointBlockSet) addBlock(block *types.Block) error {
 	}
 
 	s.blocks[hash] = &pendingBlock{
-		hash:   hash,
-		number: block.Header.Number,
-		header: &block.Header,
-		body:   &block.Body,
+		hash:    hash,
+		number:  block.Header.Number,
+		header:  &block.Header,
+		body:    &block.Body,
+		clearAt: time.Now().Add(ttl),
 	}
+
 	s.addToParentMap(block.Header.ParentHash, hash)
 	return nil
 }
@@ -190,6 +238,7 @@ func (s *disjointBlockSet) addJustification(hash common.Hash, just []byte) error
 	b, has := s.blocks[hash]
 	if has {
 		b.justification = just
+		b.clearAt = time.Now().Add(ttl)
 		return nil
 	}
 
@@ -200,6 +249,12 @@ func (s *disjointBlockSet) addJustification(hash common.Hash, just []byte) error
 func (s *disjointBlockSet) removeBlock(hash common.Hash) {
 	s.Lock()
 	defer s.Unlock()
+	s.removeBlockInner(hash)
+}
+
+// this function does not lock!!
+// it should only be called by other functions in this file that lock the set beforehand.
+func (s *disjointBlockSet) removeBlockInner(hash common.Hash) {
 	block, has := s.blocks[hash]
 	if !has {
 		return
