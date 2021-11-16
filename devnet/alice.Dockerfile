@@ -2,7 +2,6 @@ FROM golang:1.17
 
 ARG DD_API_KEY=somekey
 
-ENV GO111MODULE=on
 ENV DD_API_KEY=${DD_API_KEY}
 
 RUN echo $DD_API_KEY
