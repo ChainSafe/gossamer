@@ -175,10 +175,6 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 func (am *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error {
 	reqKey := *req
 	var err error
-	fmt.Println("param1")
-	fmt.Println(reqKey[0])
-	fmt.Println("param2")
-	fmt.Println(reqKey[1])
 	*res, err = am.coreAPI.HasKey(reqKey[0], reqKey[1])
 	return err
 }
@@ -218,6 +214,8 @@ func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	}
 	ext := types.Extrinsic(extBytes)
 	am.logger.Criticalf("[rpc] extrinsic is %s", ext)
+
+	fmt.Println(ext)
 
 	*res = ExtrinsicHashResponse(ext.Hash().String())
 	err = am.coreAPI.HandleSubmittedExtrinsic(ext)
