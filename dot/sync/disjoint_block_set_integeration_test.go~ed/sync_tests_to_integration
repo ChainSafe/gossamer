@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
+<<<<<<< ed/sync_tests_to_integration:dot/sync/disjoint_block_set_integeration_test.go
 
 import (
 	"testing"
@@ -227,3 +228,5 @@ func TestDisjointBlockSet_ClearBlocks(t *testing.T) {
 	_, has := s.blocks[testHashB]
 	require.True(t, has)
 }
+=======
+>>>>>>> move tests to integeration files:dot/sync/disjoint_block_set_test.go
