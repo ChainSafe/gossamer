@@ -87,7 +87,7 @@ func (b *branch) copy() node {
 	defer b.Unlock()
 	cpy := &branch{
 		key:        make([]byte, len(b.key)),
-		children:   [16]node{},
+		children:   b.children, // copy interface pointers
 		value:      nil,
 		dirty:      b.dirty,
 		hash:       make([]byte, len(b.hash)),
@@ -95,7 +95,6 @@ func (b *branch) copy() node {
 		generation: b.generation,
 	}
 	copy(cpy.key, b.key)
-	copy(cpy.children[:], b.children[:]) // copy interface pointers
 
 	// nil and []byte{} are encoded differently, watch out!
 	if b.value != nil {
