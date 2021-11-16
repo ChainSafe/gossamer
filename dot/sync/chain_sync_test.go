@@ -203,12 +203,30 @@ func TestChainSync_getTarget(t *testing.T) {
 	require.Equal(t, big.NewInt(2<<32-1), cs.getTarget())
 
 	cs.peerState = map[peer.ID]*peerState{
-		"testA": {
-			number: big.NewInt(1000),
+		"a": {
+			number: big.NewInt(-100), // outlier
+		},
+		"b": {
+			number: big.NewInt(10),
+		},
+		"c": {
+			number: big.NewInt(20),
+		},
+		"d": {
+			number: big.NewInt(30),
+		},
+		"e": {
+			number: big.NewInt(40),
+		},
+		"f": {
+			number: big.NewInt(50),
+		},
+		"g": {
+			number: big.NewInt(1000), // outlier
 		},
 	}
 
-	require.Equal(t, big.NewInt(1000), cs.getTarget())
+	require.Equal(t, big.NewInt(30), cs.getTarget()) // sum:150/count:5 = avg:30
 
 	cs.peerState = map[peer.ID]*peerState{
 		"testA": {
