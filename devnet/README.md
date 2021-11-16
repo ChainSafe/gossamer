@@ -10,7 +10,7 @@ Docker container and Docker Compose for a Gossamer Devnet currently with three a
 
 From the Gossamer root run the following commands to run the devnet
 
-```
+```sh
 # will rebuild the containers based on the current code
 docker-compose up --abort-on-exit --build 
 
