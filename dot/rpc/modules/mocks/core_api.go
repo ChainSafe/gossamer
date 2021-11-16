@@ -156,9 +156,18 @@ func (_m *CoreAPI) HasKey(pubKeyStr string, keyType string) (bool, error) {
 	return r0, r1
 }
 
-// InsertKey provides a mock function with given fields: kp
-func (_m *CoreAPI) InsertKey(kp crypto.Keypair) {
-	_m.Called(kp)
+// InsertKey provides a mock function with given fields: kp, keystoreType
+func (_m *CoreAPI) InsertKey(kp crypto.Keypair, keystoreType string) error {
+	ret := _m.Called(kp, keystoreType)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(crypto.Keypair, string) error); ok {
+		r0 = rf(kp, keystoreType)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // QueryStorage provides a mock function with given fields: from, to, keys

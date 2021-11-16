@@ -1,18 +1,6 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package core
 
 import (
@@ -445,15 +433,24 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 }
 
 // InsertKey inserts keypair into the account keystore
-// TODO: define which keystores need to be updated and create separate insert funcs for each (#1850)
-func (s *Service) InsertKey(kp crypto.Keypair) {
-	s.keys.Acco.Insert(kp)
+func (s *Service) InsertKey(kp crypto.Keypair, keystoreType string) error {
+	ks, err := s.keys.GetKeystore([]byte(keystoreType))
+	if err != nil {
+		return err
+	}
+
+	return ks.Insert(kp)
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
-//  are issues decoding string
-func (s *Service) HasKey(pubKeyStr, keyType string) (bool, error) {
-	return keystore.HasKey(pubKeyStr, keyType, s.keys.Acco)
+// are issues decoding string
+func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
+	ks, err := s.keys.GetKeystore([]byte(keystoreType))
+	if err != nil {
+		return false, err
+	}
+
+	return keystore.HasKey(pubKeyStr, keystoreType, ks)
 }
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys

@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
 
@@ -118,6 +105,7 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"time"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -262,7 +250,11 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	ks.Insert(kp)
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_generate_version_1] failed to insert key: %s", err)
+		return 0
+	}
 
 	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
 	if err != nil {
@@ -576,7 +568,12 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	ks.Insert(kp)
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warnf("[ext_crypto_sr25519_generate_version_1] failed to insert key: %s", err)
+		return 0
+	}
+
 	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
 	if err != nil {
 		logger.Errorf("[ext_crypto_sr25519_generate_version_1] failed to allocate memory: %s", err)
@@ -1704,16 +1701,21 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 }
 
 //export ext_offchain_timestamp_version_1
-func ext_offchain_timestamp_version_1(context unsafe.Pointer) C.int64_t {
+func ext_offchain_timestamp_version_1(_ unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_offchain_timestamp_version_1] executing...")
-	logger.Warn("[ext_offchain_timestamp_version_1] unimplemented")
-	return 0
+
+	now := time.Now().Unix()
+	return C.int64_t(now)
 }
 
 //export ext_offchain_sleep_until_version_1
 func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
-	logger.Trace("executing...")
-	logger.Warn("unimplemented")
+	logger.Trace("[ext_offchain_sleep_until_version_1] executing...")
+
+	dur := time.Until(time.UnixMilli(int64(deadline)))
+	if dur > 0 {
+		time.Sleep(dur)
+	}
 }
 
 //export ext_offchain_http_request_start_version_1

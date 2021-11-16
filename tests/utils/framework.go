@@ -1,8 +1,11 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package utils
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"testing"
 
@@ -25,7 +28,7 @@ func InitFramework(qtyNodes int) (*Framework, error) {
 	}
 	f.nodes = nodes
 
-	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
+	tempDir, err := os.MkdirTemp("", "gossamer-stress-db")
 	if err != nil {
 		return nil, err
 	}

@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package life
 
 import (
@@ -844,7 +847,11 @@ func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	ks.Insert(kp)
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_generate_version_1] failed to insert key: %s", err)
+		return 0
+	}
 
 	ret, err := toWasmMemorySized(memory, kp.Public().Encode(), 32)
 	if err != nil {
@@ -1027,7 +1034,12 @@ func ext_crypto_sr25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	ks.Insert(kp)
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warnf("[ext_crypto_sr25519_generate_version_1] failed to insert key: %s", err)
+		return 0
+	}
+
 	ret, err := toWasmMemorySized(memory, kp.Public().Encode(), 32)
 	if err != nil {
 		logger.Errorf("[ext_crypto_sr25519_generate_version_1] failed to allocate memory: %s", err)
