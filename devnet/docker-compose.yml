@@ -21,6 +21,7 @@ services:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
       args:
+        DD_API_KEY: ${DD_API_KEY}
         key: "bob"
         pubip: 10.5.0.3
     ports:
@@ -40,6 +41,7 @@ services:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
       args:
+        DD_API_KEY: ${DD_API_KEY}
         key: "charlie"
         pubip: 10.5.0.4
     ports:
