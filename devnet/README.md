@@ -4,7 +4,7 @@ Docker container and Docker Compose for a Gossamer Devnet currently with three a
 
 ## Requirements
 
-- Docker Compose (https://docs.docker.com/desktop/mac/install/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Running the Devnet
 
