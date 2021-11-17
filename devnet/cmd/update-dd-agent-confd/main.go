@@ -36,8 +36,7 @@ func marshalYAML(opts options) (yml []byte, err error) {
 	c.Instances[0].Namespace = opts.Namespace
 	c.Instances[0].Tags = opts.Tags
 
-	yml, err = yaml.Marshal(c)
-	return
+	return yaml.Marshal(c)
 }
 
 type instance struct {
