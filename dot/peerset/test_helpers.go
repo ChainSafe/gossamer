@@ -29,8 +29,8 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNodes, reservedPeers []pee
 	con := &ConfigSet{
 		Set: []*config{
 			{
-				inPeers:           in,
-				outPeers:          out,
+				maxInPeers:        in,
+				maxOutPeers:       out,
 				reservedOnly:      reservedOnly,
 				periodicAllocTime: time.Second * 2,
 			},
@@ -53,8 +53,8 @@ func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState { //nolint
 	t.Helper()
 	state, err := NewPeerState([]*config{
 		{
-			inPeers:  maxIn,
-			outPeers: maxOut,
+			maxInPeers:  maxIn,
+			maxOutPeers: maxOut,
 		},
 	})
 	require.NoError(t, err)

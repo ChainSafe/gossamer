@@ -155,9 +155,9 @@ type PeerSet struct {
 // config is configuration of a single set.
 type config struct {
 	// maximum number of slot occupying nodes for incoming connections.
-	inPeers uint32
+	maxInPeers uint32
 	// maximum number of slot occupying nodes for outgoing connections.
-	outPeers uint32
+	maxOutPeers uint32
 
 	// TODO Use in future for reserved only peers
 	// if true, we only accept reservedNodes (#1888).
@@ -175,8 +175,8 @@ type ConfigSet struct {
 // NewConfigSet creates a new config set for the peerSet
 func NewConfigSet(in, out uint32, reservedOnly bool, allocTime time.Duration) *ConfigSet {
 	set := &config{
-		inPeers:           in,
-		outPeers:          out,
+		maxInPeers:        in,
+		maxOutPeers:       out,
 		reservedOnly:      reservedOnly,
 		periodicAllocTime: allocTime,
 	}
@@ -326,13 +326,17 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 
 // allocSlots tries to fill available outgoing slots of nodes for the given set.
 func (ps *PeerSet) allocSlots(setIdx int) error {
+	fmt.Println("peerset/peerset allocSlots 329")
 	err := ps.updateTime()
 	if err != nil {
+		logger.Errorf(err.Error())
 		return err
 	}
 
 	peerState := ps.peerState
 	for reservePeer := range ps.reservedNode {
+		fmt.Println("peerset/peerset looping in reserve peer")
+
 		status := peerState.peerStatus(setIdx, reservePeer)
 		switch status {
 		case connectedPeer:
@@ -344,14 +348,17 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		var n *node
 		n, err = ps.peerState.getNode(reservePeer)
 		if err != nil {
+			logger.Errorf(err.Error())
 			return err
 		}
 
 		if n.getReputation() < BannedThresholdValue {
+			logger.Warnf("reputation is lower than banned threshold value")
 			break
 		}
 
 		if err = peerState.tryOutgoing(setIdx, reservePeer); err != nil {
+			logger.Errorf(err.Error())
 			return err
 		}
 
@@ -360,15 +367,22 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			setID:  uint64(setIdx),
 			PeerID: reservePeer,
 		}
+		fmt.Println("peerset/peerset allocSlots 363")
+
 	}
+
 	// nothing more to do if we're in reserved mode.
 	if ps.isReservedOnly {
+		fmt.Println("peerset/peerset allocSlots 373")
 		return nil
 	}
 
 	for peerState.hasFreeOutgoingSlot(setIdx) {
+		fmt.Println("peerset/peerset allocSlots 378")
+
 		peerID := peerState.highestNotConnectedPeer(setIdx)
 		if peerID == "" {
+			fmt.Println("peerset/peerset allocSlots 82")
 			break
 		}
 
@@ -379,6 +393,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if err = peerState.tryOutgoing(setIdx, peerID); err != nil {
+			logger.Errorf(err.Error())
 			break
 		}
 
@@ -387,6 +402,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			setID:  uint64(setIdx),
 			PeerID: peerID,
 		}
+		fmt.Println("peerset/peerset allocSlots 403")
 
 		logger.Debugf("Sent connect message to peer %s", peerID)
 	}
@@ -474,6 +490,8 @@ func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 		if ps.peerState.peerStatus(setID, pid) != unknownPeer {
 			return nil
 		}
+
+		fmt.Println("peerset/peerset addPeer 478")
 
 		ps.peerState.discover(setID, pid)
 		if err := ps.allocSlots(setID); err != nil {
@@ -621,7 +639,9 @@ func (ps *PeerSet) doWork() {
 		select {
 		case <-ticker.C:
 			l := ps.peerState.getSetLength()
+			fmt.Println("ps.peerState.getSetLength()", ps.peerState.getSetLength())
 			for i := 0; i < l; i++ {
+				fmt.Println("are we looping because of this?")
 				if err := ps.allocSlots(i); err != nil {
 					logger.Debugf("failed to do action on peerSet: %s", err)
 				}
@@ -646,6 +666,8 @@ func (ps *PeerSet) doWork() {
 			case reportPeer:
 				err = ps.reportPeer(act.reputation, act.peers...)
 			case addToPeerSet:
+				fmt.Println("peerset/peerset doWork 649")
+
 				err = ps.addPeer(act.setID, act.peers)
 			case removeFromPeerSet:
 				err = ps.removePeer(act.setID, act.peers...)

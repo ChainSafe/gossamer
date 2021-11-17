@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -39,7 +40,7 @@ type Info struct {
 	// number of slot occupying nodes for which the MembershipState is ingoing.
 	numIn uint32
 
-	// number of slot occupying nodes for which the MembershipState is ingoing.
+	// number of slot occupying nodes for which the MembershipState is outgoing.
 	numOut uint32
 
 	// maximum allowed number of slot occupying nodes for which the MembershipState is ingoing.
@@ -57,8 +58,8 @@ type Info struct {
 
 // node represents state of a single node that we know about
 type node struct {
-	// list of Set the node belongs to.
-	// always has a fixed size equal to the one of PeersState Set. The various possible Set
+	// list of Set, the node belongs to.
+	// always has a fixed size, equal to the one of PeersState Set. The various possible Set
 	// are indices into this Set.
 	state []MembershipState
 
@@ -127,8 +128,8 @@ func NewPeerState(cfgs []*config) (*PeersState, error) {
 		info := Info{
 			numIn:       0,
 			numOut:      0,
-			maxIn:       cfg.inPeers,
-			maxOut:      cfg.outPeers,
+			maxIn:       cfg.maxInPeers,
+			maxOut:      cfg.maxOutPeers,
 			noSlotNodes: make(map[peer.ID]struct{}),
 		}
 
@@ -211,8 +212,10 @@ func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 	var peerID peer.ID
 	for id, n := range ps.nodes {
 		if n.state[set] != notConnected {
+			fmt.Printf("connected, peer id: %s\n", id.Pretty())
 			continue
 		}
+		fmt.Printf("not connected, peer id: %s\n", id.Pretty())
 
 		val := int(n.rep)
 		if val >= maxRep {
@@ -225,6 +228,7 @@ func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 }
 
 func (ps *PeersState) hasFreeOutgoingSlot(set int) bool {
+	fmt.Printf("ps.sets[set].numOut: %d < ps.sets[set].maxOut: %d\n", ps.sets[set].numOut, ps.sets[set].maxOut)
 	return ps.sets[set].numOut < ps.sets[set].maxOut
 }
 
@@ -246,6 +250,7 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) {
 	ps.sets[idx].noSlotNodes[peerID] = struct{}{}
 	n, err := ps.getNode(peerID)
 	if err != nil {
+		logger.Warnf("could not get node, error: %s", err)
 		return
 	}
 
@@ -261,12 +266,14 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) {
 
 func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) {
 	if _, ok := ps.sets[idx].noSlotNodes[peerID]; !ok {
+		logger.Debugf("peer %s already does not exist in no slot node", peerID)
 		return
 	}
 
 	delete(ps.sets[idx].noSlotNodes, peerID)
 	n, err := ps.getNode(peerID)
 	if err != nil {
+		logger.Warnf("could not get node, error: %s", err)
 		return
 	}
 
@@ -354,16 +361,13 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 }
 
 // tryOutgoing tries to set the peer as connected as an outgoing connection.
-// If there are enough slots available, switches the node to Connected and returns nil error. If
-// the slots are full, the node stays "not connected" and we return error.
+// If there are enough slots available, switches the node to Connected and returns
+// nil error. If the slots are full, the node stays "not connected" and we return error.
 // non slot occupying nodes don't count towards the number of slots.
 func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
-	var isNoSlotOccupied bool
-	if _, ok := ps.sets[setID].noSlotNodes[peerID]; ok {
-		isNoSlotOccupied = true
-	}
+	_, isNoSlotNode := ps.sets[setID].noSlotNodes[peerID]
 
-	if !ps.hasFreeOutgoingSlot(setID) && !isNoSlotOccupied {
+	if !ps.hasFreeOutgoingSlot(setID) && !isNoSlotNode {
 		return ErrOutgoingSlotsUnavailable
 	}
 
@@ -373,7 +377,7 @@ func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 	}
 
 	n.state[setID] = outgoing
-	if !isNoSlotOccupied {
+	if !isNoSlotNode {
 		ps.sets[setID].numOut++
 	}
 

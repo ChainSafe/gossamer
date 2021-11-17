@@ -190,6 +190,7 @@ func GssmrConfig() *Config {
 			NoMDNS:            gssmr.DefaultNoMDNS,
 			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
 			MinPeers:          gssmr.DefaultMinPeers,
+			MaxPeers:          100,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,

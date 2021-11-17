@@ -86,8 +86,8 @@ func (m *mdns) close() error {
 // HandlePeerFound is event handler called when a peer is found
 func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 	n.logger.Debugf(
-		"Peer %s found using mDNS discovery, with host %s",
-		p.ID, n.host.id())
+		"Peer %s found using mDNS discovery, with host %s,\n address info %s",
+		p.ID, n.host.id(), p.String())
 
 	n.host.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	// connect to found peer

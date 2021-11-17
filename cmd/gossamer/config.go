@@ -121,6 +121,9 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 		return nil, err
 	}
 
+	// TODO: log this better. Show package wise log levels. Currently
+	// it prints something like `{INFO INFO INFO INFO INFO INFO INFO INFO}`
+	// which is not informative.
 	logger.Infof("loaded package log configuration: %v", cfg.Log)
 
 	// set global configuration values
