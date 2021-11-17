@@ -35,6 +35,18 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	return db
 }
 
+func NewTmpFileDB(t *testing.T) chaindb.Database {
+	testDatadirPath := t.TempDir()
+
+	db, err := utils.SetupDatabase(testDatadirPath, false)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	return db
+}
+
 // branch tree randomly
 type testBranch struct {
 	hash  common.Hash
