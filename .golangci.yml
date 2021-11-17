@@ -138,23 +138,13 @@ issues:
       linters:
         - misspell
 
-    # Exclude known linters from partially hard-vendored code,
-    # which is impossible to exclude via "nolint" comments.
-    - path: internal/hmac/
-      text: "weak cryptographic primitive"
-      linters:
-        - gosec
-
     - linters:
         - revive
       text: "package comment should be of the form"
 
     - linters:
         - revive
-      text: "don't use ALL_CAPS in Go names;"
-
-    - linters:
-        - revive
+      path: lib/runtime/life/
       text: "don't use underscores in Go names;"
 
     - linters:

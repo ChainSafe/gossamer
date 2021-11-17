@@ -90,7 +90,7 @@ func (s *TransactionState) GetStatusNotifierChannel(ext types.Extrinsic) chan tr
 	s.notifierLock.Lock()
 	defer s.notifierLock.Unlock()
 
-	ch := make(chan transaction.Status, DEFAULT_BUFFER_SIZE)
+	ch := make(chan transaction.Status, defaultBufferSize)
 	s.notifierChannels[ch] = ext.String()
 	return ch
 }

@@ -24,7 +24,7 @@ var (
 	LOGLEVEL = os.Getenv("LOG")
 
 	// NETWORK_SIZE is the value for the environnent variable NETWORK_SIZE.
-	NETWORK_SIZE = os.Getenv("NETWORK_SIZE")
+	NETWORK_SIZE = os.Getenv("NETWORK_SIZE") //nolint:revive
 
 	// ContentTypeJSON is the JSON header application/json.
 	ContentTypeJSON   = "application/json"

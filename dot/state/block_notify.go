@@ -13,15 +13,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// DEFAULT_BUFFER_SIZE buffer size for channels
-const DEFAULT_BUFFER_SIZE = 128
+const defaultBufferSize = 128
 
 // GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
 func (bs *BlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 	bs.importedLock.Lock()
 	defer bs.importedLock.Unlock()
 
-	ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
+	ch := make(chan *types.Block, defaultBufferSize)
 	bs.imported[ch] = struct{}{}
 	return ch
 }
@@ -31,7 +30,7 @@ func (bs *BlockState) GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	bs.finalisedLock.Lock()
 	defer bs.finalisedLock.Unlock()
 
-	ch := make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE)
+	ch := make(chan *types.FinalisationInfo, defaultBufferSize)
 	bs.finalised[ch] = struct{}{}
 
 	return ch

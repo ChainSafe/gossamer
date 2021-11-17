@@ -30,9 +30,6 @@ var errCannotReadFromWebsocket = errors.New("cannot read message from websocket"
 var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
 
-// DEFAULT_BUFFER_SIZE buffer size for channels
-const DEFAULT_BUFFER_SIZE = 100
-
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
 	UnsafeEnabled bool
