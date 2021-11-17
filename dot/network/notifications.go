@@ -5,6 +5,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -161,7 +162,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		)
 
 		if msg, ok = m.(NotificationsMessage); !ok {
-			return errInvalidNotificationsMessage
+			return fmt.Errorf("%w: expected %T but got %T", errMessageTypeNotValid, (NotificationsMessage)(nil), msg)
 		}
 
 		if msg.IsHandshake() {

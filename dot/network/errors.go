@@ -9,7 +9,7 @@ import (
 
 var (
 	errCannotValidateHandshake     = errors.New("failed to validate handshake")
-	errInvalidNotificationsMessage = errors.New("message is not NotificationsMessage")
+	errMessageTypeNotValid = errors.New("message type is not valid")
 	errMessageIsNotHandshake       = errors.New("failed to convert message to Handshake")
 	errMissingHandshakeMutex       = errors.New("outboundHandshakeMutex does not exist")
 	errInvalidHandshakeForPeer     = errors.New("peer previously sent invalid handshake")
