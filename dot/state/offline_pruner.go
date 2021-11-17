@@ -85,7 +85,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 		case err == nil:
 			err = fmt.Errorf("cannot close input database: %w", closeErr)
 		default:
-			logger.Error("cannot close input database", "error", err)
+			logger.Errorf("cannot close input database: %s", err)
 		}
 	}()
 
@@ -154,7 +154,7 @@ func (p *OfflinePruner) Prune() error {
 		case err == nil:
 			err = fmt.Errorf("cannot close input database: %w", closeErr)
 		default:
-			logger.Error("cannot close input database", "error", err)
+			logger.Errorf("cannot close input database: %s", err)
 		}
 	}()
 
@@ -170,7 +170,7 @@ func (p *OfflinePruner) Prune() error {
 		case err == nil:
 			err = fmt.Errorf("cannot close pruned database: %w", closeErr)
 		default:
-			logger.Error("cannot close pruned database", "error", err)
+			logger.Errorf("cannot close pruned database: %s", err)
 		}
 	}()
 
