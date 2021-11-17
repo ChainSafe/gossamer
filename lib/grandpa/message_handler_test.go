@@ -591,22 +591,23 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 func Test_getEquivocatoryVoters(t *testing.T) {
 	// many of equivocatory votes
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
-	fakeAuthorities := make([]*ed25519.Keypair, 0)
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ferdie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Heather().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Heather().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ian().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ian().(*ed25519.Keypair))
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Ferdie().(*ed25519.Keypair),
+		ed25519Keyring.Heather().(*ed25519.Keypair),
+		ed25519Keyring.Heather().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+	}
 
 	authData := make([]AuthData, len(fakeAuthorities))
 
@@ -628,25 +629,27 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
-	// add 10 previous blocks
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10)
+	// add 10 previous blocks and returns the last one
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10, time.Now())
+
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// many of equivocatory votes
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
-	fakeAuthorities := make([]*ed25519.Keypair, 0)
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ferdie().(*ed25519.Keypair))
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Ferdie().(*ed25519.Keypair),
+	}
 
 	authData := make([]AuthData, len(fakeAuthorities))
 	precommits := make([]Vote, len(fakeAuthorities))
@@ -690,27 +693,27 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 
 	// add 10 previous blocks
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10)
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10, time.Now())
 
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// many of equivocatory votes
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
-	fakeAuthorities := make([]*ed25519.Keypair, 0)
-
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ferdie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ian().(*ed25519.Keypair))
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Ferdie().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+	}
 
 	prevotesJustification := make([]SignedVote, len(fakeAuthorities))
 	for idx, fakeAuthority := range fakeAuthorities {
@@ -759,31 +762,32 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 
 	// add 10 previous blocks
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10)
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10, time.Now())
 
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// many of equivocatory votes
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
-	fakeAuthorities := make([]*ed25519.Keypair, 0)
 
 	// Alice, Charlie, David - Equivocatory
 	// Bob, Eve, Ferdie, Ian - Legit
 	// total of votes 4 legit + 3 equivocatory
 	// the threshold for testing is 9, so 2/3 of 9 = 6
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ferdie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Ian().(*ed25519.Keypair))
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Ferdie().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+	}
 
 	prevotesJustification := make([]SignedVote, len(fakeAuthorities))
 	for idx, fakeAuthority := range fakeAuthorities {

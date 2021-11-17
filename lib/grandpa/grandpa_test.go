@@ -1271,7 +1271,8 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 
 	// setup granpda service
 	gs, st := newTestService(t)
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10)
+	arrivalTime := time.Unix(1000, 0)
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10, arrivalTime)
 
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()
@@ -1343,7 +1344,6 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth int) {
 	t.Helper()
 
 	previousHash := blockState.BestBlockHash()
-	arrivalTime := time.Now()
 
 	rt, err := blockState.GetRuntime(nil)
 	require.NoError(t, err)
@@ -1354,6 +1354,8 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth int) {
 	startNum := int(head.Number.Int64())
 
 	for i := startNum + 1; i <= depth; i++ {
+		arrivalTime := time.Now()
+
 		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
 		require.NoError(t, err)
 		require.NotNil(t, d)
@@ -1373,14 +1375,14 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth int) {
 
 		hash := block.Header.Hash()
 		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		blockState.StoreRuntime(hash, rt)
 		previousHash = hash
 	}
 }
 
-func addBlocksAndReturnTheLastOne(t *testing.T, blockState *state.BlockState, depth int) *types.Block {
+func addBlocksAndReturnTheLastOne(t *testing.T, blockState *state.BlockState, depth int, lastBlockArrivalTime time.Time) *types.Block {
 	t.Helper()
 	addBlocksToState(t, blockState, depth)
 
@@ -1408,8 +1410,8 @@ func addBlocksAndReturnTheLastOne(t *testing.T, blockState *state.BlockState, de
 		Body: types.Body{},
 	}
 
-	err = blockState.AddBlockWithArrivalTime(bfcBlock, time.Now())
-	require.Nil(t, err)
+	err = blockState.AddBlockWithArrivalTime(bfcBlock, lastBlockArrivalTime)
+	require.NoError(t, err)
 
 	return bfcBlock
 }
