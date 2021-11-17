@@ -323,7 +323,8 @@ func (s *Service) collectNetworkMetrics() {
 func (s *Service) getTotalStreams(inbound bool) (count int64) {
 	for _, conn := range s.host.h.Network().Conns() {
 		for _, stream := range conn.GetStreams() {
-			if (isInbound(stream) && inbound) || (!isInbound(stream) && !inbound) {
+			streamIsInbound := isInbound(stream)
+			if (streamIsInbound && inbound) || (!streamIsInbound && !inbound) {
 				count++
 			}
 		}
