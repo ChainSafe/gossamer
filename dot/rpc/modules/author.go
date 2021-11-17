@@ -5,7 +5,6 @@ package modules
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -210,7 +209,6 @@ func (am *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic,
 func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
 	extBytes, err := common.HexToBytes(req.Data)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	ext := types.Extrinsic(extBytes)

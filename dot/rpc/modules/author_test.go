@@ -289,9 +289,18 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			// TODO Is error checking actually happening here?? Doesnt seem to actually be happening
-			if err := am.SubmitExtrinsic(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				assert.ErrorIs(t, err, tt.err)
+			var err error
+			if err = am.SubmitExtrinsic(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+				t.Errorf("AuthorModule.SubmitExtrinsic() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			} else if (err != nil) && tt.wantErr {
+				fmt.Println("here")
+				//require.True(t, errors.Is(err, tt.err))
+				//errorIs := assert.ErrorIs(t, err, tt.err)
+				//fmt.Println(errorIs)
+				assert.Equal(t, err, tt.err)
+				assert.Equal(t, err.Error(), tt.err.Error())
+				fmt.Println(err == tt.err)
 			}
 			if diff := cmp.Diff(tt.wantRes, *tt.args.res); diff != "" {
 				t.Errorf("unexpected response: %s", diff)
