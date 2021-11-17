@@ -1283,13 +1283,15 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Dave().(*ed25519.Keypair),
 		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),  //equivocatory
+		ed25519Keyring.Dave().(*ed25519.Keypair), //equivocatory
 	}
 
 	equivocatories := make(map[ed25519.PublicKeyBytes][]*types.GrandpaSignedVote)
 	prevotes := &sync.Map{}
 
 	// voting on
-	for i, v := range fakeAuthorities {
+	for _, v := range fakeAuthorities {
 		vote := &SignedVote{
 			AuthorityID: v.Public().(*ed25519.PublicKey).AsBytes(),
 			Vote: types.GrandpaVote{
@@ -1298,21 +1300,15 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 			},
 		}
 
-		prevotes.Store(i, vote)
+		// if there is some value on this authority then removes the
+		// previous and save the new one and add the previous in the
+		// equivocatories votes
+		previous, ok := prevotes.LoadAndDelete(vote.AuthorityID)
+		prevotes.Store(vote.AuthorityID, vote)
 
-		// lets say authority 1 and 3 have equivocatory votes
-		if i == 1 || i == 3 {
-			pubKey := v.Public().(*ed25519.PublicKey)
-			pubKeyBytes := pubKey.AsBytes()
-
-			equivocatories[pubKeyBytes] = []*types.GrandpaSignedVote{
-				{
-					Vote: types.GrandpaVote{
-						Hash:   common.Hash{},
-						Number: 0,
-					},
-					AuthorityID: pubKeyBytes,
-				},
+		if ok {
+			equivocatories[vote.AuthorityID] = []*types.GrandpaSignedVote{
+				previous.(*types.GrandpaSignedVote),
 			}
 		}
 	}
