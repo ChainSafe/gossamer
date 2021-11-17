@@ -10,9 +10,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"math/big"
 	"testing"
 )
 
@@ -87,6 +90,9 @@ func TestNewService(t *testing.T) {
 }
 
 func TestService_HandleBlockAnnounce(t *testing.T) {
+
+	blockState := mocks.BlockState{}
+
 	type fields struct {
 		blockState     BlockState
 		chainSync      ChainSync
@@ -103,7 +109,27 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "test",
+			fields:  fields{
+				blockState:     &blockState,
+				chainSync:      nil,
+				chainProcessor: nil,
+				network:        nil,
+			},
+			args:    args{
+				from: "1",
+				msg:  &network.BlockAnnounceMessage{
+					ParentHash:     common.Hash{},
+					Number:         big.NewInt(1),
+					StateRoot:      common.Hash{},
+					ExtrinsicsRoot: common.Hash{},
+					Digest:         scale.VaryingDataTypeSlice{},
+					BestBlock:      false,
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
