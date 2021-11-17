@@ -622,8 +622,6 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 }
 
 func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *testing.T) {
-	t.Parallel()
-
 	const fakeRound = 2
 
 	gs, st := newTestService(t)
@@ -687,8 +685,6 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 }
 
 func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
-	t.Parallel()
-
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
@@ -756,8 +752,6 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 }
 
 func Test_VerifyPreCommitJustification(t *testing.T) {
-	t.Parallel()
-
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
@@ -822,7 +816,6 @@ func signFakeFullVote(
 	t *testing.T, auth *ed25519.Keypair,
 	stage Subround, v types.GrandpaVote,
 	round, setID uint64) [64]byte {
-
 	msg, err := scale.Marshal(FullVote{
 		Stage: stage,
 		Vote:  v,

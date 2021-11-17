@@ -27,9 +27,7 @@ const (
 )
 
 var (
-	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
-
-	// ErrUnsupportedSubround ...
+	logger                 = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
 	ErrUnsupportedSubround = errors.New("unsupported subround")
 )
 

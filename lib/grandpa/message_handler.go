@@ -280,7 +280,6 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
-			fmt.Println(err)
 			logger.Warnf("verifyCommitMessageJustification: %s", err)
 			continue
 		}
@@ -308,18 +307,22 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 
 	// identify equivocatory votes by hash
 	for _, justification := range msg.PreVoteJustification {
-		if _, ok := voters[justification.AuthorityID]; !ok {
-			voters[justification.AuthorityID] = make(map[common.Hash]int)
+		hashsToCount, ok := voters[justification.AuthorityID]
+		if !ok {
+			hashsToCount = make(map[common.Hash]int)
 		}
 
-		voters[justification.AuthorityID][justification.Vote.Hash]++
+		hashsToCount[justification.Vote.Hash]++
+		voters[justification.AuthorityID] = hashsToCount
 
-		if voters[justification.AuthorityID][justification.Vote.Hash] > 1 {
-			if _, ok := eqVotesByHash[justification.Vote.Hash]; !ok {
-				eqVotesByHash[justification.Vote.Hash] = make(map[ed25519.PublicKeyBytes]struct{})
+		if hashsToCount[justification.Vote.Hash] > 1 {
+			pubKeysOnHash, ok := eqVotesByHash[justification.Vote.Hash]
+			if !ok {
+				pubKeysOnHash = make(map[ed25519.PublicKeyBytes]struct{})
 			}
 
-			eqVotesByHash[justification.Vote.Hash][justification.AuthorityID] = struct{}{}
+			pubKeysOnHash[justification.AuthorityID] = struct{}{}
+			eqVotesByHash[justification.Vote.Hash] = pubKeysOnHash
 		}
 	}
 

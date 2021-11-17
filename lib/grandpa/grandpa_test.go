@@ -1267,8 +1267,6 @@ func TestFinalRoundGaugeMetric(t *testing.T) {
 }
 
 func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testing.T) {
-	t.Parallel()
-
 	// setup granpda service
 	gs, st := newTestService(t)
 	arrivalTime := time.Unix(1000, 0)
