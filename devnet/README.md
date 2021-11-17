@@ -12,10 +12,10 @@ From the Gossamer root run the following commands to run the devnet
 
 ```sh
 # will rebuild the containers based on the current code
-docker-compose up --abort-on-exit --build 
+docker-compose up --abort-on-container-exit --build 
 
 # will run the devnet without rebuilding
-docker-compose up --abort-on-exit
+docker-compose up --abort-on-container-exit
 
 # destroys the devnet
 docker-compose down
@@ -25,7 +25,7 @@ docker-compose down
 
 ## Prometheus Datadog Integration
 
-All Prometheus metrics from the nodes are piped to Datadog. You can setup your own dashboard and add additional tags by modifying the Dockerfiles.  Currently the metrics are prefixed with `gossamer.local.devnet` and are tagged with a `key` tag for `alice`, `bob`, and `charlie`.
+All Prometheus metrics from the nodes are piped to Datadog. You can setup your own dashboard and add additional tags by modifying the Dockerfiles.  Currently the metrics are prefixed with `gossamer.local.devnet` and are tagged (Prometheus label) with a `key` tag for `alice`, `bob`, and `charlie`.
 
 For metrics to be piped to Datadog, you will require a Datadog API key.  Please contact Elizabeth or myself (Tim) for access to datadog if you don't already have it.
 
