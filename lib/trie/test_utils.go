@@ -6,7 +6,7 @@ package trie
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"math/big"
+	prand "math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -35,8 +35,11 @@ func GenerateRandomTests(t testing.TB, size int) []Test {
 	rt := make([]Test, size)
 	kv := make(map[string][]byte)
 
+	const seed = 912378
+	generator := prand.New(prand.NewSource(seed)) //nolint:gosec
+
 	for i := range rt {
-		test := generateRandomTest(t, kv)
+		test := generateRandomTest(t, kv, generator)
 		rt[i] = test
 		kv[string(test.key)] = rt[i].value
 	}
@@ -44,16 +47,15 @@ func GenerateRandomTests(t testing.TB, size int) []Test {
 	return rt
 }
 
-func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
+func generateRandomTest(t testing.TB, kv map[string][]byte, generator *prand.Rand) Test {
 	test := Test{}
 
 	for {
-		n := 2 // arbitrary positive number
-		size, err := rand.Int(rand.Reader, big.NewInt(510))
-		require.NoError(t, err)
+		var n int64 = 2 // arbitrary positive number
+		size := int64(generator.Intn(510))
 
-		buf := make([]byte, size.Int64()+int64(n))
-		_, err = rand.Read(buf)
+		buf := make([]byte, size+n)
+		_, err := generator.Read(buf)
 		require.NoError(t, err)
 
 		key := binary.LittleEndian.Uint16(buf[:2])
@@ -61,11 +63,10 @@ func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
 		if kv[string(buf)] == nil || key < 256 {
 			test.key = buf
 
-			size, err := rand.Int(rand.Reader, big.NewInt(128))
-			require.NoError(t, err)
+			size := int64(generator.Intn(128))
 
-			buf = make([]byte, size.Int64()+int64(n))
-			_, err = rand.Read(buf)
+			buf = make([]byte, size+n)
+			_, err = generator.Read(buf)
 			require.NoError(t, err)
 
 			test.value = buf
