@@ -464,9 +464,13 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return fmt.Errorf("cannot get authorities for set ID: %w", err)
 	}
 
-	logger.Debugf(
-		"verifying justification: set id %d, round %d, hash %s, number %d, sig count %d",
-		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits))
+	// threshold is two-thirds the number of authorities,
+	// uses the current set of authorities to define the threshold
+	threshold := (2 * len(auths) / 3)
+
+	if len(fj.Commit.Precommits) < threshold {
+		return ErrMinVotesNotMet
+	}
 
 	authPubKeys := make([]AuthData, len(fj.Commit.Precommits))
 	for i, pcj := range fj.Commit.Precommits {
@@ -475,6 +479,10 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	equivocatoryVoters := getEquivocatoryVoters(authPubKeys)
 	var count int
+
+	logger.Debugf(
+		"verifying justification: set id %d, round %d, hash %s, number %d, sig count %d",
+		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits))
 
 	for _, just := range fj.Commit.Precommits {
 		_, ok := equivocatoryVoters[just.AuthorityID]
@@ -524,9 +532,6 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		count++
 	}
 
-	// threshold is two-thirds the number of authorities,
-	// uses the current set of authorities to define the threshold
-	threshold := (2 * len(auths) / 3)
 	if count+len(equivocatoryVoters) <= threshold {
 		return ErrMinVotesNotMet
 	}
