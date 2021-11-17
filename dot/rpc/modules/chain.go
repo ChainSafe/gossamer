@@ -107,7 +107,6 @@ func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberReques
 
 	val, err := cm.unwindRequest(req.Block)
 	// if result only returns 1 value, just use that (instead of array)
-	fmt.Println(val)
 	if len(val) == 1 {
 		*res = val[0]
 	} else {
