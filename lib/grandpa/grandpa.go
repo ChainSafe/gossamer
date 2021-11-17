@@ -847,6 +847,7 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 
 	for _, votes := range eqv {
 		for _, vote := range votes {
+			fmt.Printf("%v\n", vote.AuthorityID)
 			just = append(just, *vote)
 		}
 	}

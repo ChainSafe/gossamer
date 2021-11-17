@@ -1271,44 +1271,20 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 
 	// setup granpda service
 	gs, st := newTestService(t)
-	addBlocksToState(t, st.Block, 10)
-
-	// create a new fake block to fake authorities vote on
-	previousHash := st.Block.BestBlockHash()
-	previusHead, err := st.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	bfcNumber := int(previusHead.Number.Int64() + 1)
-
-	d, err := types.NewBabePrimaryPreDigest(0, uint64(bfcNumber), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	require.NotNil(t, d)
-	digest := types.NewDigest()
-	_ = digest.Add(*d)
-
-	bfcBlock := &types.Block{
-		Header: types.Header{
-			ParentHash: previousHash,
-			Number:     big.NewInt(int64(bfcNumber)),
-			StateRoot:  trie.EmptyHash,
-			Digest:     digest,
-		},
-		Body: types.Body{},
-	}
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10)
 
 	bfcHash := bfcBlock.Header.Hash()
-	err = st.Block.AddBlockWithArrivalTime(bfcBlock, time.Now())
-	require.Nil(t, err)
+	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// create fake authorities
-	fakeAuthorities := make([]*ed25519.Keypair, 0)
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
-
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Alice().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Bob().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Charlie().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Dave().(*ed25519.Keypair))
-	fakeAuthorities = append(fakeAuthorities, ed25519Keyring.Eve().(*ed25519.Keypair))
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+	}
 
 	equivocatories := make(map[ed25519.PublicKeyBytes][]*types.GrandpaSignedVote)
 	prevotes := &sync.Map{}
@@ -1317,7 +1293,6 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 	for i, v := range fakeAuthorities {
 		vote := &SignedVote{
 			AuthorityID: v.Public().(*ed25519.PublicKey).AsBytes(),
-			Signature:   [64]byte{},
 			Vote: types.GrandpaVote{
 				Hash:   bfcHash,
 				Number: uint32(bfcNumber),
@@ -1328,14 +1303,16 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 
 		// lets say authority 1 and 3 have equivocatory votes
 		if i == 1 || i == 3 {
-			equivocatories[v.Public().(*ed25519.PublicKey).AsBytes()] = []*types.GrandpaSignedVote{
+			pubKey := v.Public().(*ed25519.PublicKey)
+			pubKeyBytes := pubKey.AsBytes()
+
+			equivocatories[pubKeyBytes] = []*types.GrandpaSignedVote{
 				{
 					Vote: types.GrandpaVote{
 						Hash:   common.Hash{},
 						Number: 0,
 					},
-					Signature:   [64]byte{},
-					AuthorityID: v.Public().(*ed25519.PublicKey).AsBytes(),
+					AuthorityID: pubKeyBytes,
 				},
 			}
 		}
@@ -1346,6 +1323,18 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 
 	justifications, err := gs.createJustification(bfcHash, prevote)
 	require.NoError(t, err)
+
+	var eqvOnJustification int
+	for eqvPubKeyBytes := range equivocatories {
+		for _, justification := range justifications {
+			if justification.AuthorityID == eqvPubKeyBytes {
+				eqvOnJustification++
+				break
+			}
+		}
+	}
+
+	require.Equal(t, len(equivocatories), eqvOnJustification)
 	require.Len(t, justifications, len(fakeAuthorities)+len(equivocatories))
 }
 
@@ -1369,7 +1358,8 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth int) {
 		require.NoError(t, err)
 		require.NotNil(t, d)
 		digest := types.NewDigest()
-		_ = digest.Add(*d)
+		err = digest.Add(*d)
+		require.NoError(t, err)
 
 		block := &types.Block{
 			Header: types.Header{
@@ -1405,7 +1395,8 @@ func addBlocksAndReturnTheLastOne(t *testing.T, blockState *state.BlockState, de
 	require.NoError(t, err)
 	require.NotNil(t, d)
 	digest := types.NewDigest()
-	_ = digest.Add(*d)
+	err = digest.Add(*d)
+	require.NoError(t, err)
 
 	bfcBlock := &types.Block{
 		Header: types.Header{
