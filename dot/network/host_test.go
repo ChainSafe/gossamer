@@ -54,7 +54,7 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 	addrInfo := node.host.addrInfo()
 	privateIPs := ma.NewFilters()
 	for _, cidr := range privateCIDRs {
-		_, ipnet, err := net.ParseCIDR(cidr) //nolint
+		_, ipnet, err := net.ParseCIDR(cidr)
 		require.NoError(t, err)
 		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
 	}
