@@ -61,6 +61,8 @@ func (s *Service) receiveMessages(ctx context.Context) {
 				if err != nil {
 					logger.Debugf("problem sending afg.received_precommit telemetry message err: %s", err)
 				}
+			default:
+				logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
 			}
 
 			v, err := s.validateMessage(msg.from, vm)
