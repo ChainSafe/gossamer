@@ -113,10 +113,14 @@ func TestChainModule_GetBlock(t *testing.T) {
 			}
 			var err error
 			if err = cm.GetBlock(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				assert.ErrorIs(t, err, tt.err)
+				t.Errorf("ChainModule.GetBlock() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			if err == nil {
-				require.Equal(t, tt.exp, tt.args.res)
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -135,7 +139,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 	mockBlockAPIErr.On("GetBlockHash", new(big.Int).SetInt64(int64(21))).Return(nil, errors.New("GetBlockHash Error"))
 
 	expRes := ChainHashResponse(testHash.String())
-
 	type fields struct {
 		blockAPI BlockAPI
 	}
@@ -191,7 +194,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{uintptr(1)},
 			},
 			wantErr: true,
-			err: errors.New("GetBlockHash Error"),
+			err: errors.New("unknown request number type: uintptr"),
 		},
 		{
 			name: "GetBlockHash string slice req err",
@@ -202,7 +205,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{i},
 			},
 			wantErr: true,
-			err: errors.New("GetBlockHash Error"),
+			err: errors.New("error setting number from string"),
 		},
 		{
 			name: "GetBlockHash string req Err",
@@ -225,10 +228,14 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			}
 			var err error
 			if err = cm.GetBlockHash(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				assert.ErrorIs(t, err, tt.err)
+				t.Errorf("ChainModule.GetBlockHash() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			if err == nil {
-				require.Equal(t, tt.exp, tt.args.res)
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -290,10 +297,14 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			}
 			var err error
 			if err = cm.GetFinalizedHead(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				assert.ErrorIs(t, err, tt.err)
+				t.Errorf("ChainModule.GetFinalizedHead() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			if err == nil {
-				require.Equal(t, tt.exp, tt.args.res)
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -361,10 +372,14 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 			}
 			var err error
 			if err = cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				assert.ErrorIs(t, err, tt.err)
+				t.Errorf("ChainModule.GetFinalizedHeadByRound() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			if err == nil {
-				require.Equal(t, tt.exp, tt.args.res)
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -432,10 +447,14 @@ func TestChainModule_GetHeader(t *testing.T) {
 			}
 			var err error
 			if err = cm.GetHeader(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				assert.ErrorIs(t, err, tt.err)
+				t.Errorf("ChainModule.GetHeader() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			if err == nil {
-				require.Equal(t, tt.exp, tt.args.res)
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -514,7 +533,9 @@ func TestHeaderToJSON(t *testing.T) {
 				return
 			}
 			if err == nil {
-				require.Equal(t, tt.exp, res)
+				assert.Equal(t, tt.exp, res)
+			} else {
+				assert.Error(t, err)
 			}
 		})
 	}

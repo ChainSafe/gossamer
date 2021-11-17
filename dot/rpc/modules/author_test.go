@@ -249,7 +249,6 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			name: "HexToBytes error",
 			args: args{
 				req: &Extrinsic{fmt.Sprintf("%x", "1")},
-				res: new(ExtrinsicHashResponse),
 			},
 			wantErr: true,
 			err: fmt.Errorf("could not byteify non 0x prefixed string"),
@@ -263,7 +262,6 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			},
 			args: args{
 				req: &Extrinsic{fmt.Sprintf("0x%x", testInvalidExt)},
-				res: new(ExtrinsicHashResponse),
 			},
 			wantErr: true,
 			err: fmt.Errorf("some error"),
@@ -277,12 +275,13 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			},
 			args: args{
 				req: &Extrinsic{fmt.Sprintf("0x%x", testExt)},
-				res: new(ExtrinsicHashResponse),
 			},
 			wantRes: ExtrinsicHashResponse(types.Extrinsic(testExt).Hash().String()),
 		},
 	}
 	for _, tt := range tests {
+		res := ExtrinsicHashResponse("")
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			am := &AuthorModule{
 				logger:     tt.fields.logger,
@@ -293,17 +292,12 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			if err = am.SubmitExtrinsic(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("AuthorModule.SubmitExtrinsic() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			} else if (err != nil) && tt.wantErr {
-				fmt.Println("here")
-				//require.True(t, errors.Is(err, tt.err))
-				//errorIs := assert.ErrorIs(t, err, tt.err)
-				//fmt.Println(errorIs)
-				assert.Equal(t, err, tt.err)
-				assert.Equal(t, err.Error(), tt.err.Error())
-				fmt.Println(err == tt.err)
 			}
-			if diff := cmp.Diff(tt.wantRes, *tt.args.res); diff != "" {
-				t.Errorf("unexpected response: %s", diff)
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, &tt.wantRes, tt.args.res)
 			}
 		})
 	}
