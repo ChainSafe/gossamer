@@ -628,7 +628,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	h := NewMessageHandler(gs, st.Block)
 
 	// add 10 previous blocks and returns the last one
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10, time.Now())
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 8, time.Now())
 
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()
@@ -689,7 +689,7 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 
 	// add 10 previous blocks
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10, time.Now())
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 9, time.Now())
 
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()
@@ -756,7 +756,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 
 	// add 10 previous blocks
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 10, time.Now())
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 7, time.Now())
 
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()
