@@ -6,6 +6,7 @@ package modules
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -66,6 +67,7 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 func (m *DevModule) SlotDuration(r *http.Request, req *EmptyRequest, res *string) error {
 	var err error
 	*res = uint64ToHex(m.blockProducerAPI.SlotDuration())
+	fmt.Println(*res)
 	return err
 }
 
