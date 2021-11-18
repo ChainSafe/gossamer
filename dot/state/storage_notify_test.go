@@ -1,26 +1,12 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package state
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -185,16 +171,6 @@ func Test_Example(t *testing.T) {
 	bValue := []byte("b-value")
 
 	// Open the DB.
-	dir, err := ioutil.TempDir("", "badger-test")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = os.RemoveAll(dir); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	db := NewInMemoryDB(t)
 
 	// Create the context here so we can cancel it after sending the writes.
@@ -212,14 +188,14 @@ func Test_Example(t *testing.T) {
 			}
 			return nil
 		}
-		if err = db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
+		if err := db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
 			log.Fatal(err)
 		}
 		log.Printf("subscription closed")
 	}()
 
 	// Write both keys, but only one should be printed in the Output.
-	err = db.Put(aKey, aValue)
+	err := db.Put(aKey, aValue)
 	if err != nil {
 		log.Fatal(err)
 	}

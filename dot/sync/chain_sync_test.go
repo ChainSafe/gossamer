@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
 
@@ -216,12 +203,30 @@ func TestChainSync_getTarget(t *testing.T) {
 	require.Equal(t, big.NewInt(2<<32-1), cs.getTarget())
 
 	cs.peerState = map[peer.ID]*peerState{
-		"testA": {
-			number: big.NewInt(1000),
+		"a": {
+			number: big.NewInt(-100), // outlier
+		},
+		"b": {
+			number: big.NewInt(10),
+		},
+		"c": {
+			number: big.NewInt(20),
+		},
+		"d": {
+			number: big.NewInt(30),
+		},
+		"e": {
+			number: big.NewInt(40),
+		},
+		"f": {
+			number: big.NewInt(50),
+		},
+		"g": {
+			number: big.NewInt(1000), // outlier
 		},
 	}
 
-	require.Equal(t, big.NewInt(1000), cs.getTarget())
+	require.Equal(t, big.NewInt(30), cs.getTarget()) // sum:150/count:5 = avg:30
 
 	cs.peerState = map[peer.ID]*peerState{
 		"testA": {
@@ -467,7 +472,7 @@ func TestValidateBlockData(t *testing.T) {
 	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},
 	}, "")
-	require.Equal(t, errNilBodyInResponse, err)
+	require.ErrorIs(t, err, errNilBodyInResponse)
 
 	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},

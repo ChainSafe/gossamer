@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
@@ -173,6 +160,10 @@ func NewService(cfg *Config) (*Service, error) {
 		interval:           cfg.Interval,
 	}
 
+	if err := s.registerProtocol(); err != nil {
+		return nil, err
+	}
+
 	s.messageHandler = NewMessageHandler(s, s.blockState)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.paused.Store(false)
@@ -181,11 +172,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	// TODO: determine if we need to send a catch-up request (#1531)
-	if err := s.registerProtocol(); err != nil {
-		return err
-	}
-
 	// if we're not an authority, we don't need to worry about the voting process.
 	// the grandpa service is only used to verify incoming block justifications
 	if !s.authority {

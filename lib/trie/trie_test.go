@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package trie
 
@@ -20,7 +7,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -129,7 +115,7 @@ func writeToTestFile(tests []Test) error {
 		return err
 	}
 	os.Remove(fp)
-	err = ioutil.WriteFile(fp, []byte(testString), 0644)
+	err = os.WriteFile(fp, []byte(testString), 0644)
 	if err != nil {
 		return err
 	}
@@ -291,7 +277,7 @@ func TestFailingTests(t *testing.T) {
 		t.Error(err)
 	}
 
-	data, err := ioutil.ReadFile(fp)
+	data, err := os.ReadFile(fp)
 	if err != nil {
 		t.SkipNow()
 	}
@@ -474,8 +460,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	testDataDirPath, _ := ioutil.TempDir(t.TempDir(), "test-badger-datadir")
-	defer os.RemoveAll(testDataDirPath)
+	testDataDirPath := t.TempDir()
 
 	cfg := &chaindb.Config{
 		DataDir:  testDataDirPath,
@@ -1131,39 +1116,43 @@ func TestNextKey_Random(t *testing.T) {
 	}
 }
 
-func TestRootHashNonParallel(t *testing.T) {
-	rt := GenerateRandomTests(t, 1000000)
+func Benchmark_Trie_Hash(b *testing.B) {
+	rt := GenerateRandomTests(b, 1000000)
 	trie := NewEmptyTrie()
 	for i := range rt {
 		test := &rt[i]
 		trie.Put(test.key, test.value)
 	}
 
-	t.Run("Non Parallel Hash", func(t *testing.T) {
+	trieTwo, err := trie.DeepCopy()
+	require.NoError(b, err)
+
+	b.Run("Sequential hash", func(b *testing.B) {
 		trie.parallel = false
+
+		b.StartTimer()
 		_, err := trie.Hash()
-		require.NoError(t, err)
-		PrintMemUsage()
+		b.StopTimer()
+
+		require.NoError(b, err)
+
+		printMemUsage()
+	})
+
+	b.Run("Parallel hash", func(b *testing.B) {
+		trieTwo.parallel = true
+
+		b.StartTimer()
+		_, err := trieTwo.Hash()
+		b.StopTimer()
+
+		require.NoError(b, err)
+
+		printMemUsage()
 	})
 }
 
-func TestRootHashParallel(t *testing.T) {
-	rt := GenerateRandomTests(t, 1000000)
-	trie := NewEmptyTrie()
-	for i := range rt {
-		test := &rt[i]
-		trie.Put(test.key, test.value)
-	}
-
-	t.Run("Parallel Hash", func(t *testing.T) {
-		trie.parallel = true
-		_, err := trie.Hash()
-		require.NoError(t, err)
-		PrintMemUsage()
-	})
-}
-
-func PrintMemUsage() {
+func printMemUsage() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
