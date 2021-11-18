@@ -53,6 +53,9 @@ func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 		buffer.Reset()
 
 		_ = encodeLeaf(c, buffer)
+
+		c.encodingMu.Lock()
+		defer c.encodingMu.Unlock()
 		c.encoding = buffer.Bytes()
 
 		var bstr string

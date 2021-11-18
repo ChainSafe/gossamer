@@ -93,6 +93,10 @@ func encodeNode(n node, buffer *bytes.Buffer, parallel bool) (err error) {
 		if err != nil {
 			return fmt.Errorf("cannot encode leaf: %w", err)
 		}
+
+		n.encodingMu.Lock()
+		defer n.encodingMu.Unlock()
+
 		n.encoding = make([]byte, buffer.Len())
 		copy(n.encoding, buffer.Bytes())
 		return nil
@@ -238,13 +242,16 @@ func encodeChild(child node, buffer *bytes.Buffer) (err error) {
 // encodeLeaf encodes a leaf to the buffer given, with the encoding
 // specified at the top of this package.
 func encodeLeaf(l *leaf, buffer *bytes.Buffer) (err error) {
+	l.encodingMu.RLock()
 	if !l.dirty && l.encoding != nil {
 		_, err = buffer.Write(l.encoding)
+		l.encodingMu.RUnlock()
 		if err != nil {
 			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
 		}
 		return nil
 	}
+	l.encodingMu.RUnlock()
 
 	encoding, err := l.header()
 	if err != nil {

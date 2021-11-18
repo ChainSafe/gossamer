@@ -69,6 +69,7 @@ type (
 		dirty      bool
 		hash       []byte
 		encoding   []byte
+		encodingMu sync.RWMutex
 		generation uint64
 		sync.RWMutex
 	}
@@ -112,6 +113,9 @@ func (l *leaf) copy() node {
 	l.RLock()
 	defer l.RUnlock()
 
+	l.encodingMu.RLock()
+	defer l.encodingMu.RUnlock()
+
 	cpy := &leaf{
 		key:        make([]byte, len(l.key)),
 		value:      make([]byte, len(l.value)),
@@ -133,7 +137,10 @@ func (b *branch) setEncodingAndHash(enc, hash []byte) {
 }
 
 func (l *leaf) setEncodingAndHash(enc, hash []byte) {
+	l.encodingMu.Lock()
 	l.encoding = enc
+	l.encodingMu.Unlock()
+
 	l.hash = hash
 }
 
@@ -252,9 +259,12 @@ func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
 }
 
 func (l *leaf) encodeAndHash() (encoding, hash []byte, err error) {
+	l.encodingMu.RLock()
 	if !l.isDirty() && l.encoding != nil && l.hash != nil {
+		l.encodingMu.RUnlock()
 		return l.encoding, l.hash, nil
 	}
+	l.encodingMu.RUnlock()
 
 	buffer := encodingBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
@@ -267,8 +277,10 @@ func (l *leaf) encodeAndHash() (encoding, hash []byte, err error) {
 
 	bufferBytes := buffer.Bytes()
 
+	l.encodingMu.Lock()
 	l.encoding = make([]byte, len(bufferBytes))
 	copy(l.encoding, bufferBytes)
+	l.encodingMu.Unlock()
 	encoding = l.encoding // no need to copy
 
 	if len(bufferBytes) < 32 {
