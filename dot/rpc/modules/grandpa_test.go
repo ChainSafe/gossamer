@@ -169,7 +169,38 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 	})
 
-	var res RoundStateResponse
+	expRes := &RoundStateResponse{
+		SetID: 0x0,
+		Best: RoundState{
+			Round: 0x2,
+			TotalWeight: 0x9,
+			ThresholdWeight: 0x6,
+			Prevotes: Votes{
+				CurrentWeight: 0x4,
+				Missing: []string{
+					"5G64P3LJTK28dDVGNSzSHp4mfZyKqdzxgeZ1cULRoxMdt8m1",
+					"5D7QrtMByWQpi8EtqkH1sPDBCVZvoH6G1vY5mknQiCC3ZVQM",
+					"5FdsD3mYg5gzh1Uj4FxyeHqMTpaAVd3gDNmcuKypBzRGGMQH",
+					"5DqDws3YxzL8r741gw33jdbohzAESRR9qGCGg6GAZ3Qw5fYX",
+					"5FYrfAUUzuahCL2swxoPXc846dKrWuD2nwzrKc1oEfWBS6RL",
+				},
+			},
+			Precommits: Votes{
+				CurrentWeight: 0x2,
+				Missing: []string{
+					"5DYo8CvjQcBQFdehVhansDiZCPebpgqvNC8PQPi6K9cL9giT",
+					"5EtkA16QN4DED9vrxb4LnmytCFBhm6qJ5pw6FkoaiRtsPeuG",
+					"5G64P3LJTK28dDVGNSzSHp4mfZyKqdzxgeZ1cULRoxMdt8m1",
+					"5D7QrtMByWQpi8EtqkH1sPDBCVZvoH6G1vY5mknQiCC3ZVQM",
+					"5FdsD3mYg5gzh1Uj4FxyeHqMTpaAVd3gDNmcuKypBzRGGMQH",
+					"5DqDws3YxzL8r741gw33jdbohzAESRR9qGCGg6GAZ3Qw5fYX",
+					"5FYrfAUUzuahCL2swxoPXc846dKrWuD2nwzrKc1oEfWBS6RL",
+				},
+			},
+		},
+		Background: []RoundState{},
+	}
+
 	type fields struct {
 		blockAPI         BlockAPI
 		blockFinalityAPI BlockFinalityAPI
@@ -184,6 +215,8 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     *RoundStateResponse
 	}{
 		{
 			name: "GetJustification Error",
@@ -193,18 +226,27 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 			},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
+			exp: expRes,
 		},
 	}
 	for _, tt := range tests {
+		var res RoundStateResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			gm := &GrandpaModule{
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
-			if err := gm.RoundState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = gm.RoundState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("RoundState() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
