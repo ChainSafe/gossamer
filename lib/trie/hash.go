@@ -240,22 +240,36 @@ func encodeChild(child node, buffer *bytes.Buffer) (err error) {
 func encodeLeaf(l *leaf, buffer *bytes.Buffer) (err error) {
 	if !l.dirty && l.encoding != nil {
 		_, err = buffer.Write(l.encoding)
-		return err
+		if err != nil {
+			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
+		}
+		return nil
 	}
 
 	encoding, err := l.header()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot encode header: %w", err)
 	}
-	_, _ = buffer.Write(encoding)
 
-	_, _ = buffer.Write(nibblesToKeyLE(l.key))
+	_, err = buffer.Write(encoding)
+	if err != nil {
+		return fmt.Errorf("cannot write encoded header to buffer: %w", err)
+	}
+
+	_, err = buffer.Write(nibblesToKeyLE(l.key))
+	if err != nil {
+		return fmt.Errorf("cannot write LE key to buffer: %w", err)
+	}
 
 	bytes, err := scale.Marshal(l.value) // TODO scale encoder to write to buffer
 	if err != nil {
 		return err
 	}
 
-	_, _ = buffer.Write(bytes)
+	_, err = buffer.Write(bytes)
+	if err != nil {
+		return fmt.Errorf("cannot write scale encoded value to buffer: %w", err)
+	}
+
 	return nil
 }
