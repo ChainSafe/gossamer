@@ -153,7 +153,7 @@ func encodeBranch(b *branch, buffer *bytes.Buffer, parallel bool) (err error) {
 	if parallel {
 		return encodeChildrenInParallel(b.children, buffer)
 	}
-	return encodeChildsSequentially(b.children, buffer)
+	return encodeChildrenSequentially(b.children, buffer)
 }
 
 func encodeChildrenInParallel(children [16]node, buffer *bytes.Buffer) (err error) {
@@ -218,7 +218,7 @@ func encodeChildrenInParallel(children [16]node, buffer *bytes.Buffer) (err erro
 	return err
 }
 
-func encodeChildsSequentially(children [16]node, buffer *bytes.Buffer) (err error) {
+func encodeChildrenSequentially(children [16]node, buffer *bytes.Buffer) (err error) {
 	for _, child := range children {
 		err = encodeChild(child, buffer)
 		if err != nil {
