@@ -37,7 +37,7 @@ export $DD_API_KEY=YourKey
 
 ## Files
 
-### Dockefiles
+### Dockerfiles
 
 There are two Docker files used in the devnet.  `alice.Dockerfile` is the lead node and is intiated with the `babe-lead` flag to build the first block.  `bob.Dockerfile` is used for both `bob` and `charlie`.
 
