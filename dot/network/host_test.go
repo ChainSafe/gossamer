@@ -313,7 +313,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
 
 	// Set handshake data to received
-	info.inboundHandshakeData.Store(nodeB.host.id(), handshakeData{
+	info.inboundHandshakeData.Store(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 	})

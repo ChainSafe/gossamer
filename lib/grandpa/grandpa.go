@@ -160,6 +160,10 @@ func NewService(cfg *Config) (*Service, error) {
 		interval:           cfg.Interval,
 	}
 
+	if err := s.registerProtocol(); err != nil {
+		return nil, err
+	}
+
 	s.messageHandler = NewMessageHandler(s, s.blockState)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.paused.Store(false)
@@ -168,11 +172,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	// TODO: determine if we need to send a catch-up request (#1531)
-	if err := s.registerProtocol(); err != nil {
-		return err
-	}
-
 	// if we're not an authority, we don't need to worry about the voting process.
 	// the grandpa service is only used to verify incoming block justifications
 	if !s.authority {
