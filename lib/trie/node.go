@@ -236,9 +236,8 @@ func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
 	bufferBytes := buffer.Bytes()
 
 	b.encoding = make([]byte, len(bufferBytes))
-	encoding = make([]byte, len(bufferBytes))
 	copy(b.encoding, bufferBytes)
-	encoding = b.encoding // no need to copy
+	encoding := b.encoding // no need to copy
 
 	if buffer.Len() < 32 {
 		b.hash = make([]byte, len(bufferBytes))
