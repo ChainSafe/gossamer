@@ -17,11 +17,11 @@ func main() {
 	var opts options
 	_, err := flags.Parse(&opts)
 	if err != nil {
-		log.Panicf("%v", err)
+		log.Panic(err)
 	}
 	yml, err := marshalYAML(opts)
 	if err != nil {
-		log.Panicf("%v", err)
+		log.Panic(err)
 	}
 	fmt.Printf("%s", yml)
 }

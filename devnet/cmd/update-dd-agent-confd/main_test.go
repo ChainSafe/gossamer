@@ -8,23 +8,11 @@ import (
 )
 
 func Test_marshalYAML(t *testing.T) {
-	c := conf{
-		Instances: []instance{
-			{
-				PrometheusURL: "http://127.0.0.1:9876/metrics",
-				Metrics: []string{
-					"gossamer_*",
-					"network_*",
-					"service_*",
-					"system_*",
-				},
-				HealthServiceCheck: true,
-			},
-		},
-	}
-	expected, err := yaml.Marshal(c)
-	if err != nil {
-		t.Errorf("%v", err)
+	var mustMarshal = func(c conf) (yml []byte) {
+		yml, err := yaml.Marshal(c)
+		if err != nil {
+			panic(err)
+		}
 		return
 	}
 	type args struct {
@@ -37,8 +25,49 @@ func Test_marshalYAML(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			args:    args{opts: options{}},
-			wantYml: expected,
+			name: "zero case options",
+			args: args{opts: options{}},
+			wantYml: mustMarshal(
+				conf{
+					Instances: []instance{
+						{
+							PrometheusURL: "http://127.0.0.1:9876/metrics",
+							Metrics: []string{
+								"gossamer_*",
+								"network_*",
+								"service_*",
+								"system_*",
+							},
+							HealthServiceCheck: true,
+						},
+					},
+				},
+			),
+		},
+		{
+			name: "options with ns and tags",
+			args: args{opts: options{
+				Namespace: "SomeNamespace",
+				Tags:      []string{"some", "tags"},
+			}},
+			wantYml: mustMarshal(
+				conf{
+					Instances: []instance{
+						{
+							PrometheusURL: "http://127.0.0.1:9876/metrics",
+							Metrics: []string{
+								"gossamer_*",
+								"network_*",
+								"service_*",
+								"system_*",
+							},
+							HealthServiceCheck: true,
+							Namespace:          "SomeNamespace",
+							Tags:               []string{"some", "tags"},
+						},
+					},
+				},
+			),
 		},
 	}
 	for _, tt := range tests {
