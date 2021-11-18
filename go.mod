@@ -25,6 +25,7 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/ipfs/go-ds-badger2 v0.1.1
 	github.com/ipfs/go-ipns v0.1.2 //indirect
+	github.com/jessevdk/go-flags v1.4.0
 	github.com/jpillora/ipfilter v1.2.3
 	github.com/libp2p/go-libp2p v0.15.1
 	github.com/libp2p/go-libp2p-core v0.9.0
@@ -42,10 +43,6 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	google.golang.org/protobuf v1.27.1
-)
-
-require (
-	github.com/jessevdk/go-flags v1.4.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
