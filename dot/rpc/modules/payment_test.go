@@ -2,6 +2,7 @@ package modules
 
 import (
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"net/http"
 	"testing"
@@ -46,7 +47,6 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	runtimeErrorMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, errors.New("PaymentQueryInfo error"))
 
 	paymentModule := NewPaymentModule(blockAPIMock)
-	var res PaymentQueryInfoResponse
 	type fields struct {
 		blockAPI BlockAPI
 	}
@@ -60,6 +60,8 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     PaymentQueryInfoResponse
 	}{
 		{
 			name: "Nil Query Info",
@@ -71,8 +73,8 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Ext:  "0x0000",
 					Hash: &testHash,
 				},
-				res: &res,
 			},
+			exp: PaymentQueryInfoResponse{},
 		},
 		{
 			name: "Not Nil Query Info",
@@ -84,7 +86,11 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Ext:  "0x0000",
 					Hash: &testHash,
 				},
-				res: &res,
+			},
+			exp: PaymentQueryInfoResponse{
+				Weight:     uint64(21),
+				Class:      21,
+				PartialFee: scale.MustNewUint128(new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6})).String(),
 			},
 		},
 		{
@@ -96,9 +102,9 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				req: &PaymentQueryInfoRequest{
 					Ext:  "0x0",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "Invalid Ext",
@@ -109,8 +115,8 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				req: &PaymentQueryInfoRequest{
 					Ext:  "0x0000",
 				},
-				res: &res,
 			},
+			exp: PaymentQueryInfoResponse{},
 		},
 		{
 			name: "PaymentQueryInfo error",
@@ -122,9 +128,9 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Ext:  "0x0000",
 					Hash: &testHash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("PaymentQueryInfo error"),
 		},
 		{
 			name: "GetRuntime error",
@@ -136,18 +142,27 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Ext:  "0x0000",
 					Hash: &testHash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetRuntime error"),
 		},
 	}
 	for _, tt := range tests {
+		var res PaymentQueryInfoResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			p := &PaymentModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			if err := p.QueryInfo(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = p.QueryInfo(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("QueryInfo() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
