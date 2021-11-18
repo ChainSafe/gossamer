@@ -156,10 +156,10 @@ func encodeChildsInParallel(children [16]node, buffer *bytes.Buffer) (err error)
 	type result struct {
 		index  int
 		buffer *bytes.Buffer
+		err    error
 	}
 
 	resultsCh := make(chan result)
-	errorCh := make(chan error)
 
 	for i, child := range children {
 		go func(index int, child node) {
@@ -169,14 +169,11 @@ func encodeChildsInParallel(children [16]node, buffer *bytes.Buffer) (err error)
 			// data in the select block below.
 
 			err := encodeChild(child, buffer)
-			if err != nil {
-				errorCh <- err
-				return
-			}
 
 			resultsCh <- result{
 				index:  index,
 				buffer: buffer,
+				err:    err,
 			}
 		}(i, child)
 	}
@@ -184,28 +181,26 @@ func encodeChildsInParallel(children [16]node, buffer *bytes.Buffer) (err error)
 	currentIndex := 0
 	resultBuffers := make([]*bytes.Buffer, len(children))
 	for range children {
-		select {
-		case result := <-resultsCh:
-			resultBuffers[result.index] = result.buffer
+		result := <-resultsCh
+		if result.err != nil && err == nil { // only set the first error we get
+			err = result.err
+		}
 
-			// write as many completed buffers to the result buffer.
-			for currentIndex < len(children) &&
-				resultBuffers[currentIndex] != nil {
-				// note buffer.Write copies the byte slice given as argument
-				_, writeErr := buffer.Write(resultBuffers[currentIndex].Bytes())
-				if writeErr != nil && err == nil {
-					err = writeErr
-				}
+		resultBuffers[result.index] = result.buffer
 
-				encodingBufferPool.Put(resultBuffers[currentIndex])
-				resultBuffers[currentIndex] = nil
-
-				currentIndex++
+		// write as many completed buffers to the result buffer.
+		for currentIndex < len(children) &&
+			resultBuffers[currentIndex] != nil {
+			// note buffer.Write copies the byte slice given as argument
+			_, writeErr := buffer.Write(resultBuffers[currentIndex].Bytes())
+			if writeErr != nil && err == nil {
+				err = writeErr
 			}
-		case newErr := <-errorCh:
-			if err == nil { // only set the first error we get
-				err = newErr
-			}
+
+			encodingBufferPool.Put(resultBuffers[currentIndex])
+			resultBuffers[currentIndex] = nil
+
+			currentIndex++
 		}
 	}
 
