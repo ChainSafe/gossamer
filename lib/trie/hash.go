@@ -208,6 +208,13 @@ func encodeChildsInParallel(children [16]node, buffer *bytes.Buffer) (err error)
 		}
 	}
 
+	for _, buffer := range resultBuffers {
+		if buffer == nil { // already emptied and put back in pool
+			continue
+		}
+		encodingBufferPool.Put(buffer)
+	}
+
 	return err
 }
 
