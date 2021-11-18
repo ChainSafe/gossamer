@@ -2,7 +2,9 @@ package modules
 
 import (
 	"errors"
+	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
@@ -15,7 +17,6 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 	mockRuntimeStorageAPI.On("GetLocal", common.MustHexToBytes("0x11111111111111")).Return([]byte("some-value"), nil)
 	offChainModule := NewOffchainModule(mockRuntimeStorageAPI)
 
-	var res StringResponse
 	type fields struct {
 		nodeStorage RuntimeStorageAPI
 	}
@@ -29,6 +30,8 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StringResponse
 	}{
 		{
 			name: "GetPersistent error",
@@ -40,9 +43,9 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 					Kind: offchainPersistent,
 					Key:  "0x11111111111111",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetPersistent error"),
 		},
 		{
 			name: "Invalid Storage Kind",
@@ -54,9 +57,9 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 					Kind: "invalid kind",
 					Key:  "0x11111111111111",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: fmt.Errorf("storage kind not found: invalid kind"),
 		},
 		{
 			name: "GetLocal OK",
@@ -68,8 +71,8 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 					Kind: offchainLocal,
 					Key:  "0x11111111111111",
 				},
-				res: &res,
 			},
+			exp: StringResponse("0x736f6d652d76616c7565"),
 		},
 		{
 			name: "Invalid key",
@@ -81,18 +84,27 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 					Kind: offchainLocal,
 					Key:  "0x1",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("cannot decode an odd length string"),
 		},
 	}
 	for _, tt := range tests {
+		var res StringResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			s := &OffchainModule{
 				nodeStorage: tt.fields.nodeStorage,
 			}
-			if err := s.LocalStorageGet(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = s.LocalStorageGet(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("LocalStorageGet() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -103,20 +115,20 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 	mockRuntimeStorageAPI.On("SetLocal", common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).Return(nil)
 	mockRuntimeStorageAPI.On("SetPersistent", common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).Return(errors.New("SetPersistent error"))
 
-	var res StringResponse
 	type fields struct {
 		nodeStorage RuntimeStorageAPI
 	}
 	type args struct {
 		in0 *http.Request
 		req *OffchainLocalStorageSet
-		in2 *StringResponse
+		res *StringResponse
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
 	}{
 		{
 			name: "setLocal OK",
@@ -129,7 +141,6 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Key:   "0x11111111111111",
 					Value: "0x22222222222222",
 				},
-				in2: &res,
 			},
 		},
 		{
@@ -143,9 +154,9 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Key:   "0x1",
 					Value: "0x22222222222222",
 				},
-				in2: &res,
 			},
 			wantErr: true,
+			err: errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "Invalid Value",
@@ -158,9 +169,9 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Key:   "0x11111111111111",
 					Value: "0x2",
 				},
-				in2: &res,
 			},
 			wantErr: true,
+			err: errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "setPersistentError",
@@ -173,9 +184,9 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Key:   "0x11111111111111",
 					Value: "0x22222222222222",
 				},
-				in2: &res,
 			},
 			wantErr: true,
+			err: errors.New("SetPersistent error"),
 		},
 		{
 			name: "Invalid Kind",
@@ -188,18 +199,26 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Key:   "0x11111111111111",
 					Value: "0x22222222222222",
 				},
-				in2: &res,
 			},
 			wantErr: true,
+			err: fmt.Errorf("storage kind not found: bad kind"),
 		},
 	}
 	for _, tt := range tests {
+		var res StringResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			s := &OffchainModule{
 				nodeStorage: tt.fields.nodeStorage,
 			}
-			if err := s.LocalStorageSet(tt.args.in0, tt.args.req, tt.args.in2); (err != nil) != tt.wantErr {
+			var err error
+			if err = s.LocalStorageSet(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("LocalStorageSet() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
