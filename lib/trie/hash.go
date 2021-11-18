@@ -151,12 +151,12 @@ func encodeBranch(b *branch, buffer *bytes.Buffer, parallel bool) (err error) {
 	}
 
 	if parallel {
-		return encodeChildsInParallel(b.children, buffer)
+		return encodeChildrenInParallel(b.children, buffer)
 	}
 	return encodeChildsSequentially(b.children, buffer)
 }
 
-func encodeChildsInParallel(children [16]node, buffer *bytes.Buffer) (err error) {
+func encodeChildrenInParallel(children [16]node, buffer *bytes.Buffer) (err error) {
 	type result struct {
 		index  int
 		buffer *bytes.Buffer
