@@ -121,7 +121,7 @@ func encodeAndHash(n node) ([]byte, error) {
 	return scEncChild, nil
 }
 
-// encodeBranch encodes a branch with the encoding specified in hashedOrEncodedNode
+// encodeBranch encodes a branch with the encoding specified at the top of this package
 // to the buffer given.
 func encodeBranch(b *branch, buffer *bytes.Buffer, parallel bool) (err error) {
 	if !b.dirty && b.encoding != nil {
