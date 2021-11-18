@@ -5,6 +5,7 @@ package modules
 
 import (
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
@@ -39,7 +40,6 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 	mockBlockAPISubChainErr.On("SubChain", testHash, testHash).Return(nil, errors.New("SubChain error"))
 
 	grandpaModule := NewGrandpaModule(mockBlockAPISubChainErr, mockBlockFinalityAPI)
-	var res ProveFinalityResponse
 	type fields struct {
 		blockAPI         BlockAPI
 		blockFinalityAPI BlockFinalityAPI
@@ -54,6 +54,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     ProveFinalityResponse
 	}{
 		{
 			name: "SubChain Err",
@@ -67,9 +69,9 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 					blockHashEnd:   testHash,
 					authorityID:    uint64(21),
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("SubChain error"),
 		},
 		{
 			name: "OK Case",
@@ -83,8 +85,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 					blockHashEnd:   testHash,
 					authorityID:    uint64(21),
 				},
-				res: &res,
 			},
+			exp: ProveFinalityResponse{[]uint8{0x74, 0x65, 0x73, 0x74}, []uint8{0x74, 0x65, 0x73, 0x74}, []uint8{0x74, 0x65, 0x73, 0x74}},
 		},
 		{
 			name: "HasJustification Error",
@@ -98,8 +100,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 					blockHashEnd:   testHash,
 					authorityID:    uint64(21),
 				},
-				res: &res,
 			},
+			exp: ProveFinalityResponse(nil),
 		},
 		{
 			name: "GetJustification Error",
@@ -113,18 +115,28 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 					blockHashEnd:   testHash,
 					authorityID:    uint64(21),
 				},
-				res: &res,
 			},
+			exp: ProveFinalityResponse(nil),
 		},
 	}
 	for _, tt := range tests {
+		var res ProveFinalityResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			gm := &GrandpaModule{
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
-			if err := gm.ProveFinality(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = gm.ProveFinality(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("ProveFinality() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
