@@ -83,8 +83,9 @@ func (l *leaf) setGeneration(generation uint64) {
 }
 
 func (b *branch) copy() node {
-	b.Lock()
-	defer b.Unlock()
+	b.RLock()
+	defer b.RUnlock()
+
 	cpy := &branch{
 		key:        make([]byte, len(b.key)),
 		children:   b.children, // copy interface pointers
@@ -108,8 +109,9 @@ func (b *branch) copy() node {
 }
 
 func (l *leaf) copy() node {
-	l.Lock()
-	defer l.Unlock()
+	l.RLock()
+	defer l.RUnlock()
+
 	cpy := &leaf{
 		key:        make([]byte, len(l.key)),
 		value:      make([]byte, len(l.value)),
