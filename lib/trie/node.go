@@ -233,7 +233,6 @@ func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
 
 	if buffer.Len() < 32 {
 		b.hash = make([]byte, len(bufferBytes))
-		hash = make([]byte, len(bufferBytes))
 		copy(b.hash, bufferBytes)
 		hash = b.hash // no need to copy
 		return encoding, hash, nil
