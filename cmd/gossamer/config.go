@@ -316,7 +316,8 @@ func parseLogLevelString(logLevelString string) (logLevel log.Level, err error) 
 	return logLevel, nil
 }
 
-func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
+func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config,
+	globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
 	if tomlConfig == nil {
 		tomlConfig = new(ctoml.Config)
 	}

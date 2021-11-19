@@ -57,7 +57,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 	require.NoError(t, err)
 
 	// Invalid Sign
-	sigData, err := common.HexToBytes("0x90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301")
+	sigData, err := common.HexToBytes("0x90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301") //nolint:lll
 	require.Nil(t, err)
 
 	signature := &Signature{

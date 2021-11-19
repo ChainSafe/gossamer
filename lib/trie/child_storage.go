@@ -64,7 +64,8 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 	return t.PutChild(keyToChild, child)
 }
 
-// GetFromChild retrieves a key-value pair from the child trie located in the main trie at key :child_storage:[keyToChild]
+// GetFromChild retrieves a key-value pair from the child trie located
+// in the main trie at key :child_storage:[keyToChild]
 func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 	child, err := t.GetChild(keyToChild)
 	if err != nil {

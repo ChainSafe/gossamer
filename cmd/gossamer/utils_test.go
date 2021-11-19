@@ -19,7 +19,9 @@ import (
 // newTestContext creates a cli context for a test given a set of flags and values
 func newTestContext(description string, flags []string, values []interface{}) (*cli.Context, error) {
 	if len(flags) != len(values) {
-		return nil, fmt.Errorf("number of flags and values are not same, number of flags: %d, number of values: %d", len(flags), len(values))
+		return nil, fmt.Errorf(
+			"number of flags and values are not same, number of flags: %d, number of values: %d",
+			len(flags), len(values))
 	}
 
 	// Define flags with its name and default value

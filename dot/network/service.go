@@ -49,7 +49,8 @@ type (
 	// messageDecoder is passed on readStream to decode the data from the stream into a message.
 	// since messages are decoded based on context, this is different for every sub-protocol.
 	messageDecoder = func([]byte, peer.ID, bool) (Message, error)
-	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
+	// messageHandler is passed on readStream to handle the resulting message.
+	// It should return an error only if the stream is to be closed
 	messageHandler = func(stream libp2pnetwork.Stream, msg Message) error
 )
 
@@ -290,9 +291,15 @@ func (s *Service) collectNetworkMetrics() {
 		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
 		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
-		syncedBlocks := metrics.GetOrRegisterGauge("service/blocks/sync", metrics.DefaultRegistry)
-		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/inbound", metrics.DefaultRegistry)
-		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/outbound", metrics.DefaultRegistry)
+		syncedBlocks := metrics.GetOrRegisterGauge(
+			"service/blocks/sync",
+			metrics.DefaultRegistry)
+		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
+			"network/streams/block_announce/inbound",
+			metrics.DefaultRegistry)
+		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
+			"network/streams/block_announce/outbound",
+			metrics.DefaultRegistry)
 		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
 		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
 		totalInboundStreams := metrics.GetOrRegisterGauge("network/streams/total/inbound", metrics.DefaultRegistry)

@@ -69,7 +69,8 @@ var (
 	TransactionPaymentAPIQueryInfo = "TransactionPaymentApi_query_info"
 )
 
-// GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
+// GrandpaAuthoritiesKey is the location of GRANDPA authority data
+// in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
 var GrandpaAuthoritiesKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
 
 // BABEPrefix is the prefix for all BABE related storage values

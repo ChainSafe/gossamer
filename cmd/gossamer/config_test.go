@@ -306,7 +306,8 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 				[]string{"ws://foo/bar k"},
 				testCfg.Global.Name,
 			},
-			"could not set global config from flags: could not parse verbosity from telemetry-url: strconv.Atoi: parsing \"k\": invalid syntax",
+			"could not set global config from flags: could not parse verbosity from telemetry-url: " +
+				`strconv.Atoi: parsing "k": invalid syntax`,
 		},
 	}
 

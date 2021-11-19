@@ -37,7 +37,9 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.EqualError(t, err, "error StorageAPI not set")
 	_, msg, err := c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error StorageAPI not set"},"id":1}`+"\n"), msg)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0",`+
+		`"error":{"code":null,"message":"error StorageAPI not set"},`+
+		`"id":1}`+"\n"), msg)
 
 	wsconn.StorageAPI = modules.NewMockStorageAPI()
 
@@ -87,7 +89,13 @@ func TestWSConn_HandleComm(t *testing.T) {
 	c.WriteMessage(websocket.TextMessage, []byte(`{
     "jsonrpc": "2.0",
     "method": "state_subscribeStorage",
-    "params": ["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"],
+    "params": ["`+
+		`0x26aa394eea5630e07c48ae0c9558c`+
+		`ef7b99d880ec681799c0cf30e888637`+
+		`1da9de1e86a9a8c739864cf3cc5ec2b`+
+		`ea59fd43593c715fdd31c61141abd04`+
+		`a99fd6822c8558854ccde39a5684e7a`+
+		`56da27d"],
     "id": 7}`))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
@@ -222,13 +230,15 @@ func TestWSConn_HandleComm(t *testing.T) {
 	coreAPI := new(mocks.CoreAPI)
 	coreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(runtime.ErrInvalidTransaction)
 	wsconn.CoreAPI = coreAPI
-	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0xa9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019e91c8d44bf01ffe36d54f9e43dade2b2fc653270a0e002daed1581435c2e1755bc4349f1434876089d99c9dac4d4128e511c2a3e0788a2a74dd686519cb7c83000000000104ab"})
+	listner, err = wsconn.initExtrinsicWatch(0,
+		[]interface{}{"0xa9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019e91c8d44bf01ffe36d54f9e43dade2b2fc653270a0e002daed1581435c2e1755bc4349f1434876089d99c9dac4d4128e511c2a3e0788a2a74dd686519cb7c83000000000104ab"}) //nolint:lll
 	require.Error(t, err)
 	require.Nil(t, listner)
 
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"invalid","subscription":9}}`+"\n", string(msg))
+	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate",`+
+		`"params":{"result":"invalid","subscription":9}}`+"\n", string(msg))
 
 	mockedJust := grandpa.Justification{
 		Round: 1,
@@ -318,7 +328,10 @@ func TestSubscribeAllHeads(t *testing.T) {
 	time.Sleep(time.Millisecond * 500)
 
 	expected := fmt.Sprintf(
-		`{"jsonrpc":"2.0","method":"chain_allHead","params":{"result":{"parentHash":"%s","number":"0x00","stateRoot":"%s","extrinsicsRoot":"%s","digest":{"logs":["0x064241424504ff"]}},"subscription":1}}`,
+		`{"jsonrpc":"2.0","method":"chain_allHead",`+
+			`"params":{"result":{"parentHash":"%s","number":"0x00",`+
+			`"stateRoot":"%s","extrinsicsRoot":"%s",`+
+			`"digest":{"logs":["0x064241424504ff"]}},"subscription":1}}`,
 		common.Hash{},
 		common.Hash{},
 		common.Hash{},

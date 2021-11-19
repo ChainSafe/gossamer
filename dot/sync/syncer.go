@@ -84,7 +84,9 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	chainSync := newChainSync(csCfg)
-	chainProcessor := newChainProcessor(readyBlocks, pendingBlocks, cfg.BlockState, cfg.StorageState, cfg.TransactionState, cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler)
+	chainProcessor := newChainProcessor(readyBlocks, pendingBlocks,
+		cfg.BlockState, cfg.StorageState, cfg.TransactionState,
+		cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler)
 
 	return &Service{
 		blockState:     cfg.BlockState,
@@ -108,7 +110,8 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// HandleBlockAnnounceHandshake notifies the `chainSync` module that we have received a BlockAnnounceHandshake from the given peer.
+// HandleBlockAnnounceHandshake notifies the `chainSync` module that
+// we have received a BlockAnnounceHandshake from the given peer.
 func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
 	return s.chainSync.setPeerHead(from, msg.BestBlockHash, big.NewInt(int64(msg.BestBlockNumber)))
 }

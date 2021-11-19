@@ -174,12 +174,16 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false, true)
+	alice, err := utils.RunGossamer(t, 0,
+		utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev,
+		utils.ConfigDefault, false, true)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false, false)
+	bob, err := utils.RunGossamer(t, 1,
+		utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev,
+		utils.ConfigNoBABE, false, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -201,7 +205,10 @@ func TestSync_Bench(t *testing.T) {
 	numBlocks := 64
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
+	alice, err := utils.RunGossamer(t, 0,
+		utils.TestDir(t, utils.KeyList[1]),
+		utils.GenesisDev, utils.ConfigNoGrandpa,
+		false, true)
 	require.NoError(t, err)
 
 	for {
@@ -222,7 +229,9 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("BABE paused")
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNotAuthority, false, true)
+	bob, err := utils.RunGossamer(t, 1,
+		utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev,
+		utils.ConfigNotAuthority, false, true)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -328,15 +337,21 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	idx := 0 // TODO: randomise this
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
+	node, err := utils.RunGossamer(t, 0,
+		utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev,
+		utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 	nodes := []*utils.Node{node}
 
 	// Start rest of nodes
-	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, false, false)
+	node, err = utils.RunGossamer(t, 1,
+		utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev,
+		utils.ConfigNotAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
-	node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, false, false)
+	node, err = utils.RunGossamer(t, 2,
+		utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev,
+		utils.ConfigNotAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -463,7 +478,9 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	idx := 0 // TODO: randomise this
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, true, true)
+	node, err := utils.RunGossamer(t, 0,
+		utils.TestDir(t, utils.KeyList[0]),
+		utils.GenesisDev, utils.ConfigNoGrandpa, true, true)
 	require.NoError(t, err)
 	nodes := []*utils.Node{node}
 
@@ -530,16 +547,18 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	var result []byte
 	_, result, err = conn.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, "{\"jsonrpc\":\"2.0\",\"result\":1,\"id\":1}\n", string(result))
+	require.Equal(t, `{"jsonrpc":"2.0","result":1,"id":1}`+"\n", string(result))
 
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 
 	_, result, err = conn.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, "{\"jsonrpc\":\"2.0\",\"method\":\"author_extrinsicUpdate\",\"params\":{\"result\":\"ready\",\"subscription\":1}}\n", string(result))
+	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate",`+
+		`"params":{"result":"ready","subscription":1}}`+"\n", string(result))
 
 	_, result, err = conn.ReadMessage()
 	require.NoError(t, err)
-	require.Contains(t, string(result), "{\"jsonrpc\":\"2.0\",\"method\":\"author_extrinsicUpdate\",\"params\":{\"result\":{\"inBlock\":\"")
+	require.Contains(t, string(result), `{"jsonrpc":"2.0",`+
+		`"method":"author_extrinsicUpdate","params":{"result":{"inBlock":"`)
 
 }

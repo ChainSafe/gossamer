@@ -128,7 +128,9 @@ func TestService_InsertKey(t *testing.T) {
 		{
 			description:  "Test that insertKey fails when keystore type is valid but inappropriate",
 			keystoreType: "gran",
-			err:          fmt.Errorf("%v, passed key type: sr25519, acceptable key type: ed25519", keystore.ErrKeyTypeNotSupported),
+			err: fmt.Errorf(
+				"%v, passed key type: sr25519, acceptable key type: ed25519",
+				keystore.ErrKeyTypeNotSupported),
 		},
 		{
 			description:  "Test that insertKey succeeds when keystore type is valid and appropriate ",
@@ -580,7 +582,8 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 
-	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+	// hash for known test code substitution
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") //nolint:lll
 	s.codeSubstitute = map[common.Hash]string{
 		blockHash: common.BytesToHex(testRuntime),
 	}
@@ -606,7 +609,8 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 
 	codeHashBefore := parentRt.GetCodeHash()
-	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+	// hash for known test code substitution
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") //nolint:lll
 
 	body := types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")})
 	newBlock := &types.Block{
@@ -641,7 +645,11 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
-	require.NotEqualf(t, codeHashBefore, rt.GetCodeHash(), "expected different code hash after runtime update") // codeHash should change after runtime change
+	// codeHash should change after runtime change
+	require.NotEqualf(t,
+		codeHashBefore,
+		rt.GetCodeHash(),
+		"expected different code hash after runtime update")
 }
 
 func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
@@ -711,7 +719,10 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
+	header, err := types.NewHeader(
+		s.blockState.GenesisHash(),
+		common.Hash{}, common.Hash{},
+		big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -786,14 +797,17 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	))
 }
 
-func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []byte, parentHash common.Hash, number int64) *types.Block {
+func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
+	key, value []byte, parentHash common.Hash,
+	number int64) *types.Block {
 	t.Helper()
 
 	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(), common.Hash{}, big.NewInt(number), types.NewDigest())
+	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
+		common.Hash{}, big.NewInt(number), types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)

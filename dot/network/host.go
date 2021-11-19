@@ -88,7 +88,12 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	peerCfgSet := peerset.NewConfigSet(uint32(cfg.MaxPeers-cfg.MinPeers), uint32(cfg.MinPeers), false, peerSetSlotAllocTime)
+	const reservedOnly = false
+	peerCfgSet := peerset.NewConfigSet(
+		uint32(cfg.MaxPeers-cfg.MinPeers),
+		uint32(cfg.MinPeers),
+		reservedOnly,
+		peerSetSlotAllocTime)
 	// create connection manager
 	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 	if err != nil {
