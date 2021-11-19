@@ -196,8 +196,8 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 
 // String utilises github.com/disiqueira/gotree to create a printable tree
 func (bt *BlockTree) String() string {
-	bt.RLock()
-	defer bt.RUnlock()
+	// bt.RLock()
+	// defer bt.RUnlock()
 
 	// Construct tree
 	tree := gotree.New(bt.root.string())
