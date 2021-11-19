@@ -1270,7 +1270,9 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 	// setup granpda service
 	gs, st := newTestService(t)
 	arrivalTime := time.Unix(1000, 0)
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, 6, arrivalTime)
+
+	const previousBlocksToAdd = 9
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, arrivalTime)
 
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()

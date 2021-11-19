@@ -348,8 +348,8 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 
 	var prevote common.Hash
 	for hash, count := range votes {
-		eqvOnHash := eqVotesByHash[hash]
-		if count+uint64(len(eqvOnHash)) >= h.grandpa.state.threshold() {
+		equivocatoryVotes := eqVotesByHash[hash]
+		if count+uint64(len(equivocatoryVotes)) >= h.grandpa.state.threshold() {
 			prevote = hash
 			break
 		}
