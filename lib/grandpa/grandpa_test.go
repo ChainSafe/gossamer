@@ -1290,6 +1290,7 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 	equivocatories := make(map[ed25519.PublicKeyBytes][]*types.GrandpaSignedVote)
 	prevotes := &sync.Map{}
 
+	var totalLegitVotes int
 	// voting on
 	for _, v := range fakeAuthorities {
 		vote := &SignedVote{
@@ -1301,16 +1302,19 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 		}
 
 		// to simulate the real world:
-		// if there is some value on this authority then removes the
-		// previous and save the new one and add the previous in the
-		// equivocatories votes
-		previous, ok := prevotes.LoadAndDelete(vote.AuthorityID)
-		prevotes.Store(vote.AuthorityID, vote)
-
-		if ok {
+		// if the voter already has voted, then we remove
+		// previous vote and add it on the equivocatories with the new vote
+		previous, ok := prevotes.Load(vote.AuthorityID)
+		if !ok {
+			prevotes.Store(vote.AuthorityID, vote)
+			totalLegitVotes++
+		} else {
+			prevotes.Delete(vote.AuthorityID)
 			equivocatories[vote.AuthorityID] = []*types.GrandpaSignedVote{
 				previous.(*types.GrandpaSignedVote),
+				vote,
 			}
+			totalLegitVotes--
 		}
 	}
 
@@ -1320,18 +1324,22 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 	justifications, err := gs.createJustification(bfcHash, prevote)
 	require.NoError(t, err)
 
-	var eqvOnJustification int
-	for eqvPubKeyBytes := range equivocatories {
+	var totalEqvVotes int
+	// checks if the created justification contains all equivocatories votes
+	for eqvPubKeyBytes, expectedVotes := range equivocatories {
+		votesOnJustification := 0
+
 		for _, justification := range justifications {
 			if justification.AuthorityID == eqvPubKeyBytes {
-				eqvOnJustification++
-				break
+				votesOnJustification++
 			}
 		}
+
+		require.Equal(t, len(expectedVotes), votesOnJustification)
+		totalEqvVotes += votesOnJustification
 	}
 
-	require.Equal(t, len(equivocatories), eqvOnJustification)
-	require.Len(t, justifications, len(fakeAuthorities)+len(equivocatories))
+	require.Len(t, justifications, totalLegitVotes+totalEqvVotes)
 }
 
 // addBlocksToState test helps adding previous blocks
