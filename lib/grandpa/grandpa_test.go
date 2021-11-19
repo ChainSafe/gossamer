@@ -1269,10 +1269,10 @@ func TestFinalRoundGaugeMetric(t *testing.T) {
 func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testing.T) {
 	// setup granpda service
 	gs, st := newTestService(t)
-	arrivalTime := time.Unix(1000, 0)
+	now := time.Unix(1000, 0)
 
 	const previousBlocksToAdd = 9
-	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, arrivalTime)
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, now)
 
 	bfcHash := bfcBlock.Header.Hash()
 	bfcNumber := bfcBlock.Header.Number.Int64()
