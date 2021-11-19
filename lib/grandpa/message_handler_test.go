@@ -506,6 +506,69 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	require.Equal(t, round+1, gs.state.round)
 }
 
+func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testing.T) {
+	auths := []types.GrandpaVoter{
+		{
+			Key: *kr.Alice().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Bob().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Charlie().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Dave().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Eve().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Ferdie().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.George().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Heather().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Ian().Public().(*ed25519.PublicKey),
+		},
+	}
+
+	gs, st := newTestService(t)
+	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
+	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: *testHeader,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
+	err = st.Grandpa.IncrementSetID()
+	require.NoError(t, err)
+
+	setID, err := st.Grandpa.GetCurrentSetID()
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), setID)
+
+	round := uint64(2)
+	number := uint32(2)
+	precommits := buildTestJustification(t, 20, round, setID, kr, precommit)
+	just := newJustification(round, testHash, number, precommits)
+	data, err := scale.Marshal(*just)
+	require.NoError(t, err)
+	err = gs.VerifyBlockJustification(testHash, data)
+	require.NoError(t, err)
+}
+
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	auths := []types.GrandpaVoter{
 		{
@@ -581,6 +644,14 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 
 	// not enough signatures, shouldn't verify
 	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
+	just = newJustification(round+1, testHash, number, precommits)
+	data, err = scale.Marshal(*just)
+	require.NoError(t, err)
+	err = gs.VerifyBlockJustification(testHash, data)
+	require.Equal(t, ErrMinVotesNotMet, err)
+
+	// equivocatory signatures
+	precommits = buildTestJustification(t, 5, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)

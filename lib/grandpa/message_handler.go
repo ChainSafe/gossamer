@@ -535,7 +535,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		count++
 	}
 
-	if count+len(equivocatoryVoters) <= threshold {
+	if count+len(equivocatoryVoters) < threshold {
 		return ErrMinVotesNotMet
 	}
 
