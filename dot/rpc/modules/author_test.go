@@ -124,7 +124,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	})
 
 	// Kept mock.AnythingOfType here to test multiple keys and key types
-	mockHasKey1 := coremockapi1.On("HasKey",mock.AnythingOfType("string"), mock.AnythingOfType("string"))
+	mockHasKey1 := coremockapi1.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
 	mockHasKey1.Run(func(args mock.Arguments) {
 		pubKeyHex := args.Get(0).(string)
 		keyType := args.Get(1).(string)
@@ -248,7 +248,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				req: &Extrinsic{fmt.Sprintf("%x", "1")},
 			},
 			wantErr: true,
-			err: fmt.Errorf("could not byteify non 0x prefixed string"),
+			err:     fmt.Errorf("could not byteify non 0x prefixed string"),
 			wantRes: ExtrinsicHashResponse(""),
 		},
 		{
@@ -261,7 +261,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				req: &Extrinsic{fmt.Sprintf("0x%x", testInvalidExt)},
 			},
 			wantErr: true,
-			err: fmt.Errorf("some error"),
+			err:     fmt.Errorf("some error"),
 			wantRes: ExtrinsicHashResponse(types.Extrinsic(testInvalidExt).Hash().String()),
 		},
 		{
@@ -456,7 +456,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("generated public key does not equal provide public key"),
+			err:     errors.New("generated public key does not equal provide public key"),
 		},
 		{
 			name: "unknown key",
@@ -472,7 +472,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("cannot decode key: invalid key type"),
+			err:     errors.New("cannot decode key: invalid key type"),
 		},
 	}
 	for _, tt := range tests {
@@ -559,7 +559,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 			},
 			wantRes: false,
 			wantErr: true,
-			err: fmt.Errorf("some error"),
+			err:     fmt.Errorf("some error"),
 		},
 	}
 	for _, tt := range tests {

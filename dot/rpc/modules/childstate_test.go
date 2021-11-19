@@ -88,7 +88,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			},
 			args: args{
 				req: &GetKeysRequest{
-					Key:    []byte(":child_storage_key"),
+					Key: []byte(":child_storage_key"),
 				},
 			},
 			exp: &expStr,
@@ -101,8 +101,8 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			},
 			args: args{
 				req: &GetKeysRequest{
-					Key:    []byte(":child_storage_key"),
-					Hash:   &hash,
+					Key:  []byte(":child_storage_key"),
+					Hash: &hash,
 				},
 			},
 			exp: &expStr,
@@ -115,11 +115,11 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			},
 			args: args{
 				req: &GetKeysRequest{
-					Hash:   &common.Hash{},
+					Hash: &common.Hash{},
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorageChild error"),
+			err:     errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -129,11 +129,11 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			},
 			args: args{
 				req: &GetKeysRequest{
-					Key:    []byte(":child_storage_key"),
+					Key: []byte(":child_storage_key"),
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStateRootFromBlock error"),
+			err:     errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -234,11 +234,11 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 			},
 			args: args{
 				req: &GetChildStorageRequest{
-					Hash:     &hash,
+					Hash: &hash,
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorageChild error"),
+			err:     errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -248,11 +248,11 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 			},
 			args: args{
 				req: &GetChildStorageRequest{
-					Hash:     &hash,
+					Hash: &hash,
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStateRootFromBlock error"),
+			err:     errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -353,11 +353,11 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 			},
 			args: args{
 				req: &GetStorageHash{
-					Hash:     &hash,
+					Hash: &hash,
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorageChild error"),
+			err:     errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -367,11 +367,11 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 			},
 			args: args{
 				req: &GetStorageHash{
-					Hash:     &hash,
+					Hash: &hash,
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStateRootFromBlock error"),
+			err:     errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -433,7 +433,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 		args    args
 		wantErr bool
 		err     error
-		exp    StateStorageResponse
+		exp     StateStorageResponse
 	}{
 		{
 			name: "Get Keys Nil Hash",
@@ -472,11 +472,11 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 			},
 			args: args{
 				req: &ChildStateStorageRequest{
-					Hash:            &hash,
+					Hash: &hash,
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorageChild error"),
+			err:     errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -486,11 +486,11 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 			},
 			args: args{
 				req: &ChildStateStorageRequest{
-					Hash:            &hash,
+					Hash: &hash,
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStateRootFromBlock error"),
+			err:     errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {

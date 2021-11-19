@@ -45,7 +45,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetPersistent error"),
+			err:     errors.New("GetPersistent error"),
 		},
 		{
 			name: "Invalid Storage Kind",
@@ -59,7 +59,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: fmt.Errorf("storage kind not found: invalid kind"),
+			err:     fmt.Errorf("storage kind not found: invalid kind"),
 		},
 		{
 			name: "GetLocal OK",
@@ -86,7 +86,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("cannot decode an odd length string"),
+			err:     errors.New("cannot decode an odd length string"),
 		},
 	}
 	for _, tt := range tests {
@@ -156,7 +156,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("cannot decode an odd length string"),
+			err:     errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "Invalid Value",
@@ -171,7 +171,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("cannot decode an odd length string"),
+			err:     errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "setPersistentError",
@@ -186,7 +186,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("SetPersistent error"),
+			err:     errors.New("SetPersistent error"),
 		},
 		{
 			name: "Invalid Kind",
@@ -201,7 +201,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: fmt.Errorf("storage kind not found: bad kind"),
+			err:     fmt.Errorf("storage kind not found: bad kind"),
 		},
 	}
 	for _, tt := range tests {

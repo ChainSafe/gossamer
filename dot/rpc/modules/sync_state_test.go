@@ -59,7 +59,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GenSyncSpec error"),
+			err:     errors.New("GenSyncSpec error"),
 		},
 	}
 	for _, tt := range tests {
@@ -109,17 +109,16 @@ func TestNewStateSync(t *testing.T) {
 				gData:      g.GenesisData(),
 				storageAPI: mockStorageAPI,
 			},
-			exp: syncState{chainSpecification:
-				&genesis.Genesis{
-					Name:       "",
-					ID:         "",
-					Bootnodes:  []string{},
-					ProtocolID: "",
-					Genesis: genesis.Fields{
-						Raw:    map[string]map[string]string{},
-						Runtime: map[string]map[string]interface{}{},
-					},
+			exp: syncState{chainSpecification: &genesis.Genesis{
+				Name:       "",
+				ID:         "",
+				Bootnodes:  []string{},
+				ProtocolID: "",
+				Genesis: genesis.Fields{
+					Raw:     map[string]map[string]string{},
+					Runtime: map[string]map[string]interface{}{},
 				},
+			},
 			},
 		},
 		{
@@ -129,7 +128,7 @@ func TestNewStateSync(t *testing.T) {
 				storageAPI: mockStorageAPIErr,
 			},
 			wantErr: true,
-			err: errors.New("entries error"),
+			err:     errors.New("entries error"),
 		},
 	}
 	for _, tt := range tests {
@@ -168,7 +167,7 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 		{
 			name:   "GenSyncSpec False",
 			fields: fields{g},
-			exp: &genesis.Genesis{},
+			exp:    &genesis.Genesis{},
 		},
 		{
 			name:   "GenSyncSpec True",

@@ -71,7 +71,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("SubChain error"),
+			err:     errors.New("SubChain error"),
 		},
 		{
 			name: "OK Case",
@@ -172,8 +172,8 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 	expRes := &RoundStateResponse{
 		SetID: 0x0,
 		Best: RoundState{
-			Round: 0x2,
-			TotalWeight: 0x9,
+			Round:           0x2,
+			TotalWeight:     0x9,
 			ThresholdWeight: 0x6,
 			Prevotes: Votes{
 				CurrentWeight: 0x4,

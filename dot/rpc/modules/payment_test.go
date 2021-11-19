@@ -100,11 +100,11 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			},
 			args: args{
 				req: &PaymentQueryInfoRequest{
-					Ext:  "0x0",
+					Ext: "0x0",
 				},
 			},
 			wantErr: true,
-			err: errors.New("cannot decode an odd length string"),
+			err:     errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "Invalid Ext",
@@ -113,7 +113,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			},
 			args: args{
 				req: &PaymentQueryInfoRequest{
-					Ext:  "0x0000",
+					Ext: "0x0000",
 				},
 			},
 			exp: PaymentQueryInfoResponse{},
@@ -130,7 +130,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("PaymentQueryInfo error"),
+			err:     errors.New("PaymentQueryInfo error"),
 		},
 		{
 			name: "GetRuntime error",
@@ -144,7 +144,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetRuntime error"),
+			err:     errors.New("GetRuntime error"),
 		},
 	}
 	for _, tt := range tests {

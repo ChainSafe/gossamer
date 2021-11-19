@@ -17,6 +17,8 @@ package modules
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
@@ -68,7 +70,10 @@ func TestStateModuleGetPairs(t *testing.T) {
 	mockStorageAPIGetStorageErr.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return([][]byte{{2}, {2}}, nil)
 	mockStorageAPIGetStorageErr.On("GetStorage", &hash, []byte{2}).Return(nil, errors.New("GetStorage Err"))
 
-	var res StatePairResponse
+	var expRes StatePairResponse
+	for k, v := range m {
+		expRes = append(expRes, []string{common.BytesToHex([]byte(k)), common.BytesToHex(v)})
+	}
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -84,38 +89,40 @@ func TestStateModuleGetPairs(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StatePairResponse
 	}{
 		{
 			name:   "GetStateRootFromBlock Error",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				req: &StatePairRequest{
-					Bhash:  &hash,
+					Bhash: &hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetStateRootFromBlock Err"),
 		},
 		{
 			name:   "Nil Prefix OK",
 			fields: fields{nil, mockStorageAPINil, nil},
 			args: args{
 				req: &StatePairRequest{
-					Bhash:  &hash,
+					Bhash: &hash,
 				},
-				res: &res,
 			},
+			exp: expRes,
 		},
 		{
 			name:   "Nil Prefix Err",
 			fields: fields{nil, mockStorageAPIEntriesErr, nil},
 			args: args{
 				req: &StatePairRequest{
-					Bhash:  &hash,
+					Bhash: &hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("entries Err"),
 		},
 		{
 			name:   "OK Case",
@@ -125,8 +132,8 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Prefix: &str,
 					Bhash:  &hash,
 				},
-				res: &res,
 			},
+			exp: StatePairResponse{[]string{"0x01", "0x15"}, []string{"0x01", "0x15"}},
 		},
 		{
 			name:   "GetKeysWithPrefix Error",
@@ -136,9 +143,9 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Prefix: &str,
 					Bhash:  &hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetKeysWithPrefix Err"),
 		},
 		{
 			name:   "GetStorage Error",
@@ -148,9 +155,9 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Prefix: &str,
 					Bhash:  &hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetStorage Err"),
 		},
 		{
 			name:   "GetKeysWithPrefix Empty",
@@ -160,19 +167,29 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Prefix: &str,
 					Bhash:  &hash,
 				},
-				res: &res,
 			},
+			exp: StatePairResponse{},
 		},
 	}
 	for _, tt := range tests {
+		var res StatePairResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.GetPairs(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.GetPairs(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetPairs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -188,7 +205,6 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 	mockStorageAPIErr := new(apimocks.StorageAPI)
 	mockStorageAPIErr.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).Return(nil, errors.New("GetKeysWithPrefix Err"))
 
-	var res StateStorageKeysResponse
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -204,6 +220,8 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StateStorageKeysResponse
 	}{
 		{
 			name:   "OK",
@@ -212,8 +230,8 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				req: &StateStorageKeyRequest{
 					AfterKey: "0x01",
 				},
-				res: &res,
 			},
+			exp: StateStorageKeysResponse(nil),
 		},
 		{
 			name:   "ResCount break",
@@ -223,8 +241,8 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 					Qty:      1,
 					AfterKey: "0x01",
 				},
-				res: &res,
 			},
+			exp: StateStorageKeysResponse{"0x010101"},
 		},
 		{
 			name:   "GetKeysWithPrefix Error",
@@ -233,9 +251,9 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				req: &StateStorageKeyRequest{
 					AfterKey: "0x01",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetKeysWithPrefix Err"),
 		},
 		{
 			name:   "Request Prefix Error",
@@ -245,20 +263,30 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 					Prefix:   "a",
 					AfterKey: "0x01",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("invalid string"),
 		},
 	}
 	for _, tt := range tests {
+		var res StateStorageKeysResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetKeysPaged() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -284,7 +312,10 @@ func TestStateModuleGetMetadata(t *testing.T) {
 	mockCoreAPIErr.On("GetMetadata", &hash).Return(nil, errors.New("GetMetadata Error"))
 
 	mockStateModule := NewStateModule(nil, nil, mockCoreAPIErr)
-	var res StateMetadataResponse
+
+	var expRes []byte
+	err := scale.Unmarshal(common.MustHexToBytes(testdata.TestData), &expRes)
+	assert.NoError(t, err)
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -300,34 +331,46 @@ func TestStateModuleGetMetadata(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StateMetadataResponse
 	}{
 		{
 			name:   "OK Case",
 			fields: fields{nil, nil, mockCoreAPI},
 			args: args{
 				req: &StateRuntimeMetadataQuery{Bhash: &hash},
-				res: &res,
 			},
+			exp: StateMetadataResponse(common.BytesToHex(expRes)),
 		},
 		{
 			name:   "GetMetadata Error",
 			fields: fields{nil, nil, mockStateModule.coreAPI},
 			args: args{
 				req: &StateRuntimeMetadataQuery{Bhash: &hash},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetMetadata Error"),
 		},
 	}
 	for _, tt := range tests {
+		var res StateMetadataResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.GetMetadata(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.GetMetadata(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetMetadata() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -350,7 +393,6 @@ func TestStateModuleGetReadProof(t *testing.T) {
 	mockCoreAPIErr := new(apimocks.CoreAPI)
 	mockCoreAPIErr.On("GetReadProofAt", hash, expKeys).Return(nil, nil, errors.New("GetReadProofAt Error"))
 
-	var res StateGetReadProofResponse
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -366,6 +408,8 @@ func TestStateModuleGetReadProof(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StateGetReadProofResponse
 	}{
 		{
 			name:   "OK Case",
@@ -375,7 +419,10 @@ func TestStateModuleGetReadProof(t *testing.T) {
 					Keys: keys,
 					Hash: hash,
 				},
-				res: &res,
+			},
+			exp: StateGetReadProofResponse{
+				At: common.Hash{0x3a, 0xa9, 0x6b, 0x1, 0x49, 0xb6, 0xca, 0x36, 0x88, 0x87, 0x8b, 0xdb, 0xd1, 0x94, 0x64, 0x44, 0x86, 0x24, 0x13, 0x63, 0x98, 0xe3, 0xce, 0x45, 0xb9, 0xe7, 0x55, 0xd3, 0xab, 0x61, 0x35, 0x5a},
+				Proof:[]string{"0x010101", "0x010101"},
 			},
 		},
 		{
@@ -386,9 +433,9 @@ func TestStateModuleGetReadProof(t *testing.T) {
 					Keys: keys,
 					Hash: hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetReadProofAt Error"),
 		},
 		{
 			name:   "InvalidKeys Error",
@@ -398,20 +445,30 @@ func TestStateModuleGetReadProof(t *testing.T) {
 					Keys: keys,
 					Hash: hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetReadProofAt Error"),
 		},
 	}
 	for _, tt := range tests {
+		var res StateGetReadProofResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetReadProof() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -439,7 +496,6 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 	mockCoreAPIErr := new(apimocks.CoreAPI)
 	mockCoreAPIErr.On("GetRuntimeVersion", &hash).Return(nil, errors.New("GetRuntimeVersion Error"))
 
-	var res StateRuntimeVersionResponse
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -455,34 +511,53 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StateRuntimeVersionResponse
 	}{
 		{
 			name:   "OK Case",
 			fields: fields{nil, nil, mockCoreAPI},
 			args: args{
 				req: &StateRuntimeVersionRequest{&hash},
-				res: &res,
 			},
+			exp: StateRuntimeVersionResponse{
+				SpecName: "polkadot",
+				ImplName: "parity-polkadot",
+				AuthoringVersion: 0x0,
+				SpecVersion: 0x19,
+				ImplVersion: 0x0,
+				TransactionVersion: 0x5,
+				Apis: []interface{}{[]interface{}{"0x0102030405060708", uint32(99)}}},
 		},
 		{
 			name:   "GetRuntimeVersion Error",
 			fields: fields{nil, nil, mockCoreAPIErr},
 			args: args{
 				req: &StateRuntimeVersionRequest{&hash},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetRuntimeVersion Error"),
 		},
 	}
 	for _, tt := range tests {
+		var res StateRuntimeVersionResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.GetRuntimeVersion(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.GetRuntimeVersion(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetRuntimeVersion() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -500,7 +575,6 @@ func TestStateModuleGetStorage(t *testing.T) {
 	mockStorageAPIErr.On("GetStorageByBlockHash", &hash, reqBytes).Return(nil, errors.New("GetStorageByBlockHash Error"))
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), reqBytes).Return(nil, errors.New("GetStorage Error"))
 
-	var res StateStorageResponse
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -516,6 +590,8 @@ func TestStateModuleGetStorage(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StateStorageResponse
 	}{
 		{
 			name:   "bHash Not Nil OK",
@@ -525,18 +601,18 @@ func TestStateModuleGetStorage(t *testing.T) {
 					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 					Bhash: &hash,
 				},
-				res: &res,
 			},
+			exp: StateStorageResponse("0x15"),
 		},
 		{
 			name:   "bHash Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				req: &StateStorageRequest{
-					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
-				res: &res,
 			},
+			exp: StateStorageResponse("0x15"),
 		},
 		{
 			name:   "bHash Not Nil Err",
@@ -546,31 +622,41 @@ func TestStateModuleGetStorage(t *testing.T) {
 					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 					Bhash: &hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				req: &StateStorageRequest{
-					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
+		var res StateStorageResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.GetStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.GetStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorage() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -588,7 +674,6 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 	mockStorageAPIErr.On("GetStorageByBlockHash", &hash, reqBytes).Return(nil, errors.New("GetStorageByBlockHash Error"))
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), reqBytes).Return(nil, errors.New("GetStorage Error"))
 
-	var res StateStorageHashResponse
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -604,6 +689,8 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StateStorageHashResponse
 	}{
 		{
 			name:   "bHash Not Nil OK",
@@ -613,18 +700,18 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 					Bhash: &hash,
 				},
-				res: &res,
 			},
+			exp: StateStorageHashResponse("0x0000000000000000000000000000000000000000000000000000000000000015"),
 		},
 		{
 			name:   "bHash Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				req: &StateStorageHashRequest{
-					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
-				res: &res,
 			},
+			exp: StateStorageHashResponse("0x0000000000000000000000000000000000000000000000000000000000000015"),
 		},
 		{
 			name:   "bHash Not Nil Err",
@@ -634,31 +721,41 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 					Bhash: &hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				req: &StateStorageHashRequest{
-					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
+		var res StateStorageHashResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorageHash() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -676,7 +773,6 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 	mockStorageAPIErr.On("GetStorageByBlockHash", &hash, reqBytes).Return(nil, errors.New("GetStorageByBlockHash Error"))
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), reqBytes).Return(nil, errors.New("GetStorage Error"))
 
-	var res StateStorageSizeResponse
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -692,6 +788,8 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     StateStorageSizeResponse
 	}{
 		{
 			name:   "bHash Not Nil OK",
@@ -701,18 +799,18 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 					Bhash: &hash,
 				},
-				res: &res,
 			},
+			exp: StateStorageSizeResponse(1),
 		},
 		{
 			name:   "bHash Nil OK",
 			fields: fields{nil, mockStorageAPI, nil},
 			args: args{
 				req: &StateStorageSizeRequest{
-					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
-				res: &res,
 			},
+			exp: StateStorageSizeResponse(1),
 		},
 		{
 			name:   "bHash Not Nil Err",
@@ -722,31 +820,40 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 					Bhash: &hash,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
 			fields: fields{nil, mockStorageAPIErr, nil},
 			args: args{
 				req: &StateStorageSizeRequest{
-					Key:   "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
+					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
+		var res StateStorageSizeResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorageSize() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -771,7 +878,6 @@ func TestStateModuleQueryStorage(t *testing.T) {
 	mockCoreAPIErr := new(apimocks.CoreAPI)
 	mockCoreAPIErr.On("QueryStorage", hash1, hash2, "jimbo").Return(nil, errors.New("QueryStorage Error"))
 
-	var res []StorageChangeSetResponse
 	type fields struct {
 		networkAPI NetworkAPI
 		storageAPI StorageAPI
@@ -787,6 +893,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     []StorageChangeSetResponse
 	}{
 		{
 			name:   "OK Case",
@@ -797,8 +905,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					StartBlock: hash1,
 					EndBlock:   hash2,
 				},
-				res: &res,
 			},
+			exp: []StorageChangeSetResponse{{Block: &hash1, Changes: [][]string{[]string{"p2", "jimbo"}}}},
 		},
 		{
 			name:   "QueryStorage Error",
@@ -809,32 +917,41 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					StartBlock: hash1,
 					EndBlock:   hash2,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("QueryStorage Error"),
 		},
 		{
 			name:   "Empty Start Block Error",
 			fields: fields{nil, nil, mockCoreAPI},
 			args: args{
 				req: &StateStorageQueryRangeRequest{
-					Keys:       []string{"jimbo"},
-					EndBlock:   hash2,
+					Keys:     []string{"jimbo"},
+					EndBlock: hash2,
 				},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("the start block hash cannot be an empty value"),
 		},
 	}
 	for _, tt := range tests {
+		var res []StorageChangeSetResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			if err := sm.QueryStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.QueryStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("QueryStorage() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}

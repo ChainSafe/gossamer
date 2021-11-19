@@ -181,7 +181,7 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 		for k, v := range pairs {
 			*res = append(*res, []string{common.BytesToHex([]byte(k)), common.BytesToHex(v)})
 		}
-
+		fmt.Println(*res)
 		return nil
 	}
 
@@ -208,6 +208,7 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 
 		(*res)[i] = []string{common.BytesToHex(key), common.BytesToHex(val)}
 	}
+	fmt.Println(*res)
 
 	return nil
 }
@@ -416,6 +417,7 @@ func (sm *StateModule) QueryStorage(_ *http.Request, req *StateStorageQueryRange
 			changes = append(changes, []string{key, value})
 		}
 
+		fmt.Println(block)
 		response = append(response, StorageChangeSetResponse{
 			Block:   &block,
 			Changes: changes,

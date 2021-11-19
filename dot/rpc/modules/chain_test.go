@@ -32,7 +32,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 	bodyBlock.Body = types.BytesArrayToExtrinsics([][]byte{{1}})
 	mockBlockAPIWithBody := new(apimocks.BlockAPI)
 	mockBlockAPIWithBody.On("GetBlockByHash", inputHash).Return(&bodyBlock, nil)
-	
+
 	expEmptyBlock := &ChainBlockResponse{Block: ChainBlock{
 		Header: ChainBlockHeaderResponse{
 			ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -41,7 +41,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 			ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
 			Digest:         ChainBlockHeaderDigest{},
 		},
-		Body:   nil,
+		Body: nil,
 	}}
 
 	expBlock := &ChainBlockResponse{Block: ChainBlock{
@@ -68,7 +68,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		exp *ChainBlockResponse
+		exp     *ChainBlockResponse
 		wantErr bool
 		err     error
 	}{
@@ -91,7 +91,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 				req: &ChainHashRequest{&testHash},
 			},
 			wantErr: true,
-			err: errors.New("GetJustification error"),
+			err:     errors.New("GetJustification error"),
 		},
 		{
 			name: "GetBlock with body OK",
@@ -194,7 +194,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{uintptr(1)},
 			},
 			wantErr: true,
-			err: errors.New("unknown request number type: uintptr"),
+			err:     errors.New("unknown request number type: uintptr"),
 		},
 		{
 			name: "GetBlockHash string slice req err",
@@ -205,7 +205,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{i},
 			},
 			wantErr: true,
-			err: errors.New("error setting number from string"),
+			err:     errors.New("error setting number from string"),
 		},
 		{
 			name: "GetBlockHash string req Err",
@@ -216,7 +216,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{"21"},
 			},
 			wantErr: true,
-			err: errors.New("GetBlockHash Error"),
+			err:     errors.New("GetBlockHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -285,7 +285,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 				req: &EmptyRequest{},
 			},
 			wantErr: true,
-			err: errors.New("GetHighestFinalisedHash Error"),
+			err:     errors.New("GetHighestFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -360,7 +360,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetFinalisedHash Error"),
+			err:     errors.New("GetFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -435,7 +435,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 				req: &ChainHashRequest{&testHash},
 			},
 			wantErr: true,
-			err: errors.New("GetFinalisedHash Error"),
+			err:     errors.New("GetFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {

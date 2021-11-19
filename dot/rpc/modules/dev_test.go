@@ -206,7 +206,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "stop"},
 			},
 			wantErr: true,
-			err: errors.New("not a block producer"),
+			err:     errors.New("not a block producer"),
 		},
 		{
 			name: "Babe Stop Error",
@@ -218,7 +218,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "stop"},
 			},
 			wantErr: true,
-			err: errors.New("babe pause error"),
+			err:     errors.New("babe pause error"),
 		},
 		{
 			name: "Babe Stop OK",
@@ -241,7 +241,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "start"},
 			},
 			wantErr: true,
-			err: errors.New("babe resume error"),
+			err:     errors.New("babe resume error"),
 		},
 		{
 			name: "Babe Start OK",
@@ -264,7 +264,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"network", "stop"},
 			},
 			wantErr: true,
-			err: errors.New("network stop error"),
+			err:     errors.New("network stop error"),
 		},
 		{
 			name: "Network Stop OK",
@@ -287,7 +287,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"network", "start"},
 			},
 			wantErr: true,
-			err: errors.New("network start error"),
+			err:     errors.New("network start error"),
 		},
 		{
 			name: "Network Start OK",
