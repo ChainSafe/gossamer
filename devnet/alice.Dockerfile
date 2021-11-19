@@ -13,7 +13,7 @@ RUN go mod download
 
 COPY . . 
 
-RUN go install github.com/ChainSafe/gossamer/cmd/gossamer
+RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
 # use modified genesis-spec.json with only 3 authority nodes
 RUN cp -f devnet/chain/gssmr/genesis-spec.json chain/gssmr/genesis-spec.json
