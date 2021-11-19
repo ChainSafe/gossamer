@@ -89,8 +89,7 @@ build-debug: clean
 init:
 	./bin/gossamer init --force
 
-## init-repo: Set initial configuration for the repo
-init-repo:
+githooks:
 	git config core.hooksPath .githooks
 
 ## start: Starts application from binary executable in `./bin/gossamer` with built-in key alice
