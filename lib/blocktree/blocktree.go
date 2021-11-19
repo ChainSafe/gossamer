@@ -56,13 +56,6 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 	}
 }
 
-// GenesisHash returns the hash of the genesis block
-func (bt *BlockTree) GenesisHash() Hash {
-	bt.RLock()
-	defer bt.RUnlock()
-	return bt.root.hash
-}
-
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error {
@@ -75,8 +68,7 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 	}
 
 	// Check if it already exists
-	n := bt.getNode(header.Hash())
-	if n != nil {
+	if n := bt.getNode(header.Hash()); n != nil {
 		return ErrBlockExists
 	}
 
@@ -87,7 +79,7 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 		return errUnexpectedNumber
 	}
 
-	n = &node{
+	n := &node{
 		hash:        header.Hash(),
 		parent:      parent,
 		children:    []*node{},
