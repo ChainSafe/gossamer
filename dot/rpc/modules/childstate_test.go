@@ -147,7 +147,6 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			var err error
 			if err = cs.GetKeys(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetKeys() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -266,7 +265,6 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 			var err error
 			if err = cs.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorageSize() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -385,7 +383,6 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 			var err error
 			if err = cs.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorageHash() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -504,7 +501,6 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 			var err error
 			if err = cs.GetStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorage() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())

@@ -136,7 +136,6 @@ func TestNewStateSync(t *testing.T) {
 			res, err := NewStateSync(tt.args.gData, tt.args.storageAPI)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewStateSync() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -186,7 +185,6 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 			res, err := s.GenSyncSpec(tt.args.raw)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenSyncSpec() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())

@@ -163,7 +163,6 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 			var err error
 			if err = sm.NodeRoles(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("NodeRoles() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -290,7 +289,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			var err error
 			if err = sm.AccountNextIndex(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("AccountNextIndex() error = %v, wantErr %v", err, tt.wantErr)
-				//return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -374,7 +372,6 @@ func TestSystemModule_SyncState(t *testing.T) {
 			var err error
 			if err = sm.SyncState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("SyncState() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -456,7 +453,6 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 			var err error
 			if err = sm.LocalListenAddresses(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("LocalListenAddresses() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -538,7 +534,6 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 			var err error
 			if err = sm.LocalPeerId(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("LocalPeerId() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -620,7 +615,6 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			var err error
 			if err = sm.AddReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("AddReservedPeer() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -702,7 +696,6 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			var err error
 			if err = sm.RemoveReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("RemoveReservedPeer() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())

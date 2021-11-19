@@ -114,7 +114,6 @@ func TestChainModule_GetBlock(t *testing.T) {
 			var err error
 			if err = cm.GetBlock(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("ChainModule.GetBlock() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -229,7 +228,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			var err error
 			if err = cm.GetBlockHash(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("ChainModule.GetBlockHash() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -298,7 +296,6 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			var err error
 			if err = cm.GetFinalizedHead(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("ChainModule.GetFinalizedHead() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -373,7 +370,6 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 			var err error
 			if err = cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("ChainModule.GetFinalizedHeadByRound() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -448,7 +444,6 @@ func TestChainModule_GetHeader(t *testing.T) {
 			var err error
 			if err = cm.GetHeader(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("ChainModule.GetHeader() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -530,7 +525,6 @@ func TestHeaderToJSON(t *testing.T) {
 			res, err := HeaderToJSON(tt.args.header)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HeaderToJSON() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if err == nil {
 				assert.Equal(t, tt.exp, res)

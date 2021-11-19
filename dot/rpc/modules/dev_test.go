@@ -94,7 +94,6 @@ func TestDevModule_EpochLength(t *testing.T) {
 			var err error
 			if err = m.EpochLength(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("EpochLength() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())

@@ -20,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"net/http"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -184,13 +183,12 @@ func TestStateModuleGetPairs(t *testing.T) {
 			var err error
 			if err = sm.GetPairs(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetPairs() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.True(t, reflect.DeepEqual(tt.exp, *tt.args.res))
+				assert.ElementsMatch(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -281,7 +279,6 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 			var err error
 			if err = sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetKeysPaged() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -365,7 +362,6 @@ func TestStateModuleGetMetadata(t *testing.T) {
 			var err error
 			if err = sm.GetMetadata(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetMetadata() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -463,7 +459,6 @@ func TestStateModuleGetReadProof(t *testing.T) {
 			var err error
 			if err = sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetReadProof() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -552,7 +547,6 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 			var err error
 			if err = sm.GetRuntimeVersion(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetRuntimeVersion() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -651,7 +645,6 @@ func TestStateModuleGetStorage(t *testing.T) {
 			var err error
 			if err = sm.GetStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorage() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
@@ -750,7 +743,6 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 			var err error
 			if err = sm.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("GetStorageHash() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if tt.wantErr {
 				assert.EqualError(t, err, tt.err.Error())
