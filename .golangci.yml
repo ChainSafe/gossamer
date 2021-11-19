@@ -166,6 +166,14 @@ issues:
       source: "^//go:generate "
       text: "long-lines"
 
+    - source: "// https://"
+      linters:
+        - lll
+
+    - source: "// See https://"
+      linters:
+        - lll
+
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
   # excluded by default patterns execute `golangci-lint run --help`.
