@@ -38,6 +38,7 @@ func init() {
 
 	testData = string(b)
 }
+
 var testData string
 
 // GetTestData returns the testData string.
