@@ -5,6 +5,7 @@ package modules
 
 import (
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
@@ -93,7 +94,6 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 	mockNetworkAPI4 := new(apimocks.NetworkAPI)
 	mockNetworkAPI4.On("NodeRoles").Return(byte(21), nil)
 
-	var res []interface{}
 	type fields struct {
 		networkAPI NetworkAPI
 		systemAPI  SystemAPI
@@ -112,41 +112,45 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     []interface{}
 	}{
 		{
 			name:   "Full",
 			fields: fields{mockNetworkAPI1, nil, nil, nil, nil, nil},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
+			exp: []interface{}{"Full"},
 		},
 		{
 			name:   "LightClient",
 			fields: fields{mockNetworkAPI2, nil, nil, nil, nil, nil},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
+			exp: []interface{}{"LightClient"},
 		},
 		{
 			name:   "Authority",
 			fields: fields{mockNetworkAPI3, nil, nil, nil, nil, nil},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
+			exp: []interface{}{"Authority"},
 		},
 		{
 			name:   "UnknownRole",
 			fields: fields{mockNetworkAPI4, nil, nil, nil, nil, nil},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
+			exp: []interface{}{"UnknownRole", []interface{}{uint8(21)}},
 		},
 	}
 	for _, tt := range tests {
+		var res []interface{}
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
@@ -156,8 +160,16 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			if err := sm.NodeRoles(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.NodeRoles(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("NodeRoles() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -191,7 +203,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	mockStorageAPIErr := new(apimocks.StorageAPI)
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
 
-	var res U64Response
 	type fields struct {
 		networkAPI NetworkAPI
 		systemAPI  SystemAPI
@@ -210,60 +221,64 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     U64Response
 	}{
 		{
 			name:   "Nil Request",
 			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("account address must be valid"),
 		},
 		{
 			name:   "Found",
 			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
 				req: &StringRequest{String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
-				res: &res,
 			},
+			exp: U64Response(4),
 		},
 		{
 			name:   "Not found",
 			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
-				res: &res,
 			},
+			exp: U64Response(3),
 		},
 		{
 			name:   "GetMetadata Err",
 			fields: fields{nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("getMetadata error"),
 		},
 		{
 			name:   "Magic Number Mismatch",
 			fields: fields{nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil},
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
 		},
 		{
 			name:   "GetStorage Err",
 			fields: fields{nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil},
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("getStorage error"),
 		},
 	}
 	for _, tt := range tests {
+		var res U64Response
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
@@ -273,8 +288,16 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			if err := sm.AccountNextIndex(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.AccountNextIndex(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("AccountNextIndex() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -294,7 +317,6 @@ func TestSystemModule_SyncState(t *testing.T) {
 	mockNetworkAPI.On("HighestBlock").Return(int64(21))
 	mockNetworkAPI.On("StartingBlock").Return(int64(23))
 
-	var res SyncStateResponse
 	type fields struct {
 		networkAPI NetworkAPI
 		systemAPI  SystemAPI
@@ -313,13 +335,19 @@ func TestSystemModule_SyncState(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     SyncStateResponse
 	}{
 		{
 			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
+			},
+			exp: SyncStateResponse{
+				CurrentBlock: 0x0,
+				HighestBlock: 0x15,
+				StartingBlock: 0x17,
 			},
 		},
 		{
@@ -327,12 +355,14 @@ func TestSystemModule_SyncState(t *testing.T) {
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("GetHeader Err"),
 		},
 	}
 	for _, tt := range tests {
+		var res SyncStateResponse
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
@@ -342,8 +372,16 @@ func TestSystemModule_SyncState(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			if err := sm.SyncState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.SyncState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("SyncState() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -365,7 +403,6 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
 	mockNetworkAPI.On("NetworkState").Return(ns, nil)
 
-	var res []string
 	type fields struct {
 		networkAPI NetworkAPI
 		systemAPI  SystemAPI
@@ -384,26 +421,30 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     []string
 	}{
 		{
 			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
+			exp: []string{"/ip4/1.2.3.4/tcp/80"},
 		},
 		{
 			name:   "Empty multiaddress list",
 			fields: fields{mockNetworkAPIEmpty, nil, nil, nil, nil, nil},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("multiaddress list is empty"),
 		},
 	}
 	for _, tt := range tests {
+		var res []string
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
@@ -413,8 +454,16 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			if err := sm.LocalListenAddresses(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.LocalListenAddresses(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("LocalListenAddresses() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -436,7 +485,6 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
 	mockNetworkAPI.On("NetworkState").Return(ns, nil)
 
-	var res string
 	type fields struct {
 		networkAPI NetworkAPI
 		systemAPI  SystemAPI
@@ -455,26 +503,30 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     string
 	}{
 		{
 			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
+			exp: "D1KeRhQ",
 		},
 		{
 			name:   "Empty peerId",
 			fields: fields{mockNetworkAPIEmpty, nil, nil, nil, nil, nil},
 			args: args{
 				req: &EmptyRequest{},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("peer id cannot be empty"),
 		},
 	}
 	for _, tt := range tests {
+		var res string
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
@@ -484,8 +536,16 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			if err := sm.LocalPeerId(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.LocalPeerId(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("LocalPeerId() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -498,7 +558,6 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	mockNetworkAPIErr := new(apimocks.NetworkAPI)
 	mockNetworkAPIErr.On("AddReservedPeers", "jimbo").Return(errors.New("addReservedPeer error"))
 
-	var res []byte
 	type fields struct {
 		networkAPI NetworkAPI
 		systemAPI  SystemAPI
@@ -517,35 +576,39 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     []byte
 	}{
 		{
 			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
 				req: &StringRequest{"jimbo"},
-				res: &res,
 			},
+			exp: []byte(nil),
 		},
 		{
 			name:   "AddReservedPeer Error",
 			fields: fields{mockNetworkAPIErr, nil, nil, nil, nil, nil},
 			args: args{
 				req: &StringRequest{"jimbo"},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("addReservedPeer error"),
 		},
 		{
 			name:   "Empty StringRequest Error",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
 				req: &StringRequest{""},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("cannot add an empty reserved peer"),
 		},
 	}
 	for _, tt := range tests {
+		var res []byte
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
@@ -555,8 +618,16 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			if err := sm.AddReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.AddReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("AddReservedPeer() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
@@ -567,9 +638,8 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	mockNetworkAPI.On("RemoveReservedPeers", "jimbo").Return(nil)
 
 	mockNetworkAPIErr := new(apimocks.NetworkAPI)
-	mockNetworkAPIErr.On("RemoveReservedPeers", "jimbo").Return(errors.New("addReservedPeer error"))
+	mockNetworkAPIErr.On("RemoveReservedPeers", "jimbo").Return(errors.New("removeReservedPeer error"))
 
-	var res []byte
 	type fields struct {
 		networkAPI NetworkAPI
 		systemAPI  SystemAPI
@@ -588,35 +658,39 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		err     error
+		exp     []byte
 	}{
 		{
 			name:   "OK",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
 				req: &StringRequest{"jimbo"},
-				res: &res,
 			},
+			exp: []byte(nil),
 		},
 		{
-			name:   "AddReservedPeer Error",
+			name:   "RemoveReservedPeer Error",
 			fields: fields{mockNetworkAPIErr, nil, nil, nil, nil, nil},
 			args: args{
 				req: &StringRequest{"jimbo"},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("removeReservedPeer error"),
 		},
 		{
 			name:   "Empty StringRequest Error",
 			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
 			args: args{
 				req: &StringRequest{""},
-				res: &res,
 			},
 			wantErr: true,
+			err: errors.New("cannot remove an empty reserved peer"),
 		},
 	}
 	for _, tt := range tests {
+		var res []byte
+		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
@@ -626,8 +700,16 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			if err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			var err error
+			if err = sm.RemoveReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("RemoveReservedPeer() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.exp, *tt.args.res)
 			}
 		})
 	}
