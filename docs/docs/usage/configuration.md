@@ -14,8 +14,6 @@ Gossamer consumes a `.toml` file containing predefined settings for the node fro
 [global]
 basepath = "~/.gossamer/gssmr" 
 log = " | trace | debug | info | warn | error | crit"
-cpuprof = "~/cpuprof.out"   
-memprof = "~/memprof.out"
 name = "gssmr"
 pprofserver = false
 pprofaddress = ":6060"

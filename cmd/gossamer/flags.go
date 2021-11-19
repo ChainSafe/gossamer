@@ -97,14 +97,6 @@ var (
 		Name:  "basepath",
 		Usage: "Data directory for the node",
 	}
-	CPUProfFlag = cli.StringFlag{
-		Name:  "cpuprof",
-		Usage: "File to write CPU profile to",
-	}
-	MemProfFlag = cli.StringFlag{
-		Name:  "memprof",
-		Usage: "File to write memory profile to",
-	}
 	PprofServerFlag = cli.StringFlag{
 		Name:  "pprofserver",
 		Usage: "enable or disable the pprof HTTP server",
@@ -390,8 +382,6 @@ var (
 		ChainFlag,
 		ConfigFlag,
 		BasePathFlag,
-		CPUProfFlag,
-		MemProfFlag,
 		PprofServerFlag,
 		PprofAddressFlag,
 		PprofBlockRateFlag,
