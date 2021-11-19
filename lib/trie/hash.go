@@ -130,30 +130,54 @@ func encodeAndHash(n node) ([]byte, error) {
 func encodeBranch(b *branch, buffer *bytes.Buffer, parallel bool) (err error) {
 	if !b.dirty && b.encoding != nil {
 		_, err = buffer.Write(b.encoding)
-		return err
+		if err != nil {
+			return fmt.Errorf("cannot write stored encoded branch to buffer: %w", err)
+		}
+		return nil
 	}
 
 	encoding, err := b.header()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot encode branch header: %w", err)
 	}
 
-	buffer.Write(encoding)
-	buffer.Write(nibblesToKeyLE(b.key))
-	buffer.Write(common.Uint16ToBytes(b.childrenBitmap()))
+	_, err = buffer.Write(encoding)
+	if err != nil {
+		return fmt.Errorf("cannot write encoded branch header to buffer: %w", err)
+	}
+
+	_, err = buffer.Write(nibblesToKeyLE(b.key))
+	if err != nil {
+		return fmt.Errorf("cannot write encoded branch key to buffer: %w", err)
+	}
+
+	_, err = buffer.Write(common.Uint16ToBytes(b.childrenBitmap()))
+	if err != nil {
+		return fmt.Errorf("cannot write branch children bitmap to buffer: %w", err)
+	}
 
 	if b.value != nil {
 		bytes, err := scale.Marshal(b.value)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot scale encode branch value: %w", err)
 		}
-		buffer.Write(bytes)
+
+		_, err = buffer.Write(bytes)
+		if err != nil {
+			return fmt.Errorf("cannot write encoded branch value to buffer: %w", err)
+		}
 	}
 
 	if parallel {
-		return encodeChildrenInParallel(b.children, buffer)
+		err = encodeChildrenInParallel(b.children, buffer)
+	} else {
+		err = encodeChildrenSequentially(b.children, buffer)
 	}
-	return encodeChildrenSequentially(b.children, buffer)
+	if err != nil {
+		return fmt.Errorf("cannot encode children of branch: %w", err)
+	}
+
+	return nil
 }
 
 func encodeChildrenInParallel(children [16]node, buffer *bytes.Buffer) (err error) {
