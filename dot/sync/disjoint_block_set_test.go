@@ -6,6 +6,7 @@ package sync
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -194,4 +195,25 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 	require.Equal(t, 2, len(ready))
 	require.Equal(t, block1.ToBlockData(), ready[0])
 	require.Equal(t, block2.ToBlockData(), ready[1])
+}
+
+func TestDisjointBlockSet_ClearBlocks(t *testing.T) {
+	s := newDisjointBlockSet(pendingBlocksLimit)
+
+	testHashA := common.Hash{0}
+	testHashB := common.Hash{1}
+
+	s.blocks[testHashA] = &pendingBlock{
+		hash:    testHashA,
+		clearAt: time.Now().Add(ttl * -2),
+	}
+	s.blocks[testHashB] = &pendingBlock{
+		hash:    testHashB,
+		clearAt: time.Now().Add(ttl * 2),
+	}
+
+	s.clearBlocks()
+	require.Equal(t, 1, len(s.blocks))
+	_, has := s.blocks[testHashB]
+	require.True(t, has)
 }
