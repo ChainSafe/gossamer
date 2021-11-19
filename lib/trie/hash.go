@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"io"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -41,7 +42,7 @@ var hasherPool = &sync.Pool{
 	},
 }
 
-func hashNode(n node, digestBuffer *bytes.Buffer) (err error) {
+func hashNode(n node, digestBuffer io.Writer) (err error) {
 	encodingBuffer := encodingBufferPool.Get().(*bytes.Buffer)
 	encodingBuffer.Reset()
 	defer encodingBufferPool.Put(encodingBuffer)
@@ -127,7 +128,7 @@ func encodeAndHash(n node) ([]byte, error) {
 
 // encodeBranch encodes a branch with the encoding specified at the top of this package
 // to the buffer given.
-func encodeBranch(b *branch, buffer *bytes.Buffer, parallel bool) (err error) {
+func encodeBranch(b *branch, buffer io.Writer, parallel bool) (err error) {
 	if !b.dirty && b.encoding != nil {
 		_, err = buffer.Write(b.encoding)
 		if err != nil {
@@ -180,7 +181,7 @@ func encodeBranch(b *branch, buffer *bytes.Buffer, parallel bool) (err error) {
 	return nil
 }
 
-func encodeChildrenInParallel(children [16]node, buffer *bytes.Buffer) (err error) {
+func encodeChildrenInParallel(children [16]node, buffer io.Writer) (err error) {
 	type result struct {
 		index  int
 		buffer *bytes.Buffer
@@ -242,7 +243,7 @@ func encodeChildrenInParallel(children [16]node, buffer *bytes.Buffer) (err erro
 	return err
 }
 
-func encodeChildrenSequentially(children [16]node, buffer *bytes.Buffer) (err error) {
+func encodeChildrenSequentially(children [16]node, buffer io.Writer) (err error) {
 	for _, child := range children {
 		err = encodeChild(child, buffer)
 		if err != nil {
@@ -252,7 +253,7 @@ func encodeChildrenSequentially(children [16]node, buffer *bytes.Buffer) (err er
 	return nil
 }
 
-func encodeChild(child node, buffer *bytes.Buffer) (err error) {
+func encodeChild(child node, buffer io.Writer) (err error) {
 	if child == nil {
 		return nil
 	}
@@ -272,7 +273,7 @@ func encodeChild(child node, buffer *bytes.Buffer) (err error) {
 
 // encodeLeaf encodes a leaf to the buffer given, with the encoding
 // specified at the top of this package.
-func encodeLeaf(l *leaf, buffer *bytes.Buffer) (err error) {
+func encodeLeaf(l *leaf, buffer io.Writer) (err error) {
 	l.encodingMu.RLock()
 	if !l.dirty && l.encoding != nil {
 		_, err = buffer.Write(l.encoding)
