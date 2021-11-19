@@ -87,7 +87,7 @@ func (ls *leafMap) deepestLeaf() *node {
 func (ls *leafMap) toMap() map[common.Hash]*node {
 	ls.RLock()
 	defer ls.RUnlock()
-	
+
 	mmap := make(map[common.Hash]*node)
 
 	ls.smap.Range(func(h, n interface{}) bool {
@@ -103,7 +103,7 @@ func (ls *leafMap) toMap() map[common.Hash]*node {
 func (ls *leafMap) nodes() []*node {
 	ls.RLock()
 	defer ls.RUnlock()
-	
+
 	nodes := []*node{}
 
 	ls.smap.Range(func(h, n interface{}) bool {

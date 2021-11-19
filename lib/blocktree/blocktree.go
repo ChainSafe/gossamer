@@ -86,10 +86,13 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 		number:      number,
 		arrivalTime: arrivalTime,
 	}
+
 	parent.addChild(n)
 	bt.leaves.replace(parent, n)
 	bt.setInCache(n)
 
+	fmt.Println("blocktree.AddBlock", header)
+	fmt.Println(bt)
 	return nil
 }
 
@@ -125,11 +128,14 @@ func (bt *BlockTree) setInCache(b *node) {
 
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
 func (bt *BlockTree) getNode(h Hash) (ret *node) {
-	defer func() { bt.setInCache(ret) }()
-
 	if b, ok := bt.nodeCache[h]; ok {
 		return b
 	}
+
+	defer func() {
+		// TODO: confirm this works
+		bt.setInCache(ret)
+	}()
 
 	if bt.root.hash == h {
 		return bt.root
@@ -155,6 +161,7 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	bt.Lock()
 	defer bt.Unlock()
+
 	defer func() {
 		for _, hash := range pruned {
 			delete(bt.nodeCache, hash)
@@ -180,6 +187,9 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	for _, leaf := range leaves {
 		bt.leaves.store(leaf.hash, leaf)
 	}
+
+	fmt.Println("blocktree.Prune", finalised)
+	fmt.Println(bt)
 
 	return pruned
 }
@@ -209,8 +219,8 @@ func (bt *BlockTree) String() string {
 	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
 }
 
-// longestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) longestPath() []*node { //nolint
+// longestPath returns the path from the root to the deepest leaf in the blocktree
+func (bt *BlockTree) longestPath() []*node {
 	dl := bt.deepestLeaf()
 	var path []*node
 	for curr := dl; ; curr = curr.parent {
@@ -252,7 +262,7 @@ func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 }
 
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) deepestLeaf() *node { //nolint
+func (bt *BlockTree) deepestLeaf() *node {
 	return bt.leaves.deepestLeaf()
 }
 
@@ -323,6 +333,9 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 		return common.Hash{}, ErrNodeNotFound
 	}
 
+	fmt.Println("blocktree.HighestCommonAncestor", a, b)
+	fmt.Println(bt)
+
 	ancestor := an.highestCommonAncestor(bn)
 	if ancestor == nil {
 		// this case shouldn't happen - any two nodes in the blocktree must
@@ -383,43 +396,12 @@ func (bt *BlockTree) GetArrivalTime(hash common.Hash) (time.Time, error) {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	n, has := bt.nodeCache[hash]
-	if !has {
+	n := bt.getNode(hash)
+	if n == nil {
 		return time.Time{}, ErrNodeNotFound
 	}
 
 	return n.arrivalTime, nil
-}
-
-// DeepCopy returns a copy of the BlockTree
-func (bt *BlockTree) DeepCopy() *BlockTree {
-	bt.RLock()
-	defer bt.RUnlock()
-
-	btCopy := &BlockTree{
-		nodeCache: make(map[Hash]*node),
-	}
-
-	if bt.root == nil {
-		return btCopy
-	}
-
-	btCopy.root = bt.root.deepCopy(nil)
-
-	if bt.leaves != nil {
-		btCopy.leaves = newEmptyLeafMap()
-
-		lMap := bt.leaves.toMap()
-		for hash, val := range lMap {
-			btCopy.leaves.store(hash, btCopy.getNode(val.hash))
-		}
-	}
-
-	for hash := range bt.nodeCache {
-		btCopy.nodeCache[hash] = btCopy.getNode(hash)
-	}
-
-	return btCopy
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.

@@ -30,6 +30,36 @@ type testBranch struct {
 	arrivalTime int64
 }
 
+func (bt *BlockTree) deepCopy() *BlockTree {
+	bt.RLock()
+	defer bt.RUnlock()
+
+	btCopy := &BlockTree{
+		nodeCache: make(map[Hash]*node),
+	}
+
+	if bt.root == nil {
+		return btCopy
+	}
+
+	btCopy.root = bt.root.deepCopy(nil)
+
+	if bt.leaves != nil {
+		btCopy.leaves = newEmptyLeafMap()
+
+		lMap := bt.leaves.toMap()
+		for hash, val := range lMap {
+			btCopy.leaves.store(hash, btCopy.getNode(val.hash))
+		}
+	}
+
+	for hash := range bt.nodeCache {
+		btCopy.nodeCache[hash] = btCopy.getNode(hash)
+	}
+
+	return btCopy
+}
+
 func newBlockTreeFromNode(root *node) *BlockTree {
 	return &BlockTree{
 		root:   root,
@@ -434,7 +464,7 @@ func TestBlockTree_Prune(t *testing.T) {
 		}
 	}
 
-	copy := bt.DeepCopy()
+	copy := bt.deepCopy()
 
 	// pick some block to finalise
 	finalised := bt.root.children[0].children[0].children[0]
@@ -505,7 +535,7 @@ func TestBlockTree_GetHashByNumber(t *testing.T) {
 func TestBlockTree_DeepCopy(t *testing.T) {
 	bt, _ := createFlatTree(t, 8)
 
-	btCopy := bt.DeepCopy()
+	btCopy := bt.deepCopy()
 	for hash := range bt.nodeCache {
 		b, ok := btCopy.nodeCache[hash]
 		b2 := bt.nodeCache[hash]
