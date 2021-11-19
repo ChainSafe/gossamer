@@ -1723,24 +1723,24 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
 	httpMethod := asMemorySlice(instanceContext, methodSpan)
 	uri := asMemorySlice(instanceContext, uriSpan)
 
 	result := scale.NewResult(int16(0), nil)
-	var resultSetErr error
 
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
-
 	if err != nil {
+		// StartRequest error already was logged
 		logger.Errorf("failed to start request: %s", err)
-		resultSetErr = result.Set(scale.Err, nil)
+		err = result.Set(scale.OK, reqID)
 	} else {
-		resultSetErr = result.Set(scale.OK, reqID)
+		err = result.Set(scale.Err, reqID)
 	}
 
-	if resultSetErr != nil {
+	// note: just check if an error occurs while setting the result data
+	if err != nil {
 		logger.Errorf("failed to set the result data: %s", err)
 		return C.int64_t(0)
 	}
@@ -1772,17 +1772,16 @@ func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqI
 	offchainReq := runtimeCtx.OffchainHTTPSet.Get(int16(reqID))
 
 	result := scale.NewResult(nil, nil)
-	var resultSetErr error
+	resultMode := scale.OK
 
 	err := offchainReq.AddHeader(string(name), string(value))
 	if err != nil {
 		logger.Errorf("failed to add request header: %s", err)
-		resultSetErr = result.Set(scale.Err, nil)
-	} else {
-		resultSetErr = result.Set(scale.OK, nil)
+		resultMode = scale.Err
 	}
 
-	if resultSetErr != nil {
+	err = result.Set(resultMode, nil)
+	if err != nil {
 		logger.Errorf("failed to set the result data: %s", err)
 		return C.int64_t(0)
 	}
