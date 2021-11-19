@@ -1283,8 +1283,8 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Dave().(*ed25519.Keypair),
 		ed25519Keyring.Eve().(*ed25519.Keypair),
-		ed25519Keyring.Bob().(*ed25519.Keypair),  //equivocatory
-		ed25519Keyring.Dave().(*ed25519.Keypair), //equivocatory
+		ed25519Keyring.Bob().(*ed25519.Keypair),  // equivocatory
+		ed25519Keyring.Dave().(*ed25519.Keypair), // equivocatory
 	}
 
 	equivocatories := make(map[ed25519.PublicKeyBytes][]*types.GrandpaSignedVote)
@@ -1383,10 +1383,10 @@ func addBlocksAndReturnTheLastOne(t *testing.T, blockState *state.BlockState, de
 
 	// create a new fake block to fake authorities commit on
 	previousHash := blockState.BestBlockHash()
-	previusHead, err := blockState.BestBlockHeader()
+	previousHead, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	bfcNumber := int(previusHead.Number.Int64() + 1)
+	bfcNumber := int(previousHead.Number.Int64() + 1)
 
 	d, err := types.NewBabePrimaryPreDigest(0, uint64(bfcNumber), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
 	require.NoError(t, err)

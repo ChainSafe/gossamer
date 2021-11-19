@@ -27,7 +27,10 @@ const (
 )
 
 var (
-	logger                 = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
+	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
+)
+
+var (
 	ErrUnsupportedSubround = errors.New("unsupported subround")
 )
 
@@ -819,7 +822,7 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 		spc = s.precommits
 		eqv = s.pcEquivocations
 	default:
-		return nil, fmt.Errorf("%w: %v", ErrUnsupportedSubround, stage)
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedSubround, stage)
 	}
 
 	spc.Range(func(_, value interface{}) bool {
@@ -845,7 +848,6 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 
 	for _, votes := range eqv {
 		for _, vote := range votes {
-			fmt.Printf("%v\n", vote.AuthorityID)
 			just = append(just, *vote)
 		}
 	}
