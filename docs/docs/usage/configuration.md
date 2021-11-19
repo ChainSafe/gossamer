@@ -17,6 +17,10 @@ log = " | trace | debug | info | warn | error | crit"
 cpuprof = "~/cpuprof.out"   
 memprof = "~/memprof.out"
 name = "gssmr"
+pprofserver = false
+pprofaddress = ":6060"
+pprofblockrate = 0
+pprofmutexrate = 0
 
 [log]
 core = " | trace | debug | info | warn | error | crit"

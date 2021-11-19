@@ -31,6 +31,10 @@ The global flags can be used in conjunction with any Gossamer command
 --memprof          File to write memory profile to
 --name value       Node implementation name
 --rewind value     Rewind head of chain by given number of blocks
+--pprofserver      Enable or disable the pprof HTTP server
+--pprofaddress     pprof HTTP server listening address, if it is enabled.
+--pprofblockrate   pprof block rate. See https://pkg.go.dev/runtime#SetBlockProfileRate.
+--pprofmutexrate   profiling mutex rate. See https://pkg.go.dev/runtime#SetMutexProfileFraction.
 ```
 
 ### Local flags
