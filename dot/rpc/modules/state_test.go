@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -101,7 +102,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStateRootFromBlock Err"),
+			err:     errors.New("GetStateRootFromBlock Err"),
 		},
 		{
 			name:   "Nil Prefix OK",
@@ -122,7 +123,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("entries Err"),
+			err:     errors.New("entries Err"),
 		},
 		{
 			name:   "OK Case",
@@ -145,7 +146,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetKeysWithPrefix Err"),
+			err:     errors.New("GetKeysWithPrefix Err"),
 		},
 		{
 			name:   "GetStorage Error",
@@ -157,7 +158,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorage Err"),
+			err:     errors.New("GetStorage Err"),
 		},
 		{
 			name:   "GetKeysWithPrefix Empty",
@@ -189,7 +190,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.True(t, reflect.DeepEqual(tt.exp, *tt.args.res))
 			}
 		})
 	}
@@ -253,7 +254,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetKeysWithPrefix Err"),
+			err:     errors.New("GetKeysWithPrefix Err"),
 		},
 		{
 			name:   "Request Prefix Error",
@@ -265,7 +266,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("invalid string"),
+			err:     errors.New("invalid string"),
 		},
 	}
 	for _, tt := range tests {
@@ -349,7 +350,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 				req: &StateRuntimeMetadataQuery{Bhash: &hash},
 			},
 			wantErr: true,
-			err: errors.New("GetMetadata Error"),
+			err:     errors.New("GetMetadata Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -421,8 +422,8 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				},
 			},
 			exp: StateGetReadProofResponse{
-				At: common.Hash{0x3a, 0xa9, 0x6b, 0x1, 0x49, 0xb6, 0xca, 0x36, 0x88, 0x87, 0x8b, 0xdb, 0xd1, 0x94, 0x64, 0x44, 0x86, 0x24, 0x13, 0x63, 0x98, 0xe3, 0xce, 0x45, 0xb9, 0xe7, 0x55, 0xd3, 0xab, 0x61, 0x35, 0x5a},
-				Proof:[]string{"0x010101", "0x010101"},
+				At:    common.Hash{0x3a, 0xa9, 0x6b, 0x1, 0x49, 0xb6, 0xca, 0x36, 0x88, 0x87, 0x8b, 0xdb, 0xd1, 0x94, 0x64, 0x44, 0x86, 0x24, 0x13, 0x63, 0x98, 0xe3, 0xce, 0x45, 0xb9, 0xe7, 0x55, 0xd3, 0xab, 0x61, 0x35, 0x5a},
+				Proof: []string{"0x010101", "0x010101"},
 			},
 		},
 		{
@@ -435,7 +436,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetReadProofAt Error"),
+			err:     errors.New("GetReadProofAt Error"),
 		},
 		{
 			name:   "InvalidKeys Error",
@@ -447,7 +448,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetReadProofAt Error"),
+			err:     errors.New("GetReadProofAt Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -521,13 +522,13 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 				req: &StateRuntimeVersionRequest{&hash},
 			},
 			exp: StateRuntimeVersionResponse{
-				SpecName: "polkadot",
-				ImplName: "parity-polkadot",
-				AuthoringVersion: 0x0,
-				SpecVersion: 0x19,
-				ImplVersion: 0x0,
+				SpecName:           "polkadot",
+				ImplName:           "parity-polkadot",
+				AuthoringVersion:   0x0,
+				SpecVersion:        0x19,
+				ImplVersion:        0x0,
 				TransactionVersion: 0x5,
-				Apis: []interface{}{[]interface{}{"0x0102030405060708", uint32(99)}}},
+				Apis:               []interface{}{[]interface{}{"0x0102030405060708", uint32(99)}}},
 		},
 		{
 			name:   "GetRuntimeVersion Error",
@@ -536,7 +537,7 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 				req: &StateRuntimeVersionRequest{&hash},
 			},
 			wantErr: true,
-			err: errors.New("GetRuntimeVersion Error"),
+			err:     errors.New("GetRuntimeVersion Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -624,7 +625,7 @@ func TestStateModuleGetStorage(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorageByBlockHash Error"),
+			err:     errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
@@ -635,7 +636,7 @@ func TestStateModuleGetStorage(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorage Error"),
+			err:     errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -723,7 +724,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorageByBlockHash Error"),
+			err:     errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
@@ -734,7 +735,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorage Error"),
+			err:     errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -822,7 +823,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorageByBlockHash Error"),
+			err:     errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
@@ -833,7 +834,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("GetStorage Error"),
+			err:     errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -919,7 +920,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("QueryStorage Error"),
+			err:     errors.New("QueryStorage Error"),
 		},
 		{
 			name:   "Empty Start Block Error",
@@ -931,7 +932,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err: errors.New("the start block hash cannot be an empty value"),
+			err:     errors.New("the start block hash cannot be an empty value"),
 		},
 	}
 	for _, tt := range tests {

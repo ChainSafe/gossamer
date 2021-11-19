@@ -225,12 +225,11 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		exp     U64Response
 	}{
 		{
-			name:   "Nil Request",
-			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
-			args: args{
-			},
+			name:    "Nil Request",
+			fields:  fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
+			args:    args{},
 			wantErr: true,
-			err: errors.New("account address must be valid"),
+			err:     errors.New("account address must be valid"),
 		},
 		{
 			name:   "Found",
@@ -255,7 +254,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
 			wantErr: true,
-			err: errors.New("getMetadata error"),
+			err:     errors.New("getMetadata error"),
 		},
 		{
 			name:   "Magic Number Mismatch",
@@ -264,7 +263,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
 			wantErr: true,
-			err: errors.New("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
+			err:     errors.New("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
 		},
 		{
 			name:   "GetStorage Err",
@@ -273,7 +272,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
 			wantErr: true,
-			err: errors.New("getStorage error"),
+			err:     errors.New("getStorage error"),
 		},
 	}
 	for _, tt := range tests {
@@ -345,8 +344,8 @@ func TestSystemModule_SyncState(t *testing.T) {
 				req: &EmptyRequest{},
 			},
 			exp: SyncStateResponse{
-				CurrentBlock: 0x0,
-				HighestBlock: 0x15,
+				CurrentBlock:  0x0,
+				HighestBlock:  0x15,
 				StartingBlock: 0x17,
 			},
 		},
@@ -357,7 +356,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 				req: &EmptyRequest{},
 			},
 			wantErr: true,
-			err: errors.New("GetHeader Err"),
+			err:     errors.New("GetHeader Err"),
 		},
 	}
 	for _, tt := range tests {
@@ -439,7 +438,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 				req: &EmptyRequest{},
 			},
 			wantErr: true,
-			err: errors.New("multiaddress list is empty"),
+			err:     errors.New("multiaddress list is empty"),
 		},
 	}
 	for _, tt := range tests {
@@ -521,7 +520,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 				req: &EmptyRequest{},
 			},
 			wantErr: true,
-			err: errors.New("peer id cannot be empty"),
+			err:     errors.New("peer id cannot be empty"),
 		},
 	}
 	for _, tt := range tests {
@@ -594,7 +593,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 				req: &StringRequest{"jimbo"},
 			},
 			wantErr: true,
-			err: errors.New("addReservedPeer error"),
+			err:     errors.New("addReservedPeer error"),
 		},
 		{
 			name:   "Empty StringRequest Error",
@@ -603,7 +602,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 				req: &StringRequest{""},
 			},
 			wantErr: true,
-			err: errors.New("cannot add an empty reserved peer"),
+			err:     errors.New("cannot add an empty reserved peer"),
 		},
 	}
 	for _, tt := range tests {
@@ -676,7 +675,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 				req: &StringRequest{"jimbo"},
 			},
 			wantErr: true,
-			err: errors.New("removeReservedPeer error"),
+			err:     errors.New("removeReservedPeer error"),
 		},
 		{
 			name:   "Empty StringRequest Error",
@@ -685,7 +684,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 				req: &StringRequest{""},
 			},
 			wantErr: true,
-			err: errors.New("cannot remove an empty reserved peer"),
+			err:     errors.New("cannot remove an empty reserved peer"),
 		},
 	}
 	for _, tt := range tests {
