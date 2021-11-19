@@ -1734,9 +1734,9 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	if err != nil {
 		// StartRequest error already was logged
 		logger.Errorf("failed to start request: %s", err)
-		err = result.Set(scale.OK, reqID)
+		err = result.Set(scale.Err, nil)
 	} else {
-		err = result.Set(scale.Err, reqID)
+		err = result.Set(scale.OK, reqID)
 	}
 
 	// note: just check if an error occurs while setting the result data
