@@ -543,7 +543,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	chain.Block.StoreRuntime(b.Header.Hash(), rt)
 
-	hash, _ := chain.Block.GetBlockHash(big.NewInt(3))
+	hash, _ := chain.Block.GetHashByNumber(big.NewInt(3))
 	core := newCoreService(t, chain)
 	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }
