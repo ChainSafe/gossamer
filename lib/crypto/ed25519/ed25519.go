@@ -44,6 +44,20 @@ type PublicKey ed25519.PublicKey
 // PublicKeyBytes is an encoded ed25519 public key
 type PublicKeyBytes [PublicKeyLength]byte
 
+// SignVerify verify signature given pubkey and msg
+func SignVerify(pubkey, sig, msg []byte) (bool, error) {
+	pubKey, err := NewPublicKey(pubkey)
+	if err != nil {
+		return false, fmt.Errorf("failed to fetch ed25519 public key: %s", err)
+	}
+	ok, err := pubKey.Verify(msg, sig)
+	if err != nil || !ok {
+		return false, fmt.Errorf("failed to verify ed25519 signature: %s", err)
+	}
+
+	return true, nil
+}
+
 // String returns the PublicKeyBytes formatted as a hex string
 func (b PublicKeyBytes) String() string {
 	pk := [PublicKeyLength]byte(b)
