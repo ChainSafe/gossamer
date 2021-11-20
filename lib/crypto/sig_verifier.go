@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
+// SigVerifyFunc verify an signature given a pubkey and msg
 type SigVerifyFunc func(pubkey, sig, msg []byte) (bool, error)
 
 // Signature ...
