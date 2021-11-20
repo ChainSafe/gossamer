@@ -4,6 +4,7 @@
 package offchain
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -53,18 +54,18 @@ func TestHTTPSetGet(t *testing.T) {
 func TestOffchainRequest_AddHeader(t *testing.T) {
 	t.Parallel()
 
+	invalidCtx := context.WithValue(context.Background(), invalidKey, true)
+	invalidReq, err := http.NewRequestWithContext(invalidCtx, http.MethodGet, "http://test.com", nil)
+	require.NoError(t, err)
+
 	cases := map[string]struct {
 		offReq           Request
 		err              error
 		headerK, headerV string
 	}{
 		"should return invalid request": {
-			offReq: Request{invalid: true},
+			offReq: Request{invalidReq},
 			err:    errRequestInvalid,
-		},
-		"should return request already started": {
-			offReq: Request{waiting: true},
-			err:    errRequestAlreadyStarted,
 		},
 		"should add header": {
 			offReq:  Request{Request: &http.Request{Header: make(http.Header)}},

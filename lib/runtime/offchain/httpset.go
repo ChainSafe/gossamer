@@ -26,7 +26,6 @@ var (
 	errIntBufferFull         = errors.New("int buffer is full")
 	errRequestIDNotAvailable = errors.New("request id not available")
 	errRequestInvalid        = errors.New("request is invalid")
-	errRequestAlreadyStarted = errors.New("request has already started")
 	errInvalidHeaderKey      = errors.New("invalid header key")
 )
 
@@ -67,17 +66,11 @@ type Request struct {
 	Request *http.Request
 }
 
-// AddHeader adds a new HTTP header into request property, only if request is valid and has not started yet
+// AddHeader adds a new HTTP header into request property, only if request is valid
 func (r *Request) AddHeader(name, value string) error {
-	invalid := r.Request.Context().Value(invalidKey).(bool)
-	waiting := r.Request.Context().Value(waitingKey).(bool)
-
-	if invalid {
+	invalid, ok := r.Request.Context().Value(invalidKey).(bool)
+	if ok && invalid {
 		return errRequestInvalid
-	}
-
-	if waiting {
-		return errRequestAlreadyStarted
 	}
 
 	name = strings.TrimSpace(name)
@@ -122,6 +115,7 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 	}
 
 	req, err := http.NewRequest(method, uri, nil)
+	req.Header = make(http.Header)
 
 	ctx := context.WithValue(req.Context(), waitingKey, false)
 	ctx = context.WithValue(ctx, invalidKey, false)
