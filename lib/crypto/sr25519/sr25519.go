@@ -6,6 +6,7 @@ package sr25519
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -41,6 +42,20 @@ type PublicKey struct {
 // PrivateKey holds reference to a sr25519.SecretKey
 type PrivateKey struct {
 	key *sr25519.SecretKey
+}
+
+// SignVerify verify signature given pubkey and msg
+func SignVerify(pubkey, sig, msg []byte) (bool, error) {
+	pubKey, err := NewPublicKey(pubkey)
+	if err != nil {
+		return false, fmt.Errorf("failed to fetch sr25519 public key: %s", err)
+	}
+	ok, err := pubKey.Verify(msg, sig)
+	if err != nil || !ok {
+		return false, fmt.Errorf("failed to verify sr25519 signature: %s", err)
+	}
+
+	return true, nil
 }
 
 // NewKeypair returns a sr25519 Keypair given a schnorrkel secret key
