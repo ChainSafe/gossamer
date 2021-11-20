@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 
 	"github.com/perlin-network/life/exec"
 	wasm_validation "github.com/perlin-network/life/wasm-validation"
@@ -112,7 +113,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		NodeStorage: cfg.NodeStorage,
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
-		SigVerifier: runtime.NewSignatureVerifier(logger),
+		SigVerifier: crypto.NewSignatureVerifier(logger),
 	}
 
 	logger.Debugf("creating new runtime instance with context: %v", runtimeCtx)

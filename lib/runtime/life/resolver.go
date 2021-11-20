@@ -933,11 +933,11 @@ func ext_crypto_ed25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pubKey.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Ed25519Type,
+		signature := crypto.Signature{
+			PubKey:     pubKey.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: ed25519.SignVerify,
 		}
 		sigVerifier.Add(&signature)
 		return 1
@@ -1120,11 +1120,11 @@ func ext_crypto_sr25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pub.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Sr25519Type,
+		signature := crypto.Signature{
+			PubKey:     pub.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: sr25519.SignVerify,
 		}
 		sigVerifier.Add(&signature)
 		return 1

@@ -12,9 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/crypto"
+
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	ma "github.com/multiformats/go-multiaddr"
@@ -115,9 +116,9 @@ func (*TestRuntimeNetwork) NetworkState() common.NetworkState {
 	}
 }
 
-func generateEd25519Signatures(t *testing.T, n int) []*Signature {
+func generateEd25519Signatures(t *testing.T, n int) []*crypto.Signature {
 	t.Helper()
-	signs := make([]*Signature, n)
+	signs := make([]*crypto.Signature, n)
 	for i := 0; i < n; i++ {
 		msg := []byte("Hello")
 		key, err := ed25519.GenerateKeypair()
@@ -126,11 +127,11 @@ func generateEd25519Signatures(t *testing.T, n int) []*Signature {
 		sign, err := key.Private().Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &Signature{
-			PubKey:    key.Public().Encode(),
-			Sign:      sign,
-			Msg:       msg,
-			KeyTypeID: crypto.Ed25519Type,
+		signs[i] = &crypto.Signature{
+			PubKey:     key.Public().Encode(),
+			Sign:       sign,
+			Msg:        msg,
+			VerifyFunc: ed25519.SignVerify,
 		}
 	}
 	return signs
