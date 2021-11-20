@@ -7,6 +7,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -34,6 +35,16 @@ type Keypair struct {
 // PublicKey struct for PublicKey
 type PublicKey struct {
 	key ecdsa.PublicKey
+}
+
+// SignVerify verify signature given pubkey and msg
+func SignVerify(pubkey, sig, msg []byte) (bool, error) {
+	ok := secp256k1.VerifySignature(pubkey, msg, sig)
+	if !ok {
+		return false, fmt.Errorf("failed to verify secp256k1 signature")
+	}
+
+	return true, nil
 }
 
 // RecoverPublicKey returns the 64-byte uncompressed public key that created the given signature.
