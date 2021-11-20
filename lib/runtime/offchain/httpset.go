@@ -4,11 +4,19 @@
 package offchain
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"sync"
+)
+
+type contextKey string
+
+const (
+	waitingKey contextKey = "waiting"
+	invalidKey contextKey = "invalid"
 )
 
 const maxConcurrentRequests = 1000
@@ -56,17 +64,19 @@ func (b requestIDBuffer) put(i int16) error {
 // Request holds the request object and update the invalid and waiting status whenever
 // the request starts or is waiting to be read
 type Request struct {
-	Request          *http.Request
-	invalid, waiting bool
+	Request *http.Request
 }
 
 // AddHeader adds a new HTTP header into request property, only if request is valid and has not started yet
 func (r *Request) AddHeader(name, value string) error {
-	if r.invalid {
+	invalid := r.Request.Context().Value(invalidKey).(bool)
+	waiting := r.Request.Context().Value(waitingKey).(bool)
+
+	if invalid {
 		return errRequestInvalid
 	}
 
-	if r.waiting {
+	if waiting {
 		return errRequestAlreadyStarted
 	}
 
@@ -112,6 +122,12 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 	}
 
 	req, err := http.NewRequest(method, uri, nil)
+
+	ctx := context.WithValue(req.Context(), waitingKey, false)
+	ctx = context.WithValue(ctx, invalidKey, false)
+
+	req = req.WithContext(ctx)
+
 	if err != nil {
 		return 0, err
 	}
