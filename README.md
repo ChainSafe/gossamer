@@ -57,6 +57,16 @@ build gossamer command:
 ```
 make gossamer
 ```
+### Troubleshooting for Apple Sillicon users
+
+Make sure you have the following Golang enviroment variables:
+
+1. GOARG="amd64"
+2. CGO_ENABLED="1"
+
+> use _go env_ to see all the Golang enviroment variables
+
+> use _go env -w **ENV_NAME**=**ENV_VALUE**_ to set the new value
 
 ### Run Development Node
 
