@@ -649,14 +649,6 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
-
-	// equivocatory signatures
-	precommits = buildTestJustification(t, 5, round+1, setID, kr, precommit)
-	just = newJustification(round+1, testHash, number, precommits)
-	data, err = scale.Marshal(*just)
-	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
-	require.Equal(t, ErrMinVotesNotMet, err)
 }
 
 func Test_getEquivocatoryVoters(t *testing.T) {
