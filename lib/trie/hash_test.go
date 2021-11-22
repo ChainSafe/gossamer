@@ -373,3 +373,147 @@ func Test_encodeChild(t *testing.T) {
 		})
 	}
 }
+
+func Test_encodeLeaf(t *testing.T) {
+	t.Parallel()
+
+	type writeCall struct {
+		written []byte
+		n       int
+		err     error
+	}
+
+	testCases := map[string]struct {
+		leaf       *leaf
+		writes     []writeCall
+		wrappedErr error
+		errMessage string
+	}{
+		"clean leaf with encoding": {
+			leaf: &leaf{
+				encoding: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{
+					written: []byte{1, 2, 3},
+				},
+			},
+		},
+		"write error for clean leaf with encoding": {
+			leaf: &leaf{
+				encoding: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{
+					written: []byte{1, 2, 3},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write stored encoding to buffer: test error",
+		},
+		"header encoding error": {
+			leaf: &leaf{
+				key: make([]byte, 63+(1<<16)),
+			},
+			wrappedErr: ErrPartialKeyTooBig,
+			errMessage: "cannot encode header: partial key length greater than or equal to 2^16",
+		},
+		"buffer write error for encoded header": {
+			leaf: &leaf{
+				key: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{
+					written: []byte{67},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write encoded header to buffer: test error",
+		},
+		"buffer write error for encoded key": {
+			leaf: &leaf{
+				key: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{
+					written: []byte{67},
+				},
+				{
+					written: []byte{1, 35},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write LE key to buffer: test error",
+		},
+		"buffer write error for encoded value": {
+			leaf: &leaf{
+				key:   []byte{1, 2, 3},
+				value: []byte{4, 5, 6},
+			},
+			writes: []writeCall{
+				{
+					written: []byte{67},
+				},
+				{
+					written: []byte{1, 35},
+				},
+				{
+					written: []byte{12, 4, 5, 6},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write scale encoded value to buffer: test error",
+		},
+		"success": {
+			leaf: &leaf{
+				key:   []byte{1, 2, 3},
+				value: []byte{4, 5, 6},
+			},
+			writes: []writeCall{
+				{
+					written: []byte{67},
+				},
+				{
+					written: []byte{1, 35},
+				},
+				{
+					written: []byte{12, 4, 5, 6},
+				},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			buffer := NewMockReadWriter(ctrl)
+			var previousCall *gomock.Call
+			for _, write := range testCase.writes {
+				call := buffer.EXPECT().
+					Write(write.written).
+					Return(write.n, write.err)
+
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			err := encodeLeaf(testCase.leaf, buffer)
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
