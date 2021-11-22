@@ -6,6 +6,7 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
+	"net/http"
 	"os"
 	"sort"
 	"testing"
@@ -310,6 +311,71 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	requestNumber, err = resReqID.Unwrap()
 	require.NoError(t, err)
 	require.Equal(t, int16(3), requestNumber)
+}
+
+func Test_ext_offchain_http_request_add_header(t *testing.T) {
+	t.Parallel()
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	cases := map[string]struct {
+		key, value  string
+		expectedErr bool
+	}{
+		"should add headers without problems": {
+			key:         "SOME_HEADER_KEY",
+			value:       "SOME_HEADER_VALUE",
+			expectedErr: false,
+		},
+
+		"should return a result error": {
+			key:         "",
+			value:       "",
+			expectedErr: true,
+		},
+	}
+
+	for tname, tcase := range cases {
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			reqID, err := inst.ctx.OffchainHTTPSet.StartRequest(http.MethodGet, "http://uri.example")
+			require.NoError(t, err)
+
+			encID, err := scale.Marshal(uint32(reqID))
+			require.NoError(t, err)
+
+			encHeaderKey, err := scale.Marshal(tcase.key)
+			require.NoError(t, err)
+
+			encHeaderValue, err := scale.Marshal(tcase.value)
+			require.NoError(t, err)
+
+			params := append([]byte{}, encID...)
+			params = append(params, encHeaderKey...)
+			params = append(params, encHeaderValue...)
+
+			ret, err := inst.Exec("rtm_ext_offchain_http_request_add_header_version_1", params)
+			require.NoError(t, err)
+
+			gotResult := scale.NewResult(nil, nil)
+			err = scale.Unmarshal(ret, &gotResult)
+			require.NoError(t, err)
+
+			ok, err := gotResult.Unwrap()
+			if tcase.expectedErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			offchainReq := inst.ctx.OffchainHTTPSet.Get(reqID)
+			gotValue := offchainReq.Request.Header.Get(tcase.key)
+			require.Equal(t, tcase.value, gotValue)
+
+			require.Nil(t, ok)
+		})
+	}
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
