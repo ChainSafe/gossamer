@@ -162,13 +162,6 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	bt.Lock()
 	defer bt.Unlock()
 
-	defer func() {
-		for _, hash := range pruned {
-			delete(bt.nodeCache, hash)
-			bt.runtime.Delete(hash)
-		}
-	}()
-
 	if finalised == bt.root.hash {
 		return pruned
 	}
@@ -188,9 +181,13 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		bt.leaves.store(leaf.hash, leaf)
 	}
 
+	for _, hash := range pruned {
+		delete(bt.nodeCache, hash)
+		bt.runtime.Delete(hash)
+	}
+
 	fmt.Println("blocktree.Prune", finalised)
 	fmt.Println(bt)
-
 	return pruned
 }
 
@@ -216,7 +213,7 @@ func (bt *BlockTree) String() string {
 
 	metadata := fmt.Sprintf("Leaves:\n %s", leaves)
 
-	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
+	return fmt.Sprintf("%s\n%s\n%s\n", metadata, tree.Print(), bt.nodeCache)
 }
 
 // longestPath returns the path from the root to the deepest leaf in the blocktree
@@ -333,8 +330,8 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 		return common.Hash{}, ErrNodeNotFound
 	}
 
-	fmt.Println("blocktree.HighestCommonAncestor", a, b)
-	fmt.Println(bt)
+	// fmt.Println("blocktree.HighestCommonAncestor", a, b)
+	// fmt.Println(bt)
 
 	ancestor := an.highestCommonAncestor(bn)
 	if ancestor == nil {
