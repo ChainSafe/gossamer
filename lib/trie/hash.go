@@ -127,23 +127,6 @@ func encodeNode(n node, buffer bytesBuffer, parallel bool) (err error) {
 	}
 }
 
-func encodeAndHash(n node) ([]byte, error) {
-	buffer := digestBufferPool.Get().(*bytes.Buffer)
-	buffer.Reset()
-	defer digestBufferPool.Put(buffer)
-
-	err := hashNode(n, buffer)
-	if err != nil {
-		return nil, err
-	}
-
-	scEncChild, err := scale.Marshal(buffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return scEncChild, nil
-}
-
 // encodeBranch encodes a branch with the encoding specified at the top of this package
 // to the buffer given.
 func encodeBranch(b *branch, buffer io.Writer, parallel bool) (err error) {
@@ -303,6 +286,23 @@ func encodeChild(child node, buffer io.Writer) (err error) {
 	}
 
 	return nil
+}
+
+func encodeAndHash(n node) ([]byte, error) {
+	buffer := digestBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer digestBufferPool.Put(buffer)
+
+	err := hashNode(n, buffer)
+	if err != nil {
+		return nil, err
+	}
+
+	scEncChild, err := scale.Marshal(buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	return scEncChild, nil
 }
 
 // encodeLeaf encodes a leaf to the buffer given, with the encoding
