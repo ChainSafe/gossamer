@@ -200,12 +200,6 @@ func gossamerAction(ctx *cli.Context) error {
 		return fmt.Errorf("failed to read command argument: %q", arguments[0])
 	}
 
-	// begin profiling, if set
-	stopFunc, err := beginProfile(ctx)
-	if err != nil {
-		return err
-	}
-
 	// setup gossamer logger
 	lvl, err := setupLogger(ctx)
 	if err != nil {
@@ -283,7 +277,7 @@ func gossamerAction(ctx *cli.Context) error {
 		return err
 	}
 
-	node, err := dot.NewNode(cfg, ks, stopFunc)
+	node, err := dot.NewNode(cfg, ks)
 	if err != nil {
 		logger.Errorf("failed to create node services: %s", err)
 		return err

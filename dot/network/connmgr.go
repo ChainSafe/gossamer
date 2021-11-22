@@ -12,7 +12,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -23,10 +22,8 @@ type ConnManager struct {
 	sync.Mutex
 	host              *host
 	min, max          int
+	connectHandler    func(peer.ID)
 	disconnectHandler func(peer.ID)
-
-	// closeHandlerMap contains close handler corresponding to a protocol.
-	closeHandlerMap map[protocol.ID]func(peerID peer.ID)
 
 	// protectedPeers contains a list of peers that are protected from pruning
 	// when we reach the maximum numbers of peers.
@@ -47,7 +44,6 @@ func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, 
 	return &ConnManager{
 		min:             min,
 		max:             max,
-		closeHandlerMap: make(map[protocol.ID]func(peerID peer.ID)),
 		protectedPeers:  new(sync.Map),
 		persistentPeers: new(sync.Map),
 		peerSetHandler:  psh,
@@ -68,19 +64,19 @@ func (cm *ConnManager) Notifee() network.Notifiee {
 	return nb
 }
 
-// TagPeer peer
+// TagPeer is unimplemented
 func (*ConnManager) TagPeer(peer.ID, string, int) {}
 
-// UntagPeer peer
+// UntagPeer is unimplemented
 func (*ConnManager) UntagPeer(peer.ID, string) {}
 
-// UpsertTag peer
+// UpsertTag is unimplemented
 func (*ConnManager) UpsertTag(peer.ID, string, func(int) int) {}
 
-// GetTagInfo peer
+// GetTagInfo is unimplemented
 func (*ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo { return &connmgr.TagInfo{} }
 
-// TrimOpenConns peer
+// TrimOpenConns is unimplemented
 func (*ConnManager) TrimOpenConns(context.Context) {}
 
 // Protect peer will add the given peer to the protectedPeerMap which will
@@ -97,7 +93,7 @@ func (cm *ConnManager) Unprotect(id peer.ID, _ string) bool {
 	return wasDeleted
 }
 
-// Close peer
+// Close is unimplemented
 func (*ConnManager) Close() error { return nil }
 
 // IsProtected returns whether the given peer is protected from pruning or not.
@@ -134,6 +130,7 @@ func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Tracef(
 		"Host %s connected to peer %s", n.LocalPeer(), c.RemotePeer())
+	cm.connectHandler(c.RemotePeer())
 
 	cm.Lock()
 	defer cm.Unlock()
@@ -143,7 +140,9 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 		return
 	}
 
+	// TODO: peer scoring doesn't seem to prevent us from going over the max.
 	// if over the max peer count, disconnect from (total_peers - maximum) peers
+	// (#2039)
 	for i := 0; i < over; i++ {
 		unprotPeers := cm.unprotectedPeers(n.Peers())
 		if len(unprotPeers) == 0 {
@@ -170,31 +169,19 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	logger.Tracef("Host %s disconnected from peer %s", c.LocalPeer(), c.RemotePeer())
 
 	cm.Unprotect(c.RemotePeer(), "")
-	if cm.disconnectHandler != nil {
-		cm.disconnectHandler(c.RemotePeer())
-	}
+	cm.disconnectHandler(c.RemotePeer())
 }
 
-// OpenedStream is called when a stream opened
+// OpenedStream is called when a stream is opened
 func (cm *ConnManager) OpenedStream(_ network.Network, s network.Stream) {
 	logger.Tracef("Stream opened with peer %s using protocol %s",
 		s.Conn().RemotePeer(), s.Protocol())
 }
 
-func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb func(id peer.ID)) {
-	cm.closeHandlerMap[protocolID] = cb
-}
-
-// ClosedStream is called when a stream closed
+// ClosedStream is called when a stream is closed
 func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
 	logger.Tracef("Stream closed with peer %s using protocol %s",
 		s.Conn().RemotePeer(), s.Protocol())
-
-	cm.Lock()
-	defer cm.Unlock()
-	if closeCB, ok := cm.closeHandlerMap[s.Protocol()]; ok {
-		closeCB(s.Conn().RemotePeer())
-	}
 }
 
 func (cm *ConnManager) isPersistent(p peer.ID) bool {

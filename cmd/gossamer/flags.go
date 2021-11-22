@@ -97,13 +97,23 @@ var (
 		Name:  "basepath",
 		Usage: "Data directory for the node",
 	}
-	CPUProfFlag = cli.StringFlag{
-		Name:  "cpuprof",
-		Usage: "File to write CPU profile to",
+	PprofServerFlag = cli.StringFlag{
+		Name:  "pprofserver",
+		Usage: "enable or disable the pprof HTTP server",
 	}
-	MemProfFlag = cli.StringFlag{
-		Name:  "memprof",
-		Usage: "File to write memory profile to",
+	PprofAddressFlag = cli.StringFlag{
+		Name:  "pprofaddress",
+		Usage: "pprof HTTP server listening address, if it is enabled.",
+	}
+	PprofBlockRateFlag = cli.IntFlag{
+		Name:  "pprofblockrate",
+		Value: -1,
+		Usage: "pprof block rate. See https://pkg.go.dev/runtime#SetBlockProfileRate.",
+	}
+	PprofMutexRateFlag = cli.IntFlag{
+		Name:  "pprofmutexrate",
+		Value: -1,
+		Usage: "profiling mutex rate. See https://pkg.go.dev/runtime#SetMutexProfileFraction.",
 	}
 
 	// PublishMetricsFlag publishes node metrics to prometheus.
@@ -372,8 +382,10 @@ var (
 		ChainFlag,
 		ConfigFlag,
 		BasePathFlag,
-		CPUProfFlag,
-		MemProfFlag,
+		PprofServerFlag,
+		PprofAddressFlag,
+		PprofBlockRateFlag,
+		PprofMutexRateFlag,
 		RewindFlag,
 		DBPathFlag,
 		BloomFilterSizeFlag,

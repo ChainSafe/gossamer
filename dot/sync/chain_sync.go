@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -853,7 +854,7 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 	}
 
 	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
-		return errNilBodyInResponse
+		return fmt.Errorf("%w: hash=%s", errNilBodyInResponse, bd.Hash)
 	}
 
 	return nil

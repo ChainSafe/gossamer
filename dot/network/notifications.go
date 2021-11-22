@@ -5,19 +5,17 @@ package network
 
 import (
 	"errors"
-	"reflect"
+	"fmt"
+	"io"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
+
+	"github.com/libp2p/go-libp2p-core/mux"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-)
-
-var (
-	errCannotValidateHandshake = errors.New("failed to validate handshake")
-	maxHandshakeSize           = reflect.TypeOf(BlockAnnounceHandshake{}).Size()
 )
 
 const handshakeTimeout = time.Second * 10
@@ -62,16 +60,28 @@ type handshakeReader struct {
 }
 
 type notificationsProtocol struct {
-	protocolID         protocol.ID
-	getHandshake       HandshakeGetter
-	handshakeDecoder   HandshakeDecoder
-	handshakeValidator HandshakeValidator
-
-	inboundHandshakeData  *sync.Map //map[peer.ID]*handshakeData
-	outboundHandshakeData *sync.Map //map[peer.ID]*handshakeData
+	protocolID               protocol.ID
+	getHandshake             HandshakeGetter
+	handshakeDecoder         HandshakeDecoder
+	handshakeValidator       HandshakeValidator
+	outboundHandshakeMutexes *sync.Map //map[peer.ID]*sync.Mutex
+	inboundHandshakeData     *sync.Map //map[peer.ID]*handshakeData
+	outboundHandshakeData    *sync.Map //map[peer.ID]*handshakeData
 }
 
-func (n *notificationsProtocol) getInboundHandshakeData(pid peer.ID) (handshakeData, bool) {
+func newNotificationsProtocol(protocolID protocol.ID, handshakeGetter HandshakeGetter, handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator) *notificationsProtocol {
+	return &notificationsProtocol{
+		protocolID:               protocolID,
+		getHandshake:             handshakeGetter,
+		handshakeValidator:       handshakeValidator,
+		handshakeDecoder:         handshakeDecoder,
+		outboundHandshakeMutexes: new(sync.Map),
+		inboundHandshakeData:     new(sync.Map),
+		outboundHandshakeData:    new(sync.Map),
+	}
+}
+
+func (n *notificationsProtocol) getInboundHandshakeData(pid peer.ID) (*handshakeData, bool) {
 	var (
 		data interface{}
 		has  bool
@@ -79,13 +89,13 @@ func (n *notificationsProtocol) getInboundHandshakeData(pid peer.ID) (handshakeD
 
 	data, has = n.inboundHandshakeData.Load(pid)
 	if !has {
-		return handshakeData{}, false
+		return nil, false
 	}
 
-	return data.(handshakeData), true
+	return data.(*handshakeData), true
 }
 
-func (n *notificationsProtocol) getOutboundHandshakeData(pid peer.ID) (handshakeData, bool) {
+func (n *notificationsProtocol) getOutboundHandshakeData(pid peer.ID) (*handshakeData, bool) {
 	var (
 		data interface{}
 		has  bool
@@ -93,10 +103,10 @@ func (n *notificationsProtocol) getOutboundHandshakeData(pid peer.ID) (handshake
 
 	data, has = n.outboundHandshakeData.Load(pid)
 	if !has {
-		return handshakeData{}, false
+		return nil, false
 	}
 
-	return data.(handshakeData), true
+	return data.(*handshakeData), true
 }
 
 type handshakeData struct {
@@ -104,15 +114,13 @@ type handshakeData struct {
 	validated bool
 	handshake Handshake
 	stream    libp2pnetwork.Stream
-	*sync.Mutex
 }
 
-func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) handshakeData {
-	return handshakeData{
+func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) *handshakeData {
+	return &handshakeData{
 		received:  received,
 		validated: validated,
 		stream:    stream,
-		Mutex:     new(sync.Mutex),
 	}
 }
 
@@ -121,7 +129,7 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
 		var (
-			hsData handshakeData
+			hsData *handshakeData
 			has    bool
 		)
 
@@ -140,6 +148,7 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 	}
 }
 
+// createNotificationsMessageHandler returns a function that is called by the handler of *inbound* streams.
 func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler, batchHandler NotificationsMessageBatchHandler) messageHandler {
 	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
@@ -153,7 +162,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		)
 
 		if msg, ok = m.(NotificationsMessage); !ok {
-			return errors.New("message is not NotificationsMessage")
+			return fmt.Errorf("%w: expected %T but got %T", errMessageTypeNotValid, (NotificationsMessage)(nil), msg)
 		}
 
 		if msg.IsHandshake() {
@@ -162,7 +171,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 			hs, ok := msg.(Handshake)
 			if !ok {
-				return errors.New("failed to convert message to Handshake")
+				return errMessageIsNotHandshake
 			}
 
 			// if we are the receiver and haven't received the handshake already, validate it
@@ -198,6 +207,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					logger.Tracef("failed to send handshake to peer %s using protocol %s: %s", peer, info.protocolID, err)
 					return err
 				}
+
 				logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
 			}
 
@@ -224,6 +234,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			if err != nil {
 				return err
 			}
+
 			msgs = append(msgs, &BatchMessage{
 				msg:  msg,
 				peer: peer,
@@ -251,7 +262,23 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 	}
 }
 
+func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream libp2pnetwork.Stream) {
+	logger.Debugf(
+		"cleaning up outbound handshake data for protocol=%s, peer=%s",
+		stream.Protocol(),
+		peerID,
+	)
+
+	info.outboundHandshakeData.Delete(peerID)
+	_ = stream.Close()
+}
+
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
+	if info.handshakeValidator == nil {
+		logger.Errorf("handshakeValidator is not set for protocol %s", info.protocolID)
+		return
+	}
+
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
@@ -261,73 +288,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	hsData, has := info.getOutboundHandshakeData(peer)
-	if has && !hsData.validated {
-		// peer has sent us an invalid handshake in the past, ignore
+	stream, err := s.sendHandshake(peer, hs, info)
+	if err != nil {
+		logger.Debugf("failed to send handshake to peer %s on protocol %s: %s", peer, info.protocolID, err)
 		return
-	}
-
-	if !has || !hsData.received || hsData.stream == nil {
-		if !has {
-			hsData = newHandshakeData(false, false, nil)
-		}
-
-		hsData.Lock()
-		defer hsData.Unlock()
-
-		logger.Tracef("sending outbound handshake to peer %s using protocol %s, message: %s",
-			peer, info.protocolID, hs)
-		stream, err := s.host.send(peer, info.protocolID, hs)
-		if err != nil {
-			logger.Tracef("failed to send message to peer %s: %s", peer, err)
-			return
-		}
-
-		hsData.stream = stream
-		info.outboundHandshakeData.Store(peer, hsData)
-
-		if info.handshakeValidator == nil {
-			return
-		}
-
-		hsTimer := time.NewTimer(handshakeTimeout)
-
-		var hs Handshake
-		select {
-		case <-hsTimer.C:
-			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.TimeOutValue,
-				Reason: peerset.TimeOutReason,
-			}, peer)
-
-			logger.Tracef("handshake timeout reached for peer %s using protocol %s", peer, info.protocolID)
-			_ = stream.Close()
-			info.outboundHandshakeData.Delete(peer)
-			return
-		case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
-			hsTimer.Stop()
-			if hsResponse.err != nil {
-				logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
-				_ = stream.Close()
-				info.outboundHandshakeData.Delete(peer)
-				return
-			}
-
-			hs = hsResponse.hs
-			hsData.received = true
-		}
-
-		err = info.handshakeValidator(peer, hs)
-		if err != nil {
-			logger.Tracef("failed to validate handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
-			hsData.validated = false
-			info.outboundHandshakeData.Store(peer, hsData)
-			return
-		}
-
-		hsData.validated = true
-		info.outboundHandshakeData.Store(peer, hsData)
-		logger.Tracef("sender: validated handshake from peer %s using protocol %s", peer, info.protocolID)
 	}
 
 	if s.host.messageCache != nil {
@@ -349,16 +313,101 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 	// we've completed the handshake with the peer, send message directly
 	logger.Tracef("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
-
-	err := s.host.writeToStream(hsData.stream, msg)
-	if err != nil {
+	if err := s.host.writeToStream(stream, msg); err != nil {
 		logger.Debugf("failed to send message to peer %s: %s", peer, err)
+
+		// the stream was closed or reset, close it on our end and delete it from our peer's data
+		if errors.Is(err, io.EOF) || errors.Is(err, mux.ErrReset) {
+			closeOutboundStream(info, peer, stream)
+		}
+		return
 	}
 
+	logger.Tracef("successfully sent message on protocol %s to peer %s: message=", info.protocolID, peer, msg)
 	s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 		Value:  peerset.GossipSuccessValue,
 		Reason: peerset.GossipSuccessReason,
 	}, peer)
+}
+
+func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsProtocol) (libp2pnetwork.Stream, error) {
+	mu, has := info.outboundHandshakeMutexes.Load(peer)
+	if !has {
+		// this should not happen
+		return nil, errMissingHandshakeMutex
+	}
+
+	// multiple processes could each call this upcoming section, opening multiple streams and
+	// sending multiple handshakes. thus, we need to have a per-peer and per-protocol lock
+	mu.(*sync.Mutex).Lock()
+	defer mu.(*sync.Mutex).Unlock()
+
+	hsData, has := info.getOutboundHandshakeData(peer)
+	switch {
+	case has && !hsData.validated:
+		// peer has sent us an invalid handshake in the past, ignore
+		return nil, errInvalidHandshakeForPeer
+	case has && hsData.validated:
+		return hsData.stream, nil
+	case !has:
+		hsData = newHandshakeData(false, false, nil)
+	}
+
+	logger.Tracef("sending outbound handshake to peer %s on protocol %s, message: %s",
+		peer, info.protocolID, hs)
+	stream, err := s.host.send(peer, info.protocolID, hs)
+	if err != nil {
+		logger.Tracef("failed to send message to peer %s: %s", peer, err)
+		// don't need to close the stream here, as it's nil!
+		return nil, err
+	}
+
+	hsData.stream = stream
+
+	hsTimer := time.NewTimer(handshakeTimeout)
+
+	var resp Handshake
+	select {
+	case <-hsTimer.C:
+		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.TimeOutValue,
+			Reason: peerset.TimeOutReason,
+		}, peer)
+
+		logger.Tracef("handshake timeout reached for peer %s using protocol %s", peer, info.protocolID)
+		closeOutboundStream(info, peer, stream)
+		return nil, errHandshakeTimeout
+	case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
+		if !hsTimer.Stop() {
+			<-hsTimer.C
+		}
+
+		if hsResponse.err != nil {
+			logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
+			closeOutboundStream(info, peer, stream)
+			return nil, hsResponse.err
+		}
+
+		resp = hsResponse.hs
+		hsData.received = true
+	}
+
+	if err = info.handshakeValidator(peer, resp); err != nil {
+		logger.Tracef("failed to validate handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
+		hsData.validated = false
+		hsData.stream = nil
+		_ = stream.Reset()
+		info.outboundHandshakeData.Store(peer, hsData)
+		// don't delete handshake data, as we want to store that the handshake for this peer was invalid
+		// and not to exchange messages over this protocol with it
+		return nil, err
+	}
+
+	hsData.validated = true
+	hsData.handshake = resp
+	info.outboundHandshakeData.Store(peer, hsData)
+	logger.Tracef("sender: validated handshake from peer %s using protocol %s", peer, info.protocolID)
+	return hsData.stream, nil
 }
 
 // broadcastExcluding sends a message to each connected peer except the given peer,
