@@ -104,7 +104,7 @@ func newDisjointBlockSet(limit int) *disjointBlockSet {
 }
 
 func (s *disjointBlockSet) start(ctx context.Context) {
-	timer := time.NewTimer(clearBlocksInterval)
+	timer := time.NewTicker(clearBlocksInterval)
 
 	go func() {
 		for {
@@ -112,9 +112,7 @@ func (s *disjointBlockSet) start(ctx context.Context) {
 			case <-timer.C:
 				s.clearBlocks()
 			case <-ctx.Done():
-				if !timer.Stop() {
-					<-timer.C
-				}
+				timer.Stop()
 				return
 			}
 		}
