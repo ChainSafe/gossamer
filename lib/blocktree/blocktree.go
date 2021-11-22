@@ -438,7 +438,7 @@ func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
 // GetBlockRuntime returns block runtime for corresponding block hash.
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
 	ins, ok := bt.runtime.Load(hash)
-	if !ok {
+	if !ok || ins == nil {
 		return nil, ErrFailedToGetRuntime
 	}
 	return ins.(runtime.Instance), nil

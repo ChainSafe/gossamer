@@ -107,6 +107,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 
 	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
+	// TODO no default case to handle if cfg.Core.WasmInterpreter is not set or set incorrectly
 	case wasmer.Name:
 		rtCfg := &wasmer.Config{
 			Imports: wasmer.ImportsNodeRuntime,

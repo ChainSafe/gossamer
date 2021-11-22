@@ -5,6 +5,7 @@ package dot
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -95,6 +96,76 @@ func TestLoadGlobalNodeName(t *testing.T) {
 			}
 
 			assert.Equal(t, tt.wantNodename, gotNodename)
+		})
+	}
+}
+
+func TestNewNodeB(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+	defer utils.RemoveTestDir(t)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	type args struct {
+		cfg      *Config
+		stopFunc func()
+	}
+	tests := []struct {
+		name string
+		args args
+		want *Node
+		err  error
+	}{
+		{
+			name: "missing account key",
+			args: args{
+				cfg: &Config{
+					Global: GlobalConfig{BasePath: cfg.Global.BasePath},
+					Init:   InitConfig{Genesis: genFile.Name()},
+					Core: CoreConfig{Roles: types.AuthorityRole },
+				},
+			},
+			err:  errors.New("no keys provided for authority node"),
+		},
+		// TODO this is commented out because in holds a lock on badger db, causing next test to foil
+		//{
+		//	name: "missing wasm config",
+		//	args: args{
+		//		cfg: &Config{
+		//			Global: GlobalConfig{BasePath: cfg.Global.BasePath},
+		//			Init:   InitConfig{Genesis: genFile.Name()},
+		//			Account: AccountConfig{Key: "alice"},
+		//		},
+		//	},
+		//	err:  errors.New("failed to get runtime instance"),
+		//},
+		{
+			name: "minimal config",
+			args: args{
+				cfg: &Config{
+					Global:  GlobalConfig{BasePath: cfg.Global.BasePath,},
+					Init:    InitConfig{Genesis: genFile.Name()},
+					Account: AccountConfig{Key: "alice"},
+					Core:    CoreConfig{WasmInterpreter: wasmer.Name,},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewNodeB(tt.args.cfg, tt.args.stopFunc)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+				utils.RemoveTestDir(t)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			if tt.want != nil {
+				assert.Equal(t, tt.want.Name, got.Name)
+			}
 		})
 	}
 }
