@@ -6,9 +6,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -25,10 +23,9 @@ const confirmCharacter = "Y"
 
 // setupLogger sets up the global Gossamer logger.
 func setupLogger(ctx *cli.Context) (level log.Level, err error) {
-	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
-		level = log.Level(lvlToInt)
-	} else if level, err = log.ParseLevel(ctx.String(LogFlag.Name)); err != nil {
-		return 0, err
+	level, err = getLogLevel(ctx, LogFlag.Name, "", log.Info)
+	if err != nil {
+		return level, err
 	}
 
 	log.Patch(
@@ -101,6 +98,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 		Network: dot.GssmrConfig().Network,
 		RPC:     dot.GssmrConfig().RPC,
 		System:  dot.GssmrConfig().System,
+		Pprof:   dot.GssmrConfig().Pprof,
 	}
 
 	return cfg
@@ -110,7 +108,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	cfg := newTestConfig(t)
 
-	file, err := ioutil.TempFile(cfg.Global.BasePath, "config-")
+	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
 	require.NoError(t, err)
 
 	tomlCfg := dotConfigToToml(cfg)

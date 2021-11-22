@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -269,7 +270,10 @@ func TestCreateGrandpaService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, &network.Service{})
+	networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	require.NoError(t, err)
+
+	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }
@@ -351,4 +355,14 @@ func TestNewWebSocketServer(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, item.expected, message)
 	}
+}
+
+func Test_createPprofService(t *testing.T) {
+	t.Parallel()
+
+	settings := pprof.Settings{}
+
+	service := createPprofService(settings)
+
+	require.NotNil(t, service)
 }

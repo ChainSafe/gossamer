@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -424,7 +424,7 @@ func (c *WSConn) executeRequest(r *http.Request, d interface{}) error {
 		return err
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		logger.Warnf("error reading response body: %s", err)
 		return err

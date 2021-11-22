@@ -5,7 +5,7 @@ package runtime
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -23,8 +23,7 @@ import (
 
 // NewInMemoryDB creates a new in-memory database
 func NewInMemoryDB(t *testing.T) chaindb.Database {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir:  testDatadirPath,
@@ -89,13 +88,13 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 		return err
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	return ioutil.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
+	return os.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
 }
 
 // TestRuntimeNetwork ...

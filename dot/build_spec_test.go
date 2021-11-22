@@ -6,7 +6,7 @@ package dot
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 
@@ -62,7 +62,7 @@ func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
 }
 
 func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
-	f, err := ioutil.TempFile("", "existing file data")
+	f, err := os.CreateTemp("", "existing file data")
 	require.NoError(t, err)
 	defer os.Remove(f.Name())
 
@@ -105,7 +105,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 		require.NoError(t, err)
 		defer file.Close()
 
-		genesisBytes, err := ioutil.ReadAll(file)
+		genesisBytes, err := io.ReadAll(file)
 		require.NoError(t, err)
 
 		gen := new(genesis.Genesis)

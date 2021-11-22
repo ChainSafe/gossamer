@@ -5,7 +5,6 @@ package keystore
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -100,7 +99,7 @@ func TestGenerateKey_Ed25519(t *testing.T) {
 		t.Fatalf("Fail: got %s expected %s", keys[0], keyfile)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +137,7 @@ func TestGenerateKey_Secp256k1(t *testing.T) {
 		t.Fatalf("Fail: got %s expected %s", keys[0], keyfile)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +162,7 @@ func TestGenerateKey_NoType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +298,7 @@ func TestImportRawPrivateKey_NoType(t *testing.T) {
 	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
@@ -316,7 +315,7 @@ func TestImportRawPrivateKey_Sr25519(t *testing.T) {
 	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "sr25519", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
@@ -333,7 +332,7 @@ func TestImportRawPrivateKey_Ed25519(t *testing.T) {
 	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "ed25519", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
@@ -350,7 +349,7 @@ func TestImportRawPrivateKey_Secp256k1(t *testing.T) {
 	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "secp256k1", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)

@@ -6,10 +6,11 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
+	"net/http"
 	"os"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -45,6 +46,35 @@ func TestMain(m *testing.M) {
 
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
+}
+
+func Test_ext_offchain_timestamp_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	runtimeFunc, ok := inst.vm.Exports["rtm_ext_offchain_timestamp_version_1"]
+	require.True(t, ok)
+
+	res, err := runtimeFunc(0, 0)
+	require.NoError(t, err)
+
+	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
+	data := inst.load(offset, length)
+	var timestamp int64
+	err = scale.Unmarshal(data, &timestamp)
+	require.NoError(t, err)
+
+	expected := time.Now().Unix()
+	require.GreaterOrEqual(t, expected, timestamp)
+}
+
+func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	input := time.Now().UnixMilli()
+	enc, err := scale.Marshal(input)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) //auto conversion to i64
+	require.NoError(t, err)
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
@@ -281,6 +311,71 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	requestNumber, err = resReqID.Unwrap()
 	require.NoError(t, err)
 	require.Equal(t, int16(3), requestNumber)
+}
+
+func Test_ext_offchain_http_request_add_header(t *testing.T) {
+	t.Parallel()
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	cases := map[string]struct {
+		key, value  string
+		expectedErr bool
+	}{
+		"should add headers without problems": {
+			key:         "SOME_HEADER_KEY",
+			value:       "SOME_HEADER_VALUE",
+			expectedErr: false,
+		},
+
+		"should return a result error": {
+			key:         "",
+			value:       "",
+			expectedErr: true,
+		},
+	}
+
+	for tname, tcase := range cases {
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			reqID, err := inst.ctx.OffchainHTTPSet.StartRequest(http.MethodGet, "http://uri.example")
+			require.NoError(t, err)
+
+			encID, err := scale.Marshal(uint32(reqID))
+			require.NoError(t, err)
+
+			encHeaderKey, err := scale.Marshal(tcase.key)
+			require.NoError(t, err)
+
+			encHeaderValue, err := scale.Marshal(tcase.value)
+			require.NoError(t, err)
+
+			params := append([]byte{}, encID...)
+			params = append(params, encHeaderKey...)
+			params = append(params, encHeaderValue...)
+
+			ret, err := inst.Exec("rtm_ext_offchain_http_request_add_header_version_1", params)
+			require.NoError(t, err)
+
+			gotResult := scale.NewResult(nil, nil)
+			err = scale.Unmarshal(ret, &gotResult)
+			require.NoError(t, err)
+
+			ok, err := gotResult.Unwrap()
+			if tcase.expectedErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			offchainReq := inst.ctx.OffchainHTTPSet.Get(reqID)
+			gotValue := offchainReq.Request.Header.Get(tcase.key)
+			require.Equal(t, tcase.value, gotValue)
+
+			require.Nil(t, ok)
+		})
+	}
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
@@ -1454,8 +1549,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
-	var val *[]byte // nolint
-	val = nil
+	var val *[]byte
 	optLimit, err := scale.Marshal(val)
 	require.NoError(t, err)
 
@@ -1660,10 +1754,7 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	t.Parallel()
 
-	tmp, err := ioutil.TempDir("", "*-test-trie")
-	require.NoError(t, err)
-
-	defer os.RemoveAll(tmp)
+	tmp := t.TempDir()
 
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
 		InMemory: true,

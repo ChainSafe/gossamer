@@ -5,7 +5,7 @@ package modules
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -19,7 +19,7 @@ func TestSyncStateModule(t *testing.T) {
 	fp, err := filepath.Abs(GssmrGenesisPath)
 	require.NoError(t, err)
 
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	data, err := os.ReadFile(filepath.Clean(fp))
 	require.NoError(t, err)
 
 	g := new(genesis.Genesis)

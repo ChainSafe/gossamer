@@ -7,8 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -367,7 +367,7 @@ func TestStateModule_GetMetadata(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
-	expectedMetadata, err := ioutil.ReadFile("./test_data/expected_metadata")
+	expectedMetadata, err := os.ReadFile("./test_data/expected_metadata")
 	require.NoError(t, err)
 
 	testCases := []struct {

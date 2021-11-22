@@ -26,11 +26,13 @@ The global flags can be used in conjunction with any Gossamer command
 --basepath value   Data directory for the node 
 --chain value      Node implementation id used to load default node configuration
 --config value     TOML configuration file
---cpuprof          File to write CPU profile to
 --log value        Supports levels crit (silent) to trce (trace) (default: "info")
---memprof          File to write memory profile to
 --name value       Node implementation name
 --rewind value     Rewind head of chain by given number of blocks
+--pprofserver      Enable or disable the pprof HTTP server
+--pprofaddress     pprof HTTP server listening address, if it is enabled.
+--pprofblockrate   pprof block rate. See https://pkg.go.dev/runtime#SetBlockProfileRate.
+--pprofmutexrate   profiling mutex rate. See https://pkg.go.dev/runtime#SetMutexProfileFraction.
 ```
 
 ### Local flags
