@@ -277,6 +277,8 @@ func (l *leaf) encodeAndHash() (encoding, hash []byte, err error) {
 	bufferBytes := buffer.Bytes()
 
 	l.encodingMu.Lock()
+	// TODO remove this copying since it defeats the purpose of `buffer`
+	// and the sync.Pool.
 	l.encoding = make([]byte, len(bufferBytes))
 	copy(l.encoding, bufferBytes)
 	l.encodingMu.Unlock()

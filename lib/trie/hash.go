@@ -98,6 +98,8 @@ func encodeNode(n node, buffer *bytes.Buffer, parallel bool) (err error) {
 		n.encodingMu.Lock()
 		defer n.encodingMu.Unlock()
 
+		// TODO remove this copying since it defeats the purpose of `buffer`
+		// and the sync.Pool.
 		n.encoding = make([]byte, buffer.Len())
 		copy(n.encoding, buffer.Bytes())
 		return nil
