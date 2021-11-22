@@ -213,7 +213,7 @@ func (bt *BlockTree) String() string {
 
 	metadata := fmt.Sprintf("Leaves:\n %s", leaves)
 
-	return fmt.Sprintf("%s\n%s\n%s\n", metadata, tree.Print(), bt.nodeCache)
+	return fmt.Sprintf("%s\n%s\n%v\n", metadata, tree.Print(), bt.nodeCache)
 }
 
 // longestPath returns the path from the root to the deepest leaf in the blocktree
