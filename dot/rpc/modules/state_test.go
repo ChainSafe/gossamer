@@ -17,8 +17,6 @@ package modules
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
@@ -27,7 +25,9 @@ import (
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/stretchr/testify/require"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStateModuleGetPairs(t *testing.T) {
@@ -295,7 +295,7 @@ func TestCall(t *testing.T) {
 	sm := NewStateModule(mockNetworkAPI, mockStorageAPI, nil)
 
 	err := sm.Call(nil, nil, nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestStateModuleGetMetadata(t *testing.T) {
@@ -376,7 +376,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 	expKeys := make([][]byte, len(keys))
 	for i, hexKey := range keys {
 		bKey, err := common.HexToBytes(hexKey)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		expKeys[i] = bKey
 	}
@@ -891,7 +891,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					EndBlock:   hash2,
 				},
 			},
-			exp: []StorageChangeSetResponse{{Block: &hash1, Changes: [][]string{[]string{"p2", "jimbo"}}}},
+			exp: []StorageChangeSetResponse{{Block: &hash1, Changes: [][]string{{"p2", "jimbo"}}}},
 		},
 		{
 			name:   "QueryStorage Error",

@@ -5,7 +5,6 @@ package modules
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
@@ -14,6 +13,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 

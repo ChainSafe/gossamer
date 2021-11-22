@@ -5,7 +5,6 @@ package modules
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"net/http"
 	"testing"
@@ -13,6 +12,8 @@ import (
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 

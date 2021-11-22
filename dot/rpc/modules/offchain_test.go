@@ -6,12 +6,13 @@ package modules
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOffchainModule_LocalStorageGet(t *testing.T) {

@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	database "github.com/ChainSafe/chaindb"
+	log "github.com/ChainSafe/gossamer/internal/log"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/stretchr/testify/require"
 )

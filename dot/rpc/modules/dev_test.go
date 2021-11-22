@@ -5,11 +5,12 @@ package modules
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_uint64ToHex(t *testing.T) {

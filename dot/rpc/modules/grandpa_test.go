@@ -5,7 +5,6 @@ package modules
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
@@ -15,6 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGrandpaModule_ProveFinality(t *testing.T) {

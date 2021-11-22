@@ -5,7 +5,6 @@ package modules
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
@@ -15,6 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/multiformats/go-multiaddr"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 

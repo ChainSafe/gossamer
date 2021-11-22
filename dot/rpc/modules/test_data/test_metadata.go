@@ -17,26 +17,26 @@ func init() {
 	bytesReader := bytes.NewReader(testMetaData)
 	zipReader, err := zip.NewReader(bytesReader, int64(bytesReader.Len()))
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	zipFile := zipReader.File[0]
 
 	file, err := zipFile.Open()
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			return
+			panic(err)
 		}
 	}()
 
 	b, err := io.ReadAll(file)
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	testData = string(b)

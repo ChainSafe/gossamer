@@ -5,13 +5,14 @@ package modules
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSyncStateModule_GenSyncSpec(t *testing.T) {
@@ -86,7 +87,8 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 }
 
 func TestNewStateSync(t *testing.T) {
-	g := &genesis.Genesis{}
+	g1 := &genesis.Genesis{}
+	g2 := &genesis.Genesis{}
 	raw := make(map[string][]byte)
 	mockStorageAPI := new(apimocks.StorageAPI)
 	mockStorageAPI.On("Entries", (*common.Hash)(nil)).Return(raw, nil)
@@ -108,7 +110,7 @@ func TestNewStateSync(t *testing.T) {
 		{
 			name: "OK Case",
 			args: args{
-				gData:      g.GenesisData(),
+				gData:      g1.GenesisData(),
 				storageAPI: mockStorageAPI,
 			},
 			exp: syncState{chainSpecification: &genesis.Genesis{
@@ -126,7 +128,7 @@ func TestNewStateSync(t *testing.T) {
 		{
 			name: "Err Case",
 			args: args{
-				gData:      g.GenesisData(),
+				gData:      g2.GenesisData(),
 				storageAPI: mockStorageAPIErr,
 			},
 			wantErr: true,
@@ -149,7 +151,6 @@ func TestNewStateSync(t *testing.T) {
 }
 
 func Test_syncState_GenSyncSpec(t *testing.T) {
-	g := &genesis.Genesis{}
 	type fields struct {
 		chainSpecification *genesis.Genesis
 	}
@@ -166,12 +167,12 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 	}{
 		{
 			name:   "GenSyncSpec False",
-			fields: fields{g},
+			fields: fields{&genesis.Genesis{}},
 			exp:    &genesis.Genesis{},
 		},
 		{
 			name:   "GenSyncSpec True",
-			fields: fields{g},
+			fields: fields{&genesis.Genesis{}},
 			args: args{
 				raw: true,
 			},
