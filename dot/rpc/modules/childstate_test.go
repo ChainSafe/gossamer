@@ -144,12 +144,11 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = cs.GetKeys(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetKeys() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cs.GetKeys(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -262,12 +261,11 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = cs.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetStorageSize() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cs.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -380,12 +378,11 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = cs.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetStorageHash() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cs.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -498,12 +495,11 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = cs.GetStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetStorage() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cs.GetStorage(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)

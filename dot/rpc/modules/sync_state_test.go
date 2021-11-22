@@ -72,12 +72,11 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 			ss := &SyncStateModule{
 				syncStateAPI: tt.fields.syncStateAPI,
 			}
-			var err error
-			if err = ss.GenSyncSpec(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GenSyncSpec() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := ss.GenSyncSpec(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -137,11 +136,10 @@ func TestNewStateSync(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := NewStateSync(tt.args.gData, tt.args.storageAPI)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewStateSync() error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, res)
@@ -186,11 +184,10 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 				chainSpecification: tt.fields.chainSpecification,
 			}
 			res, err := s.GenSyncSpec(tt.args.raw)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GenSyncSpec() error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, *tt.exp, *res)

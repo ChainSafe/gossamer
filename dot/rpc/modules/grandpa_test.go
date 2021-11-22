@@ -127,12 +127,11 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
-			var err error
-			if err = gm.ProveFinality(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("ProveFinality() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := gm.ProveFinality(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -237,12 +236,11 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
-			var err error
-			if err = gm.RoundState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("RoundState() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := gm.RoundState(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)

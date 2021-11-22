@@ -45,9 +45,8 @@ func Test_uint64ToHex(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := uint64ToHex(tt.args.input); got != tt.want {
-				t.Errorf("uint64ToHex() = %v, want %v", got, tt.want)
-			}
+			got := uint64ToHex(tt.args.input)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -94,12 +93,11 @@ func TestDevModule_EpochLength(t *testing.T) {
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			var err error
-			if err = m.EpochLength(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("EpochLength() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := m.EpochLength(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -149,12 +147,11 @@ func TestDevModule_SlotDuration(t *testing.T) {
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			var err error
-			if err = m.SlotDuration(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("SlotDuration() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := m.SlotDuration(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -311,12 +308,11 @@ func TestDevModule_Control(t *testing.T) {
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			var err error
-			if err = m.Control(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("Control() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := m.Control(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)

@@ -180,12 +180,11 @@ func TestStateModuleGetPairs(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.GetPairs(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetPairs() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.GetPairs(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.ElementsMatch(t, tt.exp, *tt.args.res)
@@ -276,12 +275,11 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetKeysPaged() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -359,12 +357,11 @@ func TestStateModuleGetMetadata(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.GetMetadata(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetMetadata() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.GetMetadata(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -456,12 +453,11 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetReadProof() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -544,12 +540,11 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.GetRuntimeVersion(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetRuntimeVersion() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.GetRuntimeVersion(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -642,12 +637,11 @@ func TestStateModuleGetStorage(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.GetStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetStorage() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.GetStorage(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -740,12 +734,11 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetStorageHash() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -838,12 +831,11 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("GetStorageSize() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -936,12 +928,11 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			var err error
-			if err = sm.QueryStorage(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("QueryStorage() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.QueryStorage(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)

@@ -157,12 +157,11 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			p := &PaymentModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			var err error
-			if err = p.QueryInfo(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("QueryInfo() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := p.QueryInfo(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)

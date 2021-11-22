@@ -99,12 +99,11 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			s := &OffchainModule{
 				nodeStorage: tt.fields.nodeStorage,
 			}
-			var err error
-			if err = s.LocalStorageGet(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("LocalStorageGet() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := s.LocalStorageGet(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -214,12 +213,11 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			s := &OffchainModule{
 				nodeStorage: tt.fields.nodeStorage,
 			}
-			var err error
-			if err = s.LocalStorageSet(tt.args.in0, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("LocalStorageSet() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := s.LocalStorageSet(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 			}

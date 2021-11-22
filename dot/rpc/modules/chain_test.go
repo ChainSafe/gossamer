@@ -111,12 +111,11 @@ func TestChainModule_GetBlock(t *testing.T) {
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			var err error
-			if err = cm.GetBlock(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("ChainModule.GetBlock() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cm.GetBlock(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -225,12 +224,11 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			var err error
-			if err = cm.GetBlockHash(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("ChainModule.GetBlockHash() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cm.GetBlockHash(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -293,12 +291,11 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			var err error
-			if err = cm.GetFinalizedHead(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("ChainModule.GetFinalizedHead() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cm.GetFinalizedHead(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -367,12 +364,11 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			var err error
-			if err = cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("ChainModule.GetFinalizedHeadByRound() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -441,12 +437,11 @@ func TestChainModule_GetHeader(t *testing.T) {
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			var err error
-			if err = cm.GetHeader(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("ChainModule.GetHeader() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := cm.GetHeader(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -523,9 +518,7 @@ func TestHeaderToJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := HeaderToJSON(tt.args.header)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("HeaderToJSON() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			assert.Equal(t, tt.wantErr, err != nil)
 			if err == nil {
 				assert.Equal(t, tt.exp, res)
 			} else {

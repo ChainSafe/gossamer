@@ -160,12 +160,11 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = sm.NodeRoles(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("NodeRoles() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.NodeRoles(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -286,12 +285,11 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = sm.AccountNextIndex(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("AccountNextIndex() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.AccountNextIndex(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -369,12 +367,11 @@ func TestSystemModule_SyncState(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = sm.SyncState(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("SyncState() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.SyncState(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -450,12 +447,11 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = sm.LocalListenAddresses(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("LocalListenAddresses() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -531,12 +527,11 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = sm.LocalPeerId(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("LocalPeerId() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.LocalPeerId(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -612,12 +607,11 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = sm.AddReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("AddReservedPeer() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.AddReservedPeer(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -693,12 +687,11 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			var err error
-			if err = sm.RemoveReservedPeer(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
-				t.Errorf("RemoveReservedPeer() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.err.Error())
+				if assert.NotNil(t, err) {
+					assert.EqualError(t, err, tt.err.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
