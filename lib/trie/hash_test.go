@@ -14,6 +14,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type writeCall struct {
+	written []byte
+	n       int
+	err     error
+}
+
 func generateRandBytes(size int) []byte {
 	buf := make([]byte, rand.Intn(size)+1)
 	rand.Read(buf)
@@ -84,21 +90,21 @@ func Test_encodeChildrenInParallel(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		children    [16]node
-		written     [][]byte
-		writeErrors []error
-		wrappedErr  error
-		errMessage  string
+		children   [16]node
+		writes     []writeCall
+		wrappedErr error
+		errMessage string
 	}{
 		"no children": {},
 		"first child not nil": {
 			children: [16]node{
 				&leaf{key: []byte{1}},
 			},
-			written: [][]byte{
-				{12, 65, 1, 0},
+			writes: []writeCall{
+				{
+					written: []byte{12, 65, 1, 0},
+				},
 			},
-			writeErrors: []error{nil},
 		},
 		"last child not nil": {
 			children: [16]node{
@@ -107,21 +113,25 @@ func Test_encodeChildrenInParallel(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				&leaf{key: []byte{1}},
 			},
-			written: [][]byte{
-				{12, 65, 1, 0},
+			writes: []writeCall{
+				{
+					written: []byte{12, 65, 1, 0},
+				},
 			},
-			writeErrors: []error{nil},
 		},
 		"first two children not nil": {
 			children: [16]node{
 				&leaf{key: []byte{1}},
 				&leaf{key: []byte{2}},
 			},
-			written: [][]byte{
-				{12, 65, 1, 0},
-				{12, 65, 2, 0},
+			writes: []writeCall{
+				{
+					written: []byte{12, 65, 1, 0},
+				},
+				{
+					written: []byte{12, 65, 2, 0},
+				},
 			},
-			writeErrors: []error{nil, nil},
 		},
 		"encoding error": {
 			children: [16]node{
@@ -133,11 +143,13 @@ func Test_encodeChildrenInParallel(t *testing.T) {
 				},
 				nil, nil, nil, nil,
 			},
-			written: [][]byte{
-				{12, 65, 1, 0},
+			writes: []writeCall{
+				{
+					written: []byte{12, 65, 1, 0},
+					err:     errTest,
+				},
 			},
-			writeErrors: []error{errTest},
-			wrappedErr:  errTest,
+			wrappedErr: errTest,
 			errMessage: "cannot write encoding of child at index 11: " +
 				"test error",
 		},
@@ -151,17 +163,10 @@ func Test_encodeChildrenInParallel(t *testing.T) {
 
 			buffer := NewMockReadWriter(ctrl)
 			var previousCall *gomock.Call
-			for i := range testCase.written {
-				written := testCase.written[i]
-				writeErr := testCase.writeErrors[i]
-				var n int
-				if writeErr == nil {
-					n = len(written)
-				}
-
+			for _, write := range testCase.writes {
 				call := buffer.EXPECT().
-					Write(written).
-					Return(n, writeErr)
+					Write(write.written).
+					Return(write.n, write.err)
 
 				if previousCall != nil {
 					call.After(previousCall)
@@ -185,21 +190,21 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		children    [16]node
-		written     [][]byte
-		writeErrors []error
-		wrappedErr  error
-		errMessage  string
+		children   [16]node
+		writes     []writeCall
+		wrappedErr error
+		errMessage string
 	}{
 		"no children": {},
 		"first child not nil": {
 			children: [16]node{
 				&leaf{key: []byte{1}},
 			},
-			written: [][]byte{
-				{12, 65, 1, 0},
+			writes: []writeCall{
+				{
+					written: []byte{12, 65, 1, 0},
+				},
 			},
-			writeErrors: []error{nil},
 		},
 		"last child not nil": {
 			children: [16]node{
@@ -208,21 +213,25 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				&leaf{key: []byte{1}},
 			},
-			written: [][]byte{
-				{12, 65, 1, 0},
+			writes: []writeCall{
+				{
+					written: []byte{12, 65, 1, 0},
+				},
 			},
-			writeErrors: []error{nil},
 		},
 		"first two children not nil": {
 			children: [16]node{
 				&leaf{key: []byte{1}},
 				&leaf{key: []byte{2}},
 			},
-			written: [][]byte{
-				{12, 65, 1, 0},
-				{12, 65, 2, 0},
+			writes: []writeCall{
+				{
+					written: []byte{12, 65, 1, 0},
+				},
+				{
+					written: []byte{12, 65, 2, 0},
+				},
 			},
-			writeErrors: []error{nil, nil},
 		},
 		"encoding error": {
 			children: [16]node{
@@ -234,11 +243,13 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				},
 				nil, nil, nil, nil,
 			},
-			written: [][]byte{
-				{12, 65, 1, 0},
+			writes: []writeCall{
+				{
+					written: []byte{12, 65, 1, 0},
+					err:     errTest,
+				},
 			},
-			writeErrors: []error{errTest},
-			wrappedErr:  errTest,
+			wrappedErr: errTest,
 			errMessage: "cannot encode child at index 11: " +
 				"failed to write child to buffer: test error",
 		},
@@ -252,17 +263,10 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 
 			buffer := NewMockReadWriter(ctrl)
 			var previousCall *gomock.Call
-			for i := range testCase.written {
-				written := testCase.written[i]
-				writeErr := testCase.writeErrors[i]
-				var n int
-				if writeErr == nil {
-					n = len(written)
-				}
-
+			for _, write := range testCase.writes {
 				call := buffer.EXPECT().
-					Write(written).
-					Return(n, writeErr)
+					Write(write.written).
+					Return(write.n, write.err)
 
 				if previousCall != nil {
 					call.After(previousCall)
@@ -290,8 +294,7 @@ func Test_encodeChild(t *testing.T) {
 	testCases := map[string]struct {
 		child      node
 		writeCall  bool
-		written    []byte
-		writeError error
+		write      writeCall
 		wrappedErr error
 		errMessage string
 	}{
@@ -305,18 +308,24 @@ func Test_encodeChild(t *testing.T) {
 		"empty leaf child": {
 			child:     &leaf{},
 			writeCall: true,
-			written:   []byte{8, 64, 0},
+			write: writeCall{
+				written: []byte{8, 64, 0},
+			},
 		},
 		"empty branch child": {
 			child:     &branch{},
 			writeCall: true,
-			written:   []byte{12, 128, 0, 0},
+			write: writeCall{
+				written: []byte{12, 128, 0, 0},
+			},
 		},
 		"buffer write error": {
-			child:      &branch{},
-			writeCall:  true,
-			written:    []byte{12, 128, 0, 0},
-			writeError: errTest,
+			child:     &branch{},
+			writeCall: true,
+			write: writeCall{
+				written: []byte{12, 128, 0, 0},
+				err:     errTest,
+			},
 			wrappedErr: errTest,
 			errMessage: "failed to write child to buffer: test error",
 		},
@@ -326,7 +335,9 @@ func Test_encodeChild(t *testing.T) {
 				value: []byte{2},
 			},
 			writeCall: true,
-			written:   []byte{16, 65, 1, 4, 2},
+			write: writeCall{
+				written: []byte{16, 65, 1, 4, 2},
+			},
 		},
 		"branch child": {
 			child: &branch{
@@ -340,7 +351,9 @@ func Test_encodeChild(t *testing.T) {
 				},
 			},
 			writeCall: true,
-			written:   []byte{44, 193, 1, 4, 0, 4, 2, 16, 65, 5, 4, 6},
+			write: writeCall{
+				written: []byte{44, 193, 1, 4, 0, 4, 2, 16, 65, 5, 4, 6},
+			},
 		},
 	}
 
@@ -353,13 +366,9 @@ func Test_encodeChild(t *testing.T) {
 			buffer := NewMockWriter(ctrl)
 
 			if testCase.writeCall {
-				var n int
-				if testCase.writeError == nil {
-					n = len(testCase.written)
-				}
 				buffer.EXPECT().
-					Write(testCase.written).
-					Return(n, testCase.writeError)
+					Write(testCase.write.written).
+					Return(testCase.write.n, testCase.write.err)
 			}
 
 			err := encodeChild(testCase.child, buffer)
@@ -376,12 +385,6 @@ func Test_encodeChild(t *testing.T) {
 
 func Test_encodeLeaf(t *testing.T) {
 	t.Parallel()
-
-	type writeCall struct {
-		written []byte
-		n       int
-		err     error
-	}
 
 	testCases := map[string]struct {
 		leaf       *leaf
