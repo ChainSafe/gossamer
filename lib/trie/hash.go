@@ -134,40 +134,42 @@ func encodeBranch(b *branch, buffer io.Writer, parallel bool) (err error) {
 	if !b.dirty && b.encoding != nil {
 		_, err = buffer.Write(b.encoding)
 		if err != nil {
-			return fmt.Errorf("cannot write stored encoded branch to buffer: %w", err)
+			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
 		}
 		return nil
 	}
 
-	encoding, err := b.header()
+	encodedHeader, err := b.header()
 	if err != nil {
-		return fmt.Errorf("cannot encode branch header: %w", err)
+		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	_, err = buffer.Write(encoding)
+	_, err = buffer.Write(encodedHeader)
 	if err != nil {
-		return fmt.Errorf("cannot write encoded branch header to buffer: %w", err)
+		return fmt.Errorf("cannot write encoded header to buffer: %w", err)
 	}
 
-	_, err = buffer.Write(nibblesToKeyLE(b.key))
+	keyLE := nibblesToKeyLE(b.key)
+	_, err = buffer.Write(keyLE)
 	if err != nil {
-		return fmt.Errorf("cannot write encoded branch key to buffer: %w", err)
+		return fmt.Errorf("cannot write encoded key to buffer: %w", err)
 	}
 
-	_, err = buffer.Write(common.Uint16ToBytes(b.childrenBitmap()))
+	childrenBitmap := common.Uint16ToBytes(b.childrenBitmap())
+	_, err = buffer.Write(childrenBitmap)
 	if err != nil {
-		return fmt.Errorf("cannot write branch children bitmap to buffer: %w", err)
+		return fmt.Errorf("cannot write children bitmap to buffer: %w", err)
 	}
 
 	if b.value != nil {
 		bytes, err := scale.Marshal(b.value)
 		if err != nil {
-			return fmt.Errorf("cannot scale encode branch value: %w", err)
+			return fmt.Errorf("cannot scale encode value: %w", err)
 		}
 
 		_, err = buffer.Write(bytes)
 		if err != nil {
-			return fmt.Errorf("cannot write encoded branch value to buffer: %w", err)
+			return fmt.Errorf("cannot write encoded value to buffer: %w", err)
 		}
 	}
 
@@ -310,8 +312,8 @@ func encodeLeaf(l *leaf, buffer io.Writer) (err error) {
 		return fmt.Errorf("cannot write encoded header to buffer: %w", err)
 	}
 
-	encodedKey := nibblesToKeyLE(l.key)
-	_, err = buffer.Write(encodedKey)
+	keyLE := nibblesToKeyLE(l.key)
+	_, err = buffer.Write(keyLE)
 	if err != nil {
 		return fmt.Errorf("cannot write LE key to buffer: %w", err)
 	}

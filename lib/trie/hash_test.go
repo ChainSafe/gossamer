@@ -520,3 +520,287 @@ func Test_encodeLeaf(t *testing.T) {
 		})
 	}
 }
+
+func Test_encodeBranch(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		branch     *branch
+		writes     []writeCall
+		parallel   bool
+		wrappedErr error
+		errMessage string
+	}{
+		"clean branch with encoding": {
+			branch: &branch{
+				encoding: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{ // stored encoding
+					written: []byte{1, 2, 3},
+				},
+			},
+		},
+		"write error for clean branch with encoding": {
+			branch: &branch{
+				encoding: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{ // stored encoding
+					written: []byte{1, 2, 3},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write stored encoding to buffer: test error",
+		},
+		"header encoding error": {
+			branch: &branch{
+				key: make([]byte, 63+(1<<16)),
+			},
+			wrappedErr: ErrPartialKeyTooBig,
+			errMessage: "cannot encode header: partial key length greater than or equal to 2^16",
+		},
+		"buffer write error for encoded header": {
+			branch: &branch{
+				key:   []byte{1, 2, 3},
+				value: []byte{100},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{195},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write encoded header to buffer: test error",
+		},
+		"buffer write error for encoded key": {
+			branch: &branch{
+				key:   []byte{1, 2, 3},
+				value: []byte{100},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{195},
+				},
+				{ // key LE
+					written: []byte{1, 35},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write encoded key to buffer: test error",
+		},
+		"buffer write error for children bitmap": {
+			branch: &branch{
+				key:   []byte{1, 2, 3},
+				value: []byte{100},
+				children: [16]node{
+					nil, nil, nil, &leaf{key: []byte{9}},
+					nil, nil, nil, &leaf{key: []byte{11}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{195},
+				},
+				{ // key LE
+					written: []byte{1, 35},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write children bitmap to buffer: test error",
+		},
+		"buffer write error for value": {
+			branch: &branch{
+				key:   []byte{1, 2, 3},
+				value: []byte{100},
+				children: [16]node{
+					nil, nil, nil, &leaf{key: []byte{9}},
+					nil, nil, nil, &leaf{key: []byte{11}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{195},
+				},
+				{ // key LE
+					written: []byte{1, 35},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+				},
+				{ // value
+					written: []byte{4, 100},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write encoded value to buffer: test error",
+		},
+		"buffer write error for children encoded sequentially": {
+			branch: &branch{
+				key:   []byte{1, 2, 3},
+				value: []byte{100},
+				children: [16]node{
+					nil, nil, nil, &leaf{key: []byte{9}},
+					nil, nil, nil, &leaf{key: []byte{11}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{195},
+				},
+				{ // key LE
+					written: []byte{1, 35},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+				},
+				{ // value
+					written: []byte{4, 100},
+				},
+				{ // children
+					written: []byte{12, 65, 9, 0},
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot encode children of branch: " +
+				"cannot encode child at index 3: " +
+				"failed to write child to buffer: test error",
+		},
+		"buffer write error for children encoded in parallel": {
+			branch: &branch{
+				key:   []byte{1, 2, 3},
+				value: []byte{100},
+				children: [16]node{
+					nil, nil, nil, &leaf{key: []byte{9}},
+					nil, nil, nil, &leaf{key: []byte{11}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{195},
+				},
+				{ // key LE
+					written: []byte{1, 35},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+				},
+				{ // value
+					written: []byte{4, 100},
+				},
+				{ // first children
+					written: []byte{12, 65, 9, 0},
+					err:     errTest,
+				},
+				{ // second children
+					written: []byte{12, 65, 11, 0},
+				},
+			},
+			parallel:   true,
+			wrappedErr: errTest,
+			errMessage: "cannot encode children of branch: " +
+				"cannot write encoding of child at index 3: " +
+				"test error",
+		},
+		"success with parallel children encoding": {
+			branch: &branch{
+				key:   []byte{1, 2, 3},
+				value: []byte{100},
+				children: [16]node{
+					nil, nil, nil, &leaf{key: []byte{9}},
+					nil, nil, nil, &leaf{key: []byte{11}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{195},
+				},
+				{ // key LE
+					written: []byte{1, 35},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+				},
+				{ // value
+					written: []byte{4, 100},
+				},
+				{ // first children
+					written: []byte{12, 65, 9, 0},
+				},
+				{ // second children
+					written: []byte{12, 65, 11, 0},
+				},
+			},
+			parallel: true,
+		},
+		"success with sequential children encoding": {
+			branch: &branch{
+				key:   []byte{1, 2, 3},
+				value: []byte{100},
+				children: [16]node{
+					nil, nil, nil, &leaf{key: []byte{9}},
+					nil, nil, nil, &leaf{key: []byte{11}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{195},
+				},
+				{ // key LE
+					written: []byte{1, 35},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+				},
+				{ // value
+					written: []byte{4, 100},
+				},
+				{ // first children
+					written: []byte{12, 65, 9, 0},
+				},
+				{ // second children
+					written: []byte{12, 65, 11, 0},
+				},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			buffer := NewMockReadWriter(ctrl)
+			var previousCall *gomock.Call
+			for _, write := range testCase.writes {
+				call := buffer.EXPECT().
+					Write(write.written).
+					Return(write.n, write.err)
+
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			err := encodeBranch(testCase.branch, buffer, testCase.parallel)
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
