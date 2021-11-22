@@ -76,7 +76,7 @@ func (gv *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
 
 // String returns a formatted GrandpaVoter string
 func (gv *GrandpaVoter) String() string {
-	return fmt.Sprintf("[key=0x%s id=%d]", gv.PublicKeyBytes(), gv.ID)
+	return fmt.Sprintf("[key=%s id=%d]", gv.PublicKeyBytes(), gv.ID)
 }
 
 // NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities

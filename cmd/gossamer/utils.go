@@ -98,6 +98,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 		Network: dot.GssmrConfig().Network,
 		RPC:     dot.GssmrConfig().RPC,
 		System:  dot.GssmrConfig().System,
+		Pprof:   dot.GssmrConfig().Pprof,
 	}
 
 	return cfg
