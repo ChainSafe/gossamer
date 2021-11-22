@@ -804,3 +804,121 @@ func Test_encodeBranch(t *testing.T) {
 		})
 	}
 }
+
+//go:generate mockgen -destination=bytesBuffer_mock_test.go -package $GOPACKAGE -source=hash.go . bytesBuffer
+//go:generate mockgen -destination=node_mock_test.go -package $GOPACKAGE -source=node.go . node
+
+func Test_encodeNode(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		n                node
+		writes           []writeCall
+		leafEncodingCopy bool
+		leafBufferLen    int
+		leafBufferBytes  []byte
+		parallel         bool
+		wrappedErr       error
+		errMessage       string
+	}{
+		"branch error": {
+			n: &branch{
+				encoding: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{written: []byte{1, 2, 3}, err: errTest},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot encode branch: " +
+				"cannot write stored encoding to buffer: " +
+				"test error",
+		},
+		"branch success": {
+			n: &branch{
+				encoding: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{written: []byte{1, 2, 3}},
+			},
+		},
+		"leaf error": {
+			n: &leaf{
+				encoding: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{written: []byte{1, 2, 3}, err: errTest},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot encode leaf: " +
+				"cannot write stored encoding to buffer: " +
+				"test error",
+		},
+		"leaf success": {
+			n: &leaf{
+				encoding: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{written: []byte{1, 2, 3}},
+			},
+			leafEncodingCopy: true,
+			leafBufferLen:    3,
+			leafBufferBytes:  []byte{1, 2, 3},
+		},
+		"nil node error": {
+			writes: []writeCall{
+				{written: []byte{0}, err: errTest},
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot encode nil node: test error",
+		},
+		"nil node success": {
+			writes: []writeCall{
+				{written: []byte{0}},
+			},
+		},
+		"unsupported node type": {
+			n:          NewMocknode(nil),
+			wrappedErr: ErrNodeTypeUnsupported,
+			errMessage: "node type is not supported: *trie.Mocknode",
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			buffer := NewMockbytesBuffer(ctrl)
+			var previousCall *gomock.Call
+			for _, write := range testCase.writes {
+				call := buffer.EXPECT().
+					Write(write.written).
+					Return(write.n, write.err)
+
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			if testCase.leafEncodingCopy {
+				previousCall = buffer.EXPECT().Len().
+					Return(testCase.leafBufferLen).
+					After(previousCall)
+				buffer.EXPECT().Bytes().
+					Return(testCase.leafBufferBytes).
+					After(previousCall)
+			}
+
+			err := encodeNode(testCase.n, buffer, testCase.parallel)
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

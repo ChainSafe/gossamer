@@ -77,11 +77,18 @@ func hashNode(n node, digestBuffer io.Writer) (err error) {
 
 var ErrNodeTypeUnsupported = errors.New("node type is not supported")
 
+type bytesBuffer interface {
+	// note: cannot compose with io.Writer for mock generation
+	Write(p []byte) (n int, err error)
+	Len() int
+	Bytes() []byte
+}
+
 // encodeNode writes the encoding of the node to the buffer given.
 // It is the high-level function wrapping the encoding for different
 // node types. The encoding has the following format:
 // NodeHeader | Extra partial key length | Partial Key | Value
-func encodeNode(n node, buffer *bytes.Buffer, parallel bool) (err error) {
+func encodeNode(n node, buffer bytesBuffer, parallel bool) (err error) {
 	switch n := n.(type) {
 	case *branch:
 		err := encodeBranch(n, buffer, parallel)
@@ -104,7 +111,10 @@ func encodeNode(n node, buffer *bytes.Buffer, parallel bool) (err error) {
 		copy(n.encoding, buffer.Bytes())
 		return nil
 	case nil:
-		buffer.Write([]byte{0})
+		_, err := buffer.Write([]byte{0})
+		if err != nil {
+			return fmt.Errorf("cannot encode nil node: %w", err)
+		}
 		return nil
 	default:
 		return fmt.Errorf("%w: %T", ErrNodeTypeUnsupported, n)
