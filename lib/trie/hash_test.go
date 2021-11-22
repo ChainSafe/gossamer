@@ -808,6 +808,116 @@ func Test_encodeBranch(t *testing.T) {
 //go:generate mockgen -destination=bytesBuffer_mock_test.go -package $GOPACKAGE -source=hash.go . bytesBuffer
 //go:generate mockgen -destination=node_mock_test.go -package $GOPACKAGE -source=node.go . node
 
+func Test_hashNode(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		n          node
+		writeCall  bool
+		write      writeCall
+		wrappedErr error
+		errMessage string
+	}{
+		"node encoding error": {
+			n:          NewMocknode(nil),
+			wrappedErr: ErrNodeTypeUnsupported,
+			errMessage: "cannot encode node: " +
+				"node type is not supported: " +
+				"*trie.Mocknode",
+		},
+		"small leaf buffer write error": {
+			n: &leaf{
+				encoding: []byte{1, 2, 3},
+			},
+			writeCall: true,
+			write: writeCall{
+				written: []byte{1, 2, 3},
+				err:     errTest,
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write encoded node to buffer: " +
+				"test error",
+		},
+		"small leaf success": {
+			n: &leaf{
+				encoding: []byte{1, 2, 3},
+			},
+			writeCall: true,
+			write: writeCall{
+				written: []byte{1, 2, 3},
+			},
+		},
+		"leaf hash sum buffer write error": {
+			n: &leaf{
+				encoding: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+				},
+			},
+			writeCall: true,
+			write: writeCall{
+				written: []byte{
+					107, 105, 154, 175, 253, 170, 232,
+					135, 240, 21, 207, 148, 82, 117,
+					249, 230, 80, 197, 254, 17, 149,
+					108, 50, 7, 80, 56, 114, 176,
+					84, 114, 125, 234},
+				err: errTest,
+			},
+			wrappedErr: errTest,
+			errMessage: "cannot write hash sum of node to buffer: " +
+				"test error",
+		},
+		"leaf hash sum success": {
+			n: &leaf{
+				encoding: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+				},
+			},
+			writeCall: true,
+			write: writeCall{
+				written: []byte{
+					107, 105, 154, 175, 253, 170, 232,
+					135, 240, 21, 207, 148, 82, 117,
+					249, 230, 80, 197, 254, 17, 149,
+					108, 50, 7, 80, 56, 114, 176,
+					84, 114, 125, 234},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			buffer := NewMockWriter(ctrl)
+			if testCase.writeCall {
+				buffer.EXPECT().
+					Write(testCase.write.written).
+					Return(testCase.write.n, testCase.write.err)
+			}
+
+			err := hashNode(testCase.n, buffer)
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func Test_encodeNode(t *testing.T) {
 	t.Parallel()
 

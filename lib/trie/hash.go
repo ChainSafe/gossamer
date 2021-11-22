@@ -57,7 +57,10 @@ func hashNode(n node, digestBuffer io.Writer) (err error) {
 	// if length of encoded leaf is less than 32 bytes, do not hash
 	if encodingBuffer.Len() < 32 {
 		_, err = digestBuffer.Write(encodingBuffer.Bytes())
-		return err
+		if err != nil {
+			return fmt.Errorf("cannot write encoded node to buffer: %w", err)
+		}
+		return nil
 	}
 
 	// otherwise, hash encoded node
@@ -72,7 +75,10 @@ func hashNode(n node, digestBuffer io.Writer) (err error) {
 	}
 
 	_, err = digestBuffer.Write(hasher.Sum(nil))
-	return err
+	if err != nil {
+		return fmt.Errorf("cannot write hash sum of node to buffer: %w", err)
+	}
+	return nil
 }
 
 var ErrNodeTypeUnsupported = errors.New("node type is not supported")
