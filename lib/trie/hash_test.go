@@ -831,6 +831,48 @@ func Test_encodeChild(t *testing.T) {
 	}
 }
 
+func Test_encodeAndHash(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		n          node
+		b          []byte
+		wrappedErr error
+		errMessage string
+	}{
+		"node encoding error": {
+			n:          NewMocknode(nil),
+			wrappedErr: ErrNodeTypeUnsupported,
+			errMessage: "cannot hash node: " +
+				"cannot encode node: " +
+				"node type is not supported: " +
+				"*trie.Mocknode",
+		},
+		"leaf": {
+			n: &leaf{},
+			b: []byte{0x8, 0x40, 0},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			b, err := encodeAndHash(testCase.n)
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, testCase.b, b)
+		})
+	}
+}
+
 func Test_encodeLeaf(t *testing.T) {
 	t.Parallel()
 

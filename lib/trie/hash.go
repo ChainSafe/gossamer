@@ -288,19 +288,19 @@ func encodeChild(child node, buffer io.Writer) (err error) {
 	return nil
 }
 
-func encodeAndHash(n node) ([]byte, error) {
+func encodeAndHash(n node) (b []byte, err error) {
 	buffer := digestBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer digestBufferPool.Put(buffer)
 
-	err := hashNode(n, buffer)
+	err = hashNode(n, buffer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot hash node: %w", err)
 	}
 
 	scEncChild, err := scale.Marshal(buffer.Bytes())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot scale encode hashed node: %w", err)
 	}
 	return scEncChild, nil
 }
