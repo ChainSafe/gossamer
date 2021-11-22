@@ -782,6 +782,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 		Network: testCfg.Network,
 		RPC:     testCfg.RPC,
 		System:  testCfg.System,
+		Pprof:   testCfg.Pprof,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -836,6 +837,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		Network: testCfg.Network,
 		RPC:     testCfg.RPC,
 		System:  testCfg.System,
+		Pprof:   testCfg.Pprof,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -894,6 +896,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,
+		Pprof:  testCfg.Pprof,
 	}
 
 	cfg, err := createDotConfig(ctx)

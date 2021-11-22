@@ -76,7 +76,8 @@ func TestExportCommand(t *testing.T) {
 					DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 					MinPeers:          testCfg.Network.MinPeers,
 				},
-				RPC: testCfg.RPC,
+				RPC:   testCfg.RPC,
+				Pprof: testCfg.Pprof,
 			},
 		},
 		{
@@ -109,7 +110,8 @@ func TestExportCommand(t *testing.T) {
 					DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 					MinPeers:          testCfg.Network.MinPeers,
 				},
-				RPC: testCfg.RPC,
+				RPC:   testCfg.RPC,
+				Pprof: testCfg.Pprof,
 			},
 		},
 		{
@@ -142,7 +144,8 @@ func TestExportCommand(t *testing.T) {
 					DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 					MinPeers:          testCfg.Network.MinPeers,
 				},
-				RPC: testCfg.RPC,
+				RPC:   testCfg.RPC,
+				Pprof: testCfg.Pprof,
 			},
 		},
 	}

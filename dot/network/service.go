@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"strings"
 	"sync"
@@ -230,7 +229,25 @@ func (s *Service) Start() error {
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
+	// NOTE: this only handles *incoming* connections
 	s.host.h.Network().SetConnHandler(s.handleConn)
+
+	// this handles all new connections (incoming and outgoing)
+	// it creates a per-protocol mutex for sending outbound handshakes to the peer
+	s.host.cm.connectHandler = func(peerID peer.ID) {
+		for _, prtl := range s.notificationsProtocols {
+			prtl.outboundHandshakeMutexes.Store(peerID, new(sync.Mutex))
+		}
+	}
+
+	// when a peer gets disconnected, we should clear all handshake data we have for it.
+	s.host.cm.disconnectHandler = func(peerID peer.ID) {
+		for _, prtl := range s.notificationsProtocols {
+			prtl.outboundHandshakeMutexes.Delete(peerID)
+			prtl.inboundHandshakeData.Delete(peerID)
+			prtl.outboundHandshakeData.Delete(peerID)
+		}
+	}
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
@@ -274,10 +291,23 @@ func (s *Service) collectNetworkMetrics() {
 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
 		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
 		syncedBlocks := metrics.GetOrRegisterGauge("service/blocks/sync", metrics.DefaultRegistry)
+		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/inbound", metrics.DefaultRegistry)
+		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/outbound", metrics.DefaultRegistry)
+		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
+		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
+		totalInboundStreams := metrics.GetOrRegisterGauge("network/streams/total/inbound", metrics.DefaultRegistry)
+		totalOutboundStreams := metrics.GetOrRegisterGauge("network/streams/total/outbound", metrics.DefaultRegistry)
 
 		peerCount.Update(int64(s.host.peerCount()))
 		totalConn.Update(int64(len(s.host.h.Network().Conns())))
 		networkLatency.Update(int64(s.host.h.Peerstore().LatencyEWMA(s.host.id())))
+
+		numInboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, true))
+		numOutboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, false))
+		numInboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, true))
+		numOutboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, false))
+		totalInboundStreams.Update(s.getTotalStreams(true))
+		totalOutboundStreams.Update(s.getTotalStreams(false))
 
 		num, err := s.blockState.BestBlockNumber()
 		if err != nil {
@@ -288,6 +318,46 @@ func (s *Service) collectNetworkMetrics() {
 
 		time.Sleep(gssmrmetrics.RefreshInterval)
 	}
+}
+
+func (s *Service) getTotalStreams(inbound bool) (count int64) {
+	for _, conn := range s.host.h.Network().Conns() {
+		for _, stream := range conn.GetStreams() {
+			streamIsInbound := isInbound(stream)
+			if (streamIsInbound && inbound) || (!streamIsInbound && !inbound) {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func (s *Service) getNumStreams(protocolID byte, inbound bool) (count int64) {
+	np, has := s.notificationsProtocols[protocolID]
+	if !has {
+		return 0
+	}
+
+	var hsData *sync.Map
+	if inbound {
+		hsData = np.inboundHandshakeData
+	} else {
+		hsData = np.outboundHandshakeData
+	}
+
+	hsData.Range(func(_, data interface{}) bool {
+		if data == nil {
+			return true
+		}
+
+		if data.(*handshakeData).stream != nil {
+			count++
+		}
+
+		return true
+	})
+
+	return count
 }
 
 func (s *Service) logPeerCount() {
@@ -418,46 +488,13 @@ func (s *Service) RegisterNotificationsProtocol(
 		return errors.New("notifications protocol with message type already exists")
 	}
 
-	np := &notificationsProtocol{
-		protocolID:            protocolID,
-		getHandshake:          handshakeGetter,
-		handshakeValidator:    handshakeValidator,
-		handshakeDecoder:      handshakeDecoder,
-		inboundHandshakeData:  new(sync.Map),
-		outboundHandshakeData: new(sync.Map),
-	}
+	np := newNotificationsProtocol(protocolID, handshakeGetter, handshakeDecoder, handshakeValidator)
 	s.notificationsProtocols[messageID] = np
-
-	connMgr := s.host.h.ConnManager().(*ConnManager)
-	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID) {
-		if _, ok := np.getInboundHandshakeData(peerID); ok {
-			logger.Tracef(
-				"Cleaning up inbound handshake data for peer %s and protocol %s",
-				peerID, protocolID)
-			np.inboundHandshakeData.Delete(peerID)
-		}
-
-		if _, ok := np.getOutboundHandshakeData(peerID); ok {
-			logger.Tracef(
-				"Cleaning up outbound handshake data for peer %s and protocol %s",
-				peerID, protocolID)
-			np.outboundHandshakeData.Delete(peerID)
-		}
-	})
-
-	info := s.notificationsProtocols[messageID]
-
-	decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler, batchHandler)
+	decoder := createDecoder(np, handshakeDecoder, messageDecoder)
+	handlerWithValidate := s.createNotificationsMessageHandler(np, messageHandler, batchHandler)
 
 	s.host.registerStreamHandler(protocolID, func(stream libp2pnetwork.Stream) {
 		logger.Tracef("received stream using sub-protocol %s", protocolID)
-		conn := stream.Conn()
-		if conn == nil {
-			logger.Error("Failed to get connection from stream")
-			return
-		}
-
 		s.readStream(stream, decoder, handlerWithValidate)
 	})
 
@@ -515,120 +552,6 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	}
 
 	return errors.New("message not supported by any notifications protocol")
-}
-
-// handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
-func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
-	s.readStream(stream, s.decodeLightMessage, s.handleLightMsg)
-}
-
-func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, error) {
-	s.lightRequestMu.RLock()
-	defer s.lightRequestMu.RUnlock()
-
-	// check if we are the requester
-	if _, requested := s.lightRequest[peer]; requested {
-		// if we are, decode the bytes as a LightResponse
-		msg := NewLightResponse()
-		err := msg.Decode(in)
-		return msg, err
-	}
-
-	// otherwise, decode bytes as LightRequest
-	msg := NewLightRequest()
-	err := msg.Decode(in)
-	return msg, err
-}
-
-func isInbound(stream libp2pnetwork.Stream) bool {
-	return stream.Stat().Direction == libp2pnetwork.DirInbound
-}
-
-func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
-	s.streamManager.logNewStream(stream)
-
-	peer := stream.Conn().RemotePeer()
-	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(msgBytes)
-
-	for {
-		tot, err := readStream(stream, msgBytes[:])
-		if errors.Is(err, io.EOF) {
-			return
-		} else if err != nil {
-			logger.Tracef(
-				"failed to read from stream id %s of peer %s using protocol %s: %s",
-				stream.ID(), stream.Conn().RemotePeer(), stream.Protocol(), err)
-			_ = stream.Close()
-			return
-		}
-
-		s.streamManager.logMessageReceived(stream.ID())
-
-		// decode message based on message type
-		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
-		if err != nil {
-			logger.Tracef("failed to decode message from stream id %s using protocol %s: %s",
-				stream.ID(), stream.Protocol(), err)
-			continue
-		}
-
-		logger.Tracef(
-			"host %s received message from peer %s: %s",
-			s.host.id(), peer, msg.String())
-
-		err = handler(stream, msg)
-		if err != nil {
-			logger.Tracef("failed to handle message %s from stream id %s: %s", msg, stream.ID(), err)
-			_ = stream.Close()
-			return
-		}
-
-		s.host.bwc.LogRecvMessage(int64(tot))
-	}
-}
-
-func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {
-	defer func() {
-		_ = stream.Close()
-	}()
-
-	lr, ok := msg.(*LightRequest)
-	if !ok {
-		return nil
-	}
-
-	resp := NewLightResponse()
-	var err error
-	switch {
-	case lr.RemoteCallRequest != nil:
-		resp.RemoteCallResponse, err = remoteCallResp(lr.RemoteCallRequest)
-	case lr.RemoteHeaderRequest != nil:
-		resp.RemoteHeaderResponse, err = remoteHeaderResp(lr.RemoteHeaderRequest)
-	case lr.RemoteChangesRequest != nil:
-		resp.RemoteChangesResponse, err = remoteChangeResp(lr.RemoteChangesRequest)
-	case lr.RemoteReadRequest != nil:
-		resp.RemoteReadResponse, err = remoteReadResp(lr.RemoteReadRequest)
-	case lr.RemoteReadChildRequest != nil:
-		resp.RemoteReadResponse, err = remoteReadChildResp(lr.RemoteReadChildRequest)
-	default:
-		logger.Warn("ignoring LightRequest without request data")
-		return nil
-	}
-
-	if err != nil {
-		logger.Errorf("failed to get the response: %s", err)
-		return err
-	}
-
-	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage. (#1856)
-	logger.Debugf("LightResponse message: %s", resp)
-
-	err = s.host.writeToStream(stream, resp)
-	if err != nil {
-		logger.Warnf("failed to send LightResponse message to peer %s: %s", stream.Conn().RemotePeer(), err)
-	}
-	return err
 }
 
 // Health returns information about host needed for the rpc server

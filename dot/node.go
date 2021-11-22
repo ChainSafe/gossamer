@@ -37,7 +37,6 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
 type Node struct {
 	Name     string
 	Services *services.ServiceRegistry // registry of all node services
-	StopFunc func()                    // func to call when node stops, currently used for profiling
 	wg       sync.WaitGroup
 	started  chan struct{}
 }
@@ -172,7 +171,7 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 }
 
 // NewNode creates a new dot node from a dot node configuration
-func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
+func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
@@ -195,6 +194,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		nodeSrvcs   []services.Service
 		networkSrvc *network.Service
 	)
+
+	nodeSrvcs = append(nodeSrvcs, createPprofService(cfg.Pprof.Settings))
 
 	stateSrvc, err := createStateService(cfg)
 	if err != nil {
@@ -289,7 +290,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	serviceRegistryLogger := logger.New(log.AddContext("pkg", "services"))
 	node := &Node{
 		Name:     cfg.Global.Name,
-		StopFunc: stopFunc,
 		Services: services.NewServiceRegistry(serviceRegistryLogger),
 		started:  make(chan struct{}),
 	}
@@ -395,10 +395,6 @@ func (n *Node) Start() error {
 
 // Stop stops all dot node services
 func (n *Node) Stop() {
-	if n.StopFunc != nil {
-		n.StopFunc()
-	}
-
 	// stop all node services
 	n.Services.StopAll()
 	n.wg.Done()
