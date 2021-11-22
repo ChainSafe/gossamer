@@ -222,10 +222,15 @@ func encodeChildrenInParallel(children [16]node, buffer io.Writer) (err error) {
 		// write as many completed buffers to the result buffer.
 		for currentIndex < len(children) &&
 			resultBuffers[currentIndex] != nil {
-			// note buffer.Write copies the byte slice given as argument
-			_, writeErr := buffer.Write(resultBuffers[currentIndex].Bytes())
-			if writeErr != nil && err == nil {
-				err = writeErr
+			bufferSlice := resultBuffers[currentIndex].Bytes()
+			if len(bufferSlice) > 0 {
+				// note buffer.Write copies the byte slice given as argument
+				_, writeErr := buffer.Write(bufferSlice)
+				if writeErr != nil && err == nil {
+					err = fmt.Errorf(
+						"cannot write encoding of child at index %d: %w",
+						currentIndex, writeErr)
+				}
 			}
 
 			encodingBufferPool.Put(resultBuffers[currentIndex])

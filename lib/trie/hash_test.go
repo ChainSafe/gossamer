@@ -80,6 +80,107 @@ var errTest = errors.New("test error")
 
 //go:generate mockgen -destination=readwriter_mock_test.go -package $GOPACKAGE io ReadWriter
 
+func Test_encodeChildrenInParallel(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		children    [16]node
+		written     [][]byte
+		writeErrors []error
+		wrappedErr  error
+		errMessage  string
+	}{
+		"no children": {},
+		"first child not nil": {
+			children: [16]node{
+				&leaf{key: []byte{1}},
+			},
+			written: [][]byte{
+				{12, 65, 1, 0},
+			},
+			writeErrors: []error{nil},
+		},
+		"last child not nil": {
+			children: [16]node{
+				nil, nil, nil, nil, nil,
+				nil, nil, nil, nil, nil,
+				nil, nil, nil, nil, nil,
+				&leaf{key: []byte{1}},
+			},
+			written: [][]byte{
+				{12, 65, 1, 0},
+			},
+			writeErrors: []error{nil},
+		},
+		"first two children not nil": {
+			children: [16]node{
+				&leaf{key: []byte{1}},
+				&leaf{key: []byte{2}},
+			},
+			written: [][]byte{
+				{12, 65, 1, 0},
+				{12, 65, 2, 0},
+			},
+			writeErrors: []error{nil, nil},
+		},
+		"encoding error": {
+			children: [16]node{
+				nil, nil, nil, nil,
+				nil, nil, nil, nil,
+				nil, nil, nil,
+				&leaf{
+					key: []byte{1},
+				},
+				nil, nil, nil, nil,
+			},
+			written: [][]byte{
+				{12, 65, 1, 0},
+			},
+			writeErrors: []error{errTest},
+			wrappedErr:  errTest,
+			errMessage: "cannot write encoding of child at index 11: " +
+				"test error",
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			buffer := NewMockReadWriter(ctrl)
+			var previousCall *gomock.Call
+			for i := range testCase.written {
+				written := testCase.written[i]
+				writeErr := testCase.writeErrors[i]
+				var n int
+				if writeErr == nil {
+					n = len(written)
+				}
+
+				call := buffer.EXPECT().
+					Write(written).
+					Return(n, writeErr)
+
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			err := encodeChildrenInParallel(testCase.children, buffer)
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func Test_encodeChildrenSequentially(t *testing.T) {
 	t.Parallel()
 
