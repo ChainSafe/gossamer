@@ -4,7 +4,6 @@
 package peerset
 
 import (
-	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -212,10 +211,8 @@ func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 	var peerID peer.ID
 	for id, n := range ps.nodes {
 		if n.state[set] != notConnected {
-			fmt.Printf("connected, peer id: %s\n", id.Pretty())
 			continue
 		}
-		fmt.Printf("not connected, peer id: %s\n", id.Pretty())
 
 		val := int(n.rep)
 		if val >= maxRep {
@@ -228,7 +225,6 @@ func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 }
 
 func (ps *PeersState) hasFreeOutgoingSlot(set int) bool {
-	fmt.Printf("ps.sets[set].numOut: %d < ps.sets[set].maxOut: %d\n", ps.sets[set].numOut, ps.sets[set].maxOut)
 	return ps.sets[set].numOut < ps.sets[set].maxOut
 }
 
@@ -250,6 +246,7 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) {
 	ps.sets[idx].noSlotNodes[peerID] = struct{}{}
 	n, err := ps.getNode(peerID)
 	if err != nil {
+		// TODO: Return the error
 		logger.Warnf("could not get node, error: %s", err)
 		return
 	}
@@ -273,6 +270,7 @@ func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) {
 	delete(ps.sets[idx].noSlotNodes, peerID)
 	n, err := ps.getNode(peerID)
 	if err != nil {
+		// TODO: Return the error
 		logger.Warnf("could not get node, error: %s", err)
 		return
 	}

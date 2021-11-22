@@ -254,10 +254,6 @@ func (s *Service) Start() error {
 		logger.Infof("Started listening on %s", addr)
 	}
 
-	for _, addr := range s.host.h.Addrs() {
-		logger.Infof("Started listening on %s", fmt.Sprintf("        %s/p2p/%s\n", addr, s.host.h.ID().Pretty()))
-	}
-
 	s.startPeerSetHandler()
 
 	if !s.noMDNS {
@@ -656,7 +652,6 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 
 func (s *Service) startPeerSetHandler() {
 	s.host.cm.peerSetHandler.Start()
-	fmt.Println("startPeerSetHandler 736")
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()
@@ -679,11 +674,9 @@ func (s *Service) processMessage(msg peerset.Message) {
 			}
 		}
 
-		fmt.Println("network/service processMessage 758")
-
 		err := s.host.connect(addrInfo)
 		if err != nil {
-			logger.Errorf("failed to open connection for peer %s,\n address info %s\n: %s", peerID, addrInfo.String(), err)
+			logger.Errorf("failed to open connection for peer %s, error: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)

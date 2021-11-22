@@ -4,8 +4,6 @@
 package peerset
 
 import (
-	"fmt"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -57,8 +55,6 @@ func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
 
 // AddPeer adds peer to peerSet.
 func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
-	fmt.Println("peerset/handler AddPeer 56")
-
 	h.actionQueue <- action{
 		actionCall: addToPeerSet,
 		setID:      setID,
