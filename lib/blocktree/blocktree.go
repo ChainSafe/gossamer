@@ -23,7 +23,7 @@ type BlockTree struct {
 	root   *node
 	leaves *leafMap
 	sync.RWMutex
-	nodeCache map[Hash]*node
+	//nodeCache map[Hash]*node
 	runtime   *sync.Map
 }
 
@@ -32,7 +32,7 @@ func NewEmptyBlockTree() *BlockTree {
 	return &BlockTree{
 		root:      nil,
 		leaves:    newEmptyLeafMap(),
-		nodeCache: make(map[Hash]*node),
+		//nodeCache: make(map[Hash]*node),
 		runtime:   &sync.Map{}, // map[Hash]runtime.Instance
 	}
 }
@@ -51,7 +51,7 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 	return &BlockTree{
 		root:      n,
 		leaves:    newLeafMap(n),
-		nodeCache: make(map[Hash]*node),
+		//nodeCache: make(map[Hash]*node),
 		runtime:   &sync.Map{},
 	}
 }
@@ -89,7 +89,7 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 
 	parent.addChild(n)
 	bt.leaves.replace(parent, n)
-	bt.setInCache(n)
+	//bt.setInCache(n)
 
 	fmt.Println("blocktree.AddBlock", header)
 	fmt.Println(bt)
@@ -116,26 +116,26 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 	return bt.root.getNodesWithNumber(number, hashes)
 }
 
-func (bt *BlockTree) setInCache(b *node) {
-	if b == nil {
-		return
-	}
+// func (bt *BlockTree) setInCache(b *node) {
+// 	if b == nil {
+// 		return
+// 	}
 
-	if _, has := bt.nodeCache[b.hash]; !has {
-		bt.nodeCache[b.hash] = b
-	}
-}
+// 	if _, has := bt.nodeCache[b.hash]; !has {
+// 		bt.nodeCache[b.hash] = b
+// 	}
+// }
 
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
 func (bt *BlockTree) getNode(h Hash) (ret *node) {
-	if b, ok := bt.nodeCache[h]; ok {
-		return b
-	}
+	// if b, ok := bt.nodeCache[h]; ok {
+	// 	return b
+	// }
 
-	defer func() {
-		// TODO: confirm this works
-		bt.setInCache(ret)
-	}()
+	// defer func() {
+	// 	// TODO: confirm this works
+	// 	bt.setInCache(ret)
+	// }()
 
 	if bt.root.hash == h {
 		return bt.root
@@ -182,7 +182,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	}
 
 	for _, hash := range pruned {
-		delete(bt.nodeCache, hash)
+		//delete(bt.nodeCache, hash)
 		bt.runtime.Delete(hash)
 	}
 
@@ -213,7 +213,7 @@ func (bt *BlockTree) String() string {
 
 	metadata := fmt.Sprintf("Leaves:\n %s", leaves)
 
-	return fmt.Sprintf("%s\n%s\n%v\n", metadata, tree.Print(), bt.nodeCache)
+	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
 }
 
 // longestPath returns the path from the root to the deepest leaf in the blocktree
@@ -407,7 +407,7 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	defer bt.RUnlock()
 
 	btCopy := &BlockTree{
-		nodeCache: make(map[Hash]*node),
+		//nodeCache: make(map[Hash]*node),
 	}
 
 	if bt.root == nil {
@@ -425,9 +425,9 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 		}
 	}
 
-	for hash := range bt.nodeCache {
-		btCopy.nodeCache[hash] = btCopy.getNode(hash)
-	}
+	// for hash := range bt.nodeCache {
+	// 	btCopy.nodeCache[hash] = btCopy.getNode(hash)
+	// }
 
 	return btCopy
 }
