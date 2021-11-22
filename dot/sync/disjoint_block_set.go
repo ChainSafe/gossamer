@@ -59,6 +59,16 @@ type pendingBlock struct {
 	clearAt time.Time
 }
 
+func newPendingBlock(hash common.Hash, number *big.Int, header *types.Header, body *types.Body) *pendingBlock {
+	return &pendingBlock{
+		hash:    hash,
+		number:  number,
+		header:  header,
+		body:    body,
+		clearAt: time.Now().Add(ttl),
+	}
+}
+
 func (b *pendingBlock) toBlockData() *types.BlockData {
 	if b.justification == nil {
 		return &types.BlockData{
@@ -153,12 +163,7 @@ func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) e
 		return errSetAtLimit
 	}
 
-	s.blocks[hash] = &pendingBlock{
-		hash:    hash,
-		number:  number,
-		clearAt: time.Now().Add(ttl),
-	}
-
+	s.blocks[hash] = newPendingBlock(hash, number, nil, nil)
 	return nil
 }
 
@@ -177,13 +182,7 @@ func (s *disjointBlockSet) addHeader(header *types.Header) error {
 		return errSetAtLimit
 	}
 
-	s.blocks[hash] = &pendingBlock{
-		hash:    hash,
-		number:  header.Number,
-		header:  header,
-		clearAt: time.Now().Add(ttl),
-	}
-
+	s.blocks[hash] = newPendingBlock(hash, header.Number, header, nil)
 	s.addToParentMap(header.ParentHash, hash)
 	return nil
 }
@@ -204,14 +203,7 @@ func (s *disjointBlockSet) addBlock(block *types.Block) error {
 		return errSetAtLimit
 	}
 
-	s.blocks[hash] = &pendingBlock{
-		hash:    hash,
-		number:  block.Header.Number,
-		header:  &block.Header,
-		body:    &block.Body,
-		clearAt: time.Now().Add(ttl),
-	}
-
+	s.blocks[hash] = newPendingBlock(hash, block.Header.Number, &block.Header, &block.Body)
 	s.addToParentMap(block.Header.ParentHash, hash)
 	return nil
 }
