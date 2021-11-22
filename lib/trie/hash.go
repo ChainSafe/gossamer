@@ -275,15 +275,14 @@ func encodeChild(child node, buffer io.Writer) (err error) {
 // specified at the top of this package.
 func encodeLeaf(l *leaf, buffer io.Writer) (err error) {
 	l.encodingMu.RLock()
+	defer l.encodingMu.RUnlock()
 	if !l.dirty && l.encoding != nil {
 		_, err = buffer.Write(l.encoding)
-		l.encodingMu.RUnlock()
 		if err != nil {
 			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
 		}
 		return nil
 	}
-	l.encodingMu.RUnlock()
 
 	encoding, err := l.header()
 	if err != nil {
