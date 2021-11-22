@@ -44,7 +44,7 @@ func TestNode_Prune(t *testing.T) {
 		}
 	}
 
-	copy := bt.deepCopy()
+	copy := bt.DeepCopy()
 
 	// pick some block to finalise
 	finalised := bt.root.children[0].children[0].children[0]

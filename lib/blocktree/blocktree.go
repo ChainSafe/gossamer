@@ -401,6 +401,37 @@ func (bt *BlockTree) GetArrivalTime(hash common.Hash) (time.Time, error) {
 	return n.arrivalTime, nil
 }
 
+// DeepCopy returns a copy of the BlockTree
+func (bt *BlockTree) DeepCopy() *BlockTree {
+	bt.RLock()
+	defer bt.RUnlock()
+
+	btCopy := &BlockTree{
+		nodeCache: make(map[Hash]*node),
+	}
+
+	if bt.root == nil {
+		return btCopy
+	}
+
+	btCopy.root = bt.root.deepCopy(nil)
+
+	if bt.leaves != nil {
+		btCopy.leaves = newEmptyLeafMap()
+
+		lMap := bt.leaves.toMap()
+		for hash, val := range lMap {
+			btCopy.leaves.store(hash, btCopy.getNode(val.hash))
+		}
+	}
+
+	for hash := range bt.nodeCache {
+		btCopy.nodeCache[hash] = btCopy.getNode(hash)
+	}
+
+	return btCopy
+}
+
 // StoreRuntime stores the runtime for corresponding block hash.
 func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
 	bt.runtime.Store(hash, in)
