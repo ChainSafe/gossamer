@@ -180,3 +180,95 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		})
 	}
 }
+
+//go:generate mockgen -destination=writer_mock_test.go -package $GOPACKAGE io Writer
+
+func Test_encodeChild(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		child      node
+		writeCall  bool
+		written    []byte
+		writeError error
+		wrappedErr error
+		errMessage string
+	}{
+		"nil node": {},
+		"nil leaf": {
+			child: (*leaf)(nil),
+		},
+		"nil branch": {
+			child: (*branch)(nil),
+		},
+		"empty leaf child": {
+			child:     &leaf{},
+			writeCall: true,
+			written:   []byte{8, 64, 0},
+		},
+		"empty branch child": {
+			child:     &branch{},
+			writeCall: true,
+			written:   []byte{12, 128, 0, 0},
+		},
+		"buffer write error": {
+			child:      &branch{},
+			writeCall:  true,
+			written:    []byte{12, 128, 0, 0},
+			writeError: errTest,
+			wrappedErr: errTest,
+			errMessage: "failed to write child to buffer: test error",
+		},
+		"leaf child": {
+			child: &leaf{
+				key:   []byte{1},
+				value: []byte{2},
+			},
+			writeCall: true,
+			written:   []byte{16, 65, 1, 4, 2},
+		},
+		"branch child": {
+			child: &branch{
+				key:   []byte{1},
+				value: []byte{2},
+				children: [16]node{
+					nil, nil, &leaf{
+						key:   []byte{5},
+						value: []byte{6},
+					},
+				},
+			},
+			writeCall: true,
+			written:   []byte{44, 193, 1, 4, 0, 4, 2, 16, 65, 5, 4, 6},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			buffer := NewMockWriter(ctrl)
+
+			if testCase.writeCall {
+				var n int
+				if testCase.writeError == nil {
+					n = len(testCase.written)
+				}
+				buffer.EXPECT().
+					Write(testCase.written).
+					Return(n, testCase.writeError)
+			}
+
+			err := encodeChild(testCase.child, buffer)
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

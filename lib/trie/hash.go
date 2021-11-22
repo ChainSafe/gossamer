@@ -256,7 +256,16 @@ func encodeChildrenSequentially(children [16]node, buffer io.Writer) (err error)
 }
 
 func encodeChild(child node, buffer io.Writer) (err error) {
-	if child == nil {
+	var isNil bool
+	switch impl := child.(type) {
+	case *branch:
+		isNil = impl == nil
+	case *leaf:
+		isNil = impl == nil
+	default:
+		isNil = child == nil
+	}
+	if isNil {
 		return nil
 	}
 
