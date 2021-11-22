@@ -246,10 +246,10 @@ func encodeChildrenInParallel(children [16]node, buffer io.Writer) (err error) {
 }
 
 func encodeChildrenSequentially(children [16]node, buffer io.Writer) (err error) {
-	for _, child := range children {
+	for i, child := range children {
 		err = encodeChild(child, buffer)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot encode child at index %d: %w", i, err)
 		}
 	}
 	return nil
