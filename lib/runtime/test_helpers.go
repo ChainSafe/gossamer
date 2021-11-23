@@ -1,24 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package runtime
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -36,8 +23,7 @@ import (
 
 // NewInMemoryDB creates a new in-memory database
 func NewInMemoryDB(t *testing.T) chaindb.Database {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir:  testDatadirPath,
@@ -102,13 +88,13 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 		return err
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	return ioutil.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
+	return os.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
 }
 
 // TestRuntimeNetwork ...

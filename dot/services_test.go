@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
@@ -24,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -282,7 +270,10 @@ func TestCreateGrandpaService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, &network.Service{})
+	networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	require.NoError(t, err)
+
+	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }
@@ -364,4 +355,14 @@ func TestNewWebSocketServer(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, item.expected, message)
 	}
+}
+
+func Test_createPprofService(t *testing.T) {
+	t.Parallel()
+
+	settings := pprof.Settings{}
+
+	service := createPprofService(settings)
+
+	require.NotNil(t, service)
 }

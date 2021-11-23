@@ -1,24 +1,10 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
 import (
 	"github.com/ChainSafe/gossamer/chain/dev"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/urfave/cli"
 )
 
@@ -57,47 +43,38 @@ var (
 	LogFlag = cli.StringFlag{
 		Name:  "log",
 		Usage: "Global log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: log.Info.String(),
 	}
 	LogCoreLevelFlag = cli.StringFlag{
 		Name:  "log-core",
 		Usage: "Core package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: LogFlag.Value,
 	}
 	LogSyncLevelFlag = cli.StringFlag{
 		Name:  "log-sync",
 		Usage: "Sync package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: LogFlag.Value,
 	}
 	LogNetworkLevelFlag = cli.StringFlag{
 		Name:  "log-network",
 		Usage: "Network package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: LogFlag.Value,
 	}
 	LogRPCLevelFlag = cli.StringFlag{
 		Name:  "log-rpc",
 		Usage: "RPC package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: LogFlag.Value,
 	}
 	LogStateLevelFlag = cli.StringFlag{
 		Name:  "log-state",
 		Usage: "State package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: LogFlag.Value,
 	}
 	LogRuntimeLevelFlag = cli.StringFlag{
 		Name:  "log-runtime",
 		Usage: "Runtime package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: LogFlag.Value,
 	}
 	LogBabeLevelFlag = cli.StringFlag{
 		Name:  "log-babe",
 		Usage: "BABE package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: LogFlag.Value,
 	}
 	LogGrandpaLevelFlag = cli.StringFlag{
 		Name:  "log-grandpa",
 		Usage: "Grandpa package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
-		Value: LogFlag.Value,
 	}
 
 	// NameFlag node implementation name
@@ -120,13 +97,23 @@ var (
 		Name:  "basepath",
 		Usage: "Data directory for the node",
 	}
-	CPUProfFlag = cli.StringFlag{
-		Name:  "cpuprof",
-		Usage: "File to write CPU profile to",
+	PprofServerFlag = cli.StringFlag{
+		Name:  "pprofserver",
+		Usage: "enable or disable the pprof HTTP server",
 	}
-	MemProfFlag = cli.StringFlag{
-		Name:  "memprof",
-		Usage: "File to write memory profile to",
+	PprofAddressFlag = cli.StringFlag{
+		Name:  "pprofaddress",
+		Usage: "pprof HTTP server listening address, if it is enabled.",
+	}
+	PprofBlockRateFlag = cli.IntFlag{
+		Name:  "pprofblockrate",
+		Value: -1,
+		Usage: "pprof block rate. See https://pkg.go.dev/runtime#SetBlockProfileRate.",
+	}
+	PprofMutexRateFlag = cli.IntFlag{
+		Name:  "pprofmutexrate",
+		Value: -1,
+		Usage: "profiling mutex rate. See https://pkg.go.dev/runtime#SetMutexProfileFraction.",
 	}
 
 	// PublishMetricsFlag publishes node metrics to prometheus.
@@ -395,8 +382,10 @@ var (
 		ChainFlag,
 		ConfigFlag,
 		BasePathFlag,
-		CPUProfFlag,
-		MemProfFlag,
+		PprofServerFlag,
+		PprofAddressFlag,
+		PprofBlockRateFlag,
+		PprofMutexRateFlag,
 		RewindFlag,
 		DBPathFlag,
 		BloomFilterSizeFlag,

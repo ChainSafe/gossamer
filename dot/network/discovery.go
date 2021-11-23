@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -210,8 +197,21 @@ func (d *discovery) findPeers(ctx context.Context) {
 
 			logger.Tracef("found new peer %s via DHT", peer.ID)
 
+			// TODO: this isn't working on the devnet (#2026)
+			// can remove the code block below which directly connects
+			// once that's fixed
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
+
+			// found a peer, try to connect if we need more peers
+			if len(d.h.Network().Peers()) >= d.maxPeers {
+				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+				return
+			}
+
+			if err = d.h.Connect(d.ctx, peer); err != nil {
+				logger.Tracef("failed to connect to discovered peer %s: %s", peer.ID, err)
+			}
 		}
 	}
 }

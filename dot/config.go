@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
@@ -28,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
@@ -45,6 +33,7 @@ type Config struct {
 	RPC     RPCConfig
 	System  types.SystemInfo
 	State   StateConfig
+	Pprof   PprofConfig
 }
 
 // GlobalConfig is used for every node command
@@ -159,6 +148,20 @@ func networkServiceEnabled(cfg *Config) bool {
 	return cfg.Core.Roles != byte(0)
 }
 
+// PprofConfig is the configuration for the pprof HTTP server.
+type PprofConfig struct {
+	Enabled  bool
+	Settings pprof.Settings
+}
+
+func (p PprofConfig) String() string {
+	if !p.Enabled {
+		return "disabled"
+	}
+
+	return p.Settings.String()
+}
+
 // GssmrConfig returns a new test configuration using the provided basepath
 func GssmrConfig() *Config {
 	return &Config{
@@ -210,6 +213,14 @@ func GssmrConfig() *Config {
 			Modules: gssmr.DefaultRPCModules,
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
+		Pprof: PprofConfig{
+			Enabled: gssmr.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: gssmr.DefaultPprofListeningAddress,
+				BlockProfileRate: gssmr.DefaultPprofBlockRate,
+				MutexProfileRate: gssmr.DefaultPprofMutexRate,
+			},
+		},
 	}
 }
 
@@ -258,6 +269,14 @@ func KusamaConfig() *Config {
 			Host:    kusama.DefaultRPCHTTPHost,
 			Modules: kusama.DefaultRPCModules,
 			WSPort:  kusama.DefaultRPCWSPort,
+		},
+		Pprof: PprofConfig{
+			Enabled: kusama.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: kusama.DefaultPprofListeningAddress,
+				BlockProfileRate: kusama.DefaultPprofBlockRate,
+				MutexProfileRate: kusama.DefaultPprofMutexRate,
+			},
 		},
 	}
 }
@@ -308,6 +327,14 @@ func PolkadotConfig() *Config {
 			Modules: polkadot.DefaultRPCModules,
 			WSPort:  polkadot.DefaultRPCWSPort,
 		},
+		Pprof: PprofConfig{
+			Enabled: polkadot.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: polkadot.DefaultPprofListeningAddress,
+				BlockProfileRate: polkadot.DefaultPprofBlockRate,
+				MutexProfileRate: polkadot.DefaultPprofMutexRate,
+			},
+		},
 	}
 }
 
@@ -346,6 +373,7 @@ func DevConfig() *Config {
 			BabeAuthority:    dev.DefaultBabeAuthority,
 			GrandpaAuthority: dev.DefaultGrandpaAuthority,
 			WasmInterpreter:  dev.DefaultWasmInterpreter,
+			BABELead:         dev.DefaultBabeAuthority,
 		},
 		Network: NetworkConfig{
 			Port:        dev.DefaultNetworkPort,
@@ -360,6 +388,14 @@ func DevConfig() *Config {
 			WSPort:  dev.DefaultRPCWSPort,
 			Enabled: dev.DefaultRPCEnabled,
 			WS:      dev.DefaultWSEnabled,
+		},
+		Pprof: PprofConfig{
+			Enabled: dev.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: dev.DefaultPprofListeningAddress,
+				BlockProfileRate: dev.DefaultPprofBlockRate,
+				MutexProfileRate: dev.DefaultPprofMutexRate,
+			},
 		},
 	}
 }

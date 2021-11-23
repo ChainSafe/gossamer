@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
@@ -795,6 +782,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 		Network: testCfg.Network,
 		RPC:     testCfg.RPC,
 		System:  testCfg.System,
+		Pprof:   testCfg.Pprof,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -849,6 +837,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		Network: testCfg.Network,
 		RPC:     testCfg.RPC,
 		System:  testCfg.System,
+		Pprof:   testCfg.Pprof,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -907,6 +896,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,
+		Pprof:  testCfg.Pprof,
 	}
 
 	cfg, err := createDotConfig(ctx)

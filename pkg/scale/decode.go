@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package scale
 
@@ -22,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"reflect"
 )
@@ -299,7 +285,7 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 		}
 		dstv.Set(reflect.ValueOf(res))
 	default:
-		bytes, _ := ioutil.ReadAll(ds.Reader)
+		bytes, _ := io.ReadAll(ds.Reader)
 		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, bytes)
 	}
 	return
@@ -332,7 +318,7 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 			dstv.Set(tempElem)
 		}
 	default:
-		bytes, _ := ioutil.ReadAll(ds.Reader)
+		bytes, _ := io.ReadAll(ds.Reader)
 		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, bytes)
 	}
 	return

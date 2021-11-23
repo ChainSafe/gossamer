@@ -89,7 +89,11 @@ For coding style, you may refer to the [code style](CODE_STYLE.md) document whic
     make lint
     ```
 
-9. **Create a pull request.**
+9. **Add licenses to new Go and Proto files**
+
+    If you added any new file, run `make license` to setup all licenses on relevant files.
+    If you do not have `make` available, you can copy paste the command from the Makefile's `license:` block and run that instead.
+10. **Create a pull request.**
 
     Navigate your browser to [https://github.com/ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) and click on the new pull request button. In the “base” box on the left, change the branch to “**base development**”, the branch that you want your changes to be applied to. In the “compare” box on the right, select feature-in-progress-branch, the branch containing the changes you want to apply. You will then be asked to answer a few questions about your pull request. After you complete the questionnaire, the pull request will appear in the list of pull requests at [https://github.com/ChainSafe/gossamer/pulls](https://github.com/ChainSafe/gossamer/pulls).
 

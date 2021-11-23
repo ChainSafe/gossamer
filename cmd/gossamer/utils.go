@@ -1,27 +1,12 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -38,10 +23,9 @@ const confirmCharacter = "Y"
 
 // setupLogger sets up the global Gossamer logger.
 func setupLogger(ctx *cli.Context) (level log.Level, err error) {
-	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
-		level = log.Level(lvlToInt)
-	} else if level, err = log.ParseLevel(ctx.String(LogFlag.Name)); err != nil {
-		return 0, err
+	level, err = getLogLevel(ctx, LogFlag.Name, "", log.Info)
+	if err != nil {
+		return level, err
 	}
 
 	log.Patch(
@@ -114,6 +98,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 		Network: dot.GssmrConfig().Network,
 		RPC:     dot.GssmrConfig().RPC,
 		System:  dot.GssmrConfig().System,
+		Pprof:   dot.GssmrConfig().Pprof,
 	}
 
 	return cfg
@@ -123,7 +108,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	cfg := newTestConfig(t)
 
-	file, err := ioutil.TempFile(cfg.Global.BasePath, "config-")
+	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
 	require.NoError(t, err)
 
 	tomlCfg := dotConfigToToml(cfg)

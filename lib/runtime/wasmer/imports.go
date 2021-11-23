@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
 
@@ -90,6 +77,7 @@ package wasmer
 // extern int64_t ext_offchain_timestamp_version_1(void *context);
 // extern void ext_offchain_sleep_until_version_1(void *context, int64_t a);
 // extern int64_t ext_offchain_http_request_start_version_1(void *context, int64_t a, int64_t b, int64_t c);
+// extern int64_t ext_offchain_http_request_add_header_version_1(void *context, int32_t a, int64_t k, int64_t v);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
@@ -117,6 +105,7 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"time"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -1712,16 +1701,21 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 }
 
 //export ext_offchain_timestamp_version_1
-func ext_offchain_timestamp_version_1(context unsafe.Pointer) C.int64_t {
+func ext_offchain_timestamp_version_1(_ unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_offchain_timestamp_version_1] executing...")
-	logger.Warn("[ext_offchain_timestamp_version_1] unimplemented")
-	return 0
+
+	now := time.Now().Unix()
+	return C.int64_t(now)
 }
 
 //export ext_offchain_sleep_until_version_1
 func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
-	logger.Trace("executing...")
-	logger.Warn("unimplemented")
+	logger.Trace("[ext_offchain_sleep_until_version_1] executing...")
+
+	dur := time.Until(time.UnixMilli(int64(deadline)))
+	if dur > 0 {
+		time.Sleep(dur)
+	}
 }
 
 //export ext_offchain_http_request_start_version_1
@@ -1729,24 +1723,80 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
 	httpMethod := asMemorySlice(instanceContext, methodSpan)
 	uri := asMemorySlice(instanceContext, uriSpan)
 
 	result := scale.NewResult(int16(0), nil)
 
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
-
 	if err != nil {
+		// StartRequest error already was logged
 		logger.Errorf("failed to start request: %s", err)
-		_ = result.Set(scale.Err, nil)
+		err = result.Set(scale.Err, nil)
 	} else {
-		_ = result.Set(scale.OK, reqID)
+		err = result.Set(scale.OK, reqID)
 	}
 
-	enc, _ := scale.Marshal(result)
-	ptr, _ := toWasmMemory(instanceContext, enc)
+	// note: just check if an error occurs while setting the result data
+	if err != nil {
+		logger.Errorf("failed to set the result data: %s", err)
+		return C.int64_t(0)
+	}
+
+	enc, err := scale.Marshal(result)
+	if err != nil {
+		logger.Errorf("failed to scale marshal the result: %s", err)
+		return C.int64_t(0)
+	}
+
+	ptr, err := toWasmMemory(instanceContext, enc)
+	if err != nil {
+		logger.Errorf("failed to allocate result on memory: %s", err)
+		return C.int64_t(0)
+	}
+
+	return C.int64_t(ptr)
+}
+
+//export ext_offchain_http_request_add_header_version_1
+func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqID C.int32_t, nameSpan, valueSpan C.int64_t) C.int64_t {
+	logger.Debug("executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	name := asMemorySlice(instanceContext, nameSpan)
+	value := asMemorySlice(instanceContext, valueSpan)
+
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	offchainReq := runtimeCtx.OffchainHTTPSet.Get(int16(reqID))
+
+	result := scale.NewResult(nil, nil)
+	resultMode := scale.OK
+
+	err := offchainReq.AddHeader(string(name), string(value))
+	if err != nil {
+		logger.Errorf("failed to add request header: %s", err)
+		resultMode = scale.Err
+	}
+
+	err = result.Set(resultMode, nil)
+	if err != nil {
+		logger.Errorf("failed to set the result data: %s", err)
+		return C.int64_t(0)
+	}
+
+	enc, err := scale.Marshal(result)
+	if err != nil {
+		logger.Errorf("failed to scale marshal the result: %s", err)
+		return C.int64_t(0)
+	}
+
+	ptr, err := toWasmMemory(instanceContext, enc)
+	if err != nil {
+		logger.Errorf("failed to allocate result on memory: %s", err)
+		return C.int64_t(0)
+	}
 
 	return C.int64_t(ptr)
 }
@@ -2420,6 +2470,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_offchain_http_request_add_header_version_1", ext_offchain_http_request_add_header_version_1, C.ext_offchain_http_request_add_header_version_1)
 	if err != nil {
 		return nil, err
 	}

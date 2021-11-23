@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
 
@@ -20,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -526,9 +514,6 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 // head block number, it would leave us in bootstrap mode forever
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
 func (cs *chainSync) getTarget() *big.Int {
-	count := int64(0)
-	sum := big.NewInt(0)
-
 	cs.RLock()
 	defer cs.RUnlock()
 
@@ -538,11 +523,13 @@ func (cs *chainSync) getTarget() *big.Int {
 		return big.NewInt(2<<32 - 1)
 	}
 
+	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
+	intArr := make([]*big.Int, 0, len(cs.peerState))
 	for _, ps := range cs.peerState {
-		sum = big.NewInt(0).Add(sum, ps.number)
-		count++
+		intArr = append(intArr, ps.number)
 	}
 
+	sum, count := removeOutliers(intArr)
 	return big.NewInt(0).Div(sum, big.NewInt(count))
 }
 
@@ -867,7 +854,7 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 	}
 
 	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
-		return errNilBodyInResponse
+		return fmt.Errorf("%w: hash=%s", errNilBodyInResponse, bd.Hash)
 	}
 
 	return nil

@@ -1,23 +1,10 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
 import (
-	"fmt"
+	"errors"
 	"math/big"
 	"reflect"
 	"sync"
@@ -33,10 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
-
-func TestHandshake_SizeOf(t *testing.T) {
-	require.Equal(t, uint32(maxHandshakeSize), uint32(72))
-}
 
 func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
@@ -62,7 +45,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// haven't received handshake from peer
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-	info.inboundHandshakeData.Store(testPeerID, handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, &handshakeData{
 		received: false,
 	})
 
@@ -147,7 +130,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage, nil)
 
 	// set handshake data to received
-	info.inboundHandshakeData.Store(testPeerID, handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, &handshakeData{
 		received:  true,
 		validated: true,
 	})
@@ -263,16 +246,14 @@ func Test_HandshakeTimeout(t *testing.T) {
 	nodeB.noGossip = true
 
 	// create info and handler
-	info := &notificationsProtocol{
-		protocolID:            nodeA.host.protocolID + blockAnnounceID,
-		getHandshake:          nodeA.getBlockAnnounceHandshake,
-		handshakeValidator:    nodeA.validateBlockAnnounceHandshake,
-		inboundHandshakeData:  new(sync.Map),
-		outboundHandshakeData: new(sync.Map),
+	testHandshakeDecoder := func([]byte) (Handshake, error) {
+		return nil, errors.New("unimplemented")
 	}
+	info := newNotificationsProtocol(nodeA.host.protocolID+blockAnnounceID,
+		nodeA.getBlockAnnounceHandshake, testHandshakeDecoder, nodeA.validateBlockAnnounceHandshake)
 
 	nodeB.host.h.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
-		fmt.Println("never respond a handshake message")
+		// should not respond to a handshake message
 	})
 
 	addrInfosB := nodeB.host.addrInfo()
@@ -293,13 +274,14 @@ func Test_HandshakeTimeout(t *testing.T) {
 	}
 	nodeA.GossipMessage(testHandshakeMsg)
 
+	info.outboundHandshakeMutexes.Store(nodeB.host.id(), new(sync.Mutex))
 	go nodeA.sendData(nodeB.host.id(), testHandshakeMsg, info, nil)
 
 	time.Sleep(time.Second)
 
-	// Verify that handshake data exists.
+	// handshake data shouldn't exist, as nodeB hasn't responded yet
 	_, ok := info.getOutboundHandshakeData(nodeB.host.id())
-	require.True(t, ok)
+	require.False(t, ok)
 
 	// a stream should be open until timeout
 	connAToB := nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
@@ -309,7 +291,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	// after the timeout
 	time.Sleep(handshakeTimeout)
 
-	// handshake data should be removed
+	// handshake data shouldn't exist still
 	_, ok = info.getOutboundHandshakeData(nodeB.host.id())
 	require.False(t, ok)
 
