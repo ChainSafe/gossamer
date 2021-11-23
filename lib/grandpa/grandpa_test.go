@@ -1278,7 +1278,8 @@ func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testi
 	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// create fake authorities
-	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Bob().(*ed25519.Keypair),
