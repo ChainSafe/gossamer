@@ -336,7 +336,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 			continue
 		}
 
-		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote) //nolint
+		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
 		if err != nil {
 			continue
 		}
@@ -377,7 +377,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 			continue
 		}
 
-		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit) //nolint
+		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
 			continue
 		}
