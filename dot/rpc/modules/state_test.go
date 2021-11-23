@@ -172,9 +172,9 @@ func TestStateModuleGetPairs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StatePairResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StatePairResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
@@ -267,9 +267,9 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StateStorageKeysResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StateStorageKeysResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
@@ -349,9 +349,9 @@ func TestStateModuleGetMetadata(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StateMetadataResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StateMetadataResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
@@ -445,9 +445,9 @@ func TestStateModuleGetReadProof(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StateGetReadProofResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StateGetReadProofResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
@@ -532,9 +532,9 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StateRuntimeVersionResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StateRuntimeVersionResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
@@ -629,9 +629,9 @@ func TestStateModuleGetStorage(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StateStorageResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StateStorageResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
@@ -726,9 +726,9 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StateStorageHashResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StateStorageHashResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
@@ -823,9 +823,9 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StateStorageSizeResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StateStorageSizeResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
@@ -920,9 +920,9 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res []StorageChangeSetResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res []StorageChangeSetResponse
+			tt.args.res = &res
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,

@@ -106,9 +106,9 @@ func TestChainModule_GetBlock(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		res := ChainBlockResponse{}
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			res := ChainBlockResponse{}
+			tt.args.res = &res
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
@@ -219,9 +219,9 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res ChainHashResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res ChainHashResponse
+			tt.args.res = &res
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
@@ -286,9 +286,9 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res ChainHashResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res ChainHashResponse
+			tt.args.res = &res
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
@@ -359,9 +359,9 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res ChainHashResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res ChainHashResponse
+			tt.args.res = &res
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
@@ -432,9 +432,9 @@ func TestChainModule_GetHeader(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res ChainBlockHeaderResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res ChainBlockHeaderResponse
+			tt.args.res = &res
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}

@@ -352,9 +352,9 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		res := PendingExtrinsicsResponse{}
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			res := PendingExtrinsicsResponse{}
+			tt.args.res = &res
 			cm := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
@@ -558,9 +558,9 @@ func TestAuthorModule_HasKey(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res bool
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res bool
+			tt.args.res = &res
 			cm := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,

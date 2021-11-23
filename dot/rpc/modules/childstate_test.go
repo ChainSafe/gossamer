@@ -138,9 +138,9 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		res := make([]string, 0)
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			res := make([]string, 0)
+			tt.args.res = &res
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
@@ -255,9 +255,9 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res uint64
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res uint64
+			tt.args.res = &res
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
@@ -372,9 +372,9 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res string
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res string
+			tt.args.res = &res
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
@@ -489,9 +489,9 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		res := StateStorageResponse("")
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			res := StateStorageResponse("")
+			tt.args.res = &res
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,

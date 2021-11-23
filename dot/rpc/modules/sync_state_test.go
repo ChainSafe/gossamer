@@ -67,9 +67,9 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res genesis.Genesis
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res genesis.Genesis
+			tt.args.res = &res
 			ss := &SyncStateModule{
 				syncStateAPI: tt.fields.syncStateAPI,
 			}

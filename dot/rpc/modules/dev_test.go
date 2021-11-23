@@ -87,9 +87,9 @@ func TestDevModule_EpochLength(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res string
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res string
+			tt.args.res = &res
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
@@ -141,9 +141,9 @@ func TestDevModule_SlotDuration(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res string
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res string
+			tt.args.res = &res
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
@@ -302,9 +302,9 @@ func TestDevModule_Control(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res string
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res string
+			tt.args.res = &res
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,

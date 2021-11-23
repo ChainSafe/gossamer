@@ -94,9 +94,9 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StringResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StringResponse
+			tt.args.res = &res
 			s := &OffchainModule{
 				nodeStorage: tt.fields.nodeStorage,
 			}
@@ -208,9 +208,9 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res StringResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res StringResponse
+			tt.args.res = &res
 			s := &OffchainModule{
 				nodeStorage: tt.fields.nodeStorage,
 			}

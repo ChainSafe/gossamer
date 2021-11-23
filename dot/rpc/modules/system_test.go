@@ -150,9 +150,9 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res []interface{}
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res []interface{}
+			tt.args.res = &res
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -275,9 +275,9 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res U64Response
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res U64Response
+			tt.args.res = &res
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -357,9 +357,9 @@ func TestSystemModule_SyncState(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res SyncStateResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res SyncStateResponse
+			tt.args.res = &res
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -437,9 +437,9 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res []string
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res []string
+			tt.args.res = &res
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -517,9 +517,9 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res string
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res string
+			tt.args.res = &res
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -597,9 +597,9 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res []byte
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res []byte
+			tt.args.res = &res
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -677,9 +677,9 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res []byte
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res []byte
+			tt.args.res = &res
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,

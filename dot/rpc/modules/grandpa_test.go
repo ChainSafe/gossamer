@@ -121,9 +121,9 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res ProveFinalityResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res ProveFinalityResponse
+			tt.args.res = &res
 			gm := &GrandpaModule{
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
@@ -230,9 +230,9 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var res RoundStateResponse
-		tt.args.res = &res
 		t.Run(tt.name, func(t *testing.T) {
+			var res RoundStateResponse
+			tt.args.res = &res
 			gm := &GrandpaModule{
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,

@@ -35,7 +35,7 @@ var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Errorf("failed to generate runtime wasm file %s", err)
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 
 func TestAuthorModule_Pending(t *testing.T) {
 	txQueue := state.NewTransactionState()
-	auth := NewAuthorModule(log.New(), nil, txQueue)
+	auth := NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, txQueue)
 
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
@@ -277,5 +277,5 @@ func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 	t.Cleanup(func() {
 		rt.Stop()
 	})
-	return NewAuthorModule(log.New(), cs, txq)
+	return NewAuthorModule(log.New(log.SetWriter(io.Discard)), cs, txq)
 }
