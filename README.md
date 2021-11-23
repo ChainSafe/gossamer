@@ -74,6 +74,8 @@ Make sure you have the following Golang enviroment variables:
 
 > use _go env -w **ENV_NAME**=**ENV_VALUE**_ to set the new value
 
+
+
 ### Run Development Node
 
 To initialise a development node:
