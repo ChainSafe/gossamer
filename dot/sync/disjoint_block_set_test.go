@@ -29,6 +29,7 @@ func TestDisjointBlockSet(t *testing.T) {
 	}
 	blocks := s.getBlocks()
 	require.Equal(t, 1, len(blocks))
+	blocks[0].clearAt = time.Time{}
 	require.Equal(t, expected, blocks[0])
 
 	header := &types.Header{
@@ -42,7 +43,9 @@ func TestDisjointBlockSet(t *testing.T) {
 		number: header.Number,
 		header: header,
 	}
-	require.Equal(t, expected, s.getBlock(header.Hash()))
+	pb := s.getBlock(header.Hash())
+	pb.clearAt = time.Time{}
+	require.Equal(t, expected, pb)
 
 	header2 := &types.Header{
 		Number: big.NewInt(999),
@@ -56,7 +59,9 @@ func TestDisjointBlockSet(t *testing.T) {
 		number: header2.Number,
 		header: header2,
 	}
-	require.Equal(t, expected, s.getBlock(header2.Hash()))
+	pb = s.getBlock(header2.Hash())
+	pb.clearAt = time.Time{}
+	require.Equal(t, expected, pb)
 
 	block := &types.Block{
 		Header: *header2,
@@ -70,7 +75,9 @@ func TestDisjointBlockSet(t *testing.T) {
 		header: header2,
 		body:   &block.Body,
 	}
-	require.Equal(t, expected, s.getBlock(header2.Hash()))
+	pb = s.getBlock(header2.Hash())
+	pb.clearAt = time.Time{}
+	require.Equal(t, expected, pb)
 
 	s.removeBlock(hash)
 	require.Equal(t, 2, s.size())
