@@ -9,19 +9,23 @@ package modules
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,8 +33,7 @@ import (
 var testExt = common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670")
 
 // invalid transaction (above tx, with last byte changed)
-//nolint
-var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 143}
+var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 143} //nolint:lll
 
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
@@ -46,19 +49,15 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestAuthorModule_Pending(t *testing.T) {
+func TestAuthorModule_Pending_Integration(t *testing.T) {
 	txQueue := state.NewTransactionState()
-	auth := NewAuthorModule(nil, nil, txQueue)
+	auth := setupAuthModule(t, txQueue)
 
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([]string{})) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", *res, PendingExtrinsicsResponse([]string{}))
-	}
+	require.NoError(t, err)
+	require.Equal(t, PendingExtrinsicsResponse([]string{}), *res)
 
 	vtx := &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(testExt),
@@ -69,18 +68,13 @@ func TestAuthorModule_Pending(t *testing.T) {
 	require.NoError(t, err)
 
 	err = auth.PendingExtrinsics(nil, nil, res)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	expected := common.BytesToHex(vtx.Extrinsic)
-	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([]string{expected})) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", res, PendingExtrinsicsResponse([]string{expected}))
-	}
+	require.Equal(t, PendingExtrinsicsResponse([]string{expected}), *res)
 }
 
 func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
-	t.Skip()
 	// setup auth module
 	txQueue := state.NewTransactionState()
 
@@ -269,13 +263,102 @@ func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
 	require.False(t, res)
 }
 
-func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
-	fmt.Println("calling setupAuthModule")
-	cs := newCoreService(t, nil)
-	fmt.Println("called newCoreService")
-	rt := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+type CoreTestOption func(*testing.T, *core.Config)
+type CoreStateOption func(*testing.T, *core.Config) (*state.Service, common.Hash, *trie.Trie)
+type CoreRuntimeOption func(*testing.T, *state.Service, *trie.Trie, *core.Config) runtime.Instance
+
+func setupCoreService(t *testing.T, stateopt CoreStateOption, runtimeopt CoreRuntimeOption, opts ...CoreTestOption) (*core.Service, error) {
+	cfg := new(core.Config)
+
+	for _, opt := range opts {
+		opt(t, cfg)
+	}
+
+	stateSvc, genHeaderHash, trie := stateopt(t, cfg)
+	rt := runtimeopt(t, stateSvc, trie, cfg)
+
+	loadTestBlocks(t, genHeaderHash, stateSvc.Block, rt)
+
+	return core.NewTestService(t, cfg), nil
+}
+
+func WithKeystore(t *testing.T, cfg *core.Config) {
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	ks := keystore.NewGlobalKeystore()
+	ks.Acco.Insert(kr.Alice())
+
+	cfg.Keystore = ks
+}
+
+func WithRuntime(t *testing.T, stateSvc *state.Service, trie *trie.Trie, cfg *core.Config) runtime.Instance {
+	genTrieState, err := storage.NewTrieState(trie)
+	require.NoError(t, err)
+
+	rtConfig := new(wasmer.Config)
+	rtConfig.Storage = genTrieState
+
+	require.NotNil(t, stateSvc)
+	rtConfig.NodeStorage.BaseDB = stateSvc.Base
+
+	rt, err := wasmer.NewRuntimeFromGenesis(rtConfig)
+	require.NoError(t, err)
+
 	t.Cleanup(func() {
 		rt.Stop()
 	})
-	return NewAuthorModule(nil, cs, txq)
+
+	cfg.Runtime = rt
+	return rt
+}
+
+func WithStateService(t *testing.T, cfg *core.Config) (*state.Service, common.Hash, *trie.Trie) {
+	tmpDataDir := t.TempDir()
+
+	config := state.Config{
+		Path:     tmpDataDir,
+		LogLevel: log.Info,
+	}
+
+	stateSrvc := state.NewService(config)
+	stateSrvc.UseMemDB()
+
+	gen, trie, header := genesis.NewTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(gen, header, trie)
+
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		stateSrvc.Stop()
+	})
+
+	cfg.TransactionState = stateSrvc.Transaction
+	cfg.BlockState = stateSrvc.Block
+	cfg.StorageState = stateSrvc.Storage
+	cfg.EpochState = stateSrvc.Epoch
+	cfg.CodeSubstitutedState = stateSrvc.Base
+
+	return stateSrvc, header.Hash(), trie
+}
+
+func WithNetwork(t *testing.T, cfg *core.Config) {
+	netCfg := new(network.Config)
+
+	net, err := network.NewService(netCfg)
+	require.NoError(t, err)
+
+	cfg.Network = net
+}
+
+func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
+	coresvc, err := setupCoreService(
+		t,
+		WithStateService,
+		WithRuntime,
+		WithKeystore,
+		WithNetwork)
+
+	require.NoError(t, err)
+	return NewAuthorModule(nil, coresvc, txq)
 }
