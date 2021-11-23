@@ -49,7 +49,6 @@ func NewValidTransaction(extrinsic types.Extrinsic, validity *Validity) *ValidTr
 // 	BlockHash          *common.Hash
 // }
 
-//nolint
 // Status represents possible transaction statuses.
 //
 // The status events can be grouped based on their kinds as:
@@ -87,7 +86,6 @@ const (
 	// has been reached,
 	// old watchers are being removed.
 	FinalityTimeout
-	//nolint
 	// Finalized status occurs when transaction has been finalized by a finality-gadget,
 	// e.g GRANDPA
 	Finalized
@@ -116,7 +114,6 @@ func (s Status) String() string {
 		return "retracted"
 	case FinalityTimeout:
 		return "finalityTimeout"
-	//nolint
 	case Finalized:
 		return "finalized"
 	case Usurped:

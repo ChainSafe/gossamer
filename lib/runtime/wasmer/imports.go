@@ -770,18 +770,6 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	// beginBatchVerify(context)
 }
 
-func beginBatchVerify(context unsafe.Pointer) { //nolint
-	instanceContext := wasm.IntoInstanceContext(context)
-	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
-
-	if sigVerifier.IsStarted() {
-		logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
-		return
-	}
-
-	sigVerifier.Start()
-}
-
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
@@ -789,22 +777,6 @@ func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t 
 	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
 	return 1
-}
-
-func finishBatchVerify(context unsafe.Pointer) C.int32_t { //nolint
-	instanceContext := wasm.IntoInstanceContext(context)
-	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
-
-	if !sigVerifier.IsStarted() {
-		logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started")
-		panic("batch verification is not started")
-	}
-
-	if sigVerifier.Finish() {
-		return 1
-	}
-	logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
-	return 0
 }
 
 //export ext_trie_blake2_256_root_version_1
@@ -869,7 +841,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	}
 
 	for i, val := range values {
-		key, err := scale.Marshal(big.NewInt(int64(i))) //nolint
+		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
 			return 0
@@ -2247,7 +2219,7 @@ func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (i
 }
 
 // ImportsNodeRuntime returns the imports for the v0.8 runtime
-func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
+func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	var err error
 
 	imports := wasm.NewImports()

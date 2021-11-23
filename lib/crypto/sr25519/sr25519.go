@@ -14,14 +14,19 @@ import (
 	"github.com/gtank/merlin"
 )
 
-//nolint
 const (
-	PublicKeyLength  int = 32
-	SeedLength       int = 32
-	PrivateKeyLength int = 32
-	SignatureLength  int = 64
-	VRFOutputLength  int = 32
-	VRFProofLength   int = 64
+	// PublicKeyLength is the expected public key length for sr25519.
+	PublicKeyLength = 32
+	// SeedLength is the expected seed length for sr25519.
+	SeedLength = 32
+	// PrivateKeyLength is the expected private key length for sr25519.
+	PrivateKeyLength = 32
+	// SignatureLength is the expected signature length for sr25519.
+	SignatureLength = 64
+	// VRFOutputLength is the expected VFR output length for sr25519.
+	VRFOutputLength = 32
+	// VRFProofLength is the expected VFR proof length for sr25519.
+	VRFProofLength = 64
 )
 
 // SigningContext is the context for signatures used or created with substrate

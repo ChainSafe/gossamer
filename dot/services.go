@@ -88,7 +88,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 
 	if !codeSubHash.IsEmpty() {
 		logger.Infof("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash)
-		genData, err := st.Base.LoadGenesisData() // nolint
+		genData, err := st.Base.LoadGenesisData()
 		if err != nil {
 			return nil, err
 		}

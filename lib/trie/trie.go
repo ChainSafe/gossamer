@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-//nolint
+// EmptyHash is the empty trie hash.
 var EmptyHash, _ = NewEmptyTrie().Hash()
 
 // Trie is a Merkle Patricia Trie.
@@ -102,7 +102,7 @@ func (t *Trie) DeepCopy() (*Trie, error) {
 }
 
 // RootNode returns the root of the trie
-func (t *Trie) RootNode() node { //nolint
+func (t *Trie) RootNode() node {
 	return t.root
 }
 

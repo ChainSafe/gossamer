@@ -165,7 +165,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	// if we aren't currently expecting a catch up response, return
-	if !h.grandpa.paused.Load().(bool) { //nolint
+	if !h.grandpa.paused.Load().(bool) {
 		logger.Debug("not currently paused, ignoring catch up response")
 		return nil
 	}
@@ -220,7 +220,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 }
 
 // verifyCatchUpResponseCompletability verifies that the pre-commit block is a descendant of, or is, the pre-voted block
-func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit common.Hash) error { //nolint
+func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit common.Hash) error {
 	if prevote == precommit {
 		return nil
 	}
@@ -283,8 +283,9 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	// verify pre-vote justification, returning the pre-voted block if there is one
 	votes := make(map[common.Hash]uint64)
 
-	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, prevote) //nolint
+	for i := range msg.PreVoteJustification {
+		just := &msg.PreVoteJustification[i]
+		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
 		if err != nil {
 			continue
 		}
@@ -310,8 +311,9 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
 	// verify pre-commit justification
 	count := 0
-	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(&just, msg.Round, msg.SetID, precommit) //nolint
+	for i := range msg.PreCommitJustification {
+		just := &msg.PreCommitJustification[i]
+		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
 			continue
 		}
@@ -409,7 +411,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	for _, just := range fj.Commit.Precommits {
 		// check if vote was for descendant of committed block
-		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash) //nolint
+		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash)
 		if err != nil {
 			return err
 		}

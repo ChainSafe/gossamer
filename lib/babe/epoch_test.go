@@ -75,7 +75,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	require.GreaterOrEqual(t, len(bs.slotToProof), 1)
 
 	for i, auth := range bs.epochData.authorities {
-		expAuth, err := expected.authorities[i].Encode() //nolint
+		expAuth, err := expected.authorities[i].Encode()
 		require.NoError(t, err)
 		res, err := auth.Encode()
 		require.NoError(t, err)
@@ -105,7 +105,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	require.GreaterOrEqual(t, len(bs.slotToProof), 1)
 
 	for i, auth := range bs.epochData.authorities {
-		expAuth, err := expected.authorities[i].Encode() //nolint
+		expAuth, err := expected.authorities[i].Encode()
 		require.NoError(t, err)
 		res, err := auth.Encode()
 		require.NoError(t, err)

@@ -87,6 +87,7 @@ linters:
     - megacheck
     - megacheck
     - misspell
+    - nolintlint
     - revive
     - staticcheck
     - unconvert
@@ -125,21 +126,17 @@ issues:
       linters:
         - govet
 
-    # Exclude known linters from partially hard-vendored code,
-    # which is impossible to exclude via "nolint" comments.
-    - path: internal/hmac/
-      text: "weak cryptographic primitive"
+    - text: "`finalized` is a misspelling of `finalised`"
       linters:
-        - gosec
+        - misspell
 
-    # Exclude some staticcheck messages
-    - linters:
-        - staticcheck
-      text: "SA9003:"
+    - text: "`finalize` is a misspelling of `finalise`"
+      linters:
+        - misspell
 
-    - linters:
-        - gosimple
-      text: "S1025:"
+    - text: "`initialize` is a misspelling of `initialise`"
+      linters:
+        - misspell
 
     - linters:
         - revive
@@ -147,19 +144,12 @@ issues:
 
     - linters:
         - revive
-      text: "don't use ALL_CAPS in Go names;"
-
-    - linters:
-        - revive
+      path: lib/runtime/life/
       text: "don't use underscores in Go names;"
 
     - linters:
-        - gocyclo
-      text: "cyclomatic complexity 36 of func " #runtime/imports.go: registerImports
-
-    - linters:
-        - gocyclo
-      text: "cyclomatic complexity 42 of func " # codec/decode.go: (*Decoder).DecodeTuple
+        - nolintlint
+      source: "^//nolint:revive"
 
     # Exclude lll issues for long lines with go:generate
     - linters:

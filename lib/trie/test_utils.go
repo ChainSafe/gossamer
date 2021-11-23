@@ -78,6 +78,9 @@ func generateRandomTest(t testing.TB, kv map[string][]byte, generator *prand.Ran
 
 func rand32Bytes() []byte {
 	r := make([]byte, 32)
-	rand.Read(r) //nolint
+	_, err := rand.Read(r)
+	if err != nil {
+		panic(err)
+	}
 	return r
 }

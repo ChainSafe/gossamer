@@ -16,7 +16,7 @@ import (
 )
 
 // GetHeader calls the endpoint chain_getHeader
-func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header { //nolint
+func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header {
 	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 

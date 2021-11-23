@@ -109,7 +109,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 		// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
 		// code block can be removed (#1784)
-		block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
+		block, err := s.blockState.GetBlockByHash(bd.Hash)
 		if err != nil {
 			logger.Debugf("failed to get block header for hash %s: %s", bd.Hash, err)
 			return err
