@@ -60,7 +60,10 @@ func NewMockSyncer() *MockSyncer {
 // NewMockTransactionHandler create and return a network TransactionHandler interface
 func NewMockTransactionHandler() *MockTransactionHandler {
 	mocktxhandler := new(MockTransactionHandler)
-	mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(nil)
+	mocktxhandler.On("HandleTransactionMessage",
+		mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.TransactionMessage")).
+		Return(nil)
 	mocktxhandler.On("TransactionsCount").Return(0)
 	return mocktxhandler
 }
