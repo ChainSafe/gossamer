@@ -129,7 +129,8 @@ type chainSync struct {
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
 	// note: the block may have empty fields, as some data about it may be unknown
-	pendingBlocks DisjointBlockSet
+	pendingBlocks      DisjointBlockSet
+	pendingBlockDoneCh <-chan struct{}
 
 	// bootstrap or tip (near-head)
 	state chainSyncState
@@ -192,13 +193,16 @@ func (cs *chainSync) start() {
 		time.Sleep(time.Millisecond * 100)
 	}
 
-	cs.pendingBlocks.start(cs.ctx)
+	pendingBlockDoneCh := make(chan struct{})
+	cs.pendingBlockDoneCh = pendingBlockDoneCh
+	go cs.pendingBlocks.start(cs.ctx, pendingBlockDoneCh)
 	go cs.sync()
 	go cs.logSyncSpeed()
 }
 
 func (cs *chainSync) stop() {
 	cs.cancel()
+	<-cs.pendingBlockDoneCh
 }
 
 func (cs *chainSync) syncState() chainSyncState {

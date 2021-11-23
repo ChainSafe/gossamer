@@ -16,7 +16,7 @@ import (
 
 const (
 	// ttl is the time that a block can stay in this set before being cleared.
-	ttl                 = time.Minute * 10
+	ttl                 = 10 * time.Minute
 	clearBlocksInterval = time.Minute
 )
 
@@ -28,7 +28,7 @@ var (
 // DisjointBlockSet represents a set of incomplete blocks, or blocks
 // with an unknown parent. it is implemented by *disjointBlockSet
 type DisjointBlockSet interface {
-	start(ctx context.Context)
+	start(ctx context.Context, done chan<- struct{})
 	addHashAndNumber(common.Hash, *big.Int) error
 	addHeader(*types.Header) error
 	addBlock(*types.Block) error
@@ -59,13 +59,13 @@ type pendingBlock struct {
 	clearAt time.Time
 }
 
-func newPendingBlock(hash common.Hash, number *big.Int, header *types.Header, body *types.Body) *pendingBlock {
+func newPendingBlock(hash common.Hash, number *big.Int, header *types.Header, body *types.Body, clearAt time.Time) *pendingBlock {
 	return &pendingBlock{
 		hash:    hash,
 		number:  number,
 		header:  header,
 		body:    body,
-		clearAt: time.Now().Add(ttl),
+		clearAt: clearAt,
 	}
 }
 
@@ -103,6 +103,8 @@ type disjointBlockSet struct {
 
 	// map of parent hash -> child hashes
 	parentToChildren map[common.Hash]map[common.Hash]struct{}
+
+	timeNow func() time.Time
 }
 
 func newDisjointBlockSet(limit int) *disjointBlockSet {
@@ -110,23 +112,23 @@ func newDisjointBlockSet(limit int) *disjointBlockSet {
 		blocks:           make(map[common.Hash]*pendingBlock),
 		parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
 		limit:            limit,
+		timeNow:          time.Now,
 	}
 }
 
-func (s *disjointBlockSet) start(ctx context.Context) {
-	timer := time.NewTicker(clearBlocksInterval)
+func (s *disjointBlockSet) start(ctx context.Context, done chan<- struct{}) {
+	defer close(done)
+	ticker := time.NewTicker(clearBlocksInterval)
 
-	go func() {
-		for {
-			select {
-			case <-timer.C:
-				s.clearBlocks()
-			case <-ctx.Done():
-				timer.Stop()
-				return
-			}
+	for {
+		select {
+		case <-ticker.C:
+			s.clearBlocks()
+		case <-ctx.Done():
+			ticker.Stop()
+			return
 		}
-	}()
+	}
 }
 
 func (s *disjointBlockSet) clearBlocks() {
@@ -155,7 +157,7 @@ func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) e
 	defer s.Unlock()
 
 	if b, has := s.blocks[hash]; has {
-		b.clearAt = time.Now().Add(ttl)
+		b.clearAt = s.timeNow().Add(ttl)
 		return nil
 	}
 
@@ -163,7 +165,7 @@ func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) e
 		return errSetAtLimit
 	}
 
-	s.blocks[hash] = newPendingBlock(hash, number, nil, nil)
+	s.blocks[hash] = newPendingBlock(hash, number, nil, nil, s.timeNow().Add(ttl))
 	return nil
 }
 
@@ -174,7 +176,7 @@ func (s *disjointBlockSet) addHeader(header *types.Header) error {
 	hash := header.Hash()
 	if b, has := s.blocks[hash]; has {
 		b.header = header
-		b.clearAt = time.Now().Add(ttl)
+		b.clearAt = s.timeNow().Add(ttl)
 		return nil
 	}
 
@@ -182,7 +184,7 @@ func (s *disjointBlockSet) addHeader(header *types.Header) error {
 		return errSetAtLimit
 	}
 
-	s.blocks[hash] = newPendingBlock(hash, header.Number, header, nil)
+	s.blocks[hash] = newPendingBlock(hash, header.Number, header, nil, s.timeNow().Add(ttl))
 	s.addToParentMap(header.ParentHash, hash)
 	return nil
 }
@@ -195,7 +197,7 @@ func (s *disjointBlockSet) addBlock(block *types.Block) error {
 	if b, has := s.blocks[hash]; has {
 		b.header = &block.Header
 		b.body = &block.Body
-		b.clearAt = time.Now().Add(ttl)
+		b.clearAt = s.timeNow().Add(ttl)
 		return nil
 	}
 
@@ -203,7 +205,7 @@ func (s *disjointBlockSet) addBlock(block *types.Block) error {
 		return errSetAtLimit
 	}
 
-	s.blocks[hash] = newPendingBlock(hash, block.Header.Number, &block.Header, &block.Body)
+	s.blocks[hash] = newPendingBlock(hash, block.Header.Number, &block.Header, &block.Body, s.timeNow().Add(ttl))
 	s.addToParentMap(block.Header.ParentHash, hash)
 	return nil
 }

@@ -16,6 +16,9 @@ import (
 
 func TestDisjointBlockSet(t *testing.T) {
 	s := newDisjointBlockSet(pendingBlocksLimit)
+	s.timeNow = func() time.Time {
+		return time.Time{}
+	}
 
 	hash := common.Hash{0xa, 0xb}
 	number := big.NewInt(100)
@@ -24,12 +27,12 @@ func TestDisjointBlockSet(t *testing.T) {
 	require.Equal(t, 1, s.size())
 
 	expected := &pendingBlock{
-		hash:   hash,
-		number: number,
+		hash:    hash,
+		number:  number,
+		clearAt: time.Time{}.Add(ttl),
 	}
 	blocks := s.getBlocks()
 	require.Equal(t, 1, len(blocks))
-	blocks[0].clearAt = time.Time{}
 	require.Equal(t, expected, blocks[0])
 
 	header := &types.Header{
@@ -38,14 +41,14 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addHeader(header)
 	require.True(t, s.hasBlock(header.Hash()))
 	require.Equal(t, 2, s.size())
+
 	expected = &pendingBlock{
-		hash:   header.Hash(),
-		number: header.Number,
-		header: header,
+		hash:    header.Hash(),
+		number:  header.Number,
+		header:  header,
+		clearAt: time.Time{}.Add(ttl),
 	}
-	pb := s.getBlock(header.Hash())
-	pb.clearAt = time.Time{}
-	require.Equal(t, expected, pb)
+	require.Equal(t, expected, s.getBlock(header.Hash()))
 
 	header2 := &types.Header{
 		Number: big.NewInt(999),
@@ -55,13 +58,12 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addHeader(header2)
 	require.Equal(t, 3, s.size())
 	expected = &pendingBlock{
-		hash:   header2.Hash(),
-		number: header2.Number,
-		header: header2,
+		hash:    header2.Hash(),
+		number:  header2.Number,
+		header:  header2,
+		clearAt: time.Time{}.Add(ttl),
 	}
-	pb = s.getBlock(header2.Hash())
-	pb.clearAt = time.Time{}
-	require.Equal(t, expected, pb)
+	require.Equal(t, expected, s.getBlock(header2.Hash()))
 
 	block := &types.Block{
 		Header: *header2,
@@ -70,14 +72,13 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addBlock(block)
 	require.Equal(t, 3, s.size())
 	expected = &pendingBlock{
-		hash:   header2.Hash(),
-		number: header2.Number,
-		header: header2,
-		body:   &block.Body,
+		hash:    header2.Hash(),
+		number:  header2.Number,
+		header:  header2,
+		body:    &block.Body,
+		clearAt: time.Time{}.Add(ttl),
 	}
-	pb = s.getBlock(header2.Hash())
-	pb.clearAt = time.Time{}
-	require.Equal(t, expected, pb)
+	require.Equal(t, expected, s.getBlock(header2.Hash()))
 
 	s.removeBlock(hash)
 	require.Equal(t, 2, s.size())
@@ -212,7 +213,7 @@ func TestDisjointBlockSet_ClearBlocks(t *testing.T) {
 
 	s.blocks[testHashA] = &pendingBlock{
 		hash:    testHashA,
-		clearAt: time.Now().Add(ttl * -2),
+		clearAt: time.Unix(1000, 0),
 	}
 	s.blocks[testHashB] = &pendingBlock{
 		hash:    testHashB,
