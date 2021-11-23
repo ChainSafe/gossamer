@@ -38,8 +38,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// node is the interface for trie methods
-type node interface {
+// Node is the interface for trie methods
+type Node interface {
 	EncodeAndHash() ([]byte, []byte, error)
 	Decode(r io.Reader, h byte) error
 	IsDirty() bool
@@ -50,13 +50,13 @@ type node interface {
 	GetHash() []byte
 	GetGeneration() uint64
 	SetGeneration(uint64)
-	Copy() node
+	Copy() Node
 }
 
 type (
 	branch struct {
 		key        []byte // partial key
-		children   [16]node
+		children   [16]Node
 		value      []byte
 		dirty      bool
 		hash       []byte
@@ -84,7 +84,7 @@ func (l *leaf) SetGeneration(generation uint64) {
 	l.generation = generation
 }
 
-func (b *branch) Copy() node {
+func (b *branch) Copy() Node {
 	b.RLock()
 	defer b.RUnlock()
 
@@ -110,7 +110,7 @@ func (b *branch) Copy() node {
 	return cpy
 }
 
-func (l *leaf) Copy() node {
+func (l *leaf) Copy() Node {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -306,13 +306,13 @@ func (l *leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	return encoding, hash, nil
 }
 
-func decodeBytes(in []byte) (node, error) {
+func decodeBytes(in []byte) (Node, error) {
 	buffer := bytes.NewBuffer(in)
 	return decode(buffer)
 }
 
 // decode wraps the decoding of different node types back into a node
-func decode(r io.Reader) (node, error) {
+func decode(r io.Reader) (Node, error) {
 	header, err := readByte(r)
 	if err != nil {
 		return nil, err
