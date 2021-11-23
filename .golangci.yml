@@ -164,7 +164,6 @@ issues:
     - linters:
         - lll
       source: "^//go:generate "
-      text: "long-lines"
 
     - source: "// https://"
       linters:
