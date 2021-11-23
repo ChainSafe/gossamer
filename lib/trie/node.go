@@ -54,6 +54,7 @@ type Node interface {
 }
 
 type (
+	// Branch is a branch in the trie.
 	Branch struct {
 		key        []byte // partial key
 		children   [16]Node
@@ -64,6 +65,8 @@ type (
 		generation uint64
 		sync.RWMutex
 	}
+
+	// Leaf is a leaf in the trie.
 	Leaf struct {
 		key        []byte // partial key
 		value      []byte
@@ -76,14 +79,17 @@ type (
 	}
 )
 
+// SetGeneration sets the generation given to the branch.
 func (b *Branch) SetGeneration(generation uint64) {
 	b.generation = generation
 }
 
+// SetGeneration sets the generation given to the leaf.
 func (l *Leaf) SetGeneration(generation uint64) {
 	l.generation = generation
 }
 
+// Copy deep copies the branch.
 func (b *Branch) Copy() Node {
 	b.RLock()
 	defer b.RUnlock()
@@ -110,6 +116,7 @@ func (b *Branch) Copy() Node {
 	return cpy
 }
 
+// Copy deep copies the leaf.
 func (l *Leaf) Copy() Node {
 	l.RLock()
 	defer l.RUnlock()
@@ -132,11 +139,15 @@ func (l *Leaf) Copy() Node {
 	return cpy
 }
 
+// SetEncodingAndHash sets the encoding and hash slices
+// given to the branch. Note it does not copy them, so beware.
 func (b *Branch) SetEncodingAndHash(enc, hash []byte) {
 	b.encoding = enc
 	b.hash = hash
 }
 
+// SetEncodingAndHash sets the encoding and hash slices
+// given to the branch. Note it does not copy them, so beware.
 func (l *Leaf) SetEncodingAndHash(enc, hash []byte) {
 	l.encodingMu.Lock()
 	l.encoding = enc
@@ -145,18 +156,28 @@ func (l *Leaf) SetEncodingAndHash(enc, hash []byte) {
 	l.hash = hash
 }
 
+// GetHash returns the hash of the branch.
+// Note it does not copy it, so modifying
+// the returned hash will modify the hash
+// of the branch.
 func (b *Branch) GetHash() []byte {
 	return b.hash
 }
 
+// GetGeneration returns the generation of the branch.
 func (b *Branch) GetGeneration() uint64 {
 	return b.generation
 }
 
+// GetGeneration returns the generation of the leaf.
 func (l *Leaf) GetGeneration() uint64 {
 	return l.generation
 }
 
+// GetHash returns the hash of the leaf.
+// Note it does not copy it, so modifying
+// the returned hash will modify the hash
+// of the branch.
 func (l *Leaf) GetHash() []byte {
 	return l.hash
 }
@@ -198,30 +219,44 @@ func (b *Branch) numChildren() int {
 	return count
 }
 
+// IsDirty returns the dirty status of the leaf.
 func (l *Leaf) IsDirty() bool {
 	return l.dirty
 }
 
+// IsDirty returns the dirty status of the branch.
 func (b *Branch) IsDirty() bool {
 	return b.dirty
 }
 
+// SetDirty sets the dirty status to the leaf.
 func (l *Leaf) SetDirty(dirty bool) {
 	l.dirty = dirty
 }
 
+// SetDirty sets the dirty status to the branch.
 func (b *Branch) SetDirty(dirty bool) {
 	b.dirty = dirty
 }
 
+// SetKey sets the key to the leaf.
+// Note it does not copy it so modifying the passed key
+// will modify the key stored in the leaf.
 func (l *Leaf) SetKey(key []byte) {
 	l.key = key
 }
 
+// SetKey sets the key to the branch.
+// Note it does not copy it so modifying the passed key
+// will modify the key stored in the branch.
 func (b *Branch) SetKey(key []byte) {
 	b.key = key
 }
 
+// EncodeAndHash returns the encoding of the branch and
+// the blake2b hash digest of the encoding of the branch.
+// If the encoding is less than 32 bytes, the hash returned
+// is the encoding and not the hash of the encoding.
 func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 	if !b.dirty && b.encoding != nil && b.hash != nil {
 		return b.encoding, b.hash, nil
@@ -260,6 +295,10 @@ func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 	return encoding, hash, nil
 }
 
+// EncodeAndHash returns the encoding of the leaf and
+// the blake2b hash digest of the encoding of the leaf.
+// If the encoding is less than 32 bytes, the hash returned
+// is the encoding and not the hash of the encoding.
 func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	l.encodingMu.RLock()
 	if !l.IsDirty() && l.encoding != nil && l.hash != nil {
