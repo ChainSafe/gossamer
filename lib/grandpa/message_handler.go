@@ -373,8 +373,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	// verify pre-commit justification
 	var count uint64
 	for _, just := range msg.PreCommitJustification {
-		_, ok := eqvVoters[just.AuthorityID]
-		if ok {
+		if _, ok := eqvVoters[just.AuthorityID]; ok {
 			continue
 		}
 
@@ -488,8 +487,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits))
 
 	for _, just := range fj.Commit.Precommits {
-		_, ok := equivocatoryVoters[just.AuthorityID]
-		if ok {
+		if _, ok := equivocatoryVoters[just.AuthorityID]; ok {
 			continue
 		}
 
@@ -523,7 +521,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return err
 		}
 
-		ok, err = pk.Verify(msg, just.Signature[:])
+		ok, err := pk.Verify(msg, just.Signature[:])
 		if err != nil {
 			return err
 		}
