@@ -37,11 +37,12 @@ type PublicKey struct {
 	key ecdsa.PublicKey
 }
 
-// SignVerify verify signature given pubkey and msg
-func SignVerify(pubkey, sig, msg []byte) (bool, error) {
-	ok := secp256k1.VerifySignature(pubkey, msg, sig)
+// VerifySignature verifies a signature given a public key and a message
+func VerifySignature(publicKey, signature, message []byte) (bool, error) {
+	ok := secp256k1.VerifySignature(publicKey, message, signature)
 	if !ok {
-		return false, fmt.Errorf("failed to verify secp256k1 signature")
+		return false, fmt.Errorf("secp256k1: %w: for message 0x%x, signature 0x%x and public key 0x%x",
+			crypto.ErrSignatureVerificationFailed, message, signature, publicKey)
 	}
 
 	return true, nil
