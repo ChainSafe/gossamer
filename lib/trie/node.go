@@ -40,17 +40,17 @@ import (
 
 // node is the interface for trie methods
 type node interface {
-	encodeAndHash() ([]byte, []byte, error)
-	decode(r io.Reader, h byte) error
-	isDirty() bool
-	setDirty(dirty bool)
-	setKey(key []byte)
+	EncodeAndHash() ([]byte, []byte, error)
+	Decode(r io.Reader, h byte) error
+	IsDirty() bool
+	SetDirty(dirty bool)
+	SetKey(key []byte)
 	String() string
-	setEncodingAndHash([]byte, []byte)
-	getHash() []byte
-	getGeneration() uint64
-	setGeneration(uint64)
-	copy() node
+	SetEncodingAndHash([]byte, []byte)
+	GetHash() []byte
+	GetGeneration() uint64
+	SetGeneration(uint64)
+	Copy() node
 }
 
 type (
@@ -76,15 +76,15 @@ type (
 	}
 )
 
-func (b *branch) setGeneration(generation uint64) {
+func (b *branch) SetGeneration(generation uint64) {
 	b.generation = generation
 }
 
-func (l *leaf) setGeneration(generation uint64) {
+func (l *leaf) SetGeneration(generation uint64) {
 	l.generation = generation
 }
 
-func (b *branch) copy() node {
+func (b *branch) Copy() node {
 	b.RLock()
 	defer b.RUnlock()
 
@@ -110,7 +110,7 @@ func (b *branch) copy() node {
 	return cpy
 }
 
-func (l *leaf) copy() node {
+func (l *leaf) Copy() node {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -132,12 +132,12 @@ func (l *leaf) copy() node {
 	return cpy
 }
 
-func (b *branch) setEncodingAndHash(enc, hash []byte) {
+func (b *branch) SetEncodingAndHash(enc, hash []byte) {
 	b.encoding = enc
 	b.hash = hash
 }
 
-func (l *leaf) setEncodingAndHash(enc, hash []byte) {
+func (l *leaf) SetEncodingAndHash(enc, hash []byte) {
 	l.encodingMu.Lock()
 	l.encoding = enc
 	l.encodingMu.Unlock()
@@ -145,19 +145,19 @@ func (l *leaf) setEncodingAndHash(enc, hash []byte) {
 	l.hash = hash
 }
 
-func (b *branch) getHash() []byte {
+func (b *branch) GetHash() []byte {
 	return b.hash
 }
 
-func (b *branch) getGeneration() uint64 {
+func (b *branch) GetGeneration() uint64 {
 	return b.generation
 }
 
-func (l *leaf) getGeneration() uint64 {
+func (l *leaf) GetGeneration() uint64 {
 	return l.generation
 }
 
-func (l *leaf) getHash() []byte {
+func (l *leaf) GetHash() []byte {
 	return l.hash
 }
 
@@ -198,31 +198,31 @@ func (b *branch) numChildren() int {
 	return count
 }
 
-func (l *leaf) isDirty() bool {
+func (l *leaf) IsDirty() bool {
 	return l.dirty
 }
 
-func (b *branch) isDirty() bool {
+func (b *branch) IsDirty() bool {
 	return b.dirty
 }
 
-func (l *leaf) setDirty(dirty bool) {
+func (l *leaf) SetDirty(dirty bool) {
 	l.dirty = dirty
 }
 
-func (b *branch) setDirty(dirty bool) {
+func (b *branch) SetDirty(dirty bool) {
 	b.dirty = dirty
 }
 
-func (l *leaf) setKey(key []byte) {
+func (l *leaf) SetKey(key []byte) {
 	l.key = key
 }
 
-func (b *branch) setKey(key []byte) {
+func (b *branch) SetKey(key []byte) {
 	b.key = key
 }
 
-func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
+func (b *branch) EncodeAndHash() (encoding, hash []byte, err error) {
 	if !b.dirty && b.encoding != nil && b.hash != nil {
 		return b.encoding, b.hash, nil
 	}
@@ -260,9 +260,9 @@ func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
 	return encoding, hash, nil
 }
 
-func (l *leaf) encodeAndHash() (encoding, hash []byte, err error) {
+func (l *leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	l.encodingMu.RLock()
-	if !l.isDirty() && l.encoding != nil && l.hash != nil {
+	if !l.IsDirty() && l.encoding != nil && l.hash != nil {
 		l.encodingMu.RUnlock()
 		return l.encoding, l.hash, nil
 	}
@@ -321,11 +321,11 @@ func decode(r io.Reader) (node, error) {
 	nodeType := header >> 6
 	if nodeType == 1 {
 		l := new(leaf)
-		err := l.decode(r, header)
+		err := l.Decode(r, header)
 		return l, err
 	} else if nodeType == 2 || nodeType == 3 {
 		b := new(branch)
-		err := b.decode(r, header)
+		err := b.Decode(r, header)
 		return b, err
 	}
 
@@ -335,7 +335,7 @@ func decode(r io.Reader) (node, error) {
 // Decode decodes a byte array with the encoding specified at the top of this package into a branch node
 // Note that since the encoded branch stores the hash of the children nodes, we aren't able to reconstruct the child
 // nodes from the encoding. This function instead stubs where the children are known to be with an empty leaf.
-func (b *branch) decode(r io.Reader, header byte) (err error) {
+func (b *branch) Decode(r io.Reader, header byte) (err error) {
 	if header == 0 {
 		header, err = readByte(r)
 		if err != nil {
@@ -392,7 +392,7 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 }
 
 // Decode decodes a byte array with the encoding specified at the top of this package into a leaf node
-func (l *leaf) decode(r io.Reader, header byte) (err error) {
+func (l *leaf) Decode(r io.Reader, header byte) (err error) {
 	if header == 0 {
 		header, err = readByte(r)
 		if err != nil {

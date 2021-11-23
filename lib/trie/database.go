@@ -36,7 +36,7 @@ func (t *Trie) store(db chaindb.Batch, curr node) error {
 		return nil
 	}
 
-	enc, hash, err := curr.encodeAndHash()
+	enc, hash, err := curr.EncodeAndHash()
 	if err != nil {
 		return err
 	}
@@ -59,8 +59,8 @@ func (t *Trie) store(db chaindb.Batch, curr node) error {
 		}
 	}
 
-	if curr.isDirty() {
-		curr.setDirty(false)
+	if curr.IsDirty() {
+		curr.SetDirty(false)
 	}
 
 	return nil
@@ -82,10 +82,10 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 			return err
 		}
 
-		decNode.setDirty(false)
-		decNode.setEncodingAndHash(rawNode, nil)
+		decNode.SetDirty(false)
+		decNode.SetEncodingAndHash(rawNode, nil)
 
-		_, computedRoot, err := decNode.encodeAndHash()
+		_, computedRoot, err := decNode.EncodeAndHash()
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (t *Trie) loadProof(proof map[string]node, curr node) {
 			continue
 		}
 
-		proofNode, ok := proof[common.BytesToHex(child.getHash())]
+		proofNode, ok := proof[common.BytesToHex(child.GetHash())]
 		if !ok {
 			continue
 		}
@@ -142,8 +142,8 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 		return err
 	}
 
-	t.root.setDirty(false)
-	t.root.setEncodingAndHash(enc, root[:])
+	t.root.SetDirty(false)
+	t.root.SetEncodingAndHash(enc, root[:])
 
 	return t.load(db, t.root)
 }
@@ -155,7 +155,7 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 				continue
 			}
 
-			hash := child.getHash()
+			hash := child.GetHash()
 			enc, err := db.Get(hash)
 			if err != nil {
 				return fmt.Errorf("failed to find node key=%x index=%d: %w", child.(*leaf).hash, i, err)
@@ -166,8 +166,8 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 				return err
 			}
 
-			child.setDirty(false)
-			child.setEncodingAndHash(enc, hash)
+			child.SetDirty(false)
+			child.SetEncodingAndHash(enc, hash)
 
 			c.children[i] = child
 			err = t.load(db, child)
@@ -188,7 +188,7 @@ func (t *Trie) GetNodeHashes(curr node, keys map[common.Hash]struct{}) error {
 				continue
 			}
 
-			hash := child.getHash()
+			hash := child.GetHash()
 			keys[common.BytesToHash(hash)] = struct{}{}
 
 			err := t.GetNodeHashes(child, keys)
@@ -309,11 +309,11 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 }
 
 func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
-	if curr == nil || !curr.isDirty() {
+	if curr == nil || !curr.IsDirty() {
 		return nil
 	}
 
-	enc, hash, err := curr.encodeAndHash()
+	enc, hash, err := curr.EncodeAndHash()
 	if err != nil {
 		return err
 	}
@@ -346,7 +346,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 		}
 	}
 
-	curr.setDirty(false)
+	curr.SetDirty(false)
 	return nil
 }
 
@@ -358,11 +358,11 @@ func (t *Trie) GetInsertedNodeHashes() ([]common.Hash, error) {
 
 func (t *Trie) getInsertedNodeHashes(curr node) ([]common.Hash, error) {
 	var nodeHashes []common.Hash
-	if curr == nil || !curr.isDirty() {
+	if curr == nil || !curr.IsDirty() {
 		return nil, nil
 	}
 
-	enc, hash, err := curr.encodeAndHash()
+	enc, hash, err := curr.EncodeAndHash()
 	if err != nil {
 		return nil, err
 	}

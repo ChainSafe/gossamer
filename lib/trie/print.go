@@ -18,7 +18,7 @@ func (t *Trie) String() string {
 		return "empty"
 	}
 
-	tree := gotree.New(fmt.Sprintf("Trie root=0x%x", t.root.getHash()))
+	tree := gotree.New(fmt.Sprintf("Trie root=0x%x", t.root.GetHash()))
 	t.string(tree, t.root, 0)
 	return fmt.Sprintf("\n%s", tree.Print())
 }

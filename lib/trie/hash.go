@@ -36,6 +36,8 @@ var hasherPool = &sync.Pool{
 	New: func() interface{} {
 		hasher, err := blake2b.New256(nil)
 		if err != nil {
+			// Conversation on why we panic here:
+			// https://github.com/ChainSafe/gossamer/pull/2009#discussion_r753430764
 			panic("cannot create Blake2b-256 hasher: " + err.Error())
 		}
 		return hasher

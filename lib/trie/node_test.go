@@ -266,7 +266,7 @@ func TestBranchDecode(t *testing.T) {
 		require.NoError(t, err)
 
 		res := new(branch)
-		err = res.decode(buffer, 0)
+		err = res.Decode(buffer, 0)
 
 		require.NoError(t, err)
 		require.Equal(t, test.key, res.key)
@@ -294,7 +294,7 @@ func TestLeafDecode(t *testing.T) {
 		require.NoError(t, err)
 
 		res := new(leaf)
-		err = res.decode(buffer, 0)
+		err = res.Decode(buffer, 0)
 		require.NoError(t, err)
 
 		res.hash = nil
