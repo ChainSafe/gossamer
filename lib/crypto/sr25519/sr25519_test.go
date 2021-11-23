@@ -119,3 +119,19 @@ func TestNewKeypairFromMnenomic(t *testing.T) {
 	_, err = NewKeypairFromMnenomic(mnemonic, "")
 	require.NoError(t, err)
 }
+
+func TestVerifySignature(t *testing.T) {
+	keypair, err := GenerateKeypair()
+	require.NoError(t, err)
+
+	content := "Hello world!"
+
+	message := []byte(content)
+	signature, err := keypair.Sign(message)
+	require.NoError(t, err)
+
+	ok, err := VerifySignature(keypair.public.Encode(), signature, message)
+	require.NoError(t, err)
+
+	require.Equal(t, ok, true)
+}

@@ -99,3 +99,19 @@ func TestNewKeypairFromMnenomic_Again(t *testing.T) {
 	expectedPubkey := common.MustHexToBytes("0xf56d9231e7b7badd3f1e10ad15ef8aa08b70839723d0a2d10d7329f0ea2b8c61")
 	require.Equal(t, expectedPubkey, kp.Public().Encode())
 }
+
+func TestVerifySignature(t *testing.T) {
+	keypair, err := GenerateKeypair()
+	require.NoError(t, err)
+
+	content := "Hello world!"
+
+	message := []byte(content)
+	signature, err := keypair.Sign(message)
+	require.NoError(t, err)
+
+	ok, err := VerifySignature(keypair.public.Encode(), signature, message)
+	require.NoError(t, err)
+
+	require.Equal(t, ok, true)
+}

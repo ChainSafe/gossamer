@@ -154,3 +154,19 @@ func TestRecoverPublicKeyCompressed(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, kp.Public(), r)
 }
+
+func TestVerifySignature(t *testing.T) {
+	keypair, err := GenerateKeypair()
+	require.NoError(t, err)
+
+	content := "a225e8c75da7da319af6335e7642d473"
+
+	message := []byte(content)
+	signature, err := keypair.Sign(message)
+	require.NoError(t, err)
+
+	ok, err := VerifySignature(keypair.Public().Encode(), signature[:64], message)
+	require.NoError(t, err)
+
+	require.Equal(t, ok, true)
+}
