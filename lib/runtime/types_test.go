@@ -64,7 +64,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 		PubKey:     key.Public().Encode(),
 		Sign:       sigData,
 		Msg:        msg,
-		VerifyFunc: ed25519.SignVerify,
+		VerifyFunc: ed25519.VerifySignature,
 	}
 
 	signs = append(signs, signature)
@@ -105,7 +105,7 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 		PubKey:     srKey.Public().Encode(),
 		Sign:       srSig,
 		Msg:        srMsg,
-		VerifyFunc: sr25519.SignVerify,
+		VerifyFunc: sr25519.VerifySignature,
 	}
 
 	blakeHash, err := common.Blake2bHash([]byte("secp256k1"))
@@ -122,7 +122,7 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 		PubKey:     kp.Public().Encode(),
 		Sign:       secpSigData,
 		Msg:        blakeHash.ToBytes(),
-		VerifyFunc: secp256k1.SignVerify,
+		VerifyFunc: secp256k1.VerifySignature,
 	}
 
 	signVerify := crypto.NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))

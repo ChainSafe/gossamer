@@ -937,7 +937,7 @@ func ext_crypto_ed25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 			PubKey:     pubKey.Encode(),
 			Sign:       signature,
 			Msg:        message,
-			VerifyFunc: ed25519.SignVerify,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1
@@ -1124,7 +1124,7 @@ func ext_crypto_sr25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 			PubKey:     pub.Encode(),
 			Sign:       signature,
 			Msg:        message,
-			VerifyFunc: sr25519.SignVerify,
+			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1

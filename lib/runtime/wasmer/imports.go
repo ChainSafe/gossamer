@@ -387,7 +387,7 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 			PubKey:     pubKey.Encode(),
 			Sign:       signature,
 			Msg:        message,
-			VerifyFunc: ed25519.SignVerify,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1
@@ -478,7 +478,7 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 			PubKey:     pub.Encode(),
 			Sign:       signature,
 			Msg:        hash[:],
-			VerifyFunc: secp256k1.SignVerify,
+			VerifyFunc: secp256k1.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return C.int32_t(1)
@@ -704,7 +704,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 			PubKey:     pub.Encode(),
 			Sign:       signature,
 			Msg:        message,
-			VerifyFunc: sr25519.SignVerify,
+			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1
@@ -746,7 +746,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 			PubKey:     pub.Encode(),
 			Sign:       signature,
 			Msg:        message,
-			VerifyFunc: sr25519.SignVerify,
+			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1
