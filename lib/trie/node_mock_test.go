@@ -11,31 +11,165 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// Mocknode is a mock of node interface.
-type Mocknode struct {
+// MockNode is a mock of Node interface.
+type MockNode struct {
 	ctrl     *gomock.Controller
-	recorder *MocknodeMockRecorder
+	recorder *MockNodeMockRecorder
 }
 
-// MocknodeMockRecorder is the mock recorder for Mocknode.
-type MocknodeMockRecorder struct {
-	mock *Mocknode
+// MockNodeMockRecorder is the mock recorder for MockNode.
+type MockNodeMockRecorder struct {
+	mock *MockNode
 }
 
-// NewMocknode creates a new mock instance.
-func NewMocknode(ctrl *gomock.Controller) *Mocknode {
-	mock := &Mocknode{ctrl: ctrl}
-	mock.recorder = &MocknodeMockRecorder{mock}
+// NewMockNode creates a new mock instance.
+func NewMockNode(ctrl *gomock.Controller) *MockNode {
+	mock := &MockNode{ctrl: ctrl}
+	mock.recorder = &MockNodeMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *Mocknode) EXPECT() *MocknodeMockRecorder {
+func (m *MockNode) EXPECT() *MockNodeMockRecorder {
 	return m.recorder
 }
 
+// Copy mocks base method.
+func (m *MockNode) Copy() Node {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Copy")
+	ret0, _ := ret[0].(Node)
+	return ret0
+}
+
+// Copy indicates an expected call of Copy.
+func (mr *MockNodeMockRecorder) Copy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockNode)(nil).Copy))
+}
+
+// Decode mocks base method.
+func (m *MockNode) Decode(r io.Reader, h byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Decode", r, h)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Decode indicates an expected call of Decode.
+func (mr *MockNodeMockRecorder) Decode(r, h interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Decode", reflect.TypeOf((*MockNode)(nil).Decode), r, h)
+}
+
+// EncodeAndHash mocks base method.
+func (m *MockNode) EncodeAndHash() ([]byte, []byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EncodeAndHash")
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].([]byte)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// EncodeAndHash indicates an expected call of EncodeAndHash.
+func (mr *MockNodeMockRecorder) EncodeAndHash() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EncodeAndHash", reflect.TypeOf((*MockNode)(nil).EncodeAndHash))
+}
+
+// GetGeneration mocks base method.
+func (m *MockNode) GetGeneration() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGeneration")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// GetGeneration indicates an expected call of GetGeneration.
+func (mr *MockNodeMockRecorder) GetGeneration() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGeneration", reflect.TypeOf((*MockNode)(nil).GetGeneration))
+}
+
+// GetHash mocks base method.
+func (m *MockNode) GetHash() []byte {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHash")
+	ret0, _ := ret[0].([]byte)
+	return ret0
+}
+
+// GetHash indicates an expected call of GetHash.
+func (mr *MockNodeMockRecorder) GetHash() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHash", reflect.TypeOf((*MockNode)(nil).GetHash))
+}
+
+// IsDirty mocks base method.
+func (m *MockNode) IsDirty() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsDirty")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsDirty indicates an expected call of IsDirty.
+func (mr *MockNodeMockRecorder) IsDirty() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDirty", reflect.TypeOf((*MockNode)(nil).IsDirty))
+}
+
+// SetDirty mocks base method.
+func (m *MockNode) SetDirty(dirty bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetDirty", dirty)
+}
+
+// SetDirty indicates an expected call of SetDirty.
+func (mr *MockNodeMockRecorder) SetDirty(dirty interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDirty", reflect.TypeOf((*MockNode)(nil).SetDirty), dirty)
+}
+
+// SetEncodingAndHash mocks base method.
+func (m *MockNode) SetEncodingAndHash(arg0, arg1 []byte) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetEncodingAndHash", arg0, arg1)
+}
+
+// SetEncodingAndHash indicates an expected call of SetEncodingAndHash.
+func (mr *MockNodeMockRecorder) SetEncodingAndHash(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEncodingAndHash", reflect.TypeOf((*MockNode)(nil).SetEncodingAndHash), arg0, arg1)
+}
+
+// SetGeneration mocks base method.
+func (m *MockNode) SetGeneration(arg0 uint64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetGeneration", arg0)
+}
+
+// SetGeneration indicates an expected call of SetGeneration.
+func (mr *MockNodeMockRecorder) SetGeneration(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGeneration", reflect.TypeOf((*MockNode)(nil).SetGeneration), arg0)
+}
+
+// SetKey mocks base method.
+func (m *MockNode) SetKey(key []byte) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetKey", key)
+}
+
+// SetKey indicates an expected call of SetKey.
+func (mr *MockNodeMockRecorder) SetKey(key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetKey", reflect.TypeOf((*MockNode)(nil).SetKey), key)
+}
+
 // String mocks base method.
-func (m *Mocknode) String() string {
+func (m *MockNode) String() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "String")
 	ret0, _ := ret[0].(string)
@@ -43,141 +177,7 @@ func (m *Mocknode) String() string {
 }
 
 // String indicates an expected call of String.
-func (mr *MocknodeMockRecorder) String() *gomock.Call {
+func (mr *MockNodeMockRecorder) String() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "String", reflect.TypeOf((*Mocknode)(nil).String))
-}
-
-// copy mocks base method.
-func (m *Mocknode) copy() node {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "copy")
-	ret0, _ := ret[0].(node)
-	return ret0
-}
-
-// copy indicates an expected call of copy.
-func (mr *MocknodeMockRecorder) copy() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "copy", reflect.TypeOf((*Mocknode)(nil).copy))
-}
-
-// decode mocks base method.
-func (m *Mocknode) decode(r io.Reader, h byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "decode", r, h)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// decode indicates an expected call of decode.
-func (mr *MocknodeMockRecorder) decode(r, h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "decode", reflect.TypeOf((*Mocknode)(nil).decode), r, h)
-}
-
-// encodeAndHash mocks base method.
-func (m *Mocknode) encodeAndHash() ([]byte, []byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "encodeAndHash")
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].([]byte)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// encodeAndHash indicates an expected call of encodeAndHash.
-func (mr *MocknodeMockRecorder) encodeAndHash() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "encodeAndHash", reflect.TypeOf((*Mocknode)(nil).encodeAndHash))
-}
-
-// getGeneration mocks base method.
-func (m *Mocknode) getGeneration() uint64 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "getGeneration")
-	ret0, _ := ret[0].(uint64)
-	return ret0
-}
-
-// getGeneration indicates an expected call of getGeneration.
-func (mr *MocknodeMockRecorder) getGeneration() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getGeneration", reflect.TypeOf((*Mocknode)(nil).getGeneration))
-}
-
-// getHash mocks base method.
-func (m *Mocknode) getHash() []byte {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "getHash")
-	ret0, _ := ret[0].([]byte)
-	return ret0
-}
-
-// getHash indicates an expected call of getHash.
-func (mr *MocknodeMockRecorder) getHash() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getHash", reflect.TypeOf((*Mocknode)(nil).getHash))
-}
-
-// isDirty mocks base method.
-func (m *Mocknode) isDirty() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "isDirty")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// isDirty indicates an expected call of isDirty.
-func (mr *MocknodeMockRecorder) isDirty() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isDirty", reflect.TypeOf((*Mocknode)(nil).isDirty))
-}
-
-// setDirty mocks base method.
-func (m *Mocknode) setDirty(dirty bool) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setDirty", dirty)
-}
-
-// setDirty indicates an expected call of setDirty.
-func (mr *MocknodeMockRecorder) setDirty(dirty interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setDirty", reflect.TypeOf((*Mocknode)(nil).setDirty), dirty)
-}
-
-// setEncodingAndHash mocks base method.
-func (m *Mocknode) setEncodingAndHash(arg0, arg1 []byte) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setEncodingAndHash", arg0, arg1)
-}
-
-// setEncodingAndHash indicates an expected call of setEncodingAndHash.
-func (mr *MocknodeMockRecorder) setEncodingAndHash(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setEncodingAndHash", reflect.TypeOf((*Mocknode)(nil).setEncodingAndHash), arg0, arg1)
-}
-
-// setGeneration mocks base method.
-func (m *Mocknode) setGeneration(arg0 uint64) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setGeneration", arg0)
-}
-
-// setGeneration indicates an expected call of setGeneration.
-func (mr *MocknodeMockRecorder) setGeneration(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setGeneration", reflect.TypeOf((*Mocknode)(nil).setGeneration), arg0)
-}
-
-// setKey mocks base method.
-func (m *Mocknode) setKey(key []byte) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setKey", key)
-}
-
-// setKey indicates an expected call of setKey.
-func (mr *MocknodeMockRecorder) setKey(key interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setKey", reflect.TypeOf((*Mocknode)(nil).setKey), key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "String", reflect.TypeOf((*MockNode)(nil).String))
 }

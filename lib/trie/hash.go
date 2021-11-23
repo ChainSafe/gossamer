@@ -98,7 +98,7 @@ type bytesBuffer interface {
 // NodeHeader | Extra partial key length | Partial Key | Value
 func encodeNode(n Node, buffer bytesBuffer, parallel bool) (err error) {
 	switch n := n.(type) {
-	case *branch:
+	case *Branch:
 		err := encodeBranch(n, buffer, parallel)
 		if err != nil {
 			return fmt.Errorf("cannot encode branch: %w", err)
@@ -131,7 +131,7 @@ func encodeNode(n Node, buffer bytesBuffer, parallel bool) (err error) {
 
 // encodeBranch encodes a branch with the encoding specified at the top of this package
 // to the buffer given.
-func encodeBranch(b *branch, buffer io.Writer, parallel bool) (err error) {
+func encodeBranch(b *Branch, buffer io.Writer, parallel bool) (err error) {
 	if !b.dirty && b.encoding != nil {
 		_, err = buffer.Write(b.encoding)
 		if err != nil {
@@ -266,7 +266,7 @@ func encodeChildrenSequentially(children [16]Node, buffer io.Writer) (err error)
 func encodeChild(child Node, buffer io.Writer) (err error) {
 	var isNil bool
 	switch impl := child.(type) {
-	case *branch:
+	case *Branch:
 		isNil = impl == nil
 	case *leaf:
 		isNil = impl == nil

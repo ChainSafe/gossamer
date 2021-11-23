@@ -20,7 +20,7 @@ func find(parent Node, key []byte, recorder *recorder) error {
 
 	recorder.record(hash, enc)
 
-	b, ok := parent.(*branch)
+	b, ok := parent.(*Branch)
 	if !ok {
 		return nil
 	}

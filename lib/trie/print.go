@@ -25,7 +25,7 @@ func (t *Trie) String() string {
 
 func (t *Trie) string(tree gotree.Tree, curr Node, idx int) {
 	switch c := curr.(type) {
-	case *branch:
+	case *Branch:
 		buffer := encodingBufferPool.Get().(*bytes.Buffer)
 		buffer.Reset()
 
