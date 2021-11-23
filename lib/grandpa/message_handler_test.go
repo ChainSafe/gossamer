@@ -653,7 +653,8 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 
 func Test_getEquivocatoryVoters(t *testing.T) {
 	// many of equivocatory votes
-	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
@@ -698,7 +699,8 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// many of equivocatory votes
-	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
@@ -744,7 +746,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 		AuthData:   authData,
 	}
 
-	err := h.verifyCommitMessageJustification(testCommitData)
+	err = h.verifyCommitMessageJustification(testCommitData)
 	require.NoError(t, err)
 }
 
@@ -760,7 +762,9 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// many of equivocatory votes
-	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
@@ -828,7 +832,8 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 	bfcNumber := bfcBlock.Header.Number.Int64()
 
 	// many of equivocatory votes
-	ed25519Keyring, _ := keystore.NewEd25519Keyring()
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
 
 	// Alice, Charlie, David - Equivocatory
 	// Bob, Eve, Ferdie, Ian - Legit
@@ -874,7 +879,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 		Number:                 uint32(bfcNumber),
 	}
 
-	err := h.verifyPreCommitJustification(testCatchUpResponse)
+	err = h.verifyPreCommitJustification(testCatchUpResponse)
 	require.NoError(t, err)
 }
 
