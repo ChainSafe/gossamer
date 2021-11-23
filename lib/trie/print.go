@@ -23,7 +23,7 @@ func (t *Trie) String() string {
 	return fmt.Sprintf("\n%s", tree.Print())
 }
 
-func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
+func (t *Trie) string(tree gotree.Tree, curr Node, idx int) {
 	switch c := curr.(type) {
 	case *branch:
 		buffer := encodingBufferPool.Get().(*bytes.Buffer)

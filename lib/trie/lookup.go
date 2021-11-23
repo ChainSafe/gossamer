@@ -12,7 +12,7 @@ func findAndRecord(t *Trie, key []byte, recorder *recorder) error {
 	return find(t.root, key, recorder)
 }
 
-func find(parent node, key []byte, recorder *recorder) error {
+func find(parent Node, key []byte, recorder *recorder) error {
 	enc, hash, err := parent.EncodeAndHash()
 	if err != nil {
 		return err

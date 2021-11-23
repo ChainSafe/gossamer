@@ -44,7 +44,7 @@ var hasherPool = &sync.Pool{
 	},
 }
 
-func hashNode(n node, digestBuffer io.Writer) (err error) {
+func hashNode(n Node, digestBuffer io.Writer) (err error) {
 	encodingBuffer := encodingBufferPool.Get().(*bytes.Buffer)
 	encodingBuffer.Reset()
 	defer encodingBufferPool.Put(encodingBuffer)
@@ -96,7 +96,7 @@ type bytesBuffer interface {
 // It is the high-level function wrapping the encoding for different
 // node types. The encoding has the following format:
 // NodeHeader | Extra partial key length | Partial Key | Value
-func encodeNode(n node, buffer bytesBuffer, parallel bool) (err error) {
+func encodeNode(n Node, buffer bytesBuffer, parallel bool) (err error) {
 	switch n := n.(type) {
 	case *branch:
 		err := encodeBranch(n, buffer, parallel)
@@ -186,7 +186,7 @@ func encodeBranch(b *branch, buffer io.Writer, parallel bool) (err error) {
 	return nil
 }
 
-func encodeChildrenInParallel(children [16]node, buffer io.Writer) (err error) {
+func encodeChildrenInParallel(children [16]Node, buffer io.Writer) (err error) {
 	type result struct {
 		index  int
 		buffer *bytes.Buffer
@@ -196,7 +196,7 @@ func encodeChildrenInParallel(children [16]node, buffer io.Writer) (err error) {
 	resultsCh := make(chan result)
 
 	for i, child := range children {
-		go func(index int, child node) {
+		go func(index int, child Node) {
 			buffer := encodingBufferPool.Get().(*bytes.Buffer)
 			buffer.Reset()
 			// buffer is put back in the pool after processing its
@@ -253,7 +253,7 @@ func encodeChildrenInParallel(children [16]node, buffer io.Writer) (err error) {
 	return err
 }
 
-func encodeChildrenSequentially(children [16]node, buffer io.Writer) (err error) {
+func encodeChildrenSequentially(children [16]Node, buffer io.Writer) (err error) {
 	for i, child := range children {
 		err = encodeChild(child, buffer)
 		if err != nil {
@@ -263,7 +263,7 @@ func encodeChildrenSequentially(children [16]node, buffer io.Writer) (err error)
 	return nil
 }
 
-func encodeChild(child node, buffer io.Writer) (err error) {
+func encodeChild(child Node, buffer io.Writer) (err error) {
 	var isNil bool
 	switch impl := child.(type) {
 	case *branch:
@@ -290,7 +290,7 @@ func encodeChild(child node, buffer io.Writer) (err error) {
 	return nil
 }
 
-func encodeAndHash(n node) (b []byte, err error) {
+func encodeAndHash(n Node) (b []byte, err error) {
 	buffer := digestBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer digestBufferPool.Put(buffer)
