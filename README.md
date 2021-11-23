@@ -60,15 +60,15 @@ make gossamer
 ### Troubleshooting for Apple Silicon users
 
 If you are facing the following problem with the `wasmer`:
-````
+```
 undefined: cWasmerImportObjectT
 undefined: cWasmerImportFuncT
 undefined: cWasmerValueTag
-````
+```
 Make sure you have the following Golang enviroment variables:
 
-1. GOARCH="amd64"
-2. CGO_ENABLED="1"
+- GOARCH="amd64"
+- CGO_ENABLED="1"
 
 > use _go env_ to see all the Golang enviroment variables
 
