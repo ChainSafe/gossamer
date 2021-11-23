@@ -4,14 +4,18 @@
 package crypto
 
 import (
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
+// ErrSignatureVerificationFailed usaged when signature verification fails
+var ErrSignatureVerificationFailed = errors.New("failed to verify signature")
+
 // SigVerifyFunc verify an signature given a pubkey and msg
-type SigVerifyFunc func(pubkey, sig, msg []byte) (bool, error)
+type SigVerifyFunc func(pubkey, sig, msg []byte) (ok bool, err error)
 
 // Signature ...
 type Signature struct {
@@ -64,11 +68,11 @@ func (sv *SignatureVerifier) Start() {
 			case <-sv.closeCh:
 				return
 			default:
-				sig := sv.Remove()
-				if sig == nil {
+				signature := sv.Remove()
+				if signature == nil {
 					continue
 				}
-				ok, err := sig.VerifyFunc(sig.PubKey, sig.Sign, sig.Msg)
+				ok, err := signature.VerifyFunc(signature.PubKey, signature.Sign, signature.Msg)
 				if err != nil || !ok {
 					sv.logger.Errorf("[ext_crypto_start_batch_verify_version_1]: %s", err)
 					sv.Invalid()
