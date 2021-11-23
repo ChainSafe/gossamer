@@ -24,16 +24,16 @@ type BlockTree struct {
 	leaves *leafMap
 	sync.RWMutex
 	//nodeCache map[Hash]*node
-	runtime   *sync.Map
+	runtime *sync.Map
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
 func NewEmptyBlockTree() *BlockTree {
 	return &BlockTree{
-		root:      nil,
-		leaves:    newEmptyLeafMap(),
+		root:   nil,
+		leaves: newEmptyLeafMap(),
 		//nodeCache: make(map[Hash]*node),
-		runtime:   &sync.Map{}, // map[Hash]runtime.Instance
+		runtime: &sync.Map{}, // map[Hash]runtime.Instance
 	}
 }
 
@@ -49,10 +49,10 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 	}
 
 	return &BlockTree{
-		root:      n,
-		leaves:    newLeafMap(n),
+		root:   n,
+		leaves: newLeafMap(n),
 		//nodeCache: make(map[Hash]*node),
-		runtime:   &sync.Map{},
+		runtime: &sync.Map{},
 	}
 }
 
@@ -258,7 +258,7 @@ func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 
 }
 
-// DeepestLeaf returns leftmost deepest leaf in BlockTree BT
+// deepestLeaf returns the deepest leaf in the block tree.
 func (bt *BlockTree) deepestLeaf() *node {
 	return bt.leaves.deepestLeaf()
 }

@@ -216,7 +216,7 @@ func TestService_PruneStorage(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
 		digest := types.NewDigest()
-		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest() //nolint
+		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest()
 		require.NoError(t, err)
 		err = digest.Add(*prd)
 		require.NoError(t, err)

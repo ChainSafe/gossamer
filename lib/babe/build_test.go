@@ -111,7 +111,7 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
-func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
+func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) {
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
 	addAuthorshipProof(t, babeService, slotNumber, epoch)

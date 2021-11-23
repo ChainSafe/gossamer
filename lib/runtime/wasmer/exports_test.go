@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic { //nolint
+func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
@@ -276,7 +276,7 @@ func TestInstance_Version_DevRuntime(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
-func balanceKey(t *testing.T, pub []byte) []byte { //nolint
+func balanceKey(t *testing.T, pub []byte) []byte {
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
 	h1, err := common.Twox128Hash([]byte("Account"))
@@ -528,7 +528,6 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Ha
 
 	// apply each inherent extrinsic
 	for _, ext := range exts {
-		//nolint
 		in, err := scale.Marshal(ext)
 		require.NoError(t, err)
 
@@ -1098,12 +1097,12 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 		{
 			// incomplete extrinsic
 			ext: "0x4ccde39a5684e7a56da23b22d4d9fbadb023baa19c56495432884d0640000000000000000000000000000000",
-			err: errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint
+			err: errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint:revive
 		},
 		{
 			// incomplete extrinsic
 			extB: nil,
-			err:  errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint
+			err:  errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint:revive
 		},
 	}
 

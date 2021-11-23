@@ -4,9 +4,19 @@
 package offchain
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 	"sync"
+)
+
+type contextKey string
+
+const (
+	waitingKey contextKey = "waiting"
+	invalidKey contextKey = "invalid"
 )
 
 const maxConcurrentRequests = 1000
@@ -15,6 +25,8 @@ var (
 	errIntBufferEmpty        = errors.New("int buffer exhausted")
 	errIntBufferFull         = errors.New("int buffer is full")
 	errRequestIDNotAvailable = errors.New("request id not available")
+	errRequestInvalid        = errors.New("request is invalid")
+	errInvalidHeaderKey      = errors.New("invalid header key")
 )
 
 // requestIDBuffer created to control the amount of available non-duplicated ids
@@ -48,10 +60,32 @@ func (b requestIDBuffer) put(i int16) error {
 	}
 }
 
+// Request holds the request object and update the invalid and waiting status whenever
+// the request starts or is waiting to be read
+type Request struct {
+	Request *http.Request
+}
+
+// AddHeader adds a new HTTP header into request property, only if request is valid
+func (r *Request) AddHeader(name, value string) error {
+	invalid, ok := r.Request.Context().Value(invalidKey).(bool)
+	if ok && invalid {
+		return errRequestInvalid
+	}
+
+	name = strings.TrimSpace(name)
+	if len(name) == 0 {
+		return fmt.Errorf("%w: empty header key", errInvalidHeaderKey)
+	}
+
+	r.Request.Header.Add(name, value)
+	return nil
+}
+
 // HTTPSet holds a pool of concurrent http request calls
 type HTTPSet struct {
 	*sync.Mutex
-	reqs   map[int16]*http.Request
+	reqs   map[int16]*Request
 	idBuff requestIDBuffer
 }
 
@@ -60,7 +94,7 @@ type HTTPSet struct {
 func NewHTTPSet() *HTTPSet {
 	return &HTTPSet{
 		new(sync.Mutex),
-		make(map[int16]*http.Request),
+		make(map[int16]*Request),
 		newIntBuffer(maxConcurrentRequests),
 	}
 }
@@ -81,11 +115,21 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 	}
 
 	req, err := http.NewRequest(method, uri, nil)
+	req.Header = make(http.Header)
+
+	ctx := context.WithValue(req.Context(), waitingKey, false)
+	ctx = context.WithValue(ctx, invalidKey, false)
+
+	req = req.WithContext(ctx)
+
 	if err != nil {
 		return 0, err
 	}
 
-	p.reqs[id] = req
+	p.reqs[id] = &Request{
+		Request: req,
+	}
+
 	return id, nil
 }
 
@@ -100,7 +144,7 @@ func (p *HTTPSet) Remove(id int16) error {
 }
 
 // Get returns a request or nil if request not found
-func (p *HTTPSet) Get(id int16) *http.Request {
+func (p *HTTPSet) Get(id int16) *Request {
 	p.Lock()
 	defer p.Unlock()
 

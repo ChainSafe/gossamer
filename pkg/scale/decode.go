@@ -614,7 +614,7 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		if err != nil {
 			return
 		}
-		out = uint8(b) // nolint
+		out = b
 	case int16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)
