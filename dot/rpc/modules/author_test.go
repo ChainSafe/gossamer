@@ -493,9 +493,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 
 func TestAuthorModule_HasKey(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 
 	mockCoreAPITrue := &apimocks.CoreAPI{}
 	mockCoreAPITrue.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(true, nil)
