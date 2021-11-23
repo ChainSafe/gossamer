@@ -116,7 +116,6 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
-//nolint
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
@@ -183,7 +182,7 @@ func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQuery
 		return nil, err
 	}
 
-	resBytes, err := in.exec(runtime.TransactionPaymentApiQueryInfo, append(ext, encLen...))
+	resBytes, err := in.exec(runtime.TransactionPaymentAPIQueryInfo, append(ext, encLen...))
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +195,7 @@ func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQuery
 	return i, nil
 }
 
-func (in *Instance) CheckInherents()      {} //nolint
-func (in *Instance) RandomSeed()          {} //nolint
-func (in *Instance) OffchainWorker()      {} //nolint
-func (in *Instance) GenerateSessionKeys() {} //nolint
+func (in *Instance) CheckInherents()      {} //nolint:revive
+func (in *Instance) RandomSeed()          {} //nolint:revive
+func (in *Instance) OffchainWorker()      {} //nolint:revive
+func (in *Instance) GenerateSessionKeys() {} //nolint:revive

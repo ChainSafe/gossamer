@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -59,10 +61,8 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 
 // GetAbsolutePath returns the completePath for a given targetDir
 func GetAbsolutePath(targetDir string) string {
-	dir, err := os.Getwd()
-	if err != nil {
-		panic("failed to get current working directory")
-	}
+	_, fullpath, _, _ := runtime.Caller(0)
+	dir := filepath.Dir(fullpath)
 	return path.Join(dir, targetDir)
 }
 
