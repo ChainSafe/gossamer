@@ -46,7 +46,7 @@ func (t *Trie) store(db chaindb.Batch, curr Node) error {
 		return err
 	}
 
-	if c, ok := curr.(*branch); ok {
+	if c, ok := curr.(*Branch); ok {
 		for _, child := range c.children {
 			if child == nil {
 				continue
@@ -104,7 +104,7 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 // loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting by the root
 func (t *Trie) loadProof(proof map[string]Node, curr Node) {
-	c, ok := curr.(*branch)
+	c, ok := curr.(*Branch)
 	if !ok {
 		return
 	}
@@ -149,7 +149,7 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 }
 
 func (t *Trie) load(db chaindb.Database, curr Node) error {
-	if c, ok := curr.(*branch); ok {
+	if c, ok := curr.(*Branch); ok {
 		for i, child := range c.children {
 			if child == nil {
 				continue
@@ -182,7 +182,7 @@ func (t *Trie) load(db chaindb.Database, curr Node) error {
 
 // GetNodeHashes return hash of each key of the trie.
 func (t *Trie) GetNodeHashes(curr Node, keys map[common.Hash]struct{}) error {
-	if c, ok := curr.(*branch); ok {
+	if c, ok := curr.(*Branch); ok {
 		for _, child := range c.children {
 			if child == nil {
 				continue
@@ -253,7 +253,7 @@ func getFromDB(db chaindb.Database, parent Node, key []byte) ([]byte, error) {
 	var value []byte
 
 	switch p := parent.(type) {
-	case *branch:
+	case *Branch:
 		length := lenCommonPrefix(p.key, key)
 
 		// found the value at this node
@@ -333,7 +333,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr Node) error {
 		return err
 	}
 
-	if c, ok := curr.(*branch); ok {
+	if c, ok := curr.(*Branch); ok {
 		for _, child := range c.children {
 			if child == nil {
 				continue
@@ -379,7 +379,7 @@ func (t *Trie) getInsertedNodeHashes(curr Node) ([]common.Hash, error) {
 	nodeHash := common.BytesToHash(hash)
 	nodeHashes = append(nodeHashes, nodeHash)
 
-	if c, ok := curr.(*branch); ok {
+	if c, ok := curr.(*Branch); ok {
 		for _, child := range c.children {
 			if child == nil {
 				continue

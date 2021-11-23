@@ -54,7 +54,7 @@ type Node interface {
 }
 
 type (
-	branch struct {
+	Branch struct {
 		key        []byte // partial key
 		children   [16]Node
 		value      []byte
@@ -76,7 +76,7 @@ type (
 	}
 )
 
-func (b *branch) SetGeneration(generation uint64) {
+func (b *Branch) SetGeneration(generation uint64) {
 	b.generation = generation
 }
 
@@ -84,11 +84,11 @@ func (l *leaf) SetGeneration(generation uint64) {
 	l.generation = generation
 }
 
-func (b *branch) Copy() Node {
+func (b *Branch) Copy() Node {
 	b.RLock()
 	defer b.RUnlock()
 
-	cpy := &branch{
+	cpy := &Branch{
 		key:        make([]byte, len(b.key)),
 		children:   b.children, // copy interface pointers
 		value:      nil,
@@ -132,7 +132,7 @@ func (l *leaf) Copy() Node {
 	return cpy
 }
 
-func (b *branch) SetEncodingAndHash(enc, hash []byte) {
+func (b *Branch) SetEncodingAndHash(enc, hash []byte) {
 	b.encoding = enc
 	b.hash = hash
 }
@@ -145,11 +145,11 @@ func (l *leaf) SetEncodingAndHash(enc, hash []byte) {
 	l.hash = hash
 }
 
-func (b *branch) GetHash() []byte {
+func (b *Branch) GetHash() []byte {
 	return b.hash
 }
 
-func (b *branch) GetGeneration() uint64 {
+func (b *Branch) GetGeneration() uint64 {
 	return b.generation
 }
 
@@ -161,7 +161,7 @@ func (l *leaf) GetHash() []byte {
 	return l.hash
 }
 
-func (b *branch) String() string {
+func (b *Branch) String() string {
 	if len(b.value) > 1024 {
 		return fmt.Sprintf(
 			"branch key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v",
@@ -177,7 +177,7 @@ func (l *leaf) String() string {
 	return fmt.Sprintf("leaf key=%x value=%v dirty=%v", l.key, l.value, l.dirty)
 }
 
-func (b *branch) childrenBitmap() uint16 {
+func (b *Branch) childrenBitmap() uint16 {
 	var bitmap uint16
 	var i uint
 	for i = 0; i < 16; i++ {
@@ -188,7 +188,7 @@ func (b *branch) childrenBitmap() uint16 {
 	return bitmap
 }
 
-func (b *branch) numChildren() int {
+func (b *Branch) numChildren() int {
 	var i, count int
 	for i = 0; i < 16; i++ {
 		if b.children[i] != nil {
@@ -202,7 +202,7 @@ func (l *leaf) IsDirty() bool {
 	return l.dirty
 }
 
-func (b *branch) IsDirty() bool {
+func (b *Branch) IsDirty() bool {
 	return b.dirty
 }
 
@@ -210,7 +210,7 @@ func (l *leaf) SetDirty(dirty bool) {
 	l.dirty = dirty
 }
 
-func (b *branch) SetDirty(dirty bool) {
+func (b *Branch) SetDirty(dirty bool) {
 	b.dirty = dirty
 }
 
@@ -218,11 +218,11 @@ func (l *leaf) SetKey(key []byte) {
 	l.key = key
 }
 
-func (b *branch) SetKey(key []byte) {
+func (b *Branch) SetKey(key []byte) {
 	b.key = key
 }
 
-func (b *branch) EncodeAndHash() (encoding, hash []byte, err error) {
+func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 	if !b.dirty && b.encoding != nil && b.hash != nil {
 		return b.encoding, b.hash, nil
 	}
@@ -324,7 +324,7 @@ func decode(r io.Reader) (Node, error) {
 		err := l.Decode(r, header)
 		return l, err
 	} else if nodeType == 2 || nodeType == 3 {
-		b := new(branch)
+		b := new(Branch)
 		err := b.Decode(r, header)
 		return b, err
 	}
@@ -335,7 +335,7 @@ func decode(r io.Reader) (Node, error) {
 // Decode decodes a byte array with the encoding specified at the top of this package into a branch node
 // Note that since the encoded branch stores the hash of the children nodes, we aren't able to reconstruct the child
 // nodes from the encoding. This function instead stubs where the children are known to be with an empty leaf.
-func (b *branch) Decode(r io.Reader, header byte) (err error) {
+func (b *Branch) Decode(r io.Reader, header byte) (err error) {
 	if header == 0 {
 		header, err = readByte(r)
 		if err != nil {
@@ -427,7 +427,7 @@ func (l *leaf) Decode(r io.Reader, header byte) (err error) {
 	return nil
 }
 
-func (b *branch) header() ([]byte, error) {
+func (b *Branch) header() ([]byte, error) {
 	var header byte
 	if b.value == nil {
 		header = 2 << 6

@@ -36,7 +36,7 @@ func generateRand(size int) [][]byte {
 }
 
 func TestChildrenBitmap(t *testing.T) {
-	b := &branch{children: [16]Node{}}
+	b := &Branch{children: [16]Node{}}
 	res := b.childrenBitmap()
 	if res != 0 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 1)
@@ -63,27 +63,27 @@ func TestChildrenBitmap(t *testing.T) {
 
 func TestBranchHeader(t *testing.T) {
 	tests := []struct {
-		br     *branch
+		br     *Branch
 		header []byte
 	}{
-		{&branch{key: nil, children: [16]Node{}, value: nil}, []byte{0x80}},
-		{&branch{key: []byte{0x00}, children: [16]Node{}, value: nil}, []byte{0x81}},
-		{&branch{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]Node{}, value: nil}, []byte{0x84}},
+		{&Branch{key: nil, children: [16]Node{}, value: nil}, []byte{0x80}},
+		{&Branch{key: []byte{0x00}, children: [16]Node{}, value: nil}, []byte{0x81}},
+		{&Branch{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]Node{}, value: nil}, []byte{0x84}},
 
-		{&branch{key: nil, children: [16]Node{}, value: []byte{0x01}}, []byte{0xc0}},
-		{&branch{key: []byte{0x00}, children: [16]Node{}, value: []byte{0x01}}, []byte{0xc1}},
-		{&branch{key: []byte{0x00, 0x00}, children: [16]Node{}, value: []byte{0x01}}, []byte{0xc2}},
-		{&branch{key: []byte{0x00, 0x00, 0xf}, children: [16]Node{}, value: []byte{0x01}}, []byte{0xc3}},
+		{&Branch{key: nil, children: [16]Node{}, value: []byte{0x01}}, []byte{0xc0}},
+		{&Branch{key: []byte{0x00}, children: [16]Node{}, value: []byte{0x01}}, []byte{0xc1}},
+		{&Branch{key: []byte{0x00, 0x00}, children: [16]Node{}, value: []byte{0x01}}, []byte{0xc2}},
+		{&Branch{key: []byte{0x00, 0x00, 0xf}, children: [16]Node{}, value: []byte{0x01}}, []byte{0xc3}},
 
-		{&branch{key: byteArray(62), children: [16]Node{}, value: nil}, []byte{0xbe}},
-		{&branch{key: byteArray(62), children: [16]Node{}, value: []byte{0x00}}, []byte{0xfe}},
-		{&branch{key: byteArray(63), children: [16]Node{}, value: nil}, []byte{0xbf, 0}},
-		{&branch{key: byteArray(64), children: [16]Node{}, value: nil}, []byte{0xbf, 1}},
-		{&branch{key: byteArray(64), children: [16]Node{}, value: []byte{0x01}}, []byte{0xff, 1}},
+		{&Branch{key: byteArray(62), children: [16]Node{}, value: nil}, []byte{0xbe}},
+		{&Branch{key: byteArray(62), children: [16]Node{}, value: []byte{0x00}}, []byte{0xfe}},
+		{&Branch{key: byteArray(63), children: [16]Node{}, value: nil}, []byte{0xbf, 0}},
+		{&Branch{key: byteArray(64), children: [16]Node{}, value: nil}, []byte{0xbf, 1}},
+		{&Branch{key: byteArray(64), children: [16]Node{}, value: []byte{0x01}}, []byte{0xff, 1}},
 
-		{&branch{key: byteArray(317), children: [16]Node{}, value: []byte{0x01}}, []byte{255, 254}},
-		{&branch{key: byteArray(318), children: [16]Node{}, value: []byte{0x01}}, []byte{255, 255, 0}},
-		{&branch{key: byteArray(573), children: [16]Node{}, value: []byte{0x01}}, []byte{255, 255, 255, 0}},
+		{&Branch{key: byteArray(317), children: [16]Node{}, value: []byte{0x01}}, []byte{255, 254}},
+		{&Branch{key: byteArray(318), children: [16]Node{}, value: []byte{0x01}}, []byte{255, 255, 0}},
+		{&Branch{key: byteArray(573), children: [16]Node{}, value: []byte{0x01}}, []byte{255, 255, 255, 0}},
 	}
 
 	for _, test := range tests {
@@ -99,10 +99,10 @@ func TestBranchHeader(t *testing.T) {
 
 func TestFailingPk(t *testing.T) {
 	tests := []struct {
-		br     *branch
+		br     *Branch
 		header []byte
 	}{
-		{&branch{key: byteArray(2 << 16), children: [16]Node{}, value: []byte{0x01}}, []byte{255, 254}},
+		{&Branch{key: byteArray(2 << 16), children: [16]Node{}, value: []byte{0x01}}, []byte{255, 254}},
 	}
 
 	for _, test := range tests {
@@ -147,7 +147,7 @@ func TestBranchEncode(t *testing.T) {
 	randVals := generateRand(101)
 
 	for i, testKey := range randKeys {
-		b := &branch{key: testKey, children: [16]Node{}, value: randVals[i]}
+		b := &Branch{key: testKey, children: [16]Node{}, value: randVals[i]}
 		expected := bytes.NewBuffer(nil)
 
 		header, err := b.header()
@@ -234,7 +234,7 @@ func TestEncodeRoot(t *testing.T) {
 }
 
 func TestBranchDecode(t *testing.T) {
-	tests := []*branch{
+	tests := []*Branch{
 		{key: []byte{}, children: [16]Node{}, value: nil},
 		{key: []byte{0x00}, children: [16]Node{}, value: nil},
 		{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]Node{}, value: nil},
@@ -265,7 +265,7 @@ func TestBranchDecode(t *testing.T) {
 		err := encodeBranch(test, buffer, parallel)
 		require.NoError(t, err)
 
-		res := new(branch)
+		res := new(Branch)
 		err = res.Decode(buffer, 0)
 
 		require.NoError(t, err)
@@ -305,13 +305,13 @@ func TestLeafDecode(t *testing.T) {
 
 func TestDecode(t *testing.T) {
 	tests := []Node{
-		&branch{key: []byte{}, children: [16]Node{}, value: nil},
-		&branch{key: []byte{0x00}, children: [16]Node{}, value: nil},
-		&branch{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]Node{}, value: nil},
-		&branch{key: []byte{}, children: [16]Node{}, value: []byte{0x01}},
-		&branch{key: []byte{}, children: [16]Node{&leaf{}}, value: []byte{0x01}},
-		&branch{key: []byte{}, children: [16]Node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
-		&branch{
+		&Branch{key: []byte{}, children: [16]Node{}, value: nil},
+		&Branch{key: []byte{0x00}, children: [16]Node{}, value: nil},
+		&Branch{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]Node{}, value: nil},
+		&Branch{key: []byte{}, children: [16]Node{}, value: []byte{0x01}},
+		&Branch{key: []byte{}, children: [16]Node{&leaf{}}, value: []byte{0x01}},
+		&Branch{key: []byte{}, children: [16]Node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		&Branch{
 			key: []byte{},
 			children: [16]Node{
 				&leaf{}, nil, &leaf{}, nil,
@@ -340,10 +340,10 @@ func TestDecode(t *testing.T) {
 		require.NoError(t, err)
 
 		switch n := test.(type) {
-		case *branch:
-			require.Equal(t, n.key, res.(*branch).key)
-			require.Equal(t, n.childrenBitmap(), res.(*branch).childrenBitmap())
-			require.Equal(t, n.value, res.(*branch).value)
+		case *Branch:
+			require.Equal(t, n.key, res.(*Branch).key)
+			require.Equal(t, n.childrenBitmap(), res.(*Branch).childrenBitmap())
+			require.Equal(t, n.value, res.(*Branch).value)
 		case *leaf:
 			require.Equal(t, n.key, res.(*leaf).key)
 			require.Equal(t, n.value, res.(*leaf).value)
