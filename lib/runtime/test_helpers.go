@@ -12,10 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	ma "github.com/multiformats/go-multiaddr"
@@ -131,7 +130,7 @@ func generateEd25519Signatures(t *testing.T, n int) []*crypto.Signature {
 			PubKey:     key.Public().Encode(),
 			Sign:       sign,
 			Msg:        msg,
-			VerifyFunc: ed25519.SignVerify,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 	}
 	return signs
