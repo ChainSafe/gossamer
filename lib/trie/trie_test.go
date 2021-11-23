@@ -68,7 +68,7 @@ func TestNewEmptyTrie(t *testing.T) {
 }
 
 func TestNewTrie(t *testing.T) {
-	trie := NewTrie(&leaf{key: []byte{0}, value: []byte{17}})
+	trie := NewTrie(&Leaf{key: []byte{0}, value: []byte{17}})
 	if trie == nil {
 		t.Error("did not initialise trie")
 	}
@@ -942,7 +942,7 @@ func TestClearPrefix_Small(t *testing.T) {
 	}
 
 	ssTrie.ClearPrefix([]byte("noo"))
-	require.Equal(t, ssTrie.root, &leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
+	require.Equal(t, ssTrie.root, &Leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
 
 	// Get the updated root hash of all tries.
 	tHash, err = trie.Hash()

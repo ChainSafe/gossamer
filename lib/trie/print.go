@@ -48,7 +48,7 @@ func (t *Trie) string(tree gotree.Tree, curr Node, idx int) {
 				t.string(sub, child, i)
 			}
 		}
-	case *leaf:
+	case *Leaf:
 		buffer := encodingBufferPool.Get().(*bytes.Buffer)
 		buffer.Reset()
 

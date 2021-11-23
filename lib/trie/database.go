@@ -158,7 +158,7 @@ func (t *Trie) load(db chaindb.Database, curr Node) error {
 			hash := child.GetHash()
 			enc, err := db.Get(hash)
 			if err != nil {
-				return fmt.Errorf("failed to find node key=%x index=%d: %w", child.(*leaf).hash, i, err)
+				return fmt.Errorf("failed to find node key=%x index=%d: %w", child.(*Leaf).hash, i, err)
 			}
 
 			child, err = decodeBytes(enc)
@@ -271,7 +271,7 @@ func getFromDB(db chaindb.Database, parent Node, key []byte) ([]byte, error) {
 		}
 
 		// load child with potential value
-		enc, err := db.Get(p.children[key[length]].(*leaf).hash)
+		enc, err := db.Get(p.children[key[length]].(*Leaf).hash)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find node in database: %w", err)
 		}
@@ -285,7 +285,7 @@ func getFromDB(db chaindb.Database, parent Node, key []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-	case *leaf:
+	case *Leaf:
 		if bytes.Equal(p.key, key) {
 			return p.value, nil
 		}
