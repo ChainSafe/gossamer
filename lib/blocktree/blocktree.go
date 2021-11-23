@@ -23,16 +23,14 @@ type BlockTree struct {
 	root   *node
 	leaves *leafMap
 	sync.RWMutex
-	//nodeCache map[Hash]*node
 	runtime *sync.Map
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
 func NewEmptyBlockTree() *BlockTree {
 	return &BlockTree{
-		root:   nil,
-		leaves: newEmptyLeafMap(),
-		//nodeCache: make(map[Hash]*node),
+		root:    nil,
+		leaves:  newEmptyLeafMap(),
 		runtime: &sync.Map{}, // map[Hash]runtime.Instance
 	}
 }
@@ -49,9 +47,8 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 	}
 
 	return &BlockTree{
-		root:   n,
-		leaves: newLeafMap(n),
-		//nodeCache: make(map[Hash]*node),
+		root:    n,
+		leaves:  newLeafMap(n),
 		runtime: &sync.Map{},
 	}
 }
@@ -89,10 +86,7 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 
 	parent.addChild(n)
 	bt.leaves.replace(parent, n)
-	//bt.setInCache(n)
 
-	fmt.Println("blocktree.AddBlock", header)
-	fmt.Println(bt)
 	return nil
 }
 
@@ -116,27 +110,8 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 	return bt.root.getNodesWithNumber(number, hashes)
 }
 
-// func (bt *BlockTree) setInCache(b *node) {
-// 	if b == nil {
-// 		return
-// 	}
-
-// 	if _, has := bt.nodeCache[b.hash]; !has {
-// 		bt.nodeCache[b.hash] = b
-// 	}
-// }
-
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
 func (bt *BlockTree) getNode(h Hash) (ret *node) {
-	// if b, ok := bt.nodeCache[h]; ok {
-	// 	return b
-	// }
-
-	// defer func() {
-	// 	// TODO: confirm this works
-	// 	bt.setInCache(ret)
-	// }()
-
 	if bt.root.hash == h {
 		return bt.root
 	}
@@ -182,19 +157,16 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	}
 
 	for _, hash := range pruned {
-		//delete(bt.nodeCache, hash)
 		bt.runtime.Delete(hash)
 	}
 
-	fmt.Println("blocktree.Prune", finalised)
-	fmt.Println(bt)
 	return pruned
 }
 
 // String utilises github.com/disiqueira/gotree to create a printable tree
 func (bt *BlockTree) String() string {
-	// bt.RLock()
-	// defer bt.RUnlock()
+	bt.RLock()
+	defer bt.RUnlock()
 
 	// Construct tree
 	tree := gotree.New(bt.root.string())
@@ -330,9 +302,6 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 		return common.Hash{}, ErrNodeNotFound
 	}
 
-	// fmt.Println("blocktree.HighestCommonAncestor", a, b)
-	// fmt.Println(bt)
-
 	ancestor := an.highestCommonAncestor(bn)
 	if ancestor == nil {
 		// this case shouldn't happen - any two nodes in the blocktree must
@@ -406,9 +375,7 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	btCopy := &BlockTree{
-		//nodeCache: make(map[Hash]*node),
-	}
+	btCopy := &BlockTree{}
 
 	if bt.root == nil {
 		return btCopy
@@ -424,10 +391,6 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 			btCopy.leaves.store(hash, btCopy.getNode(val.hash))
 		}
 	}
-
-	// for hash := range bt.nodeCache {
-	// 	btCopy.nodeCache[hash] = btCopy.getNode(hash)
-	// }
 
 	return btCopy
 }
