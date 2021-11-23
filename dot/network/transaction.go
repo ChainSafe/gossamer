@@ -124,7 +124,6 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) Notif
 					select {
 					case <-timeOut.C:
 						completed = true
-						break
 					case txnMsg := <-txnBatchCh:
 						propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
 						if err != nil {
