@@ -104,7 +104,7 @@ func encodeNode(n Node, buffer bytesBuffer, parallel bool) (err error) {
 			return fmt.Errorf("cannot encode branch: %w", err)
 		}
 		return nil
-	case *leaf:
+	case *Leaf:
 		err := encodeLeaf(n, buffer)
 		if err != nil {
 			return fmt.Errorf("cannot encode leaf: %w", err)
@@ -268,7 +268,7 @@ func encodeChild(child Node, buffer io.Writer) (err error) {
 	switch impl := child.(type) {
 	case *Branch:
 		isNil = impl == nil
-	case *leaf:
+	case *Leaf:
 		isNil = impl == nil
 	default:
 		isNil = child == nil
@@ -309,7 +309,7 @@ func encodeAndHash(n Node) (b []byte, err error) {
 
 // encodeLeaf encodes a leaf to the buffer given, with the encoding
 // specified at the top of this package.
-func encodeLeaf(l *leaf, buffer io.Writer) (err error) {
+func encodeLeaf(l *Leaf, buffer io.Writer) (err error) {
 	l.encodingMu.RLock()
 	defer l.encodingMu.RUnlock()
 	if !l.dirty && l.encoding != nil {

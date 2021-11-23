@@ -149,7 +149,7 @@ func (t *Trie) entries(current Node, prefix []byte, kv map[string][]byte) map[st
 		for i, child := range c.children {
 			t.entries(child, append(prefix, append(c.key, byte(i))...), kv)
 		}
-	case *leaf:
+	case *Leaf:
 		kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
 		return kv
 	}
@@ -220,7 +220,7 @@ func (t *Trie) nextKey(curr Node, prefix, key []byte) []byte {
 				}
 			}
 		}
-	case *leaf:
+	case *Leaf:
 		fullKey := append(prefix, c.key...)
 		var cmp int
 		if len(key) < len(fullKey) {
@@ -252,7 +252,7 @@ func (t *Trie) Put(key, value []byte) {
 func (t *Trie) tryPut(key, value []byte) {
 	k := keyToNibbles(key)
 
-	t.root = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, generation: t.generation})
+	t.root = t.insert(t.root, k, &Leaf{key: nil, value: value, dirty: true, generation: t.generation})
 }
 
 // insert attempts to insert a key with value into the trie
@@ -268,12 +268,12 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 	case nil:
 		value.SetKey(key)
 		return value
-	case *leaf:
+	case *Leaf:
 		// if a value already exists in the trie at this key, overwrite it with the new value
 		// if the values are the same, don't mark node dirty
 		if p.value != nil && bytes.Equal(p.key, key) {
-			if !bytes.Equal(value.(*leaf).value, p.value) {
-				p.value = value.(*leaf).value
+			if !bytes.Equal(value.(*Leaf).value, p.value) {
+				p.value = value.(*Leaf).value
 				p.dirty = true
 			}
 			return p
@@ -287,7 +287,7 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 
 		// value goes at this branch
 		if len(key) == length {
-			br.value = value.(*leaf).value
+			br.value = value.(*Leaf).value
 			br.SetDirty(true)
 
 			// if we are not replacing previous leaf, then add it as a child to the new branch
@@ -335,14 +335,14 @@ func (t *Trie) updateBranch(p *Branch, key []byte, value Node) (n Node) {
 			switch v := value.(type) {
 			case *Branch:
 				p.value = v.value
-			case *leaf:
+			case *Leaf:
 				p.value = v.value
 			}
 			return p
 		}
 
 		switch c := p.children[key[length]].(type) {
-		case *Branch, *leaf:
+		case *Branch, *Leaf:
 			n = t.insert(c, key[length+1:], value)
 			p.children[key[length]] = n
 			n.SetDirty(true)
@@ -350,7 +350,7 @@ func (t *Trie) updateBranch(p *Branch, key []byte, value Node) (n Node) {
 			return p
 		case nil:
 			// otherwise, add node as child of this branch
-			value.(*leaf).key = key[length+1:]
+			value.(*Leaf).key = key[length+1:]
 			p.children[key[length]] = value
 			p.SetDirty(true)
 			return p
@@ -367,7 +367,7 @@ func (t *Trie) updateBranch(p *Branch, key []byte, value Node) (n Node) {
 	br.children[parentIndex] = t.insert(nil, p.key[length+1:], p)
 
 	if len(key) <= length {
-		br.value = value.(*leaf).value
+		br.value = value.(*Leaf).value
 	} else {
 		br.children[key[length]] = t.insert(nil, key[length+1:], value)
 	}
@@ -424,7 +424,7 @@ func (t *Trie) getKeysWithPrefix(parent Node, prefix, key []byte, keys [][]byte)
 
 		key = key[len(p.key):]
 		keys = t.getKeysWithPrefix(p.children[key[0]], append(append(prefix, p.key...), key[0]), key[1:], keys)
-	case *leaf:
+	case *Leaf:
 		length := lenCommonPrefix(p.key, key)
 		if bytes.Equal(p.key[:length], key) || len(key) == 0 {
 			keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
@@ -447,7 +447,7 @@ func (t *Trie) addAllKeys(parent Node, prefix []byte, keys [][]byte) [][]byte {
 		for i, child := range p.children {
 			keys = t.addAllKeys(child, append(append(prefix, p.key...), byte(i)), keys)
 		}
-	case *leaf:
+	case *Leaf:
 		keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
 	case nil:
 		return keys
@@ -466,14 +466,14 @@ func (t *Trie) Get(key []byte) []byte {
 	return l.value
 }
 
-func (t *Trie) tryGet(key []byte) *leaf {
+func (t *Trie) tryGet(key []byte) *Leaf {
 	k := keyToNibbles(key)
 	return t.retrieve(t.root, k)
 }
 
-func (t *Trie) retrieve(parent Node, key []byte) *leaf {
+func (t *Trie) retrieve(parent Node, key []byte) *Leaf {
 	var (
-		value *leaf
+		value *Leaf
 	)
 
 	switch p := parent.(type) {
@@ -482,7 +482,7 @@ func (t *Trie) retrieve(parent Node, key []byte) *leaf {
 
 		// found the value at this node
 		if bytes.Equal(p.key, key) || len(key) == 0 {
-			return &leaf{key: p.key, value: p.value, dirty: false}
+			return &Leaf{key: p.key, value: p.value, dirty: false}
 		}
 
 		// did not find value
@@ -491,7 +491,7 @@ func (t *Trie) retrieve(parent Node, key []byte) *leaf {
 		}
 
 		value = t.retrieve(p.children[key[length]], key[length+1:])
-	case *leaf:
+	case *Leaf:
 		if bytes.Equal(p.key, key) {
 			value = p
 		}
@@ -562,7 +562,7 @@ func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bo
 		}
 
 		return curr, curr.IsDirty(), allDeleted
-	case *leaf:
+	case *Leaf:
 		length := lenCommonPrefix(c.key, prefix)
 		if length == len(prefix) {
 			*limit--
@@ -582,7 +582,7 @@ func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (Node, bool) {
 	curr := t.maybeUpdateGeneration(cn)
 
 	switch c := curr.(type) {
-	case *leaf:
+	case *Leaf:
 		if *limit == 0 {
 			return c, false
 		}
@@ -681,7 +681,7 @@ func (t *Trie) clearPrefix(cn Node, prefix []byte) (Node, bool) {
 		}
 
 		return curr, curr.IsDirty()
-	case *leaf:
+	case *Leaf:
 		length := lenCommonPrefix(c.key, prefix)
 		if length == len(prefix) {
 			return nil, true
@@ -723,7 +723,7 @@ func (t *Trie) delete(parent Node, key []byte) (Node, bool) {
 		p.SetDirty(true)
 		n = handleDeletion(p, key)
 		return n, true
-	case *leaf:
+	case *Leaf:
 		if bytes.Equal(key, p.key) || len(key) == 0 {
 			// Key exists. Delete it.
 			return nil, true
@@ -747,7 +747,7 @@ func handleDeletion(p *Branch, key []byte) Node {
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.value != nil {
-		n = &leaf{key: key[:length], value: p.value, dirty: true}
+		n = &Leaf{key: key[:length], value: p.value, dirty: true}
 	} else if p.numChildren() == 1 && p.value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
 		// find index of child
@@ -761,8 +761,8 @@ func handleDeletion(p *Branch, key []byte) Node {
 
 		child := p.children[i]
 		switch c := child.(type) {
-		case *leaf:
-			n = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
+		case *Leaf:
+			n = &Leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
 		case *Branch:
 			br := new(Branch)
 			br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)

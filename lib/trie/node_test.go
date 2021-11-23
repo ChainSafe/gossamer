@@ -42,19 +42,19 @@ func TestChildrenBitmap(t *testing.T) {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 1)
 	}
 
-	b.children[0] = &leaf{key: []byte{0x00}, value: []byte{0x00}}
+	b.children[0] = &Leaf{key: []byte{0x00}, value: []byte{0x00}}
 	res = b.childrenBitmap()
 	if res != 1 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 1)
 	}
 
-	b.children[4] = &leaf{key: []byte{0x00}, value: []byte{0x00}}
+	b.children[4] = &Leaf{key: []byte{0x00}, value: []byte{0x00}}
 	res = b.childrenBitmap()
 	if res != 1<<4+1 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 17)
 	}
 
-	b.children[15] = &leaf{key: []byte{0x00}, value: []byte{0x00}}
+	b.children[15] = &Leaf{key: []byte{0x00}, value: []byte{0x00}}
 	res = b.childrenBitmap()
 	if res != 1<<15+1<<4+1 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 257)
@@ -115,18 +115,18 @@ func TestFailingPk(t *testing.T) {
 
 func TestLeafHeader(t *testing.T) {
 	tests := []struct {
-		br     *leaf
+		br     *Leaf
 		header []byte
 	}{
-		{&leaf{key: nil, value: nil}, []byte{0x40}},
-		{&leaf{key: []byte{0x00}, value: nil}, []byte{0x41}},
-		{&leaf{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil}, []byte{0x44}},
-		{&leaf{key: byteArray(62), value: nil}, []byte{0x7e}},
-		{&leaf{key: byteArray(63), value: nil}, []byte{0x7f, 0}},
-		{&leaf{key: byteArray(64), value: []byte{0x01}}, []byte{0x7f, 1}},
+		{&Leaf{key: nil, value: nil}, []byte{0x40}},
+		{&Leaf{key: []byte{0x00}, value: nil}, []byte{0x41}},
+		{&Leaf{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil}, []byte{0x44}},
+		{&Leaf{key: byteArray(62), value: nil}, []byte{0x7e}},
+		{&Leaf{key: byteArray(63), value: nil}, []byte{0x7f, 0}},
+		{&Leaf{key: byteArray(64), value: []byte{0x01}}, []byte{0x7f, 1}},
 
-		{&leaf{key: byteArray(318), value: []byte{0x01}}, []byte{0x7f, 0xff, 0}},
-		{&leaf{key: byteArray(573), value: []byte{0x01}}, []byte{0x7f, 0xff, 0xff, 0}},
+		{&Leaf{key: byteArray(318), value: []byte{0x01}}, []byte{0x7f, 0xff, 0}},
+		{&Leaf{key: byteArray(573), value: []byte{0x01}}, []byte{0x7f, 0xff, 0xff, 0}},
 	}
 
 	for i, test := range tests {
@@ -188,7 +188,7 @@ func TestLeafEncode(t *testing.T) {
 	randVals := generateRand(100)
 
 	for i, testKey := range randKeys {
-		l := &leaf{key: testKey, value: randVals[i]}
+		l := &Leaf{key: testKey, value: randVals[i]}
 		expected := []byte{}
 
 		header, err := l.header()
@@ -239,14 +239,14 @@ func TestBranchDecode(t *testing.T) {
 		{key: []byte{0x00}, children: [16]Node{}, value: nil},
 		{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]Node{}, value: nil},
 		{key: []byte{}, children: [16]Node{}, value: []byte{0x01}},
-		{key: []byte{}, children: [16]Node{&leaf{}}, value: []byte{0x01}},
-		{key: []byte{}, children: [16]Node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		{key: []byte{}, children: [16]Node{&Leaf{}}, value: []byte{0x01}},
+		{key: []byte{}, children: [16]Node{&Leaf{}, nil, &Leaf{}}, value: []byte{0x01}},
 		{
 			key: []byte{},
 			children: [16]Node{
-				&leaf{}, nil, &leaf{}, nil,
+				&Leaf{}, nil, &Leaf{}, nil,
 				nil, nil, nil, nil,
-				nil, &leaf{}, nil, &leaf{},
+				nil, &Leaf{}, nil, &Leaf{},
 			},
 			value: []byte{0x01},
 		},
@@ -276,7 +276,7 @@ func TestBranchDecode(t *testing.T) {
 }
 
 func TestLeafDecode(t *testing.T) {
-	tests := []*leaf{
+	tests := []*Leaf{
 		{key: []byte{}, value: nil, dirty: true},
 		{key: []byte{0x01}, value: nil, dirty: true},
 		{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil, dirty: true},
@@ -293,7 +293,7 @@ func TestLeafDecode(t *testing.T) {
 		err := encodeLeaf(test, buffer)
 		require.NoError(t, err)
 
-		res := new(leaf)
+		res := new(Leaf)
 		err = res.Decode(buffer, 0)
 		require.NoError(t, err)
 
@@ -309,24 +309,24 @@ func TestDecode(t *testing.T) {
 		&Branch{key: []byte{0x00}, children: [16]Node{}, value: nil},
 		&Branch{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]Node{}, value: nil},
 		&Branch{key: []byte{}, children: [16]Node{}, value: []byte{0x01}},
-		&Branch{key: []byte{}, children: [16]Node{&leaf{}}, value: []byte{0x01}},
-		&Branch{key: []byte{}, children: [16]Node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		&Branch{key: []byte{}, children: [16]Node{&Leaf{}}, value: []byte{0x01}},
+		&Branch{key: []byte{}, children: [16]Node{&Leaf{}, nil, &Leaf{}}, value: []byte{0x01}},
 		&Branch{
 			key: []byte{},
 			children: [16]Node{
-				&leaf{}, nil, &leaf{}, nil,
+				&Leaf{}, nil, &Leaf{}, nil,
 				nil, nil, nil, nil,
-				nil, &leaf{}, nil, &leaf{}},
+				nil, &Leaf{}, nil, &Leaf{}},
 			value: []byte{0x01},
 		},
-		&leaf{key: []byte{}, value: nil},
-		&leaf{key: []byte{0x00}, value: nil},
-		&leaf{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil},
-		&leaf{key: byteArray(62), value: nil},
-		&leaf{key: byteArray(63), value: nil},
-		&leaf{key: byteArray(64), value: []byte{0x01}},
-		&leaf{key: byteArray(318), value: []byte{0x01}},
-		&leaf{key: byteArray(573), value: []byte{0x01}},
+		&Leaf{key: []byte{}, value: nil},
+		&Leaf{key: []byte{0x00}, value: nil},
+		&Leaf{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil},
+		&Leaf{key: byteArray(62), value: nil},
+		&Leaf{key: byteArray(63), value: nil},
+		&Leaf{key: byteArray(64), value: []byte{0x01}},
+		&Leaf{key: byteArray(318), value: []byte{0x01}},
+		&Leaf{key: byteArray(573), value: []byte{0x01}},
 	}
 
 	buffer := bytes.NewBuffer(nil)
@@ -344,9 +344,9 @@ func TestDecode(t *testing.T) {
 			require.Equal(t, n.key, res.(*Branch).key)
 			require.Equal(t, n.childrenBitmap(), res.(*Branch).childrenBitmap())
 			require.Equal(t, n.value, res.(*Branch).value)
-		case *leaf:
-			require.Equal(t, n.key, res.(*leaf).key)
-			require.Equal(t, n.value, res.(*leaf).value)
+		case *Leaf:
+			require.Equal(t, n.key, res.(*Leaf).key)
+			require.Equal(t, n.value, res.(*Leaf).value)
 		default:
 			t.Fatal("unexpected node")
 		}

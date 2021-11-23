@@ -64,7 +64,7 @@ type (
 		generation uint64
 		sync.RWMutex
 	}
-	leaf struct {
+	Leaf struct {
 		key        []byte // partial key
 		value      []byte
 		dirty      bool
@@ -80,7 +80,7 @@ func (b *Branch) SetGeneration(generation uint64) {
 	b.generation = generation
 }
 
-func (l *leaf) SetGeneration(generation uint64) {
+func (l *Leaf) SetGeneration(generation uint64) {
 	l.generation = generation
 }
 
@@ -110,14 +110,14 @@ func (b *Branch) Copy() Node {
 	return cpy
 }
 
-func (l *leaf) Copy() Node {
+func (l *Leaf) Copy() Node {
 	l.RLock()
 	defer l.RUnlock()
 
 	l.encodingMu.RLock()
 	defer l.encodingMu.RUnlock()
 
-	cpy := &leaf{
+	cpy := &Leaf{
 		key:        make([]byte, len(l.key)),
 		value:      make([]byte, len(l.value)),
 		dirty:      l.dirty,
@@ -137,7 +137,7 @@ func (b *Branch) SetEncodingAndHash(enc, hash []byte) {
 	b.hash = hash
 }
 
-func (l *leaf) SetEncodingAndHash(enc, hash []byte) {
+func (l *Leaf) SetEncodingAndHash(enc, hash []byte) {
 	l.encodingMu.Lock()
 	l.encoding = enc
 	l.encodingMu.Unlock()
@@ -153,11 +153,11 @@ func (b *Branch) GetGeneration() uint64 {
 	return b.generation
 }
 
-func (l *leaf) GetGeneration() uint64 {
+func (l *Leaf) GetGeneration() uint64 {
 	return l.generation
 }
 
-func (l *leaf) GetHash() []byte {
+func (l *Leaf) GetHash() []byte {
 	return l.hash
 }
 
@@ -170,7 +170,7 @@ func (b *Branch) String() string {
 	return fmt.Sprintf("branch key=%x childrenBitmap=%16b value=%v dirty=%v", b.key, b.childrenBitmap(), b.value, b.dirty)
 }
 
-func (l *leaf) String() string {
+func (l *Leaf) String() string {
 	if len(l.value) > 1024 {
 		return fmt.Sprintf("leaf key=%x value (hashed)=%x dirty=%v", l.key, common.MustBlake2bHash(l.value), l.dirty)
 	}
@@ -198,7 +198,7 @@ func (b *Branch) numChildren() int {
 	return count
 }
 
-func (l *leaf) IsDirty() bool {
+func (l *Leaf) IsDirty() bool {
 	return l.dirty
 }
 
@@ -206,7 +206,7 @@ func (b *Branch) IsDirty() bool {
 	return b.dirty
 }
 
-func (l *leaf) SetDirty(dirty bool) {
+func (l *Leaf) SetDirty(dirty bool) {
 	l.dirty = dirty
 }
 
@@ -214,7 +214,7 @@ func (b *Branch) SetDirty(dirty bool) {
 	b.dirty = dirty
 }
 
-func (l *leaf) SetKey(key []byte) {
+func (l *Leaf) SetKey(key []byte) {
 	l.key = key
 }
 
@@ -260,7 +260,7 @@ func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 	return encoding, hash, nil
 }
 
-func (l *leaf) EncodeAndHash() (encoding, hash []byte, err error) {
+func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	l.encodingMu.RLock()
 	if !l.IsDirty() && l.encoding != nil && l.hash != nil {
 		l.encodingMu.RUnlock()
@@ -320,7 +320,7 @@ func decode(r io.Reader) (Node, error) {
 
 	nodeType := header >> 6
 	if nodeType == 1 {
-		l := new(leaf)
+		l := new(Leaf)
 		err := l.Decode(r, header)
 		return l, err
 	} else if nodeType == 2 || nodeType == 3 {
@@ -380,7 +380,7 @@ func (b *Branch) Decode(r io.Reader, header byte) (err error) {
 				return err
 			}
 
-			b.children[i] = &leaf{
+			b.children[i] = &Leaf{
 				hash: hash,
 			}
 		}
@@ -392,7 +392,7 @@ func (b *Branch) Decode(r io.Reader, header byte) (err error) {
 }
 
 // Decode decodes a byte array with the encoding specified at the top of this package into a leaf node
-func (l *leaf) Decode(r io.Reader, header byte) (err error) {
+func (l *Leaf) Decode(r io.Reader, header byte) (err error) {
 	if header == 0 {
 		header, err = readByte(r)
 		if err != nil {
@@ -451,7 +451,7 @@ func (b *Branch) header() ([]byte, error) {
 	return fullHeader, nil
 }
 
-func (l *leaf) header() ([]byte, error) {
+func (l *Leaf) header() ([]byte, error) {
 	var header byte = 1 << 6
 	var encodePkLen []byte
 	var err error
