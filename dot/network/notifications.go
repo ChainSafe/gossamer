@@ -22,10 +22,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/peerset"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+
+	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
 var (
@@ -234,8 +235,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return nil
 		}
 
-		seen := s.gossip.hasSeen(msg)
-		if !seen {
+		if !s.gossip.hasSeen(msg) {
 			s.broadcastExcluding(info, peer, msg)
 			return nil
 		}

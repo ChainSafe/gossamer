@@ -280,7 +280,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		PublishMetrics:    cfg.Global.PublishMetrics,
 		PersistentPeers:   cfg.Network.PersistentPeers,
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
-		SlotDuration:      slotDuration,
+		SlotDuration:  slotDuration,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

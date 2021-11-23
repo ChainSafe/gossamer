@@ -21,8 +21,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/crypto"
+
+	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 const (
@@ -110,7 +111,7 @@ type Config struct {
 
 	batchSize int // internal option
 
-	// Babe slot duration
+	// SlotDuration is slot duration to produce block in milliseconds
 	SlotDuration time.Duration
 }
 

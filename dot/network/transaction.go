@@ -127,16 +127,17 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) Notif
 		defer ticker.Stop()
 
 		for {
-		out:
 			select {
 			case <-s.ctx.Done():
 				return
 			case <-ticker.C:
 				timeOut := time.NewTimer(s.cfg.SlotDuration / 3)
-				for {
+				var completed bool
+				for !completed {
 					select {
 					case <-timeOut.C:
-						break out
+						completed = true
+						break
 					case txnMsg := <-txnBatchCh:
 						propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
 						if err != nil {
@@ -163,9 +164,14 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) Notif
 			peer: peer,
 		}
 
+		timeOut := time.NewTimer(time.Millisecond * 200)
+
 		select {
 		case txnBatchCh <- data:
-		case <-time.After(time.Millisecond * 200):
+			if !timeOut.Stop() {
+				<-timeOut.C
+			}
+		case <-timeOut.C:
 			logger.Debugf("transaction message not included into batch", "peer", peer.String(), "msg", msg.String())
 		}
 	}
