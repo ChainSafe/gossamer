@@ -11,6 +11,7 @@ import (
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_uint64ToHex(t *testing.T) {
@@ -96,9 +97,8 @@ func TestDevModule_EpochLength(t *testing.T) {
 			}
 			err := m.EpochLength(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -150,9 +150,8 @@ func TestDevModule_SlotDuration(t *testing.T) {
 			}
 			err := m.SlotDuration(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -311,9 +310,8 @@ func TestDevModule_Control(t *testing.T) {
 			}
 			err := m.Control(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)

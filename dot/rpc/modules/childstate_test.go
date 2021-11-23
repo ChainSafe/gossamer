@@ -147,9 +147,8 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			}
 			err := cs.GetKeys(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -264,9 +263,8 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 			}
 			err := cs.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -381,9 +379,8 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 			}
 			err := cs.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -498,9 +495,8 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 			}
 			err := cs.GetStorage(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)

@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOffchainModule_LocalStorageGet(t *testing.T) {
@@ -102,9 +103,8 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			}
 			err := s.LocalStorageGet(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -216,9 +216,8 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			}
 			err := s.LocalStorageSet(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}

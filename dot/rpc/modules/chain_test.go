@@ -34,7 +34,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 	mockBlockAPIWithBody := new(apimocks.BlockAPI)
 	mockBlockAPIWithBody.On("GetBlockByHash", inputHash).Return(&bodyBlock, nil)
 
-	expEmptyBlock := &ChainBlockResponse{Block: ChainBlock{
+	expEmptyBlock := ChainBlockResponse{Block: ChainBlock{
 		Header: ChainBlockHeaderResponse{
 			ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
 			Number:         "0x00",
@@ -45,7 +45,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 		Body: nil,
 	}}
 
-	expBlock := &ChainBlockResponse{Block: ChainBlock{
+	expBlock := ChainBlockResponse{Block: ChainBlock{
 		Header: ChainBlockHeaderResponse{
 			ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
 			Number:         "0x00",
@@ -63,13 +63,13 @@ func TestChainModule_GetBlock(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *ChainHashRequest
-		res *ChainBlockResponse
+		res ChainBlockResponse
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		exp     *ChainBlockResponse
+		exp     ChainBlockResponse
 		wantErr bool
 		err     error
 	}{
@@ -107,16 +107,14 @@ func TestChainModule_GetBlock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := ChainBlockResponse{}
-			tt.args.res = &res
+			tt.args.res = ChainBlockResponse{}
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			err := cm.GetBlock(tt.args.r, tt.args.req, tt.args.res)
+			err := cm.GetBlock(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -144,7 +142,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *ChainBlockNumberRequest
-		res *ChainHashResponse
+		res ChainHashResponse
 	}
 	tests := []struct {
 		name    string
@@ -152,7 +150,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 		args    args
 		wantErr bool
 		err     error
-		exp     *ChainHashResponse
+		exp     ChainHashResponse
 	}{
 		{
 			name: "GetBlockHash nil req OK",
@@ -162,7 +160,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			args: args{
 				req: &ChainBlockNumberRequest{},
 			},
-			exp: &expRes,
+			exp: expRes,
 		},
 		{
 			name: "GetBlockHash string req OK",
@@ -172,7 +170,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			args: args{
 				req: &ChainBlockNumberRequest{"21"},
 			},
-			exp: &expRes,
+			exp: expRes,
 		},
 		{
 			name: "GetBlockHash float req OK",
@@ -182,7 +180,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			args: args{
 				req: &ChainBlockNumberRequest{float64(21)},
 			},
-			exp: &expRes,
+			exp: expRes,
 		},
 		{
 			name: "GetBlockHash unknown request number",
@@ -220,16 +218,14 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res ChainHashResponse
-			tt.args.res = &res
+			tt.args.res = ChainHashResponse(nil)
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			err := cm.GetBlockHash(tt.args.r, tt.args.req, tt.args.res)
+			err := cm.GetBlockHash(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -253,7 +249,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *ChainHashResponse
+		res ChainHashResponse
 	}
 	tests := []struct {
 		name    string
@@ -261,7 +257,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 		args    args
 		wantErr bool
 		err     error
-		exp     *ChainHashResponse
+		exp     ChainHashResponse
 	}{
 		{
 			name: "GetHighestFinalisedHash OK",
@@ -271,7 +267,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			exp: &expRes,
+			exp: expRes,
 		},
 		{
 			name: "GetHighestFinalisedHash ERR",
@@ -287,16 +283,14 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res ChainHashResponse
-			tt.args.res = &res
+			tt.args.res = ChainHashResponse(nil)
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			err := cm.GetFinalizedHead(tt.args.r, tt.args.req, tt.args.res)
+			err := cm.GetFinalizedHead(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -320,7 +314,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *ChainFinalizedHeadRequest
-		res *ChainHashResponse
+		res ChainHashResponse
 	}
 	tests := []struct {
 		name    string
@@ -328,7 +322,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 		args    args
 		wantErr bool
 		err     error
-		exp     *ChainHashResponse
+		exp     ChainHashResponse
 	}{
 		{
 			name: "GetFinalisedHash OK",
@@ -341,7 +335,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 					SetID: uint64(21),
 				},
 			},
-			exp: &expRes,
+			exp: expRes,
 		},
 		{
 			name: "GetFinalisedHash ERR",
@@ -360,16 +354,14 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res ChainHashResponse
-			tt.args.res = &res
+			tt.args.res = ChainHashResponse(nil)
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			err := cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, tt.args.res)
+			err := cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)
@@ -399,7 +391,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *ChainHashRequest
-		res *ChainBlockHeaderResponse
+		res ChainBlockHeaderResponse
 	}
 	tests := []struct {
 		name    string
@@ -407,7 +399,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 		args    args
 		wantErr bool
 		err     error
-		exp     *ChainBlockHeaderResponse
+		exp     ChainBlockHeaderResponse
 	}{
 		{
 			name: "GetHeader OK",
@@ -417,7 +409,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 			args: args{
 				req: &ChainHashRequest{&testHash},
 			},
-			exp: &expRes,
+			exp: expRes,
 		},
 		{
 			name: "GetHeader ERR",
@@ -433,16 +425,14 @@ func TestChainModule_GetHeader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res ChainBlockHeaderResponse
-			tt.args.res = &res
+			tt.args.res = ChainBlockHeaderResponse{}
 			cm := &ChainModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			err := cm.GetHeader(tt.args.r, tt.args.req, tt.args.res)
+			err := cm.GetHeader(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)

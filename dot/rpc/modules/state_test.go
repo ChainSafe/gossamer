@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStateModuleGetPairs(t *testing.T) {
@@ -182,9 +183,8 @@ func TestStateModuleGetPairs(t *testing.T) {
 			}
 			err := sm.GetPairs(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.ElementsMatch(t, tt.exp, *tt.args.res)
@@ -277,9 +277,8 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 			}
 			err := sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -359,9 +358,8 @@ func TestStateModuleGetMetadata(t *testing.T) {
 			}
 			err := sm.GetMetadata(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -455,9 +453,8 @@ func TestStateModuleGetReadProof(t *testing.T) {
 			}
 			err := sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -542,9 +539,8 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 			}
 			err := sm.GetRuntimeVersion(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -639,9 +635,8 @@ func TestStateModuleGetStorage(t *testing.T) {
 			}
 			err := sm.GetStorage(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -736,9 +731,8 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 			}
 			err := sm.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -833,9 +827,8 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 			}
 			err := sm.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -930,9 +923,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			}
 			err := sm.QueryStorage(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)

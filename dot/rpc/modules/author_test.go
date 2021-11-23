@@ -233,7 +233,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *Extrinsic
-		res *ExtrinsicHashResponse
+		res ExtrinsicHashResponse
 	}
 	tests := []struct {
 		name    string
@@ -278,22 +278,20 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		res := ExtrinsicHashResponse("")
-		tt.args.res = &res
+		tt.args.res = ExtrinsicHashResponse("")
 		t.Run(tt.name, func(t *testing.T) {
 			am := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			err := am.SubmitExtrinsic(tt.args.r, tt.args.req, tt.args.res)
+			err := am.SubmitExtrinsic(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, &tt.wantRes, tt.args.res)
+				assert.Equal(t, tt.wantRes, tt.args.res)
 			}
 		})
 	}
@@ -321,7 +319,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *PendingExtrinsicsResponse
+		res PendingExtrinsicsResponse
 	}
 	tests := []struct {
 		name    string
@@ -353,21 +351,19 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := PendingExtrinsicsResponse{}
-			tt.args.res = &res
+			tt.args.res = PendingExtrinsicsResponse{}
 			cm := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			err := cm.PendingExtrinsics(tt.args.r, tt.args.req, tt.args.res)
+			err := cm.PendingExtrinsics(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, &tt.wantRes, tt.args.res)
+				assert.Equal(t, tt.wantRes, tt.args.res)
 			}
 		})
 	}
@@ -403,7 +399,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *KeyInsertRequest
-		res *KeyInsertResponse
+		res KeyInsertResponse
 	}
 	tests := []struct {
 		name    string
@@ -479,11 +475,10 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			err := am.InsertKey(tt.args.r, tt.args.req, tt.args.res)
+			err := am.InsertKey(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -512,7 +507,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *[]string
-		res *bool
+		res bool
 	}
 	tests := []struct {
 		name    string
@@ -557,21 +552,19 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res bool
-			tt.args.res = &res
+			tt.args.res = false
 			cm := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			err := cm.HasKey(tt.args.r, tt.args.req, tt.args.res)
+			err := cm.HasKey(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, &tt.wantRes, tt.args.res)
+				assert.Equal(t, tt.wantRes, tt.args.res)
 			}
 		})
 	}

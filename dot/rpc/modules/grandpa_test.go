@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGrandpaModule_ProveFinality(t *testing.T) {
@@ -130,9 +131,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			}
 			err := gm.ProveFinality(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -239,9 +239,8 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 			}
 			err := gm.RoundState(tt.args.r, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, tt.args.res)

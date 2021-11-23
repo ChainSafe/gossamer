@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSyncStateModule_GenSyncSpec(t *testing.T) {
@@ -75,9 +76,8 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 			}
 			err := ss.GenSyncSpec(tt.args.in0, tt.args.req, tt.args.res)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, *tt.args.res)
@@ -139,9 +139,8 @@ func TestNewStateSync(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := NewStateSync(tt.args.gData, tt.args.storageAPI)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.exp, res)
@@ -186,9 +185,8 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 			}
 			res, err := s.GenSyncSpec(tt.args.raw)
 			if tt.wantErr {
-				if assert.NotNil(t, err) {
-					assert.EqualError(t, err, tt.err.Error())
-				}
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, *tt.exp, *res)
