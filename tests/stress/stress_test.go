@@ -88,7 +88,10 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigNoGrandpa, false, true)
+	node, err := utils.RunGossamer(t, numNodes-1,
+		utils.TestDir(t, utils.KeyList[numNodes-1]),
+		utils.GenesisDev, utils.ConfigNoGrandpa,
+		false, true)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
@@ -284,7 +287,10 @@ func TestSync_Restart(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigDefault, false, true)
+	node, err := utils.RunGossamer(t, numNodes-1,
+		utils.TestDir(t, utils.KeyList[numNodes-1]),
+		utils.GenesisDefault, utils.ConfigDefault,
+		false, true)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes

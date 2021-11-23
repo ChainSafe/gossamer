@@ -583,7 +583,7 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 
 	// hash for known test code substitution
-	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") //nolint:lll
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
 	s.codeSubstitute = map[common.Hash]string{
 		blockHash: common.BytesToHex(testRuntime),
 	}
@@ -610,7 +610,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 
 	codeHashBefore := parentRt.GetCodeHash()
 	// hash for known test code substitution
-	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") //nolint:lll
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
 
 	body := types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")})
 	newBlock := &types.Block{
