@@ -106,11 +106,9 @@ func (t *Trie) RootNode() node { //nolint
 	return t.root
 }
 
-// EncodeRoot returns the encoded root of the trie
-func (t *Trie) EncodeRoot() ([]byte, error) {
-	h := newHasher(t.parallel)
-	defer h.returnToPool()
-	return h.encode(t.RootNode())
+// encodeRoot returns the encoded root of the trie
+func (t *Trie) encodeRoot(buffer *bytes.Buffer) (err error) {
+	return encodeNode(t.RootNode(), buffer, t.parallel)
 }
 
 // MustHash returns the hashed root of the trie. It panics if it fails to hash the root node.
@@ -125,12 +123,16 @@ func (t *Trie) MustHash() common.Hash {
 
 // Hash returns the hashed root of the trie
 func (t *Trie) Hash() (common.Hash, error) {
-	encRoot, err := t.EncodeRoot()
+	buffer := encodingBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer encodingBufferPool.Put(buffer)
+
+	err := t.encodeRoot(buffer)
 	if err != nil {
 		return [32]byte{}, err
 	}
 
-	return common.Blake2bHash(encRoot)
+	return common.Blake2bHash(buffer.Bytes())
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
