@@ -60,7 +60,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 	sigData, err := common.HexToBytes("0x90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301")
 	require.Nil(t, err)
 
-	signature := &crypto.Signature{
+	signature := &crypto.Signing{
 		PubKey:     key.Public().Encode(),
 		Sign:       sigData,
 		Msg:        msg,
@@ -101,7 +101,7 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 	srSig, err := srKey.Private().Sign(srMsg)
 	require.NoError(t, err)
 
-	srSignature := &crypto.Signature{
+	srSignature := &crypto.Signing{
 		PubKey:     srKey.Public().Encode(),
 		Sign:       srSig,
 		Msg:        srMsg,
@@ -118,7 +118,7 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	secpSigData = secpSigData[:len(secpSigData)-1] // remove recovery id
-	secpSignature := &crypto.Signature{
+	secpSignature := &crypto.Signing{
 		PubKey:     kp.Public().Encode(),
 		Sign:       secpSigData,
 		Msg:        blakeHash.ToBytes(),

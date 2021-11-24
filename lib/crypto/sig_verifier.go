@@ -11,14 +11,13 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
-// ErrSignatureVerificationFailed usaged when signature verification fails
 var ErrSignatureVerificationFailed = errors.New("failed to verify signature")
 
-// SigVerifyFunc verify an signature given a pubkey and msg
-type SigVerifyFunc func(pubkey, sig, msg []byte) (ok bool, err error)
+// SigVerifyFunc verifies a signature given a public key and a message
+type SigVerifyFunc func(pubkey, sig, msg []byte) (err error)
 
-// Signature ...
-type Signature struct {
+// Signing ...
+type Signing struct {
 	PubKey     []byte
 	Sign       []byte
 	Msg        []byte
@@ -27,7 +26,7 @@ type Signature struct {
 
 // SignatureVerifier ...
 type SignatureVerifier struct {
-	batch   []*Signature
+	batch   []*Signing
 	init    bool // Indicates whether the batch processing is started.
 	invalid bool // Set to true if any signature verification fails.
 	logger  log.LeveledLogger
@@ -43,7 +42,7 @@ type SignatureVerifier struct {
 // Signatures can be added to the batch using Add().
 func NewSignatureVerifier(logger log.LeveledLogger) *SignatureVerifier {
 	return &SignatureVerifier{
-		batch:   make([]*Signature, 0),
+		batch:   make([]*Signing, 0),
 		init:    false,
 		invalid: false,
 		logger:  logger,
@@ -72,8 +71,8 @@ func (sv *SignatureVerifier) Start() {
 				if signature == nil {
 					continue
 				}
-				ok, err := signature.VerifyFunc(signature.PubKey, signature.Sign, signature.Msg)
-				if err != nil || !ok {
+				err := signature.VerifyFunc(signature.PubKey, signature.Sign, signature.Msg)
+				if err != nil {
 					sv.logger.Errorf("[ext_crypto_start_batch_verify_version_1]: %s", err)
 					sv.Invalid()
 					return
@@ -105,7 +104,7 @@ func (sv *SignatureVerifier) Invalid() {
 }
 
 // Add ...
-func (sv *SignatureVerifier) Add(s *Signature) {
+func (sv *SignatureVerifier) Add(s *Signing) {
 	if sv.IsInvalid() {
 		return
 	}
@@ -116,7 +115,7 @@ func (sv *SignatureVerifier) Add(s *Signature) {
 }
 
 // Remove returns the first signature from the batch. Returns nil if batch is empty.
-func (sv *SignatureVerifier) Remove() *Signature {
+func (sv *SignatureVerifier) Remove() *Signing {
 	sv.Lock()
 	defer sv.Unlock()
 	if len(sv.batch) == 0 {
@@ -132,7 +131,7 @@ func (sv *SignatureVerifier) Reset() {
 	sv.Lock()
 	defer sv.Unlock()
 	sv.init = false
-	sv.batch = make([]*Signature, 0)
+	sv.batch = make([]*Signing, 0)
 	sv.invalid = false
 	sv.closeCh = make(chan struct{})
 }
