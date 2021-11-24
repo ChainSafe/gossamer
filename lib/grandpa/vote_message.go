@@ -25,12 +25,12 @@ func (s *Service) receiveMessages(ctx context.Context) {
 	for {
 		select {
 		case msg, ok := <-s.in:
-			if msg == nil || msg.msg == nil {
-				continue
-			}
-
 			if !ok {
 				return
+			}
+
+			if msg == nil || msg.msg == nil {
+				continue
 			}
 
 			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
