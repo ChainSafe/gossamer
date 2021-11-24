@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
