@@ -71,7 +71,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *GetKeysRequest
-		res *[]string
+		res []string
 	}
 	tests := []struct {
 		name    string
@@ -79,7 +79,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 		args    args
 		wantErr bool
 		err     error
-		exp     *[]string
+		exp     []string
 	}{
 		{
 			name: "Get Keys Nil Hash",
@@ -92,7 +92,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Key: []byte(":child_storage_key"),
 				},
 			},
-			exp: &expStr,
+			exp: expStr,
 		},
 		{
 			name: "Get Keys with Hash",
@@ -106,7 +106,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			exp: &expStr,
+			exp: expStr,
 		},
 		{
 			name: "GetStorageChild error",
@@ -139,13 +139,12 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := make([]string, 0)
-			tt.args.res = &res
+			tt.args.res = make([]string, 0)
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := cs.GetKeys(tt.args.in0, tt.args.req, tt.args.res)
+			err := cs.GetKeys(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
@@ -185,7 +184,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *GetChildStorageRequest
-		res *uint64
+		res uint64
 	}
 	tests := []struct {
 		name    string
@@ -255,19 +254,18 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res uint64
-			tt.args.res = &res
+			tt.args.res = uint64(0)
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := cs.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res)
+			err := cs.GetStorageSize(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -301,7 +299,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *GetStorageHash
-		res *string
+		res string
 	}
 	tests := []struct {
 		name    string
@@ -371,19 +369,18 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res string
-			tt.args.res = &res
+			tt.args.res = ""
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := cs.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res)
+			err := cs.GetStorageHash(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -417,7 +414,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *ChildStateStorageRequest
-		res *StateStorageResponse
+		res StateStorageResponse
 	}
 	tests := []struct {
 		name    string
@@ -487,19 +484,18 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := StateStorageResponse("")
-			tt.args.res = &res
+			tt.args.res = StateStorageResponse("")
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := cs.GetStorage(tt.args.in0, tt.args.req, tt.args.res)
+			err := cs.GetStorage(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}

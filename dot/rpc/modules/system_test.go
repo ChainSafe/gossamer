@@ -106,7 +106,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *[]interface{}
+		res []interface{}
 	}
 	tests := []struct {
 		name    string
@@ -151,8 +151,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res []interface{}
-			tt.args.res = &res
+			tt.args.res = []interface{}{}
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -161,13 +160,13 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := sm.NodeRoles(tt.args.r, tt.args.req, tt.args.res)
+			err := sm.NodeRoles(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -212,7 +211,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *StringRequest
-		res *U64Response
+		res U64Response
 	}
 	tests := []struct {
 		name    string
@@ -275,8 +274,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res U64Response
-			tt.args.res = &res
+			tt.args.res = U64Response(0)
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -285,13 +283,13 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := sm.AccountNextIndex(tt.args.r, tt.args.req, tt.args.res)
+			err := sm.AccountNextIndex(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -322,7 +320,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *SyncStateResponse
+		res SyncStateResponse
 	}
 	tests := []struct {
 		name    string
@@ -356,8 +354,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res SyncStateResponse
-			tt.args.res = &res
+			tt.args.res = SyncStateResponse{}
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -366,13 +363,13 @@ func TestSystemModule_SyncState(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := sm.SyncState(tt.args.r, tt.args.req, tt.args.res)
+			err := sm.SyncState(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -405,7 +402,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *[]string
+		res []string
 	}
 	tests := []struct {
 		name    string
@@ -435,8 +432,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res []string
-			tt.args.res = &res
+			tt.args.res = []string{}
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -445,13 +441,13 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, tt.args.res)
+			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -484,7 +480,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *string
+		res string
 	}
 	tests := []struct {
 		name    string
@@ -514,8 +510,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res string
-			tt.args.res = &res
+			tt.args.res = ""
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -524,13 +519,13 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := sm.LocalPeerId(tt.args.r, tt.args.req, tt.args.res)
+			err := sm.LocalPeerId(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -554,7 +549,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *StringRequest
-		res *[]byte
+		res []byte
 	}
 	tests := []struct {
 		name    string
@@ -593,8 +588,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res []byte
-			tt.args.res = &res
+			tt.args.res = []byte(nil)
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -603,13 +597,13 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := sm.AddReservedPeer(tt.args.r, tt.args.req, tt.args.res)
+			err := sm.AddReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -633,7 +627,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *StringRequest
-		res *[]byte
+		res []byte
 	}
 	tests := []struct {
 		name    string
@@ -672,8 +666,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res []byte
-			tt.args.res = &res
+			tt.args.res = []byte(nil)
 			sm := &SystemModule{
 				networkAPI: tt.fields.networkAPI,
 				systemAPI:  tt.fields.systemAPI,
@@ -682,13 +675,13 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, tt.args.res)
+			err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}

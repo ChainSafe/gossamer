@@ -49,7 +49,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *ProveFinalityRequest
-		res *ProveFinalityResponse
+		res ProveFinalityResponse
 	}
 	tests := []struct {
 		name    string
@@ -123,19 +123,18 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res ProveFinalityResponse
-			tt.args.res = &res
+			tt.args.res = ProveFinalityResponse(nil)
 			gm := &GrandpaModule{
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
-			err := gm.ProveFinality(tt.args.r, tt.args.req, tt.args.res)
+			err := gm.ProveFinality(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -168,7 +167,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 	})
 
-	expRes := &RoundStateResponse{
+	expRes := RoundStateResponse{
 		SetID: 0x0,
 		Best: RoundState{
 			Round:           0x2,
@@ -207,7 +206,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *RoundStateResponse
+		res RoundStateResponse
 	}
 	tests := []struct {
 		name    string
@@ -215,7 +214,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		args    args
 		wantErr bool
 		err     error
-		exp     *RoundStateResponse
+		exp     RoundStateResponse
 	}{
 		{
 			name: "GetJustification Error",
@@ -231,13 +230,12 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res RoundStateResponse
-			tt.args.res = &res
+			tt.args.res = RoundStateResponse{}
 			gm := &GrandpaModule{
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
-			err := gm.RoundState(tt.args.r, tt.args.req, tt.args.res)
+			err := gm.RoundState(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())

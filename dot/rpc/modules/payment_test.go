@@ -57,7 +57,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *PaymentQueryInfoRequest
-		res *PaymentQueryInfoResponse
+		res PaymentQueryInfoResponse
 	}
 	tests := []struct {
 		name    string
@@ -153,18 +153,17 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res PaymentQueryInfoResponse
-			tt.args.res = &res
+			tt.args.res = PaymentQueryInfoResponse{}
 			p := &PaymentModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			err := p.QueryInfo(tt.args.in0, tt.args.req, tt.args.res)
+			err := p.QueryInfo(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}

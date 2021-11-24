@@ -31,7 +31,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *GenSyncSpecRequest
-		res *genesis.Genesis
+		res genesis.Genesis
 	}
 	tests := []struct {
 		name    string
@@ -69,18 +69,17 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res genesis.Genesis
-			tt.args.res = &res
+			tt.args.res = genesis.Genesis{}
 			ss := &SyncStateModule{
 				syncStateAPI: tt.fields.syncStateAPI,
 			}
-			err := ss.GenSyncSpec(tt.args.in0, tt.args.req, tt.args.res)
+			err := ss.GenSyncSpec(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -151,7 +150,7 @@ func TestNewStateSync(t *testing.T) {
 
 func Test_syncState_GenSyncSpec(t *testing.T) {
 	type fields struct {
-		chainSpecification *genesis.Genesis
+		chainSpecification genesis.Genesis
 	}
 	type args struct {
 		raw bool
@@ -162,26 +161,26 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 		args    args
 		wantErr bool
 		err     error
-		exp     *genesis.Genesis
+		exp     genesis.Genesis
 	}{
 		{
 			name:   "GenSyncSpec False",
-			fields: fields{&genesis.Genesis{}},
-			exp:    &genesis.Genesis{},
+			fields: fields{genesis.Genesis{}},
+			exp:    genesis.Genesis{},
 		},
 		{
 			name:   "GenSyncSpec True",
-			fields: fields{&genesis.Genesis{}},
+			fields: fields{genesis.Genesis{}},
 			args: args{
 				raw: true,
 			},
-			exp: &genesis.Genesis{},
+			exp: genesis.Genesis{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := syncState{
-				chainSpecification: tt.fields.chainSpecification,
+				chainSpecification: &tt.fields.chainSpecification,
 			}
 			res, err := s.GenSyncSpec(tt.args.raw)
 			if tt.wantErr {
@@ -189,7 +188,7 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, *tt.exp, *res)
+				assert.Equal(t, tt.exp, *res)
 			}
 		})
 	}

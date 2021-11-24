@@ -28,7 +28,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *OffchainLocalStorageGet
-		res *StringResponse
+		res StringResponse
 	}
 	tests := []struct {
 		name    string
@@ -96,18 +96,17 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StringResponse
-			tt.args.res = &res
+			tt.args.res = StringResponse("")
 			s := &OffchainModule{
 				nodeStorage: tt.fields.nodeStorage,
 			}
-			err := s.LocalStorageGet(tt.args.in0, tt.args.req, tt.args.res)
+			err := s.LocalStorageGet(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -124,7 +123,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *OffchainLocalStorageSet
-		res *StringResponse
+		res StringResponse
 	}
 	tests := []struct {
 		name    string
@@ -209,12 +208,11 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StringResponse
-			tt.args.res = &res
+			tt.args.res = StringResponse("")
 			s := &OffchainModule{
 				nodeStorage: tt.fields.nodeStorage,
 			}
-			err := s.LocalStorageSet(tt.args.in0, tt.args.req, tt.args.res)
+			err := s.LocalStorageSet(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())

@@ -83,7 +83,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StatePairRequest
-		res *StatePairResponse
+		res StatePairResponse
 	}
 	tests := []struct {
 		name    string
@@ -174,20 +174,19 @@ func TestStateModuleGetPairs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StatePairResponse
-			tt.args.res = &res
+			tt.args.res = StatePairResponse{}
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.GetPairs(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.GetPairs(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.ElementsMatch(t, tt.exp, *tt.args.res)
+				assert.ElementsMatch(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -211,7 +210,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StateStorageKeyRequest
-		res *StateStorageKeysResponse
+		res StateStorageKeysResponse
 	}
 	tests := []struct {
 		name    string
@@ -268,20 +267,19 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StateStorageKeysResponse
-			tt.args.res = &res
+			tt.args.res = StateStorageKeysResponse(nil)
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.GetKeysPaged(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.GetKeysPaged(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -319,7 +317,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StateRuntimeMetadataQuery
-		res *StateMetadataResponse
+		res StateMetadataResponse
 	}
 	tests := []struct {
 		name    string
@@ -349,20 +347,19 @@ func TestStateModuleGetMetadata(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StateMetadataResponse
-			tt.args.res = &res
+			tt.args.res = StateMetadataResponse("")
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.GetMetadata(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.GetMetadata(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -393,7 +390,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StateGetReadProofRequest
-		res *StateGetReadProofResponse
+		res StateGetReadProofResponse
 	}
 	tests := []struct {
 		name    string
@@ -444,20 +441,19 @@ func TestStateModuleGetReadProof(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StateGetReadProofResponse
-			tt.args.res = &res
+			tt.args.res = StateGetReadProofResponse{}
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.GetReadProof(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.GetReadProof(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -493,7 +489,7 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StateRuntimeVersionRequest
-		res *StateRuntimeVersionResponse
+		res StateRuntimeVersionResponse
 	}
 	tests := []struct {
 		name    string
@@ -530,20 +526,19 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StateRuntimeVersionResponse
-			tt.args.res = &res
+			tt.args.res = StateRuntimeVersionResponse{}
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.GetRuntimeVersion(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.GetRuntimeVersion(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -569,7 +564,7 @@ func TestStateModuleGetStorage(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StateStorageRequest
-		res *StateStorageResponse
+		res StateStorageResponse
 	}
 	tests := []struct {
 		name    string
@@ -626,20 +621,19 @@ func TestStateModuleGetStorage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StateStorageResponse
-			tt.args.res = &res
+			tt.args.res = StateStorageResponse("")
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.GetStorage(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.GetStorage(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -665,7 +659,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StateStorageHashRequest
-		res *StateStorageHashResponse
+		res StateStorageHashResponse
 	}
 	tests := []struct {
 		name    string
@@ -722,20 +716,19 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StateStorageHashResponse
-			tt.args.res = &res
+			tt.args.res = StateStorageHashResponse("")
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.GetStorageHash(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.GetStorageHash(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -761,7 +754,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StateStorageSizeRequest
-		res *StateStorageSizeResponse
+		res StateStorageSizeResponse
 	}
 	tests := []struct {
 		name    string
@@ -818,20 +811,19 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res StateStorageSizeResponse
-			tt.args.res = &res
+			tt.args.res = StateStorageSizeResponse(0)
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.GetStorageSize(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.GetStorageSize(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -864,7 +856,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *StateStorageQueryRangeRequest
-		res *[]StorageChangeSetResponse
+		res []StorageChangeSetResponse
 	}
 	tests := []struct {
 		name    string
@@ -914,20 +906,19 @@ func TestStateModuleQueryStorage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res []StorageChangeSetResponse
-			tt.args.res = &res
+			tt.args.res = []StorageChangeSetResponse{}
 			sm := &StateModule{
 				networkAPI: tt.fields.networkAPI,
 				storageAPI: tt.fields.storageAPI,
 				coreAPI:    tt.fields.coreAPI,
 			}
-			err := sm.QueryStorage(tt.args.in0, tt.args.req, tt.args.res)
+			err := sm.QueryStorage(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}

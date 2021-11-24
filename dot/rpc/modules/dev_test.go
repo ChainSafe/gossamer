@@ -65,7 +65,7 @@ func TestDevModule_EpochLength(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *string
+		res string
 	}
 	tests := []struct {
 		name    string
@@ -89,19 +89,18 @@ func TestDevModule_EpochLength(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res string
-			tt.args.res = &res
+			tt.args.res = ""
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			err := m.EpochLength(tt.args.r, tt.args.req, tt.args.res)
+			err := m.EpochLength(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -118,7 +117,7 @@ func TestDevModule_SlotDuration(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res *string
+		res string
 	}
 	tests := []struct {
 		name    string
@@ -142,19 +141,18 @@ func TestDevModule_SlotDuration(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res string
-			tt.args.res = &res
+			tt.args.res = ""
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			err := m.SlotDuration(tt.args.r, tt.args.req, tt.args.res)
+			err := m.SlotDuration(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
@@ -185,7 +183,7 @@ func TestDevModule_Control(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *[]string
-		res *string
+		res string
 	}
 	tests := []struct {
 		name    string
@@ -302,19 +300,18 @@ func TestDevModule_Control(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res string
-			tt.args.res = &res
+			tt.args.res = ""
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			err := m.Control(tt.args.r, tt.args.req, tt.args.res)
+			err := m.Control(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *tt.args.res)
+				assert.Equal(t, tt.exp, tt.args.res)
 			}
 		})
 	}
