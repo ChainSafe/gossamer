@@ -34,12 +34,12 @@ func newLeafMap(n *node) *leafMap {
 	}
 }
 
-func (ls *leafMap) store(key Hash, value *node) {
-	ls.smap.Store(key, value)
+func (lm *leafMap) store(key Hash, value *node) {
+	lm.smap.Store(key, value)
 }
 
-func (ls *leafMap) load(key Hash) (*node, error) {
-	v, ok := ls.smap.Load(key)
+func (lm *leafMap) load(key Hash) (*node, error) {
+	v, ok := lm.smap.Load(key)
 	if !ok {
 		return nil, errors.New("key not found")
 	}
@@ -48,23 +48,23 @@ func (ls *leafMap) load(key Hash) (*node, error) {
 }
 
 // Replace deletes the old node from the map and inserts the new one
-func (ls *leafMap) replace(oldNode, newNode *node) {
-	ls.Lock()
-	defer ls.Unlock()
-	ls.smap.Delete(oldNode.hash)
-	ls.store(newNode.hash, newNode)
+func (lm *leafMap) replace(oldNode, newNode *node) {
+	lm.Lock()
+	defer lm.Unlock()
+	lm.smap.Delete(oldNode.hash)
+	lm.store(newNode.hash, newNode)
 }
 
 // DeepestLeaf searches the stored leaves to the find the one with the greatest number.
 // If there are two leaves with the same number, choose the one with the earliest arrival time.
-func (ls *leafMap) deepestLeaf() *node {
-	ls.RLock()
-	defer ls.RUnlock()
+func (lm *leafMap) deepestLeaf() *node {
+	lm.RLock()
+	defer lm.RUnlock()
 
 	max := big.NewInt(-1)
 
 	var dLeaf *node
-	ls.smap.Range(func(h, n interface{}) bool {
+	lm.smap.Range(func(h, n interface{}) bool {
 		if n == nil {
 			return true
 		}
@@ -84,13 +84,13 @@ func (ls *leafMap) deepestLeaf() *node {
 	return dLeaf
 }
 
-func (ls *leafMap) toMap() map[common.Hash]*node {
-	ls.RLock()
-	defer ls.RUnlock()
+func (lm *leafMap) toMap() map[common.Hash]*node {
+	lm.RLock()
+	defer lm.RUnlock()
 
 	mmap := make(map[common.Hash]*node)
 
-	ls.smap.Range(func(h, n interface{}) bool {
+	lm.smap.Range(func(h, n interface{}) bool {
 		hash := h.(Hash)
 		node := n.(*node)
 		mmap[hash] = node
@@ -100,13 +100,13 @@ func (ls *leafMap) toMap() map[common.Hash]*node {
 	return mmap
 }
 
-func (ls *leafMap) nodes() []*node {
-	ls.RLock()
-	defer ls.RUnlock()
+func (lm *leafMap) nodes() []*node {
+	lm.RLock()
+	defer lm.RUnlock()
 
 	nodes := []*node{}
 
-	ls.smap.Range(func(h, n interface{}) bool {
+	lm.smap.Range(func(h, n interface{}) bool {
 		node := n.(*node)
 		nodes = append(nodes, node)
 		return true
