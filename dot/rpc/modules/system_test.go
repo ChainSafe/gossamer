@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSystemModule_Chain(t *testing.T) {
+func TestSystemModule_ChainTest(t *testing.T) {
 	mockSystemAPI := new(apimocks.SystemAPI)
 	mockSystemAPI.On("ChainName").Return("polkadot", nil)
 	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
@@ -32,7 +32,7 @@ func TestSystemModule_Chain(t *testing.T) {
 	require.Equal(t, "polkadot", res)
 }
 
-func TestSystemModule_Name(t *testing.T) {
+func TestSystemModule_NameTest(t *testing.T) {
 	mockSystemAPI := new(apimocks.SystemAPI)
 	mockSystemAPI.On("SystemName").Return("kusama", nil)
 	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
@@ -45,7 +45,7 @@ func TestSystemModule_Name(t *testing.T) {
 	require.Equal(t, "kusama", res)
 }
 
-func TestSystemModule_ChainType(t *testing.T) {
+func TestSystemModule_ChainTypeTest(t *testing.T) {
 	mockSystemAPI := new(apimocks.SystemAPI)
 	mockSystemAPI.On("ChainType").Return("testChainType", nil)
 	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
@@ -58,7 +58,7 @@ func TestSystemModule_ChainType(t *testing.T) {
 	require.Equal(t, "testChainType", res)
 }
 
-func TestSystemModule_Properties(t *testing.T) {
+func TestSystemModule_PropertiesTest(t *testing.T) {
 	var emptyMap map[string]interface{}
 	mockSystemAPI := new(apimocks.SystemAPI)
 	mockSystemAPI.On("Properties").Return(emptyMap)
@@ -71,7 +71,7 @@ func TestSystemModule_Properties(t *testing.T) {
 	require.Equal(t, emptyMap, resMap)
 }
 
-func TestSystemModule_SystemVersion(t *testing.T) {
+func TestSystemModule_SystemVersionTest(t *testing.T) {
 	mockSystemAPI := new(apimocks.SystemAPI)
 	mockSystemAPI.On("SystemVersion").Return("1.2.1", nil)
 	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
@@ -84,7 +84,7 @@ func TestSystemModule_SystemVersion(t *testing.T) {
 	require.Equal(t, "1.2.1", res)
 }
 
-func TestSystemModule_Health(t *testing.T) {
+func TestSystemModule_HealthTest(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
 	mockNetworkAPI.On("Health").Return(common.Health{}, nil)
 	sm := NewSystemModule(mockNetworkAPI, new(apimocks.SystemAPI), new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
@@ -96,7 +96,7 @@ func TestSystemModule_Health(t *testing.T) {
 	require.Equal(t, SystemHealthResponse(common.Health{}), sysHealthRes)
 }
 
-func TestSystemModule_NetworkState(t *testing.T) {
+func TestSystemModule_NetworkStateTest(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
 	mockNetworkAPI.On("NetworkState").Return(common.NetworkState{}, nil)
 	sm := NewSystemModule(mockNetworkAPI, new(apimocks.SystemAPI), new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
@@ -108,7 +108,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 	require.Equal(t, SystemNetworkStateResponse{}, networkStateRes)
 }
 
-func TestSystemModule_Peers(t *testing.T) {
+func TestSystemModule_PeersTest(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
 	mockNetworkAPI.On("Peers").Return([]common.PeerInfo{}, nil)
 	sm := NewSystemModule(mockNetworkAPI, new(apimocks.SystemAPI), new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
@@ -120,7 +120,7 @@ func TestSystemModule_Peers(t *testing.T) {
 	require.Equal(t, SystemPeersResponse{}, sysPeerRes)
 }
 
-func TestSystemModule_TestNodeRoles(t *testing.T) {
+func TestSystemModule_NodeRolesTest(t *testing.T) {
 	mockNetworkAPI1 := new(apimocks.NetworkAPI)
 	mockNetworkAPI1.On("NodeRoles").Return(byte(1), nil)
 
