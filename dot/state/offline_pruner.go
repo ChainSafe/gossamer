@@ -76,8 +76,19 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retain
 }
 
 // SetBloomFilter loads keys with storage prefix of last `retainBlockNum` blocks into the bloom filter
-func (p *OfflinePruner) SetBloomFilter() error {
-	defer p.inputDB.Close() // nolint: errcheck
+func (p *OfflinePruner) SetBloomFilter() (err error) {
+	defer func() {
+		closeErr := p.inputDB.Close()
+		switch {
+		case closeErr == nil:
+			return
+		case err == nil:
+			err = fmt.Errorf("cannot close input database: %w", closeErr)
+		default:
+			logger.Errorf("cannot close input database: %s", err)
+		}
+	}()
+
 	finalisedHash, err := p.blockState.GetHighestFinalisedHash()
 	if err != nil {
 		return fmt.Errorf("failed to get highest finalised hash: %w", err)
@@ -135,13 +146,33 @@ func (p *OfflinePruner) Prune() error {
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)
 	}
-	defer inputDB.Close() // nolint: errcheck
+	defer func() {
+		closeErr := inputDB.Close()
+		switch {
+		case closeErr == nil:
+			return
+		case err == nil:
+			err = fmt.Errorf("cannot close input database: %w", closeErr)
+		default:
+			logger.Errorf("cannot close input database: %s", err)
+		}
+	}()
 
 	prunedDB, err := utils.LoadBadgerDB(p.prunedDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)
 	}
-	defer prunedDB.Close() // nolint: errcheck
+	defer func() {
+		closeErr := prunedDB.Close()
+		switch {
+		case closeErr == nil:
+			return
+		case err == nil:
+			err = fmt.Errorf("cannot close pruned database: %w", closeErr)
+		default:
+			logger.Errorf("cannot close pruned database: %s", err)
+		}
+	}()
 
 	writer := prunedDB.NewStreamWriter()
 	if err = writer.Prepare(); err != nil {

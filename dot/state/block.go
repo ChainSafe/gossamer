@@ -611,7 +611,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
 
 	if !codeSubBlockHash.Equal(common.Hash{}) {
-		newVersion, err := rt.CheckRuntimeVersion(code) //nolint
+		newVersion, err := rt.CheckRuntimeVersion(code)
 		if err != nil {
 			return err
 		}

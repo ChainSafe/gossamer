@@ -41,7 +41,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 	block, err := builder.buildBlock(parent, slot, rt)
 
 	// is necessary to enable ethmetrics to be possible register values
-	ethmetrics.Enabled = true //nolint
+	ethmetrics.Enabled = true
 
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
@@ -55,7 +55,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 	return block, nil
 }
 
-// nolint
+// BlockBuilder builds blocks.
 type BlockBuilder struct {
 	keypair               *sr25519.Keypair
 	transactionState      TransactionState
@@ -64,7 +64,7 @@ type BlockBuilder struct {
 	currentAuthorityIndex uint32
 }
 
-// nolint
+// NewBlockBuilder creates a new block builder.
 func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp map[uint64]*VrfOutputAndProof, authidx uint32) (*BlockBuilder, error) {
 	if ts == nil {
 		return nil, errors.New("cannot create block builder; transaction state is nil")

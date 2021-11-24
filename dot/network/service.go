@@ -94,7 +94,7 @@ type Service struct {
 
 // NewService creates a new network service from the configuration and message channels
 func NewService(cfg *Config) (*Service, error) {
-	ctx, cancel := context.WithCancel(context.Background()) //nolint
+	ctx, cancel := context.WithCancel(context.Background())
 
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 	cfg.logger = logger
@@ -103,7 +103,7 @@ func NewService(cfg *Config) (*Service, error) {
 	err := cfg.build()
 	if err != nil {
 		cancel()
-		return nil, err //nolint
+		return nil, err
 	}
 
 	if cfg.MinPeers == 0 {
@@ -132,8 +132,8 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	// pre-allocate pool of buffers used to read from streams.
-	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
-	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
+	// initially allocate as many buffers as likely necessary which is the number of inbound streams we will have,
+	// which should equal the average number of peers times the number of notifications protocols, which is currently 3.
 	preAllocateInPool := cfg.MinPeers * 3
 	poolSize := cfg.MaxPeers * 3
 	if cfg.noPreAllocate { // testing
@@ -407,17 +407,17 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		bestHash := best.Hash()
 
-		finalized, err := s.blockState.GetHighestFinalisedHeader() //nolint
+		finalised, err := s.blockState.GetHighestFinalisedHeader()
 		if err != nil {
 			continue
 		}
-		finalizedHash := finalized.Hash()
+		finalizedHash := finalised.Hash()
 
 		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
 			&bestHash,
 			best.Number,
 			&finalizedHash,
-			finalized.Number,
+			finalised.Number,
 			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))

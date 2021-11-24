@@ -120,7 +120,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.CodeSubstitutes == nil {
 		cfg.CodeSubstitutes = make(map[common.Hash]string)
 
-		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData() //nolint
+		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData()
 		require.NoError(t, err)
 
 		for k, v := range genesisData.CodeSubstitutes {

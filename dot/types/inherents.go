@@ -13,10 +13,12 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-//nolint
 var (
+	// Timstap0 is an inherent key.
 	Timstap0 = []byte("timstap0")
+	// Babeslot is an inherent key.
 	Babeslot = []byte("babeslot")
+	// Uncles00 is an inherent key.
 	Uncles00 = []byte("uncles00")
 )
 

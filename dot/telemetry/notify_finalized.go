@@ -7,9 +7,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-//nolint
 // notifyFinalizedTM holds `notify.finalized` telemetry message, which is
-// supposed to be send when a new block gets finalized.
+// supposed to be send when a new block gets finalised.
 type notifyFinalizedTM struct {
 	Best common.Hash `json:"best"`
 	// Height is same as block.Header.Number
