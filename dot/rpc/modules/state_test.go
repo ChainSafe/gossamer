@@ -90,7 +90,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StatePairResponse
 	}{
 		{
@@ -102,7 +102,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStateRootFromBlock Err"),
+			expErr:  errors.New("GetStateRootFromBlock Err"),
 		},
 		{
 			name:   "Nil Prefix OK",
@@ -122,9 +122,9 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Bhash: &hash,
 				},
 			},
-			exp: []interface{}{},
+			exp:     []interface{}{},
 			wantErr: true,
-			err:     errors.New("entries Err"),
+			expErr:  errors.New("entries Err"),
 		},
 		{
 			name:   "OK Case",
@@ -147,7 +147,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetKeysWithPrefix Err"),
+			expErr:  errors.New("GetKeysWithPrefix Err"),
 		},
 		{
 			name:   "GetStorage Error",
@@ -158,9 +158,9 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Bhash:  &hash,
 				},
 			},
-			exp: StatePairResponse{interface{}(nil), interface{}(nil)},
+			exp:     StatePairResponse{interface{}(nil), interface{}(nil)},
 			wantErr: true,
-			err:     errors.New("GetStorage Err"),
+			expErr:  errors.New("GetStorage Err"),
 		},
 		{
 			name:   "GetKeysWithPrefix Empty",
@@ -185,7 +185,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 			err := sm.GetPairs(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -219,7 +219,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StateStorageKeysResponse
 	}{
 		{
@@ -252,7 +252,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("cannot get keys with prefix : GetKeysWithPrefix Err"),
+			expErr:  errors.New("cannot get keys with prefix : GetKeysWithPrefix Err"),
 		},
 		{
 			name:   "Request Prefix Error",
@@ -264,7 +264,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("invalid string"),
+			expErr:  errors.New("invalid string"),
 		},
 	}
 	for _, tt := range tests {
@@ -278,7 +278,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 			err := sm.GetKeysPaged(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -326,7 +326,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StateMetadataResponse
 	}{
 		{
@@ -344,7 +344,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 				req: &StateRuntimeMetadataQuery{Bhash: &hash},
 			},
 			wantErr: true,
-			err:     errors.New("GetMetadata Error"),
+			expErr:  errors.New("GetMetadata Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -358,7 +358,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 			err := sm.GetMetadata(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -399,7 +399,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StateGetReadProofResponse
 	}{
 		{
@@ -426,7 +426,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetReadProofAt Error"),
+			expErr:  errors.New("GetReadProofAt Error"),
 		},
 		{
 			name:   "InvalidKeys Error",
@@ -438,7 +438,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetReadProofAt Error"),
+			expErr:  errors.New("GetReadProofAt Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -452,7 +452,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 			err := sm.GetReadProof(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -498,7 +498,7 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StateRuntimeVersionResponse
 	}{
 		{
@@ -523,7 +523,7 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 				req: &StateRuntimeVersionRequest{&hash},
 			},
 			wantErr: true,
-			err:     errors.New("GetRuntimeVersion Error"),
+			expErr:  errors.New("GetRuntimeVersion Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -537,7 +537,7 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 			err := sm.GetRuntimeVersion(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -573,7 +573,7 @@ func TestStateModuleGetStorage(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StateStorageResponse
 	}{
 		{
@@ -607,7 +607,7 @@ func TestStateModuleGetStorage(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorageByBlockHash Error"),
+			expErr:  errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
@@ -618,7 +618,7 @@ func TestStateModuleGetStorage(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorage Error"),
+			expErr:  errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -632,7 +632,7 @@ func TestStateModuleGetStorage(t *testing.T) {
 			err := sm.GetStorage(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -668,7 +668,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StateStorageHashResponse
 	}{
 		{
@@ -702,7 +702,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorageByBlockHash Error"),
+			expErr:  errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
@@ -713,7 +713,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorage Error"),
+			expErr:  errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -727,7 +727,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 			err := sm.GetStorageHash(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -763,7 +763,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StateStorageSizeResponse
 	}{
 		{
@@ -797,7 +797,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorageByBlockHash Error"),
+			expErr:  errors.New("GetStorageByBlockHash Error"),
 		},
 		{
 			name:   "bHash Nil Err",
@@ -808,7 +808,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorage Error"),
+			expErr:  errors.New("GetStorage Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -822,7 +822,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 			err := sm.GetStorageSize(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -865,7 +865,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     []StorageChangeSetResponse
 	}{
 		{
@@ -890,9 +890,9 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					EndBlock:   hash2,
 				},
 			},
-			exp: []StorageChangeSetResponse{},
+			exp:     []StorageChangeSetResponse{},
 			wantErr: true,
-			err:     errors.New("QueryStorage Error"),
+			expErr:  errors.New("QueryStorage Error"),
 		},
 		{
 			name:   "Empty Start Block Error",
@@ -903,9 +903,9 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					EndBlock: hash2,
 				},
 			},
-			exp: []StorageChangeSetResponse{},
+			exp:     []StorageChangeSetResponse{},
 			wantErr: true,
-			err:     errors.New("the start block hash cannot be an empty value"),
+			expErr:  errors.New("the start block hash cannot be an empty value"),
 		},
 	}
 	for _, tt := range tests {
@@ -919,7 +919,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			err := sm.QueryStorage(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

@@ -34,28 +34,6 @@ func TestChainModule_GetBlock(t *testing.T) {
 	mockBlockAPIWithBody := new(apimocks.BlockAPI)
 	mockBlockAPIWithBody.On("GetBlockByHash", inputHash).Return(&bodyBlock, nil)
 
-	expEmptyBlock := ChainBlockResponse{Block: ChainBlock{
-		Header: ChainBlockHeaderResponse{
-			ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
-			Number:         "0x00",
-			StateRoot:      "0x0000000000000000000000000000000000000000000000000000000000000000",
-			ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
-			Digest:         ChainBlockHeaderDigest{},
-		},
-		Body: nil,
-	}}
-
-	expBlock := ChainBlockResponse{Block: ChainBlock{
-		Header: ChainBlockHeaderResponse{
-			ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
-			Number:         "0x00",
-			StateRoot:      "0x0000000000000000000000000000000000000000000000000000000000000000",
-			ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
-			Digest:         ChainBlockHeaderDigest{},
-		},
-		Body: []string{"0x0401"},
-	}}
-
 	chainModule := NewChainModule(mockBlockAPI)
 	type fields struct {
 		blockAPI BlockAPI
@@ -71,7 +49,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 		args    args
 		exp     ChainBlockResponse
 		wantErr bool
-		err     error
+		expErr  error
 	}{
 		{
 			name: "GetBlock OK",
@@ -81,7 +59,16 @@ func TestChainModule_GetBlock(t *testing.T) {
 			args: args{
 				req: &ChainHashRequest{},
 			},
-			exp: expEmptyBlock,
+			exp: ChainBlockResponse{Block: ChainBlock{
+				Header: ChainBlockHeaderResponse{
+					ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
+					Number:         "0x00",
+					StateRoot:      "0x0000000000000000000000000000000000000000000000000000000000000000",
+					ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
+					Digest:         ChainBlockHeaderDigest{},
+				},
+				Body: nil,
+			}},
 		},
 		{
 			name: "GetBlockByHash Err",
@@ -92,7 +79,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 				req: &ChainHashRequest{&testHash},
 			},
 			wantErr: true,
-			err:     errors.New("GetJustification error"),
+			expErr:  errors.New("GetJustification error"),
 		},
 		{
 			name: "GetBlock with body OK",
@@ -102,7 +89,16 @@ func TestChainModule_GetBlock(t *testing.T) {
 			args: args{
 				req: &ChainHashRequest{&testHash},
 			},
-			exp: expBlock,
+			exp: ChainBlockResponse{Block: ChainBlock{
+				Header: ChainBlockHeaderResponse{
+					ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
+					Number:         "0x00",
+					StateRoot:      "0x0000000000000000000000000000000000000000000000000000000000000000",
+					ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
+					Digest:         ChainBlockHeaderDigest{},
+				},
+				Body: []string{"0x0401"},
+			}},
 		},
 	}
 	for _, tt := range tests {
@@ -114,7 +110,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 			err := cm.GetBlock(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -149,7 +145,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     ChainHashResponse
 	}{
 		{
@@ -192,7 +188,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			},
 			exp:     []string(nil),
 			wantErr: true,
-			err:     errors.New("unknown request number type: uintptr"),
+			expErr:  errors.New("unknown request number type: uintptr"),
 		},
 		{
 			name: "GetBlockHash string slice req err",
@@ -204,7 +200,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			},
 			exp:     []string(nil),
 			wantErr: true,
-			err:     errors.New("error setting number from string"),
+			expErr:  errors.New("error setting number from string"),
 		},
 		{
 			name: "GetBlockHash string req Err",
@@ -216,7 +212,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			},
 			exp:     []string(nil),
 			wantErr: true,
-			err:     errors.New("GetBlockHash Error"),
+			expErr:  errors.New("GetBlockHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -228,7 +224,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			err := cm.GetBlockHash(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -259,7 +255,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     ChainHashResponse
 	}{
 		{
@@ -281,7 +277,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 				req: &EmptyRequest{},
 			},
 			wantErr: true,
-			err:     errors.New("GetHighestFinalisedHash Error"),
+			expErr:  errors.New("GetHighestFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -293,7 +289,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			err := cm.GetFinalizedHead(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -324,7 +320,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     ChainHashResponse
 	}{
 		{
@@ -352,7 +348,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetFinalisedHash Error"),
+			expErr:  errors.New("GetFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -364,7 +360,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 			err := cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -401,7 +397,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     ChainBlockHeaderResponse
 	}{
 		{
@@ -423,7 +419,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 				req: &ChainHashRequest{&testHash},
 			},
 			wantErr: true,
-			err:     errors.New("GetFinalisedHash Error"),
+			expErr:  errors.New("GetFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -435,7 +431,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 			err := cm.GetHeader(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

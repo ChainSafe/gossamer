@@ -64,7 +64,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     PaymentQueryInfoResponse
 	}{
 		{
@@ -108,7 +108,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("cannot decode an odd length string"),
+			expErr:  errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "Invalid Ext",
@@ -134,7 +134,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("PaymentQueryInfo error"),
+			expErr:  errors.New("PaymentQueryInfo error"),
 		},
 		{
 			name: "GetRuntime error",
@@ -148,7 +148,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetRuntime error"),
+			expErr:  errors.New("GetRuntime error"),
 		},
 	}
 	for _, tt := range tests {
@@ -160,7 +160,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			err := p.QueryInfo(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

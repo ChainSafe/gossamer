@@ -56,7 +56,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     ProveFinalityResponse
 	}{
 		{
@@ -73,7 +73,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("SubChain error"),
+			expErr:  errors.New("SubChain error"),
 		},
 		{
 			name: "OK Case",
@@ -131,7 +131,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			err := gm.ProveFinality(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -167,38 +167,6 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 	})
 
-	expRes := RoundStateResponse{
-		SetID: 0x0,
-		Best: RoundState{
-			Round:           0x2,
-			TotalWeight:     0x9,
-			ThresholdWeight: 0x6,
-			Prevotes: Votes{
-				CurrentWeight: 0x4,
-				Missing: []string{
-					"5G64P3LJTK28dDVGNSzSHp4mfZyKqdzxgeZ1cULRoxMdt8m1",
-					"5D7QrtMByWQpi8EtqkH1sPDBCVZvoH6G1vY5mknQiCC3ZVQM",
-					"5FdsD3mYg5gzh1Uj4FxyeHqMTpaAVd3gDNmcuKypBzRGGMQH",
-					"5DqDws3YxzL8r741gw33jdbohzAESRR9qGCGg6GAZ3Qw5fYX",
-					"5FYrfAUUzuahCL2swxoPXc846dKrWuD2nwzrKc1oEfWBS6RL",
-				},
-			},
-			Precommits: Votes{
-				CurrentWeight: 0x2,
-				Missing: []string{
-					"5DYo8CvjQcBQFdehVhansDiZCPebpgqvNC8PQPi6K9cL9giT",
-					"5EtkA16QN4DED9vrxb4LnmytCFBhm6qJ5pw6FkoaiRtsPeuG",
-					"5G64P3LJTK28dDVGNSzSHp4mfZyKqdzxgeZ1cULRoxMdt8m1",
-					"5D7QrtMByWQpi8EtqkH1sPDBCVZvoH6G1vY5mknQiCC3ZVQM",
-					"5FdsD3mYg5gzh1Uj4FxyeHqMTpaAVd3gDNmcuKypBzRGGMQH",
-					"5DqDws3YxzL8r741gw33jdbohzAESRR9qGCGg6GAZ3Qw5fYX",
-					"5FYrfAUUzuahCL2swxoPXc846dKrWuD2nwzrKc1oEfWBS6RL",
-				},
-			},
-		},
-		Background: []RoundState{},
-	}
-
 	type fields struct {
 		blockAPI         BlockAPI
 		blockFinalityAPI BlockFinalityAPI
@@ -213,7 +181,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     RoundStateResponse
 	}{
 		{
@@ -225,7 +193,37 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			exp: expRes,
+			exp: RoundStateResponse{
+				SetID: 0x0,
+				Best: RoundState{
+					Round:           0x2,
+					TotalWeight:     0x9,
+					ThresholdWeight: 0x6,
+					Prevotes: Votes{
+						CurrentWeight: 0x4,
+						Missing: []string{
+							"5G64P3LJTK28dDVGNSzSHp4mfZyKqdzxgeZ1cULRoxMdt8m1",
+							"5D7QrtMByWQpi8EtqkH1sPDBCVZvoH6G1vY5mknQiCC3ZVQM",
+							"5FdsD3mYg5gzh1Uj4FxyeHqMTpaAVd3gDNmcuKypBzRGGMQH",
+							"5DqDws3YxzL8r741gw33jdbohzAESRR9qGCGg6GAZ3Qw5fYX",
+							"5FYrfAUUzuahCL2swxoPXc846dKrWuD2nwzrKc1oEfWBS6RL",
+						},
+					},
+					Precommits: Votes{
+						CurrentWeight: 0x2,
+						Missing: []string{
+							"5DYo8CvjQcBQFdehVhansDiZCPebpgqvNC8PQPi6K9cL9giT",
+							"5EtkA16QN4DED9vrxb4LnmytCFBhm6qJ5pw6FkoaiRtsPeuG",
+							"5G64P3LJTK28dDVGNSzSHp4mfZyKqdzxgeZ1cULRoxMdt8m1",
+							"5D7QrtMByWQpi8EtqkH1sPDBCVZvoH6G1vY5mknQiCC3ZVQM",
+							"5FdsD3mYg5gzh1Uj4FxyeHqMTpaAVd3gDNmcuKypBzRGGMQH",
+							"5DqDws3YxzL8r741gw33jdbohzAESRR9qGCGg6GAZ3Qw5fYX",
+							"5FYrfAUUzuahCL2swxoPXc846dKrWuD2nwzrKc1oEfWBS6RL",
+						},
+					},
+				},
+				Background: []RoundState{},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -238,7 +236,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 			err := gm.RoundState(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

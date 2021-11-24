@@ -38,7 +38,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     genesis.Genesis
 	}{
 		{
@@ -64,7 +64,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GenSyncSpec error"),
+			expErr:  errors.New("GenSyncSpec error"),
 		},
 	}
 	for _, tt := range tests {
@@ -76,7 +76,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 			err := ss.GenSyncSpec(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -103,7 +103,7 @@ func TestNewStateSync(t *testing.T) {
 		name    string
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     SyncStateAPI
 	}{
 		{
@@ -131,7 +131,7 @@ func TestNewStateSync(t *testing.T) {
 				storageAPI: mockStorageAPIErr,
 			},
 			wantErr: true,
-			err:     errors.New("entries error"),
+			expErr:  errors.New("entries error"),
 		},
 	}
 	for _, tt := range tests {
@@ -139,7 +139,7 @@ func TestNewStateSync(t *testing.T) {
 			res, err := NewStateSync(tt.args.gData, tt.args.storageAPI)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -160,7 +160,7 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     genesis.Genesis
 	}{
 		{
@@ -185,7 +185,7 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 			res, err := s.GenSyncSpec(tt.args.raw)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

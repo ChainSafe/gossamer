@@ -78,7 +78,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     []string
 	}{
 		{
@@ -119,9 +119,9 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Hash: &common.Hash{},
 				},
 			},
-			exp: []string{},
+			exp:     []string{},
 			wantErr: true,
-			err:     errors.New("GetStorageChild error"),
+			expErr:  errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -134,9 +134,9 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Key: []byte(":child_storage_key"),
 				},
 			},
-			exp: []string{},
+			exp:     []string{},
 			wantErr: true,
-			err:     errors.New("GetStateRootFromBlock error"),
+			expErr:  errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -149,7 +149,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			err := cs.GetKeys(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -193,7 +193,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     uint64
 	}{
 		{
@@ -237,7 +237,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorageChild error"),
+			expErr:  errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -251,7 +251,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStateRootFromBlock error"),
+			expErr:  errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -264,7 +264,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 			err := cs.GetStorageSize(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -308,7 +308,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     string
 	}{
 		{
@@ -352,7 +352,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorageChild error"),
+			expErr:  errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -366,7 +366,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStateRootFromBlock error"),
+			expErr:  errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -379,7 +379,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 			err := cs.GetStorageHash(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -423,7 +423,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StateStorageResponse
 	}{
 		{
@@ -467,7 +467,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStorageChild error"),
+			expErr:  errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -481,7 +481,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetStateRootFromBlock error"),
+			expErr:  errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -494,7 +494,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 			err := cs.GetStorage(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

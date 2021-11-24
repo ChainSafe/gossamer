@@ -167,7 +167,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr     error
 		wantRes ExtrinsicHashResponse
 	}{
 		{
@@ -176,7 +176,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				req: &Extrinsic{fmt.Sprintf("%x", "1")},
 			},
 			wantErr: true,
-			err:     fmt.Errorf("could not byteify non 0x prefixed string"),
+			expErr:     fmt.Errorf("could not byteify non 0x prefixed string"),
 			wantRes: ExtrinsicHashResponse(""),
 		},
 		{
@@ -189,7 +189,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				req: &Extrinsic{fmt.Sprintf("0x%x", testInvalidExt)},
 			},
 			wantErr: true,
-			err:     fmt.Errorf("some error"),
+			expErr:     fmt.Errorf("some error"),
 			wantRes: ExtrinsicHashResponse(types.Extrinsic(testInvalidExt).Hash().String()),
 		},
 		{
@@ -215,7 +215,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			err := am.SubmitExtrinsic(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -253,7 +253,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		wantRes PendingExtrinsicsResponse
 	}{
 		{
@@ -287,7 +287,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 			err := cm.PendingExtrinsics(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -333,7 +333,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 	}{
 		{
 			name: "happy path",
@@ -376,7 +376,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("generated public key does not equal provide public key"),
+			expErr:  errors.New("generated public key does not equal provide public key"),
 		},
 		{
 			name: "unknown key",
@@ -392,7 +392,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("cannot decode key: invalid key type"),
+			expErr:  errors.New("cannot decode key: invalid key type"),
 		},
 	}
 	for _, tt := range tests {
@@ -405,7 +405,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 			err := am.InsertKey(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -441,7 +441,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		wantRes bool
 	}{
 		{
@@ -474,7 +474,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 			},
 			wantRes: false,
 			wantErr: true,
-			err:     fmt.Errorf("some error"),
+			expErr:  fmt.Errorf("some error"),
 		},
 	}
 	for _, tt := range tests {
@@ -488,7 +488,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 			err := cm.HasKey(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

@@ -35,7 +35,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     StringResponse
 	}{
 		{
@@ -50,7 +50,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetPersistent error"),
+			expErr:  errors.New("GetPersistent error"),
 		},
 		{
 			name: "Invalid Storage Kind",
@@ -64,7 +64,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     fmt.Errorf("storage kind not found: invalid kind"),
+			expErr:  fmt.Errorf("storage kind not found: invalid kind"),
 		},
 		{
 			name: "GetLocal OK",
@@ -91,7 +91,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("cannot decode an odd length string"),
+			expErr:  errors.New("cannot decode an odd length string"),
 		},
 	}
 	for _, tt := range tests {
@@ -103,7 +103,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			err := s.LocalStorageGet(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -130,7 +130,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 	}{
 		{
 			name: "setLocal OK",
@@ -158,7 +158,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("cannot decode an odd length string"),
+			expErr:  errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "Invalid Value",
@@ -173,7 +173,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("cannot decode an odd length string"),
+			expErr:  errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "setPersistentError",
@@ -188,7 +188,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("SetPersistent error"),
+			expErr:  errors.New("SetPersistent error"),
 		},
 		{
 			name: "Invalid Kind",
@@ -203,7 +203,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     fmt.Errorf("storage kind not found: bad kind"),
+			expErr:  fmt.Errorf("storage kind not found: bad kind"),
 		},
 	}
 	for _, tt := range tests {
@@ -215,7 +215,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			err := s.LocalStorageSet(tt.args.in0, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

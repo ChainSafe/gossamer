@@ -72,7 +72,7 @@ func TestDevModule_EpochLength(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     string
 	}{
 		{
@@ -97,7 +97,7 @@ func TestDevModule_EpochLength(t *testing.T) {
 			err := m.EpochLength(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -124,7 +124,7 @@ func TestDevModule_SlotDuration(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     string
 	}{
 		{
@@ -149,7 +149,7 @@ func TestDevModule_SlotDuration(t *testing.T) {
 			err := m.SlotDuration(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -190,7 +190,7 @@ func TestDevModule_Control(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		err     error
+		expErr  error
 		exp     string
 	}{
 		{
@@ -203,7 +203,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "stop"},
 			},
 			wantErr: true,
-			err:     errors.New("not a block producer"),
+			expErr:  errors.New("not a block producer"),
 		},
 		{
 			name: "Babe Stop Error",
@@ -214,9 +214,9 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "stop"},
 			},
-			exp: "babe service stopped",
+			exp:     "babe service stopped",
 			wantErr: true,
-			err:     errors.New("babe pause error"),
+			expErr:  errors.New("babe pause error"),
 		},
 		{
 			name: "Babe Stop OK",
@@ -238,9 +238,9 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "start"},
 			},
-			exp: "babe service started",
+			exp:     "babe service started",
 			wantErr: true,
-			err:     errors.New("babe resume error"),
+			expErr:  errors.New("babe resume error"),
 		},
 		{
 			name: "Babe Start OK",
@@ -262,9 +262,9 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"network", "stop"},
 			},
-			exp: "network service stopped",
+			exp:     "network service stopped",
 			wantErr: true,
-			err:     errors.New("network stop error"),
+			expErr:  errors.New("network stop error"),
 		},
 		{
 			name: "Network Stop OK",
@@ -286,9 +286,9 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"network", "start"},
 			},
-			exp: "network service started",
+			exp:     "network service started",
 			wantErr: true,
-			err:     errors.New("network start error"),
+			expErr:  errors.New("network start error"),
 		},
 		{
 			name: "Network Start OK",
@@ -312,7 +312,7 @@ func TestDevModule_Control(t *testing.T) {
 			err := m.Control(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
