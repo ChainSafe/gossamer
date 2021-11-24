@@ -19,7 +19,6 @@ package telemetry
 // afgAuthoritySetTM is a telemetry message of type `afg.authority_set` which is
 // meant to be sent when authority set changes (generally when a round is initiated)
 type afgAuthoritySetTM struct {
-	//nolint
 	// finalized hash and finalized number are sent by substrate, but not read by
 	// substrate telemetry
 	// FinalizedHash   *common.Hash `json:"hash"`

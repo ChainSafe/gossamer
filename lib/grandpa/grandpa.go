@@ -252,6 +252,8 @@ func (s *Service) updateAuthorities() error {
 	s.state.setID = currSetID
 	s.state.round = 0 // round resets to 1 after a set ID change, setting to 0 before incrementing indicates the setID has been increased
 
+	s.sendTelemetryAuthoritySet()
+
 	return nil
 }
 
@@ -290,8 +292,6 @@ func (s *Service) initiateRound() error {
 	if err != nil {
 		return err
 	}
-
-	s.sendTelemetryAuthoritySet()
 
 	round, setID, err := s.blockState.GetHighestRoundAndSetID()
 	if err != nil {
