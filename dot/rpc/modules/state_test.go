@@ -122,6 +122,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Bhash: &hash,
 				},
 			},
+			exp: []interface{}{},
 			wantErr: true,
 			err:     errors.New("entries Err"),
 		},
@@ -157,6 +158,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Bhash:  &hash,
 				},
 			},
+			exp: StatePairResponse{interface{}(nil), interface{}(nil)},
 			wantErr: true,
 			err:     errors.New("GetStorage Err"),
 		},
@@ -186,8 +188,8 @@ func TestStateModuleGetPairs(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.ElementsMatch(t, tt.exp, tt.args.res)
 			}
+			assert.ElementsMatch(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -279,8 +281,8 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -359,8 +361,8 @@ func TestStateModuleGetMetadata(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -453,8 +455,8 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -538,8 +540,8 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -633,8 +635,8 @@ func TestStateModuleGetStorage(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -728,8 +730,8 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -823,8 +825,8 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -888,6 +890,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					EndBlock:   hash2,
 				},
 			},
+			exp: []StorageChangeSetResponse{},
 			wantErr: true,
 			err:     errors.New("QueryStorage Error"),
 		},
@@ -900,6 +903,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					EndBlock: hash2,
 				},
 			},
+			exp: []StorageChangeSetResponse{},
 			wantErr: true,
 			err:     errors.New("the start block hash cannot be an empty value"),
 		},
@@ -918,8 +922,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }

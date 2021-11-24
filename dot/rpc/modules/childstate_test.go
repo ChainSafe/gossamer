@@ -119,6 +119,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Hash: &common.Hash{},
 				},
 			},
+			exp: []string{},
 			wantErr: true,
 			err:     errors.New("GetStorageChild error"),
 		},
@@ -133,6 +134,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Key: []byte(":child_storage_key"),
 				},
 			},
+			exp: []string{},
 			wantErr: true,
 			err:     errors.New("GetStateRootFromBlock error"),
 		},
@@ -150,8 +152,8 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -265,8 +267,8 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -380,8 +382,8 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -495,8 +497,8 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }

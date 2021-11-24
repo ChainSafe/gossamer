@@ -117,8 +117,8 @@ func TestChainModule_GetBlock(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -190,6 +190,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			args: args{
 				req: &ChainBlockNumberRequest{uintptr(1)},
 			},
+			exp:     []string(nil),
 			wantErr: true,
 			err:     errors.New("unknown request number type: uintptr"),
 		},
@@ -201,6 +202,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			args: args{
 				req: &ChainBlockNumberRequest{i},
 			},
+			exp:     []string(nil),
 			wantErr: true,
 			err:     errors.New("error setting number from string"),
 		},
@@ -212,6 +214,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			args: args{
 				req: &ChainBlockNumberRequest{"21"},
 			},
+			exp:     []string(nil),
 			wantErr: true,
 			err:     errors.New("GetBlockHash Error"),
 		},
@@ -228,8 +231,8 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -293,8 +296,8 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -364,8 +367,8 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -435,8 +438,8 @@ func TestChainModule_GetHeader(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }

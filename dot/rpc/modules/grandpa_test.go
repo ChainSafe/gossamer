@@ -134,8 +134,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -241,8 +241,8 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }

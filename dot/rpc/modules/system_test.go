@@ -166,8 +166,8 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -289,8 +289,8 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -369,8 +369,8 @@ func TestSystemModule_SyncState(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -426,6 +426,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
+			exp: []string{},
 			wantErr: true,
 			err:     errors.New("multiaddress list is empty"),
 		},
@@ -447,8 +448,8 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -525,8 +526,8 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -603,8 +604,8 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -681,8 +682,8 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }

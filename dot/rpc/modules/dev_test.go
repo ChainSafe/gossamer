@@ -100,8 +100,8 @@ func TestDevModule_EpochLength(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -152,8 +152,8 @@ func TestDevModule_SlotDuration(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -214,6 +214,7 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "stop"},
 			},
+			exp: "babe service stopped",
 			wantErr: true,
 			err:     errors.New("babe pause error"),
 		},
@@ -237,6 +238,7 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "start"},
 			},
+			exp: "babe service started",
 			wantErr: true,
 			err:     errors.New("babe resume error"),
 		},
@@ -260,6 +262,7 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"network", "stop"},
 			},
+			exp: "network service stopped",
 			wantErr: true,
 			err:     errors.New("network stop error"),
 		},
@@ -283,6 +286,7 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"network", "start"},
 			},
+			exp: "network service started",
 			wantErr: true,
 			err:     errors.New("network start error"),
 		},
@@ -311,8 +315,8 @@ func TestDevModule_Control(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }

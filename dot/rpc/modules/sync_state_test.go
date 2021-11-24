@@ -79,8 +79,8 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, tt.args.res)
 			}
+			assert.Equal(t, tt.exp, tt.args.res)
 		})
 	}
 }
@@ -142,8 +142,8 @@ func TestNewStateSync(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, res)
 			}
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -188,8 +188,8 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.exp, *res)
 			}
+			assert.Equal(t, tt.exp, *res)
 		})
 	}
 }
