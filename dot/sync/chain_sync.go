@@ -195,7 +195,7 @@ func (cs *chainSync) start() {
 
 	pendingBlockDoneCh := make(chan struct{})
 	cs.pendingBlockDoneCh = pendingBlockDoneCh
-	go cs.pendingBlocks.start(cs.ctx, pendingBlockDoneCh)
+	go cs.pendingBlocks.run(cs.ctx, pendingBlockDoneCh)
 	go cs.sync()
 	go cs.logSyncSpeed()
 }
