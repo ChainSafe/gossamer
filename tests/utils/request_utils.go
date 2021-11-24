@@ -121,7 +121,7 @@ func DecodeWebsocket(t *testing.T, body []byte, target interface{}) error {
 }
 
 // DecodeRPC_NT will decode []body into target interface (NT is Not Test testing required)
-func DecodeRPC_NT(body []byte, target interface{}) error {
+func DecodeRPC_NT(body []byte, target interface{}) error { //nolint:revive
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 

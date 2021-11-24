@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"math/rand"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -1263,4 +1264,160 @@ func TestFinalRoundGaugeMetric(t *testing.T) {
 	time.Sleep(metrics.RefreshInterval + time.Second)
 	gauge := ethmetrics.GetOrRegisterGauge(finalityGrandpaRoundMetrics, nil)
 	require.Equal(t, gauge.Value(), int64(180))
+}
+
+func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testing.T) {
+	// setup granpda service
+	gs, st := newTestService(t)
+	now := time.Unix(1000, 0)
+
+	const previousBlocksToAdd = 9
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, now)
+
+	bfcHash := bfcBlock.Header.Hash()
+	bfcNumber := bfcBlock.Header.Number.Int64()
+
+	// create fake authorities
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),  // equivocatory
+		ed25519Keyring.Dave().(*ed25519.Keypair), // equivocatory
+	}
+
+	equivocatories := make(map[ed25519.PublicKeyBytes][]*types.GrandpaSignedVote)
+	prevotes := &sync.Map{}
+
+	var totalLegitVotes int
+	// voting on
+	for _, v := range fakeAuthorities {
+		vote := &SignedVote{
+			AuthorityID: v.Public().(*ed25519.PublicKey).AsBytes(),
+			Vote: types.GrandpaVote{
+				Hash:   bfcHash,
+				Number: uint32(bfcNumber),
+			},
+		}
+
+		// to simulate the real world:
+		// if the voter already has voted, then we remove
+		// previous vote and add it on the equivocatories with the new vote
+		previous, ok := prevotes.Load(vote.AuthorityID)
+		if !ok {
+			prevotes.Store(vote.AuthorityID, vote)
+			totalLegitVotes++
+		} else {
+			prevotes.Delete(vote.AuthorityID)
+			equivocatories[vote.AuthorityID] = []*types.GrandpaSignedVote{
+				previous.(*types.GrandpaSignedVote),
+				vote,
+			}
+			totalLegitVotes--
+		}
+	}
+
+	gs.pvEquivocations = equivocatories
+	gs.prevotes = prevotes
+
+	justifications, err := gs.createJustification(bfcHash, prevote)
+	require.NoError(t, err)
+
+	var totalEqvVotes int
+	// checks if the created justification contains all equivocatories votes
+	for eqvPubKeyBytes, expectedVotes := range equivocatories {
+		votesOnJustification := 0
+
+		for _, justification := range justifications {
+			if justification.AuthorityID == eqvPubKeyBytes {
+				votesOnJustification++
+			}
+		}
+
+		require.Equal(t, len(expectedVotes), votesOnJustification)
+		totalEqvVotes += votesOnJustification
+	}
+
+	require.Len(t, justifications, totalLegitVotes+totalEqvVotes)
+}
+
+// addBlocksToState test helps adding previous blocks
+func addBlocksToState(t *testing.T, blockState *state.BlockState, depth int) {
+	t.Helper()
+
+	previousHash := blockState.BestBlockHash()
+
+	rt, err := blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	head, err := blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	startNum := int(head.Number.Int64())
+
+	for i := startNum + 1; i <= depth; i++ {
+		arrivalTime := time.Now()
+
+		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+		require.NoError(t, err)
+		require.NotNil(t, d)
+		digest := types.NewDigest()
+		err = digest.Add(*d)
+		require.NoError(t, err)
+
+		block := &types.Block{
+			Header: types.Header{
+				ParentHash: previousHash,
+				Number:     big.NewInt(int64(i)),
+				StateRoot:  trie.EmptyHash,
+				Digest:     digest,
+			},
+			Body: types.Body{},
+		}
+
+		hash := block.Header.Hash()
+		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		require.NoError(t, err)
+
+		blockState.StoreRuntime(hash, rt)
+		previousHash = hash
+	}
+}
+
+func addBlocksAndReturnTheLastOne(t *testing.T, blockState *state.BlockState, depth int, lastBlockArrivalTime time.Time) *types.Block {
+	t.Helper()
+	addBlocksToState(t, blockState, depth)
+
+	// create a new fake block to fake authorities commit on
+	previousHash := blockState.BestBlockHash()
+	previousHead, err := blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	bfcNumber := int(previousHead.Number.Int64() + 1)
+
+	d, err := types.NewBabePrimaryPreDigest(0, uint64(bfcNumber), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	digest := types.NewDigest()
+	err = digest.Add(*d)
+	require.NoError(t, err)
+
+	bfcBlock := &types.Block{
+		Header: types.Header{
+			ParentHash: previousHash,
+			Number:     big.NewInt(int64(bfcNumber)),
+			StateRoot:  trie.EmptyHash,
+			Digest:     digest,
+		},
+		Body: types.Body{},
+	}
+
+	err = blockState.AddBlockWithArrivalTime(bfcBlock, lastBlockArrivalTime)
+	require.NoError(t, err)
+
+	return bfcBlock
 }

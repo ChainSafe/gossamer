@@ -39,7 +39,7 @@ type NotificationsMessage interface {
 	IsHandshake() bool
 }
 
-// nolint
+//nolint:revive
 const (
 	RequestedDataHeader        = byte(1)
 	RequestedDataBody          = byte(2)

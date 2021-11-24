@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -136,44 +137,38 @@ func TestBranchEncode(t *testing.T) {
 
 	for i, testKey := range randKeys {
 		b := &branch{key: testKey, children: [16]node{}, value: randVals[i]}
-		expected := []byte{}
+		expected := bytes.NewBuffer(nil)
 
 		header, err := b.header()
 		if err != nil {
 			t.Fatalf("Error when encoding header: %s", err)
 		}
 
-		expected = append(expected, header...)
-		expected = append(expected, nibblesToKeyLE(b.key)...)
-		expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
+		expected.Write(header)
+		expected.Write(nibblesToKeyLE(b.key))
+		expected.Write(common.Uint16ToBytes(b.childrenBitmap()))
 
 		enc, err := scale.Marshal(b.value)
 		if err != nil {
 			t.Fatalf("Fail when encoding value with scale: %s", err)
 		}
 
-		expected = append(expected, enc...)
+		expected.Write(enc)
 
 		for _, child := range b.children {
-			if child != nil {
-				hasher := newHasher(false)
-				defer hasher.returnToPool()
-				encChild, er := hasher.Hash(child)
-				if er != nil {
-					t.Errorf("Fail when encoding branch child: %s", er)
-				}
-				expected = append(expected, encChild[:]...)
+			if child == nil {
+				continue
 			}
+
+			err := hashNode(child, expected)
+			require.NoError(t, err)
 		}
 
-		hasher := newHasher(false)
-		defer hasher.returnToPool()
-		res, err := hasher.encodeBranch(b)
-		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
-		} else if err != nil {
-			t.Errorf("Fail when encoding node: %s", err)
-		}
+		buffer := bytes.NewBuffer(nil)
+		const parallel = false
+		err = encodeBranch(b, buffer, parallel)
+		require.NoError(t, err)
+		assert.Equal(t, expected.Bytes(), buffer.Bytes())
 	}
 }
 
@@ -199,14 +194,10 @@ func TestLeafEncode(t *testing.T) {
 
 		expected = append(expected, enc...)
 
-		hasher := newHasher(false)
-		defer hasher.returnToPool()
-		res, err := hasher.encodeLeaf(l)
-		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
-		} else if err != nil {
-			t.Errorf("Fail when encoding node: %s", err)
-		}
+		buffer := bytes.NewBuffer(nil)
+		err = encodeLeaf(l, buffer)
+		require.NoError(t, err)
+		assert.Equal(t, expected, buffer.Bytes())
 	}
 }
 
@@ -223,12 +214,10 @@ func TestEncodeRoot(t *testing.T) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 
-			hasher := newHasher(false)
-			defer hasher.returnToPool()
-			_, err := hasher.encode(trie.root)
-			if err != nil {
-				t.Errorf("Fail to encode trie root: %s", err)
-			}
+			buffer := bytes.NewBuffer(nil)
+			const parallel = false
+			err := encodeNode(trie.root, buffer, parallel)
+			require.NoError(t, err)
 		}
 	}
 }
@@ -250,18 +239,16 @@ func TestBranchDecode(t *testing.T) {
 		{key: byteArray(573), children: [16]node{}, value: []byte{0x01}},
 	}
 
-	hasher := newHasher(false)
-	defer hasher.returnToPool()
+	buffer := bytes.NewBuffer(nil)
+	const parallel = false
+
 	for _, test := range tests {
-		enc, err := hasher.encodeBranch(test)
+		err := encodeBranch(test, buffer, parallel)
 		require.NoError(t, err)
 
 		res := new(branch)
-		r := &bytes.Buffer{}
-		_, err = r.Write(enc)
-		require.NoError(t, err)
+		err = res.decode(buffer, 0)
 
-		err = res.decode(r, 0)
 		require.NoError(t, err)
 		require.Equal(t, test.key, res.key)
 		require.Equal(t, test.childrenBitmap(), res.childrenBitmap())
@@ -281,18 +268,14 @@ func TestLeafDecode(t *testing.T) {
 		{key: byteArray(573), value: []byte{0x01}, dirty: true},
 	}
 
-	hasher := newHasher(false)
-	defer hasher.returnToPool()
+	buffer := bytes.NewBuffer(nil)
+
 	for _, test := range tests {
-		enc, err := hasher.encodeLeaf(test)
+		err := encodeLeaf(test, buffer)
 		require.NoError(t, err)
 
 		res := new(leaf)
-		r := &bytes.Buffer{}
-		_, err = r.Write(enc)
-		require.NoError(t, err)
-
-		err = res.decode(r, 0)
+		err = res.decode(buffer, 0)
 		require.NoError(t, err)
 
 		res.hash = nil
@@ -320,17 +303,14 @@ func TestDecode(t *testing.T) {
 		&leaf{key: byteArray(573), value: []byte{0x01}},
 	}
 
-	hasher := newHasher(false)
-	defer hasher.returnToPool()
+	buffer := bytes.NewBuffer(nil)
+	const parallel = false
+
 	for _, test := range tests {
-		enc, err := hasher.encode(test)
+		err := encodeNode(test, buffer, parallel)
 		require.NoError(t, err)
 
-		r := &bytes.Buffer{}
-		_, err = r.Write(enc)
-		require.NoError(t, err)
-
-		res, err := decode(r)
+		res, err := decode(buffer)
 		require.NoError(t, err)
 
 		switch n := test.(type) {

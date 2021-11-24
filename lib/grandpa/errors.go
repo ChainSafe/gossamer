@@ -15,7 +15,6 @@ func errRoundMismatch(got, want uint64) error {
 	return fmt.Errorf("rounds do not match: got %d, want %d", got, want)
 }
 
-//nolint
 var (
 	ErrNilBlockState    = errors.New("cannot have nil BlockState")
 	ErrNilGrandpaState  = errors.New("cannot have nil GrandpaState")

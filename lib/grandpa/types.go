@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
-//nolint
+//nolint:revive
 type (
 	Voter      = types.GrandpaVoter
 	Voters     = types.GrandpaVoters
@@ -22,7 +22,6 @@ type (
 // Subround subrounds in a grandpa round
 type Subround byte
 
-//nolint
 var (
 	prevote         Subround
 	precommit       Subround = 1

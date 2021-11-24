@@ -686,7 +686,6 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 		if _, err = reader.Read(buf); err == nil {
 			var arr = [32]byte{}
 			copy(arr[:], buf)
-			//nolint
 			pa, err := bytesToAddress(kt, arr[:])
 			if err != nil {
 				return err

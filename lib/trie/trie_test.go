@@ -51,7 +51,8 @@ func TestCommonPrefix(t *testing.T) {
 	}
 }
 
-var (
+//nolint:revive
+const (
 	PUT          = 0
 	DEL          = 1
 	CLEAR_PREFIX = 2
