@@ -45,22 +45,19 @@ type PublicKey ed25519.PublicKey
 type PublicKeyBytes [PublicKeyLength]byte
 
 // VerifySignature verifies a signature given a public key and a message
-func VerifySignature(publicKey, signature, message []byte) (bool, error) {
+func VerifySignature(publicKey, signature, message []byte) error {
 	pubKey, err := NewPublicKey(publicKey)
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch ed25519 public key: %w", err)
+		return err
 	}
-	ok, err := pubKey.Verify(message, signature)
+
+	_, err = pubKey.Verify(message, signature)
 	if err != nil {
-		return false, fmt.Errorf("ed25519: %w: for message 0x%x, signature 0x%x and public key 0x%x",
+		return fmt.Errorf("ed25519: %w: for message 0x%x, signature 0x%x and public key 0x%x",
 			crypto.ErrSignatureVerificationFailed, message, signature, publicKey)
 	}
 
-	if !ok {
-		return false, nil
-	}
-
-	return true, nil
+	return nil
 }
 
 // String returns the PublicKeyBytes formatted as a hex string
