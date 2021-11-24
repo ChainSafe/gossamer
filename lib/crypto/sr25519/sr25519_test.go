@@ -5,8 +5,12 @@ package sr25519
 
 import (
 	"crypto/rand"
+	"errors"
+
+	"fmt"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	bip39 "github.com/cosmos/go-bip39"
 	"github.com/gtank/merlin"
 	"github.com/stretchr/testify/require"
@@ -124,14 +128,49 @@ func TestVerifySignature(t *testing.T) {
 	keypair, err := GenerateKeypair()
 	require.NoError(t, err)
 
-	content := "Hello world!"
+	message := []byte("Hello world!")
 
-	message := []byte(content)
 	signature, err := keypair.Sign(message)
 	require.NoError(t, err)
 
-	ok, err := VerifySignature(keypair.public.Encode(), signature, message)
-	require.NoError(t, err)
+	testCase := map[string]struct {
+		publicKey, signature, message []byte
+		err                           error
+	}{
+		"success": {
+			publicKey: keypair.public.Encode(),
+			signature: signature,
+			message:   message,
+			err:       nil,
+		},
+		"failed to fetch publicKey": {
+			publicKey: []byte(""),
+			signature: signature,
+			message:   message,
+			err:       errors.New("cannot create public key: input is not 32 bytes"),
+		},
+		"verification failed": {
+			publicKey: keypair.public.Encode(),
+			signature: []byte(""),
+			message:   message,
+			err: fmt.Errorf("sr25519: %w: for message 0x%x, signature 0x and public key 0x%x",
+				crypto.ErrSignatureVerificationFailed, message, keypair.public.Encode()),
+		},
+	}
 
-	require.Equal(t, ok, true)
+	for name, value := range testCase {
+		testCase := value
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			err = VerifySignature(testCase.publicKey, testCase.signature, testCase.message)
+
+			if testCase.err != nil {
+				require.EqualError(t, err, testCase.err.Error())
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+
 }

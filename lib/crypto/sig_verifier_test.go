@@ -4,8 +4,6 @@
 package crypto_test
 
 import (
-	// "io"
-
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -19,7 +17,7 @@ import (
 
 func TestSigVerifierEd25519(t *testing.T) {
 	t.Helper()
-	signs := make([]*crypto.Signature, 2)
+	signs := make([]*crypto.Signing, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("Hello")
@@ -29,7 +27,7 @@ func TestSigVerifierEd25519(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &crypto.Signature{
+		signs[i] = &crypto.Signing{
 			PubKey:     key.Public().Encode(),
 			Sign:       sign,
 			Msg:        msg,
@@ -49,7 +47,7 @@ func TestSigVerifierEd25519(t *testing.T) {
 
 func TestSigVerifierEd25519Fails(t *testing.T) {
 	t.Helper()
-	signs := make([]*crypto.Signature, 2)
+	signs := make([]*crypto.Signing, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("Hello")
@@ -59,7 +57,7 @@ func TestSigVerifierEd25519Fails(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 		if i == 1 {
-			signs[i] = &crypto.Signature{
+			signs[i] = &crypto.Signing{
 				PubKey:     []byte(""),
 				Sign:       sign,
 				Msg:        msg,
@@ -67,7 +65,7 @@ func TestSigVerifierEd25519Fails(t *testing.T) {
 			}
 			continue
 		}
-		signs[i] = &crypto.Signature{
+		signs[i] = &crypto.Signing{
 			PubKey:     key.Public().Encode(),
 			Sign:       []byte(""),
 			Msg:        msg,
@@ -87,7 +85,7 @@ func TestSigVerifierEd25519Fails(t *testing.T) {
 
 func TestSigVerifierSr25519(t *testing.T) {
 	t.Helper()
-	signs := make([]*crypto.Signature, 2)
+	signs := make([]*crypto.Signing, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("Hello")
@@ -97,7 +95,7 @@ func TestSigVerifierSr25519(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &crypto.Signature{
+		signs[i] = &crypto.Signing{
 			PubKey:     key.Public().Encode(),
 			Sign:       sign,
 			Msg:        msg,
@@ -117,7 +115,7 @@ func TestSigVerifierSr25519(t *testing.T) {
 
 func TestSigVerifierSr25519Fails(t *testing.T) {
 	t.Helper()
-	signs := make([]*crypto.Signature, 2)
+	signs := make([]*crypto.Signing, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("Hello")
@@ -127,11 +125,20 @@ func TestSigVerifierSr25519Fails(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &crypto.Signature{
-			PubKey:     []byte(""),
-			Sign:       sign,
+		if i == 1 {
+			signs[i] = &crypto.Signing{
+				PubKey:     []byte(""),
+				Sign:       sign,
+				Msg:        msg,
+				VerifyFunc: ed25519.VerifySignature,
+			}
+			continue
+		}
+		signs[i] = &crypto.Signing{
+			PubKey:     key.Public().Encode(),
+			Sign:       []byte(""),
 			Msg:        msg,
-			VerifyFunc: sr25519.VerifySignature,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 	}
 	signVerify := crypto.NewSignatureVerifier(log.New())
@@ -147,7 +154,7 @@ func TestSigVerifierSr25519Fails(t *testing.T) {
 
 func TestSigVerifierSecp256k1(t *testing.T) {
 	t.Helper()
-	signs := make([]*crypto.Signature, 2)
+	signs := make([]*crypto.Signing, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("a225e8c75da7da319af6335e7642d473")
@@ -157,7 +164,7 @@ func TestSigVerifierSecp256k1(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &crypto.Signature{
+		signs[i] = &crypto.Signing{
 			PubKey:     key.Public().Encode(),
 			Sign:       sign[:64],
 			Msg:        msg,
@@ -174,9 +181,10 @@ func TestSigVerifierSecp256k1(t *testing.T) {
 	ok := signVerify.Finish()
 	require.True(t, ok)
 }
+
 func TestSigVerifierSecp256k1Fails(t *testing.T) {
 	t.Helper()
-	signs := make([]*crypto.Signature, 2)
+	signs := make([]*crypto.Signing, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("a225e8c75da7da319af6335e7642d473")
@@ -186,11 +194,20 @@ func TestSigVerifierSecp256k1Fails(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &crypto.Signature{
-			PubKey:     []byte(""),
-			Sign:       sign[:64],
+		if i == 1 {
+			signs[i] = &crypto.Signing{
+				PubKey:     []byte(""),
+				Sign:       sign,
+				Msg:        msg,
+				VerifyFunc: ed25519.VerifySignature,
+			}
+			continue
+		}
+		signs[i] = &crypto.Signing{
+			PubKey:     key.Public().Encode(),
+			Sign:       []byte(""),
 			Msg:        msg,
-			VerifyFunc: secp256k1.VerifySignature,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 	}
 	signVerify := crypto.NewSignatureVerifier(log.New())
