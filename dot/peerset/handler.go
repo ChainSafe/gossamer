@@ -130,6 +130,35 @@ func (h *Handler) SortedPeers(setIdx int) chan peer.IDSlice {
 	return resultPeersCh
 }
 
+// DisconnectPeersWithLeastReputation disconnects peers with least reputations.
+func (h *Handler) DisconnectPeersWithLeastReputation(setIdx int, numberOfPeersToBeRemoved int, unprotectedPeers []peer.ID) {
+	sortedPeers := <-h.SortedPeers(setIdx)
+
+	// peers are sorted from highest reputation to least reputation
+	for i := 0; i < numberOfPeersToBeRemoved; i++ {
+		peerInQuestion := sortedPeers[len(sortedPeers)-1-i]
+
+		if !contains(unprotectedPeers, peerInQuestion) {
+			continue
+		}
+
+		logger.Tracef("Over max peer count, disconnecting peer with the least reputation, peer: %s", peerInQuestion)
+		h.DisconnectPeer(setIdx, peerInQuestion)
+
+		i++
+	}
+}
+
+func contains(array []peer.ID, element peer.ID) bool {
+	for i := range array {
+		if element.String() == array[i].String() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Stop closes the actionQueue and result message chan.
 func (h *Handler) Stop() {
 	select {

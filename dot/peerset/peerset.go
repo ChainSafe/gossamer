@@ -182,6 +182,8 @@ func NewConfigSet(in, out uint32, reservedOnly bool, allocTime time.Duration) *C
 	}
 
 	return &ConfigSet{
+		// Why are we using an array of config in the set, when we are
+		// using just one config
 		Set: []*config{set},
 	}
 }
@@ -227,8 +229,8 @@ func reputationTick(reput Reputation) Reputation {
 	return reput.sub(diff)
 }
 
-// updateTime updates the value of latestTimeUpdate and performs all the updates that happen
-// over time, such as Reputation increases for staying connected.
+// updateTime updates the value of latestTimeUpdate and performs all the updates that
+// happen over time, such as Reputation increases for staying connected.
 func (ps *PeerSet) updateTime() error {
 	currTime := time.Now()
 	// identify the time difference between current time and last update time for peer reputation in seconds.

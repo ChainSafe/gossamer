@@ -58,6 +58,7 @@ type PeerSetHandler interface {
 	PeerAdd
 	PeerRemove
 	Peer
+	DisconnectPeersWithLeastReputation(int, int, []peer.ID)
 }
 
 // PeerAdd is the interface used by the PeerSetHandler to add peers in peerSet.
