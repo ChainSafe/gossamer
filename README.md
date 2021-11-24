@@ -43,7 +43,7 @@ For more information about Gossamer, the Polkadot ecosystem, and how to use Goss
 
 ### Prerequisites
 
-install go version `>=1.16`
+install go version `>=1.17`
 
 ### Installation
 
