@@ -141,7 +141,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = make([]string, 0)
+			tt.args.res = []string{}
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
