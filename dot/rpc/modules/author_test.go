@@ -291,8 +291,8 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.wantRes, tt.args.res)
 			}
+			assert.Equal(t, tt.wantRes, tt.args.res)
 		})
 	}
 }
@@ -363,8 +363,8 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.wantRes, tt.args.res)
 			}
+			assert.Equal(t, tt.wantRes, tt.args.res)
 		})
 	}
 }
@@ -564,8 +564,8 @@ func TestAuthorModule_HasKey(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.wantRes, tt.args.res)
 			}
+			assert.Equal(t, tt.wantRes, tt.args.res)
 		})
 	}
 }
