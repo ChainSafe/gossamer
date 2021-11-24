@@ -301,7 +301,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
 	mockCoreAPI := new(apimocks.CoreAPI)
-	mockCoreAPI.On("GetMetadata", &hash).Return(common.MustHexToBytes(testdata.GetTestData()), nil)
+	mockCoreAPI.On("GetMetadata", &hash).Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil)
 
 	mockCoreAPIErr := new(apimocks.CoreAPI)
 	mockCoreAPIErr.On("GetMetadata", &hash).Return(nil, errors.New("GetMetadata Error"))
@@ -309,7 +309,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 	mockStateModule := NewStateModule(nil, nil, mockCoreAPIErr)
 
 	var expRes []byte
-	err := scale.Unmarshal(common.MustHexToBytes(testdata.GetTestData()), &expRes)
+	err := scale.Unmarshal(common.MustHexToBytes(testdata.NewTestMetadata()), &expRes)
 	assert.NoError(t, err)
 	type fields struct {
 		networkAPI NetworkAPI

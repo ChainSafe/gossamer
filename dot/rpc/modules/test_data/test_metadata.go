@@ -46,7 +46,7 @@ func init() {
 
 var testData string
 
-// GetTestData returns the testData string.
-func GetTestData() string {
+// NewTestMetadata returns the testData string.
+func NewTestMetadata() string {
 	return testData
 }

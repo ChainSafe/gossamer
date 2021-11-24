@@ -170,7 +170,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	mockTxStateAPI.On("Pending").Return(v, nil)
 
 	mockCoreAPI := new(apimocks.CoreAPI)
-	mockCoreAPI.On("GetMetadata", (*common.Hash)(nil)).Return(common.MustHexToBytes(testdata.GetTestData()), nil)
+	mockCoreAPI.On("GetMetadata", (*common.Hash)(nil)).Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil)
 
 	mockCoreAPIErr := new(apimocks.CoreAPI)
 	mockCoreAPIErr.On("GetMetadata", (*common.Hash)(nil)).Return(nil, errors.New("getMetadata error"))
