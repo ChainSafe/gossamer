@@ -8,6 +8,7 @@ package modules
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"testing"
