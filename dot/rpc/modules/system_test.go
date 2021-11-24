@@ -95,14 +95,6 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 	mockNetworkAPI4 := new(apimocks.NetworkAPI)
 	mockNetworkAPI4.On("NodeRoles").Return(byte(21), nil)
 
-	type fields struct {
-		networkAPI NetworkAPI
-		systemAPI  SystemAPI
-		coreAPI    CoreAPI
-		storageAPI StorageAPI
-		txStateAPI TransactionStateAPI
-		blockAPI   BlockAPI
-	}
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
@@ -110,7 +102,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
+		fields  *SystemModule
 		args    args
 		wantErr bool
 		expErr  error
@@ -118,7 +110,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 	}{
 		{
 			name:   "Full",
-			fields: fields{mockNetworkAPI1, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI1, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -126,7 +118,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 		},
 		{
 			name:   "LightClient",
-			fields: fields{mockNetworkAPI2, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI2, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -134,7 +126,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 		},
 		{
 			name:   "Authority",
-			fields: fields{mockNetworkAPI3, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI3, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -142,7 +134,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 		},
 		{
 			name:   "UnknownRole",
-			fields: fields{mockNetworkAPI4, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI4, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -152,14 +144,7 @@ func TestSystemModule_TestNodeRoles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = []interface{}{}
-			sm := &SystemModule{
-				networkAPI: tt.fields.networkAPI,
-				systemAPI:  tt.fields.systemAPI,
-				coreAPI:    tt.fields.coreAPI,
-				storageAPI: tt.fields.storageAPI,
-				txStateAPI: tt.fields.txStateAPI,
-				blockAPI:   tt.fields.blockAPI,
-			}
+			sm := tt.fields
 			err := sm.NodeRoles(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -200,14 +185,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	mockStorageAPIErr := new(apimocks.StorageAPI)
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
 
-	type fields struct {
-		networkAPI NetworkAPI
-		systemAPI  SystemAPI
-		coreAPI    CoreAPI
-		storageAPI StorageAPI
-		txStateAPI TransactionStateAPI
-		blockAPI   BlockAPI
-	}
 	type args struct {
 		r   *http.Request
 		req *StringRequest
@@ -215,7 +192,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
+		fields  *SystemModule
 		args    args
 		wantErr bool
 		expErr  error
@@ -223,14 +200,14 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	}{
 		{
 			name:    "Nil Request",
-			fields:  fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
+			fields:  NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
 			args:    args{},
 			wantErr: true,
 			expErr:  errors.New("account address must be valid"),
 		},
 		{
 			name:   "Found",
-			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
+			fields: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -238,7 +215,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 		{
 			name:   "Not found",
-			fields: fields{nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil},
+			fields: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -246,7 +223,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 		{
 			name:   "GetMetadata Err",
-			fields: fields{nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil},
+			fields: NewSystemModule(nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -255,7 +232,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 		{
 			name:   "Magic Number Mismatch",
-			fields: fields{nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil},
+			fields: NewSystemModule(nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -264,7 +241,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 		{
 			name:   "GetStorage Err",
-			fields: fields{nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil},
+			fields: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -275,14 +252,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = U64Response(0)
-			sm := &SystemModule{
-				networkAPI: tt.fields.networkAPI,
-				systemAPI:  tt.fields.systemAPI,
-				coreAPI:    tt.fields.coreAPI,
-				storageAPI: tt.fields.storageAPI,
-				txStateAPI: tt.fields.txStateAPI,
-				blockAPI:   tt.fields.blockAPI,
-			}
+			sm := tt.fields
 			err := sm.AccountNextIndex(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -309,14 +279,6 @@ func TestSystemModule_SyncState(t *testing.T) {
 	mockNetworkAPI.On("HighestBlock").Return(int64(21))
 	mockNetworkAPI.On("StartingBlock").Return(int64(23))
 
-	type fields struct {
-		networkAPI NetworkAPI
-		systemAPI  SystemAPI
-		coreAPI    CoreAPI
-		storageAPI StorageAPI
-		txStateAPI TransactionStateAPI
-		blockAPI   BlockAPI
-	}
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
@@ -324,7 +286,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
+		fields  *SystemModule
 		args    args
 		wantErr bool
 		expErr  error
@@ -332,7 +294,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 	}{
 		{
 			name:   "OK",
-			fields: fields{mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI},
+			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -344,7 +306,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 		},
 		{
 			name:   "Err",
-			fields: fields{mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr},
+			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -355,14 +317,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = SyncStateResponse{}
-			sm := &SystemModule{
-				networkAPI: tt.fields.networkAPI,
-				systemAPI:  tt.fields.systemAPI,
-				coreAPI:    tt.fields.coreAPI,
-				storageAPI: tt.fields.storageAPI,
-				txStateAPI: tt.fields.txStateAPI,
-				blockAPI:   tt.fields.blockAPI,
-			}
+			sm := tt.fields
 			err := sm.SyncState(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -391,14 +346,6 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
 	mockNetworkAPI.On("NetworkState").Return(ns, nil)
 
-	type fields struct {
-		networkAPI NetworkAPI
-		systemAPI  SystemAPI
-		coreAPI    CoreAPI
-		storageAPI StorageAPI
-		txStateAPI TransactionStateAPI
-		blockAPI   BlockAPI
-	}
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
@@ -406,7 +353,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
+		fields  *SystemModule
 		args    args
 		wantErr bool
 		expErr  error
@@ -414,7 +361,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	}{
 		{
 			name:   "OK",
-			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -422,7 +369,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		},
 		{
 			name:   "Empty multiaddress list",
-			fields: fields{mockNetworkAPIEmpty, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -434,14 +381,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = []string{}
-			sm := &SystemModule{
-				networkAPI: tt.fields.networkAPI,
-				systemAPI:  tt.fields.systemAPI,
-				coreAPI:    tt.fields.coreAPI,
-				storageAPI: tt.fields.storageAPI,
-				txStateAPI: tt.fields.txStateAPI,
-				blockAPI:   tt.fields.blockAPI,
-			}
+			sm := tt.fields
 			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -470,14 +410,6 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	mockNetworkAPI := new(apimocks.NetworkAPI)
 	mockNetworkAPI.On("NetworkState").Return(ns, nil)
 
-	type fields struct {
-		networkAPI NetworkAPI
-		systemAPI  SystemAPI
-		coreAPI    CoreAPI
-		storageAPI StorageAPI
-		txStateAPI TransactionStateAPI
-		blockAPI   BlockAPI
-	}
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
@@ -485,7 +417,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
+		fields  *SystemModule
 		args    args
 		wantErr bool
 		expErr  error
@@ -493,7 +425,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	}{
 		{
 			name:   "OK",
-			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -501,7 +433,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		},
 		{
 			name:   "Empty peerId",
-			fields: fields{mockNetworkAPIEmpty, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -512,14 +444,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = ""
-			sm := &SystemModule{
-				networkAPI: tt.fields.networkAPI,
-				systemAPI:  tt.fields.systemAPI,
-				coreAPI:    tt.fields.coreAPI,
-				storageAPI: tt.fields.storageAPI,
-				txStateAPI: tt.fields.txStateAPI,
-				blockAPI:   tt.fields.blockAPI,
-			}
+			sm := tt.fields
 			err := sm.LocalPeerId(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -539,14 +464,6 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	mockNetworkAPIErr := new(apimocks.NetworkAPI)
 	mockNetworkAPIErr.On("AddReservedPeers", "jimbo").Return(errors.New("addReservedPeer error"))
 
-	type fields struct {
-		networkAPI NetworkAPI
-		systemAPI  SystemAPI
-		coreAPI    CoreAPI
-		storageAPI StorageAPI
-		txStateAPI TransactionStateAPI
-		blockAPI   BlockAPI
-	}
 	type args struct {
 		r   *http.Request
 		req *StringRequest
@@ -554,7 +471,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
+		fields  *SystemModule
 		args    args
 		wantErr bool
 		expErr  error
@@ -562,7 +479,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	}{
 		{
 			name:   "OK",
-			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -570,7 +487,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		},
 		{
 			name:   "AddReservedPeer Error",
-			fields: fields{mockNetworkAPIErr, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -579,7 +496,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		},
 		{
 			name:   "Empty StringRequest Error",
-			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{""},
 			},
@@ -590,14 +507,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = []byte(nil)
-			sm := &SystemModule{
-				networkAPI: tt.fields.networkAPI,
-				systemAPI:  tt.fields.systemAPI,
-				coreAPI:    tt.fields.coreAPI,
-				storageAPI: tt.fields.storageAPI,
-				txStateAPI: tt.fields.txStateAPI,
-				blockAPI:   tt.fields.blockAPI,
-			}
+			sm := tt.fields
 			err := sm.AddReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -617,14 +527,6 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	mockNetworkAPIErr := new(apimocks.NetworkAPI)
 	mockNetworkAPIErr.On("RemoveReservedPeers", "jimbo").Return(errors.New("removeReservedPeer error"))
 
-	type fields struct {
-		networkAPI NetworkAPI
-		systemAPI  SystemAPI
-		coreAPI    CoreAPI
-		storageAPI StorageAPI
-		txStateAPI TransactionStateAPI
-		blockAPI   BlockAPI
-	}
 	type args struct {
 		r   *http.Request
 		req *StringRequest
@@ -632,7 +534,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
+		fields  *SystemModule
 		args    args
 		wantErr bool
 		expErr  error
@@ -640,7 +542,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	}{
 		{
 			name:   "OK",
-			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -648,7 +550,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		},
 		{
 			name:   "RemoveReservedPeer Error",
-			fields: fields{mockNetworkAPIErr, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -657,7 +559,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		},
 		{
 			name:   "Empty StringRequest Error",
-			fields: fields{mockNetworkAPI, nil, nil, nil, nil, nil},
+			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{""},
 			},
@@ -668,14 +570,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = []byte(nil)
-			sm := &SystemModule{
-				networkAPI: tt.fields.networkAPI,
-				systemAPI:  tt.fields.systemAPI,
-				coreAPI:    tt.fields.coreAPI,
-				storageAPI: tt.fields.storageAPI,
-				txStateAPI: tt.fields.txStateAPI,
-				blockAPI:   tt.fields.blockAPI,
-			}
+			sm := tt.fields
 			err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)

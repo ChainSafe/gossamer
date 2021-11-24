@@ -259,7 +259,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 		exp     ChainHashResponse
 	}{
 		{
-			name: "GetHighestFinalisedHash OK",
+			name: "happy path",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -269,7 +269,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			exp: expRes,
 		},
 		{
-			name: "GetHighestFinalisedHash ERR",
+			name: "error case",
 			fields: fields{
 				mockBlockAPIErr,
 			},
