@@ -229,7 +229,7 @@ func (sm *StateModule) GetKeysPaged(_ *http.Request, req *StateStorageKeyRequest
 	}
 	keys, err := sm.storageAPI.GetKeysWithPrefix(req.Block, hPrefix)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get keys with prefix %s: %w", hPrefix, err)
 	}
 	resCount := uint32(0)
 	for _, k := range keys {

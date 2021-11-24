@@ -18,6 +18,8 @@ func init() {
 	zipReader, err := zip.NewReader(bytesReader, int64(bytesReader.Len()))
 	if err != nil {
 		panic(err)
+	} else if len(zipReader.File) == 0 {
+		panic("no file in test_metadata.zip"	)
 	}
 
 	zipFile := zipReader.File[0]

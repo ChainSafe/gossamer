@@ -252,7 +252,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			err:     errors.New("GetKeysWithPrefix Err"),
+			err:     errors.New("cannot get keys with prefix : GetKeysWithPrefix Err"),
 		},
 		{
 			name:   "Request Prefix Error",
