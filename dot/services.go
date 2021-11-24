@@ -250,7 +250,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 
 	slotDuration, err := stateSrvc.Epoch.GetSlotDuration()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot get slot duration: %w", err)
 	}
 
 	// network service configuation

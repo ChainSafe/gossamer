@@ -391,7 +391,7 @@ func (h *host) closeProtocolStream(pID protocol.ID, p peer.ID) {
 			}
 			err := st.Close()
 			if err != nil {
-				logger.Tracef("Failed to close stream", "protocol", pID, "error", err)
+				logger.Tracef("Failed to close stream for protocol %s: %s", pID, err)
 			}
 		}
 	}

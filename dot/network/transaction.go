@@ -20,6 +20,9 @@ var (
 	_ NotificationsMessage = &transactionHandshake{}
 )
 
+// txnBatchChTimeout is the timeout for adding a transaction to the batch processing channel
+const txnBatchChTimeout = time.Millisecond * 200
+
 // TransactionMessage is a network message that is sent to notify of new transactions entering the network
 type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
@@ -107,42 +110,44 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) NotificationsMessageBatchHandler {
-	go func() {
-		protocolID := s.host.protocolID + transactionsID
-		ticker := time.NewTicker(s.cfg.SlotDuration)
-		defer ticker.Stop()
+func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage) {
+	protocolID := s.host.protocolID + transactionsID
+	ticker := time.NewTicker(s.cfg.SlotDuration)
+	defer ticker.Stop()
 
-		for {
-			select {
-			case <-s.ctx.Done():
-				return
-			case <-ticker.C:
-				timeOut := time.NewTimer(s.cfg.SlotDuration / 3)
-				var completed bool
-				for !completed {
-					select {
-					case <-timeOut.C:
-						completed = true
-					case txnMsg := <-txnBatchCh:
-						propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
-						if err != nil {
-							s.host.closeProtocolStream(protocolID, txnMsg.peer)
-							continue
-						}
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-ticker.C:
+			timeOut := time.NewTimer(s.cfg.SlotDuration / 3)
+			var completed bool
+			for !completed {
+				select {
+				case <-timeOut.C:
+					completed = true
+				case txnMsg := <-txnBatchCh:
+					propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
+					if err != nil {
+						s.host.closeProtocolStream(protocolID, txnMsg.peer)
+						continue
+					}
 
-						if s.noGossip || !propagate {
-							continue
-						}
+					if s.noGossip || !propagate {
+						continue
+					}
 
-						if !s.gossip.hasSeen(txnMsg.msg) {
-							s.broadcastExcluding(s.notificationsProtocols[TransactionMsgType], txnMsg.peer, txnMsg.msg)
-						}
+					if !s.gossip.hasSeen(txnMsg.msg) {
+						s.broadcastExcluding(s.notificationsProtocols[TransactionMsgType], txnMsg.peer, txnMsg.msg)
 					}
 				}
 			}
 		}
-	}()
+	}
+}
+
+func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) NotificationsMessageBatchHandler {
+	go s.startTxnBatchProcessing(txnBatchCh)
 
 	return func(peer peer.ID, msg NotificationsMessage) {
 		data := &BatchMessage{
@@ -150,15 +155,15 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) Notif
 			peer: peer,
 		}
 
-		timeOut := time.NewTimer(time.Millisecond * 200)
+		timer := time.NewTimer(txnBatchChTimeout)
 
 		select {
 		case txnBatchCh <- data:
-			if !timeOut.Stop() {
-				<-timeOut.C
+			if !timer.Stop() {
+				<-timer.C
 			}
-		case <-timeOut.C:
-			logger.Debugf("transaction message not included into batch", "peer", peer.String(), "msg", msg.String())
+		case <-timer.C:
+			logger.Debugf("transaction message %s for peer %s not included into batch", msg, peer)
 		}
 	}
 }

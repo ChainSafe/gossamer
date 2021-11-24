@@ -41,7 +41,6 @@ const (
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Minute * 5
 
-	// defaultTxnBatchSize is the default size for the transaction batch
 	defaultTxnBatchSize = 100
 )
 
@@ -98,7 +97,7 @@ type Config struct {
 
 	batchSize int // internal option
 
-	// SlotDuration is slot duration to produce block in milliseconds
+	// SlotDuration is slot duration to produce block
 	SlotDuration time.Duration
 }
 
