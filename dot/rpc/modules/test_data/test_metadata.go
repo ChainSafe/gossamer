@@ -19,7 +19,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	} else if len(zipReader.File) == 0 {
-		panic("no file in test_metadata.zip"	)
+		panic("no file in test_metadata.zip")
 	}
 
 	zipFile := zipReader.File[0]

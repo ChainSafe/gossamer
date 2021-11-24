@@ -19,66 +19,104 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSystemModule_BasicGetters(t *testing.T) {
-	var emptyMap map[string]interface{}
+func TestSystemModule_Chain(t *testing.T) {
 	mockSystemAPI := new(apimocks.SystemAPI)
 	mockSystemAPI.On("ChainName").Return("polkadot", nil)
-	mockSystemAPI.On("SystemName").Return("kusama", nil)
-	mockSystemAPI.On("ChainType").Return("testChainType", nil)
-	mockSystemAPI.On("Properties").Return(emptyMap)
-	mockSystemAPI.On("SystemVersion").Return("1.2.1", nil)
-
-	mockNetworkAPI := new(apimocks.NetworkAPI)
-	mockNetworkAPI.On("Health").Return(common.Health{}, nil)
-	mockNetworkAPI.On("NetworkState").Return(common.NetworkState{}, nil)
-	mockNetworkAPI.On("Peers").Return([]common.PeerInfo{}, nil)
-
-	sm := NewSystemModule(mockNetworkAPI, mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
+	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var res string
-	var resMap interface{}
-	var sysHealthRes SystemHealthResponse
-	var networkStateRes SystemNetworkStateResponse
-	var sysPeerRes SystemPeersResponse
-
 	err := sm.Chain(nil, req, &res)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	require.Equal(t, "polkadot", res)
+}
 
-	err = sm.Name(nil, req, &res)
+func TestSystemModule_Name(t *testing.T) {
+	mockSystemAPI := new(apimocks.SystemAPI)
+	mockSystemAPI.On("SystemName").Return("kusama", nil)
+	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
+
+	req := &EmptyRequest{}
+	var res string
+	err := sm.Name(nil, req, &res)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	require.Equal(t, "kusama", res)
+}
 
-	err = sm.ChainType(nil, req, &res)
+func TestSystemModule_ChainType(t *testing.T) {
+	mockSystemAPI := new(apimocks.SystemAPI)
+	mockSystemAPI.On("ChainType").Return("testChainType", nil)
+	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
+
+	req := &EmptyRequest{}
+	var res string
+	err := sm.ChainType(nil, req, &res)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	require.Equal(t, "testChainType", res)
+}
 
-	err = sm.Properties(nil, req, &resMap)
+func TestSystemModule_Properties(t *testing.T) {
+	var emptyMap map[string]interface{}
+	mockSystemAPI := new(apimocks.SystemAPI)
+	mockSystemAPI.On("Properties").Return(emptyMap)
+	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
+
+	req := &EmptyRequest{}
+	var resMap interface{}
+	err := sm.Properties(nil, req, &resMap)
 	require.NoError(t, err)
-	require.NotNil(t, res)
 	require.Equal(t, emptyMap, resMap)
+}
 
-	err = sm.Version(nil, req, &res)
+func TestSystemModule_SystemVersion(t *testing.T) {
+	mockSystemAPI := new(apimocks.SystemAPI)
+	mockSystemAPI.On("SystemVersion").Return("1.2.1", nil)
+	sm := NewSystemModule(new(apimocks.NetworkAPI), mockSystemAPI, new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
+
+	req := &EmptyRequest{}
+	var res string
+	err := sm.Version(nil, req, &res)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	require.Equal(t, "1.2.1", res)
+}
 
-	err = sm.Health(nil, req, &sysHealthRes)
+func TestSystemModule_Health(t *testing.T) {
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockNetworkAPI.On("Health").Return(common.Health{}, nil)
+	sm := NewSystemModule(mockNetworkAPI, new(apimocks.SystemAPI), new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
+
+	req := &EmptyRequest{}
+	var sysHealthRes SystemHealthResponse
+	err := sm.Health(nil, req, &sysHealthRes)
 	require.NoError(t, err)
-	require.NotNil(t, res)
 	require.Equal(t, SystemHealthResponse(common.Health{}), sysHealthRes)
+}
 
-	err = sm.NetworkState(nil, req, &networkStateRes)
-	require.NoError(t, err)
-	require.NotNil(t, res)
+func TestSystemModule_NetworkState(t *testing.T) {
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockNetworkAPI.On("NetworkState").Return(common.NetworkState{}, nil)
+	sm := NewSystemModule(mockNetworkAPI, new(apimocks.SystemAPI), new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
 
-	err = sm.Peers(nil, req, &sysPeerRes)
+	req := &EmptyRequest{}
+	var networkStateRes SystemNetworkStateResponse
+	err := sm.NetworkState(nil, req, &networkStateRes)
 	require.NoError(t, err)
-	require.NotNil(t, res)
+	require.Equal(t, SystemNetworkStateResponse{}, networkStateRes)
+}
+
+func TestSystemModule_Peers(t *testing.T) {
+	mockNetworkAPI := new(apimocks.NetworkAPI)
+	mockNetworkAPI.On("Peers").Return([]common.PeerInfo{}, nil)
+	sm := NewSystemModule(mockNetworkAPI, new(apimocks.SystemAPI), new(apimocks.CoreAPI), new(apimocks.StorageAPI), new(apimocks.TransactionStateAPI), new(apimocks.BlockAPI))
+
+	req := &EmptyRequest{}
+	var sysPeerRes SystemPeersResponse
+	err := sm.Peers(nil, req, &sysPeerRes)
+	require.NoError(t, err)
 	require.Equal(t, SystemPeersResponse{}, sysPeerRes)
 }
 

@@ -76,9 +76,9 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{},
 			},
-			exp: false,
+			exp:     false,
 			wantErr: true,
-			expErr:     errors.New("invalid string"),
+			expErr:  errors.New("invalid string"),
 		},
 		{
 			name: "decodeSessionKeys err",
@@ -88,9 +88,9 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{"0x01"},
 			},
-			exp: false,
+			exp:     false,
 			wantErr: true,
-			expErr:     errors.New("unsupported Option value: 4, bytes: [1]"),
+			expErr:  errors.New("unsupported Option value: 4, bytes: [1]"),
 		},
 		{
 			name: "happy path",
@@ -100,7 +100,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{testReq},
 			},
-			exp: true,
+			exp:     true,
 			wantErr: false,
 		},
 		{
@@ -111,9 +111,9 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{testReq},
 			},
-			exp: false,
+			exp:     false,
 			wantErr: true,
-			expErr: errors.New("HasKey err"),
+			expErr:  errors.New("HasKey err"),
 		},
 		{
 			name: "Empty decodedKeys",
@@ -123,7 +123,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{testReq},
 			},
-			exp: false,
+			exp:     false,
 			wantErr: false,
 		},
 	}
@@ -167,7 +167,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		expErr     error
+		expErr  error
 		wantRes ExtrinsicHashResponse
 	}{
 		{
@@ -176,7 +176,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				req: &Extrinsic{fmt.Sprintf("%x", "1")},
 			},
 			wantErr: true,
-			expErr:     fmt.Errorf("could not byteify non 0x prefixed string"),
+			expErr:  fmt.Errorf("could not byteify non 0x prefixed string"),
 			wantRes: ExtrinsicHashResponse(""),
 		},
 		{
@@ -189,7 +189,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				req: &Extrinsic{fmt.Sprintf("0x%x", testInvalidExt)},
 			},
 			wantErr: true,
-			expErr:     fmt.Errorf("some error"),
+			expErr:  fmt.Errorf("some error"),
 			wantRes: ExtrinsicHashResponse(types.Extrinsic(testInvalidExt).Hash().String()),
 		},
 		{
