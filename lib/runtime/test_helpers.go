@@ -61,8 +61,10 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 
 // GetAbsolutePath returns the completePath for a given targetDir
 func GetAbsolutePath(targetDir string) string {
-	_, fullpath, _, _ := runtime.Caller(0)
-	dir := filepath.Dir(fullpath)
+	dir, err := os.Getwd()
+	if err != nil {
+		panic("failed to get current working directory")
+	}
 	return path.Join(dir, targetDir)
 }
 
