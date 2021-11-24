@@ -9,7 +9,7 @@ import (
 
 var runtimes = []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME, DEV_RUNTIME}
 
-//nolint
+//nolint:revive
 const (
 	// v0.9 substrate runtime
 	NODE_RUNTIME     = "node_runtime"
@@ -32,10 +32,9 @@ const (
 	POLKADOT_RUNTIME_URL = "https://github.com/noot/polkadot/blob/noot/v0.8.25/polkadot_runtime.wasm?raw=true"
 
 	// v0.9 test API wasm
-	HOST_API_TEST_RUNTIME    = "hostapi_runtime"
-	HOST_API_TEST_RUNTIME_FP = "hostapi_runtime.compact.wasm"
-	// HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/b94d8c58ad6ea8bf827b0cae1645a999719c2bc7/test/runtimes/hostapi/hostapi_runtime.compact.wasm?raw=true"
-	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/omar/offchain/test/runtimes/hostapi/hostapi_runtime.compact.wasm?raw=true"
+	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
+	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
+	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/4d190603d21d4431888bcb1ec546c4dc03b7bf93/test/runtimes/hostapi/hostapi_runtime.compact.wasm?raw=true"
 
 	// v0.8 substrate runtime with modified name and babe C=(1, 1)
 	DEV_RUNTIME     = "dev_runtime"
@@ -43,11 +42,10 @@ const (
 	DEV_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.8-dev-runtime/target/wasm32-unknown-unknown/release/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 )
 
-//nolint
 var (
 	// CoreVersion is the runtime API call Core_version
 	CoreVersion = "Core_version"
-	// CoreInitialiseBlock is the runtime API call Core_initialize_block
+	// CoreInitializeBlock is the runtime API call Core_initialize_block
 	CoreInitializeBlock = "Core_initialize_block"
 	// CoreExecuteBlock is the runtime API call Core_execute_block
 	CoreExecuteBlock = "Core_execute_block"
@@ -67,8 +65,8 @@ var (
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
 	// DecodeSessionKeys is the runtime API call SessionKeys_decode_session_keys
 	DecodeSessionKeys = "SessionKeys_decode_session_keys"
-	// TransactionPaymentApiQueryInfo returns information of a given extrinsic
-	TransactionPaymentApiQueryInfo = "TransactionPaymentApi_query_info"
+	// TransactionPaymentAPIQueryInfo returns information of a given extrinsic
+	TransactionPaymentAPIQueryInfo = "TransactionPaymentApi_query_info"
 )
 
 // GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME

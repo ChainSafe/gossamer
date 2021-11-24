@@ -25,9 +25,9 @@ type BabeConfiguration struct {
 // BABEAuthorityRawToAuthority turns a slice of BABE AuthorityRaw into a slice of Authority
 func BABEAuthorityRawToAuthority(adr []AuthorityRaw) ([]Authority, error) {
 	ad := make([]Authority, len(adr))
-	for i, r := range adr {
+	for i := range adr {
 		ad[i] = Authority{}
-		err := ad[i].FromRawSr25519(&r) //nolint
+		err := ad[i].FromRawSr25519(&adr[i])
 		if err != nil {
 			return nil, err
 		}

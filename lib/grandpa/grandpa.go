@@ -30,6 +30,10 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
 )
 
+var (
+	ErrUnsupportedSubround = errors.New("unsupported subround")
+)
+
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
@@ -688,7 +692,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	return &pvb, nil
 }
 
-// isFinalisable returns true is the round is finalisable, false otherwise.
+// isFinalisable returns true if the round is finalisable, false otherwise.
 func (s *Service) isFinalisable(round uint64) (bool, error) {
 	var pvb Vote
 	var err error
@@ -806,16 +810,20 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 		spc  *sync.Map
 		err  error
 		just []SignedVote
+		eqv  map[ed25519.PublicKeyBytes][]*SignedVote
 	)
 
 	switch stage {
 	case prevote:
 		spc = s.prevotes
+		eqv = s.pvEquivocations
 	case precommit:
 		spc = s.precommits
+		eqv = s.pcEquivocations
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedSubround, stage)
 	}
 
-	// TODO: use equivacatory votes to create justification as well (#1667)
 	spc.Range(func(_, value interface{}) bool {
 		pc := value.(*SignedVote)
 		var isDescendant bool
@@ -835,6 +843,12 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 
 	if err != nil {
 		return nil, err
+	}
+
+	for _, votes := range eqv {
+		for _, vote := range votes {
+			just = append(just, *vote)
+		}
 	}
 
 	return just, nil

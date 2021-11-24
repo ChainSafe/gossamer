@@ -23,7 +23,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 			return err
 		}
 	} else if epoch > 0 {
-		has, err := b.epochState.HasEpochData(epoch) //nolint
+		has, err := b.epochState.HasEpochData(epoch)
 		if err != nil {
 			return err
 		}
@@ -49,7 +49,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 
 		if has {
-			cfgData, err := b.epochState.GetConfigData(epoch) //nolint
+			cfgData, err := b.epochState.GetConfigData(epoch)
 			if err != nil {
 				return err
 			}
@@ -91,7 +91,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 		logger.Debugf("estimated first slot as %d based on building block 1", startSlot)
 		for i := startSlot; i < startSlot+b.epochLength; i++ {
-			proof, err := b.runLottery(i, epoch) //nolint
+			proof, err := b.runLottery(i, epoch)
 			if err != nil {
 				return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 			}

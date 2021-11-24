@@ -25,12 +25,12 @@ func (s *Service) receiveMessages(ctx context.Context) {
 	for {
 		select {
 		case msg, ok := <-s.in:
-			if msg == nil || msg.msg == nil {
-				continue
-			}
-
 			if !ok {
 				return
+			}
+
+			if msg == nil || msg.msg == nil {
+				continue
 			}
 
 			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
@@ -131,7 +131,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	if m.Round != s.state.round {
 		if m.Round < s.state.round {
 			// peer doesn't know round was finalised, send out another commit message
-			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID) //nolint
+			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
 			if err != nil {
 				return nil, err
 			}

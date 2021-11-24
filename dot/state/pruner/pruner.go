@@ -20,9 +20,10 @@ const (
 	pruneInterval = time.Second
 )
 
-// nolint
 const (
-	Full    = Mode("full")
+	// Full pruner mode.
+	Full = Mode("full")
+	// Archive pruner mode.
 	Archive = Mode("archive")
 )
 
