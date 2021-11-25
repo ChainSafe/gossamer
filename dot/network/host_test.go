@@ -8,14 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	ma "github.com/multiformats/go-multiaddr"
-
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
+	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,6 +37,37 @@ func TestExternalAddrs(t *testing.T) {
 
 	for _, addr := range addrInfo.Addrs {
 		require.False(t, privateIPs.AddrBlocked(addr))
+	}
+}
+
+func TestExternalAddrsPublicIP(t *testing.T) {
+	config := &Config{
+		BasePath:    utils.NewTestBasePath(t, "node"),
+		PublicIP:    "10.0.5.2",
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	node := createTestService(t, config)
+
+	addrInfo := node.host.addrInfo()
+	privateIPs := ma.NewFilters()
+	for _, cidr := range privateCIDRs {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		require.NoError(t, err)
+		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
+	}
+
+	for i, addr := range addrInfo.Addrs {
+		switch i {
+		case len(addrInfo.Addrs) - 1:
+			// would be blocked by privateIPs, but this address injected from Config.PublicIP
+			require.True(t, privateIPs.AddrBlocked(addr))
+		default:
+			require.False(t, privateIPs.AddrBlocked(addr))
+		}
+
 	}
 }
 

@@ -216,6 +216,11 @@ var (
 		Name:  "nomdns",
 		Usage: "Disables network mDNS discovery",
 	}
+	// PublicIPFlag uses the supplied IP for broadcasting
+	PublicIPFlag = cli.StringFlag{
+		Name:  "pubip",
+		Usage: "Overrides public IP address used for peer to peer networking",
+	}
 )
 
 // RPC service configuration flags
@@ -404,6 +409,7 @@ var (
 		RolesFlag,
 		NoBootstrapFlag,
 		NoMDNSFlag,
+		PublicIPFlag,
 
 		// rpc flags
 		RPCEnabledFlag,

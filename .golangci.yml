@@ -53,6 +53,7 @@ linters-settings:
     locale: UK
     ignore-words:
       - gossamer
+      - flavor
   gocritic:
     # Which checks should be disabled; can't be combined with 'enabled-checks'; default is empty
     disabled-checks:
