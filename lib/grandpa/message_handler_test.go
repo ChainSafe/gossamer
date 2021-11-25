@@ -562,6 +562,56 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
 	require.Equal(t, blocktree.ErrEndNodeNotFound, err)
+}
+
+func TestMessageHandler_VerifyBlockJustification_invali(t *testing.T) {
+	auths := []types.GrandpaVoter{
+		{
+			Key: *kr.Alice().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Bob().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Charlie().Public().(*ed25519.PublicKey),
+		},
+	}
+
+	gs, st := newTestService(t)
+	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
+	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: *testHeader,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
+	err = st.Grandpa.IncrementSetID()
+	require.NoError(t, err)
+
+	setID, err := st.Grandpa.GetCurrentSetID()
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), setID)
+
+	genhash := st.Block.GenesisHash()
+	round := uint64(2)
+	number := uint32(2)
+
+	// use wrong hash, shouldn't verify
+	precommits := buildTestJustification(t, 2, round+1, setID, kr, precommit)
+	just := newJustification(round+1, testHash, number, precommits)
+	just.Commit.Precommits[0].Vote.Hash = genhash
+	data, err := scale.Marshal(*just)
+	require.NoError(t, err)
+	err = gs.VerifyBlockJustification(testHash, data)
+	require.NotNil(t, err)
+	require.Equal(t, ErrPrecommitBlockMismatch, err)
 
 	// use wrong round, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
