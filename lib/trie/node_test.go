@@ -5,6 +5,7 @@ package trie
 
 import (
 	"bytes"
+	"math/rand"
 	"strconv"
 	"testing"
 
@@ -22,6 +23,16 @@ func byteArray(length int) []byte {
 		b[i] = 0xf
 	}
 	return b
+}
+
+func generateRand(size int) [][]byte {
+	rt := make([][]byte, size)
+	for i := range rt {
+		buf := make([]byte, rand.Intn(379)+1)
+		rand.Read(buf)
+		rt[i] = buf
+	}
+	return rt
 }
 
 func TestChildrenBitmap(t *testing.T) {

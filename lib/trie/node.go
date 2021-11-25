@@ -470,12 +470,14 @@ func (l *leaf) header() ([]byte, error) {
 	return fullHeader, nil
 }
 
+var ErrPartialKeyTooBig = errors.New("partial key length greater than or equal to 2^16")
+
 func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 	pkLen -= 63
 	fullHeader := []byte{}
 
 	if pkLen >= 1<<16 {
-		return nil, errors.New("partial key length greater than or equal to 2^16")
+		return nil, ErrPartialKeyTooBig
 	}
 
 	for i := 0; i < 1<<16; i++ {
