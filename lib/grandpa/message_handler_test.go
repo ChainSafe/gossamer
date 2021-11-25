@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -560,7 +561,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
-	require.Equal(t, ErrPrecommitBlockMismatch, err)
+	require.Equal(t, blocktree.ErrEndNodeNotFound, err)
 
 	// use wrong round, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
