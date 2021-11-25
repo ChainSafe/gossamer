@@ -3,7 +3,11 @@
 
 package peerset
 
-import "github.com/libp2p/go-libp2p-core/peer"
+import (
+	"fmt"
+
+	"github.com/libp2p/go-libp2p-core/peer"
+)
 
 // Handler manages peerSet.
 type Handler struct {
@@ -133,6 +137,16 @@ func (h *Handler) SortedPeers(setIdx int) chan peer.IDSlice {
 // DisconnectPeersWithLeastReputation disconnects peers with least reputations.
 func (h *Handler) DisconnectPeersWithLeastReputation(setIdx int, numberOfPeersToBeRemoved int, unprotectedPeers []peer.ID) {
 	sortedPeers := <-h.SortedPeers(setIdx)
+
+	if len(sortedPeers) < numberOfPeersToBeRemoved {
+		fmt.Printf("\nlen(sortedPeers): %d < numberOfPeersToBeRemoved: %d, This should not happen\n", len(sortedPeers), numberOfPeersToBeRemoved)
+		return
+	}
+
+	if len(sortedPeers) < len(unprotectedPeers) {
+		fmt.Printf("len(sortedPeers): %d < len(unprotectedPeers): %d, this shouldn't happen\n", len(sortedPeers), len(unprotectedPeers))
+		return
+	}
 
 	// peers are sorted from highest reputation to least reputation
 	for i := 0; i < numberOfPeersToBeRemoved; i++ {

@@ -35,7 +35,7 @@ const (
 	DefaultMinPeerCount = 5
 
 	// DefaultMaxPeerCount is the default maximum peer count
-	DefaultMaxPeerCount = 50
+	DefaultMaxPeerCount = 10 // 50
 
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Minute * 5

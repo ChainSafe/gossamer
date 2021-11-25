@@ -283,8 +283,8 @@ func (ps *PeerSet) updateTime() error {
 }
 
 // reportPeer on report ReputationChange of the peer based on its behaviour,
-// if the updated Reputation is below BannedThresholdValue then, this node need to be disconnected
-// and a drop message for the peer is sent in order to disconnect.
+// if the updated Reputation is below BannedThresholdValue then, this node need to
+// be disconnected and a drop message for the peer is sent in order to disconnect.
 func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	// we want reputations to be up-to-date before adjusting them.
 	if err := ps.updateTime(); err != nil {
@@ -517,8 +517,9 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 	return nil
 }
 
-// incoming indicates that we have received an incoming connection. Must be answered either with
-// a corresponding `Accept` or `Reject`, except if we were already connected to this peer.
+// incoming indicates that we have received an incoming connection. Must be answered
+// either with a corresponding `Accept` or `Reject`, except if we were already
+// connected to this peer.
 func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	if err := ps.updateTime(); err != nil {
 		return err
@@ -551,6 +552,7 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		case state.tryAcceptIncoming(setID, pid) != nil:
 			ps.resultMsgCh <- Message{Status: Reject}
 		default:
+			logger.Infof("incoming connection accepted from peer %s", pid)
 			ps.resultMsgCh <- Message{Status: Accept}
 		}
 	}

@@ -5,6 +5,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -39,6 +40,7 @@ func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, 
 		return nil, err
 	}
 
+	fmt.Printf("max connections: %d\n", max)
 	return &ConnManager{
 		min:             min,
 		max:             max,
@@ -133,8 +135,12 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	cm.Lock()
 	defer cm.Unlock()
 
+	fmt.Printf("\nn.Peers(): %d, n.Conn(): %d\n", len(n.Peers()), len(n.Conns()))
+	fmt.Printf("\ncm.host.h.Network().Peers(): %d, cm.host.h.Network().Conns(): %d\n", len(cm.host.h.Network().Peers()), len(cm.host.h.Network().Conns()))
+
 	// If number of peers are less than max peers, return.
 	// Remove, if otherwise.
+
 	over := len(n.Peers()) - cm.max
 	if over <= 0 {
 		return
@@ -145,7 +151,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 		return
 	}
 
-	cm.peerSetHandler.DisconnectPeersWithLeastReputation(0, over, unprotPeers)
+	// cm.peerSetHandler.DisconnectPeersWithLeastReputation(0, over, unprotPeers)
 }
 
 // Disconnected is called when a connection closed

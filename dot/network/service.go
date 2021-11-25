@@ -661,6 +661,7 @@ func (s *Service) startPeerSetHandler() {
 }
 
 func (s *Service) processMessage(msg peerset.Message) {
+	peersBefore := s.host.peers()
 	peerID := msg.PeerID
 	switch msg.Status {
 	case peerset.Connect:
@@ -676,17 +677,18 @@ func (s *Service) processMessage(msg peerset.Message) {
 
 		err := s.host.connect(addrInfo)
 		if err != nil {
-			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
+			logger.Infof("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
-		logger.Debugf("connection successful with peer %s", peerID)
+		logger.Infof("connection successful with peer %s", peerID)
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
-			logger.Debugf("failed to close connection with peer %s: %s", peerID, err)
+			logger.Infof("failed to close connection with peer %s: %s", peerID, err)
 			return
 		}
-		logger.Debugf("connection dropped successfully for peer %s", peerID)
+		logger.Infof("connection dropped successfully for peer %s", peerID)
+		fmt.Printf("\npeers before: %d, peers after: %d\n", len(peersBefore), len(s.host.peers()))
 	}
 }
 
