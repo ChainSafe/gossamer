@@ -183,7 +183,6 @@ func (t *Trie) tryLoadChildTries(db chaindb.Database, curr node) error {
 
 func (t *Trie) collectChildTrie(db chaindb.Database, leaf *leaf) error {
 	childTrie := &Trie{}
-
 	err := childTrie.loadViaHashBytes(db, leaf.value, false)
 	if err != nil {
 		return err
