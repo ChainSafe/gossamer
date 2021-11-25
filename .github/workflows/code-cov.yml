@@ -5,6 +5,7 @@ env:
 
 jobs:
   publish-code-coverage:
+    timeout-minutes: 60
     strategy:
       matrix:
         go-version: [1.17.x]
