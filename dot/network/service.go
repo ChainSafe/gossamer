@@ -6,7 +6,6 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -661,8 +660,10 @@ func (s *Service) startPeerSetHandler() {
 }
 
 func (s *Service) processMessage(msg peerset.Message) {
-	peersBefore := s.host.peers()
 	peerID := msg.PeerID
+	if peerID == "" {
+		logger.Errorf("found empty peer id")
+	}
 	switch msg.Status {
 	case peerset.Connect:
 		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
@@ -688,7 +689,6 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Infof("connection dropped successfully for peer %s", peerID)
-		fmt.Printf("\npeers before: %d, peers after: %d\n", len(peersBefore), len(s.host.peers()))
 	}
 }
 
@@ -698,12 +698,7 @@ func (s *Service) startProcessingMsg() {
 		select {
 		case <-s.ctx.Done():
 			return
-		case m := <-msgCh:
-			msg, ok := m.(peerset.Message)
-			if !ok {
-				logger.Error(fmt.Sprintf("failed to get message from peerSet: type is %T instead of peerset.Message", m))
-				continue
-			}
+		case msg := <-msgCh:
 			s.processMessage(msg)
 		}
 	}

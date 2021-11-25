@@ -140,7 +140,7 @@ type PeerSet struct {
 	// TODO: this will be useful for reserved only mode
 	// this is for future purpose if reserved-only flag is enabled (#1888).
 	isReservedOnly bool
-	resultMsgCh    chan interface{}
+	resultMsgCh    chan Message
 	// time when the PeerSet was created.
 	created time.Time
 	// last time when we updated the reputations of connected nodes.
@@ -529,7 +529,11 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	for _, pid := range peers {
 		if ps.isReservedOnly {
 			if _, ok := ps.reservedNode[pid]; !ok {
-				ps.resultMsgCh <- Message{Status: Reject}
+				ps.resultMsgCh <- Message{
+					Status: Reject,
+					setID:  uint64(setID),
+					PeerID: pid,
+				}
 				continue
 			}
 		}
@@ -548,12 +552,24 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		p := state.nodes[pid]
 		switch {
 		case p.getReputation() < BannedThresholdValue:
-			ps.resultMsgCh <- Message{Status: Reject}
+			ps.resultMsgCh <- Message{
+				Status: Reject,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		case state.tryAcceptIncoming(setID, pid) != nil:
-			ps.resultMsgCh <- Message{Status: Reject}
+			ps.resultMsgCh <- Message{
+				Status: Reject,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		default:
 			logger.Infof("incoming connection accepted from peer %s", pid)
-			ps.resultMsgCh <- Message{Status: Accept}
+			ps.resultMsgCh <- Message{
+				Status: Accept,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		}
 	}
 
@@ -596,6 +612,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 		}
 		ps.resultMsgCh <- Message{
 			Status: Drop,
+			setID:  uint64(setIdx),
 			PeerID: pid,
 		}
 
@@ -613,7 +630,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 // start handles all the action for the peerSet.
 func (ps *PeerSet) start(aq chan action) {
 	ps.actionQueue = aq
-	ps.resultMsgCh = make(chan interface{}, msgChanSize)
+	ps.resultMsgCh = make(chan Message, msgChanSize)
 	go ps.doWork()
 }
 
