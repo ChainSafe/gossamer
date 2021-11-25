@@ -395,7 +395,10 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 	encOffset, err := scale.Marshal(testOffset)
 	require.NoError(t, err)
 
-	ret, err := inst.Exec("rtm_ext_default_child_storage_read_version_1", append(append(encChildKey, encKey...), append(encOffset, encBufferSize...)...))
+	ret, err := inst.Exec(
+		"rtm_ext_default_child_storage_read_version_1",
+		append(append(encChildKey, encKey...),
+			append(encOffset, encBufferSize...)...))
 	require.NoError(t, err)
 
 	var read *[]byte

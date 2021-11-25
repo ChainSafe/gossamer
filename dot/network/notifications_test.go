@@ -304,7 +304,10 @@ func Test_HandshakeTimeout(t *testing.T) {
 func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	mockhandler := &MockTransactionHandler{}
-	mockhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(true, nil)
+	mockhandler.On("HandleTransactionMessage",
+		mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.TransactionMessage")).
+		Return(true, nil)
 	mockhandler.On("TransactionsCount").Return(0)
 	config := &Config{
 		BasePath:           basePath,

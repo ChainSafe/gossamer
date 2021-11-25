@@ -46,7 +46,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 			s.storageState.Lock()
 			defer s.storageState.Unlock()
 
-			ts, err := s.storageState.TrieState(&head.StateRoot) //nolint
+			ts, err := s.storageState.TrieState(&head.StateRoot)
 			if err != nil {
 				return err
 			}

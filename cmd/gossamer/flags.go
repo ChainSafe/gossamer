@@ -12,8 +12,10 @@ import (
 var (
 	// UnlockFlag keystore
 	UnlockFlag = cli.StringFlag{
-		Name:  "unlock",
-		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2",
+		Name: "unlock",
+		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. " +
+			"Can be used with --password=[password] to avoid prompt. " +
+			"For multiple passwords, do --password=password1,password2",
 	}
 	// ForceFlag disables all confirm prompts ("Y" to all)
 	ForceFlag = cli.BoolFlag{
@@ -97,13 +99,23 @@ var (
 		Name:  "basepath",
 		Usage: "Data directory for the node",
 	}
-	CPUProfFlag = cli.StringFlag{
-		Name:  "cpuprof",
-		Usage: "File to write CPU profile to",
+	PprofServerFlag = cli.StringFlag{
+		Name:  "pprofserver",
+		Usage: "enable or disable the pprof HTTP server",
 	}
-	MemProfFlag = cli.StringFlag{
-		Name:  "memprof",
-		Usage: "File to write memory profile to",
+	PprofAddressFlag = cli.StringFlag{
+		Name:  "pprofaddress",
+		Usage: "pprof HTTP server listening address, if it is enabled.",
+	}
+	PprofBlockRateFlag = cli.IntFlag{
+		Name:  "pprofblockrate",
+		Value: -1,
+		Usage: "pprof block rate. See https://pkg.go.dev/runtime#SetBlockProfileRate.",
+	}
+	PprofMutexRateFlag = cli.IntFlag{
+		Name:  "pprofmutexrate",
+		Value: -1,
+		Usage: "profiling mutex rate. See https://pkg.go.dev/runtime#SetMutexProfileFraction.",
 	}
 
 	// PublishMetricsFlag publishes node metrics to prometheus.
@@ -205,6 +217,11 @@ var (
 	NoMDNSFlag = cli.BoolFlag{
 		Name:  "nomdns",
 		Usage: "Disables network mDNS discovery",
+	}
+	// PublicIPFlag uses the supplied IP for broadcasting
+	PublicIPFlag = cli.StringFlag{
+		Name:  "pubip",
+		Usage: "Overrides public IP address used for peer to peer networking",
 	}
 )
 
@@ -331,15 +348,17 @@ var (
 		Usage: "Data directory for the output DB",
 	}
 
-	// RetainBlockNumberFlag retain number of block from latest block while pruning, valid for the use with prune-state subcommand
+	// RetainBlockNumberFlag retain number of block from latest block while pruning,
+	// valid for the use with prune-state subcommand
 	RetainBlockNumberFlag = cli.Int64Flag{
 		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
 		Value: dev.DefaultRetainBlocks,
 	}
 
-	// PruningFlag triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value
-	// should be set to `full`.
+	// PruningFlag triggers the online pruning of historical state tries.
+	// It's either full or archive.
+	// To enable pruning the value should be set to `full`.
 	PruningFlag = cli.StringFlag{
 		Name:  "pruning",
 		Usage: `State trie online pruning ("full", "archive")`,
@@ -372,8 +391,10 @@ var (
 		ChainFlag,
 		ConfigFlag,
 		BasePathFlag,
-		CPUProfFlag,
-		MemProfFlag,
+		PprofServerFlag,
+		PprofAddressFlag,
+		PprofBlockRateFlag,
+		PprofMutexRateFlag,
 		RewindFlag,
 		DBPathFlag,
 		BloomFilterSizeFlag,
@@ -392,6 +413,7 @@ var (
 		RolesFlag,
 		NoBootstrapFlag,
 		NoMDNSFlag,
+		PublicIPFlag,
 
 		// rpc flags
 		RPCEnabledFlag,

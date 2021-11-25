@@ -26,8 +26,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-//nolint
 var (
+	// DefaultCfg is the default configuration for the node.
 	DefaultCfg                = dot.GssmrConfig
 	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
 	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
@@ -135,6 +135,7 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	setDotCoreConfig(ctx, tomlCfg.Core, &cfg.Core)
 	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
 	setDotRPCConfig(ctx, tomlCfg.RPC, &cfg.RPC)
+	setDotPprofConfig(ctx, tomlCfg.Pprof, &cfg.Pprof)
 
 	if rewind := ctx.GlobalInt(RewindFlag.Name); rewind != 0 {
 		cfg.State.Rewind = rewind
@@ -315,7 +316,8 @@ func parseLogLevelString(logLevelString string) (logLevel log.Level, err error) 
 	return logLevel, nil
 }
 
-func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
+func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config,
+	globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
 	if tomlConfig == nil {
 		tomlConfig = new(ctoml.Config)
 	}
@@ -671,6 +673,11 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.NoMDNS = true
 	}
 
+	// check --pubip flag and update node configuration
+	if pubip := ctx.GlobalString(PublicIPFlag.Name); pubip != "" {
+		cfg.PublicIP = pubip
+	}
+
 	if len(cfg.PersistentPeers) == 0 {
 		cfg.PersistentPeers = []string(nil)
 	}
@@ -848,4 +855,50 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 	)
 
 	return nil
+}
+
+func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.PprofConfig) {
+	if !cfg.Enabled {
+		// only allow to enable pprof from the TOML configuration.
+		// If it is enabled by default, it cannot be disabled.
+		cfg.Enabled = tomlCfg.Enabled
+	}
+
+	if tomlCfg.ListeningAddress != "" {
+		cfg.Settings.ListeningAddress = tomlCfg.ListeningAddress
+	}
+
+	if tomlCfg.BlockRate > 0 {
+		// block rate must be 0 (disabled) by default, since we
+		// cannot disable it here.
+		cfg.Settings.BlockProfileRate = tomlCfg.BlockRate
+	}
+
+	if tomlCfg.MutexRate > 0 {
+		// mutex rate must be 0 (disabled) by default, since we
+		// cannot disable it here.
+		cfg.Settings.MutexProfileRate = tomlCfg.MutexRate
+	}
+
+	// check --pprofserver flag and update node configuration
+	if enabled := ctx.GlobalBool(PprofServerFlag.Name); enabled || cfg.Enabled {
+		cfg.Enabled = true
+	} else if ctx.IsSet(PprofServerFlag.Name) && !enabled {
+		cfg.Enabled = false
+	}
+
+	// check --pprofaddress flag and update node configuration
+	if address := ctx.GlobalString(PprofAddressFlag.Name); address != "" {
+		cfg.Settings.ListeningAddress = address
+	}
+
+	if rate := ctx.GlobalInt(PprofBlockRateFlag.Name); rate > 0 {
+		cfg.Settings.BlockProfileRate = rate
+	}
+
+	if rate := ctx.GlobalInt(PprofMutexRateFlag.Name); rate > 0 {
+		cfg.Settings.MutexProfileRate = rate
+	}
+
+	logger.Debug("pprof configuration: " + cfg.String())
 }

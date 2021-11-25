@@ -77,6 +77,7 @@ package wasmer
 // extern int64_t ext_offchain_timestamp_version_1(void *context);
 // extern void ext_offchain_sleep_until_version_1(void *context, int64_t a);
 // extern int64_t ext_offchain_http_request_start_version_1(void *context, int64_t a, int64_t b, int64_t c);
+// extern int64_t ext_offchain_http_request_add_header_version_1(void *context, int32_t a, int64_t k, int64_t v);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
@@ -769,18 +770,6 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	// beginBatchVerify(context)
 }
 
-func beginBatchVerify(context unsafe.Pointer) { //nolint
-	instanceContext := wasm.IntoInstanceContext(context)
-	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
-
-	if sigVerifier.IsStarted() {
-		logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
-		return
-	}
-
-	sigVerifier.Start()
-}
-
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
@@ -788,22 +777,6 @@ func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t 
 	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
 	return 1
-}
-
-func finishBatchVerify(context unsafe.Pointer) C.int32_t { //nolint
-	instanceContext := wasm.IntoInstanceContext(context)
-	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
-
-	if !sigVerifier.IsStarted() {
-		logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started")
-		panic("batch verification is not started")
-	}
-
-	if sigVerifier.Finish() {
-		return 1
-	}
-	logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
-	return 0
 }
 
 //export ext_trie_blake2_256_root_version_1
@@ -868,7 +841,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	}
 
 	for i, val := range values {
-		key, err := scale.Marshal(big.NewInt(int64(i))) //nolint
+		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
 			return 0
@@ -1722,24 +1695,80 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
 	httpMethod := asMemorySlice(instanceContext, methodSpan)
 	uri := asMemorySlice(instanceContext, uriSpan)
 
 	result := scale.NewResult(int16(0), nil)
 
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
-
 	if err != nil {
+		// StartRequest error already was logged
 		logger.Errorf("failed to start request: %s", err)
-		_ = result.Set(scale.Err, nil)
+		err = result.Set(scale.Err, nil)
 	} else {
-		_ = result.Set(scale.OK, reqID)
+		err = result.Set(scale.OK, reqID)
 	}
 
-	enc, _ := scale.Marshal(result)
-	ptr, _ := toWasmMemory(instanceContext, enc)
+	// note: just check if an error occurs while setting the result data
+	if err != nil {
+		logger.Errorf("failed to set the result data: %s", err)
+		return C.int64_t(0)
+	}
+
+	enc, err := scale.Marshal(result)
+	if err != nil {
+		logger.Errorf("failed to scale marshal the result: %s", err)
+		return C.int64_t(0)
+	}
+
+	ptr, err := toWasmMemory(instanceContext, enc)
+	if err != nil {
+		logger.Errorf("failed to allocate result on memory: %s", err)
+		return C.int64_t(0)
+	}
+
+	return C.int64_t(ptr)
+}
+
+//export ext_offchain_http_request_add_header_version_1
+func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqID C.int32_t, nameSpan, valueSpan C.int64_t) C.int64_t {
+	logger.Debug("executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	name := asMemorySlice(instanceContext, nameSpan)
+	value := asMemorySlice(instanceContext, valueSpan)
+
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	offchainReq := runtimeCtx.OffchainHTTPSet.Get(int16(reqID))
+
+	result := scale.NewResult(nil, nil)
+	resultMode := scale.OK
+
+	err := offchainReq.AddHeader(string(name), string(value))
+	if err != nil {
+		logger.Errorf("failed to add request header: %s", err)
+		resultMode = scale.Err
+	}
+
+	err = result.Set(resultMode, nil)
+	if err != nil {
+		logger.Errorf("failed to set the result data: %s", err)
+		return C.int64_t(0)
+	}
+
+	enc, err := scale.Marshal(result)
+	if err != nil {
+		logger.Errorf("failed to scale marshal the result: %s", err)
+		return C.int64_t(0)
+	}
+
+	ptr, err := toWasmMemory(instanceContext, enc)
+	if err != nil {
+		logger.Errorf("failed to allocate result on memory: %s", err)
+		return C.int64_t(0)
+	}
 
 	return C.int64_t(ptr)
 }
@@ -2190,7 +2219,7 @@ func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (i
 }
 
 // ImportsNodeRuntime returns the imports for the v0.8 runtime
-func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
+func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	var err error
 
 	imports := wasm.NewImports()
@@ -2413,6 +2442,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_offchain_http_request_add_header_version_1", ext_offchain_http_request_add_header_version_1, C.ext_offchain_http_request_add_header_version_1)
 	if err != nil {
 		return nil, err
 	}

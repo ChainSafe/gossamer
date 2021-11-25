@@ -16,8 +16,8 @@ type systemIntervalTM struct {
 	Peers              int          `json:"peers,omitempty"`
 	BestHash           *common.Hash `json:"best,omitempty"`
 	BestHeight         *big.Int     `json:"height,omitempty"`
-	FinalisedHash      *common.Hash `json:"finalized_hash,omitempty"`   // nolint
-	FinalisedHeight    *big.Int     `json:"finalized_height,omitempty"` // nolint
+	FinalisedHash      *common.Hash `json:"finalized_hash,omitempty"`
+	FinalisedHeight    *big.Int     `json:"finalized_height,omitempty"`
 	TxCount            *big.Int     `json:"txcount,omitempty"`
 	UsedStateCacheSize *big.Int     `json:"used_state_cache_size,omitempty"`
 }

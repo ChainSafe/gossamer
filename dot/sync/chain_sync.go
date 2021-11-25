@@ -51,7 +51,7 @@ var pendingBlocksLimit = maxResponseSize * 32
 
 // peerState tracks our peers's best reported blocks
 type peerState struct {
-	who    peer.ID //nolint
+	who    peer.ID
 	hash   common.Hash
 	number *big.Int
 }
@@ -253,7 +253,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
-		ourHash, err := cs.blockState.GetHashByNumber(ps.number) //nolint
+		ourHash, err := cs.blockState.GetHashByNumber(ps.number)
 		if err != nil {
 			return err
 		}
@@ -350,12 +350,20 @@ func (cs *chainSync) logSyncSpeed() {
 				before.Number, after.Number, before.Hash(), after.Hash())
 
 			logger.Infof(
-				"🚣 currently syncing, %d peers connected, target block number %s, %.2f average blocks/second, %.2f overall average, finalised block number %s with hash %s",
-				len(cs.network.Peers()), target, cs.benchmarker.mostRecentAverage(), cs.benchmarker.average(), finalised.Number, finalised.Hash())
+				"🚣 currently syncing, %d peers connected, "+
+					"target block number %s, %.2f average blocks/second, "+
+					"%.2f overall average, finalised block number %s with hash %s",
+				len(cs.network.Peers()),
+				target, cs.benchmarker.mostRecentAverage(),
+				cs.benchmarker.average(), finalised.Number, finalised.Hash())
 		case tip:
 			logger.Infof(
-				"💤 node waiting, %d peers connected, head block number %s with hash %s, finalised block number %s with hash %s",
-				len(cs.network.Peers()), after.Number, after.Hash(), finalised.Number, finalised.Hash())
+				"💤 node waiting, %d peers connected, "+
+					"head block number %s with hash %s, "+
+					"finalised block number %s with hash %s",
+				len(cs.network.Peers()),
+				after.Number, after.Hash(),
+				finalised.Number, finalised.Hash())
 		}
 	}
 }
@@ -585,8 +593,14 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // if it fails due to any reason, it sets the worker `err` and returns
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
-	logger.Debugf("dispatching sync worker id %d, start number %s, target number %s, start hash %s, target hash %s, request data %d, direction %s",
-		w.id, w.startNumber, w.targetNumber, w.startHash, w.targetHash, w.requestData, w.direction)
+	logger.Debugf("dispatching sync worker id %d, "+
+		"start number %s, target number %s, "+
+		"start hash %s, target hash %s, "+
+		"request data %d, direction %s",
+		w.id,
+		w.startNumber, w.targetNumber,
+		w.startHash, w.targetHash,
+		w.requestData, w.direction)
 
 	if w.startNumber == nil {
 		logger.Error("a block start number must be provided")
@@ -759,7 +773,8 @@ func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersT
 // 	- the response is not empty
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *network.BlockResponseMessage, p peer.ID) error {
+func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
+	resp *network.BlockResponseMessage, p peer.ID) error {
 	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}

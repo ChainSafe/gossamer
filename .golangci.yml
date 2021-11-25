@@ -46,6 +46,14 @@ linters-settings:
     include-go-root: false
     packages:
       - github.com/davecgh/go-spew/spew
+
+  lll:
+    # max line length, lines longer will be reported. Default is 120.
+    # '\t' is counted as 1 character by default, and can be changed with the tab-width option
+    line-length: 120
+    # tab width in spaces. Default to 1.
+    tab-width: 1
+
   misspell:
     # Correct spellings using locale preferences for US or UK.
     # Default is to use a neutral variety of English.
@@ -53,6 +61,7 @@ linters-settings:
     locale: UK
     ignore-words:
       - gossamer
+      - flavor
   gocritic:
     # Which checks should be disabled; can't be combined with 'enabled-checks'; default is empty
     disabled-checks:
@@ -84,9 +93,11 @@ linters:
     - gosimple
     - govet
     - ineffassign
+    - lll
     - megacheck
     - megacheck
     - misspell
+    - nolintlint
     - revive
     - staticcheck
     - unconvert
@@ -125,21 +136,17 @@ issues:
       linters:
         - govet
 
-    # Exclude known linters from partially hard-vendored code,
-    # which is impossible to exclude via "nolint" comments.
-    - path: internal/hmac/
-      text: "weak cryptographic primitive"
+    - text: "`finalized` is a misspelling of `finalised`"
       linters:
-        - gosec
+        - misspell
 
-    # Exclude some staticcheck messages
-    - linters:
-        - staticcheck
-      text: "SA9003:"
+    - text: "`finalize` is a misspelling of `finalise`"
+      linters:
+        - misspell
 
-    - linters:
-        - gosimple
-      text: "S1025:"
+    - text: "`initialize` is a misspelling of `initialise`"
+      linters:
+        - misspell
 
     - linters:
         - revive
@@ -147,25 +154,29 @@ issues:
 
     - linters:
         - revive
-      text: "don't use ALL_CAPS in Go names;"
-
-    - linters:
-        - revive
+      path: lib/runtime/life/
       text: "don't use underscores in Go names;"
 
     - linters:
-        - gocyclo
-      text: "cyclomatic complexity 36 of func " #runtime/imports.go: registerImports
-
-    - linters:
-        - gocyclo
-      text: "cyclomatic complexity 42 of func " # codec/decode.go: (*Decoder).DecodeTuple
+        - nolintlint
+      source: "^//nolint:revive"
 
     # Exclude lll issues for long lines with go:generate
     - linters:
         - lll
       source: "^//go:generate "
-      text: "long-lines"
+
+    - source: "// https://"
+      linters:
+        - lll
+
+    - source: "// See https://"
+      linters:
+        - lll
+
+    - text: 'G204: Subprocess launched with variable'
+      linters:
+        - gosec
 
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
