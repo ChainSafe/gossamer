@@ -3,7 +3,7 @@
 
 package utils
 
-//nolint
+//nolint:revive
 var (
 	// CHAIN METHODS
 	ChainGetBlock                = "chain_getBlock"

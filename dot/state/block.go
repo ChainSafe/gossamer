@@ -318,12 +318,6 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	return &types.Block{Header: *header, Body: *blockBody}, nil
 }
 
-// GetBlockHash returns block hash for a given block number
-// TODO: remove in favour of GetHashByNumber
-func (bs *BlockState) GetBlockHash(num *big.Int) (common.Hash, error) {
-	return bs.GetHashByNumber(num)
-}
-
 // SetHeader will set the header into DB
 func (bs *BlockState) SetHeader(header *types.Header) error {
 	bh, err := scale.Marshal(*header)
@@ -611,7 +605,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
 
 	if !codeSubBlockHash.Equal(common.Hash{}) {
-		newVersion, err := rt.CheckRuntimeVersion(code) //nolint
+		newVersion, err := rt.CheckRuntimeVersion(code)
 		if err != nil {
 			return err
 		}

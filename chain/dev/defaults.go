@@ -86,3 +86,21 @@ var (
 	// DefaultWSEnabled enables the WS server
 	DefaultWSEnabled = true
 )
+
+const (
+	// PprofConfig
+
+	// DefaultPprofEnabled to indicate the pprof http server should be enabled or not.
+	DefaultPprofEnabled = true
+
+	// DefaultPprofListeningAddress default pprof HTTP server listening address.
+	DefaultPprofListeningAddress = "localhost:6060"
+
+	// DefaultPprofBlockRate default block profile rate.
+	// Set to 0 to disable profiling.
+	DefaultPprofBlockRate = 0
+
+	// DefaultPprofMutexRate default mutex profile rate.
+	// Set to 0 to disable profiling.
+	DefaultPprofMutexRate = 0
+)

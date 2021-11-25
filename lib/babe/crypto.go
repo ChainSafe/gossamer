@@ -15,7 +15,7 @@ import (
 )
 
 // the code in this file is based off https://github.com/paritytech/substrate/blob/89275433863532d797318b75bb5321af098fea7c/primitives/consensus/babe/src/lib.rs#L93
-var babe_vrf_prefix = []byte("substrate-babe-vrf")
+var babeVRFPrefix = []byte("substrate-babe-vrf")
 
 func makeTranscript(randomness Randomness, slot, epoch uint64) *merlin.Transcript {
 	t := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
@@ -62,7 +62,7 @@ func checkPrimaryThreshold(randomness Randomness,
 ) bool {
 	t := makeTranscript(randomness, slot, epoch)
 	inout := sr25519.AttachInput(output, pub, t)
-	res := sr25519.MakeBytes(inout, 16, babe_vrf_prefix)
+	res := sr25519.MakeBytes(inout, 16, babeVRFPrefix)
 
 	inoutUint := common.Uint128FromLEBytes(res)
 
@@ -86,28 +86,28 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*common.Uint128, error) {
 
 	// (1-c)^(theta)
 	pp := 1 - c
-	pp_exp := math.Pow(pp, theta)
+	ppExp := math.Pow(pp, theta)
 
 	// 1 - (1-c)^(theta)
-	p := 1 - pp_exp
-	p_rat := new(big.Rat).SetFloat64(p)
+	p := 1 - ppExp
+	pRat := new(big.Rat).SetFloat64(p)
 
 	// 1 << 128
 	shift := new(big.Int).Lsh(big.NewInt(1), 128)
-	numer := new(big.Int).Mul(shift, p_rat.Num())
-	denom := p_rat.Denom()
+	numer := new(big.Int).Mul(shift, pRat.Num())
+	denom := pRat.Denom()
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
-	threshold_big := new(big.Int).Div(numer, denom)
+	thresholdBig := new(big.Int).Div(numer, denom)
 
 	// special case where threshold is maximum
-	if threshold_big.Cmp(shift) == 0 {
+	if thresholdBig.Cmp(shift) == 0 {
 		return common.MaxUint128, nil
 	}
 
-	if len(threshold_big.Bytes()) > 16 {
+	if len(thresholdBig.Bytes()) > 16 {
 		return nil, errors.New("threshold must be under or equal to 16 bytes")
 	}
 
-	return common.Uint128FromBigInt(threshold_big), nil
+	return common.Uint128FromBigInt(thresholdBig), nil
 }

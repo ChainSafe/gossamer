@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -50,7 +51,7 @@ var pendingBlocksLimit = maxResponseSize * 32
 
 // peerState tracks our peers's best reported blocks
 type peerState struct {
-	who    peer.ID //nolint
+	who    peer.ID
 	hash   common.Hash
 	number *big.Int
 }
@@ -247,7 +248,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
-		ourHash, err := cs.blockState.GetHashByNumber(ps.number) //nolint
+		ourHash, err := cs.blockState.GetHashByNumber(ps.number)
 		if err != nil {
 			return err
 		}
@@ -853,7 +854,7 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 	}
 
 	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
-		return errNilBodyInResponse
+		return fmt.Errorf("%w: hash=%s", errNilBodyInResponse, bd.Hash)
 	}
 
 	return nil

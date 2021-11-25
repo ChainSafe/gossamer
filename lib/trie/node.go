@@ -69,6 +69,7 @@ type (
 		dirty      bool
 		hash       []byte
 		encoding   []byte
+		encodingMu sync.RWMutex
 		generation uint64
 		sync.RWMutex
 	}
@@ -83,11 +84,12 @@ func (l *leaf) setGeneration(generation uint64) {
 }
 
 func (b *branch) copy() node {
-	b.Lock()
-	defer b.Unlock()
+	b.RLock()
+	defer b.RUnlock()
+
 	cpy := &branch{
 		key:        make([]byte, len(b.key)),
-		children:   [16]node{},
+		children:   b.children, // copy interface pointers
 		value:      nil,
 		dirty:      b.dirty,
 		hash:       make([]byte, len(b.hash)),
@@ -95,7 +97,6 @@ func (b *branch) copy() node {
 		generation: b.generation,
 	}
 	copy(cpy.key, b.key)
-	copy(cpy.children[:], b.children[:])
 
 	// nil and []byte{} are encoded differently, watch out!
 	if b.value != nil {
@@ -109,8 +110,12 @@ func (b *branch) copy() node {
 }
 
 func (l *leaf) copy() node {
-	l.Lock()
-	defer l.Unlock()
+	l.RLock()
+	defer l.RUnlock()
+
+	l.encodingMu.RLock()
+	defer l.encodingMu.RUnlock()
+
 	cpy := &leaf{
 		key:        make([]byte, len(l.key)),
 		value:      make([]byte, len(l.value)),
@@ -132,7 +137,10 @@ func (b *branch) setEncodingAndHash(enc, hash []byte) {
 }
 
 func (l *leaf) setEncodingAndHash(enc, hash []byte) {
+	l.encodingMu.Lock()
 	l.encoding = enc
+	l.encodingMu.Unlock()
+
 	l.hash = hash
 }
 
@@ -211,71 +219,96 @@ func (b *branch) setKey(key []byte) {
 	b.key = key
 }
 
-func (b *branch) encodeAndHash() ([]byte, []byte, error) {
+func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
 	if !b.dirty && b.encoding != nil && b.hash != nil {
 		return b.encoding, b.hash, nil
 	}
 
-	hasher := newHasher(false)
-	enc, err := hasher.encodeBranch(b)
+	buffer := encodingBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer encodingBufferPool.Put(buffer)
+
+	err = encodeBranch(b, buffer, false)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(enc) < 32 {
-		b.encoding = enc
-		b.hash = enc
-		return enc, enc, nil
+	bufferBytes := buffer.Bytes()
+
+	b.encoding = make([]byte, len(bufferBytes))
+	copy(b.encoding, bufferBytes)
+	encoding = b.encoding // no need to copy
+
+	if buffer.Len() < 32 {
+		b.hash = make([]byte, len(bufferBytes))
+		copy(b.hash, bufferBytes)
+		hash = b.hash // no need to copy
+		return encoding, hash, nil
 	}
 
-	hash, err := common.Blake2bHash(enc)
+	// Note: using the sync.Pool's buffer is useful here.
+	hashArray, err := common.Blake2bHash(buffer.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
+	b.hash = hashArray[:]
+	hash = b.hash // no need to copy
 
-	b.encoding = enc
-	b.hash = hash[:]
-	return enc, hash[:], nil
+	return encoding, hash, nil
 }
 
-func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
+func (l *leaf) encodeAndHash() (encoding, hash []byte, err error) {
+	l.encodingMu.RLock()
 	if !l.isDirty() && l.encoding != nil && l.hash != nil {
+		l.encodingMu.RUnlock()
 		return l.encoding, l.hash, nil
 	}
-	hasher := newHasher(false)
-	enc, err := hasher.encodeLeaf(l)
+	l.encodingMu.RUnlock()
 
+	buffer := encodingBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer encodingBufferPool.Put(buffer)
+
+	err = encodeLeaf(l, buffer)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(enc) < 32 {
-		l.encoding = enc
-		l.hash = enc
-		return enc, enc, nil
+	bufferBytes := buffer.Bytes()
+
+	l.encodingMu.Lock()
+	// TODO remove this copying since it defeats the purpose of `buffer`
+	// and the sync.Pool.
+	l.encoding = make([]byte, len(bufferBytes))
+	copy(l.encoding, bufferBytes)
+	l.encodingMu.Unlock()
+	encoding = l.encoding // no need to copy
+
+	if len(bufferBytes) < 32 {
+		l.hash = make([]byte, len(bufferBytes))
+		copy(l.hash, bufferBytes)
+		hash = l.hash // no need to copy
+		return encoding, hash, nil
 	}
 
-	hash, err := common.Blake2bHash(enc)
+	// Note: using the sync.Pool's buffer is useful here.
+	hashArray, err := common.Blake2bHash(buffer.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	l.encoding = enc
-	l.hash = hash[:]
-	return enc, hash[:], nil
+	l.hash = hashArray[:]
+	hash = l.hash // no need to copy
+
+	return encoding, hash, nil
 }
 
 func decodeBytes(in []byte) (node, error) {
-	r := &bytes.Buffer{}
-	_, err := r.Write(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return decode(r)
+	buffer := bytes.NewBuffer(in)
+	return decode(buffer)
 }
 
-// Decode wraps the decoding of different node types back into a node
+// decode wraps the decoding of different node types back into a node
 func decode(r io.Reader) (node, error) {
 	header, err := readByte(r)
 	if err != nil {

@@ -34,7 +34,7 @@ type NotificationsMessage = network.NotificationsMessage
 type ConsensusMessage = network.ConsensusMessage
 
 // GrandpaHandshake is exchanged by nodes that are beginning the grandpa protocol
-type GrandpaHandshake struct { //nolint
+type GrandpaHandshake struct { //nolint:revive
 	Roles byte
 }
 

@@ -427,7 +427,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 
 	// expected is non-canonical block 16
 	for _, leaf := range leaves {
-		is, err := s.blockState.IsDescendantOf(ancestor, leaf) //nolint
+		is, err := s.blockState.IsDescendantOf(ancestor, leaf)
 		require.NoError(t, err)
 		if is {
 			expected = leaf

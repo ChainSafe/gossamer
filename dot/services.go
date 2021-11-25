@@ -19,6 +19,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -86,7 +88,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 
 	if !codeSubHash.IsEmpty() {
 		logger.Infof("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash)
-		genData, err := st.Base.LoadGenesisData() // nolint
+		genData, err := st.Base.LoadGenesisData()
 		if err != nil {
 			return nil, err
 		}
@@ -261,6 +263,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		PublishMetrics:    cfg.Global.PublishMetrics,
 		PersistentPeers:   cfg.Network.PersistentPeers,
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
+		PublicIP:          cfg.Network.PublicIP,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -408,4 +411,9 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 
 func createDigestHandler(st *state.Service) (*digest.Handler, error) {
 	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
+}
+
+func createPprofService(settings pprof.Settings) (service *pprof.Service) {
+	pprofLogger := log.NewFromGlobal(log.AddContext("pkg", "pprof"))
+	return pprof.NewService(settings, pprofLogger)
 }

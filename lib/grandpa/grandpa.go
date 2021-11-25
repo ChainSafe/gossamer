@@ -30,6 +30,10 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
 )
 
+var (
+	ErrUnsupportedSubround = errors.New("unsupported subround")
+)
+
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
@@ -160,6 +164,10 @@ func NewService(cfg *Config) (*Service, error) {
 		interval:           cfg.Interval,
 	}
 
+	if err := s.registerProtocol(); err != nil {
+		return nil, err
+	}
+
 	s.messageHandler = NewMessageHandler(s, s.blockState)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.paused.Store(false)
@@ -168,11 +176,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	// TODO: determine if we need to send a catch-up request (#1531)
-	if err := s.registerProtocol(); err != nil {
-		return err
-	}
-
 	// if we're not an authority, we don't need to worry about the voting process.
 	// the grandpa service is only used to verify incoming block justifications
 	if !s.authority {
@@ -689,7 +692,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	return &pvb, nil
 }
 
-// isFinalisable returns true is the round is finalisable, false otherwise.
+// isFinalisable returns true if the round is finalisable, false otherwise.
 func (s *Service) isFinalisable(round uint64) (bool, error) {
 	var pvb Vote
 	var err error
@@ -807,16 +810,20 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 		spc  *sync.Map
 		err  error
 		just []SignedVote
+		eqv  map[ed25519.PublicKeyBytes][]*SignedVote
 	)
 
 	switch stage {
 	case prevote:
 		spc = s.prevotes
+		eqv = s.pvEquivocations
 	case precommit:
 		spc = s.precommits
+		eqv = s.pcEquivocations
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedSubround, stage)
 	}
 
-	// TODO: use equivacatory votes to create justification as well (#1667)
 	spc.Range(func(_, value interface{}) bool {
 		pc := value.(*SignedVote)
 		var isDescendant bool
@@ -836,6 +843,12 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 
 	if err != nil {
 		return nil, err
+	}
+
+	for _, votes := range eqv {
+		for _, vote := range votes {
+			just = append(just, *vote)
+		}
 	}
 
 	return just, nil

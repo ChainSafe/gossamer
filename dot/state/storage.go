@@ -234,7 +234,7 @@ func (s *StorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]
 	)
 
 	if bhash != nil {
-		header, err := s.blockState.GetHeader(*bhash) //nolint
+		header, err := s.blockState.GetHeader(*bhash)
 		if err != nil {
 			return nil, err
 		}

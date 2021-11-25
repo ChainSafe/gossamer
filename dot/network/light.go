@@ -9,7 +9,70 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+// handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
+func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
+	s.readStream(stream, s.decodeLightMessage, s.handleLightMsg)
+}
+
+func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, error) {
+	s.lightRequestMu.RLock()
+	defer s.lightRequestMu.RUnlock()
+
+	// check if we are the requester
+	if _, ok := s.lightRequest[peer]; ok {
+		// if we are, decode the bytes as a LightResponse
+		return newLightResponseFromBytes(in)
+	}
+
+	// otherwise, decode bytes as LightRequest
+	return newLightRequestFromBytes(in)
+}
+
+func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) (err error) {
+	defer func() {
+		_ = stream.Close()
+	}()
+
+	lr, ok := msg.(*LightRequest)
+	if !ok {
+		return nil
+	}
+
+	resp := NewLightResponse()
+	switch {
+	case lr.RemoteCallRequest != nil:
+		resp.RemoteCallResponse, err = remoteCallResp(lr.RemoteCallRequest)
+	case lr.RemoteHeaderRequest != nil:
+		resp.RemoteHeaderResponse, err = remoteHeaderResp(lr.RemoteHeaderRequest)
+	case lr.RemoteChangesRequest != nil:
+		resp.RemoteChangesResponse, err = remoteChangeResp(lr.RemoteChangesRequest)
+	case lr.RemoteReadRequest != nil:
+		resp.RemoteReadResponse, err = remoteReadResp(lr.RemoteReadRequest)
+	case lr.RemoteReadChildRequest != nil:
+		resp.RemoteReadResponse, err = remoteReadChildResp(lr.RemoteReadChildRequest)
+	default:
+		logger.Warn("ignoring LightRequest without request data")
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage. (#1856)
+	logger.Debugf("LightResponse message: %s", resp)
+
+	err = s.host.writeToStream(stream, resp)
+	if err != nil {
+		logger.Warnf("failed to send LightResponse message to peer %s: %s", stream.Conn().RemotePeer(), err)
+	}
+	return err
+}
 
 // Pair is a pair of arbitrary bytes.
 type Pair struct {
@@ -44,6 +107,12 @@ func NewLightRequest() *LightRequest {
 		RemoteReadChildRequest: newRemoteReadChildRequest(),
 		RemoteChangesRequest:   &rcr,
 	}
+}
+
+func newLightRequestFromBytes(in []byte) (msg *LightRequest, err error) {
+	msg = NewLightRequest()
+	err = msg.Decode(in)
+	return msg, err
 }
 
 func newRequest() *request {
@@ -120,6 +189,12 @@ func NewLightResponse() *LightResponse {
 		RemoteHeaderResponse:  newRemoteHeaderResponse(),
 		RemoteChangesResponse: newRemoteChangesResponse(),
 	}
+}
+
+func newLightResponseFromBytes(in []byte) (msg *LightResponse, err error) {
+	msg = NewLightResponse()
+	err = msg.Decode(in)
+	return msg, err
 }
 
 func newResponse() *response {
