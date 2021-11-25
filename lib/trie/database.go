@@ -73,7 +73,7 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 	mappedNodes := make(map[string]node, len(proof))
 
 	// map all the proofs hash -> decoded node
-	// and takes the loop to indentify the root node
+	// and takes the loop to identify the root node
 	for _, rawNode := range proof {
 		decNode, err := decodeBytes(rawNode)
 		if err != nil {
@@ -128,10 +128,13 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 		t.root = nil
 		return nil
 	}
+	return t.loadViaHashBytes(db, root[:], true)
+}
 
-	enc, err := db.Get(root[:])
+func (t *Trie) loadViaHashBytes(db chaindb.Database, rootHash []byte, lookForChildTries bool) error {
+	enc, err := db.Get(rootHash)
 	if err != nil {
-		return fmt.Errorf("failed to find root key=%s: %w", root, err)
+		return fmt.Errorf("failed to find root key=%s: %w", rootHash, err)
 	}
 
 	t.root, err = decodeBytes(enc)
@@ -140,9 +143,56 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 	}
 
 	t.root.setDirty(false)
-	t.root.setEncodingAndHash(enc, root[:])
+	t.root.setEncodingAndHash(enc, rootHash)
+	err = t.load(db, t.root)
+	if err != nil {
+		return err
+	}
 
-	return t.load(db, t.root)
+	if lookForChildTries {
+		// now try to load the childTries if available
+		return t.tryLoadChildTries(db, nil)
+	}
+	return nil
+}
+
+func (t *Trie) tryLoadChildTries(db chaindb.Database, curr node) error {
+	if curr == nil {
+		curr = t.root
+	}
+
+	switch node := curr.(type) {
+	case *branch:
+		for _, child := range node.children {
+			switch c := child.(type) {
+			case *branch:
+				// TODO: will this ever be nested?
+				// Based on "(t *Trie) load(db chaindb.Database, curr node) error" method this is not possible
+				t.tryLoadChildTries(db, child)
+
+			case *leaf:
+				t.collectChildTrie(db, c)
+			}
+		}
+	case *leaf:
+		t.collectChildTrie(db, node)
+	}
+
+	return nil
+}
+
+func (t *Trie) collectChildTrie(db chaindb.Database, leaf *leaf) error {
+	childTrie := &Trie{}
+
+	err := childTrie.loadViaHashBytes(db, leaf.value, false)
+	if err != nil {
+		return err
+	}
+
+	var trieKey [32]byte
+	copy(trieKey[:], leaf.value)
+	t.childTries[trieKey] = childTrie
+	return nil
 }
 
 func (t *Trie) load(db chaindb.Database, curr node) error {
@@ -290,6 +340,15 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 	if err != nil {
 		batch.Reset()
 		return err
+	}
+
+	// write childTries if available
+	for _, v := range t.childTries {
+		err = v.writeDirty(batch, v.root)
+		if err != nil {
+			batch.Reset()
+			return err
+		}
 	}
 
 	return batch.Flush()

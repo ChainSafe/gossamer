@@ -134,7 +134,6 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 func TestStorage_StorageChild(t *testing.T) {
 	storage := newFileDbTestStorageState(t)
-	// storage := newTestStorageState(t)
 	tr, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
@@ -144,10 +143,10 @@ func TestStorage_StorageChild(t *testing.T) {
 	err = tr.SetChild([]byte(":child_storage_key"), childTr)
 	require.NoError(t, err)
 
-	err = storage.StoreTrie(tr, nil)
+	stateRoot, err := tr.Root()
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Root()
+	err = storage.StoreTrie(tr, nil)
 	require.NoError(t, err)
 
 	bb, err := storage.blockState.BestBlock()
@@ -165,7 +164,6 @@ func TestStorage_StorageChild(t *testing.T) {
 	err = storage.blockState.AddBlock(b)
 	require.NoError(t, err)
 
-	hash := storage.blockState.BestBlockHash()
 	tests := []struct {
 		expect   uint64
 		keyChild []byte
@@ -183,13 +181,13 @@ func TestStorage_StorageChild(t *testing.T) {
 		},
 	}
 
+	// delete the trie from the child storage cache
+	storage.tries.Delete(stateRoot)
+
 	for _, test := range tests {
 		var res uint64
 
-		stateRoot, err := storage.GetStateRootFromBlock(&hash)
-		require.NoError(t, err)
-
-		item, err := storage.GetStorageFromChild(stateRoot, test.keyChild, test.entry)
+		item, err := storage.GetStorageFromChild(&stateRoot, test.keyChild, test.entry)
 		require.NoError(t, err)
 
 		if item != nil {
