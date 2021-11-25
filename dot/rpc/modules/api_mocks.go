@@ -32,7 +32,7 @@ func NewMockBlockAPI() *modulesmocks.BlockAPI {
 	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
 	m.On("BestBlockHash").Return(common.Hash{})
 	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil)
-	m.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(nil, nil)
+	m.On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(nil, nil)
 	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(common.Hash{}, nil)
 	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil)
 	m.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block, 5))

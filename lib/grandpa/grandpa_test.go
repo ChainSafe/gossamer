@@ -301,7 +301,7 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	expected, err := st.Block.GetBlockHash(big.NewInt(6))
+	expected, err := st.Block.GetHashByNumber(big.NewInt(6))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b, c) with >=2/3 votes,
@@ -357,7 +357,7 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
+	expectedAt6, err := st.Block.GetHashByNumber(big.NewInt(6))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >2/3 votes,
@@ -419,7 +419,7 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 		require.NoError(t, err)
 	}
 
-	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
+	expectedAt6, err := st.Block.GetHashByNumber(big.NewInt(6))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >2/3 votes,
@@ -501,7 +501,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 
-	expected, err := st.Block.GetBlockHash(big.NewInt(6))
+	expected, err := st.Block.GetHashByNumber(big.NewInt(6))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b, c)
@@ -550,7 +550,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 
-	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
+	expectedAt6, err := st.Block.GetHashByNumber(big.NewInt(6))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >2/3 votes,
@@ -592,7 +592,7 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 		}
 	}
 
-	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
+	expectedAt6, err := st.Block.GetHashByNumber(big.NewInt(6))
 	require.NoError(t, err)
 
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
@@ -721,7 +721,7 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 	}
 
 	// expected block is that with the highest number ie. at depth 7
-	expected, err := st.Block.GetBlockHash(big.NewInt(6))
+	expected, err := st.Block.GetHashByNumber(big.NewInt(6))
 	require.NoError(t, err)
 
 	block, err := gs.getPreVotedBlock()
@@ -794,7 +794,7 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 	}
 
 	// expected block is at depth 4
-	expected, err := st.Block.GetBlockHash(big.NewInt(4))
+	expected, err := st.Block.GetHashByNumber(big.NewInt(4))
 	require.NoError(t, err)
 
 	block, err := gs.getPreVotedBlock()
@@ -1235,7 +1235,7 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	}
 
 	// expected block is that with the most votes ie. block 3
-	expected, err := st.Block.GetBlockHash(big.NewInt(3))
+	expected, err := st.Block.GetHashByNumber(big.NewInt(3))
 	require.NoError(t, err)
 
 	block, err := gs.getGrandpaGHOST()

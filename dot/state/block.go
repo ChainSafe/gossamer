@@ -318,12 +318,6 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	return &types.Block{Header: *header, Body: *blockBody}, nil
 }
 
-// GetBlockHash returns block hash for a given block number
-// TODO: remove in favour of GetHashByNumber
-func (bs *BlockState) GetBlockHash(num *big.Int) (common.Hash, error) {
-	return bs.GetHashByNumber(num)
-}
-
 // SetHeader will set the header into DB
 func (bs *BlockState) SetHeader(header *types.Header) error {
 	bh, err := scale.Marshal(*header)
