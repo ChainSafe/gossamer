@@ -48,7 +48,8 @@ type Service struct {
 	// Epoch configuration data
 	slotDuration time.Duration
 	epochData    *epochData
-	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
+	// for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
+	slotToProof map[uint64]*VrfOutputAndProof
 
 	// State variables
 	sync.RWMutex
@@ -121,8 +122,9 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	logger.Debugf(
 		"created service with epoch %d, block producer=%t, slot duration %s, epoch length (slots) %d, authorities %v, "+
 			"authority index %d, threshold %v and randomness %s",
-		epoch, cfg.Authority, babeService.slotDuration, babeService.epochLength, Authorities(babeService.epochData.authorities),
-		babeService.epochData.authorityIndex, babeService.epochData.threshold, babeService.epochData.randomness)
+		epoch, cfg.Authority, babeService.slotDuration, babeService.epochLength,
+		Authorities(babeService.epochData.authorities), babeService.epochData.authorityIndex,
+		babeService.epochData.threshold, babeService.epochData.randomness)
 
 	if cfg.Lead {
 		logger.Debug("node designated to build block 1")

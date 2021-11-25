@@ -276,6 +276,8 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	err = st.Block.AddBlock(b)
 	require.NoError(t, err)
 
-	hash, _ := st.Block.GetBlockHash(b.Header.Number)
+	hash, err := st.Block.GetHashByNumber(b.Header.Number)
+	require.NoError(t, err)
+
 	return NewChildStateModule(st.Storage, st.Block), hash
 }

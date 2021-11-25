@@ -49,7 +49,8 @@ type EpochState struct {
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
-func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState, genesisConfig *types.BabeConfiguration) (*EpochState, error) {
+func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState,
+	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
 	err := baseState.storeFirstSlot(1) // this may change once the first block is imported

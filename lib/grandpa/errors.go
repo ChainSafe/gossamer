@@ -28,7 +28,9 @@ var (
 	// ErrInvalidSignature is returned when trying to validate a vote message with an invalid signature
 	ErrInvalidSignature = errors.New("signature is not valid")
 
-	// ErrSetIDMismatch is returned when trying to validate a vote message with an invalid voter set ID, or when receiving a catch up message with a different set ID
+	// ErrSetIDMismatch is returned when trying to validate a vote message
+	// with an invalid voter set ID, or when receiving a catch up message
+	// with a different set ID
 	ErrSetIDMismatch = errors.New("set IDs do not match")
 
 	// ErrEquivocation is returned when trying to validate a vote for that is equivocatory
@@ -37,7 +39,8 @@ var (
 	// ErrVoterNotFound is returned when trying to validate a vote for a voter that isn't in the voter set
 	ErrVoterNotFound = errors.New("voter is not in voter set")
 
-	// ErrDescendantNotFound is returned when trying to validate a vote for a block that isn't a descendant of the last finalised block
+	// ErrDescendantNotFound is returned when trying to validate a vote
+	// for a block that isn't a descendant of the last finalised block
 	ErrDescendantNotFound = blocktree.ErrDescendantNotFound
 
 	// ErrNoPreVotedBlock is returned when there is no pre-voted block for a round.
@@ -69,7 +72,8 @@ var (
 	// ErrInvalidCatchUpResponseRound is returned when a catch-up response is received with an invalid round
 	ErrInvalidCatchUpResponseRound = errors.New("catch up response is not for previous round")
 
-	// ErrGHOSTlessCatchUp is returned when a catch up response does not contain a valid grandpa-GHOST (ie. finalised block)
+	// ErrGHOSTlessCatchUp is returned when a catch up response
+	// does not contain a valid grandpa-GHOST (ie. finalised block)
 	ErrGHOSTlessCatchUp = errors.New("catch up response does not contain grandpa-GHOST")
 
 	// ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable
@@ -78,10 +82,12 @@ var (
 	// ErrServicePaused is returned if the service is paused and waiting for catch up messages
 	ErrServicePaused = errors.New("service is paused")
 
-	// ErrPrecommitSignatureMismatch is returned when the number of precommits and signatures in a CommitMessage do not match
+	// ErrPrecommitSignatureMismatch is returned when the number of precommits
+	// and signatures in a CommitMessage do not match
 	ErrPrecommitSignatureMismatch = errors.New("number of precommits does not match number of signatures")
 
-	// ErrPrecommitBlockMismatch is returned when a precommit hash within a justification is not a descendant of the committed block
+	// ErrPrecommitBlockMismatch is returned when a precommit hash within a
+	// justification is not a descendant of the committed block
 	ErrPrecommitBlockMismatch = errors.New("precommit block is not descendant of committed block")
 
 	// ErrAuthorityNotInSet is returned when a precommit within a justification is signed by a key not in the authority set

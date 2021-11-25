@@ -14,7 +14,8 @@ func NewBabeConsensusDigest() scale.VaryingDataType {
 
 // NewGrandpaConsensusDigest constructs a vdt representing a grandpa consensus digest
 func NewGrandpaConsensusDigest() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(GrandpaScheduledChange{}, GrandpaForcedChange{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
+	return scale.MustNewVaryingDataType(GrandpaScheduledChange{}, GrandpaForcedChange{},
+		GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
 }
 
 // GrandpaScheduledChange represents a GRANDPA scheduled authority change

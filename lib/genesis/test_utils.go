@@ -24,7 +24,11 @@ var testBootnodes = []string{
 
 var testEndpoints = []interface{}{}
 var testEndpoint1 = []interface{}{"wss://telemetry.polkadot.io/submit/", float64(1)}
-var testProperties = map[string]interface{}{"ss58Format": float64(0), "tokenDecimals": float64(10), "tokenSymbol": "DOT"}
+var testProperties = map[string]interface{}{
+	"ss58Format":    float64(0),
+	"tokenDecimals": float64(10),
+	"tokenSymbol":   "DOT",
+}
 
 var testForkBlocks = []string{"fork1", "forkBlock2"}
 
@@ -132,7 +136,8 @@ func newGenesisTrieAndHeader(t *testing.T, gen *Genesis) (*trie.Trie, *types.Hea
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
+		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	return genTrie, genesisHeader

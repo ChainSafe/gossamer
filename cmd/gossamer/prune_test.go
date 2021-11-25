@@ -13,8 +13,10 @@ import (
 )
 
 func TestPruneState(t *testing.T) {
-	t.Skip() // this fails due to being unable to call blockState.GetHighestFinalisedHash() when initialising the blockstate
-	// need to regenerate the test database and/or move this to the state package (which would make sense)
+	t.Skip()
+	// this fails due to being unable to call blockState.GetHighestFinalisedHash()
+	// when initialising the blockstate need to regenerate the test database
+	// and/or move this to the state package (which would make sense)
 
 	iterateDB := func(db *badger.DB, cb func(*badger.Item)) {
 		txn := db.NewTransaction(false)

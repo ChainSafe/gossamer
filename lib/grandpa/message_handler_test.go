@@ -33,7 +33,8 @@ func newTestDigest() scale.VaryingDataTypeSlice {
 	return digest
 }
 
-func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
+func buildTestJustification(t *testing.T, qty int, round, setID uint64,
+	kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
 	var just []SignedVote
 	for i := 0; i < qty; i++ {
 		j := SignedVote{
@@ -47,7 +48,8 @@ func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keys
 
 }
 
-func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
+func createSignedVoteMsg(t *testing.T, number uint32,
+	round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
 	// create vote message
 	msg, err := scale.Marshal(FullVote{
 		Stage: subround,
@@ -66,13 +68,13 @@ func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *e
 
 func TestDecodeMessage_VoteMessage(t *testing.T) {
 	cm := &ConsensusMessage{
-		Data: common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+		Data: common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"), //nolint:lll
 	}
 
 	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
-	sigb := common.MustHexToBytes("0x36e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f")
+	sigb := common.MustHexToBytes("0x36e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f") //nolint:lll
 	sig := [64]byte{}
 	copy(sig[:], sigb)
 
@@ -80,11 +82,13 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 		Round: 77,
 		SetID: 99,
 		Message: SignedMessage{
-			Stage:       precommit,
-			Hash:        common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
-			Number:      0x7777,
-			Signature:   sig,
-			AuthorityID: ed25519.PublicKeyBytes(common.MustHexToHash("0x34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691")),
+			Stage:     precommit,
+			Hash:      common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
+			Number:    0x7777,
+			Signature: sig,
+			AuthorityID: ed25519.PublicKeyBytes(
+				common.MustHexToHash("0x34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+			),
 		},
 	}
 
@@ -430,7 +434,8 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 	// sign vote with key not in authority set
-	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString("0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
+	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString(
+		"0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
 	require.NoError(t, err)
 
 	vote := NewVote(testHash, 123)
@@ -504,6 +509,69 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 	require.Equal(t, round+1, gs.state.round)
+}
+
+func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testing.T) {
+	auths := []types.GrandpaVoter{
+		{
+			Key: *kr.Alice().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Bob().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Charlie().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Dave().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Eve().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Ferdie().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.George().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Heather().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Ian().Public().(*ed25519.PublicKey),
+		},
+	}
+
+	gs, st := newTestService(t)
+	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
+	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: *testHeader,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
+	err = st.Grandpa.IncrementSetID()
+	require.NoError(t, err)
+
+	setID, err := st.Grandpa.GetCurrentSetID()
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), setID)
+
+	round := uint64(2)
+	number := uint32(2)
+	precommits := buildTestJustification(t, 20, round, setID, kr, precommit)
+	just := newJustification(round, testHash, number, precommits)
+	data, err := scale.Marshal(*just)
+	require.NoError(t, err)
+	err = gs.VerifyBlockJustification(testHash, data)
+	require.NoError(t, err)
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
@@ -586,4 +654,257 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
+}
+
+func Test_getEquivocatoryVoters(t *testing.T) {
+	// many of equivocatory votes
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Ferdie().(*ed25519.Keypair),
+		ed25519Keyring.Heather().(*ed25519.Keypair),
+		ed25519Keyring.Heather().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+	}
+
+	authData := make([]AuthData, len(fakeAuthorities))
+
+	for i, auth := range fakeAuthorities {
+		authData[i] = AuthData{
+			AuthorityID: auth.Public().(*ed25519.PublicKey).AsBytes(),
+		}
+	}
+
+	eqv := getEquivocatoryVoters(authData)
+	require.Len(t, eqv, 5)
+}
+
+func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *testing.T) {
+	const fakeRound = 2
+
+	gs, st := newTestService(t)
+	h := NewMessageHandler(gs, st.Block)
+
+	const previousBlocksToAdd = 8
+	now := time.Unix(1000, 0)
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, now)
+
+	bfcHash := bfcBlock.Header.Hash()
+	bfcNumber := bfcBlock.Header.Number.Int64()
+
+	// many of equivocatory votes
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Ferdie().(*ed25519.Keypair),
+	}
+
+	authData := make([]AuthData, len(fakeAuthorities))
+	precommits := make([]Vote, len(fakeAuthorities))
+
+	for i, auth := range fakeAuthorities {
+		vote := types.GrandpaVote{
+			Hash:   bfcHash,
+			Number: uint32(bfcNumber),
+		}
+
+		sig := signFakeFullVote(
+			t, auth, precommit, vote, fakeRound, gs.state.setID,
+		)
+
+		authData[i] = AuthData{
+			Signature:   sig,
+			AuthorityID: auth.Public().(*ed25519.PublicKey).AsBytes(),
+		}
+		precommits[i] = Vote{Hash: bfcHash, Number: uint32(bfcNumber)}
+	}
+
+	// Charlie has an equivocatory vote
+	testCommitData := &CommitMessage{
+		Round: fakeRound,
+		Vote: Vote{
+			Hash:   bfcHash,
+			Number: uint32(bfcNumber),
+		},
+		Precommits: precommits,
+		AuthData:   authData,
+	}
+
+	err = h.verifyCommitMessageJustification(testCommitData)
+	require.NoError(t, err)
+}
+
+func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
+	gs, st := newTestService(t)
+	h := NewMessageHandler(gs, st.Block)
+
+	const previousBlocksToAdd = 9
+	now := time.Unix(1000, 0)
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, now)
+
+	bfcHash := bfcBlock.Header.Hash()
+	bfcNumber := bfcBlock.Header.Number.Int64()
+
+	// many of equivocatory votes
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Ferdie().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+	}
+
+	prevotesJustification := make([]SignedVote, len(fakeAuthorities))
+	for idx, fakeAuthority := range fakeAuthorities {
+		var vote types.GrandpaVote
+
+		// put one vote on a different hash
+		if idx == 1 {
+			vote = types.GrandpaVote{
+				Hash:   bfcBlock.Header.ParentHash,
+				Number: uint32(bfcNumber - 1),
+			}
+		} else {
+			vote = types.GrandpaVote{
+				Hash:   bfcHash,
+				Number: uint32(bfcNumber),
+			}
+		}
+
+		sig := signFakeFullVote(
+			t, fakeAuthority, prevote, vote, gs.state.round, gs.state.setID)
+
+		prevotesJustification[idx] = SignedVote{
+			Vote:        vote,
+			Signature:   sig,
+			AuthorityID: fakeAuthority.Public().(*ed25519.PublicKey).AsBytes(),
+		}
+	}
+
+	testCatchUpResponse := &CatchUpResponse{
+		SetID:                gs.state.setID,
+		Round:                gs.state.round,
+		PreVoteJustification: prevotesJustification,
+		Hash:                 bfcHash,
+		Number:               uint32(bfcNumber),
+	}
+
+	hash, err := h.verifyPreVoteJustification(testCatchUpResponse)
+	require.NoError(t, err)
+	require.Equal(t, hash, bfcHash)
+}
+
+func Test_VerifyPreCommitJustification(t *testing.T) {
+	gs, st := newTestService(t)
+	h := NewMessageHandler(gs, st.Block)
+
+	const previousBlocksToAdd = 7
+	now := time.Unix(1000, 0)
+	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, now)
+
+	bfcHash := bfcBlock.Header.Hash()
+	bfcNumber := bfcBlock.Header.Number.Int64()
+
+	// many of equivocatory votes
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	// Alice, Charlie, David - Equivocatory
+	// Bob, Eve, Ferdie, Ian - Legit
+	// total of votes 4 legit + 3 equivocatory
+	// the threshold for testing is 9, so 2/3 of 9 = 6
+	fakeAuthorities := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Eve().(*ed25519.Keypair),
+		ed25519Keyring.Ferdie().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+	}
+
+	prevotesJustification := make([]SignedVote, len(fakeAuthorities))
+	for idx, fakeAuthority := range fakeAuthorities {
+		vote := types.GrandpaVote{
+			Hash:   bfcHash,
+			Number: uint32(bfcNumber),
+		}
+
+		sig := signFakeFullVote(
+			t, fakeAuthority, precommit, vote, gs.state.round, gs.state.setID)
+
+		prevotesJustification[idx] = SignedVote{
+			Vote:        vote,
+			Signature:   sig,
+			AuthorityID: fakeAuthority.Public().(*ed25519.PublicKey).AsBytes(),
+		}
+	}
+
+	testCatchUpResponse := &CatchUpResponse{
+		SetID:                  gs.state.setID,
+		Round:                  gs.state.round,
+		PreCommitJustification: prevotesJustification,
+		Hash:                   bfcHash,
+		Number:                 uint32(bfcNumber),
+	}
+
+	err = h.verifyPreCommitJustification(testCatchUpResponse)
+	require.NoError(t, err)
+}
+
+func signFakeFullVote(
+	t *testing.T, auth *ed25519.Keypair,
+	stage Subround, v types.GrandpaVote,
+	round, setID uint64) [64]byte {
+	msg, err := scale.Marshal(FullVote{
+		Stage: stage,
+		Vote:  v,
+		Round: round,
+		SetID: setID,
+	})
+	require.NoError(t, err)
+
+	var sig [64]byte
+	privSig, err := auth.Private().Sign(msg)
+	require.NoError(t, err)
+
+	copy(sig[:], privSig)
+
+	return sig
 }

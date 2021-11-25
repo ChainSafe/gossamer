@@ -20,7 +20,8 @@ var (
 const (
 	// disconnectReputationChange Reputation change value for a node when we get disconnected from it.
 	disconnectReputationChange Reputation = -256
-	// forgetAfterTime amount of time between the moment we disconnect from a node and the moment we remove it from the list.
+	// forgetAfterTime amount of time between the moment we disconnect
+	// from a node and the moment we remove it from the list.
 	forgetAfterTime = time.Second * 3600 // one hour
 	// default channel size for peerSet.
 	msgChanSize = 100

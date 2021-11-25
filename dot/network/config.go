@@ -60,6 +60,8 @@ type Config struct {
 	Syncer             Syncer
 	TransactionHandler TransactionHandler
 
+	// Used to specify the address broadcasted to other peers, and avoids using pubip.Get
+	PublicIP string
 	// Port the network port used for listening
 	Port uint16
 	// RandSeed the seed used to generate the network p2p identity (0 = non-deterministic random seed)

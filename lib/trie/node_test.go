@@ -5,6 +5,7 @@ package trie
 
 import (
 	"bytes"
+	"math/rand"
 	"strconv"
 	"testing"
 
@@ -22,6 +23,16 @@ func byteArray(length int) []byte {
 		b[i] = 0xf
 	}
 	return b
+}
+
+func generateRand(size int) [][]byte {
+	rt := make([][]byte, size)
+	for i := range rt {
+		buf := make([]byte, rand.Intn(379)+1)
+		rand.Read(buf)
+		rt[i] = buf
+	}
+	return rt
 }
 
 func TestChildrenBitmap(t *testing.T) {
@@ -230,7 +241,15 @@ func TestBranchDecode(t *testing.T) {
 		{key: []byte{}, children: [16]node{}, value: []byte{0x01}},
 		{key: []byte{}, children: [16]node{&leaf{}}, value: []byte{0x01}},
 		{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
-		{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		{
+			key: []byte{},
+			children: [16]node{
+				&leaf{}, nil, &leaf{}, nil,
+				nil, nil, nil, nil,
+				nil, &leaf{}, nil, &leaf{},
+			},
+			value: []byte{0x01},
+		},
 		{key: byteArray(62), children: [16]node{}, value: nil},
 		{key: byteArray(63), children: [16]node{}, value: nil},
 		{key: byteArray(64), children: [16]node{}, value: nil},
@@ -292,7 +311,14 @@ func TestDecode(t *testing.T) {
 		&branch{key: []byte{}, children: [16]node{}, value: []byte{0x01}},
 		&branch{key: []byte{}, children: [16]node{&leaf{}}, value: []byte{0x01}},
 		&branch{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
-		&branch{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		&branch{
+			key: []byte{},
+			children: [16]node{
+				&leaf{}, nil, &leaf{}, nil,
+				nil, nil, nil, nil,
+				nil, &leaf{}, nil, &leaf{}},
+			value: []byte{0x01},
+		},
 		&leaf{key: []byte{}, value: nil},
 		&leaf{key: []byte{0x00}, value: nil},
 		&leaf{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil},

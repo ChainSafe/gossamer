@@ -323,7 +323,8 @@ func (k *PublicKey) VerifyDeprecated(msg, sig []byte) (bool, error) {
 }
 
 // VrfVerify confirms that the output and proof are valid given a message and public key
-func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VRFOutputLength]byte, proof [VRFProofLength]byte) (bool, error) {
+func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VRFOutputLength]byte,
+	proof [VRFProofLength]byte) (bool, error) {
 	o := new(sr25519.VrfOutput)
 	err := o.Decode(out)
 	if err != nil {

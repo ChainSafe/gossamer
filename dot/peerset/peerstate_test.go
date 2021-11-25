@@ -98,7 +98,9 @@ func TestDisconnectingFreeSlot(t *testing.T) {
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 	// try to make peer2 as an incoming connection.
 	err = state.tryAcceptIncoming(0, peer2)
-	require.Error(t, err) // peer2 will not be accepted as incoming connection, as we only have one incoming connection slot ingoing peerState.
+	// peer2 will not be accepted as incoming connection,
+	// as we only have one incoming connection slot ingoing peerState.
+	require.Error(t, err)
 
 	// disconnect peer1
 	err = state.disconnect(0, peer1)
