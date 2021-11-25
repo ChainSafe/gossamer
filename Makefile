@@ -17,11 +17,10 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
-## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint` on project files.
 .PHONY: lint
-lint: 
-	./scripts/install-lint.sh
-	${GOPATH}/bin/golangci-lint run
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
+	golangci-lint run
 
 clean:
 	rm -fr ./bin
