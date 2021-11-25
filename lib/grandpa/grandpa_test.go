@@ -1388,7 +1388,11 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth int) {
 	}
 }
 
-func addBlocksAndReturnTheLastOne(t *testing.T, blockState *state.BlockState, depth int, lastBlockArrivalTime time.Time) *types.Block {
+func addBlocksAndReturnTheLastOne(
+	t *testing.T, blockState *state.BlockState,
+	depth int,
+	lastBlockArrivalTime time.Time,
+) *types.Block {
 	t.Helper()
 	addBlocksToState(t, blockState, depth)
 
