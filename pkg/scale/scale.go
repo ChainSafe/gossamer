@@ -29,7 +29,8 @@ type fieldScaleIndicesCache struct {
 	sync.RWMutex
 }
 
-func (fsic *fieldScaleIndicesCache) fieldScaleIndices(in interface{}) (v reflect.Value, indices fieldScaleIndices, err error) {
+func (fsic *fieldScaleIndicesCache) fieldScaleIndices(in interface{}) (
+	v reflect.Value, indices fieldScaleIndices, err error) {
 	t := reflect.TypeOf(in)
 	v = reflect.ValueOf(in)
 	key := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())

@@ -19,7 +19,8 @@ type streamData struct {
 }
 
 // streamManager tracks inbound streams and runs a cleanup goroutine every `cleanupStreamInterval` to close streams that
-// we haven't received any data on for the last time period. this prevents keeping stale streams open and continuously trying to
+// we haven't received any data on for the last time period.
+// This prevents keeping stale streams open and continuously trying to
 // read from it, which takes up lots of CPU over time.
 type streamManager struct {
 	ctx           context.Context
@@ -66,7 +67,9 @@ func (sm *streamManager) cleanupStreams() {
 
 func (sm *streamManager) logNewStream(stream network.Stream) {
 	data := &streamData{
-		lastReceivedMessage: time.Now(), // prevents closing just opened streams, in case the cleanup goroutine runs at the same time stream is opened
+		// prevents closing just opened streams, in case the cleanup
+		// goroutine runs at the same time stream is opened
+		lastReceivedMessage: time.Now(),
 		stream:              stream,
 	}
 	sm.streamDataMap.Store(stream.ID(), data)

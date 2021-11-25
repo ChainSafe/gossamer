@@ -43,8 +43,10 @@ func (s *Service) receiveMessages(ctx context.Context) {
 			}
 
 			logger.Debugf(
-				"validated vote message %v from %s, round %d, subround %d, prevote count %d, precommit count %d, votes needed %d",
-				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage, s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+				"validated vote message %v from %s, round %d, subround %d, "+
+					"prevote count %d, precommit count %d, votes needed %d",
+				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
+				s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
 			return
@@ -177,7 +179,10 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	}
 
 	err = s.validateVote(vote)
-	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrDescendantNotFound) || errors.Is(err, blocktree.ErrEndNodeNotFound) || errors.Is(err, blocktree.ErrStartNodeNotFound) {
+	if errors.Is(err, ErrBlockDoesNotExist) ||
+		errors.Is(err, blocktree.ErrDescendantNotFound) ||
+		errors.Is(err, blocktree.ErrEndNodeNotFound) ||
+		errors.Is(err, blocktree.ErrStartNodeNotFound) {
 		s.tracker.addVote(&networkVoteMessage{
 			from: from,
 			msg:  m,

@@ -18,8 +18,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
-// Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
-// This only needs to be called during genesis initialisation of the node; it is not called during normal startup.
+// Initialise initialises the genesis state of the DB using the given storage trie.
+// The trie should be loaded with the genesis storage state.
+// This only needs to be called during genesis initialisation of the node;
+// it is not called during normal startup.
 func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
 	// get data directory from service
 	basepath, err := filepath.Abs(s.dbPath)

@@ -54,9 +54,11 @@ type Service struct {
 	interval       time.Duration
 
 	// current state information
-	state           *State                                   // current state
-	prevotes        *sync.Map                                // map[ed25519.PublicKeyBytes]*SignedVote // pre-votes for the current round
-	precommits      *sync.Map                                // map[ed25519.PublicKeyBytes]*SignedVote // pre-commits for the current round
+	state *State // current state
+	// map[ed25519.PublicKeyBytes]*SignedVote - pre-votes for the current round
+	prevotes *sync.Map
+	// map[ed25519.PublicKeyBytes]*SignedVote - pre-commits for the current round
+	precommits      *sync.Map
 	pvEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-vote stage
 	pcEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-commit stage
 	tracker         *tracker                                 // tracker of vote messages we may need in the future
@@ -252,7 +254,10 @@ func (s *Service) updateAuthorities() error {
 
 	s.state.voters = nextAuthorities
 	s.state.setID = currSetID
-	s.state.round = 0 // round resets to 1 after a set ID change, setting to 0 before incrementing indicates the setID has been increased
+	// round resets to 1 after a set ID change,
+	// setting to 0 before incrementing indicates
+	// the setID has been increased
+	s.state.round = 0
 	return nil
 }
 
@@ -639,7 +644,8 @@ func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
 func (s *Service) determinePreVote() (*Vote, error) {
 	var vote *Vote
 
-	// if we receive a vote message from the primary with a block that's greater than or equal to the current pre-voted block
+	// if we receive a vote message from the primary with a
+	// block that's greater than or equal to the current pre-voted block
 	// and greater than the best final candidate from the last round, we choose that.
 	// otherwise, we simply choose the head of our chain.
 	primary := s.derivePrimary()
@@ -1054,9 +1060,12 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 }
 
 // getPossibleSelectedBlocks returns blocks with total votes >threshold in a map of block hash -> block number.
-// if there are no blocks that have >threshold direct votes, this function will find ancestors of those blocks that do have >threshold votes.
-// note that by voting for a block, all of its ancestor blocks are automatically voted for.
-// thus, if there are no blocks with >threshold total votes, but the sum of votes for blocks A and B is >threshold, then this function returns
+// if there are no blocks that have >threshold direct votes,
+// this function will find ancestors of those blocks that do have >threshold votes.
+// note that by voting for a block, all of its ancestor blocks
+// are automatically voted for.
+// thus, if there are no blocks with >threshold total votes,
+// but the sum of votes for blocks A and B is >threshold, then this function returns
 // the first common ancestor of A and B.
 // in general, this function will return the highest block on each chain with >threshold votes.
 func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (map[common.Hash]uint32, error) {
@@ -1098,7 +1107,9 @@ func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (m
 
 // getPossibleSelectedAncestors recursively searches for ancestors with >2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >2/3 votes
-func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint32, stage Subround, threshold uint64) (map[common.Hash]uint32, error) {
+func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
+	selected map[common.Hash]uint32, stage Subround,
+	threshold uint64) (map[common.Hash]uint32, error) {
 	for _, v := range votes {
 		if v.Hash == curr {
 			continue

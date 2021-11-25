@@ -12,8 +12,10 @@ import (
 var (
 	// UnlockFlag keystore
 	UnlockFlag = cli.StringFlag{
-		Name:  "unlock",
-		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2",
+		Name: "unlock",
+		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. " +
+			"Can be used with --password=[password] to avoid prompt. " +
+			"For multiple passwords, do --password=password1,password2",
 	}
 	// ForceFlag disables all confirm prompts ("Y" to all)
 	ForceFlag = cli.BoolFlag{
@@ -346,15 +348,17 @@ var (
 		Usage: "Data directory for the output DB",
 	}
 
-	// RetainBlockNumberFlag retain number of block from latest block while pruning, valid for the use with prune-state subcommand
+	// RetainBlockNumberFlag retain number of block from latest block while pruning,
+	// valid for the use with prune-state subcommand
 	RetainBlockNumberFlag = cli.Int64Flag{
 		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
 		Value: dev.DefaultRetainBlocks,
 	}
 
-	// PruningFlag triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value
-	// should be set to `full`.
+	// PruningFlag triggers the online pruning of historical state tries.
+	// It's either full or archive.
+	// To enable pruning the value should be set to `full`.
 	PruningFlag = cli.StringFlag{
 		Name:  "pruning",
 		Usage: `State trie online pruning ("full", "archive")`,

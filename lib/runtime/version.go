@@ -38,7 +38,9 @@ type LegacyVersionData struct {
 }
 
 // NewLegacyVersionData returns a new LegacyVersionData
-func NewLegacyVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []APIItem) *LegacyVersionData {
+func NewLegacyVersionData(specName, implName []byte,
+	authoringVersion, specVersion, implVersion uint32,
+	apiItems []APIItem) *LegacyVersionData {
 	return &LegacyVersionData{
 		specName:         specName,
 		implName:         implName,
@@ -141,7 +143,9 @@ type VersionData struct {
 }
 
 // NewVersionData returns a new VersionData
-func NewVersionData(specName, implName []byte, authoringVersion, specVersion, implVersion uint32, apiItems []APIItem, transactionVersion uint32) *VersionData {
+func NewVersionData(specName, implName []byte,
+	authoringVersion, specVersion, implVersion uint32,
+	apiItems []APIItem, transactionVersion uint32) *VersionData {
 	return &VersionData{
 		specName:           specName,
 		implName:           implName,

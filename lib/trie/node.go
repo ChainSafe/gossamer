@@ -1,6 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+//nolint:lll
 // Modified Merkle-Patricia Trie
 // See https://github.com/w3f/polkadot-spec/blob/master/runtime-environment-spec/polkadot_re_spec.pdf for the full specification.
 //
@@ -162,7 +163,9 @@ func (l *leaf) getHash() []byte {
 
 func (b *branch) String() string {
 	if len(b.value) > 1024 {
-		return fmt.Sprintf("branch key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v", b.key, b.childrenBitmap(), common.MustBlake2bHash(b.value), b.dirty)
+		return fmt.Sprintf(
+			"branch key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v",
+			b.key, b.childrenBitmap(), common.MustBlake2bHash(b.value), b.dirty)
 	}
 	return fmt.Sprintf("branch key=%x childrenBitmap=%16b value=%v dirty=%v", b.key, b.childrenBitmap(), b.value, b.dirty)
 }
