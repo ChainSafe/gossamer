@@ -102,7 +102,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	const reservedOnly = false
 	peerCfgSet := peerset.NewConfigSet(
 		uint32(cfg.MaxPeers-cfg.MinPeers),
-		uint32(cfg.MaxPeers),
+		uint32(cfg.MaxPeers/2),
 		reservedOnly,
 		peerSetSlotAllocTime,
 	)
