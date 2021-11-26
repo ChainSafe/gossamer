@@ -39,8 +39,10 @@ type VerificationManager struct {
 	blockState BlockState
 	epochState EpochState
 	epochInfo  map[uint64]*verifierInfo // map of epoch number -> info needed for verification
-	// there may be different OnDisabled digests on different branches of the chain, so we need to keep track of all of them.
-	onDisabled map[uint64]map[uint32][]*onDisabledInfo // map of epoch number -> block producer index -> block number and hash
+	// there may be different OnDisabled digests on different
+	// branches of the chain, so we need to keep track of all of them.
+	// map of epoch number -> block producer index -> block number and hash
+	onDisabled map[uint64]map[uint32][]*onDisabledInfo
 }
 
 // NewVerificationManager returns a new NewVerificationManager
@@ -440,7 +442,9 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 }
 
 // verifyPrimarySlotWinner verifies the claim for a slot
-func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VRFProofLength]byte) (bool, error) {
+func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
+	slot uint64, vrfOutput [sr25519.VRFOutputLength]byte,
+	vrfProof [sr25519.VRFProofLength]byte) (bool, error) {
 	pub := b.authorities[authorityIndex].Key
 
 	pk, err := sr25519.NewPublicKey(pub.Encode())
@@ -462,8 +466,12 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, v
 	}
 
 	// validate VRF proof
-	logger.Tracef("verifyPrimarySlotWinner authority index %d, public key %s, randomness 0x%x, slot %d, epoch %d, output 0x%x and proof 0x%x",
-		authorityIndex, pub.Hex(), b.randomness, slot, b.epoch, vrfOutput, vrfProof[:])
+	logger.Tracef("verifyPrimarySlotWinner authority index %d, "+
+		"public key %s, randomness 0x%x, slot %d, epoch %d, "+
+		"output 0x%x and proof 0x%x",
+		authorityIndex,
+		pub.Hex(), b.randomness, slot, b.epoch,
+		vrfOutput, vrfProof[:])
 
 	t := makeTranscript(b.randomness, slot, b.epoch)
 	return pk.VrfVerify(t, vrfOutput, vrfProof)

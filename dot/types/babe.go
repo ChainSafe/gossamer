@@ -11,6 +11,7 @@ import (
 const RandomnessLength = 32
 
 // BabeConfiguration contains the genesis data for BABE
+//nolint:lll
 // see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
 type BabeConfiguration struct {
 	SlotDuration       uint64 // milliseconds
@@ -25,9 +26,9 @@ type BabeConfiguration struct {
 // BABEAuthorityRawToAuthority turns a slice of BABE AuthorityRaw into a slice of Authority
 func BABEAuthorityRawToAuthority(adr []AuthorityRaw) ([]Authority, error) {
 	ad := make([]Authority, len(adr))
-	for i, r := range adr {
+	for i := range adr {
 		ad[i] = Authority{}
-		err := ad[i].FromRawSr25519(&r) //nolint
+		err := ad[i].FromRawSr25519(&adr[i])
 		if err != nil {
 			return nil, err
 		}

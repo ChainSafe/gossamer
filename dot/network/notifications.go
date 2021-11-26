@@ -42,8 +42,10 @@ type (
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 
-	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream in batch processing mode.
-	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*BatchMessage, err error)
+	// NotificationsMessageBatchHandler is called when a (non-handshake)
+	// message is received over a notifications stream in batch processing mode.
+	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (
+		batchMsgs []*BatchMessage, err error)
 )
 
 // BatchMessage is exported for the mocks of lib/grandpa/mocks/network.go
@@ -69,7 +71,8 @@ type notificationsProtocol struct {
 	outboundHandshakeData    *sync.Map //map[peer.ID]*handshakeData
 }
 
-func newNotificationsProtocol(protocolID protocol.ID, handshakeGetter HandshakeGetter, handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator) *notificationsProtocol {
+func newNotificationsProtocol(protocolID protocol.ID, handshakeGetter HandshakeGetter,
+	handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator) *notificationsProtocol {
 	return &notificationsProtocol{
 		protocolID:               protocolID,
 		getHandshake:             handshakeGetter,
@@ -124,7 +127,8 @@ func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) *ha
 	}
 }
 
-func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
+func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder,
+	messageDecoder MessageDecoder) messageDecoder {
 	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
@@ -149,7 +153,9 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 // createNotificationsMessageHandler returns a function that is called by the handler of *inbound* streams.
-func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler, batchHandler NotificationsMessageBatchHandler) messageHandler {
+func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
+	messageHandler NotificationsMessageHandler,
+	batchHandler NotificationsMessageBatchHandler) messageHandler {
 	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
 			return nil

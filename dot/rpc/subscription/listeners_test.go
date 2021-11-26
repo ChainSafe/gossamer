@@ -228,7 +228,8 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	_, msg, err := ws.ReadMessage()
 	require.NoError(t, err)
 	resImported := map[string]interface{}{"inBlock": block.Header.Hash().String()}
-	expectedImportedBytes, err := json.Marshal(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resImported))
+	expectedImportedBytes, err := json.Marshal(
+		newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resImported))
 	require.NoError(t, err)
 	require.Equal(t, string(expectedImportedBytes)+"\n", string(msg))
 
@@ -240,7 +241,8 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	_, msg, err = ws.ReadMessage()
 	require.NoError(t, err)
 	resFinalised := map[string]interface{}{"finalised": block.Header.Hash().String()}
-	expectedFinalizedBytes, err := json.Marshal(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resFinalised))
+	expectedFinalizedBytes, err := json.Marshal(
+		newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resFinalised))
 	require.NoError(t, err)
 	require.Equal(t, string(expectedFinalizedBytes)+"\n", string(msg))
 }

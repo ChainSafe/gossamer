@@ -49,7 +49,7 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNodes, reservedPeers []pee
 	return handler
 }
 
-func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState { //nolint
+func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState {
 	t.Helper()
 	state, err := NewPeerState([]*config{
 		{

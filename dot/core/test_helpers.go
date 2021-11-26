@@ -48,7 +48,9 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
-	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
+	if cfg.BlockState == nil || cfg.StorageState == nil ||
+		cfg.TransactionState == nil || cfg.EpochState == nil ||
+		cfg.CodeSubstitutedState == nil {
 		config := state.Config{
 			Path:     testDatadirPath,
 			LogLevel: log.Info,
@@ -120,7 +122,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.CodeSubstitutes == nil {
 		cfg.CodeSubstitutes = make(map[common.Hash]string)
 
-		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData() //nolint
+		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData()
 		require.NoError(t, err)
 
 		for k, v := range genesisData.CodeSubstitutes {

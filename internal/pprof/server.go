@@ -12,7 +12,8 @@ import (
 
 // NewServer creates a new Pprof server which will listen at
 // the address specified.
-func NewServer(address string, logger httpserver.Logger) *httpserver.Server {
+func NewServer(address string, logger httpserver.Logger,
+	options ...httpserver.Option) *httpserver.Server {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/debug/pprof/", pprof.Index)
 	handler.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -23,5 +24,5 @@ func NewServer(address string, logger httpserver.Logger) *httpserver.Server {
 	handler.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
 	handler.Handle("/debug/pprof/heap", pprof.Handler("heap"))
 	handler.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
-	return httpserver.New("pprof", address, handler, logger)
+	return httpserver.New("pprof", address, handler, logger, options...)
 }

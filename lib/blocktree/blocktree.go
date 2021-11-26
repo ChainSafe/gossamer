@@ -158,7 +158,8 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 	return nil
 }
 
-// Prune sets the given hash as the new blocktree root, removing all nodes that are not the new root node or its descendant
+// Prune sets the given hash as the new blocktree root,
+// removing all nodes that are not the new root node or its descendant
 // It returns an array of hashes that have been pruned
 func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	bt.Lock()
@@ -218,7 +219,7 @@ func (bt *BlockTree) String() string {
 }
 
 // longestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) longestPath() []*node { //nolint
+func (bt *BlockTree) longestPath() []*node {
 	dl := bt.deepestLeaf()
 	var path []*node
 	for curr := dl; ; curr = curr.parent {
@@ -259,8 +260,8 @@ func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 
 }
 
-// DeepestLeaf returns leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) deepestLeaf() *node { //nolint
+// deepestLeaf returns the leftmost deepest leaf in the block tree.
+func (bt *BlockTree) deepestLeaf() *node {
 	return bt.leaves.deepestLeaf()
 }
 

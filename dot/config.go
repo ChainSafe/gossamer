@@ -84,6 +84,7 @@ type NetworkConfig struct {
 	MaxPeers          int
 	PersistentPeers   []string
 	DiscoveryInterval time.Duration
+	PublicIP          string
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
