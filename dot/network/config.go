@@ -99,7 +99,7 @@ type Config struct {
 
 	batchSize int // internal option
 
-	// SlotDuration is slot duration to produce block
+	// SlotDuration is the slot duration to produce a block
 	SlotDuration time.Duration
 }
 

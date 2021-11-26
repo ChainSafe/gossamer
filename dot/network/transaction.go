@@ -120,12 +120,12 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage) {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
-			timeOut := time.NewTimer(s.cfg.SlotDuration / 3)
-			var completed bool
-			for !completed {
+			timer := time.NewTimer(s.cfg.SlotDuration / 3)
+			var timedOut bool
+			for !timedOut {
 				select {
-				case <-timeOut.C:
-					completed = true
+				case <-timer.C:
+					timedOut = true
 				case txnMsg := <-txnBatchCh:
 					propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
 					if err != nil {
