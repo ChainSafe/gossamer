@@ -130,7 +130,7 @@ type chainSync struct {
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
 	// note: the block may have empty fields, as some data about it may be unknown
 	pendingBlocks      DisjointBlockSet
-	pendingBlockDoneCh <-chan struct{}
+	pendingBlockDoneCh chan<- struct{}
 
 	// bootstrap or tip (near-head)
 	state chainSyncState
@@ -195,14 +195,16 @@ func (cs *chainSync) start() {
 
 	pendingBlockDoneCh := make(chan struct{})
 	cs.pendingBlockDoneCh = pendingBlockDoneCh
-	go cs.pendingBlocks.run(cs.ctx, pendingBlockDoneCh)
+	go cs.pendingBlocks.run(pendingBlockDoneCh)
 	go cs.sync()
 	go cs.logSyncSpeed()
 }
 
 func (cs *chainSync) stop() {
+	if cs.pendingBlockDoneCh != nil {
+		close(cs.pendingBlockDoneCh)
+	}
 	cs.cancel()
-	<-cs.pendingBlockDoneCh
 }
 
 func (cs *chainSync) syncState() chainSyncState {

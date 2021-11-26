@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"context"
 	"errors"
 	"math/big"
 	"sync"
@@ -28,7 +27,7 @@ var (
 // DisjointBlockSet represents a set of incomplete blocks, or blocks
 // with an unknown parent. it is implemented by *disjointBlockSet
 type DisjointBlockSet interface {
-	run(ctx context.Context, done chan<- struct{})
+	run(done <-chan struct{})
 	addHashAndNumber(common.Hash, *big.Int) error
 	addHeader(*types.Header) error
 	addBlock(*types.Block) error
@@ -117,8 +116,7 @@ func newDisjointBlockSet(limit int) *disjointBlockSet {
 	}
 }
 
-func (s *disjointBlockSet) run(ctx context.Context, done chan<- struct{}) {
-	defer close(done)
+func (s *disjointBlockSet) run(done <-chan struct{}) {
 	ticker := time.NewTicker(clearBlocksInterval)
 	defer ticker.Stop()
 
@@ -126,7 +124,7 @@ func (s *disjointBlockSet) run(ctx context.Context, done chan<- struct{}) {
 		select {
 		case <-ticker.C:
 			s.clearBlocks()
-		case <-ctx.Done():
+		case <-done:
 			return
 		}
 	}
