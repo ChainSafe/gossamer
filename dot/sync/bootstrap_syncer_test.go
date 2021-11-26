@@ -16,10 +16,14 @@ import (
 )
 
 func newTestBootstrapSyncer(t *testing.T) *bootstrapSyncer {
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(100), types.NewDigest())
+	header, err := types.NewHeader(
+		common.NewHash([]byte{0}), trie.EmptyHash,
+		trie.EmptyHash, big.NewInt(100), types.NewDigest())
 	require.NoError(t, err)
 
-	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(200), types.NewDigest())
+	finHeader, err := types.NewHeader(
+		common.NewHash([]byte{0}), trie.EmptyHash,
+		trie.EmptyHash, big.NewInt(200), types.NewDigest())
 	require.NoError(t, err)
 
 	bs := new(syncmocks.BlockState)

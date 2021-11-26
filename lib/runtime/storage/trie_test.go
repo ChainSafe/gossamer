@@ -216,7 +216,13 @@ func TestTrieState_DeleteChildLimit(t *testing.T) {
 		expectedDelAll  bool
 		errMsg          string
 	}{
-		{key: []byte("fakekey"), limit: optLimit2, expectedDeleted: 0, expectedDelAll: false, errMsg: "child trie does not exist at key :child_storage:default:fakekey"},
+		{
+			key:             []byte("fakekey"),
+			limit:           optLimit2,
+			expectedDeleted: 0,
+			expectedDelAll:  false,
+			errMsg:          "child trie does not exist at key :child_storage:default:fakekey",
+		},
 		{key: []byte("keytochild"), limit: optLimit2, expectedDeleted: 2, expectedDelAll: false},
 		{key: []byte("keytochild"), limit: nil, expectedDeleted: 1, expectedDelAll: true},
 	}

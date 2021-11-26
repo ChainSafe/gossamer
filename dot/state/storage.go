@@ -43,7 +43,8 @@ type StorageState struct {
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, onlinePruner pruner.Config) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState,
+	t *trie.Trie, onlinePruner pruner.Config) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -280,7 +281,8 @@ func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
 	return tr.Entries(), nil
 }
 
-// GetKeysWithPrefix returns all that match the given prefix for the given hash (or best block state root if hash is nil) in lexicographic order
+// GetKeysWithPrefix returns all that match the given prefix for the given hash
+// (or best block state root if hash is nil) in lexicographic order
 func (s *StorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
 	tr, err := s.loadTrie(root)
 	if err != nil {

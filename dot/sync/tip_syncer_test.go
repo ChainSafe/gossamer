@@ -18,7 +18,8 @@ import (
 )
 
 func newTestTipSyncer(t *testing.T) *tipSyncer {
-	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(200), types.NewDigest())
+	finHeader, err := types.NewHeader(common.NewHash([]byte{0}),
+		trie.EmptyHash, trie.EmptyHash, big.NewInt(200), types.NewDigest())
 	require.NoError(t, err)
 
 	bs := new(syncmocks.BlockState)

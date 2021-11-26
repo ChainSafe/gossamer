@@ -41,7 +41,10 @@ type chainProcessor struct {
 	blockImportHandler BlockImportHandler
 }
 
-func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
+func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
+	blockState BlockState, storageState StorageState,
+	transactionState TransactionState, babeVerifier BabeVerifier,
+	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
@@ -95,7 +98,8 @@ func (s *chainProcessor) processReadyBlocks() {
 	}
 }
 
-// processBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
+// processBlockData processes the BlockData from a BlockResponse and
+// eturns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if bd == nil {
@@ -115,7 +119,9 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return err
 		}
 
-		logger.Debugf("skipping block number %s with hash %s, already have", block.Header.Number, bd.Hash) // TODO is this valid?
+		logger.Debugf(
+			"skipping block number %s with hash %s, already have",
+			block.Header.Number, bd.Hash) // TODO is this valid?
 
 		err = s.blockState.AddBlockToBlockTree(block)
 		if errors.Is(err, blocktree.ErrBlockExists) {

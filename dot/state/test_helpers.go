@@ -42,7 +42,8 @@ type testBranch struct {
 }
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranches bool) ([]*types.Header, []*types.Header) {
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
+	withBranches bool) ([]*types.Header, []*types.Header) {
 	var (
 		currentChain, branchChains []*types.Header
 		branches                   []testBranch
@@ -216,7 +217,8 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	}
 }
 
-func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
+func generateBlockWithRandomTrie(t *testing.T, serv *Service,
+	parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 

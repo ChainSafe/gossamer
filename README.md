@@ -43,7 +43,7 @@ For more information about Gossamer, the Polkadot ecosystem, and how to use Goss
 
 ### Prerequisites
 
-install go version `>=1.16`
+install go version `>=1.17`
 
 ### Installation
 
@@ -57,6 +57,22 @@ build gossamer command:
 ```
 make gossamer
 ```
+### Troubleshooting for Apple Silicon users
+
+If you are facing the following problem with the `wasmer`:
+```
+undefined: cWasmerImportObjectT
+undefined: cWasmerImportFuncT
+undefined: cWasmerValueTag
+```
+Make sure you have the following Golang enviroment variables:
+
+- GOARCH="amd64"
+- CGO_ENABLED="1"
+
+> use _go env_ to see all the Golang enviroment variables
+
+> use _go env -w **ENV_NAME**=**ENV_VALUE**_ to set the new value
 
 
 

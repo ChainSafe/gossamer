@@ -309,7 +309,9 @@ type ExtrinsicSubmitListener struct {
 }
 
 // NewExtrinsicSubmitListener constructor to build new ExtrinsicSubmitListener
-func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte, importedChan chan *types.Block, txStatusChan chan transaction.Status, finalisedChan chan *types.FinalisationInfo) *ExtrinsicSubmitListener {
+func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte,
+	importedChan chan *types.Block, txStatusChan chan transaction.Status,
+	finalisedChan chan *types.FinalisationInfo) *ExtrinsicSubmitListener {
 	return &ExtrinsicSubmitListener{
 		wsconn:        conn,
 		extrinsic:     types.Extrinsic(extBytes),

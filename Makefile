@@ -17,11 +17,10 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
-## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint` on project files.
 .PHONY: lint
-lint: 
-	./scripts/install-lint.sh
-	${GOPATH}/bin/golangci-lint run
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
+	golangci-lint run
 
 clean:
 	rm -fr ./bin
@@ -89,8 +88,7 @@ build-debug: clean
 init:
 	./bin/gossamer init --force
 
-## init-repo: Set initial configuration for the repo
-init-repo:
+githooks:
 	git config core.hooksPath .githooks
 
 ## start: Starts application from binary executable in `./bin/gossamer` with built-in key alice

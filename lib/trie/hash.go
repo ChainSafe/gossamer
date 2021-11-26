@@ -57,7 +57,10 @@ func hashNode(n node, digestBuffer io.Writer) (err error) {
 	// if length of encoded leaf is less than 32 bytes, do not hash
 	if encodingBuffer.Len() < 32 {
 		_, err = digestBuffer.Write(encodingBuffer.Bytes())
-		return err
+		if err != nil {
+			return fmt.Errorf("cannot write encoded node to buffer: %w", err)
+		}
+		return nil
 	}
 
 	// otherwise, hash encoded node
@@ -72,16 +75,26 @@ func hashNode(n node, digestBuffer io.Writer) (err error) {
 	}
 
 	_, err = digestBuffer.Write(hasher.Sum(nil))
-	return err
+	if err != nil {
+		return fmt.Errorf("cannot write hash sum of node to buffer: %w", err)
+	}
+	return nil
 }
 
 var ErrNodeTypeUnsupported = errors.New("node type is not supported")
+
+type bytesBuffer interface {
+	// note: cannot compose with io.Writer for mock generation
+	Write(p []byte) (n int, err error)
+	Len() int
+	Bytes() []byte
+}
 
 // encodeNode writes the encoding of the node to the buffer given.
 // It is the high-level function wrapping the encoding for different
 // node types. The encoding has the following format:
 // NodeHeader | Extra partial key length | Partial Key | Value
-func encodeNode(n node, buffer *bytes.Buffer, parallel bool) (err error) {
+func encodeNode(n node, buffer bytesBuffer, parallel bool) (err error) {
 	switch n := n.(type) {
 	case *branch:
 		err := encodeBranch(n, buffer, parallel)
@@ -104,28 +117,14 @@ func encodeNode(n node, buffer *bytes.Buffer, parallel bool) (err error) {
 		copy(n.encoding, buffer.Bytes())
 		return nil
 	case nil:
-		buffer.Write([]byte{0})
+		_, err := buffer.Write([]byte{0})
+		if err != nil {
+			return fmt.Errorf("cannot encode nil node: %w", err)
+		}
 		return nil
 	default:
 		return fmt.Errorf("%w: %T", ErrNodeTypeUnsupported, n)
 	}
-}
-
-func encodeAndHash(n node) ([]byte, error) {
-	buffer := digestBufferPool.Get().(*bytes.Buffer)
-	buffer.Reset()
-	defer digestBufferPool.Put(buffer)
-
-	err := hashNode(n, buffer)
-	if err != nil {
-		return nil, err
-	}
-
-	scEncChild, err := scale.Marshal(buffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return scEncChild, nil
 }
 
 // encodeBranch encodes a branch with the encoding specified at the top of this package
@@ -134,40 +133,42 @@ func encodeBranch(b *branch, buffer io.Writer, parallel bool) (err error) {
 	if !b.dirty && b.encoding != nil {
 		_, err = buffer.Write(b.encoding)
 		if err != nil {
-			return fmt.Errorf("cannot write stored encoded branch to buffer: %w", err)
+			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
 		}
 		return nil
 	}
 
-	encoding, err := b.header()
+	encodedHeader, err := b.header()
 	if err != nil {
-		return fmt.Errorf("cannot encode branch header: %w", err)
+		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	_, err = buffer.Write(encoding)
+	_, err = buffer.Write(encodedHeader)
 	if err != nil {
-		return fmt.Errorf("cannot write encoded branch header to buffer: %w", err)
+		return fmt.Errorf("cannot write encoded header to buffer: %w", err)
 	}
 
-	_, err = buffer.Write(nibblesToKeyLE(b.key))
+	keyLE := nibblesToKeyLE(b.key)
+	_, err = buffer.Write(keyLE)
 	if err != nil {
-		return fmt.Errorf("cannot write encoded branch key to buffer: %w", err)
+		return fmt.Errorf("cannot write encoded key to buffer: %w", err)
 	}
 
-	_, err = buffer.Write(common.Uint16ToBytes(b.childrenBitmap()))
+	childrenBitmap := common.Uint16ToBytes(b.childrenBitmap())
+	_, err = buffer.Write(childrenBitmap)
 	if err != nil {
-		return fmt.Errorf("cannot write branch children bitmap to buffer: %w", err)
+		return fmt.Errorf("cannot write children bitmap to buffer: %w", err)
 	}
 
 	if b.value != nil {
 		bytes, err := scale.Marshal(b.value)
 		if err != nil {
-			return fmt.Errorf("cannot scale encode branch value: %w", err)
+			return fmt.Errorf("cannot scale encode value: %w", err)
 		}
 
 		_, err = buffer.Write(bytes)
 		if err != nil {
-			return fmt.Errorf("cannot write encoded branch value to buffer: %w", err)
+			return fmt.Errorf("cannot write encoded value to buffer: %w", err)
 		}
 	}
 
@@ -222,10 +223,15 @@ func encodeChildrenInParallel(children [16]node, buffer io.Writer) (err error) {
 		// write as many completed buffers to the result buffer.
 		for currentIndex < len(children) &&
 			resultBuffers[currentIndex] != nil {
-			// note buffer.Write copies the byte slice given as argument
-			_, writeErr := buffer.Write(resultBuffers[currentIndex].Bytes())
-			if writeErr != nil && err == nil {
-				err = writeErr
+			bufferSlice := resultBuffers[currentIndex].Bytes()
+			if len(bufferSlice) > 0 {
+				// note buffer.Write copies the byte slice given as argument
+				_, writeErr := buffer.Write(bufferSlice)
+				if writeErr != nil && err == nil {
+					err = fmt.Errorf(
+						"cannot write encoding of child at index %d: %w",
+						currentIndex, writeErr)
+				}
 			}
 
 			encodingBufferPool.Put(resultBuffers[currentIndex])
@@ -246,17 +252,26 @@ func encodeChildrenInParallel(children [16]node, buffer io.Writer) (err error) {
 }
 
 func encodeChildrenSequentially(children [16]node, buffer io.Writer) (err error) {
-	for _, child := range children {
+	for i, child := range children {
 		err = encodeChild(child, buffer)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot encode child at index %d: %w", i, err)
 		}
 	}
 	return nil
 }
 
 func encodeChild(child node, buffer io.Writer) (err error) {
-	if child == nil {
+	var isNil bool
+	switch impl := child.(type) {
+	case *branch:
+		isNil = impl == nil
+	case *leaf:
+		isNil = impl == nil
+	default:
+		isNil = child == nil
+	}
+	if isNil {
 		return nil
 	}
 
@@ -273,6 +288,23 @@ func encodeChild(child node, buffer io.Writer) (err error) {
 	return nil
 }
 
+func encodeAndHash(n node) (b []byte, err error) {
+	buffer := digestBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer digestBufferPool.Put(buffer)
+
+	err = hashNode(n, buffer)
+	if err != nil {
+		return nil, fmt.Errorf("cannot hash node: %w", err)
+	}
+
+	scEncChild, err := scale.Marshal(buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("cannot scale encode hashed node: %w", err)
+	}
+	return scEncChild, nil
+}
+
 // encodeLeaf encodes a leaf to the buffer given, with the encoding
 // specified at the top of this package.
 func encodeLeaf(l *leaf, buffer io.Writer) (err error) {
@@ -286,27 +318,28 @@ func encodeLeaf(l *leaf, buffer io.Writer) (err error) {
 		return nil
 	}
 
-	encoding, err := l.header()
+	encodedHeader, err := l.header()
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	_, err = buffer.Write(encoding)
+	_, err = buffer.Write(encodedHeader)
 	if err != nil {
 		return fmt.Errorf("cannot write encoded header to buffer: %w", err)
 	}
 
-	_, err = buffer.Write(nibblesToKeyLE(l.key))
+	keyLE := nibblesToKeyLE(l.key)
+	_, err = buffer.Write(keyLE)
 	if err != nil {
 		return fmt.Errorf("cannot write LE key to buffer: %w", err)
 	}
 
-	bytes, err := scale.Marshal(l.value) // TODO scale encoder to write to buffer
+	encodedValue, err := scale.Marshal(l.value) // TODO scale encoder to write to buffer
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot scale marshal value: %w", err)
 	}
 
-	_, err = buffer.Write(bytes)
+	_, err = buffer.Write(encodedValue)
 	if err != nil {
 		return fmt.Errorf("cannot write scale encoded value to buffer: %w", err)
 	}

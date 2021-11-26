@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/httpserver"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,9 @@ func Test_Server(t *testing.T) {
 	logger.EXPECT().Info(newRegexMatcher("^pprof http server listening on 127.0.0.1:[1-9][0-9]{0,4}$"))
 	logger.EXPECT().Warn("pprof http server shutting down: context canceled")
 
-	server := NewServer(address, logger)
+	const httpServerShutdownTimeout = 10 * time.Second // 10s in case test worker is slow
+	server := NewServer(address, logger,
+		httpserver.ShutdownTimeout(httpServerShutdownTimeout))
 	require.NotNil(t, server)
 
 	ctx, cancel := context.WithCancel(context.Background())
