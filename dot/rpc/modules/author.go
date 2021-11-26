@@ -76,8 +76,8 @@ type decodedKey struct {
 type ExtrinsicStatus struct {
 	IsFuture    bool
 	IsReady     bool
-	Isfinalized bool
-	Asfinalized common.Hash
+	IsFinalized bool
+	AsFinalized common.Hash
 	IsUsurped   bool
 	AsUsurped   common.Hash
 	IsBroadcast bool

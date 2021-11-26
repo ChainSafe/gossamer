@@ -293,15 +293,12 @@ func (b *BlockBuilder) buildBlockInherents(slot Slot, rt runtime.Instance) ([][]
 	if err != nil {
 		return nil, err
 	}
-	logger.Debugf("timestamp", timestamp)
 
 	// add babeslot
 	err = idata.SetInt64Inherent(types.Babeslot, slot.number)
 	if err != nil {
 		return nil, err
 	}
-
-	logger.Debugf("babeslot", slot.number)
 
 	ienc, err := idata.Encode()
 	if err != nil {
