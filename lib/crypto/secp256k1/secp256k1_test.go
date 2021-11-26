@@ -158,6 +158,7 @@ func TestRecoverPublicKeyCompressed(t *testing.T) {
 }
 
 func TestVerifySignature(t *testing.T) {
+	t.Parallel()
 	keypair, err := GenerateKeypair()
 	require.NoError(t, err)
 
@@ -174,11 +175,10 @@ func TestVerifySignature(t *testing.T) {
 			publicKey: keypair.public.Encode(),
 			signature: signature[:64],
 			message:   message,
-			err:       nil,
 		},
 		"verification failed": {
 			publicKey: keypair.public.Encode(),
-			signature: []byte(""),
+			signature: []byte{},
 			message:   message,
 			err: fmt.Errorf("secp256k1: %w: for message 0x%x, signature 0x and public key 0x%x",
 				crypto.ErrSignatureVerificationFailed, message, keypair.public.Encode()),

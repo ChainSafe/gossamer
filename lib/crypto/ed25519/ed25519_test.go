@@ -104,6 +104,7 @@ func TestNewKeypairFromMnenomic_Again(t *testing.T) {
 }
 
 func TestVerifySignature(t *testing.T) {
+	t.Parallel()
 	keypair, err := GenerateKeypair()
 	require.NoError(t, err)
 
@@ -120,17 +121,16 @@ func TestVerifySignature(t *testing.T) {
 			publicKey: keypair.public.Encode(),
 			signature: signature,
 			message:   message,
-			err:       nil,
 		},
-		"failed to fetch publicKey": {
-			publicKey: []byte(""),
+		"bad public key input": {
+			publicKey: []byte{},
 			signature: signature,
 			message:   message,
 			err:       errors.New("cannot create public key: input is not 32 bytes"),
 		},
 		"verification failed": {
 			publicKey: keypair.public.Encode(),
-			signature: []byte(""),
+			signature: []byte{},
 			message:   message,
 			err: fmt.Errorf("ed25519: %w: for message 0x%x, signature 0x and public key 0x%x",
 				crypto.ErrSignatureVerificationFailed, message, keypair.public.Encode()),
