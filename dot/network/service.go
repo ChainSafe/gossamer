@@ -12,16 +12,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/metrics"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ethereum/go-ethereum/metrics"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 const (
@@ -89,8 +90,6 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
-
-	batchSize int
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -125,6 +124,9 @@ func NewService(cfg *Config) (*Service, error) {
 		connectToPeersTimeout = cfg.DiscoveryInterval
 	}
 
+	if cfg.batchSize == 0 {
+		cfg.batchSize = defaultTxnBatchSize
+	}
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -162,7 +164,6 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
-		batchSize:              100,
 	}
 
 	return network, err
@@ -211,7 +212,7 @@ func (s *Service) Start() error {
 			blockAnnounceID, err)
 	}
 
-	txnBatch := make(chan *BatchMessage, s.batchSize)
+	txnBatch := make(chan *BatchMessage, s.cfg.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol

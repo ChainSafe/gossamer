@@ -22,11 +22,11 @@ func (_m *Network) GossipMessage(msg network.NotificationsMessage) {
 }
 
 // RegisterNotificationsProtocol provides a mock function with given fields: sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler
-func (_m *Network) RegisterNotificationsProtocol(sub protocol.ID, messageID byte, handshakeGetter func() (network.Handshake, error), handshakeDecoder func([]byte) (network.Handshake, error), handshakeValidator func(peer.ID, network.Handshake) error, messageDecoder func([]byte) (network.NotificationsMessage, error), messageHandler func(peer.ID, network.NotificationsMessage) (bool, error), batchHandler func(peer.ID, network.NotificationsMessage) ([]*network.BatchMessage, error)) error {
+func (_m *Network) RegisterNotificationsProtocol(sub protocol.ID, messageID byte, handshakeGetter func() (network.Handshake, error), handshakeDecoder func([]byte) (network.Handshake, error), handshakeValidator func(peer.ID, network.Handshake) error, messageDecoder func([]byte) (network.NotificationsMessage, error), messageHandler func(peer.ID, network.NotificationsMessage) (bool, error), batchHandler func(peer.ID, network.NotificationsMessage)) error {
 	ret := _m.Called(sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(protocol.ID, byte, func() (network.Handshake, error), func([]byte) (network.Handshake, error), func(peer.ID, network.Handshake) error, func([]byte) (network.NotificationsMessage, error), func(peer.ID, network.NotificationsMessage) (bool, error), func(peer.ID, network.NotificationsMessage) ([]*network.BatchMessage, error)) error); ok {
+	if rf, ok := ret.Get(0).(func(protocol.ID, byte, func() (network.Handshake, error), func([]byte) (network.Handshake, error), func(peer.ID, network.Handshake) error, func([]byte) (network.NotificationsMessage, error), func(peer.ID, network.NotificationsMessage) (bool, error), func(peer.ID, network.NotificationsMessage)) error); ok {
 		r0 = rf(sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler)
 	} else {
 		r0 = ret.Error(0)
