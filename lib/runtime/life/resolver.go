@@ -935,7 +935,7 @@ func ext_crypto_ed25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	if sigVerifier.IsStarted() {
-		signature := crypto.Signing{
+		signature := crypto.SignatureInfo{
 			PubKey:     pubKey.Encode(),
 			Sign:       signature,
 			Msg:        message,
@@ -1124,7 +1124,7 @@ func ext_crypto_sr25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
-		signature := crypto.Signing{
+		signature := crypto.SignatureInfo{
 			PubKey:     pub.Encode(),
 			Sign:       signature,
 			Msg:        message,

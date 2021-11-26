@@ -384,7 +384,7 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if sigVerifier.IsStarted() {
-		signature := crypto.Signing{
+		signature := crypto.SignatureInfo{
 			PubKey:     pubKey.Encode(),
 			Sign:       signature,
 			Msg:        message,
@@ -475,7 +475,7 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 	}
 
 	if sigVerifier.IsStarted() {
-		signature := crypto.Signing{
+		signature := crypto.SignatureInfo{
 			PubKey:     pub.Encode(),
 			Sign:       signature,
 			Msg:        hash[:],
@@ -701,7 +701,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
-		signature := crypto.Signing{
+		signature := crypto.SignatureInfo{
 			PubKey:     pub.Encode(),
 			Sign:       signature,
 			Msg:        message,
@@ -743,7 +743,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
-		signature := crypto.Signing{
+		signature := crypto.SignatureInfo{
 			PubKey:     pub.Encode(),
 			Sign:       signature,
 			Msg:        message,
