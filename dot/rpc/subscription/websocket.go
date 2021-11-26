@@ -84,7 +84,7 @@ func (c *WSConn) HandleComm() {
 		reqid := msg["id"].(float64)
 		method := msg["method"].(string)
 
-		logger.Debugf("ws method %s called with params %v", method, params)
+		logger.Infof("ws method %s called with params %v", method, params)
 
 		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
 			setupListener := c.getSetupListener(method)

@@ -13,6 +13,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/ChainSafe/gossamer/internal/log"
+)
+
+var logger = log.NewFromGlobal(
+	log.AddContext("pkg", "rpc"),
+	log.AddContext("module", "state"),
 )
 
 //StateGetReadProofRequest json fields
@@ -311,19 +318,25 @@ func (sm *StateModule) GetStorage(_ *http.Request, req *StateStorageRequest, res
 		err  error
 	)
 
+	logger.Infof("state_getStorage", req.Key)
+
 	reqBytes, _ := common.HexToBytes(req.Key) // no need to catch error here
 
 	if req.Bhash != nil {
 		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
 		if err != nil {
+			logger.Errorf("did not find value", err)
 			return err
 		}
 	} else {
 		item, err = sm.storageAPI.GetStorage(nil, reqBytes)
 		if err != nil {
+			logger.Errorf("did not find value", err)
 			return err
 		}
 	}
+
+	logger.Infof("found value", common.BytesToHex(item))
 
 	if len(item) > 0 {
 		*res = StateStorageResponse(common.BytesToHex(item))

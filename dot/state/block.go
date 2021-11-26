@@ -14,6 +14,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -638,6 +639,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	rtCfg.NodeStorage = rt.NodeStorage()
 	rtCfg.Network = rt.NetworkService()
 	rtCfg.CodeHash = currCodeHash
+	rtCfg.LogLvl = log.Warn
 
 	if rt.Validator() {
 		rtCfg.Role = 4
