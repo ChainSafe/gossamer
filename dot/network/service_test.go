@@ -71,7 +71,10 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	if cfg.TransactionHandler == nil {
 		mocktxhandler := &MockTransactionHandler{}
-		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*TransactionMessage")).Return(nil)
+		mocktxhandler.On("HandleTransactionMessage",
+			mock.AnythingOfType("peer.ID"),
+			mock.AnythingOfType("*TransactionMessage")).
+			Return(nil)
 		mocktxhandler.On("TransactionsCount").Return(0)
 		cfg.TransactionHandler = mocktxhandler
 	}

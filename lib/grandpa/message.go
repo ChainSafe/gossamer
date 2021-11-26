@@ -14,13 +14,15 @@ import (
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
-type GrandpaMessage interface { //nolint
+type GrandpaMessage interface { //nolint:revive
 	ToConsensusMessage() (*network.ConsensusMessage, error)
 }
 
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
 func newGrandpaMessage() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(VoteMessage{}, CommitMessage{}, NeighbourMessage{}, CatchUpRequest{}, CatchUpResponse{})
+	return scale.MustNewVaryingDataType(
+		VoteMessage{}, CommitMessage{}, NeighbourMessage{},
+		CatchUpRequest{}, CatchUpResponse{})
 }
 
 // FullVote represents a vote with additional information about the state

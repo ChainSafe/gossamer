@@ -41,7 +41,7 @@ type BlockState interface {
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state
-type GrandpaState interface { //nolint
+type GrandpaState interface { //nolint:revive
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(setID uint64) ([]types.GrandpaVoter, error)
 	GetSetIDByBlockNumber(num *big.Int) (uint64, error)

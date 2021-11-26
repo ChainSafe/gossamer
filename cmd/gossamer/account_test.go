@@ -139,13 +139,20 @@ func TestAccountImportRaw(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 
-	err := app.Run([]string{"irrelevant", "account", directory, `--import-raw=0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09`, "--password=1234"})
+	err := app.Run([]string{
+		"irrelevant", "account", directory,
+		`--import-raw=0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09`,
+		"--password=1234"})
 	require.NoError(t, err)
 
 	ctx, err := newTestContext(
-		"Test gossamer account --import-raw=0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09 --password=1234",
+		"Test gossamer account "+
+			"--import-raw=0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09 "+
+			"--password=1234",
 		[]string{"import-raw", "password"},
-		[]interface{}{"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "1234"},
+		[]interface{}{
+			"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+			"1234"},
 	)
 	require.NoError(t, err)
 

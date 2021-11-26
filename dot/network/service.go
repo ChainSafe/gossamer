@@ -49,7 +49,8 @@ type (
 	// messageDecoder is passed on readStream to decode the data from the stream into a message.
 	// since messages are decoded based on context, this is different for every sub-protocol.
 	messageDecoder = func([]byte, peer.ID, bool) (Message, error)
-	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
+	// messageHandler is passed on readStream to handle the resulting message.
+	// It should return an error only if the stream is to be closed
 	messageHandler = func(stream libp2pnetwork.Stream, msg Message) error
 )
 
@@ -94,7 +95,7 @@ type Service struct {
 
 // NewService creates a new network service from the configuration and message channels
 func NewService(cfg *Config) (*Service, error) {
-	ctx, cancel := context.WithCancel(context.Background()) //nolint
+	ctx, cancel := context.WithCancel(context.Background())
 
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 	cfg.logger = logger
@@ -103,7 +104,7 @@ func NewService(cfg *Config) (*Service, error) {
 	err := cfg.build()
 	if err != nil {
 		cancel()
-		return nil, err //nolint
+		return nil, err
 	}
 
 	if cfg.MinPeers == 0 {
@@ -132,8 +133,8 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	// pre-allocate pool of buffers used to read from streams.
-	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
-	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
+	// initially allocate as many buffers as likely necessary which is the number of inbound streams we will have,
+	// which should equal the average number of peers times the number of notifications protocols, which is currently 3.
 	preAllocateInPool := cfg.MinPeers * 3
 	poolSize := cfg.MaxPeers * 3
 	if cfg.noPreAllocate { // testing
@@ -290,9 +291,15 @@ func (s *Service) collectNetworkMetrics() {
 		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
 		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
-		syncedBlocks := metrics.GetOrRegisterGauge("service/blocks/sync", metrics.DefaultRegistry)
-		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/inbound", metrics.DefaultRegistry)
-		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/outbound", metrics.DefaultRegistry)
+		syncedBlocks := metrics.GetOrRegisterGauge(
+			"service/blocks/sync",
+			metrics.DefaultRegistry)
+		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
+			"network/streams/block_announce/inbound",
+			metrics.DefaultRegistry)
+		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
+			"network/streams/block_announce/outbound",
+			metrics.DefaultRegistry)
 		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
 		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
 		totalInboundStreams := metrics.GetOrRegisterGauge("network/streams/total/inbound", metrics.DefaultRegistry)
@@ -407,17 +414,17 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		bestHash := best.Hash()
 
-		finalized, err := s.blockState.GetHighestFinalisedHeader() //nolint
+		finalised, err := s.blockState.GetHighestFinalisedHeader()
 		if err != nil {
 			continue
 		}
-		finalizedHash := finalized.Hash()
+		finalizedHash := finalised.Hash()
 
 		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
 			&bestHash,
 			best.Number,
 			&finalizedHash,
-			finalized.Number,
+			finalised.Number,
 			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))

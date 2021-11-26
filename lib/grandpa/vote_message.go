@@ -27,12 +27,12 @@ func (s *Service) receiveMessages(ctx context.Context) {
 	for {
 		select {
 		case msg, ok := <-s.in:
-			if msg == nil || msg.msg == nil {
-				continue
-			}
-
 			if !ok {
 				return
+			}
+
+			if msg == nil || msg.msg == nil {
+				continue
 			}
 
 			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
@@ -72,8 +72,10 @@ func (s *Service) receiveMessages(ctx context.Context) {
 			}
 
 			logger.Debugf(
-				"validated vote message %v from %s, round %d, subround %d, prevote count %d, precommit count %d, votes needed %d",
-				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage, s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+				"validated vote message %v from %s, round %d, subround %d, "+
+					"prevote count %d, precommit count %d, votes needed %d",
+				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
+				s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
 			return
@@ -160,7 +162,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	if m.Round != s.state.round {
 		if m.Round < s.state.round {
 			// peer doesn't know round was finalised, send out another commit message
-			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID) //nolint
+			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
 			if err != nil {
 				return nil, err
 			}
@@ -206,7 +208,10 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	}
 
 	err = s.validateVote(vote)
-	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrDescendantNotFound) || errors.Is(err, blocktree.ErrEndNodeNotFound) || errors.Is(err, blocktree.ErrStartNodeNotFound) {
+	if errors.Is(err, ErrBlockDoesNotExist) ||
+		errors.Is(err, blocktree.ErrDescendantNotFound) ||
+		errors.Is(err, blocktree.ErrEndNodeNotFound) ||
+		errors.Is(err, blocktree.ErrStartNodeNotFound) {
 		s.tracker.addVote(&networkVoteMessage{
 			from: from,
 			msg:  m,

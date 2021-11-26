@@ -398,8 +398,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	return nil
 }
 
-// maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
-// and moves them to the queue if valid.
+// maintainTransactionPool removes any transactions that were included in
+// the new block, revalidates the transactions in the pool, and moves
+// them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
 func (s *Service) maintainTransactionPool(block *types.Block) {
 	// remove extrinsics included in a block
