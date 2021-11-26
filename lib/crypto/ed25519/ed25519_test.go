@@ -126,7 +126,7 @@ func TestVerifySignature(t *testing.T) {
 			publicKey: []byte{},
 			signature: signature,
 			message:   message,
-			err:       errors.New("cannot create public key: input is not 32 bytes"),
+			err:       errors.New("ed25519: cannot create public key: input is not 32 bytes"),
 		},
 		"verification failed": {
 			publicKey: keypair.public.Encode(),
