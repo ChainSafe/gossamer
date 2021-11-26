@@ -11,7 +11,6 @@ import (
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_uint64ToHex(t *testing.T) {
@@ -71,7 +70,6 @@ func TestDevModule_EpochLength(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     string
 	}{
@@ -95,8 +93,7 @@ func TestDevModule_EpochLength(t *testing.T) {
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
 			err := m.EpochLength(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -123,7 +120,6 @@ func TestDevModule_SlotDuration(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     string
 	}{
@@ -147,8 +143,7 @@ func TestDevModule_SlotDuration(t *testing.T) {
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
 			err := m.SlotDuration(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil{
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -189,7 +184,6 @@ func TestDevModule_Control(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     string
 	}{
@@ -202,7 +196,6 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "stop"},
 			},
-			wantErr: true,
 			expErr:  errors.New("not a block producer"),
 		},
 		{
@@ -215,7 +208,6 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "stop"},
 			},
 			exp:     "babe service stopped",
-			wantErr: true,
 			expErr:  errors.New("babe pause error"),
 		},
 		{
@@ -239,7 +231,6 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "start"},
 			},
 			exp:     "babe service started",
-			wantErr: true,
 			expErr:  errors.New("babe resume error"),
 		},
 		{
@@ -263,7 +254,6 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"network", "stop"},
 			},
 			exp:     "network service stopped",
-			wantErr: true,
 			expErr:  errors.New("network stop error"),
 		},
 		{
@@ -287,7 +277,6 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"network", "start"},
 			},
 			exp:     "network service started",
-			wantErr: true,
 			expErr:  errors.New("network start error"),
 		},
 		{
@@ -310,8 +299,7 @@ func TestDevModule_Control(t *testing.T) {
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
 			err := m.Control(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)

@@ -63,7 +63,6 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     PaymentQueryInfoResponse
 	}{
@@ -109,7 +108,6 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Ext: "0x0",
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("cannot decode an odd length string"),
 		},
 		{
@@ -135,7 +133,6 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Hash: &testHash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("PaymentQueryInfo error"),
 		},
 		{
@@ -149,7 +146,6 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Hash: &testHash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetRuntime error"),
 		},
 	}
@@ -160,8 +156,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 				blockAPI: tt.fields.blockAPI,
 			}
 			err := p.QueryInfo(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil{
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)

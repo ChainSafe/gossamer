@@ -48,7 +48,6 @@ func TestChainModule_GetBlock(t *testing.T) {
 		fields  fields
 		args    args
 		exp     ChainBlockResponse
-		wantErr bool
 		expErr  error
 	}{
 		{
@@ -78,7 +77,6 @@ func TestChainModule_GetBlock(t *testing.T) {
 			args: args{
 				req: &ChainHashRequest{&testHash},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetJustification error"),
 		},
 		{
@@ -108,8 +106,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 				blockAPI: tt.fields.blockAPI,
 			}
 			err := cm.GetBlock(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -144,7 +141,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     ChainHashResponse
 	}{
@@ -187,7 +183,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{uintptr(1)},
 			},
 			exp:     []string(nil),
-			wantErr: true,
 			expErr:  errors.New("unknown request number type: uintptr"),
 		},
 		{
@@ -199,7 +194,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{i},
 			},
 			exp:     []string(nil),
-			wantErr: true,
 			expErr:  errors.New("error setting number from string"),
 		},
 		{
@@ -211,7 +205,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{"21"},
 			},
 			exp:     []string(nil),
-			wantErr: true,
 			expErr:  errors.New("GetBlockHash Error"),
 		},
 	}
@@ -222,8 +215,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				blockAPI: tt.fields.blockAPI,
 			}
 			err := cm.GetBlockHash(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -254,7 +246,6 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     ChainHashResponse
 	}{
@@ -276,7 +267,6 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetHighestFinalisedHash Error"),
 		},
 	}
@@ -287,8 +277,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 				blockAPI: tt.fields.blockAPI,
 			}
 			err := cm.GetFinalizedHead(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -319,7 +308,6 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     ChainHashResponse
 	}{
@@ -347,7 +335,6 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 					SetID: uint64(21),
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetFinalisedHash Error"),
 		},
 	}
@@ -358,8 +345,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 				blockAPI: tt.fields.blockAPI,
 			}
 			err := cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -396,7 +382,6 @@ func TestChainModule_GetHeader(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     ChainBlockHeaderResponse
 	}{
@@ -418,7 +403,6 @@ func TestChainModule_GetHeader(t *testing.T) {
 			args: args{
 				req: &ChainHashRequest{&testHash},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetFinalisedHash Error"),
 		},
 	}
@@ -429,8 +413,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 				blockAPI: tt.fields.blockAPI,
 			}
 			err := cm.GetHeader(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -487,7 +470,6 @@ func TestHeaderToJSON(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		wantErr bool
 		exp     ChainBlockHeaderResponse
 	}{
 		{
@@ -508,7 +490,6 @@ func TestHeaderToJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := HeaderToJSON(tt.args.header)
-			assert.Equal(t, tt.wantErr, err != nil)
 			if err == nil {
 				assert.Equal(t, tt.exp, res)
 			} else {

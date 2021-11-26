@@ -77,7 +77,6 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     []string
 	}{
@@ -120,7 +119,6 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				},
 			},
 			exp:     []string{},
-			wantErr: true,
 			expErr:  errors.New("GetStorageChild error"),
 		},
 		{
@@ -135,7 +133,6 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				},
 			},
 			exp:     []string{},
-			wantErr: true,
 			expErr:  errors.New("GetStateRootFromBlock error"),
 		},
 	}
@@ -147,8 +144,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				blockAPI:   tt.fields.blockAPI,
 			}
 			err := cs.GetKeys(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -192,7 +188,6 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     uint64
 	}{
@@ -236,7 +231,6 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorageChild error"),
 		},
 		{
@@ -250,7 +244,6 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStateRootFromBlock error"),
 		},
 	}
@@ -262,8 +255,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				blockAPI:   tt.fields.blockAPI,
 			}
 			err := cs.GetStorageSize(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -307,7 +299,6 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     string
 	}{
@@ -351,7 +342,6 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorageChild error"),
 		},
 		{
@@ -365,7 +355,6 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStateRootFromBlock error"),
 		},
 	}
@@ -377,8 +366,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				blockAPI:   tt.fields.blockAPI,
 			}
 			err := cs.GetStorageHash(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -422,7 +410,6 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StateStorageResponse
 	}{
@@ -466,7 +453,6 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorageChild error"),
 		},
 		{
@@ -480,7 +466,6 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStateRootFromBlock error"),
 		},
 	}
@@ -492,8 +477,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				blockAPI:   tt.fields.blockAPI,
 			}
 			err := cs.GetStorage(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)

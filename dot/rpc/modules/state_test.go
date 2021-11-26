@@ -28,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStateModuleGetPairs(t *testing.T) {
@@ -89,7 +88,6 @@ func TestStateModuleGetPairs(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StatePairResponse
 	}{
@@ -101,7 +99,6 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Bhash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStateRootFromBlock Err"),
 		},
 		{
@@ -123,7 +120,6 @@ func TestStateModuleGetPairs(t *testing.T) {
 				},
 			},
 			exp:     []interface{}{},
-			wantErr: true,
 			expErr:  errors.New("entries Err"),
 		},
 		{
@@ -146,7 +142,6 @@ func TestStateModuleGetPairs(t *testing.T) {
 					Bhash:  &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetKeysWithPrefix Err"),
 		},
 		{
@@ -159,7 +154,6 @@ func TestStateModuleGetPairs(t *testing.T) {
 				},
 			},
 			exp:     StatePairResponse{interface{}(nil), interface{}(nil)},
-			wantErr: true,
 			expErr:  errors.New("GetStorage Err"),
 		},
 		{
@@ -183,8 +177,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.GetPairs(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -218,7 +211,6 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StateStorageKeysResponse
 	}{
@@ -251,7 +243,6 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 					AfterKey: "0x01",
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("cannot get keys with prefix : GetKeysWithPrefix Err"),
 		},
 		{
@@ -263,7 +254,6 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 					AfterKey: "0x01",
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("invalid string"),
 		},
 	}
@@ -276,8 +266,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.GetKeysPaged(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -325,7 +314,6 @@ func TestStateModuleGetMetadata(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StateMetadataResponse
 	}{
@@ -343,7 +331,6 @@ func TestStateModuleGetMetadata(t *testing.T) {
 			args: args{
 				req: &StateRuntimeMetadataQuery{Bhash: &hash},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetMetadata Error"),
 		},
 	}
@@ -356,8 +343,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.GetMetadata(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil{
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -398,7 +384,6 @@ func TestStateModuleGetReadProof(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StateGetReadProofResponse
 	}{
@@ -425,7 +410,6 @@ func TestStateModuleGetReadProof(t *testing.T) {
 					Hash: hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetReadProofAt Error"),
 		},
 		{
@@ -437,7 +421,6 @@ func TestStateModuleGetReadProof(t *testing.T) {
 					Hash: hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetReadProofAt Error"),
 		},
 	}
@@ -450,8 +433,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.GetReadProof(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil{
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -497,7 +479,6 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StateRuntimeVersionResponse
 	}{
@@ -522,7 +503,6 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 			args: args{
 				req: &StateRuntimeVersionRequest{&hash},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetRuntimeVersion Error"),
 		},
 	}
@@ -535,8 +515,7 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.GetRuntimeVersion(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil{
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -572,7 +551,6 @@ func TestStateModuleGetStorage(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StateStorageResponse
 	}{
@@ -606,7 +584,6 @@ func TestStateModuleGetStorage(t *testing.T) {
 					Bhash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorageByBlockHash Error"),
 		},
 		{
@@ -617,7 +594,6 @@ func TestStateModuleGetStorage(t *testing.T) {
 					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorage Error"),
 		},
 	}
@@ -630,8 +606,7 @@ func TestStateModuleGetStorage(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.GetStorage(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -667,7 +642,6 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StateStorageHashResponse
 	}{
@@ -701,7 +675,6 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 					Bhash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorageByBlockHash Error"),
 		},
 		{
@@ -712,7 +685,6 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorage Error"),
 		},
 	}
@@ -725,8 +697,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.GetStorageHash(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -762,7 +733,6 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     StateStorageSizeResponse
 	}{
@@ -796,7 +766,6 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 					Bhash: &hash,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorageByBlockHash Error"),
 		},
 		{
@@ -807,7 +776,6 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetStorage Error"),
 		},
 	}
@@ -820,8 +788,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.GetStorageSize(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -864,7 +831,6 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     []StorageChangeSetResponse
 	}{
@@ -891,7 +857,6 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			exp:     []StorageChangeSetResponse{},
-			wantErr: true,
 			expErr:  errors.New("QueryStorage Error"),
 		},
 		{
@@ -904,7 +869,6 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			exp:     []StorageChangeSetResponse{},
-			wantErr: true,
 			expErr:  errors.New("the start block hash cannot be an empty value"),
 		},
 	}
@@ -917,8 +881,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 			}
 			err := sm.QueryStorage(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)

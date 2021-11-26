@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGrandpaModule_ProveFinality(t *testing.T) {
@@ -55,7 +54,6 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     ProveFinalityResponse
 	}{
@@ -72,7 +70,6 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 					authorityID:    uint64(21),
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("SubChain error"),
 		},
 		{
@@ -129,8 +126,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
 			err := gm.ProveFinality(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -180,7 +176,6 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     RoundStateResponse
 	}{
@@ -234,8 +229,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
 			err := gm.RoundState(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)

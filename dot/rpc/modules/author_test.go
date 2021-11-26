@@ -66,7 +66,6 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     HasSessionKeyResponse
 	}{
@@ -79,7 +78,6 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{},
 			},
 			exp:     false,
-			wantErr: true,
 			expErr:  errors.New("invalid string"),
 		},
 		{
@@ -91,7 +89,6 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{"0x01"},
 			},
 			exp:     false,
-			wantErr: true,
 			expErr:  errors.New("unsupported Option value: 4, bytes: [1]"),
 		},
 		{
@@ -103,7 +100,6 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{testReq},
 			},
 			exp:     true,
-			wantErr: false,
 		},
 		{
 			name: "doesnt have key",
@@ -114,7 +110,6 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{testReq},
 			},
 			exp:     false,
-			wantErr: true,
 			expErr:  errors.New("HasKey err"),
 		},
 		{
@@ -126,15 +121,13 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{testReq},
 			},
 			exp:     false,
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			am := tt.fields.authorModule
 			err := am.HasSessionKeys(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -168,7 +161,6 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		wantRes ExtrinsicHashResponse
 	}{
@@ -177,7 +169,6 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			args: args{
 				req: &Extrinsic{fmt.Sprintf("%x", "1")},
 			},
-			wantErr: true,
 			expErr:  fmt.Errorf("could not byteify non 0x prefixed string"),
 			wantRes: ExtrinsicHashResponse(""),
 		},
@@ -190,7 +181,6 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			args: args{
 				req: &Extrinsic{fmt.Sprintf("0x%x", testInvalidExt)},
 			},
-			wantErr: true,
 			expErr:  fmt.Errorf("some error"),
 			wantRes: ExtrinsicHashResponse(types.Extrinsic(testInvalidExt).Hash().String()),
 		},
@@ -215,8 +205,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 			}
 			err := am.SubmitExtrinsic(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -254,7 +243,6 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		wantRes PendingExtrinsicsResponse
 	}{
@@ -287,8 +275,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 			}
 			err := cm.PendingExtrinsics(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -334,7 +321,6 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 	}{
 		{
@@ -377,7 +363,6 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 					"0x0000000000000000000000000000000000000000000000000000000000000000",
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("generated public key does not equal provide public key"),
 		},
 		{
@@ -393,7 +378,6 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 					"0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a",
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("cannot decode key: invalid key type"),
 		},
 	}
@@ -405,8 +389,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 			}
 			err := am.InsertKey(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -442,7 +425,6 @@ func TestAuthorModule_HasKey(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		wantRes bool
 	}{
@@ -475,7 +457,6 @@ func TestAuthorModule_HasKey(t *testing.T) {
 				req: &[]string{kr.Alice().Public().Hex(), "babe"},
 			},
 			wantRes: false,
-			wantErr: true,
 			expErr:  fmt.Errorf("some error"),
 		},
 	}
@@ -488,8 +469,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 				txStateAPI: tt.fields.txStateAPI,
 			}
 			err := cm.HasKey(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)

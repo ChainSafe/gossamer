@@ -142,7 +142,6 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 		name      string
 		sysModule *SystemModule
 		args      args
-		wantErr bool
 		expErr  error
 		exp     []interface{}
 	}{
@@ -184,8 +183,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 			tt.args.res = []interface{}{}
 			sm := tt.sysModule
 			err := sm.NodeRoles(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -232,7 +230,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		name      string
 		sysModule *SystemModule
 		args      args
-		wantErr bool
 		expErr  error
 		exp     U64Response
 	}{
@@ -240,7 +237,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			name:      "Nil Request",
 			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
 			args:      args{},
-			wantErr:   true,
 			expErr:    errors.New("account address must be valid"),
 		},
 		{
@@ -265,7 +261,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			wantErr: true,
 			expErr:  errors.New("getMetadata error"),
 		},
 		{
@@ -274,7 +269,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			wantErr: true,
 			expErr:  errors.New("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
 		},
 		{
@@ -283,7 +277,6 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			wantErr: true,
 			expErr:  errors.New("getStorage error"),
 		},
 	}
@@ -292,8 +285,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			tt.args.res = U64Response(0)
 			sm := tt.sysModule
 			err := sm.AccountNextIndex(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -326,7 +318,6 @@ func TestSystemModule_SyncState(t *testing.T) {
 		name      string
 		sysModule *SystemModule
 		args      args
-		wantErr bool
 		expErr  error
 		exp     SyncStateResponse
 	}{
@@ -348,7 +339,6 @@ func TestSystemModule_SyncState(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			wantErr: true,
 			expErr:  errors.New("GetHeader Err"),
 		},
 	}
@@ -357,8 +347,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 			tt.args.res = SyncStateResponse{}
 			sm := tt.sysModule
 			err := sm.SyncState(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -393,7 +382,6 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		name      string
 		sysModule *SystemModule
 		args      args
-		wantErr bool
 		expErr  error
 		exp     []string
 	}{
@@ -412,7 +400,6 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 				req: &EmptyRequest{},
 			},
 			exp:     []string{},
-			wantErr: true,
 			expErr:  errors.New("multiaddress list is empty"),
 		},
 	}
@@ -421,8 +408,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 			tt.args.res = []string{}
 			sm := tt.sysModule
 			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -457,7 +443,6 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		name      string
 		sysModule *SystemModule
 		args      args
-		wantErr bool
 		expErr  error
 		exp     string
 	}{
@@ -475,7 +460,6 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			wantErr: true,
 			expErr:  errors.New("peer id cannot be empty"),
 		},
 	}
@@ -484,8 +468,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 			tt.args.res = ""
 			sm := tt.sysModule
 			err := sm.LocalPeerId(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -511,7 +494,6 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		name      string
 		sysModule *SystemModule
 		args      args
-		wantErr bool
 		expErr  error
 		exp     []byte
 	}{
@@ -529,7 +511,6 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
-			wantErr: true,
 			expErr:  errors.New("addReservedPeer error"),
 		},
 		{
@@ -538,7 +519,6 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{""},
 			},
-			wantErr: true,
 			expErr:  errors.New("cannot add an empty reserved peer"),
 		},
 	}
@@ -547,8 +527,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			tt.args.res = []byte(nil)
 			sm := tt.sysModule
 			err := sm.AddReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -574,7 +553,6 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		name      string
 		sysModule *SystemModule
 		args      args
-		wantErr bool
 		expErr  error
 		exp     []byte
 	}{
@@ -592,7 +570,6 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
-			wantErr: true,
 			expErr:  errors.New("removeReservedPeer error"),
 		},
 		{
@@ -601,7 +578,6 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{""},
 			},
-			wantErr: true,
 			expErr:  errors.New("cannot remove an empty reserved peer"),
 		},
 	}
@@ -610,8 +586,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			tt.args.res = []byte(nil)
 			sm := tt.sysModule
 			err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil{
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)

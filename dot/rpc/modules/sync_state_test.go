@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSyncStateModule_GenSyncSpec(t *testing.T) {
@@ -37,7 +36,6 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     genesis.Genesis
 	}{
@@ -63,7 +61,6 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 					Raw: true,
 				},
 			},
-			wantErr: true,
 			expErr:  errors.New("GenSyncSpec error"),
 		},
 	}
@@ -74,8 +71,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 				syncStateAPI: tt.fields.syncStateAPI,
 			}
 			err := ss.GenSyncSpec(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -102,7 +98,6 @@ func TestNewStateSync(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		wantErr bool
 		expErr  error
 		exp     SyncStateAPI
 	}{
@@ -130,15 +125,13 @@ func TestNewStateSync(t *testing.T) {
 				gData:      g2.GenesisData(),
 				storageAPI: mockStorageAPIErr,
 			},
-			wantErr: true,
 			expErr:  errors.New("entries error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := NewStateSync(tt.args.gData, tt.args.storageAPI)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
@@ -159,7 +152,6 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantErr bool
 		expErr  error
 		exp     genesis.Genesis
 	}{
@@ -183,8 +175,7 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 				chainSpecification: &tt.fields.chainSpecification,
 			}
 			res, err := s.GenSyncSpec(tt.args.raw)
-			if tt.wantErr {
-				require.Error(t, err)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
