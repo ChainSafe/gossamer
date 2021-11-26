@@ -56,8 +56,8 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error {
-	// bt.Lock()
-	// defer bt.Unlock()
+	bt.Lock()
+	defer bt.Unlock()
 
 	parent := bt.getNode(header.ParentHash)
 	if parent == nil {

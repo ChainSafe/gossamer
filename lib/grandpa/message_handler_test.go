@@ -632,7 +632,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.Equal(t, blocktree.ErrEndNodeNotFound, err)
 }
 
-func TestMessageHandler_VerifyBlockJustification_invali(t *testing.T) {
+func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	auths := []types.GrandpaVoter{
 		{
 			Key: *kr.Alice().Public().(*ed25519.PublicKey),
