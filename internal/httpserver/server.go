@@ -35,17 +35,19 @@ type Server struct {
 	addressSet chan struct{}
 	handler    http.Handler
 	logger     Logger
+	optional   optionalSettings
 }
 
 // New creates a new HTTP server with a name, listening on
 // the address specified and using the HTTP handler provided.
 func New(name, address string, handler http.Handler,
-	logger Logger) *Server {
+	logger Logger, options ...Option) *Server {
 	return &Server{
 		name:       name,
 		address:    address,
 		addressSet: make(chan struct{}),
 		handler:    handler,
 		logger:     logger,
+		optional:   newOptionalSettings(options),
 	}
 }
