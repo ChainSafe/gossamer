@@ -98,7 +98,7 @@ func TestVerifySignature(t *testing.T) {
 				},
 				2: {
 					PubKey:     secpKeypair.Public().Encode(),
-					Sign:       secpSign,
+					Sign:       []byte{},
 					Msg:        message,
 					VerifyFunc: secp256k1.VerifySignature,
 				},
