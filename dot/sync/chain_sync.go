@@ -129,7 +129,8 @@ type chainSync struct {
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
 	// note: the block may have empty fields, as some data about it may be unknown
-	pendingBlocks DisjointBlockSet
+	pendingBlocks      DisjointBlockSet
+	pendingBlockDoneCh chan<- struct{}
 
 	// bootstrap or tip (near-head)
 	state chainSyncState
@@ -192,11 +193,17 @@ func (cs *chainSync) start() {
 		time.Sleep(time.Millisecond * 100)
 	}
 
+	pendingBlockDoneCh := make(chan struct{})
+	cs.pendingBlockDoneCh = pendingBlockDoneCh
+	go cs.pendingBlocks.run(pendingBlockDoneCh)
 	go cs.sync()
 	go cs.logSyncSpeed()
 }
 
 func (cs *chainSync) stop() {
+	if cs.pendingBlockDoneCh != nil {
+		close(cs.pendingBlockDoneCh)
+	}
 	cs.cancel()
 }
 
@@ -439,6 +446,13 @@ func (cs *chainSync) sync() {
 				logger.Debugf(
 					"discarding worker id %d: maximum retry count reached",
 					worker.id)
+
+				// if this worker was triggered due to a block in the pending blocks set,
+				// we want to remove it from the set, as we asked all our peers for it
+				// and none replied with the info we need.
+				if worker.pendingBlock != nil {
+					cs.pendingBlocks.removeBlock(worker.pendingBlock.hash)
+				}
 				continue
 			}
 
