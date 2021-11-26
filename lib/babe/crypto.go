@@ -27,7 +27,9 @@ func makeTranscript(randomness Randomness, slot, epoch uint64) *merlin.Transcrip
 	return t
 }
 
-// claimPrimarySlot checks if a slot can be claimed. if it can be, then a *VrfOutputAndProof is returned, otherwise nil.
+// claimPrimarySlot checks if a slot can be claimed.
+// If it cannot be claimed the wrapped error errPrimarySlotThreshold
+// is returned.
 // https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L239
 func claimPrimarySlot(randomness Randomness,
 	slot, epoch uint64,
@@ -49,7 +51,8 @@ func claimPrimarySlot(randomness Randomness,
 		return nil, fmt.Errorf("failed to compare with threshold, %w", err)
 	}
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("%w: for slot %d, epoch %d and threshold %s",
+			errPrimarySlotThreshold, slot, epoch, threshold)
 	}
 
 	return &VrfOutputAndProof{

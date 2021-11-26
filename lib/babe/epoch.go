@@ -4,6 +4,7 @@
 package babe
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -91,15 +92,16 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 		logger.Debugf("estimated first slot as %d based on building block 1", startSlot)
 		for i := startSlot; i < startSlot+b.epochLength; i++ {
-			proof, err := b.runLottery(i, epoch)
+			_, err := b.runLottery(i, epoch)
 			if err != nil {
+				if errors.Is(err, errPrimarySlotThreshold) {
+					continue
+				}
 				return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 			}
 
-			if proof != nil {
-				startSlot = i
-				break
-			}
+			startSlot = i
+			break
 		}
 
 		// we are at genesis, set first slot by checking at which slot we will be able to produce block 1
@@ -118,13 +120,14 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 		proof, err := b.runLottery(i, epoch)
 		if err != nil {
+			if errors.Is(err, errPrimarySlotThreshold) {
+				continue
+			}
 			return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 		}
 
-		if proof != nil {
-			b.slotToProof[i] = proof
-			logger.Tracef("claimed slot %d, there are now %d slots into epoch", startSlot, i-startSlot)
-		}
+		b.slotToProof[i] = proof
+		logger.Tracef("claimed slot %d, there are now %d slots into epoch", startSlot, i-startSlot)
 	}
 
 	return nil
@@ -133,15 +136,16 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 func (b *Service) getFirstSlot(epoch uint64) (uint64, error) {
 	startSlot := getCurrentSlot(b.slotDuration)
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
-		proof, err := b.runLottery(i, epoch)
+		_, err := b.runLottery(i, epoch)
 		if err != nil {
+			if errors.Is(err, errPrimarySlotThreshold) {
+				continue
+			}
 			return 0, fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 		}
 
-		if proof != nil {
-			startSlot = i
-			break
-		}
+		startSlot = i
+		break
 	}
 
 	return startSlot, nil
@@ -163,8 +167,10 @@ func (b *Service) incrementEpoch() (uint64, error) {
 	return next, nil
 }
 
-// runLottery runs the lottery for a specific slot number
-// returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
+// runLottery runs the lottery for a specific slot number.
+// It returns an encoded VrfOutputAndProof if the validator is authorised
+// to produce a block for that slot.
+// It returns the wrapped error errPrimarySlotThreshold if it is not authorised.
 // output = return[0:32]; proof = return[32:96]
 func (b *Service) runLottery(slot, epoch uint64) (*VrfOutputAndProof, error) {
 	return claimPrimarySlot(

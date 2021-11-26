@@ -60,13 +60,13 @@ type peerState struct {
 // and stored pending work (ie. pending blocks set)
 // workHandler should be implemented by `bootstrapSync` and `tipSync`
 type workHandler interface {
-	// handleNewPeerState optionally returns a new worker based on a peerState.
-	// returned worker may be nil, in which case we do nothing
+	// handleNewPeerState returns a new worker based on a peerState.
+	// It returns the error errNoWorker in which case we do nothing.
 	handleNewPeerState(*peerState) (*worker, error)
 
 	// handleWorkerResult handles the result of a worker, which may be
-	// nil or error. optionally returns a new worker to be dispatched.
-	handleWorkerResult(*worker) (*worker, error)
+	// nil or error. It optionally returns a new worker to be dispatched.
+	handleWorkerResult(w *worker) (workerToRetry *worker, retry bool, err error)
 
 	// hasCurrentWorker is called before a worker is to be dispatched to
 	// check whether it is a duplicate. this function returns whether there is
@@ -431,13 +431,11 @@ func (cs *chainSync) sync() {
 			default:
 			}
 
-			worker, err := cs.handler.handleWorkerResult(res)
+			worker, retry, err := cs.handler.handleWorkerResult(res)
 			if err != nil {
 				logger.Errorf("failed to handle worker result: %s", err)
 				continue
-			}
-
-			if worker == nil {
+			} else if !retry {
 				continue
 			}
 
@@ -563,11 +561,10 @@ func (cs *chainSync) handleWork(ps *peerState) error {
 	logger.Tracef("handling potential work for target block number %s and hash %s", ps.number, ps.hash)
 	worker, err := cs.handler.handleNewPeerState(ps)
 	if err != nil {
+		if errors.Is(err, errNoWorker) {
+			return nil
+		}
 		return err
-	}
-
-	if worker == nil {
-		return nil
 	}
 
 	cs.tryDispatchWorker(worker)

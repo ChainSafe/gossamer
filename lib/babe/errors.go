@@ -66,6 +66,7 @@ var (
 	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
 	errFirstBlockTimeout     = errors.New("timed out waiting for first block")
 	errChannelClosed         = errors.New("block notifier channel was closed")
+	errPrimarySlotThreshold  = errors.New("failed checking primary threshold")
 
 	other         Other
 	invalidCustom InvalidCustom

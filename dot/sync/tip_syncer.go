@@ -5,6 +5,7 @@ package sync
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -35,7 +36,9 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}
 
 	if ps.number.Cmp(fin.Number) <= 0 {
-		return nil, nil
+		return nil, fmt.Errorf(
+			"%w: for finalised number %s and peer state number %s",
+			errNoWorker, fin.Number, ps.number)
 	}
 
 	return &worker{
@@ -47,26 +50,27 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}, nil
 }
 
-func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
+func (s *tipSyncer) handleWorkerResult(res *worker) (
+	workerToRetry *worker, retry bool, err error) {
 	if res.err == nil {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	if errors.Is(res.err.err, errUnknownParent) {
 		// handleTick will handle the errUnknownParent case
-		return nil, nil
+		return nil, false, nil
 	}
 
 	fin, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// don't retry if we're requesting blocks lower than finalised
 	switch res.direction {
 	case network.Ascending:
 		if res.targetNumber.Cmp(fin.Number) <= 0 {
-			return nil, nil
+			return nil, false, nil
 		}
 
 		// if start is lower than finalised, increase it to finalised+1
@@ -76,7 +80,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		}
 	case network.Descending:
 		if res.startNumber.Cmp(fin.Number) <= 0 {
-			return nil, nil
+			return nil, false, nil
 		}
 
 		// if target is lower than finalised, increase it to finalised+1
@@ -86,6 +90,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		}
 	}
 
+	retry = true
 	return &worker{
 		startHash:    res.startHash,
 		startNumber:  res.startNumber,
@@ -93,7 +98,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		targetNumber: res.targetNumber,
 		direction:    res.direction,
 		requestData:  res.requestData,
-	}, nil
+	}, retry, nil
 }
 
 func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {

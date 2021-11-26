@@ -5,6 +5,7 @@ package sync
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -26,6 +27,8 @@ func newBootstrapSyncer(blockState BlockState) *bootstrapSyncer {
 	}
 }
 
+var errNoWorker = errors.New("no worker")
+
 func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	head, err := s.blockState.BestBlockHeader()
 	if err != nil {
@@ -33,7 +36,9 @@ func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}
 
 	if ps.number.Cmp(head.Number) <= 0 {
-		return nil, nil
+		return nil, fmt.Errorf(
+			"%w: for head number %s and peer state number %s",
+			errNoWorker, head.Number, ps.number)
 	}
 
 	return &worker{
@@ -45,21 +50,22 @@ func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}, nil
 }
 
-func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
+func (s *bootstrapSyncer) handleWorkerResult(res *worker) (
+	workerToRetry *worker, retry bool, err error) {
 	// if there is an error, potentially retry the worker
 	if res.err == nil {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	// new worker should update start block and re-dispatch
 	head, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// we've reached the target, return
 	if res.targetNumber.Cmp(head.Number) <= 0 {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	startNumber := big.NewInt(0).Add(head.Number, big.NewInt(1))
@@ -69,12 +75,13 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 	if errors.Is(res.err.err, errUnknownParent) {
 		fin, err := s.blockState.GetHighestFinalisedHeader()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		startNumber = fin.Number
 	}
 
+	retry = true
 	return &worker{
 		startHash:    common.Hash{}, // for bootstrap, just use number
 		startNumber:  startNumber,
@@ -82,7 +89,7 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		targetNumber: res.targetNumber,
 		requestData:  res.requestData,
 		direction:    res.direction,
-	}, nil
+	}, retry, nil
 }
 
 func (*bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker) bool {
