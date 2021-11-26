@@ -64,14 +64,13 @@ func TestDevModule_EpochLength(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     string
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    string
 	}{
 		{
 			name: "EpochLength OK",
@@ -87,18 +86,18 @@ func TestDevModule_EpochLength(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = ""
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			err := m.EpochLength(tt.args.r, tt.args.req, &tt.args.res)
+			res := ""
+			err := m.EpochLength(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -114,14 +113,13 @@ func TestDevModule_SlotDuration(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     string
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    string
 	}{
 		{
 			name: "SlotDuration OK",
@@ -137,18 +135,18 @@ func TestDevModule_SlotDuration(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = ""
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			err := m.SlotDuration(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.expErr != nil{
+			res := ""
+			err := m.SlotDuration(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -178,14 +176,13 @@ func TestDevModule_Control(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *[]string
-		res string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     string
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    string
 	}{
 		{
 			name: "Not a BlockProducer",
@@ -196,7 +193,7 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "stop"},
 			},
-			expErr:  errors.New("not a block producer"),
+			expErr: errors.New("not a block producer"),
 		},
 		{
 			name: "Babe Stop Error",
@@ -207,8 +204,8 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "stop"},
 			},
-			exp:     "babe service stopped",
-			expErr:  errors.New("babe pause error"),
+			exp:    "babe service stopped",
+			expErr: errors.New("babe pause error"),
 		},
 		{
 			name: "Babe Stop OK",
@@ -230,8 +227,8 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "start"},
 			},
-			exp:     "babe service started",
-			expErr:  errors.New("babe resume error"),
+			exp:    "babe service started",
+			expErr: errors.New("babe resume error"),
 		},
 		{
 			name: "Babe Start OK",
@@ -253,8 +250,8 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"network", "stop"},
 			},
-			exp:     "network service stopped",
-			expErr:  errors.New("network stop error"),
+			exp:    "network service stopped",
+			expErr: errors.New("network stop error"),
 		},
 		{
 			name: "Network Stop OK",
@@ -276,8 +273,8 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"network", "start"},
 			},
-			exp:     "network service started",
-			expErr:  errors.New("network start error"),
+			exp:    "network service started",
+			expErr: errors.New("network start error"),
 		},
 		{
 			name: "Network Start OK",
@@ -293,18 +290,18 @@ func TestDevModule_Control(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = ""
 			m := &DevModule{
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			err := m.Control(tt.args.r, tt.args.req, &tt.args.res)
+			res := ""
+			err := m.Control(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }

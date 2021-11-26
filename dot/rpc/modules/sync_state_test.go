@@ -30,14 +30,13 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *GenSyncSpecRequest
-		res genesis.Genesis
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     genesis.Genesis
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    genesis.Genesis
 	}{
 		{
 			name: "GenSyncSpec OK",
@@ -61,22 +60,22 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 					Raw: true,
 				},
 			},
-			expErr:  errors.New("GenSyncSpec error"),
+			expErr: errors.New("GenSyncSpec error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = genesis.Genesis{}
 			ss := &SyncStateModule{
 				syncStateAPI: tt.fields.syncStateAPI,
 			}
-			err := ss.GenSyncSpec(tt.args.in0, tt.args.req, &tt.args.res)
+			res := genesis.Genesis{}
+			err := ss.GenSyncSpec(tt.args.in0, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -96,10 +95,10 @@ func TestNewStateSync(t *testing.T) {
 		storageAPI StorageAPI
 	}
 	tests := []struct {
-		name    string
-		args    args
-		expErr  error
-		exp     SyncStateAPI
+		name   string
+		args   args
+		expErr error
+		exp    SyncStateAPI
 	}{
 		{
 			name: "OK Case",
@@ -125,7 +124,7 @@ func TestNewStateSync(t *testing.T) {
 				gData:      g2.GenesisData(),
 				storageAPI: mockStorageAPIErr,
 			},
-			expErr:  errors.New("entries error"),
+			expErr: errors.New("entries error"),
 		},
 	}
 	for _, tt := range tests {
@@ -149,11 +148,11 @@ func Test_syncState_GenSyncSpec(t *testing.T) {
 		raw bool
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     genesis.Genesis
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    genesis.Genesis
 	}{
 		{
 			name:   "GenSyncSpec False",

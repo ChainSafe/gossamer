@@ -57,14 +57,13 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *PaymentQueryInfoRequest
-		res PaymentQueryInfoResponse
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     PaymentQueryInfoResponse
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    PaymentQueryInfoResponse
 	}{
 		{
 			name: "Nil Query Info",
@@ -108,7 +107,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Ext: "0x0",
 				},
 			},
-			expErr:  errors.New("cannot decode an odd length string"),
+			expErr: errors.New("cannot decode an odd length string"),
 		},
 		{
 			name: "Invalid Ext",
@@ -133,7 +132,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Hash: &testHash,
 				},
 			},
-			expErr:  errors.New("PaymentQueryInfo error"),
+			expErr: errors.New("PaymentQueryInfo error"),
 		},
 		{
 			name: "GetRuntime error",
@@ -146,22 +145,22 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Hash: &testHash,
 				},
 			},
-			expErr:  errors.New("GetRuntime error"),
+			expErr: errors.New("GetRuntime error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = PaymentQueryInfoResponse{}
 			p := &PaymentModule{
 				blockAPI: tt.fields.blockAPI,
 			}
-			err := p.QueryInfo(tt.args.in0, tt.args.req, &tt.args.res)
-			if tt.expErr != nil{
+			res := PaymentQueryInfoResponse{}
+			err := p.QueryInfo(tt.args.in0, tt.args.req, &res)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }

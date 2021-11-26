@@ -48,14 +48,13 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *ProveFinalityRequest
-		res ProveFinalityResponse
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     ProveFinalityResponse
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    ProveFinalityResponse
 	}{
 		{
 			name: "SubChain Err",
@@ -70,7 +69,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 					authorityID:    uint64(21),
 				},
 			},
-			expErr:  errors.New("SubChain error"),
+			expErr: errors.New("SubChain error"),
 		},
 		{
 			name: "OK Case",
@@ -120,18 +119,18 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = ProveFinalityResponse(nil)
 			gm := &GrandpaModule{
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
-			err := gm.ProveFinality(tt.args.r, tt.args.req, &tt.args.res)
+			res := ProveFinalityResponse(nil)
+			err := gm.ProveFinality(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -170,14 +169,13 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res RoundStateResponse
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     RoundStateResponse
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    RoundStateResponse
 	}{
 		{
 			name: "GetJustification Error",
@@ -223,18 +221,18 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = RoundStateResponse{}
 			gm := &GrandpaModule{
 				blockAPI:         tt.fields.blockAPI,
 				blockFinalityAPI: tt.fields.blockFinalityAPI,
 			}
-			err := gm.RoundState(tt.args.r, tt.args.req, &tt.args.res)
+			res := RoundStateResponse{}
+			err := gm.RoundState(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }

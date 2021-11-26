@@ -136,14 +136,13 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res []interface{}
 	}
 	tests := []struct {
 		name      string
 		sysModule *SystemModule
 		args      args
-		expErr  error
-		exp     []interface{}
+		expErr    error
+		exp       []interface{}
 	}{
 		{
 			name:      "Full",
@@ -180,15 +179,15 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = []interface{}{}
 			sm := tt.sysModule
-			err := sm.NodeRoles(tt.args.r, tt.args.req, &tt.args.res)
+			res := []interface{}{}
+			err := sm.NodeRoles(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -224,14 +223,13 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *StringRequest
-		res U64Response
 	}
 	tests := []struct {
 		name      string
 		sysModule *SystemModule
 		args      args
-		expErr  error
-		exp     U64Response
+		expErr    error
+		exp       U64Response
 	}{
 		{
 			name:      "Nil Request",
@@ -261,7 +259,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			expErr:  errors.New("getMetadata error"),
+			expErr: errors.New("getMetadata error"),
 		},
 		{
 			name:      "Magic Number Mismatch",
@@ -269,7 +267,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			expErr:  errors.New("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
+			expErr: errors.New("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
 		},
 		{
 			name:      "GetStorage Err",
@@ -277,20 +275,20 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			expErr:  errors.New("getStorage error"),
+			expErr: errors.New("getStorage error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = U64Response(0)
+			res := U64Response(0)
 			sm := tt.sysModule
-			err := sm.AccountNextIndex(tt.args.r, tt.args.req, &tt.args.res)
+			err := sm.AccountNextIndex(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -312,14 +310,13 @@ func TestSystemModule_SyncState(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res SyncStateResponse
 	}
 	tests := []struct {
 		name      string
 		sysModule *SystemModule
 		args      args
-		expErr  error
-		exp     SyncStateResponse
+		expErr    error
+		exp       SyncStateResponse
 	}{
 		{
 			name:      "OK",
@@ -339,20 +336,20 @@ func TestSystemModule_SyncState(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			expErr:  errors.New("GetHeader Err"),
+			expErr: errors.New("GetHeader Err"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = SyncStateResponse{}
 			sm := tt.sysModule
-			err := sm.SyncState(tt.args.r, tt.args.req, &tt.args.res)
+			res := SyncStateResponse{}
+			err := sm.SyncState(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -376,14 +373,13 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res []string
 	}
 	tests := []struct {
 		name      string
 		sysModule *SystemModule
 		args      args
-		expErr  error
-		exp     []string
+		expErr    error
+		exp       []string
 	}{
 		{
 			name:      "OK",
@@ -399,21 +395,21 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			exp:     []string{},
-			expErr:  errors.New("multiaddress list is empty"),
+			exp:    []string{},
+			expErr: errors.New("multiaddress list is empty"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = []string{}
 			sm := tt.sysModule
-			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, &tt.args.res)
+			res := []string{}
+			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -437,14 +433,13 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res string
 	}
 	tests := []struct {
 		name      string
 		sysModule *SystemModule
 		args      args
-		expErr  error
-		exp     string
+		expErr    error
+		exp       string
 	}{
 		{
 			name:      "OK",
@@ -460,20 +455,20 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			expErr:  errors.New("peer id cannot be empty"),
+			expErr: errors.New("peer id cannot be empty"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = ""
 			sm := tt.sysModule
-			err := sm.LocalPeerId(tt.args.r, tt.args.req, &tt.args.res)
+			res := ""
+			err := sm.LocalPeerId(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -488,14 +483,13 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *StringRequest
-		res []byte
 	}
 	tests := []struct {
 		name      string
 		sysModule *SystemModule
 		args      args
-		expErr  error
-		exp     []byte
+		expErr    error
+		exp       []byte
 	}{
 		{
 			name:      "OK",
@@ -511,7 +505,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
-			expErr:  errors.New("addReservedPeer error"),
+			expErr: errors.New("addReservedPeer error"),
 		},
 		{
 			name:      "Empty StringRequest Error",
@@ -519,20 +513,20 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{""},
 			},
-			expErr:  errors.New("cannot add an empty reserved peer"),
+			expErr: errors.New("cannot add an empty reserved peer"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = []byte(nil)
 			sm := tt.sysModule
-			err := sm.AddReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
+			res := []byte(nil)
+			err := sm.AddReservedPeer(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -547,14 +541,13 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *StringRequest
-		res []byte
 	}
 	tests := []struct {
 		name      string
 		sysModule *SystemModule
 		args      args
-		expErr  error
-		exp     []byte
+		expErr    error
+		exp       []byte
 	}{
 		{
 			name:      "OK",
@@ -570,7 +563,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
-			expErr:  errors.New("removeReservedPeer error"),
+			expErr: errors.New("removeReservedPeer error"),
 		},
 		{
 			name:      "Empty StringRequest Error",
@@ -578,20 +571,20 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{""},
 			},
-			expErr:  errors.New("cannot remove an empty reserved peer"),
+			expErr: errors.New("cannot remove an empty reserved peer"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = []byte(nil)
 			sm := tt.sysModule
-			err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
-			if tt.expErr != nil{
+			res := []byte(nil)
+			err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }

@@ -60,14 +60,13 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *HasSessionKeyRequest
-		res HasSessionKeyResponse
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     HasSessionKeyResponse
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    HasSessionKeyResponse
 	}{
 		{
 			name: "Empty Request",
@@ -77,8 +76,8 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{},
 			},
-			exp:     false,
-			expErr:  errors.New("invalid string"),
+			exp:    false,
+			expErr: errors.New("invalid string"),
 		},
 		{
 			name: "decodeSessionKeys err",
@@ -88,8 +87,8 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{"0x01"},
 			},
-			exp:     false,
-			expErr:  errors.New("unsupported Option value: 4, bytes: [1]"),
+			exp:    false,
+			expErr: errors.New("unsupported Option value: 4, bytes: [1]"),
 		},
 		{
 			name: "happy path",
@@ -99,7 +98,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{testReq},
 			},
-			exp:     true,
+			exp: true,
 		},
 		{
 			name: "doesnt have key",
@@ -109,8 +108,8 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{testReq},
 			},
-			exp:     false,
-			expErr:  errors.New("HasKey err"),
+			exp:    false,
+			expErr: errors.New("HasKey err"),
 		},
 		{
 			name: "Empty decodedKeys",
@@ -120,19 +119,20 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			args: args{
 				req: &HasSessionKeyRequest{testReq},
 			},
-			exp:     false,
+			exp: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			am := tt.fields.authorModule
-			err := am.HasSessionKeys(tt.args.r, tt.args.req, &tt.args.res)
+			var res HasSessionKeyResponse
+			err := am.HasSessionKeys(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -155,7 +155,6 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *Extrinsic
-		res ExtrinsicHashResponse
 	}
 	tests := []struct {
 		name    string
@@ -197,20 +196,20 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt.args.res = ExtrinsicHashResponse("")
 		t.Run(tt.name, func(t *testing.T) {
 			am := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			err := am.SubmitExtrinsic(tt.args.r, tt.args.req, &tt.args.res)
+			res := ExtrinsicHashResponse("")
+			err := am.SubmitExtrinsic(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.wantRes, tt.args.res)
+			assert.Equal(t, tt.wantRes, res)
 		})
 	}
 }
@@ -237,7 +236,6 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *EmptyRequest
-		res PendingExtrinsicsResponse
 	}
 	tests := []struct {
 		name    string
@@ -268,19 +266,19 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = PendingExtrinsicsResponse{}
 			cm := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			err := cm.PendingExtrinsics(tt.args.r, tt.args.req, &tt.args.res)
+			res := PendingExtrinsicsResponse{}
+			err := cm.PendingExtrinsics(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.wantRes, tt.args.res)
+			assert.Equal(t, tt.wantRes, res)
 		})
 	}
 }
@@ -315,13 +313,12 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *KeyInsertRequest
-		res KeyInsertResponse
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
+		name   string
+		fields fields
+		args   args
+		expErr error
 	}{
 		{
 			name: "happy path",
@@ -363,7 +360,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 					"0x0000000000000000000000000000000000000000000000000000000000000000",
 				},
 			},
-			expErr:  errors.New("generated public key does not equal provide public key"),
+			expErr: errors.New("generated public key does not equal provide public key"),
 		},
 		{
 			name: "unknown key",
@@ -378,7 +375,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 					"0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a",
 				},
 			},
-			expErr:  errors.New("cannot decode key: invalid key type"),
+			expErr: errors.New("cannot decode key: invalid key type"),
 		},
 	}
 	for _, tt := range tests {
@@ -388,7 +385,8 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			err := am.InsertKey(tt.args.r, tt.args.req, &tt.args.res)
+			var res KeyInsertResponse
+			err := am.InsertKey(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -419,7 +417,6 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	type args struct {
 		r   *http.Request
 		req *[]string
-		res bool
 	}
 	tests := []struct {
 		name    string
@@ -462,19 +459,19 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = false
 			cm := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			err := cm.HasKey(tt.args.r, tt.args.req, &tt.args.res)
+			res := false
+			err := cm.HasKey(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.wantRes, tt.args.res)
+			assert.Equal(t, tt.wantRes, res)
 		})
 	}
 }

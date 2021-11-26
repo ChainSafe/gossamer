@@ -71,14 +71,13 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *GetKeysRequest
-		res []string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     []string
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    []string
 	}{
 		{
 			name: "Get Keys Nil Hash",
@@ -118,8 +117,8 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Hash: &common.Hash{},
 				},
 			},
-			exp:     []string{},
-			expErr:  errors.New("GetStorageChild error"),
+			exp:    []string{},
+			expErr: errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -132,24 +131,24 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Key: []byte(":child_storage_key"),
 				},
 			},
-			exp:     []string{},
-			expErr:  errors.New("GetStateRootFromBlock error"),
+			exp:    []string{},
+			expErr: errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = []string{}
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := cs.GetKeys(tt.args.in0, tt.args.req, &tt.args.res)
+			res := []string{}
+			err := cs.GetKeys(tt.args.in0, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -182,14 +181,13 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *GetChildStorageRequest
-		res uint64
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     uint64
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    uint64
 	}{
 		{
 			name: "Get Keys Nil Hash",
@@ -231,7 +229,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr:  errors.New("GetStorageChild error"),
+			expErr: errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -244,23 +242,23 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr:  errors.New("GetStateRootFromBlock error"),
+			expErr: errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = uint64(0)
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := cs.GetStorageSize(tt.args.in0, tt.args.req, &tt.args.res)
+			res := uint64(0)
+			err := cs.GetStorageSize(tt.args.in0, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -293,14 +291,13 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *GetStorageHash
-		res string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     string
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    string
 	}{
 		{
 			name: "Get Keys Nil Hash",
@@ -342,7 +339,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr:  errors.New("GetStorageChild error"),
+			expErr: errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -355,23 +352,23 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr:  errors.New("GetStateRootFromBlock error"),
+			expErr: errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = ""
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := cs.GetStorageHash(tt.args.in0, tt.args.req, &tt.args.res)
+			res := ""
+			err := cs.GetStorageHash(tt.args.in0, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
@@ -404,14 +401,13 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 	type args struct {
 		in0 *http.Request
 		req *ChildStateStorageRequest
-		res StateStorageResponse
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		expErr  error
-		exp     StateStorageResponse
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    StateStorageResponse
 	}{
 		{
 			name: "Get Keys Nil Hash",
@@ -453,7 +449,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr:  errors.New("GetStorageChild error"),
+			expErr: errors.New("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -466,23 +462,23 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr:  errors.New("GetStateRootFromBlock error"),
+			expErr: errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.res = StateStorageResponse("")
 			cs := &ChildStateModule{
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			err := cs.GetStorage(tt.args.in0, tt.args.req, &tt.args.res)
+			res := StateStorageResponse("")
+			err := cs.GetStorage(tt.args.in0, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, tt.args.res)
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
