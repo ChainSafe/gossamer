@@ -12,6 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -27,10 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -50,6 +51,7 @@ func newNetworkService(t *testing.T) *network.Service {
 		BasePath:           testDir,
 		Syncer:             network.NewMockSyncer(),
 		TransactionHandler: network.NewMockTransactionHandler(),
+		SlotDuration:       time.Second,
 	}
 
 	srv, err := network.NewService(cfg)

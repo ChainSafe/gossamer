@@ -53,6 +53,8 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
+	t.Helper()
+
 	if cfg == nil {
 		basePath := utils.NewTestBasePath(t, "node")
 
@@ -73,11 +75,13 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		mocktxhandler := &MockTransactionHandler{}
 		mocktxhandler.On("HandleTransactionMessage",
 			mock.AnythingOfType("peer.ID"),
-			mock.AnythingOfType("*TransactionMessage")).
-			Return(nil)
+			mock.AnythingOfType("*network.TransactionMessage")).
+			Return(true, nil)
 		mocktxhandler.On("TransactionsCount").Return(0)
 		cfg.TransactionHandler = mocktxhandler
 	}
+
+	cfg.SlotDuration = time.Second
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 

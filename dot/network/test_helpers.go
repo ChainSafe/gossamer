@@ -8,10 +8,11 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/stretchr/testify/mock"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -75,7 +76,7 @@ func NewMockTransactionHandler() *MockTransactionHandler {
 	mocktxhandler.On("HandleTransactionMessage",
 		mock.AnythingOfType("peer.ID"),
 		mock.AnythingOfType("*network.TransactionMessage")).
-		Return(nil)
+		Return(true, nil)
 	mocktxhandler.On("TransactionsCount").Return(0)
 	return mocktxhandler
 }
