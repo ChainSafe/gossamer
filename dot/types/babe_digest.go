@@ -40,7 +40,9 @@ type BabePrimaryPreDigest struct {
 }
 
 // NewBabePrimaryPreDigest returns a new BabePrimaryPreDigest
-func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VRFProofLength]byte) *BabePrimaryPreDigest {
+func NewBabePrimaryPreDigest(authorityIndex uint32,
+	slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte,
+	vrfProof [sr25519.VRFProofLength]byte) *BabePrimaryPreDigest {
 	return &BabePrimaryPreDigest{
 		VRFOutput:      vrfOutput,
 		VRFProof:       vrfProof,
@@ -106,7 +108,9 @@ type BabeSecondaryVRFPreDigest struct {
 }
 
 // NewBabeSecondaryVRFPreDigest returns a new NewBabeSecondaryVRFPreDigest
-func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte, vrfProof [sr25519.VRFProofLength]byte) *BabeSecondaryVRFPreDigest {
+func NewBabeSecondaryVRFPreDigest(authorityIndex uint32,
+	slotNumber uint64, vrfOutput [sr25519.VRFOutputLength]byte,
+	vrfProof [sr25519.VRFProofLength]byte) *BabeSecondaryVRFPreDigest {
 	return &BabeSecondaryVRFPreDigest{
 		VrfOutput:      vrfOutput,
 		VrfProof:       vrfProof,

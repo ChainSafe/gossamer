@@ -26,7 +26,7 @@ import (
 type Resolver struct{} // TODO: move context inside resolver (#1875)
 
 // ResolveFunc ...
-func (*Resolver) ResolveFunc(module, field string) exec.FunctionImport { // nolint
+func (*Resolver) ResolveFunc(module, field string) exec.FunctionImport { //nolint:gocyclo
 	switch module {
 	case "env":
 		switch field {
@@ -490,7 +490,7 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	for i, val := range v {
-		key, err := scale.Marshal(big.NewInt(int64(i))) //nolint
+		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("[ext_blake2_256_enumerated_trie_root]: %s", err)
 			return 0
@@ -859,7 +859,9 @@ func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	logger.Debug("[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair with resulting public key: " + kp.Public().Hex())
+	logger.Debug(
+		"[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair with resulting public key: " +
+			kp.Public().Hex())
 	return int64(ret)
 }
 
@@ -1046,7 +1048,9 @@ func ext_crypto_sr25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	logger.Debug("[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair with resulting public key: " + kp.Public().Hex())
+	logger.Debug(
+		"[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair with resulting public key: " +
+			kp.Public().Hex())
 	return int64(ret)
 }
 

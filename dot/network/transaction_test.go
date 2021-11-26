@@ -6,9 +6,10 @@ package network
 import (
 	"testing"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,10 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 func TestHandleTransactionMessage(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	mockhandler := &MockTransactionHandler{}
-	mockhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(true, nil)
+	mockhandler.On("HandleTransactionMessage",
+		mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.TransactionMessage")).
+		Return(true, nil)
 	mockhandler.On("TransactionsCount").Return(0)
 
 	config := &Config{
@@ -46,5 +50,6 @@ func TestHandleTransactionMessage(t *testing.T) {
 	}
 
 	s.handleTransactionMessage(peer.ID(""), msg)
-	mockhandler.AssertCalled(t, "HandleTransactionMessage", msg)
+	mockhandler.AssertCalled(t, "HandleTransactionMessage",
+		mock.AnythingOfType("peer.ID"), msg)
 }

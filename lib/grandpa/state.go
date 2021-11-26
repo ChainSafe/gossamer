@@ -6,11 +6,12 @@ package grandpa
 import (
 	"math/big"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 // BlockState is the interface required by GRANDPA into the block state
@@ -41,7 +42,7 @@ type BlockState interface {
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state
-type GrandpaState interface { //nolint
+type GrandpaState interface { //nolint:revive
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(setID uint64) ([]types.GrandpaVoter, error)
 	GetSetIDByBlockNumber(num *big.Int) (uint64, error)

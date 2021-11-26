@@ -47,8 +47,7 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 	return discs
 }
 
-// nolint
-func connectNoSync(t *testing.T, ctx context.Context, a, b *discovery) {
+func connectNoSync(ctx context.Context, t *testing.T, a, b *discovery) {
 	t.Helper()
 
 	idB := b.h.ID()
@@ -82,7 +81,7 @@ func TestKadDHT(t *testing.T) {
 	defer cancel()
 
 	// connects node 0 and node 2
-	connectNoSync(t, ctx, nodes[2], nodes[0])
+	connectNoSync(ctx, t, nodes[2], nodes[0])
 
 	time.Sleep(startDHTTimeout + 1)
 
@@ -91,7 +90,7 @@ func TestKadDHT(t *testing.T) {
 	require.ErrorIs(t, err, routing.ErrNotFound)
 
 	// connects node 1 and node 0
-	connectNoSync(t, ctx, nodes[1], nodes[0])
+	connectNoSync(ctx, t, nodes[1], nodes[0])
 
 	time.Sleep(startDHTTimeout + 1)
 

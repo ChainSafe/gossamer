@@ -3,7 +3,7 @@
 package network
 
 import (
-	"github.com/libp2p/go-libp2p-core/peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	mock "github.com/stretchr/testify/mock"
 )
 

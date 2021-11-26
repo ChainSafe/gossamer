@@ -81,7 +81,9 @@ func createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {
 	}, nil
 }
 
-func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service, code []byte) (runtime.Instance, error) {
+func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
+	ks *keystore.GlobalKeystore, net *network.Service, code []byte) (
+	runtime.Instance, error) {
 	logger.Info("creating runtime with interpreter " + cfg.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code
@@ -89,7 +91,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 
 	if !codeSubHash.IsEmpty() {
 		logger.Infof("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash)
-		genData, err := st.Base.LoadGenesisData() // nolint
+		genData, err := st.Base.LoadGenesisData()
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +202,9 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
+func createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
+	st *state.Service, net *network.Service, dh *digest.Handler) (
+	*core.Service, error) {
 	logger.Debug("creating core service" +
 		asAuthority(cfg.Core.Roles == types.AuthorityRole) +
 		"...")
@@ -270,6 +274,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		PersistentPeers:   cfg.Network.PersistentPeers,
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
 		SlotDuration:      slotDuration,
+		PublicIP:          cfg.Network.PublicIP,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -284,7 +289,9 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
+func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service,
+	coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI,
+	sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
 	logger.Infof(
 		"creating rpc service with host %s, external=%t, port %d, modules %s, ws=%t, ws port %d and ws external=%t",
 		cfg.RPC.Host, cfg.RPC.External, cfg.RPC.Port, strings.Join(cfg.RPC.Modules, ","), cfg.RPC.WS,
@@ -343,7 +350,8 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
+	ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
 	rt, err := st.Block.GetRuntime(nil)
 	if err != nil {
 		return nil, err
@@ -392,7 +400,9 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service, net *network.Service) (*sync.Service, error) {
+func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
+	verifier *babe.VerificationManager, cs *core.Service, net *network.Service) (
+	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {
 		return nil, err

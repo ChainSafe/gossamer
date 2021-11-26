@@ -45,7 +45,8 @@ func (s *TrieState) Snapshot() *trie.Trie {
 	return s.t.Snapshot()
 }
 
-// BeginStorageTransaction begins a new nested storage transaction which will either be committed or rolled back at a later time.
+// BeginStorageTransaction begins a new nested storage transaction
+// which will either be committed or rolled back at a later time.
 func (s *TrieState) BeginStorageTransaction() {
 	s.lock.Lock()
 	defer s.lock.Unlock()
