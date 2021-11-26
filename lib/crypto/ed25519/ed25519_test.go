@@ -4,7 +4,7 @@
 package ed25519
 
 import (
-	ed25519 "crypto/ed25519"
+	"crypto/ed25519"
 	"errors"
 	"fmt"
 	"reflect"
