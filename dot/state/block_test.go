@@ -250,7 +250,8 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	require.NoError(t, err)
 
 	if resBlock.Header.Hash() != newBlock.Header.Hash() {
-		t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), newBlock.Header.Hash(), newBlock.Header.Number)
+		t.Fatalf("Fail: got %s expected %s for block %d",
+			resBlock.Header.Hash(), newBlock.Header.Hash(), newBlock.Header.Number)
 	}
 }
 

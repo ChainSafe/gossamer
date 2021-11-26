@@ -33,7 +33,8 @@ func newTestDigest() scale.VaryingDataTypeSlice {
 	return digest
 }
 
-func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
+func buildTestJustification(t *testing.T, qty int, round, setID uint64,
+	kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
 	var just []SignedVote
 	for i := 0; i < qty; i++ {
 		j := SignedVote{
@@ -47,7 +48,8 @@ func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keys
 
 }
 
-func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
+func createSignedVoteMsg(t *testing.T, number uint32,
+	round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
 	// create vote message
 	msg, err := scale.Marshal(FullVote{
 		Stage: subround,
@@ -66,13 +68,13 @@ func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *e
 
 func TestDecodeMessage_VoteMessage(t *testing.T) {
 	cm := &ConsensusMessage{
-		Data: common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+		Data: common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"), //nolint:lll
 	}
 
 	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
-	sigb := common.MustHexToBytes("0x36e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f")
+	sigb := common.MustHexToBytes("0x36e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f") //nolint:lll
 	sig := [64]byte{}
 	copy(sig[:], sigb)
 
@@ -80,11 +82,13 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 		Round: 77,
 		SetID: 99,
 		Message: SignedMessage{
-			Stage:       precommit,
-			Hash:        common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
-			Number:      0x7777,
-			Signature:   sig,
-			AuthorityID: ed25519.PublicKeyBytes(common.MustHexToHash("0x34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691")),
+			Stage:     precommit,
+			Hash:      common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
+			Number:    0x7777,
+			Signature: sig,
+			AuthorityID: ed25519.PublicKeyBytes(
+				common.MustHexToHash("0x34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+			),
 		},
 	}
 
@@ -430,7 +434,8 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 	// sign vote with key not in authority set
-	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString("0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
+	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString(
+		"0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
 	require.NoError(t, err)
 
 	vote := NewVote(testHash, 123)

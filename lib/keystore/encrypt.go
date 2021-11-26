@@ -85,7 +85,8 @@ func EncryptPrivateKey(pk crypto.PrivateKey, password []byte) ([]byte, error) {
 	return Encrypt(pk.Encode(), password)
 }
 
-// DecryptPrivateKey uses AES to decrypt the ciphertext into a `crypto.PrivateKey` with a symmetric key deterministically
+// DecryptPrivateKey uses AES to decrypt the ciphertext into a
+// `crypto.PrivateKey` with a symmetric key deterministically
 // created from `password`
 func DecryptPrivateKey(data, password []byte, keytype string) (crypto.PrivateKey, error) {
 	pk, err := Decrypt(data, password)

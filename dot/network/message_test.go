@@ -16,7 +16,7 @@ import (
 )
 
 func TestEncodeBlockRequestMessage(t *testing.T) {
-	expected, err := common.HexToBytes("0x08808080082220fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1280130011220dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	expected, err := common.HexToBytes("0x08808080082220fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1280130011220dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b") //nolint:lll
 	require.Nil(t, err)
 
 	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
@@ -161,7 +161,11 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 
 func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	hash := common.NewHash([]byte{0})
-	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+	testHash := common.NewHash([]byte{
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+		0xa, 0xb, 0xc, 0xd, 0xe, 0xf,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
@@ -204,9 +208,13 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 }
 
 func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
-	exp := common.MustHexToBytes("0x0aa2010a2000000000000000000000000000000000000000000000000000000000000000001262000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f001a0510010305071a040c0901021a040c0304052201012a0102320103")
+	exp := common.MustHexToBytes("0x0aa2010a2000000000000000000000000000000000000000000000000000000000000000001262000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f001a0510010305071a040c0901021a040c0304052201012a0102320103") //nolint:lll
 	hash := common.NewHash([]byte{0})
-	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+	testHash := common.NewHash([]byte{
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+		0xa, 0xb, 0xc, 0xd, 0xe, 0xf,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
 	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
@@ -257,8 +265,9 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 	//	ExtrinsicsRoot: Hash: 0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314
 	//	Digest: []byte
 
+	//nolint:lll
 	//                                    mtparenthash                                                      bnstateroot                                                       extrinsicsroot                                                di
-	expected, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000")
+	expected, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000") //nolint:lll
 	require.Nil(t, err)
 
 	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
@@ -284,7 +293,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 }
 
 func TestDecode_BlockAnnounceMessage(t *testing.T) {
-	announceMessage, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000")
+	announceMessage, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000") //nolint:lll
 	require.Nil(t, err)
 
 	bhm := BlockAnnounceMessage{

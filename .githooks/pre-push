@@ -1,19 +1,9 @@
 #!/bin/bash
 
-echo "Executing pre push hook. To disable do 'git push --no-verify'"
+STAGED_GO_FILES=$(git diff --cached --name-only | grep ".go$")
 
-make lint 
-if [ $? -ne 0 ]
-then
-    echo "***ERROR*** 'make lint' failed. Fix errors before proceeding to push."
-    exit 1
+if [[ "$STAGED_GO_FILES" = "" ]]; then
+  exit 0
 fi
 
-# Note: this won't detect unneeded `// indirect` commented dependencies
-go mod tidy
-git diff --exit-code -- go.mod go.sum >/dev/null
-if [ $? -ne 0 ]
-then
-    echo "***ERROR*** 'go.mod' file is updated. Add the file before proceeding to push."
-    exit 1
-fi
+make lint

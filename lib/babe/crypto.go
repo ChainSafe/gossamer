@@ -14,7 +14,8 @@ import (
 	"github.com/gtank/merlin"
 )
 
-// the code in this file is based off https://github.com/paritytech/substrate/blob/89275433863532d797318b75bb5321af098fea7c/primitives/consensus/babe/src/lib.rs#L93
+// the code in this file is based off
+// https://github.com/paritytech/substrate/blob/89275433863532d797318b75bb5321af098fea7c/primitives/consensus/babe/src/lib.rs#L93
 var babeVRFPrefix = []byte("substrate-babe-vrf")
 
 func makeTranscript(randomness Randomness, slot, epoch uint64) *merlin.Transcript {

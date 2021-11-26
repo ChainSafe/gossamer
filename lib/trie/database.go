@@ -16,7 +16,9 @@ import (
 // ErrEmptyProof indicates the proof slice is empty
 var ErrEmptyProof = errors.New("proof slice empty")
 
-// Store stores each trie node in the database, where the key is the hash of the encoded node and the value is the encoded node.
+// Store stores each trie node in the database,
+// where the key is the hash of the encoded node
+// and the value is the encoded node.
 // Generally, this will only be used for the genesis trie.
 func (t *Trie) Store(db chaindb.Database) error {
 	batch := db.NewBatch()
@@ -122,7 +124,8 @@ func (t *Trie) loadProof(proof map[string]node, curr node) {
 	}
 }
 
-// Load reconstructs the trie from the database from the given root hash. Used when restarting the node to load the current state trie.
+// Load reconstructs the trie from the database from the given root hash.
+// It is used when restarting the node to load the current state trie.
 func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 	if root == EmptyHash {
 		t.root = nil
@@ -197,25 +200,35 @@ func (t *Trie) GetNodeHashes(curr node, keys map[common.Hash]struct{}) error {
 	return nil
 }
 
-// PutInDB puts a value into the trie and writes the updates nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
+// PutInDB puts a value into the trie and writes the updates nodes the database.
+// Since it needs to write all the nodes from the changed node up to the root,
+// it writes these in a batch operation.
 func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
 	t.Put(key, value)
 	return t.WriteDirty(db)
 }
 
-// DeleteFromDB deletes a value from the trie and writes the updated nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
+// DeleteFromDB deletes a value from the trie and writes the updated nodes the database.
+// Since it needs to write all the nodes from the changed node up to the root,
+// it writes these in a batch operation.
 func (t *Trie) DeleteFromDB(db chaindb.Database, key []byte) error {
 	t.Delete(key)
 	return t.WriteDirty(db)
 }
 
-// ClearPrefixFromDB deletes all keys with the given prefix from the trie and writes the updated nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
+// ClearPrefixFromDB deletes all keys with the given prefix from the trie
+// and writes the updated nodes the database. Since it needs to write all
+//  the nodes from the changed node up to the root, it writes these
+// in a batch operation.
 func (t *Trie) ClearPrefixFromDB(db chaindb.Database, prefix []byte) error {
 	t.ClearPrefix(prefix)
 	return t.WriteDirty(db)
 }
 
-// GetFromDB retrieves a value from the trie using the database. It recursively descends into the trie using the database starting from the root node until it reaches the node with the given key. It then reads the value from the database.
+// GetFromDB retrieves a value from the trie using the database.
+// It recursively descends into the trie using the database starting
+// from the root node until it reaches the node with the given key.
+// It then reads the value from the database.
 func GetFromDB(db chaindb.Database, root common.Hash, key []byte) ([]byte, error) {
 	if root == EmptyHash {
 		return nil, nil

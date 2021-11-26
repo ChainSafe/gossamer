@@ -110,7 +110,8 @@ func TestDeepCopyVsSnapshot(t *testing.T) {
 				trieMap[i] = newTrie
 			}
 
-			log.Printf("\nAlloc = %v MB \nTotalAlloc = %v MB \nSys = %v MB \nNumGC = %v \n\n", m.Alloc/(1024*1024), m.TotalAlloc/(1024*1024), m.Sys/(1024*1024), m.NumGC)
+			log.Printf("\nAlloc = %v MB \nTotalAlloc = %v MB \nSys = %v MB \nNumGC = %v \n\n",
+				m.Alloc/(1024*1024), m.TotalAlloc/(1024*1024), m.Sys/(1024*1024), m.NumGC)
 			elapsed := time.Since(start)
 			log.Printf("DeepCopy to trie took %s", elapsed)
 			runtime.GC()

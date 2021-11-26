@@ -31,7 +31,10 @@ func TestVerifySecondarySlotPlain(t *testing.T) {
 	require.Equal(t, 1, numAuthorized, "only one block producer should be authorized per secondary slot")
 }
 
-func createSecondaryVRFPreDigest(t *testing.T, keypair *sr25519.Keypair, index uint32, slot, epoch uint64, randomness Randomness) *types.BabeSecondaryVRFPreDigest {
+func createSecondaryVRFPreDigest(t *testing.T,
+	keypair *sr25519.Keypair, index uint32,
+	slot, epoch uint64, randomness Randomness,
+) *types.BabeSecondaryVRFPreDigest {
 	transcript := makeTranscript(randomness, slot, epoch)
 	out, proof, err := keypair.VrfSign(transcript)
 	require.NoError(t, err)

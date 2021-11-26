@@ -27,7 +27,11 @@ import (
 func TestRegisterModules(t *testing.T) {
 	rpcapiMocks := new(mocks.RPCAPI)
 
-	mods := []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate"}
+	mods := []string{
+		"system", "author", "chain",
+		"state", "rpc", "grandpa",
+		"offchain", "childstate", "syncstate",
+	}
 
 	for _, modName := range mods {
 		rpcapiMocks.On("BuildMethodNames", mock.Anything, modName).Once()
@@ -134,8 +138,15 @@ func TestUnsafeRPCProtection(t *testing.T) {
 			require.NoError(t, err)
 
 			_, resBody := PostRequest(t, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
-			expected := fmt.Sprintf(
-				`{"jsonrpc":"2.0","error":{"code":-32000,"message":"unsafe rpc method %s cannot be reachable","data":null},"id":1}`+"\n",
+			expected := fmt.Sprintf(`{`+
+				`"jsonrpc":"2.0",`+
+				`"error":{`+
+				`"code":-32000,`+
+				`"message":"unsafe rpc method %s cannot be reachable",`+
+				`"data":null`+
+				`},`+
+				`"id":1`+
+				`}`+"\n",
 				unsafe,
 			)
 
@@ -212,7 +223,15 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	require.NoError(t, err)
 
 	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:7880/", ip), buf)
-	expected := `{"jsonrpc":"2.0","error":{"code":-32000,"message":"external HTTP request refused","data":null},"id":1}` + "\n"
+	expected := `{` +
+		`"jsonrpc":"2.0",` +
+		`"error":{` +
+		`"code":-32000,` +
+		`"message":"external HTTP request refused",` +
+		`"data":null` +
+		`},` +
+		`"id":1` +
+		`}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
 
@@ -262,7 +281,15 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 
 	// unsafe method should not be ok
 	_, resBody = PostRequest(t, fmt.Sprintf("http://%s:%v/", ip, httpServerConfig.RPCPort), unsafebuf)
-	expected = `{"jsonrpc":"2.0","error":{"code":-32000,"message":"external HTTP request refused","data":null},"id":1}` + "\n"
+	expected = `{` +
+		`"jsonrpc":"2.0",` +
+		`"error":{` +
+		`"code":-32000,` +
+		`"message":"external HTTP request refused",` +
+		`"data":null` +
+		`},` +
+		`"id":1` +
+		`}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
 

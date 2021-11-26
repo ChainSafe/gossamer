@@ -306,7 +306,8 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 				[]string{"ws://foo/bar k"},
 				testCfg.Global.Name,
 			},
-			"could not set global config from flags: could not parse verbosity from telemetry-url: strconv.Atoi: parsing \"k\": invalid syntax",
+			"could not set global config from flags: could not parse verbosity from telemetry-url: " +
+				`strconv.Atoi: parsing "k": invalid syntax`,
 		},
 	}
 
@@ -513,6 +514,21 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            true,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+			},
+		},
+		{
+			"Test gossamer --pubip",
+			[]string{"config", "pubip"},
+			[]interface{}{testCfgFile.Name(), "10.0.5.2"},
+			dot.NetworkConfig{
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            false,
+				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
+				PublicIP:          "10.0.5.2",
 			},
 		},
 	}

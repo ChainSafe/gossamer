@@ -48,6 +48,7 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 	require.Equal(t, expected, genesis)
 }
 
+//nolint:lll
 func TestNewGenesisFromJSON(t *testing.T) {
 	var expectedGenesis = &Genesis{}
 	const zeroByte = "0x00"

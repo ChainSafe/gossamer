@@ -859,7 +859,9 @@ func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	logger.Debug("[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair with resulting public key: " + kp.Public().Hex())
+	logger.Debug(
+		"[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair with resulting public key: " +
+			kp.Public().Hex())
 	return int64(ret)
 }
 
@@ -1046,7 +1048,9 @@ func ext_crypto_sr25519_generate_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	logger.Debug("[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair with resulting public key: " + kp.Public().Hex())
+	logger.Debug(
+		"[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair with resulting public key: " +
+			kp.Public().Hex())
 	return int64(ret)
 }
 

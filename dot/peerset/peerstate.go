@@ -147,7 +147,8 @@ func (ps *PeersState) getSetLength() int {
 	return len(ps.sets)
 }
 
-// peerStatus returns the status of peer based on its connection state, i.e. connectedPeer, notConnectedPeer or unknownPeer.
+// peerStatus returns the status of peer based on its connection state
+// i.e. connectedPeer, notConnectedPeer or unknownPeer.
 func (ps *PeersState) peerStatus(set int, peerID peer.ID) string {
 	n, err := ps.getNode(peerID)
 	if err != nil {
@@ -278,7 +279,8 @@ func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) {
 	}
 }
 
-// disconnect method updates the node status to notConnected state it should be called only when the node is in connected state.
+// disconnect updates the node status to the notConnected state.
+// It should be called only when the node is in connected state.
 func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	info := ps.sets[idx]
 	n, err := ps.getNode(peerID)

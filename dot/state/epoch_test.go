@@ -186,7 +186,9 @@ func TestEpochState_GetEpochFromTime(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 	s.blockState = newTestBlockState(t, testGenesisHeader)
 
-	epochDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genesisBABEConfig.SlotDuration*genesisBABEConfig.EpochLength))
+	epochDuration, err := time.ParseDuration(
+		fmt.Sprintf("%dms",
+			genesisBABEConfig.SlotDuration*genesisBABEConfig.EpochLength))
 	require.NoError(t, err)
 
 	slotDuration := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)

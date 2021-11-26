@@ -6,6 +6,7 @@ package httpserver
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +28,13 @@ func Test_New(t *testing.T) {
 		address: address,
 		handler: handler,
 		logger:  logger,
+		optional: optionalSettings{
+			shutdownTimeout: time.Second,
+		},
 	}
 
-	server := New(name, address, handler, logger)
+	server := New(name, address, handler, logger,
+		ShutdownTimeout(time.Second))
 
 	assert.NotNil(t, server.addressSet)
 	server.addressSet = nil
