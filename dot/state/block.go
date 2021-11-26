@@ -93,7 +93,8 @@ func NewBlockState(db chaindb.Database) (*BlockState, error) {
 	return bs, nil
 }
 
-// NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
+// NewBlockStateFromGenesis initialises a BlockState from a genesis header,
+// saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
@@ -316,12 +317,6 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	}
 
 	return &types.Block{Header: *header, Body: *blockBody}, nil
-}
-
-// GetBlockHash returns block hash for a given block number
-// TODO: remove in favour of GetHashByNumber
-func (bs *BlockState) GetBlockHash(num *big.Int) (common.Hash, error) {
-	return bs.GetHashByNumber(num)
 }
 
 // SetHeader will set the header into DB
@@ -589,7 +584,8 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 }
 
 // HandleRuntimeChanges handles the update in runtime.
-func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt runtime.Instance, bHash common.Hash) error {
+func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
+	rt runtime.Instance, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
 		return err
@@ -601,7 +597,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		return nil
 	}
 
-	logger.Infof("🔄 detected runtime code change, upgrading with block %s from previous code hash %s to new code hash %s...",
+	logger.Infof("🔄 detected runtime code change, upgrading with block %s from previous code hash %s to new code hash %s...", //nolint:lll
 		bHash, codeHash, currCodeHash)
 	code := newState.LoadCode()
 	if len(code) == 0 {
@@ -625,7 +621,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		}
 
 		logger.Infof(
-			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...",
+			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...", //nolint:lll
 			bHash, codeHash, previousVersion.SpecVersion(), currCodeHash, newVersion.SpecVersion())
 	}
 

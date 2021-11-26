@@ -665,7 +665,8 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 	return
 }
 
-// decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
+// decodeUint128 accepts a byte array representing a SCALE encoded
+// common.Uint128 and performs SCALE decoding of the Uint128
 func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 	buf := make([]byte, 16)
 	err = binary.Read(ds, binary.LittleEndian, buf)

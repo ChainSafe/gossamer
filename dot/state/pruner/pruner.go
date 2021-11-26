@@ -70,12 +70,14 @@ type deathRow []*deathRecord
 
 // FullNode stores state trie diff and allows online state trie pruning
 type FullNode struct {
-	logger        log.LeveledLogger
-	deathList     []deathRow
-	storageDB     chaindb.Database
-	journalDB     chaindb.Database
-	deathIndex    map[common.Hash]int64 // Mapping from deleted key hash to block number.
-	pendingNumber int64                 // block number to be pruned. Initial value is set to 1 and is incremented after every block pruning.
+	logger     log.LeveledLogger
+	deathList  []deathRow
+	storageDB  chaindb.Database
+	journalDB  chaindb.Database
+	deathIndex map[common.Hash]int64 // Mapping from deleted key hash to block number.
+	// pendingNumber is the block number to be pruned.
+	// Initial value is set to 1 and is incremented after every block pruning.
+	pendingNumber int64
 	retainBlocks  int64
 	sync.RWMutex
 }

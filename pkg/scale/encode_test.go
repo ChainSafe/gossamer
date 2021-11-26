@@ -395,9 +395,10 @@ var (
 	}
 
 	testStrings = []string{
-		"We love you! We believe in open source as wonderful form of giving.",                           // n = 67
-		strings.Repeat("We need a longer string to test with. Let's multiple this several times.", 230), // n = 72 * 230 = 16560
-		"Let's test some special ASCII characters: ~  · © ÿ",                                           // n = 55 (UTF-8 encoding versus n = 51 with ASCII encoding)
+		"We love you! We believe in open source as wonderful form of giving.", // n = 67
+		strings.Repeat("We need a longer string to test with. "+
+			"Let's multiple this several times.", 230), // n = 72 * 230 = 16560
+		"Let's test some special ASCII characters: ~  · © ÿ", // n = 55 (UTF-8 encoding versus n = 51 with ASCII encoding)
 	}
 	stringTests = tests{
 		{

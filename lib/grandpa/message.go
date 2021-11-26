@@ -20,7 +20,9 @@ type GrandpaMessage interface { //nolint:revive
 
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
 func newGrandpaMessage() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(VoteMessage{}, CommitMessage{}, NeighbourMessage{}, CatchUpRequest{}, CatchUpResponse{})
+	return scale.MustNewVaryingDataType(
+		VoteMessage{}, CommitMessage{}, NeighbourMessage{},
+		CatchUpRequest{}, CatchUpResponse{})
 }
 
 // FullVote represents a vote with additional information about the state
