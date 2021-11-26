@@ -97,6 +97,7 @@ linters:
     - megacheck
     - megacheck
     - misspell
+    - nilerr
     - nilnil
     - nolintlint
     - revive

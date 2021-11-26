@@ -429,7 +429,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		if err != nil {
 			logger.Tracef("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting at key 0x%x", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
-			return nil
+			return nil //nolint:nilerr
 		}
 
 		lengthBytes, err := scale.Marshal(currLength)
