@@ -16,13 +16,13 @@ import (
 
 // telemetry message types
 const (
-	notifyFinalizedMsg           = "notify.finalized"
+	afgAuthoritySetMsg           = "afg.authority_set"
+	afgFinalizedBlocksUpToMsg    = "afg.finalized_blocks_up_to"
 	blockImportMsg               = "block.import"
-	systemNetworkStateMsg        = "system.network_state"
+	notifyFinalizedMsg           = "notify.finalized"
 	systemConnectedMsg           = "system.connected"
 	systemIntervalMsg            = "system.interval"
-	afgFinalizedBlocksUpToMsg    = "afg.finalized_blocks_up_to"
-	afgAuthoritySetMsg           = "afg.authority_set"
+	systemNetworkStateMsg        = "system.network_state"
 	txPoolImportMsg              = "txpool.import"
 	preparedBlockForProposingMsg = "prepared_block_for_proposing"
 )
