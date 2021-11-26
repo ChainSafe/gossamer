@@ -6,7 +6,6 @@ package sr25519
 import (
 	"crypto/rand"
 	"errors"
-
 	"fmt"
 	"testing"
 
