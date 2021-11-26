@@ -25,7 +25,7 @@ import (
 )
 
 func TestAuthorModule_HasSessionKeys(t *testing.T) {
-	testReq := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16" +
+	const testReq = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16" +
 		"aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026343" +
 		"09a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
 	pkeys := common.MustHexToBytes("0x0102d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16" +
@@ -47,7 +47,9 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 
 	coreMockAPIErr := new(apimocks.CoreAPI)
 	coreMockAPIErr.On("DecodeSessionKeys", pkeys).Return(data, nil)
-	coreMockAPIErr.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, errors.New("HasKey err"))
+	coreMockAPIErr.On("HasKey", mock.AnythingOfType("string"),
+		mock.AnythingOfType("string")).
+		Return(false, errors.New("HasKey err"))
 
 	coreMockAPIInvalidDec := new(apimocks.CoreAPI)
 	coreMockAPIInvalidDec.On("DecodeSessionKeys", pkeys).Return([]byte{0x0}, nil)

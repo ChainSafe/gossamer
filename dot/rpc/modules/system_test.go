@@ -139,40 +139,40 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 		res []interface{}
 	}
 	tests := []struct {
-		name    string
-		fields  *SystemModule
-		args    args
+		name      string
+		sysModule *SystemModule
+		args      args
 		wantErr bool
 		expErr  error
 		exp     []interface{}
 	}{
 		{
-			name:   "Full",
-			fields: NewSystemModule(mockNetworkAPI1, nil, nil, nil, nil, nil),
+			name:      "Full",
+			sysModule: NewSystemModule(mockNetworkAPI1, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
 			exp: []interface{}{"Full"},
 		},
 		{
-			name:   "LightClient",
-			fields: NewSystemModule(mockNetworkAPI2, nil, nil, nil, nil, nil),
+			name:      "LightClient",
+			sysModule: NewSystemModule(mockNetworkAPI2, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
 			exp: []interface{}{"LightClient"},
 		},
 		{
-			name:   "Authority",
-			fields: NewSystemModule(mockNetworkAPI3, nil, nil, nil, nil, nil),
+			name:      "Authority",
+			sysModule: NewSystemModule(mockNetworkAPI3, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
 			exp: []interface{}{"Authority"},
 		},
 		{
-			name:   "UnknownRole",
-			fields: NewSystemModule(mockNetworkAPI4, nil, nil, nil, nil, nil),
+			name:      "UnknownRole",
+			sysModule: NewSystemModule(mockNetworkAPI4, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -182,7 +182,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = []interface{}{}
-			sm := tt.fields
+			sm := tt.sysModule
 			err := sm.NodeRoles(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -229,39 +229,39 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		res U64Response
 	}
 	tests := []struct {
-		name    string
-		fields  *SystemModule
-		args    args
+		name      string
+		sysModule *SystemModule
+		args      args
 		wantErr bool
 		expErr  error
 		exp     U64Response
 	}{
 		{
-			name:    "Nil Request",
-			fields:  NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
-			args:    args{},
-			wantErr: true,
-			expErr:  errors.New("account address must be valid"),
+			name:      "Nil Request",
+			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
+			args:      args{},
+			wantErr:   true,
+			expErr:    errors.New("account address must be valid"),
 		},
 		{
-			name:   "Found",
-			fields: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
+			name:      "Found",
+			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
 			exp: U64Response(4),
 		},
 		{
-			name:   "Not found",
-			fields: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
+			name:      "Not found",
+			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
 			exp: U64Response(3),
 		},
 		{
-			name:   "GetMetadata Err",
-			fields: NewSystemModule(nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil),
+			name:      "GetMetadata Err",
+			sysModule: NewSystemModule(nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -269,8 +269,8 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			expErr:  errors.New("getMetadata error"),
 		},
 		{
-			name:   "Magic Number Mismatch",
-			fields: NewSystemModule(nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil),
+			name:      "Magic Number Mismatch",
+			sysModule: NewSystemModule(nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -278,8 +278,8 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			expErr:  errors.New("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
 		},
 		{
-			name:   "GetStorage Err",
-			fields: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil),
+			name:      "GetStorage Err",
+			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -290,7 +290,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = U64Response(0)
-			sm := tt.fields
+			sm := tt.sysModule
 			err := sm.AccountNextIndex(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -323,16 +323,16 @@ func TestSystemModule_SyncState(t *testing.T) {
 		res SyncStateResponse
 	}
 	tests := []struct {
-		name    string
-		fields  *SystemModule
-		args    args
+		name      string
+		sysModule *SystemModule
+		args      args
 		wantErr bool
 		expErr  error
 		exp     SyncStateResponse
 	}{
 		{
-			name:   "OK",
-			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI),
+			name:      "OK",
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -343,8 +343,8 @@ func TestSystemModule_SyncState(t *testing.T) {
 			},
 		},
 		{
-			name:   "Err",
-			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr),
+			name:      "Err",
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -355,7 +355,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = SyncStateResponse{}
-			sm := tt.fields
+			sm := tt.sysModule
 			err := sm.SyncState(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -390,24 +390,24 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		res []string
 	}
 	tests := []struct {
-		name    string
-		fields  *SystemModule
-		args    args
+		name      string
+		sysModule *SystemModule
+		args      args
 		wantErr bool
 		expErr  error
 		exp     []string
 	}{
 		{
-			name:   "OK",
-			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			name:      "OK",
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
 			exp: []string{"/ip4/1.2.3.4/tcp/80"},
 		},
 		{
-			name:   "Empty multiaddress list",
-			fields: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil),
+			name:      "Empty multiaddress list",
+			sysModule: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -419,7 +419,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = []string{}
-			sm := tt.fields
+			sm := tt.sysModule
 			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -454,24 +454,24 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		res string
 	}
 	tests := []struct {
-		name    string
-		fields  *SystemModule
-		args    args
+		name      string
+		sysModule *SystemModule
+		args      args
 		wantErr bool
 		expErr  error
 		exp     string
 	}{
 		{
-			name:   "OK",
-			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			name:      "OK",
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
 			exp: "D1KeRhQ",
 		},
 		{
-			name:   "Empty peerId",
-			fields: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil),
+			name:      "Empty peerId",
+			sysModule: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -482,7 +482,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = ""
-			sm := tt.fields
+			sm := tt.sysModule
 			err := sm.LocalPeerId(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -508,24 +508,24 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		res []byte
 	}
 	tests := []struct {
-		name    string
-		fields  *SystemModule
-		args    args
+		name      string
+		sysModule *SystemModule
+		args      args
 		wantErr bool
 		expErr  error
 		exp     []byte
 	}{
 		{
-			name:   "OK",
-			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			name:      "OK",
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
 			exp: []byte(nil),
 		},
 		{
-			name:   "AddReservedPeer Error",
-			fields: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil),
+			name:      "AddReservedPeer Error",
+			sysModule: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -533,8 +533,8 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			expErr:  errors.New("addReservedPeer error"),
 		},
 		{
-			name:   "Empty StringRequest Error",
-			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			name:      "Empty StringRequest Error",
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{""},
 			},
@@ -545,7 +545,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = []byte(nil)
-			sm := tt.fields
+			sm := tt.sysModule
 			err := sm.AddReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -571,24 +571,24 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		res []byte
 	}
 	tests := []struct {
-		name    string
-		fields  *SystemModule
-		args    args
+		name      string
+		sysModule *SystemModule
+		args      args
 		wantErr bool
 		expErr  error
 		exp     []byte
 	}{
 		{
-			name:   "OK",
-			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			name:      "OK",
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
 			exp: []byte(nil),
 		},
 		{
-			name:   "RemoveReservedPeer Error",
-			fields: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil),
+			name:      "RemoveReservedPeer Error",
+			sysModule: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -596,8 +596,8 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			expErr:  errors.New("removeReservedPeer error"),
 		},
 		{
-			name:   "Empty StringRequest Error",
-			fields: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			name:      "Empty StringRequest Error",
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{""},
 			},
@@ -608,7 +608,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.res = []byte(nil)
-			sm := tt.fields
+			sm := tt.sysModule
 			err := sm.RemoveReservedPeer(tt.args.r, tt.args.req, &tt.args.res)
 			if tt.wantErr {
 				require.Error(t, err)
