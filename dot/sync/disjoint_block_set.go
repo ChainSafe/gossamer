@@ -59,7 +59,8 @@ type pendingBlock struct {
 	clearAt time.Time
 }
 
-func newPendingBlock(hash common.Hash, number *big.Int, header *types.Header, body *types.Body, clearAt time.Time) *pendingBlock {
+func newPendingBlock(hash common.Hash, number *big.Int,
+	header *types.Header, body *types.Body, clearAt time.Time) *pendingBlock {
 	return &pendingBlock{
 		hash:    hash,
 		number:  number,
