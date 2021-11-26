@@ -48,7 +48,7 @@ type PublicKeyBytes [PublicKeyLength]byte
 func VerifySignature(publicKey, signature, message []byte) error {
 	pubKey, err := NewPublicKey(publicKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("ed25519: %w", err)
 	}
 
 	_, err = pubKey.Verify(message, signature)

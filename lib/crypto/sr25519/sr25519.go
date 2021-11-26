@@ -53,7 +53,7 @@ type PrivateKey struct {
 func VerifySignature(publicKey, signature, message []byte) error {
 	pubKey, err := NewPublicKey(publicKey)
 	if err != nil {
-		return err
+		return  fmt.Errorf("sr25519: %w", err)
 	}
 
 	_, err = pubKey.Verify(message, signature)
