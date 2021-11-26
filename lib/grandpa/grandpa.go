@@ -274,19 +274,19 @@ func (s *Service) sendTelemetryAuthoritySet() {
 	authorityID := s.keypair.Public().Hex()
 	authorities := make([]string, len(s.state.voters))
 	for i, voter := range s.state.voters {
-		authorities[i] = fmt.Sprintf("%d", voter.ID)
+		authorities[i] = fmt.Sprint(voter.ID)
 	}
 
 	authoritiesBytes, err := json.Marshal(authorities)
 	if err != nil {
-		logger.Debugf("could not marshal authorities: %s", err)
+		logger.Warnf("could not marshal authorities: %s", err)
 		return
 	}
 
 	err = telemetry.GetInstance().SendMessage(
 		telemetry.NewAfgAuthoritySetTM(
 			authorityID,
-			fmt.Sprintf("%d", s.state.setID),
+			fmt.Sprint(s.state.setID),
 			string(authoritiesBytes),
 		),
 	)
