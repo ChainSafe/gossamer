@@ -42,7 +42,8 @@ type (
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 
-	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream in batch processing mode.
+	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications
+	// stream in batch processing mode.
 	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage)
 )
 
