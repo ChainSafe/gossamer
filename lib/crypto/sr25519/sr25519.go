@@ -53,7 +53,7 @@ type PrivateKey struct {
 func VerifySignature(publicKey, signature, message []byte) error {
 	pubKey, err := NewPublicKey(publicKey)
 	if err != nil {
-		return  fmt.Errorf("sr25519: %w", err)
+		return fmt.Errorf("sr25519: %w", err)
 	}
 
 	_, err = pubKey.Verify(message, signature)
@@ -212,7 +212,7 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 }
 
 // VrfSign creates a VRF output and proof from a message and private key
-func (kp *Keypair) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VRFProofLength]byte, error) {
+func (kp *Keypair) VrfSign(t *merlin.Transcript) ([sr25519.VRFOutputLength]byte, [sr25519.VRFProofLength]byte, error) {
 	return kp.private.VrfSign(t)
 }
 
@@ -397,7 +397,7 @@ func (k *PublicKey) AsBytes() [PublicKeyLength]byte {
 }
 
 // AttachInput wraps schnorrkel *VrfOutput.AttachInput
-func AttachInput(output [VRFOutputLength]byte, pub *PublicKey, t *merlin.Transcript) *sr25519.VrfInOut {
+func AttachInput(output [sr25519.VRFOutputLength]byte, pub *PublicKey, t *merlin.Transcript) *sr25519.VrfInOut {
 	out := sr25519.NewOutput(output)
 	return out.AttachInput(pub.key, t)
 }
