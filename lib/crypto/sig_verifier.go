@@ -16,8 +16,8 @@ var ErrSignatureVerificationFailed = errors.New("failed to verify signature")
 // SigVerifyFunc verifies a signature given a public key and a message
 type SigVerifyFunc func(pubkey, sig, msg []byte) (err error)
 
-// Signing ...
-type Signing struct {
+// SignatureInfo ...
+type SignatureInfo struct {
 	PubKey     []byte
 	Sign       []byte
 	Msg        []byte
@@ -26,7 +26,7 @@ type Signing struct {
 
 // SignatureVerifier ...
 type SignatureVerifier struct {
-	batch   []*Signing
+	batch   []*SignatureInfo
 	init    bool // Indicates whether the batch processing is started.
 	invalid bool // Set to true if any signature verification fails.
 	logger  log.LeveledLogger
@@ -42,7 +42,7 @@ type SignatureVerifier struct {
 // Signatures can be added to the batch using Add().
 func NewSignatureVerifier(logger log.LeveledLogger) *SignatureVerifier {
 	return &SignatureVerifier{
-		batch:   make([]*Signing, 0),
+		batch:   make([]*SignatureInfo, 0),
 		init:    false,
 		invalid: false,
 		logger:  logger,
@@ -104,7 +104,7 @@ func (sv *SignatureVerifier) Invalid() {
 }
 
 // Add ...
-func (sv *SignatureVerifier) Add(s *Signing) {
+func (sv *SignatureVerifier) Add(s *SignatureInfo) {
 	if sv.IsInvalid() {
 		return
 	}
@@ -115,7 +115,7 @@ func (sv *SignatureVerifier) Add(s *Signing) {
 }
 
 // Remove returns the first signature from the batch. Returns nil if batch is empty.
-func (sv *SignatureVerifier) Remove() *Signing {
+func (sv *SignatureVerifier) Remove() *SignatureInfo {
 	sv.Lock()
 	defer sv.Unlock()
 	if len(sv.batch) == 0 {
@@ -131,7 +131,7 @@ func (sv *SignatureVerifier) Reset() {
 	sv.Lock()
 	defer sv.Unlock()
 	sv.init = false
-	sv.batch = make([]*Signing, 0)
+	sv.batch = make([]*SignatureInfo, 0)
 	sv.invalid = false
 	sv.closeCh = make(chan struct{})
 }

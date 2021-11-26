@@ -19,7 +19,7 @@ import (
 func TestSigVerifierEd25519(t *testing.T) {
 	t.Parallel()
 
-	signs := make([]*crypto.Signing, 2)
+	signs := make([]*crypto.SignatureInfo, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("Hello")
@@ -29,7 +29,7 @@ func TestSigVerifierEd25519(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &crypto.Signing{
+		signs[i] = &crypto.SignatureInfo{
 			PubKey:     key.Public().Encode(),
 			Sign:       sign,
 			Msg:        msg,
@@ -50,7 +50,7 @@ func TestSigVerifierEd25519(t *testing.T) {
 func TestSigVerifierEd25519Fails(t *testing.T) {
 	t.Parallel()
 
-	signs := make([]*crypto.Signing, 2)
+	signs := make([]*crypto.SignatureInfo, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("Hello")
@@ -60,7 +60,7 @@ func TestSigVerifierEd25519Fails(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 		if i == 1 {
-			signs[i] = &crypto.Signing{
+			signs[i] = &crypto.SignatureInfo{
 				PubKey:     []byte{},
 				Sign:       sign,
 				Msg:        msg,
@@ -68,7 +68,7 @@ func TestSigVerifierEd25519Fails(t *testing.T) {
 			}
 			continue
 		}
-		signs[i] = &crypto.Signing{
+		signs[i] = &crypto.SignatureInfo{
 			PubKey:     key.Public().Encode(),
 			Sign:       []byte{},
 			Msg:        msg,
@@ -89,7 +89,7 @@ func TestSigVerifierEd25519Fails(t *testing.T) {
 func TestSigVerifierSr25519(t *testing.T) {
 	t.Parallel()
 
-	signs := make([]*crypto.Signing, 2)
+	signs := make([]*crypto.SignatureInfo, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("Hello")
@@ -99,7 +99,7 @@ func TestSigVerifierSr25519(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &crypto.Signing{
+		signs[i] = &crypto.SignatureInfo{
 			PubKey:     key.Public().Encode(),
 			Sign:       sign,
 			Msg:        msg,
@@ -120,7 +120,7 @@ func TestSigVerifierSr25519(t *testing.T) {
 func TestSigVerifierSr25519Fails(t *testing.T) {
 	t.Parallel()
 
-	signs := make([]*crypto.Signing, 2)
+	signs := make([]*crypto.SignatureInfo, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("Hello")
@@ -131,7 +131,7 @@ func TestSigVerifierSr25519Fails(t *testing.T) {
 		require.NoError(t, err)
 
 		if i == 1 {
-			signs[i] = &crypto.Signing{
+			signs[i] = &crypto.SignatureInfo{
 				PubKey:     []byte{},
 				Sign:       sign,
 				Msg:        msg,
@@ -139,7 +139,7 @@ func TestSigVerifierSr25519Fails(t *testing.T) {
 			}
 			continue
 		}
-		signs[i] = &crypto.Signing{
+		signs[i] = &crypto.SignatureInfo{
 			PubKey:     key.Public().Encode(),
 			Sign:       []byte{},
 			Msg:        msg,
@@ -160,7 +160,7 @@ func TestSigVerifierSr25519Fails(t *testing.T) {
 func TestSigVerifierSecp256k1(t *testing.T) {
 	t.Parallel()
 
-	signs := make([]*crypto.Signing, 2)
+	signs := make([]*crypto.SignatureInfo, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("a225e8c75da7da319af6335e7642d473")
@@ -170,7 +170,7 @@ func TestSigVerifierSecp256k1(t *testing.T) {
 		sign, err := key.Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &crypto.Signing{
+		signs[i] = &crypto.SignatureInfo{
 			PubKey:     key.Public().Encode(),
 			Sign:       sign[:64],
 			Msg:        msg,
@@ -191,7 +191,7 @@ func TestSigVerifierSecp256k1(t *testing.T) {
 func TestSigVerifierSecp256k1Fails(t *testing.T) {
 	t.Parallel()
 
-	signs := make([]*crypto.Signing, 2)
+	signs := make([]*crypto.SignatureInfo, 2)
 
 	for i := 0; i < 2; i++ {
 		msg := []byte("a225e8c75da7da319af6335e7642d473")
@@ -202,7 +202,7 @@ func TestSigVerifierSecp256k1Fails(t *testing.T) {
 		require.NoError(t, err)
 
 		if i == 1 {
-			signs[i] = &crypto.Signing{
+			signs[i] = &crypto.SignatureInfo{
 				PubKey:     []byte{},
 				Sign:       sign,
 				Msg:        msg,
@@ -210,7 +210,7 @@ func TestSigVerifierSecp256k1Fails(t *testing.T) {
 			}
 			continue
 		}
-		signs[i] = &crypto.Signing{
+		signs[i] = &crypto.SignatureInfo{
 			PubKey:     key.Public().Encode(),
 			Sign:       []byte{},
 			Msg:        msg,
