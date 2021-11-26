@@ -79,7 +79,8 @@ func TestHandler_SendMulti(t *testing.T) {
 		),
 
 		NewAfgAuthoritySetTM("authority_id", "authority_set_id", "json-stringified-ids-of-authorities"),
-		NewAfgFinalizedBlocksUpToTM(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"), "1"),
+		NewAfgFinalizedBlocksUpToTM(
+			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"), "1"),
 		NewNotifyFinalizedTM(
 			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
 			"32375"),
