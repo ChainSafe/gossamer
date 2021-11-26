@@ -349,7 +349,8 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if n.getReputation() < BannedThresholdValue {
-			logger.Warnf("reputation is lower than banned threshold value")
+			logger.Warnf("reputation is lower than banned threshold value, reputation: %d, banned threshold value: %d",
+				n.getReputation(), BannedThresholdValue)
 			break
 		}
 
@@ -383,7 +384,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if err = peerState.tryOutgoing(setIdx, peerID); err != nil {
-			logger.Errorf("could not set peer as outgoing connection, peer: %s, error: %d", peerID.Pretty(), err)
+			logger.Errorf("could not set peer as outgoing connection, peer: %s, error: %s", peerID.Pretty(), err)
 			break
 		}
 
@@ -406,7 +407,9 @@ func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 		}
 
 		ps.reservedNode[peerID] = struct{}{}
-		ps.peerState.addNoSlotNode(setID, peerID)
+		if err := ps.peerState.addNoSlotNode(setID, peerID); err != nil {
+			return err
+		}
 		if err := ps.allocSlots(setID); err != nil {
 			return err
 		}
@@ -422,7 +425,9 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 		}
 
 		delete(ps.reservedNode, peerID)
-		ps.peerState.removeNoSlotNode(setID, peerID)
+		if err := ps.peerState.removeNoSlotNode(setID, peerID); err != nil {
+			return err
+		}
 
 		// nothing more to do if not in reservedOnly mode.
 		if !ps.isReservedOnly {

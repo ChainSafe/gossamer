@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -237,19 +238,17 @@ func (ps *PeersState) hasFreeIncomingSlot(set int) bool {
 
 // addNoSlotNode adds a node to the list of nodes that don't occupy slots.
 // has no effect if the node was already in the group.
-func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) {
+func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
 	if _, ok := ps.sets[idx].noSlotNodes[peerID]; ok {
 		logger.Debugf("peer %s already exists in no slot node", peerID)
-		return
+		return nil
 	}
 
 	// Insert peerStatus
 	ps.sets[idx].noSlotNodes[peerID] = struct{}{}
 	n, err := ps.getNode(peerID)
 	if err != nil {
-		// TODO: Return the error
-		logger.Warnf("could not get node, error: %s", err)
-		return
+		return fmt.Errorf("could not get node: %w", err)
 	}
 
 	switch n.state[idx] {
@@ -260,20 +259,19 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) {
 	}
 
 	ps.nodes[peerID] = n
+	return nil
 }
 
-func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) {
+func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) error {
 	if _, ok := ps.sets[idx].noSlotNodes[peerID]; !ok {
-		logger.Debugf("peer %s already does not exist in no slot node", peerID)
-		return
+		logger.Debugf("peer %s is not in \"no slot node\" map", peerID)
+		return nil
 	}
 
 	delete(ps.sets[idx].noSlotNodes, peerID)
 	n, err := ps.getNode(peerID)
 	if err != nil {
-		// TODO: Return the error
-		logger.Warnf("could not get node, error: %s", err)
-		return
+		return fmt.Errorf("could not get node: %w", err)
 	}
 
 	switch n.state[idx] {
@@ -282,6 +280,7 @@ func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) {
 	case outgoing:
 		ps.sets[idx].numOut++
 	}
+	return nil
 }
 
 // disconnect updates the node status to the notConnected state.
