@@ -51,8 +51,8 @@ func VerifySignature(publicKey, signature, message []byte) error {
 		return fmt.Errorf("ed25519: %w", err)
 	}
 
-	_, err = pubKey.Verify(message, signature)
-	if err != nil {
+	ok, err := pubKey.Verify(message, signature)
+	if err != nil || !ok {
 		return fmt.Errorf("ed25519: %w: for message 0x%x, signature 0x%x and public key 0x%x",
 			crypto.ErrSignatureVerificationFailed, message, signature, publicKey)
 	}
