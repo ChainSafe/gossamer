@@ -85,7 +85,8 @@ func (*testNetwork) RegisterNotificationsProtocol(
 
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
+func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
+	*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 

@@ -12,16 +12,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/metrics"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ethereum/go-ethereum/metrics"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 const (
@@ -49,7 +50,8 @@ type (
 	// messageDecoder is passed on readStream to decode the data from the stream into a message.
 	// since messages are decoded based on context, this is different for every sub-protocol.
 	messageDecoder = func([]byte, peer.ID, bool) (Message, error)
-	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
+	// messageHandler is passed on readStream to handle the resulting message.
+	// It should return an error only if the stream is to be closed
 	messageHandler = func(stream libp2pnetwork.Stream, msg Message) error
 )
 
@@ -88,8 +90,6 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
-
-	batchSize int
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -124,6 +124,9 @@ func NewService(cfg *Config) (*Service, error) {
 		connectToPeersTimeout = cfg.DiscoveryInterval
 	}
 
+	if cfg.batchSize == 0 {
+		cfg.batchSize = defaultTxnBatchSize
+	}
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -161,7 +164,6 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
-		batchSize:              100,
 	}
 
 	return network, err
@@ -210,7 +212,7 @@ func (s *Service) Start() error {
 			blockAnnounceID, err)
 	}
 
-	txnBatch := make(chan *BatchMessage, s.batchSize)
+	txnBatch := make(chan *BatchMessage, s.cfg.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol
@@ -290,9 +292,15 @@ func (s *Service) collectNetworkMetrics() {
 		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
 		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
-		syncedBlocks := metrics.GetOrRegisterGauge("service/blocks/sync", metrics.DefaultRegistry)
-		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/inbound", metrics.DefaultRegistry)
-		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge("network/streams/block_announce/outbound", metrics.DefaultRegistry)
+		syncedBlocks := metrics.GetOrRegisterGauge(
+			"service/blocks/sync",
+			metrics.DefaultRegistry)
+		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
+			"network/streams/block_announce/inbound",
+			metrics.DefaultRegistry)
+		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
+			"network/streams/block_announce/outbound",
+			metrics.DefaultRegistry)
 		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
 		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
 		totalInboundStreams := metrics.GetOrRegisterGauge("network/streams/total/inbound", metrics.DefaultRegistry)

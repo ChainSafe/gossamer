@@ -316,7 +316,8 @@ func parseLogLevelString(logLevelString string) (logLevel log.Level, err error) 
 	return logLevel, nil
 }
 
-func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
+func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config,
+	globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
 	if tomlConfig == nil {
 		tomlConfig = new(ctoml.Config)
 	}
@@ -670,6 +671,11 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	// check --nomdns flag and update node configuration
 	if nomdns := ctx.GlobalBool(NoMDNSFlag.Name); nomdns {
 		cfg.NoMDNS = true
+	}
+
+	// check --pubip flag and update node configuration
+	if pubip := ctx.GlobalString(PublicIPFlag.Name); pubip != "" {
+		cfg.PublicIP = pubip
 	}
 
 	if len(cfg.PersistentPeers) == 0 {

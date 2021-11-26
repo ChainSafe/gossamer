@@ -14,10 +14,12 @@ import (
 // tracker keeps track of messages that have been received that have failed to validate with ErrBlockDoesNotExist
 // these messages may be needed again in the case that we are slightly out of sync with the rest of the network
 type tracker struct {
-	blockState     BlockState
-	handler        *MessageHandler
-	voteMessages   map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
-	commitMessages map[common.Hash]*CommitMessage                                 // map of commit block hash to commit message
+	blockState BlockState
+	handler    *MessageHandler
+	// map of vote block hash -> array of VoteMessages for that hash
+	voteMessages map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage
+	// map of commit block hash to commit message
+	commitMessages map[common.Hash]*CommitMessage
 	mapLock        sync.Mutex
 	in             chan *types.Block // receive imported block from BlockState
 	stopped        chan struct{}

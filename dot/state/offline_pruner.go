@@ -34,7 +34,8 @@ type OfflinePruner struct {
 }
 
 // NewOfflinePruner creates an instance of OfflinePruner.
-func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNum int64) (*OfflinePruner, error) {
+func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
+	retainBlockNum int64) (*OfflinePruner, error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)

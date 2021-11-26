@@ -186,7 +186,9 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 			cmp = bytes.Compare(fullKey, key[:len(fullKey)])
 		}
 
-		// length of key arg is less than branch key, return key of first child (or key of this branch, if it's a branch w/ value)
+		// if length of key arg is less than branch key,
+		// return key of first child, or key of this branch,
+		// if it's a branch with value.
 		if (cmp == 0 && len(key) == len(fullKey)) || cmp == 1 {
 			if c.value != nil && bytes.Compare(fullKey, key) > 0 {
 				return fullKey

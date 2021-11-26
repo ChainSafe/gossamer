@@ -93,7 +93,9 @@ type BlockImportHandler interface {
 
 // Network is the interface for the network
 type Network interface {
-	// DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
+	// DoBlockRequest sends a request to the given peer.
+	// If a response is received within a certain time period,
+	// it is returned, otherwise an error is returned.
 	DoBlockRequest(to peer.ID, req *network.BlockRequestMessage) (*network.BlockResponseMessage, error)
 
 	// Peers returns a list of currently connected peers

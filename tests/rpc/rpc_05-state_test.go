@@ -51,7 +51,9 @@ func TestStateRPCResponseValidation(t *testing.T) {
 		{
 			description: "Test state_queryStorage",
 			method:      "state_queryStorage",
-			params:      fmt.Sprintf(`[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "%s", null]`, blockHash),
+			params: fmt.Sprintf(
+				`[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "%s", null]`, //nolint:lll
+				blockHash),
 			expected: modules.StorageChangeSetResponse{
 				Block:   &blockHash,
 				Changes: [][]string{},
@@ -144,11 +146,12 @@ func TestStateRPCAPI(t *testing.T) {
 	require.NoError(t, err)
 
 	const (
-		randomHash                     = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
-		ErrKeyNotFound                 = "Key not found"
-		InvalidHashFormat              = "invalid hash format"
-		GrandpaAuthorityKey            = "0x3a6772616e6470615f617574686f726974696573" // `:grandpa_authorities` key
-		GrandpaAuthorityValue          = "0x012434602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691010000000000000094a297125bf31bc15e2a2f1d7d44d2c2a99ce3ed81fdc3a7acf4a4cc30480fb7010000000000000041a8d68c449e3afc7e4676827a4b11a0c9ec238542327f2e46a8b70a32501bca01000000000000007d1bfc260fee0dcdd73457c15a3895747d1c2fdc4c097060e34f54c99ea1c6c10100000000000000b1f9449c9dea2baa872a96bf655a6e266888ec4ea55051508d8bb725e936cf0c01000000000000002e4cc1538f2fd132e0396282ad5c1d7a54eba14d9ad0eee3768c3ae656577a6001000000000000009dff473ab4f7b55caa005060053a7b315cedb928cf9f99792753ad3a3b6ae8a401000000000000004e30525ea941dc9ccd21302b195a6312024ad627cbe4814c89473ce03c3a20e301000000000000009a2d335e656481978c39fb571ed37c3e04ac2c4c44d450aefb2e71205e2e1d230100000000000000"
+		randomHash        = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
+		ErrKeyNotFound    = "Key not found"
+		InvalidHashFormat = "invalid hash format"
+		// `:grandpa_authorities` key
+		GrandpaAuthorityKey            = "0x3a6772616e6470615f617574686f726974696573"
+		GrandpaAuthorityValue          = "0x012434602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691010000000000000094a297125bf31bc15e2a2f1d7d44d2c2a99ce3ed81fdc3a7acf4a4cc30480fb7010000000000000041a8d68c449e3afc7e4676827a4b11a0c9ec238542327f2e46a8b70a32501bca01000000000000007d1bfc260fee0dcdd73457c15a3895747d1c2fdc4c097060e34f54c99ea1c6c10100000000000000b1f9449c9dea2baa872a96bf655a6e266888ec4ea55051508d8bb725e936cf0c01000000000000002e4cc1538f2fd132e0396282ad5c1d7a54eba14d9ad0eee3768c3ae656577a6001000000000000009dff473ab4f7b55caa005060053a7b315cedb928cf9f99792753ad3a3b6ae8a401000000000000004e30525ea941dc9ccd21302b195a6312024ad627cbe4814c89473ce03c3a20e301000000000000009a2d335e656481978c39fb571ed37c3e04ac2c4c44d450aefb2e71205e2e1d230100000000000000" //nolint:lll
 		StorageHashGrandpaAuthorityKey = "0x8c39fb571ed37c3e04ac2c4c44d450aefb2e71205e2e1d230100000000000000"
 		StorageSizeGrandpaAuthorityKey = "362"
 	)
@@ -344,7 +347,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 	test := testCase{
 		description: "Test valid read request in local json2",
 		method:      "state_queryStorage",
-		params:      `[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"],"0xa32c60dee8647b07435ae7583eb35cee606209a595718562dd4a486a07b6de15", null]`,
+		params:      `[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"],"0xa32c60dee8647b07435ae7583eb35cee606209a595718562dd4a486a07b6de15", null]`, //nolint:lll
 	}
 	t.Run(test.description, func(t *testing.T) {
 		respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(nodes[0].RPCPort), test.params)

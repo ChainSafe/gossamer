@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/peerset"
-
 	"github.com/libp2p/go-libp2p-core/mux"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+
+	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
 const handshakeTimeout = time.Second * 10
@@ -42,8 +42,9 @@ type (
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 
-	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream in batch processing mode.
-	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*BatchMessage, err error)
+	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications
+	// stream in batch processing mode.
+	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage)
 )
 
 // BatchMessage is exported for the mocks of lib/grandpa/mocks/network.go
@@ -69,7 +70,8 @@ type notificationsProtocol struct {
 	outboundHandshakeData    *sync.Map //map[peer.ID]*handshakeData
 }
 
-func newNotificationsProtocol(protocolID protocol.ID, handshakeGetter HandshakeGetter, handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator) *notificationsProtocol {
+func newNotificationsProtocol(protocolID protocol.ID, handshakeGetter HandshakeGetter,
+	handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator) *notificationsProtocol {
 	return &notificationsProtocol{
 		protocolID:               protocolID,
 		getHandshake:             handshakeGetter,
@@ -124,7 +126,8 @@ func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) *ha
 	}
 }
 
-func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
+func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder,
+	messageDecoder MessageDecoder) messageDecoder {
 	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
@@ -149,7 +152,9 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 // createNotificationsMessageHandler returns a function that is called by the handler of *inbound* streams.
-func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler, batchHandler NotificationsMessageBatchHandler) messageHandler {
+func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
+	messageHandler NotificationsMessageHandler,
+	batchHandler NotificationsMessageBatchHandler) messageHandler {
 	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
 			return nil
@@ -217,47 +222,30 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		logger.Tracef("received message on notifications sub-protocol %s from peer %s, message is: %s",
 			info.protocolID, stream.Conn().RemotePeer(), msg)
 
-		var (
-			propagate bool
-			err       error
-			msgs      []*BatchMessage
-		)
 		if batchHandler != nil {
-			msgs, err = batchHandler(peer, msg)
-			if err != nil {
-				return err
-			}
+			batchHandler(peer, msg)
+			return nil
+		}
 
-			propagate = len(msgs) > 0
-		} else {
-			propagate, err = messageHandler(peer, msg)
-			if err != nil {
-				return err
-			}
-
-			msgs = append(msgs, &BatchMessage{
-				msg:  msg,
-				peer: peer,
-			})
+		propagate, err := messageHandler(peer, msg)
+		if err != nil {
+			return err
 		}
 
 		if !propagate || s.noGossip {
 			return nil
 		}
 
-		for _, data := range msgs {
-			seen := s.gossip.hasSeen(data.msg)
-			if !seen {
-				s.broadcastExcluding(info, data.peer, data.msg)
-			}
-
-			// report peer if we get duplicate gossip message.
-			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.DuplicateGossipValue,
-				Reason: peerset.DuplicateGossipReason,
-			}, peer)
+		if !s.gossip.hasSeen(msg) {
+			s.broadcastExcluding(info, peer, msg)
+			return nil
 		}
 
+		// report peer if we get duplicate gossip message.
+		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.DuplicateGossipValue,
+			Reason: peerset.DuplicateGossipReason,
+		}, peer)
 		return nil
 	}
 }

@@ -8,8 +8,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/crypto"
+
+	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 const (
@@ -39,6 +40,8 @@ const (
 
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Minute * 5
+
+	defaultTxnBatchSize = 100
 )
 
 // DefaultBootnodes the default value for Config.Bootnodes
@@ -60,6 +63,8 @@ type Config struct {
 	Syncer             Syncer
 	TransactionHandler TransactionHandler
 
+	// Used to specify the address broadcasted to other peers, and avoids using pubip.Get
+	PublicIP string
 	// Port the network port used for listening
 	Port uint16
 	// RandSeed the seed used to generate the network p2p identity (0 = non-deterministic random seed)
@@ -91,6 +96,11 @@ type Config struct {
 	telemetryInterval time.Duration
 
 	noPreAllocate bool // internal option
+
+	batchSize int // internal option
+
+	// SlotDuration is the slot duration to produce a block
+	SlotDuration time.Duration
 }
 
 // build checks the configuration, sets up the private key for the network service,

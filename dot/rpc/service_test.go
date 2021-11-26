@@ -101,14 +101,25 @@ func TestJson2ReadRequest(t *testing.T) {
 		params string
 		isErr  bool
 	}{
-		{method: `"mockService_readArray"`, params: `[["key1","key2"], ["0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b29d4","0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b2977"]]`},
-		{method: `"mockService_readArray"`, params: `["key1", ["0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b29d4"]]`, isErr: true},
+		{
+			method: `"mockService_readArray"`,
+			params: `[["key1","key2"], ` +
+				`["0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b29d4",` +
+				`"0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b2977"]]`,
+		},
+		{
+			method: `"mockService_readArray"`,
+			params: `["key1", ["0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b29d4"]]`,
+			isErr:  true,
+		},
 	}
 
 	for _, test := range testCase {
 		t.Run(test.method, func(t *testing.T) {
 
-			reader := strings.NewReader(fmt.Sprintf(`{"id":1, "jsonrpc":"2.0", "method":%s, "params":%s}`, test.method, test.params))
+			reader := strings.NewReader(
+				fmt.Sprintf(`{"id":1, "jsonrpc":"2.0", "method":%s, "params":%s}`,
+					test.method, test.params))
 			req, err := http.NewRequest("POST", "", reader)
 			require.NoError(t, err)
 
