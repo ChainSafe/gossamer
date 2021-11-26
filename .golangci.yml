@@ -82,6 +82,7 @@ linters:
     - bodyclose
     - depguard
     - errcheck
+    - exportloopref
     - goconst
     - gocyclo
     - gofmt
@@ -173,7 +174,7 @@ issues:
       linters:
         - lll
 
-    - text: 'G204: Subprocess launched with variable'
+    - text: "G204: Subprocess launched with variable"
       linters:
         - gosec
 
