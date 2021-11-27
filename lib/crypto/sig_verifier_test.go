@@ -4,7 +4,6 @@
 package crypto_test
 
 import (
-	"errors"
 	"io"
 	"testing"
 
@@ -20,7 +19,6 @@ import (
 func TestVerifySignature(t *testing.T) {
 	t.Parallel()
 
-	errorMessage := errors.New("errors test case")
 	message := []byte("a225e8c75da7da319af6335e7642d473")
 
 	edKeypair, err := ed25519.GenerateKeypair()
@@ -39,10 +37,11 @@ func TestVerifySignature(t *testing.T) {
 	require.NoError(t, err)
 
 	testCase := map[string]struct {
-		expect             error
+		expect             bool
 		signaturesToVerify []*crypto.SignatureInfo
 	}{
 		"success": {
+			expect: true,
 			signaturesToVerify: []*crypto.SignatureInfo{
 				0: {
 					PubKey:     edKeypair.Public().Encode(),
@@ -65,7 +64,7 @@ func TestVerifySignature(t *testing.T) {
 			},
 		},
 		"bad public key input": {
-			expect: errorMessage,
+			expect: false,
 			signaturesToVerify: []*crypto.SignatureInfo{
 				0: {
 					PubKey:     []byte{},
@@ -82,7 +81,7 @@ func TestVerifySignature(t *testing.T) {
 			},
 		},
 		"verification failed": {
-			expect: errorMessage,
+			expect: false,
 			signaturesToVerify: []*crypto.SignatureInfo{
 				0: {
 					PubKey:     edKeypair.Public().Encode(),
@@ -120,12 +119,7 @@ func TestVerifySignature(t *testing.T) {
 			signVerify.Start()
 
 			ok := signVerify.Finish()
-			if testCase.expect != nil {
-				require.False(t, ok)
-				return
-			}
-
-			require.True(t, ok)
+			require.Equal(t, testCase.expect, ok)
 		})
 	}
 
