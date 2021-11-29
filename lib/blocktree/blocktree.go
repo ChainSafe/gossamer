@@ -23,7 +23,7 @@ type BlockTree struct {
 	root   *node
 	leaves *leafMap
 	sync.RWMutex
-	runtime *sync.Map
+	runtime *sync.Map // map[Hash]runtime.Instance
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
@@ -31,7 +31,7 @@ func NewEmptyBlockTree() *BlockTree {
 	return &BlockTree{
 		root:    nil,
 		leaves:  newEmptyLeafMap(),
-		runtime: &sync.Map{}, // map[Hash]runtime.Instance
+		runtime: &sync.Map{},
 	}
 }
 
