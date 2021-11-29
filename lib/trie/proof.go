@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie/decode"
 )
 
 var (
@@ -40,7 +41,7 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 	}
 
 	for _, k := range keys {
-		nk := keyToNibbles(k)
+		nk := decode.KeyLEToNibbles(k)
 
 		recorder := new(recorder)
 		err := findAndRecord(proofTrie, nk, recorder)

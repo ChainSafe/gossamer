@@ -5,6 +5,9 @@ package trie
 
 import (
 	"bytes"
+
+	"github.com/ChainSafe/gossamer/lib/trie/branch"
+	"github.com/ChainSafe/gossamer/lib/trie/node"
 )
 
 // findAndRecord search for a desired key recording all the nodes in the path including the desired node
@@ -12,7 +15,7 @@ func findAndRecord(t *Trie, key []byte, recorder *recorder) error {
 	return find(t.root, key, recorder)
 }
 
-func find(parent Node, key []byte, recorder *recorder) error {
+func find(parent node.Node, key []byte, recorder *recorder) error {
 	enc, hash, err := parent.EncodeAndHash()
 	if err != nil {
 		return err
@@ -20,22 +23,22 @@ func find(parent Node, key []byte, recorder *recorder) error {
 
 	recorder.record(hash, enc)
 
-	b, ok := parent.(*Branch)
+	b, ok := parent.(*branch.Branch)
 	if !ok {
 		return nil
 	}
 
-	length := lenCommonPrefix(b.key, key)
+	length := lenCommonPrefix(b.Key, key)
 
 	// found the value at this node
-	if bytes.Equal(b.key, key) || len(key) == 0 {
+	if bytes.Equal(b.Key, key) || len(key) == 0 {
 		return nil
 	}
 
 	// did not find value
-	if bytes.Equal(b.key[:length], key) && len(key) < len(b.key) {
+	if bytes.Equal(b.Key[:length], key) && len(key) < len(b.Key) {
 		return nil
 	}
 
-	return find(b.children[key[length]], key[length+1:], recorder)
+	return find(b.Children[key[length]], key[length+1:], recorder)
 }
