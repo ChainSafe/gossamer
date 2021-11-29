@@ -565,7 +565,7 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 				PeerID: pid,
 			}
 		default:
-			logger.Infof("incoming connection accepted from peer %s", pid)
+			logger.Debugf("incoming connection accepted from peer %s", pid)
 			ps.resultMsgCh <- Message{
 				Status: Accept,
 				setID:  uint64(setID),
