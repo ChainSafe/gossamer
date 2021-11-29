@@ -153,6 +153,7 @@ func TestStartNode(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BABELead = true
 
 	err := InitNode(cfg)
 	require.NoError(t, err)

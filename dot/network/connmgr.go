@@ -128,7 +128,10 @@ func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Tracef(
 		"Host %s connected to peer %s", n.LocalPeer(), c.RemotePeer())
-	cm.connectHandler(c.RemotePeer())
+
+	if cm.connectHandler != nil {
+		cm.connectHandler(c.RemotePeer())
+	}
 }
 
 // Disconnected is called when a connection closed
@@ -136,7 +139,9 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	logger.Tracef("Host %s disconnected from peer %s", c.LocalPeer(), c.RemotePeer())
 
 	cm.Unprotect(c.RemotePeer(), "")
-	cm.disconnectHandler(c.RemotePeer())
+	if cm.disconnectHandler != nil {
+		cm.disconnectHandler(c.RemotePeer())
+	}
 }
 
 // OpenedStream is called when a stream is opened

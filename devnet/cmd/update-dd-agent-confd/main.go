@@ -14,7 +14,7 @@ import (
 )
 
 type options struct {
-	Namespace string   `short:"n" long:"namespace" description:"namespace that is prepended to all metrics" required:"true"`
+	Namespace string   `short:"n" long:"namespace" description:"namespace that is prepended to all metrics" required:"true"` //nolint:lll
 	Tags      []string `short:"t" long:"tags" description:"tags that are added to all metrics"`
 }
 
