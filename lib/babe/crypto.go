@@ -71,7 +71,7 @@ func checkPrimaryThreshold(randomness Randomness,
 
 	inoutUint, err := scale.NewUint128(res)
 	if err != nil {
-		return false, fmt.Errorf("failed to convert bytes to Uint128, %w", err)
+		return false, fmt.Errorf("failed to convert bytes to Uint128: %w", err)
 	}
 
 	logger.Tracef("checkPrimaryThreshold pub=%s randomness=0x%x slot=%d epoch=%d threshold=0x%x output=0x%x inout=0x%x",
