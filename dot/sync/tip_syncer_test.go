@@ -158,7 +158,7 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 
 	fin, _ := s.blockState.GetHighestFinalisedHeader()
 
-	// add pending blocks w/ only hash and number, lower than finalised should be removed
+	// add pending blocks w/ only hash and number, equal or lower than finalised should be removed
 	s.pendingBlocks.addHashAndNumber(common.Hash{0xa}, fin.Number)
 	s.pendingBlocks.addHashAndNumber(common.Hash{0xb}, big.NewInt(0).Add(fin.Number, big.NewInt(1)))
 
@@ -170,8 +170,10 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 			targetNumber: fin.Number,
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
+			pendingBlock: s.pendingBlocks.getBlock(common.Hash{0xb}),
 		},
 	}
+
 	w, err = s.handleTick()
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
@@ -198,6 +200,7 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 			targetNumber: header.Number,
 			direction:    network.Ascending,
 			requestData:  network.RequestedDataBody + network.RequestedDataJustification,
+			pendingBlock: s.pendingBlocks.getBlock(header.Hash()),
 		},
 	}
 	w, err := s.handleTick()
@@ -205,6 +208,7 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 	require.Equal(t, expected, w)
 	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
 }
+
 func TestTipSyncer_handleTick_case3(t *testing.T) {
 	s := newTestTipSyncer(t)
 
@@ -248,6 +252,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 			targetNumber: fin.Number,
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
+			pendingBlock: s.pendingBlocks.getBlock(header.Hash()),
 		},
 	}
 

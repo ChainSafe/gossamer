@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 func newTestDiscovery(t *testing.T, num int) []*discovery {

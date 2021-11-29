@@ -394,3 +394,18 @@ func (h *host) protocols() []string {
 func (h *host) closePeer(peer peer.ID) error {
 	return h.h.Network().ClosePeer(peer)
 }
+
+func (h *host) closeProtocolStream(pID protocol.ID, p peer.ID) {
+	connToPeer := h.h.Network().ConnsToPeer(p)
+	for _, c := range connToPeer {
+		for _, st := range c.GetStreams() {
+			if st.Protocol() != pID {
+				continue
+			}
+			err := st.Close()
+			if err != nil {
+				logger.Tracef("Failed to close stream for protocol %s: %s", pID, err)
+			}
+		}
+	}
+}
