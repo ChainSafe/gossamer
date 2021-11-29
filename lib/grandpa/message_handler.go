@@ -102,12 +102,12 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	err := telemetry.GetInstance().SendMessage(
 		telemetry.NewAfgReceivedCommitTM(
 			msg.Vote.Hash,
-			fmt.Sprintf("%d", msg.Vote.Number),
+			fmt.Sprint(msg.Vote.Number),
 			containsPrecommitsSignedBy,
 		),
 	)
 	if err != nil {
-		logger.Debugf("problem sending afg.received_commit telemetry message, err: %s", err)
+		logger.Debugf("problem sending afg.received_commit telemetry message: %s", err)
 	}
 
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
