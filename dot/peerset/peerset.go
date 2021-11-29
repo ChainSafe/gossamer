@@ -53,6 +53,33 @@ const (
 	disconnect
 )
 
+func (a ActionReceiver) String() string {
+	switch a {
+	case addReservedPeer:
+		return "addReservedPeer"
+	case removeReservedPeer:
+		return "removeReservedPeer"
+	case setReservedPeers:
+		return "setReservedPeers"
+	case setReservedOnly:
+		return "setReservedOnly"
+	case reportPeer:
+		return "reportPeer"
+	case addToPeerSet:
+		return "addToPeerSet"
+	case removeFromPeerSet:
+		return "removeFromPeerSet"
+	case incoming:
+		return "incoming"
+	case sortedPeers:
+		return "sortedPeers"
+	case disconnect:
+		return "disconnect"
+	default:
+		return "invalid action"
+	}
+}
+
 // action struct stores the action type and required parameters to perform action
 type action struct {
 	actionCall    ActionReceiver
@@ -67,8 +94,8 @@ func (a action) String() string {
 	for i := range a.peers {
 		peersStrings[i] = a.peers[i].String()
 	}
-	return fmt.Sprintf("{call=%d, set-id=%d, reputation change %v, peers=[%s]",
-		a.actionCall, a.setID, a.reputation, strings.Join(peersStrings, ", "))
+	return fmt.Sprintf("{call=%s, set-id=%d, reputation change %v, peers=[%s]",
+		a.actionCall.String(), a.setID, a.reputation, strings.Join(peersStrings, ", "))
 }
 
 // Status represents the enum value for Message
