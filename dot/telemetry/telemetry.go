@@ -18,7 +18,6 @@ import (
 const (
 	systemConnectedMsg           = "system.connected"
 	systemIntervalMsg            = "system.interval"
-	systemNetworkStateMsg        = "system.network_state"
 	blockImportMsg               = "block.import"
 	notifyFinalizedMsg           = "notify.finalized"
 	txPoolImportMsg              = "txpool.import"
@@ -173,12 +172,6 @@ func (h *Handler) msgToJSON(message Message) ([]byte, error) {
 // Message interface for Message functions
 type Message interface {
 	messageType() string
-}
-
-type peerInfo struct {
-	Roles      byte   `json:"roles"`
-	BestHash   string `json:"bestHash"`
-	BestNumber uint64 `json:"bestNumber"`
 }
 
 // NoopHandler struct no op handling (ignoring) telemetry messages
