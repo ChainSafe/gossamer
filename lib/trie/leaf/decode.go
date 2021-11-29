@@ -19,14 +19,7 @@ var (
 )
 
 // Decode reads and decodes from a reader with the encoding specified in lib/trie/encode/doc.go.
-func Decode(r io.Reader, header byte) (leaf *Leaf, err error) { // TODO return leaf
-	if header == 0 { // TODO remove this is taken care of by the caller
-		header, err = decode.ReadNextByte(r)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrReadHeaderByte, err)
-		}
-	}
-
+func Decode(r io.Reader, header byte) (leaf *Leaf, err error) {
 	nodeType := header >> 6
 	if nodeType != 1 {
 		return nil, fmt.Errorf("%w: %d", ErrNodeTypeIsNotALeaf, nodeType)
@@ -51,7 +44,7 @@ func Decode(r io.Reader, header byte) (leaf *Leaf, err error) { // TODO return l
 		leaf.Value = value
 	}
 
-	leaf.Dirty = true // TODO move this as soon as it gets modified
+	leaf.Dirty = true
 
 	return leaf, nil
 }

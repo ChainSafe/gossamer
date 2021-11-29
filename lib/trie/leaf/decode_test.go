@@ -42,45 +42,35 @@ func Test_Decode(t *testing.T) {
 		errWrapped error
 		errMessage string
 	}{
-		"no data with header 0": {
-			reader:     bytes.NewBuffer(nil),
-			errWrapped: ErrReadHeaderByte,
-			errMessage: "cannot read header byte: EOF",
-		},
 		"no data with header 1": {
 			reader:     bytes.NewBuffer(nil),
 			header:     1,
 			errWrapped: ErrNodeTypeIsNotALeaf,
 			errMessage: "node type is not a leaf: 0",
 		},
-		"first byte as 0 header 0": {
-			reader:     bytes.NewBuffer([]byte{0}),
-			errWrapped: ErrNodeTypeIsNotALeaf,
-			errMessage: "node type is not a leaf: 0",
-		},
 		"key decoding error": {
 			reader: bytes.NewBuffer([]byte{
-				65, // node type 1 and key length 1
 				// missing key data byte
 			}),
+			header:     65, // node type 1 and key length 1
 			errWrapped: decode.ErrReadKeyData,
 			errMessage: "cannot decode key: cannot read key data: EOF",
 		},
 		"value decoding error": {
 			reader: bytes.NewBuffer([]byte{
-				65, // node type 1 and key length 1
-				9,  // key data
+				9, // key data
 				// missing value data
 			}),
+			header:     65, // node type 1 and key length 1
 			errWrapped: ErrDecodeValue,
 			errMessage: "cannot decode value: EOF",
 		},
 		"zero value": {
 			reader: bytes.NewBuffer([]byte{
-				65, // node type 1 and key length 1
-				9,  // key data
-				0,  // missing value data
+				9, // key data
+				0, // missing value data
 			}),
+			header: 65, // node type 1 and key length 1
 			leaf: &Leaf{
 				Key:   []byte{9},
 				Dirty: true,
@@ -89,13 +79,11 @@ func Test_Decode(t *testing.T) {
 		"success": {
 			reader: bytes.NewBuffer(
 				concatByteSlices([][]byte{
-					{
-						65, // node type 1 and key length 1
-						9,  // key data
-					},
+					{9},                                // key data
 					scaleEncodeBytes(t, 1, 2, 3, 4, 5), // value data
 				}),
 			),
+			header: 65, // node type 1 and key length 1
 			leaf: &Leaf{
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3, 4, 5},

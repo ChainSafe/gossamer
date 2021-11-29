@@ -27,13 +27,6 @@ var (
 // children are known to be with an empty leaf. The children nodes hashes are then used to
 // find other values using the persistent database.
 func Decode(reader io.Reader, header byte) (branch *Branch, err error) {
-	if header == 0 { // TODO remove this is taken care of by the caller
-		header, err = decode.ReadNextByte(reader)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrReadHeaderByte, err)
-		}
-	}
-
 	nodeType := header >> 6
 	if nodeType != 2 && nodeType != 3 {
 		return nil, fmt.Errorf("%w: %d", ErrNodeTypeIsNotABranch, nodeType)
@@ -81,7 +74,7 @@ func Decode(reader io.Reader, header byte) (branch *Branch, err error) {
 		}
 	}
 
-	branch.Dirty = true // TODO move as soon as it gets modified?
+	branch.Dirty = true
 
 	return branch, nil
 }

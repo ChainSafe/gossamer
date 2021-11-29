@@ -86,15 +86,6 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 // The encoding has the following format:
 // NodeHeader | Extra partial key length | Partial Key | Value
 func (l *Leaf) Encode(buffer encode.Buffer) (err error) {
-	// if l == nil {
-	// 	// TODO remove if not needed
-	// 	_, err := buffer.Write([]byte{0})
-	// 	if err != nil {
-	// 		return fmt.Errorf("cannot write nil encoding to buffer: %w", err)
-	// 	}
-	// 	return nil
-	// }
-
 	l.encodingMu.RLock()
 	if !l.Dirty && l.Encoding != nil {
 		_, err = buffer.Write(l.Encoding)
@@ -145,10 +136,6 @@ func (l *Leaf) Encode(buffer encode.Buffer) (err error) {
 // and then SCALE encodes it. This is used to encode children
 // nodes of branches.
 func (l *Leaf) ScaleEncodeHash() (b []byte, err error) {
-	// if l == nil { // TODO remove
-	// 	panic("Should write 0 to buffer")
-	// }
-
 	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer pools.DigestBuffers.Put(buffer)

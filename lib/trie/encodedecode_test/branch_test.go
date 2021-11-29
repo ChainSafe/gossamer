@@ -60,7 +60,6 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Key: []byte{5},
 				Children: [16]node.Node{
 					&leaf.Leaf{
-						// TODO key and value are nil here?? Why?
 						Hash: []byte{0x41, 0x9, 0x4, 0xa},
 					},
 				},

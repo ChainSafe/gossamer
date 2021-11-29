@@ -5,10 +5,8 @@ package branch
 
 // ChildrenBitmap returns the 16 bit bitmap
 // of the children in the branch.
-func (b *Branch) ChildrenBitmap() uint16 {
-	var bitmap uint16
-	var i uint
-	for i = 0; i < 16; i++ {
+func (b *Branch) ChildrenBitmap() (bitmap uint16) {
+	for i := uint(0); i < 16; i++ {
 		if b.Children[i] != nil {
 			bitmap = bitmap | 1<<i
 		}
@@ -18,9 +16,8 @@ func (b *Branch) ChildrenBitmap() uint16 {
 
 // NumChildren returns the total number of children
 // in the branch.
-func (b *Branch) NumChildren() int {
-	var i, count int
-	for i = 0; i < 16; i++ {
+func (b *Branch) NumChildren() (count int) {
+	for i := 0; i < 16; i++ {
 		if b.Children[i] != nil {
 			count++
 		}
