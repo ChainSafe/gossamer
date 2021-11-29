@@ -42,6 +42,7 @@ func TestNoSlotNodeDoesntOccupySlot(t *testing.T) {
 	t.Parallel()
 
 	state := newTestPeerState(t, 1, 1)
+	state.nodes[peer1] = newNode(1)
 
 	// peer1 will not occupy any slot.
 	err := state.addNoSlotNode(0, peer1)
@@ -118,6 +119,7 @@ func TestDisconnectNoSlotDoesntPanic(t *testing.T) {
 
 	state := newTestPeerState(t, 1, 1)
 
+	state.nodes[peer1] = newNode(1)
 	err := state.addNoSlotNode(0, peer1)
 	require.NoError(t, err)
 
@@ -200,6 +202,7 @@ func TestSortedPeers(t *testing.T) {
 
 	const msgChanSize = 1
 	state := newTestPeerState(t, 2, 1)
+	state.nodes[peer1] = newNode(1)
 
 	err := state.addNoSlotNode(0, peer1)
 	require.NoError(t, err)
