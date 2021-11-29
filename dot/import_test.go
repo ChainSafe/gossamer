@@ -35,7 +35,8 @@ func TestImportState(t *testing.T) {
 	cfg.Init.Genesis = genFile.Name()
 
 	cfg.Global.BasePath = basepath
-	err = InitNode(cfg)
+	ni := nodeInterface{}
+	err = ni.initNode(cfg)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)

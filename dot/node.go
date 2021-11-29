@@ -41,12 +41,10 @@ type Node struct {
 	wg       sync.WaitGroup
 	started  chan struct{}
 }
-func init() {
-	fmt.Printf("IN node INIT\n")
-}
+
 // InitNode initialises a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
-func InitNode(cfg *Config) error {
+func (nodeInterface)initNode(cfg *Config) error {
 	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
 	logger.Infof(
 		"🕸️ initialising node with name %s, id %s, base path %s and genesis %s...",
@@ -108,6 +106,7 @@ func InitNode(cfg *Config) error {
 	return nil
 }
 
+// todo (ed) remove and use nodeInterface impl instead
 // NodeInitialized returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data has been loaded
 func NodeInitialized(basepath string) bool {
@@ -171,18 +170,102 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	return
 }
 
-func NewNodeB(cfg *Config, stopFunc func()) (*Node, error) {
 
+func NewNodeC(cfg *Config) (*Node, error) {
+	return newNodeC(cfg, nodeInterface{})
+}
+
+//func newNodeC(cfg *Config, checkInitalized func(string) bool) (*Node, error) {
+func newNodeC(cfg *Config, nn newNodeIface) (*Node, error) {
+	if !nn.nodeInitialised(cfg.Global.BasePath) {
+		err := nn.initNode(cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ks, err := nn.initKeystore(cfg)
+	if err != nil {
+		logger.Errorf("failed to initialise keystore: %s", err)
+		return nil, err
+	}
+
+	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
+
+	logger.Infof(
+		"🕸️ initialising node services with global configuration name %s, id %s and base path %s...",
+		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath)
+
+	stateSrvc, err := nn.createStateService(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create state service: %s", err)
+	}
+
+	fmt.Printf("ks %v, stateSrvc %v\n", ks, stateSrvc)
+
+	return nil, nil
+}
+
+type newNodeIface interface {
+	nodeInitialised(string) bool
+	initNode(config *Config) error
+	initKeystore(config *Config) (*keystore.GlobalKeystore, error)
+	createStateService(config *Config) (*state.Service, error)
+}
+
+type nodeInterface struct {}
+
+// NodeInitialised returns true if, within the configured data directory for the
+// node, the state database has been created and the genesis data has been loaded
+func (nodeInterface)nodeInitialised(basepath string) bool {
+	// check if key registry exists
+	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
+
+	_, err := os.Stat(registry)
+	if os.IsNotExist(err) {
+		logger.Debug("node has not been initialised from base path " + basepath +
+			": failed to locate KEYREGISTRY file in data directory")
+
+		return false
+	}
+
+	// initialise database using data directory
+	db, err := utils.SetupDatabase(basepath, false)
+	if err != nil {
+		logger.Debugf("failed to create database from base path %s: %s", basepath, err)
+		return false
+	}
+
+	defer func() {
+		// close database
+		err = db.Close()
+		if err != nil {
+			logger.Errorf("failed to close database: %s", err)
+		}
+	}()
+
+	// load genesis data from initialised node database
+	_, err = state.NewBaseState(db).LoadGenesisData()
+	if err != nil {
+		logger.Errorf("node has not been initialised from base path %s: %s", basepath, err)
+		return false
+	}
+
+	return true
+}
+
+func NewNodeB(cfg *Config, stopFunc func()) (*Node, error) {
+	nodeI := nodeInterface{}
 	if !NodeInitialized(cfg.Global.BasePath) {
 		// initialise node (initialise state database and load genesis data)
-		err := InitNode(cfg)
+		err := nodeI.initNode(cfg)
 		if err != nil {
 			logger.Errorf("failed to initialise node: %s", err)
 			return nil, err
 		}
 	}
 
-	ks, err := initKeystore(cfg)
+	ks, err := nodeI.initKeystore(cfg)
 	if err != nil {
 		logger.Errorf("failed to initialise keystore: %s", err)
 		return nil, err
@@ -199,7 +282,7 @@ func NewNodeB(cfg *Config, stopFunc func()) (*Node, error) {
 		networkSrvc *network.Service
 	)
 
-	stateSrvc, err := createStateService(cfg)
+	stateSrvc, err := nodeI.createStateService(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
@@ -353,7 +436,7 @@ func NewNodeB(cfg *Config, stopFunc func()) (*Node, error) {
 	return node, nil
 }
 
-func initKeystore(cfg *Config) (*keystore.GlobalKeystore, error){
+func (nodeInterface)initKeystore(cfg *Config) (*keystore.GlobalKeystore, error){
 	ks := keystore.NewGlobalKeystore()
 	// load built-in test keys if specified by `cfg.Account.Key`
 	err := keystore.LoadKeystore(cfg.Account.Key, ks.Acco)
@@ -384,6 +467,7 @@ func initKeystore(cfg *Config) (*keystore.GlobalKeystore, error){
 
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
+	nodeI := nodeInterface{}
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
@@ -407,7 +491,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		networkSrvc *network.Service
 	)
 
-	stateSrvc, err := createStateService(cfg)
+	stateSrvc, err := nodeI.createStateService(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}

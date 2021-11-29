@@ -41,7 +41,8 @@ func TestInitNode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := InitNode(tt.args.cfg)
+			ni := nodeInterface{}
+			err := ni.initNode(tt.args.cfg)
 
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
@@ -170,6 +171,77 @@ func TestNewNodeB(t *testing.T) {
 	}
 }
 
+func TestNewNodeC(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+	defer utils.RemoveTestDir(t)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	type args struct {
+		cfg      *Config
+		stopFunc func()
+	}
+	tests := []struct {
+		name string
+		args args
+		want *Node
+		err  error
+	}{
+		{
+			name: "missing account key",
+			args: args{
+				cfg: &Config{
+					Global: GlobalConfig{BasePath: cfg.Global.BasePath},
+					Init:   InitConfig{Genesis: genFile.Name()},
+					Core: CoreConfig{Roles: types.AuthorityRole },
+				},
+			},
+			err:  errors.New("no keys provided for authority node"),
+		},
+		// TODO this is commented out because in holds a lock on badger db, causing next test to foil
+		//{
+		//	name: "missing wasm config",
+		//	args: args{
+		//		cfg: &Config{
+		//			Global: GlobalConfig{BasePath: cfg.Global.BasePath},
+		//			Init:   InitConfig{Genesis: genFile.Name()},
+		//			Account: AccountConfig{Key: "alice"},
+		//		},
+		//	},
+		//	err:  errors.New("failed to get runtime instance"),
+		//},
+		{
+			name: "minimal config",
+			args: args{
+				cfg: &Config{
+					Global:  GlobalConfig{BasePath: cfg.Global.BasePath,},
+					Init:    InitConfig{Genesis: genFile.Name()},
+					Account: AccountConfig{Key: "alice"},
+					Core:    CoreConfig{WasmInterpreter: wasmer.Name,},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			//got, err := NewNodeB(tt.args.cfg, tt.args.stopFunc)
+			got, err := NewNodeC(tt.args.cfg)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+				utils.RemoveTestDir(t)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			if tt.want != nil {
+				assert.Equal(t, tt.want.Name, got.Name)
+			}
+		})
+	}
+}
+
 func TestNewNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -181,7 +253,8 @@ func TestNewNode(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 
-	err := InitNode(cfg)
+	ni := nodeInterface{}
+	err := ni.initNode(cfg)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -247,7 +320,8 @@ func TestNodeInitialized(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 
-	err := InitNode(cfg)
+	ni := nodeInterface{}
+	err := ni.initNode(cfg)
 	require.NoError(t, err)
 
 	type args struct {

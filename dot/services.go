@@ -39,7 +39,7 @@ func newInMemoryDB(path string) (chaindb.Database, error) {
 // State Service
 
 // createStateService creates the state service and initialise state database
-func createStateService(cfg *Config) (*state.Service, error) {
+func (nodeInterface)createStateService(cfg *Config) (*state.Service, error) {
 	logger.Debug("creating state service...")
 
 	config := state.Config{
