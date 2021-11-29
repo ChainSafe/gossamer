@@ -12,13 +12,13 @@ import (
 	"time"
 	"unsafe"
 
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCreateDecoder_BlockAnnounce(t *testing.T) {
@@ -302,23 +302,17 @@ func Test_HandshakeTimeout(t *testing.T) {
 }
 
 func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
+	const batchSize = 5
 	basePath := utils.NewTestBasePath(t, "nodeA")
-	mockhandler := &MockTransactionHandler{}
-	mockhandler.On("HandleTransactionMessage",
-		mock.AnythingOfType("peer.ID"),
-		mock.AnythingOfType("*network.TransactionMessage")).
-		Return(true, nil)
-	mockhandler.On("TransactionsCount").Return(0)
 	config := &Config{
-		BasePath:           basePath,
-		Port:               7001,
-		NoBootstrap:        true,
-		NoMDNS:             true,
-		TransactionHandler: mockhandler,
+		BasePath:    basePath,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		batchSize:   batchSize,
 	}
 
-	s := createTestService(t, config)
-	s.batchSize = 5
+	srvc1 := createTestService(t, config)
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
@@ -327,42 +321,41 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 		NoMDNS:      true,
 	}
 
-	b := createTestService(t, configB)
+	srvc2 := createTestService(t, configB)
 
-	txnBatch := make(chan *BatchMessage, s.batchSize)
-	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
-
-	// don't set handshake data ie. this stream has just been opened
-	testPeerID := b.host.id()
+	txnBatch := make(chan *BatchMessage, batchSize)
+	txnBatchHandler := srvc1.createBatchMessageHandler(txnBatch)
 
 	// connect nodes
-	addrInfoB := b.host.addrInfo()
-	err := s.host.connect(addrInfoB)
+	addrInfoB := srvc2.host.addrInfo()
+	err := srvc1.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = s.host.connect(addrInfoB)
+		err = srvc1.host.connect(addrInfoB)
+		require.NoError(t, err)
 	}
 	require.NoError(t, err)
 
-	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+transactionsID)
+	txnProtocolID := srvc1.host.protocolID + transactionsID
+	stream, err := srvc1.host.h.NewStream(srvc1.ctx, srvc2.host.id(), txnProtocolID)
 	require.NoError(t, err)
-	require.Len(t, txnBatch, 0)
 
 	// create info and handler
 	info := &notificationsProtocol{
-		protocolID:            s.host.protocolID + transactionsID,
-		getHandshake:          s.getTransactionHandshake,
+		protocolID:            txnProtocolID,
+		getHandshake:          srvc1.getTransactionHandshake,
 		handshakeValidator:    validateTransactionHandshake,
 		inboundHandshakeData:  new(sync.Map),
 		outboundHandshakeData: new(sync.Map),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.handleTransactionMessage, txnBatchHandler)
+	handler := srvc1.createNotificationsMessageHandler(info, srvc1.handleTransactionMessage, txnBatchHandler)
 
 	// set handshake data to received
-	info.inboundHandshakeData.Store(testPeerID, &handshakeData{
+	info.inboundHandshakeData.Store(srvc2.host.id(), handshakeData{
 		received:  true,
 		validated: true,
 	})
+
 	msg := &TransactionMessage{
 		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
 	}
@@ -396,11 +389,21 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
-	require.Len(t, txnBatch, 0)
+	require.Len(t, txnBatch, 5)
+
+	// reached batch size limit, below transaction will not be included in batch.
+	msg = &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+	err = handler(stream, msg)
+	require.NoError(t, err)
+	require.Len(t, txnBatch, 5)
 
 	msg = &TransactionMessage{
 		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
 	}
+	// wait for transaction batch channel to process.
+	time.Sleep(1300 * time.Millisecond)
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 1)

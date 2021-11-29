@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/chaindb"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -251,6 +252,11 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
 		cfg.Network.NoBootstrap, cfg.Network.NoMDNS)
 
+	slotDuration, err := stateSrvc.Epoch.GetSlotDuration()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get slot duration: %w", err)
+	}
+
 	// network service configuation
 	networkConfig := network.Config{
 		LogLvl:            cfg.Log.NetworkLvl,
@@ -267,6 +273,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		PublishMetrics:    cfg.Global.PublishMetrics,
 		PersistentPeers:   cfg.Network.PersistentPeers,
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
+		SlotDuration:      slotDuration,
 		PublicIP:          cfg.Network.PublicIP,
 	}
 
