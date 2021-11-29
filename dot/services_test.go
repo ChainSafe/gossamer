@@ -52,15 +52,15 @@ func Test_createBABEService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Babe.Insert(kr.Alice())
 
-	ns, err := createRuntimeStorage(stateSrvc)
+	ns, err := ni.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
-	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
-	require.NoError(t, err)
-
-	dh, err := createDigestHandler(stateSrvc)
+	err = ni.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	dh, err := ni.createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
+	coreSrvc, err := ni.createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
 	type args struct {
@@ -98,7 +98,7 @@ func Test_createBABEService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createBABEService(tt.args.cfg, tt.args.st, tt.args.ks, tt.args.cs)
+			got, err := ni.createBABEService(tt.args.cfg, tt.args.st, tt.args.ks, tt.args.cs)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -152,7 +152,7 @@ func Test_createBlockVerifier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createBlockVerifier(tt.args.st)
+			got, err := ni.createBlockVerifier(tt.args.st)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -225,7 +225,7 @@ func Test_createCoreService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createCoreService(tt.args.cfg, tt.args.ks, tt.args.st, tt.args.net, tt.args.dh)
+			got, err := ni.createCoreService(tt.args.cfg, tt.args.ks, tt.args.st, tt.args.net, tt.args.dh)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -273,7 +273,7 @@ func Test_createDigestHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createDigestHandler(tt.args.st)
+			got, err := ni.createDigestHandler(tt.args.st)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -311,13 +311,13 @@ func Test_createGRANDPAService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
 
-	ns, err := createRuntimeStorage(stateSrvc)
+	ns, err := ni.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
 
-	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
+	err = ni.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := ni.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
 	type args struct {
@@ -356,7 +356,7 @@ func Test_createGRANDPAService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createGRANDPAService(tt.args.cfg, tt.args.st, tt.args.dh, tt.args.ks, tt.args.net)
+			got, err := ni.createGRANDPAService(tt.args.cfg, tt.args.st, tt.args.dh, tt.args.ks, tt.args.net)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -409,7 +409,7 @@ func Test_createNetworkService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createNetworkService(tt.args.cfg, tt.args.stateSrvc)
+			got, err := ni.createNetworkService(tt.args.cfg, tt.args.stateSrvc)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -471,7 +471,7 @@ func Test_createRPCService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createRPCService(tt.args.cfg, tt.args.ns, tt.args.stateSrvc, tt.args.coreSrvc, tt.args.networkSrvc, tt.args.bp, tt.args.sysSrvc, tt.args.finSrvc)
+			got, err := ni.createRPCService(tt.args.cfg, tt.args.ns, tt.args.stateSrvc, tt.args.coreSrvc, tt.args.networkSrvc, tt.args.bp, tt.args.sysSrvc, tt.args.finSrvc)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -601,7 +601,7 @@ func Test_createRuntimeStorage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createRuntimeStorage(tt.args.st)
+			got, err := ni.createRuntimeStorage(tt.args.st)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -707,7 +707,7 @@ func Test_createSystemService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createSystemService(tt.args.cfg, tt.args.stateSrvc)
+			got, err := ni.createSystemService(tt.args.cfg, tt.args.stateSrvc)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -807,7 +807,7 @@ func Test_newSyncService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newSyncService(tt.args.cfg, tt.args.st, tt.args.fg, tt.args.verifier, tt.args.cs, tt.args.net)
+			got, err := ni.newSyncService(tt.args.cfg, tt.args.st, tt.args.fg, tt.args.verifier, tt.args.cs, tt.args.net)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
