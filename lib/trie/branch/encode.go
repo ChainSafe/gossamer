@@ -21,10 +21,6 @@ import (
 // and then SCALE encodes it. This is used to encode children
 // nodes of branches.
 func (b *Branch) ScaleEncodeHash() (encoding []byte, err error) {
-	// if b == nil { // TODO remove
-	// 	panic("Should write 0 to buffer")
-	// }
-
 	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer pools.DigestBuffers.Put(buffer)
