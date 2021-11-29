@@ -53,7 +53,7 @@ func TestAddReservedPeers(t *testing.T) {
 	handler.AddReservedPeer(0, reservedPeer)
 	handler.AddReservedPeer(0, reservedPeer2)
 
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 2000)
 
 	expectedMsgs := []Message{
 		{Status: Connect, setID: 0, PeerID: bootNode},
