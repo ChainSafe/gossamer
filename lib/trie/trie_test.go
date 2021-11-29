@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie/decode"
+	"github.com/ChainSafe/gossamer/lib/trie/leaf"
 )
 
 type commonPrefixTest struct {
@@ -68,7 +70,7 @@ func TestNewEmptyTrie(t *testing.T) {
 }
 
 func TestNewTrie(t *testing.T) {
-	trie := NewTrie(&Leaf{key: []byte{0}, value: []byte{17}})
+	trie := NewTrie(&leaf.Leaf{Key: []byte{0}, Value: []byte{17}})
 	if trie == nil {
 		t.Error("did not initialise trie")
 	}
@@ -160,10 +162,10 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 				leaf := trie.tryGet(test.key)
 				if leaf == nil {
 					t.Errorf("Fail to get key %x: nil leaf", test.key)
-				} else if !bytes.Equal(leaf.value, test.value) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, leaf.value)
-				} else if !bytes.Equal(leaf.key, test.pk) {
-					t.Errorf("Fail to get correct partial key %x with key %x: got %x", test.pk, test.key, leaf.key)
+				} else if !bytes.Equal(leaf.Value, test.value) {
+					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, leaf.Value)
+				} else if !bytes.Equal(leaf.Key, test.pk) {
+					t.Errorf("Fail to get correct partial key %x with key %x: got %x", test.pk, test.key, leaf.Key)
 				}
 			}
 		})
@@ -873,7 +875,7 @@ func TestClearPrefix(t *testing.T) {
 		require.Equal(t, dcTrieHash, ssTrieHash)
 
 		ssTrie.ClearPrefix(prefix)
-		prefixNibbles := keyToNibbles(prefix)
+		prefixNibbles := decode.KeyLEToNibbles(prefix)
 		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
 		}
@@ -881,7 +883,7 @@ func TestClearPrefix(t *testing.T) {
 		for _, test := range tests {
 			res := ssTrie.Get(test.key)
 
-			keyNibbles := keyToNibbles(test.key)
+			keyNibbles := decode.KeyLEToNibbles(test.key)
 			length := lenCommonPrefix(keyNibbles, prefixNibbles)
 			if length == len(prefixNibbles) {
 				require.Nil(t, res)
@@ -942,7 +944,11 @@ func TestClearPrefix_Small(t *testing.T) {
 	}
 
 	ssTrie.ClearPrefix([]byte("noo"))
-	require.Equal(t, ssTrie.root, &Leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
+	require.Equal(t, ssTrie.root, &leaf.Leaf{
+		Key:   decode.KeyLEToNibbles([]byte("other")),
+		Value: []byte("other"),
+		Dirty: true,
+	})
 
 	// Get the updated root hash of all tries.
 	tHash, err = trie.Hash()
@@ -1310,7 +1316,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 	}
 
 	testFn := func(testCase []Test, prefix []byte) {
-		prefixNibbles := keyToNibbles(prefix)
+		prefixNibbles := decode.KeyLEToNibbles(prefix)
 		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
 		}
@@ -1329,7 +1335,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 			for _, test := range testCase {
 				val := trieClearPrefix.Get(test.key)
 
-				keyNibbles := keyToNibbles(test.key)
+				keyNibbles := decode.KeyLEToNibbles(test.key)
 				length := lenCommonPrefix(keyNibbles, prefixNibbles)
 
 				if length == len(prefixNibbles) {
@@ -1418,7 +1424,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 
 	for _, testCase := range cases {
 		for _, prefix := range prefixes {
-			prefixNibbles := keyToNibbles(prefix)
+			prefixNibbles := decode.KeyLEToNibbles(prefix)
 			if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 				prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
 			}
@@ -1458,7 +1464,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				for _, test := range testCase {
 					val := ssTrie.Get(test.key)
 
-					keyNibbles := keyToNibbles(test.key)
+					keyNibbles := decode.KeyLEToNibbles(test.key)
 					length := lenCommonPrefix(keyNibbles, prefixNibbles)
 
 					if length == len(prefixNibbles) {
