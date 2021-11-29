@@ -36,6 +36,7 @@ type LogConfig struct {
 	RuntimeLvl        string `toml:"runtime,omitempty"`
 	BlockProducerLvl  string `toml:"babe,omitempty"`
 	FinalityGadgetLvl string `toml:"grandpa,omitempty"`
+	DigestLvl         string `toml:"digest,omitempty"`
 }
 
 // InitConfig is the configuration for the node initialization
