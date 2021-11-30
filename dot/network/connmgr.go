@@ -5,8 +5,6 @@ package network
 
 import (
 	"context"
-	"crypto/rand"
-	"math/big"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -130,39 +128,9 @@ func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Tracef(
 		"Host %s connected to peer %s", n.LocalPeer(), c.RemotePeer())
+
 	if cm.connectHandler != nil {
 		cm.connectHandler(c.RemotePeer())
-	}
-
-	cm.Lock()
-	defer cm.Unlock()
-
-	over := len(n.Peers()) - cm.max
-	if over <= 0 {
-		return
-	}
-
-	// TODO: peer scoring doesn't seem to prevent us from going over the max.
-	// if over the max peer count, disconnect from (total_peers - maximum) peers
-	// (#2039)
-	for i := 0; i < over; i++ {
-		unprotPeers := cm.unprotectedPeers(n.Peers())
-		if len(unprotPeers) == 0 {
-			return
-		}
-
-		i, err := rand.Int(rand.Reader, big.NewInt(int64(len(unprotPeers))))
-		if err != nil {
-			logger.Errorf("error generating random number: %s", err)
-			return
-		}
-
-		up := unprotPeers[i.Int64()]
-		logger.Tracef("Over max peer count, disconnecting from random unprotected peer %s", up)
-		err = n.ClosePeer(up)
-		if err != nil {
-			logger.Tracef("failed to close connection to peer %s", up)
-		}
 	}
 }
 
