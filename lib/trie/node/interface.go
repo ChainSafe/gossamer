@@ -12,7 +12,6 @@ type Node interface {
 	Encode(buffer encode.Buffer) (err error) // TODO change to io.Writer
 	EncodeAndHash() ([]byte, []byte, error)
 	ScaleEncodeHash() (b []byte, err error)
-	// Decode(r io.Reader, h byte) error
 	IsDirty() bool
 	SetDirty(dirty bool)
 	SetKey(key []byte)
