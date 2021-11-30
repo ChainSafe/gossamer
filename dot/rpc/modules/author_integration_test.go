@@ -33,16 +33,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const TransferTest = "0xb9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0112acc21fe3445996c2c5810c3321dd1324b7ba5eb327fb1b148c289fc7f77e44045ebb72189222d126db2bd45b78747e32a33f464df289487c6eb3c2ba022f87d6000400000110736f6d65"
-
-// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
-const TestExtrinsic = "0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"
-
-var testExt = common.MustHexToBytes(TestExtrinsic)
-
-// invalid transaction (above tx, with last byte changed)
-var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 143} //nolint:lll
-
 func TestMain(m *testing.M) {
 	_, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
@@ -74,7 +64,7 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 	require.Equal(t, PendingExtrinsicsResponse([]string{}), *res)
 
 	vtx := &transaction.ValidTransaction{
-		Extrinsic: types.NewExtrinsic(testExt),
+		Extrinsic: types.NewExtrinsic([]byte{0x01, 0x02}),
 		Validity:  new(transaction.Validity),
 	}
 
@@ -391,6 +381,108 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, tt.hasKey, res)
+		})
+	}
+}
+
+func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
+	tmpdir := t.TempDir()
+	intCtrl := setupStateAndRuntime(t, tmpdir)
+	intCtrl.stateSrv.Transaction = state.NewTransactionState()
+	intCtrl.keystore = keystore.NewGlobalKeystore()
+
+	auth := setupAuhtorModule2Test(t, intCtrl)
+
+	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
+	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
+
+	const sr25519Seed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
+	const sr25519Pubk = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+
+	insertSessionKeys := []struct {
+		ktype      []string
+		seed, pubk string
+	}{
+		{
+			ktype: []string{"gran"},
+			seed:  granSeed,
+			pubk:  granPubK,
+		},
+		{
+			ktype: []string{"babe", "imon", "audi"},
+			seed:  sr25519Seed,
+			pubk:  sr25519Pubk,
+		},
+	}
+
+	for _, toInsert := range insertSessionKeys {
+		for _, keytype := range toInsert.ktype {
+			err := auth.InsertKey(nil, &KeyInsertRequest{
+				Type:      keytype,
+				Seed:      toInsert.seed,
+				PublicKey: toInsert.pubk,
+			}, nil)
+			require.NoError(t, err)
+		}
+	}
+
+	testcases := map[string]struct {
+		pubSessionKeys string
+		expect         bool
+		waitErr        error
+	}{
+		"public keys are in the right order, should return true": {
+			pubSessionKeys: "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // gran
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // babe
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
+			expect: true,
+		},
+		"uknown public keys in the right order, should return false": {
+			pubSessionKeys: "0x740550da19ef14023ea3e903545a6700160a55be2e4b733b577c91b053e38b8d" + // gran
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // babe
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // imon
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845", // audi
+			expect: false,
+		},
+		"public keys are not in the right order, should return false": {
+			pubSessionKeys: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
+				"6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // babe
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
+			expect: false,
+		},
+		"incomplete keys": {
+			pubSessionKeys: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
+				"6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c", // babe
+			expect: false,
+		},
+		"empty public keys": {
+			pubSessionKeys: "", // babe
+			expect:         false,
+			waitErr:        errors.New("invalid string"),
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+			var req HasSessionKeyRequest
+			req.PublicKeys = tt.pubSessionKeys
+
+			var res HasSessionKeyResponse
+
+			err := auth.HasSessionKeys(nil, &req, &res)
+
+			if tt.waitErr != nil {
+				require.EqualError(t, tt.waitErr, err.Error())
+				require.False(t, bool(res))
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expect, bool(res))
 		})
 	}
 }
