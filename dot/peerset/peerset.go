@@ -304,6 +304,10 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 			return nil
 		}
 
+		// ignore banned peers for now
+		logger.Criticalf("peer was banned!!! %s", pid)
+		break
+
 		setLen := ps.peerState.getSetLength()
 		for i := 0; i < setLen; i++ {
 			if ps.peerState.peerStatus(i, pid) == connectedPeer {
@@ -592,6 +596,7 @@ const (
 // Must only be called after the peerSet has either generated a Connect message with this
 // peer, or accepted an incoming connection with this peer.
 func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) error {
+	logger.Infof("disconnect from peer, reason=%s peers=%v", reason, peers)
 	err := ps.updateTime()
 	if err != nil {
 		return err
