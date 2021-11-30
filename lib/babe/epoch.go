@@ -94,7 +94,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		for i := startSlot; i < startSlot+b.epochLength; i++ {
 			_, err := b.runLottery(i, epoch)
 			if err != nil {
-				if errors.Is(err, errPrimarySlotThreshold) {
+				if errors.Is(err, errOverPrimarySlotThreshold) {
 					continue
 				}
 				return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
@@ -120,7 +120,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 		proof, err := b.runLottery(i, epoch)
 		if err != nil {
-			if errors.Is(err, errPrimarySlotThreshold) {
+			if errors.Is(err, errOverPrimarySlotThreshold) {
 				continue
 			}
 			return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
@@ -138,7 +138,7 @@ func (b *Service) getFirstSlot(epoch uint64) (uint64, error) {
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
 		_, err := b.runLottery(i, epoch)
 		if err != nil {
-			if errors.Is(err, errPrimarySlotThreshold) {
+			if errors.Is(err, errOverPrimarySlotThreshold) {
 				continue
 			}
 			return 0, fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)

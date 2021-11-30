@@ -52,7 +52,7 @@ func claimPrimarySlot(randomness Randomness,
 	}
 	if !ok {
 		return nil, fmt.Errorf("%w: for slot %d, epoch %d and threshold %s",
-			errPrimarySlotThreshold, slot, epoch, threshold)
+			errOverPrimarySlotThreshold, slot, epoch, threshold)
 	}
 
 	return &VrfOutputAndProof{

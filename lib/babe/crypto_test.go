@@ -24,7 +24,7 @@ func TestRunLottery_False(t *testing.T) {
 	babeService.epochData.threshold = minThreshold
 
 	outAndProof, err := babeService.runLottery(0, testEpochIndex)
-	require.ErrorIs(t, err, errPrimarySlotThreshold)
+	require.ErrorIs(t, err, errOverPrimarySlotThreshold)
 	require.Nil(t, outAndProof)
 }
 
