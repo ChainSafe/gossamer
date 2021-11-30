@@ -224,7 +224,7 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 		return "", fmt.Errorf("unknown request number type: %T", x)
 	}
 
-	h, err := cm.blockAPI.GetBlockHash(num)
+	h, err := cm.blockAPI.GetHashByNumber(num)
 	if err != nil {
 		return "", err
 	}
