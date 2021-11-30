@@ -16,11 +16,14 @@ import (
 
 // telemetry message types
 const (
+	notifyFinalizedMsg           = "notify.finalized"
+	blockImportMsg               = "block.import"
+	systemNetworkStateMsg        = "system.network_state"
 	systemConnectedMsg           = "system.connected"
 	systemIntervalMsg            = "system.interval"
-	systemNetworkStateMsg        = "system.network_state"
-	blockImportMsg               = "block.import"
-	notifyFinalizedMsg           = "notify.finalized"
+	afgReceivedPrecommitMsg      = "afg.received_precommit"
+	afgReceivedPrevoteMsg        = "afg.received_prevote"
+	afgReceivedCommitMsg         = "afg.received_commit"
 	txPoolImportMsg              = "txpool.import"
 	preparedBlockForProposingMsg = "prepared_block_for_proposing"
 )
