@@ -70,17 +70,13 @@ func Test_Recorder_Record(t *testing.T) {
 	}
 }
 
-func Test_Recorder_Next(t *testing.T) {
+func Test_Recorder_GetNodes(t *testing.T) {
 	testCases := map[string]struct {
-		recorder         *Recorder
-		node             Node
-		err              error
-		expectedRecorder *Recorder
+		recorder *Recorder
+		nodes    []Node
 	}{
 		"no node": {
-			recorder:         &Recorder{},
-			err:              ErrNoNextNode,
-			expectedRecorder: &Recorder{},
+			recorder: &Recorder{},
 		},
 		"get single node from recorder": {
 			recorder: &Recorder{
@@ -88,10 +84,7 @@ func Test_Recorder_Next(t *testing.T) {
 					{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 				},
 			},
-			node: Node{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
-			expectedRecorder: &Recorder{
-				nodes: []Node{},
-			},
+			nodes: []Node{{Hash: []byte{1, 2}, RawData: []byte{3, 4}}},
 		},
 		"get node from multiple nodes in recorder": {
 			recorder: &Recorder{
@@ -101,12 +94,10 @@ func Test_Recorder_Next(t *testing.T) {
 					{Hash: []byte{9, 6}, RawData: []byte{7, 8}},
 				},
 			},
-			node: Node{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
-			expectedRecorder: &Recorder{
-				nodes: []Node{
-					{Hash: []byte{5, 6}, RawData: []byte{7, 8}},
-					{Hash: []byte{9, 6}, RawData: []byte{7, 8}},
-				},
+			nodes: []Node{
+				{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
+				{Hash: []byte{5, 6}, RawData: []byte{7, 8}},
+				{Hash: []byte{9, 6}, RawData: []byte{7, 8}},
 			},
 		},
 	}
@@ -116,14 +107,9 @@ func Test_Recorder_Next(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			node, err := testCase.recorder.Next()
+			nodes := testCase.recorder.GetNodes()
 
-			assert.ErrorIs(t, err, testCase.err)
-			if testCase.err != nil {
-				assert.EqualError(t, err, testCase.err.Error())
-			}
-			assert.Equal(t, testCase.node, node)
-			assert.Equal(t, testCase.expectedRecorder, testCase.recorder)
+			assert.Equal(t, testCase.nodes, nodes)
 		})
 	}
 }
