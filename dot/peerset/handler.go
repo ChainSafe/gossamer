@@ -90,7 +90,7 @@ func (h *Handler) Incoming(setID int, peers ...peer.ID) {
 }
 
 // Messages return result message chan.
-func (h *Handler) Messages() chan interface{} {
+func (h *Handler) Messages() chan Message {
 	return h.peerSet.resultMsgCh
 }
 
