@@ -162,7 +162,7 @@ func (t *Trie) load(db chaindb.Database, curr node.Node) error {
 			hash := child.GetHash()
 			enc, err := db.Get(hash)
 			if err != nil {
-				return fmt.Errorf("failed to find node key=%x index=%d: %w", child.(*leaf.Leaf).Hash, i, err)
+				return fmt.Errorf("failed to find node key=%x index=%d: %w", hash, i, err)
 			}
 
 			child, err = decodeNode(bytes.NewBuffer(enc))
