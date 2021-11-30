@@ -66,7 +66,7 @@ type workHandler interface {
 
 	// handleWorkerResult handles the result of a worker, which may be
 	// nil or error. It optionally returns a new worker to be dispatched.
-	handleWorkerResult(w *worker) (workerToRetry *worker, retry bool, err error)
+	handleWorkerResult(w *worker) (workerToRetry *worker, err error)
 
 	// hasCurrentWorker is called before a worker is to be dispatched to
 	// check whether it is a duplicate. this function returns whether there is
@@ -431,11 +431,11 @@ func (cs *chainSync) sync() {
 			default:
 			}
 
-			worker, retry, err := cs.handler.handleWorkerResult(res)
+			worker, err := cs.handler.handleWorkerResult(res)
 			if err != nil {
 				logger.Errorf("failed to handle worker result: %s", err)
 				continue
-			} else if !retry {
+			} else if worker == nil {
 				continue
 			}
 

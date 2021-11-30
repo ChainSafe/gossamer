@@ -83,10 +83,9 @@ func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
 
 	// if the worker error is nil, then this function should do nothing
 	res := &worker{}
-	w, retry, err := s.handleWorkerResult(res)
+	w, err := s.handleWorkerResult(res)
 	require.NoError(t, err)
 	require.Nil(t, w)
-	require.False(t, retry)
 
 	// if there was a worker error, this should return a worker with
 	// startNumber = bestBlockNumber + 1 and the same target as previously
@@ -104,10 +103,9 @@ func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
 		err:          &workerError{},
 	}
 
-	w, retry, err = s.handleWorkerResult(res)
+	w, err = s.handleWorkerResult(res)
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
-	require.True(t, retry)
 }
 
 func TestBootstrapSyncer_handleWorkerResult_errUnknownParent(t *testing.T) {
@@ -131,8 +129,7 @@ func TestBootstrapSyncer_handleWorkerResult_errUnknownParent(t *testing.T) {
 		},
 	}
 
-	w, retry, err := s.handleWorkerResult(res)
+	w, err := s.handleWorkerResult(res)
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
-	require.True(t, retry)
 }

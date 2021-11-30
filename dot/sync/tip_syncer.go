@@ -47,27 +47,28 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}, nil
 }
 
+//nolint:nilnil
 func (s *tipSyncer) handleWorkerResult(res *worker) (
-	workerToRetry *worker, retry bool, err error) {
+	workerToRetry *worker, err error) {
 	if res.err == nil {
-		return nil, false, nil
+		return nil, nil
 	}
 
 	if errors.Is(res.err.err, errUnknownParent) {
 		// handleTick will handle the errUnknownParent case
-		return nil, false, nil
+		return nil, nil
 	}
 
 	fin, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// don't retry if we're requesting blocks lower than finalised
 	switch res.direction {
 	case network.Ascending:
 		if res.targetNumber.Cmp(fin.Number) <= 0 {
-			return nil, false, nil
+			return nil, nil
 		}
 
 		// if start is lower than finalised, increase it to finalised+1
@@ -77,7 +78,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (
 		}
 	case network.Descending:
 		if res.startNumber.Cmp(fin.Number) <= 0 {
-			return nil, false, nil
+			return nil, nil
 		}
 
 		// if target is lower than finalised, increase it to finalised+1
@@ -87,7 +88,6 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (
 		}
 	}
 
-	retry = true
 	return &worker{
 		startHash:    res.startHash,
 		startNumber:  res.startNumber,
@@ -95,7 +95,7 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (
 		targetNumber: res.targetNumber,
 		direction:    res.direction,
 		requestData:  res.requestData,
-	}, retry, nil
+	}, nil
 }
 
 func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {

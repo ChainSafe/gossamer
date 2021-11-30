@@ -65,35 +65,31 @@ func TestTipSyncer_handleNewPeerState(t *testing.T) {
 func TestTipSyncer_handleWorkerResult(t *testing.T) {
 	s := newTestTipSyncer(t)
 
-	w, retry, err := s.handleWorkerResult(&worker{})
+	w, err := s.handleWorkerResult(&worker{})
 	require.NoError(t, err)
 	require.Nil(t, w)
-	require.False(t, retry)
 
-	w, retry, err = s.handleWorkerResult(&worker{
+	w, err = s.handleWorkerResult(&worker{
 		err: &workerError{
 			err: errUnknownParent,
 		},
 	})
 	require.NoError(t, err)
 	require.Nil(t, w)
-	require.False(t, retry)
 
 	// worker is for blocks lower than finalised
-	w, retry, err = s.handleWorkerResult(&worker{
+	w, err = s.handleWorkerResult(&worker{
 		targetNumber: big.NewInt(199),
 	})
 	require.NoError(t, err)
 	require.Nil(t, w)
-	require.False(t, retry)
 
-	w, retry, err = s.handleWorkerResult(&worker{
+	w, err = s.handleWorkerResult(&worker{
 		direction:   network.Descending,
 		startNumber: big.NewInt(199),
 	})
 	require.NoError(t, err)
 	require.Nil(t, w)
-	require.False(t, retry)
 
 	// worker start is lower than finalised, start should be updated
 	expected := &worker{
@@ -103,7 +99,7 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 		requestData:  bootstrapRequestData,
 	}
 
-	w, retry, err = s.handleWorkerResult(&worker{
+	w, err = s.handleWorkerResult(&worker{
 		direction:    network.Ascending,
 		startNumber:  big.NewInt(199),
 		targetNumber: big.NewInt(300),
@@ -112,7 +108,6 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
-	require.True(t, retry)
 
 	expected = &worker{
 		direction:    network.Descending,
@@ -121,7 +116,7 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 		requestData:  bootstrapRequestData,
 	}
 
-	w, retry, err = s.handleWorkerResult(&worker{
+	w, err = s.handleWorkerResult(&worker{
 		direction:    network.Descending,
 		startNumber:  big.NewInt(300),
 		targetNumber: big.NewInt(199),
@@ -130,7 +125,6 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
-	require.True(t, retry)
 
 	// start and target are higher than finalised, don't modify
 	expected = &worker{
@@ -142,7 +136,7 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 		requestData:  bootstrapRequestData,
 	}
 
-	w, retry, err = s.handleWorkerResult(&worker{
+	w, err = s.handleWorkerResult(&worker{
 		direction:    network.Descending,
 		startNumber:  big.NewInt(300),
 		startHash:    common.Hash{0xa, 0xb},
@@ -153,7 +147,6 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
-	require.True(t, retry)
 }
 
 func TestTipSyncer_handleTick_case1(t *testing.T) {

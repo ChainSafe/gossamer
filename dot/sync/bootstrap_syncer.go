@@ -45,22 +45,23 @@ func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}, nil
 }
 
+//nolint:nilnil
 func (s *bootstrapSyncer) handleWorkerResult(res *worker) (
-	workerToRetry *worker, retry bool, err error) {
+	workerToRetry *worker, err error) {
 	// if there is an error, potentially retry the worker
 	if res.err == nil {
-		return nil, false, nil
+		return nil, nil
 	}
 
 	// new worker should update start block and re-dispatch
 	head, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// we've reached the target, return
 	if res.targetNumber.Cmp(head.Number) <= 0 {
-		return nil, false, nil
+		return nil, nil
 	}
 
 	startNumber := big.NewInt(0).Add(head.Number, big.NewInt(1))
@@ -70,13 +71,12 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (
 	if errors.Is(res.err.err, errUnknownParent) {
 		fin, err := s.blockState.GetHighestFinalisedHeader()
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 
 		startNumber = fin.Number
 	}
 
-	retry = true
 	return &worker{
 		startHash:    common.Hash{}, // for bootstrap, just use number
 		startNumber:  startNumber,
@@ -84,7 +84,7 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (
 		targetNumber: res.targetNumber,
 		requestData:  res.requestData,
 		direction:    res.direction,
-	}, retry, nil
+	}, nil
 }
 
 func (*bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker) bool {
