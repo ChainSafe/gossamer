@@ -35,7 +35,7 @@ var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
+		log.Errorf("failed to generate runtime wasm file %s", err)
 		os.Exit(1)
 	}
 
