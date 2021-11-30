@@ -79,5 +79,5 @@ type PeerRemove interface {
 type Peer interface {
 	PeerReputation(peer.ID) (peerset.Reputation, error)
 	SortedPeers(idx int) chan peer.IDSlice
-	Messages() chan interface{}
+	Messages() chan peerset.Message
 }
