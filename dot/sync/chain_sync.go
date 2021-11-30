@@ -61,7 +61,7 @@ type peerState struct {
 // workHandler should be implemented by `bootstrapSync` and `tipSync`
 type workHandler interface {
 	// handleNewPeerState returns a new worker based on a peerState.
-	// It returns the error errNoWorker in which case we do nothing.
+	// The worker may be nil in which case we do nothing.
 	handleNewPeerState(*peerState) (*worker, error)
 
 	// handleWorkerResult handles the result of a worker, which may be

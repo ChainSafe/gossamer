@@ -170,7 +170,8 @@ func (b *Service) incrementEpoch() (uint64, error) {
 // runLottery runs the lottery for a specific slot number.
 // It returns an encoded VrfOutputAndProof if the validator is authorised
 // to produce a block for that slot.
-// It returns the wrapped error errPrimarySlotThreshold if it is not authorised.
+// It returns the wrapped error errOverPrimarySlotThreshold
+// if it is not authorised.
 // output = return[0:32]; proof = return[32:96]
 func (b *Service) runLottery(slot, epoch uint64) (*VrfOutputAndProof, error) {
 	return claimPrimarySlot(
