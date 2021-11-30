@@ -77,6 +77,9 @@ type worker struct {
 	targetHash   common.Hash
 	targetNumber *big.Int
 
+	// if this worker is tied to a specific pending block, this field is set
+	pendingBlock *pendingBlock
+
 	// bitmap of fields to request
 	requestData byte
 	direction   network.SyncDirection

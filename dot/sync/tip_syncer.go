@@ -181,6 +181,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 				targetNumber: fin.Number,
 				direction:    network.Descending,
 				requestData:  bootstrapRequestData,
+				pendingBlock: block,
 			})
 			continue
 		}
@@ -193,6 +194,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 				targetHash:   block.hash,
 				targetNumber: block.number,
 				requestData:  network.RequestedDataBody + network.RequestedDataJustification,
+				pendingBlock: block,
 			})
 			continue
 		}
@@ -217,6 +219,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			targetNumber: fin.Number,
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
+			pendingBlock: block,
 		})
 	}
 

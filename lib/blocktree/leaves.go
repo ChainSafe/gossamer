@@ -13,6 +13,7 @@ import (
 
 // leafMap provides quick lookup for existing leaves
 type leafMap struct {
+	sync.RWMutex
 	smap *sync.Map // map[common.Hash]*node
 }
 
@@ -24,8 +25,8 @@ func newEmptyLeafMap() *leafMap {
 
 func newLeafMap(n *node) *leafMap {
 	smap := &sync.Map{}
-	for _, child := range n.getLeaves(nil) {
-		smap.Store(child.hash, child)
+	for _, leaf := range n.getLeaves(nil) {
+		smap.Store(leaf.hash, leaf)
 	}
 
 	return &leafMap{
@@ -33,12 +34,12 @@ func newLeafMap(n *node) *leafMap {
 	}
 }
 
-func (ls *leafMap) store(key Hash, value *node) {
-	ls.smap.Store(key, value)
+func (lm *leafMap) store(key Hash, value *node) {
+	lm.smap.Store(key, value)
 }
 
-func (ls *leafMap) load(key Hash) (*node, error) {
-	v, ok := ls.smap.Load(key)
+func (lm *leafMap) load(key Hash) (*node, error) {
+	v, ok := lm.smap.Load(key)
 	if !ok {
 		return nil, errors.New("key not found")
 	}
@@ -47,18 +48,23 @@ func (ls *leafMap) load(key Hash) (*node, error) {
 }
 
 // Replace deletes the old node from the map and inserts the new one
-func (ls *leafMap) replace(oldNode, newNode *node) {
-	ls.smap.Delete(oldNode.hash)
-	ls.store(newNode.hash, newNode)
+func (lm *leafMap) replace(oldNode, newNode *node) {
+	lm.Lock()
+	defer lm.Unlock()
+	lm.smap.Delete(oldNode.hash)
+	lm.store(newNode.hash, newNode)
 }
 
 // DeepestLeaf searches the stored leaves to the find the one with the greatest number.
 // If there are two leaves with the same number, choose the one with the earliest arrival time.
-func (ls *leafMap) deepestLeaf() *node {
+func (lm *leafMap) deepestLeaf() *node {
+	lm.RLock()
+	defer lm.RUnlock()
+
 	max := big.NewInt(-1)
 
 	var dLeaf *node
-	ls.smap.Range(func(h, n interface{}) bool {
+	lm.smap.Range(func(h, n interface{}) bool {
 		if n == nil {
 			return true
 		}
@@ -78,10 +84,13 @@ func (ls *leafMap) deepestLeaf() *node {
 	return dLeaf
 }
 
-func (ls *leafMap) toMap() map[common.Hash]*node {
+func (lm *leafMap) toMap() map[common.Hash]*node {
+	lm.RLock()
+	defer lm.RUnlock()
+
 	mmap := make(map[common.Hash]*node)
 
-	ls.smap.Range(func(h, n interface{}) bool {
+	lm.smap.Range(func(h, n interface{}) bool {
 		hash := h.(Hash)
 		node := n.(*node)
 		mmap[hash] = node
@@ -91,10 +100,13 @@ func (ls *leafMap) toMap() map[common.Hash]*node {
 	return mmap
 }
 
-func (ls *leafMap) nodes() []*node {
+func (lm *leafMap) nodes() []*node {
+	lm.RLock()
+	defer lm.RUnlock()
+
 	nodes := []*node{}
 
-	ls.smap.Range(func(h, n interface{}) bool {
+	lm.smap.Range(func(h, n interface{}) bool {
 		node := n.(*node)
 		nodes = append(nodes, node)
 		return true
