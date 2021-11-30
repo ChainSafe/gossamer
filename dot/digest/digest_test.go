@@ -38,7 +38,8 @@ func newTestHandler(t *testing.T) *Handler {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
+	logger := log.NewFromGlobal(log.AddContext("pkg", "digest"))
+	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, logger)
 	require.NoError(t, err)
 	return dh
 }
