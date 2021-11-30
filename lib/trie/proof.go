@@ -1,6 +1,3 @@
-// Copyright 2021 ChainSafe Systems (ON)
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package trie
 
 import (
@@ -12,6 +9,7 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie/decode"
+	"github.com/ChainSafe/gossamer/lib/trie/record"
 )
 
 var (
@@ -43,17 +41,16 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 	for _, k := range keys {
 		nk := decode.KeyLEToNibbles(k)
 
-		recorder := new(recorder)
+		recorder := record.NewRecorder()
 		err := findAndRecord(proofTrie, nk, recorder)
 		if err != nil {
 			return nil, err
 		}
 
-		for !recorder.isEmpty() {
-			recNode := recorder.next()
-			nodeHashHex := common.BytesToHex(recNode.hash)
+		for _, recNode := range recorder.GetNodes() {
+			nodeHashHex := common.BytesToHex(recNode.Hash)
 			if _, ok := trackedProofs[nodeHashHex]; !ok {
-				trackedProofs[nodeHashHex] = recNode.rawData
+				trackedProofs[nodeHashHex] = recNode.RawData
 			}
 		}
 	}
