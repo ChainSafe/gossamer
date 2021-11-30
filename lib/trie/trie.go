@@ -27,7 +27,6 @@ type Trie struct {
 	root        node.Node
 	childTries  map[common.Hash]*Trie // Used to store the child tries.
 	deletedKeys []common.Hash
-	parallel    bool
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -42,7 +41,6 @@ func NewTrie(root node.Node) *Trie {
 		childTries:  make(map[common.Hash]*Trie),
 		generation:  0, // Initially zero but increases after every snapshot.
 		deletedKeys: make([]common.Hash, 0),
-		parallel:    true,
 	}
 }
 
@@ -54,7 +52,6 @@ func (t *Trie) Snapshot() *Trie {
 			generation:  c.generation + 1,
 			root:        c.root,
 			deletedKeys: make([]common.Hash, 0),
-			parallel:    c.parallel,
 		}
 	}
 
@@ -63,7 +60,6 @@ func (t *Trie) Snapshot() *Trie {
 		root:        t.root,
 		childTries:  children,
 		deletedKeys: make([]common.Hash, 0),
-		parallel:    t.parallel,
 	}
 
 	return newTrie

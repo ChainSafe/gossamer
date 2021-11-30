@@ -31,7 +31,6 @@ func Test_Branch_Encode(t *testing.T) {
 	testCases := map[string]struct {
 		branch     *Branch
 		writes     []writeCall
-		parallel   bool
 		wrappedErr error
 		errMessage string
 	}{
@@ -178,71 +177,6 @@ func Test_Branch_Encode(t *testing.T) {
 			errMessage: "cannot encode children of branch: " +
 				"cannot encode child at index 3: " +
 				"failed to write child to buffer: test error",
-		},
-		"buffer write error for children encoded in parallel": {
-			branch: &Branch{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
-				Children: [16]node.Node{
-					nil, nil, nil, &leaf.Leaf{Key: []byte{9}},
-					nil, nil, nil, &leaf.Leaf{Key: []byte{11}},
-				},
-			},
-			writes: []writeCall{
-				{ // header
-					written: []byte{195},
-				},
-				{ // key LE
-					written: []byte{1, 35},
-				},
-				{ // children bitmap
-					written: []byte{136, 0},
-				},
-				{ // value
-					written: []byte{4, 100},
-				},
-				{ // first children
-					written: []byte{12, 65, 9, 0},
-					err:     errTest,
-				},
-			},
-			parallel:   true,
-			wrappedErr: errTest,
-			errMessage: "cannot encode children of branch: " +
-				"cannot encode child at index 3: " +
-				"failed to write child to buffer: " +
-				"test error",
-		},
-		"success with parallel children encoding": {
-			branch: &Branch{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
-				Children: [16]node.Node{
-					nil, nil, nil, &leaf.Leaf{Key: []byte{9}},
-					nil, nil, nil, &leaf.Leaf{Key: []byte{11}},
-				},
-			},
-			writes: []writeCall{
-				{ // header
-					written: []byte{195},
-				},
-				{ // key LE
-					written: []byte{1, 35},
-				},
-				{ // children bitmap
-					written: []byte{136, 0},
-				},
-				{ // value
-					written: []byte{4, 100},
-				},
-				{ // first children
-					written: []byte{12, 65, 9, 0},
-				},
-				{ // second children
-					written: []byte{12, 65, 11, 0},
-				},
-			},
-			parallel: true,
 		},
 		"success with sequential children encoding": {
 			branch: &Branch{
