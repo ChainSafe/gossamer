@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -22,22 +22,22 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 	testHash := common.NewHash([]byte{0x01, 0x02})
 	testHashSlice := []common.Hash{testHash, testHash, testHash}
 
-	mockBlockFinalityAPI := new(apimocks.BlockFinalityAPI)
-	mockBlockAPI := new(apimocks.BlockAPI)
+	mockBlockFinalityAPI := new(mocks.BlockFinalityAPI)
+	mockBlockAPI := new(mocks.BlockAPI)
 	mockBlockAPI.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
 	mockBlockAPI.On("HasJustification", testHash).Return(true, nil)
 	mockBlockAPI.On("GetJustification", testHash).Return([]byte("test"), nil)
 
-	mockBlockAPIHasJustErr := new(apimocks.BlockAPI)
+	mockBlockAPIHasJustErr := new(mocks.BlockAPI)
 	mockBlockAPIHasJustErr.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
 	mockBlockAPIHasJustErr.On("HasJustification", testHash).Return(false, nil)
 
-	mockBlockAPIGetJustErr := new(apimocks.BlockAPI)
+	mockBlockAPIGetJustErr := new(mocks.BlockAPI)
 	mockBlockAPIGetJustErr.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
 	mockBlockAPIGetJustErr.On("HasJustification", testHash).Return(true, nil)
 	mockBlockAPIGetJustErr.On("GetJustification", testHash).Return(nil, errors.New("GetJustification error"))
 
-	mockBlockAPISubChainErr := new(apimocks.BlockAPI)
+	mockBlockAPISubChainErr := new(mocks.BlockAPI)
 	mockBlockAPISubChainErr.On("SubChain", testHash, testHash).Return(nil, errors.New("SubChain error"))
 
 	grandpaModule := NewGrandpaModule(mockBlockAPISubChainErr, mockBlockFinalityAPI)
@@ -146,8 +146,8 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		})
 	}
 
-	mockBlockAPI := new(apimocks.BlockAPI)
-	mockBlockFinalityAPI := new(apimocks.BlockFinalityAPI)
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockFinalityAPI := new(mocks.BlockFinalityAPI)
 	mockBlockFinalityAPI.On("GetVoters").Return(voters)
 	mockBlockFinalityAPI.On("GetSetID").Return(uint64(0))
 	mockBlockFinalityAPI.On("GetRound").Return(uint64(2))

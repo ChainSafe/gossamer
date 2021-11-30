@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 
@@ -17,10 +17,10 @@ import (
 
 func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 	g := new(genesis.Genesis)
-	mockSyncStateAPI := new(apimocks.SyncStateAPI)
+	mockSyncStateAPI := new(mocks.SyncStateAPI)
 	mockSyncStateAPI.On("GenSyncSpec", true).Return(g, nil)
 
-	mockSyncStateAPIErr := new(apimocks.SyncStateAPI)
+	mockSyncStateAPIErr := new(mocks.SyncStateAPI)
 	mockSyncStateAPIErr.On("GenSyncSpec", true).Return(nil, errors.New("GenSyncSpec error"))
 
 	syncStateModule := NewSyncStateModule(mockSyncStateAPI)
@@ -84,10 +84,10 @@ func TestNewStateSync(t *testing.T) {
 	g1 := &genesis.Genesis{}
 	g2 := &genesis.Genesis{}
 	raw := make(map[string][]byte)
-	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI := new(mocks.StorageAPI)
 	mockStorageAPI.On("Entries", (*common.Hash)(nil)).Return(raw, nil)
 
-	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr := new(mocks.StorageAPI)
 	mockStorageAPIErr.On("Entries", (*common.Hash)(nil)).Return(nil, errors.New("entries error"))
 
 	type args struct {

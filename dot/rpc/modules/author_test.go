@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"testing"
 
-	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,23 +35,23 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 		"f06895db16aade8b6502f3a71cf56374cc38520426026626162658034309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026696d6f6e8034" +
 		"309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602661756469")
 
-	coreMockAPIDecodeErr := new(apimocks.CoreAPI)
+	coreMockAPIDecodeErr := new(mocks.CoreAPI)
 	coreMockAPIDecodeErr.On("DecodeSessionKeys", []byte{0x4, 0x1}).Return(nil, errors.New("decodeSessionKeys err"))
 
-	coreMockAPIUnmarshalErr := new(apimocks.CoreAPI)
+	coreMockAPIUnmarshalErr := new(mocks.CoreAPI)
 	coreMockAPIUnmarshalErr.On("DecodeSessionKeys", []byte{0x4, 0x1}).Return([]byte{0x4, 0x1}, nil)
 
-	coreMockAPIOk := new(apimocks.CoreAPI)
+	coreMockAPIOk := new(mocks.CoreAPI)
 	coreMockAPIOk.On("DecodeSessionKeys", pkeys).Return(data, nil)
 	coreMockAPIOk.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(true, nil)
 
-	coreMockAPIErr := new(apimocks.CoreAPI)
+	coreMockAPIErr := new(mocks.CoreAPI)
 	coreMockAPIErr.On("DecodeSessionKeys", pkeys).Return(data, nil)
 	coreMockAPIErr.On("HasKey", mock.AnythingOfType("string"),
 		mock.AnythingOfType("string")).
 		Return(false, errors.New("HasKey err"))
 
-	coreMockAPIInvalidDec := new(apimocks.CoreAPI)
+	coreMockAPIInvalidDec := new(mocks.CoreAPI)
 	coreMockAPIInvalidDec.On("DecodeSessionKeys", pkeys).Return([]byte{0x0}, nil)
 
 	type fields struct {
@@ -142,10 +142,10 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	var testExt = common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670")
 	// invalid transaction (above tx, with last byte changed)
 	var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 143}
-	errMockCoreAPI := &apimocks.CoreAPI{}
+	errMockCoreAPI := &mocks.CoreAPI{}
 	errMockCoreAPI.On("HandleSubmittedExtrinsic", types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testInvalidExt)))).Return(fmt.Errorf("some error"))
 
-	mockCoreAPI := &apimocks.CoreAPI{}
+	mockCoreAPI := &mocks.CoreAPI{}
 	mockCoreAPI.On("HandleSubmittedExtrinsic", types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testExt)))).Return(nil)
 	type fields struct {
 		logger     log.LeveledLogger
@@ -215,10 +215,10 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorModule_PendingExtrinsics(t *testing.T) {
-	emptyMockTransactionStateAPI := &apimocks.TransactionStateAPI{}
+	emptyMockTransactionStateAPI := &mocks.TransactionStateAPI{}
 	emptyMockTransactionStateAPI.On("Pending").Return([]*transaction.ValidTransaction{})
 
-	mockTransactionStateAPI := &apimocks.TransactionStateAPI{}
+	mockTransactionStateAPI := &mocks.TransactionStateAPI{}
 	mockTransactionStateAPI.On("Pending").Return([]*transaction.ValidTransaction{
 		{
 			Extrinsic: types.NewExtrinsic([]byte("someExtrinsic")),
@@ -293,16 +293,16 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	kp3, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes("0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"))
 	require.NoError(t, err)
 
-	mockCoreAPIHappyBabe := &apimocks.CoreAPI{}
+	mockCoreAPIHappyBabe := &mocks.CoreAPI{}
 	mockCoreAPIHappyBabe.On("InsertKey", kp1, "babe").Return(nil)
 
-	mockCoreAPIHappyGran := &apimocks.CoreAPI{}
+	mockCoreAPIHappyGran := &mocks.CoreAPI{}
 	mockCoreAPIHappyGran.On("InsertKey", kp2, "gran").Return(nil)
 
-	mockCoreAPIBadKey := &apimocks.CoreAPI{}
+	mockCoreAPIBadKey := &mocks.CoreAPI{}
 	mockCoreAPIBadKey.On("InsertKey", kp3, "babe").Return(nil)
 
-	mockCoreAPIUnknownKey := &apimocks.CoreAPI{}
+	mockCoreAPIUnknownKey := &mocks.CoreAPI{}
 	mockCoreAPIUnknownKey.On("InsertKey", kp3, "mack").Return(nil)
 
 	type fields struct {
@@ -400,13 +400,13 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	mockCoreAPITrue := &apimocks.CoreAPI{}
+	mockCoreAPITrue := &mocks.CoreAPI{}
 	mockCoreAPITrue.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(true, nil)
 
-	mockCoreAPIFalse := &apimocks.CoreAPI{}
+	mockCoreAPIFalse := &mocks.CoreAPI{}
 	mockCoreAPIFalse.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(false, nil)
 
-	mockCoreAPIErr := &apimocks.CoreAPI{}
+	mockCoreAPIErr := &mocks.CoreAPI{}
 	mockCoreAPIErr.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(false, fmt.Errorf("some error"))
 
 	type fields struct {

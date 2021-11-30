@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -37,34 +37,34 @@ func TestStateModuleGetPairs(t *testing.T) {
 	m["a"] = []byte{21, 22}
 	m["b"] = []byte{23, 24}
 
-	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI := new(mocks.StorageAPI)
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
 	mockStorageAPI.On("Entries", &hash).Return(m, nil)
 	mockStorageAPI.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return([][]byte{{1}, {1}}, nil)
 	mockStorageAPI.On("GetStorage", &hash, []byte{1}).Return([]byte{21}, nil)
 
-	mockStorageAPINil := new(apimocks.StorageAPI)
+	mockStorageAPINil := new(mocks.StorageAPI)
 	mockStorageAPINil.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
 	mockStorageAPINil.On("Entries", &hash).Return(m, nil)
 
-	mockStorageAPIGetKeysEmpty := new(apimocks.StorageAPI)
+	mockStorageAPIGetKeysEmpty := new(mocks.StorageAPI)
 	mockStorageAPIGetKeysEmpty.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
 	mockStorageAPIGetKeysEmpty.On("Entries", &hash).Return(m, nil)
 	mockStorageAPIGetKeysEmpty.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return([][]byte{}, nil)
 
-	mockStorageAPIGetKeysErr := new(apimocks.StorageAPI)
+	mockStorageAPIGetKeysErr := new(mocks.StorageAPI)
 	mockStorageAPIGetKeysErr.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
 	mockStorageAPIGetKeysErr.On("Entries", &hash).Return(m, nil)
 	mockStorageAPIGetKeysErr.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return(nil, errors.New("GetKeysWithPrefix Err"))
 
-	mockStorageAPIEntriesErr := new(apimocks.StorageAPI)
+	mockStorageAPIEntriesErr := new(mocks.StorageAPI)
 	mockStorageAPIEntriesErr.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
 	mockStorageAPIEntriesErr.On("Entries", &hash).Return(nil, errors.New("entries Err"))
 
-	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr := new(mocks.StorageAPI)
 	mockStorageAPIErr.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock Err"))
 
-	mockStorageAPIGetStorageErr := new(apimocks.StorageAPI)
+	mockStorageAPIGetStorageErr := new(mocks.StorageAPI)
 	mockStorageAPIGetStorageErr.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
 	mockStorageAPIGetStorageErr.On("Entries", &hash).Return(m, nil)
 	mockStorageAPIGetStorageErr.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return([][]byte{{2}, {2}}, nil)
@@ -187,13 +187,13 @@ func TestStateModuleGetPairs(t *testing.T) {
 }
 
 func TestStateModuleGetKeysPaged(t *testing.T) {
-	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI := new(mocks.StorageAPI)
 	mockStorageAPI.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).Return([][]byte{{1}, {2}}, nil)
 
-	mockStorageAPI2 := new(apimocks.StorageAPI)
+	mockStorageAPI2 := new(mocks.StorageAPI)
 	mockStorageAPI2.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).Return([][]byte{{1, 1, 1}, {1, 1, 1}}, nil)
 
-	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr := new(mocks.StorageAPI)
 	mockStorageAPIErr.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).Return(nil, errors.New("GetKeysWithPrefix Err"))
 
 	type fields struct {
@@ -276,8 +276,8 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 
 // Implement Tests once function is implemented
 func TestCall(t *testing.T) {
-	mockNetworkAPI := new(apimocks.NetworkAPI)
-	mockStorageAPI := new(apimocks.StorageAPI)
+	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockStorageAPI := new(mocks.StorageAPI)
 	sm := NewStateModule(mockNetworkAPI, mockStorageAPI, nil)
 
 	err := sm.Call(nil, nil, nil)
@@ -287,10 +287,10 @@ func TestCall(t *testing.T) {
 func TestStateModuleGetMetadata(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
-	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI := new(mocks.CoreAPI)
 	mockCoreAPI.On("GetMetadata", &hash).Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil)
 
-	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr := new(mocks.CoreAPI)
 	mockCoreAPIErr.On("GetMetadata", &hash).Return(nil, errors.New("GetMetadata Error"))
 
 	mockStateModule := NewStateModule(nil, nil, mockCoreAPIErr)
@@ -361,10 +361,10 @@ func TestStateModuleGetReadProof(t *testing.T) {
 		expKeys[i] = bKey
 	}
 
-	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI := new(mocks.CoreAPI)
 	mockCoreAPI.On("GetReadProofAt", hash, expKeys).Return(hash, [][]byte{{1, 1, 1}, {1, 1, 1}}, nil)
 
-	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr := new(mocks.CoreAPI)
 	mockCoreAPIErr.On("GetReadProofAt", hash, expKeys).Return(nil, nil, errors.New("GetReadProofAt Error"))
 
 	type fields struct {
@@ -455,10 +455,10 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 		5,
 	)
 
-	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI := new(mocks.CoreAPI)
 	mockCoreAPI.On("GetRuntimeVersion", &hash).Return(version, nil)
 
-	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr := new(mocks.CoreAPI)
 	mockCoreAPIErr.On("GetRuntimeVersion", &hash).Return(nil, errors.New("GetRuntimeVersion Error"))
 
 	type fields struct {
@@ -524,11 +524,11 @@ func TestStateModuleGetStorage(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	reqBytes := common.MustHexToBytes("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
-	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI := new(mocks.StorageAPI)
 	mockStorageAPI.On("GetStorageByBlockHash", &hash, reqBytes).Return([]byte{21}, nil)
 	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), reqBytes).Return([]byte{21}, nil)
 
-	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr := new(mocks.StorageAPI)
 	mockStorageAPIErr.On("GetStorageByBlockHash", &hash, reqBytes).Return(nil, errors.New("GetStorageByBlockHash Error"))
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), reqBytes).Return(nil, errors.New("GetStorage Error"))
 
@@ -614,11 +614,11 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	reqBytes := common.MustHexToBytes("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
-	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI := new(mocks.StorageAPI)
 	mockStorageAPI.On("GetStorageByBlockHash", &hash, reqBytes).Return([]byte{21}, nil)
 	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), reqBytes).Return([]byte{21}, nil)
 
-	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr := new(mocks.StorageAPI)
 	mockStorageAPIErr.On("GetStorageByBlockHash", &hash, reqBytes).Return(nil, errors.New("GetStorageByBlockHash Error"))
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), reqBytes).Return(nil, errors.New("GetStorage Error"))
 
@@ -704,11 +704,11 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	reqBytes := common.MustHexToBytes("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 
-	mockStorageAPI := new(apimocks.StorageAPI)
+	mockStorageAPI := new(mocks.StorageAPI)
 	mockStorageAPI.On("GetStorageByBlockHash", &hash, reqBytes).Return([]byte{21}, nil)
 	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), reqBytes).Return([]byte{21}, nil)
 
-	mockStorageAPIErr := new(apimocks.StorageAPI)
+	mockStorageAPIErr := new(mocks.StorageAPI)
 	mockStorageAPIErr.On("GetStorageByBlockHash", &hash, reqBytes).Return(nil, errors.New("GetStorageByBlockHash Error"))
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), reqBytes).Return(nil, errors.New("GetStorage Error"))
 
@@ -803,10 +803,10 @@ func TestStateModuleQueryStorage(t *testing.T) {
 	m[hash1] = qkvc1
 	m[hash2] = qkvc2
 
-	mockCoreAPI := new(apimocks.CoreAPI)
+	mockCoreAPI := new(mocks.CoreAPI)
 	mockCoreAPI.On("QueryStorage", hash1, hash2, "jimbo").Return(m, nil)
 
-	mockCoreAPIErr := new(apimocks.CoreAPI)
+	mockCoreAPIErr := new(mocks.CoreAPI)
 	mockCoreAPIErr.On("QueryStorage", hash1, hash2, "jimbo").Return(nil, errors.New("QueryStorage Error"))
 
 	type fields struct {

@@ -9,14 +9,14 @@ import (
 	"net/http"
 	"testing"
 
-	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOffchainModule_LocalStorageGet(t *testing.T) {
-	mockRuntimeStorageAPI := new(apimocks.RuntimeStorageAPI)
+	mockRuntimeStorageAPI := new(mocks.RuntimeStorageAPI)
 	mockRuntimeStorageAPI.On("GetPersistent", common.MustHexToBytes("0x11111111111111")).Return(nil, errors.New("GetPersistent error"))
 	mockRuntimeStorageAPI.On("GetLocal", common.MustHexToBytes("0x11111111111111")).Return([]byte("some-value"), nil)
 	offChainModule := NewOffchainModule(mockRuntimeStorageAPI)
@@ -106,7 +106,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 }
 
 func TestOffchainModule_LocalStorageSet(t *testing.T) {
-	mockRuntimeStorageAPI := new(apimocks.RuntimeStorageAPI)
+	mockRuntimeStorageAPI := new(mocks.RuntimeStorageAPI)
 	mockRuntimeStorageAPI.On("SetLocal", common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).Return(nil)
 	mockRuntimeStorageAPI.On("SetPersistent", common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).Return(errors.New("SetPersistent error"))
 

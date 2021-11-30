@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
@@ -28,10 +28,10 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	runtimeMock2 := new(mocksruntime.Instance)
 	runtimeErrorMock := new(mocksruntime.Instance)
 
-	blockAPIMock := new(apimocks.BlockAPI)
-	blockAPIMock2 := new(apimocks.BlockAPI)
-	blockErrorAPIMock1 := new(apimocks.BlockAPI)
-	blockErrorAPIMock2 := new(apimocks.BlockAPI)
+	blockAPIMock := new(mocks.BlockAPI)
+	blockAPIMock2 := new(mocks.BlockAPI)
+	blockErrorAPIMock1 := new(mocks.BlockAPI)
+	blockErrorAPIMock2 := new(mocks.BlockAPI)
 
 	blockAPIMock.On("BestBlockHash").Return(testHash, nil)
 	blockAPIMock.On("GetRuntime", &testHash).Return(runtimeMock, nil)
