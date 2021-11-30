@@ -426,7 +426,8 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
 }
 
 func createDigestHandler(st *state.Service) (*digest.Handler, error) {
-	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
+	digestLogger := log.NewFromGlobal(log.AddContext("pkg", "digest"))
+	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa, digestLogger)
 }
 
 func createPprofService(settings pprof.Settings) (service *pprof.Service) {

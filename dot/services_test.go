@@ -10,8 +10,11 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -380,4 +383,26 @@ func Test_createPprofService(t *testing.T) {
 	service := createPprofService(settings)
 
 	require.NotNil(t, service)
+}
+
+func Test_createDigestHandler(t *testing.T) {
+	testDatadirPath := t.TempDir()
+	config := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.Info,
+	}
+
+	stateSrvc := state.NewService(config)
+	stateSrvc.UseMemDB()
+
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.NoError(t, err)
+
+	dh, err := createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+	require.NotNil(t, dh)
 }
