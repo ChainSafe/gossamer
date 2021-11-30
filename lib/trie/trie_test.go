@@ -1131,35 +1131,12 @@ func Benchmark_Trie_Hash(b *testing.B) {
 		trie.Put(test.key, test.value)
 	}
 
-	trieTwo, err := trie.DeepCopy()
+	b.StartTimer()
+	_, err := trie.Hash()
+	b.StopTimer()
+
 	require.NoError(b, err)
 
-	b.Run("Sequential hash", func(b *testing.B) {
-		trie.parallel = false
-
-		b.StartTimer()
-		_, err := trie.Hash()
-		b.StopTimer()
-
-		require.NoError(b, err)
-
-		printMemUsage()
-	})
-
-	b.Run("Parallel hash", func(b *testing.B) {
-		trieTwo.parallel = true
-
-		b.StartTimer()
-		_, err := trieTwo.Hash()
-		b.StopTimer()
-
-		require.NoError(b, err)
-
-		printMemUsage()
-	})
-}
-
-func printMemUsage() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
