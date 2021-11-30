@@ -8,20 +8,27 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/trie/branch"
 	"github.com/ChainSafe/gossamer/lib/trie/node"
+	"github.com/ChainSafe/gossamer/lib/trie/record"
 )
 
+var _ recorder = (*record.Recorder)(nil)
+
+type recorder interface {
+	Record(hash, rawData []byte)
+}
+
 // findAndRecord search for a desired key recording all the nodes in the path including the desired node
-func findAndRecord(t *Trie, key []byte, recorder *recorder) error {
+func findAndRecord(t *Trie, key []byte, recorder recorder) error {
 	return find(t.root, key, recorder)
 }
 
-func find(parent node.Node, key []byte, recorder *recorder) error {
+func find(parent node.Node, key []byte, recorder recorder) error {
 	enc, hash, err := parent.EncodeAndHash()
 	if err != nil {
 		return err
 	}
 
-	recorder.record(hash, enc)
+	recorder.Record(hash, enc)
 
 	b, ok := parent.(*branch.Branch)
 	if !ok {
