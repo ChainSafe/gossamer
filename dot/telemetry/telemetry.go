@@ -16,16 +16,23 @@ import (
 
 // telemetry message types
 const (
-	notifyFinalizedMsg           = "notify.finalized"
-	blockImportMsg               = "block.import"
-	systemNetworkStateMsg        = "system.network_state"
-	systemConnectedMsg           = "system.connected"
-	systemIntervalMsg            = "system.interval"
-	afgReceivedPrecommitMsg      = "afg.received_precommit"
-	afgReceivedPrevoteMsg        = "afg.received_prevote"
-	afgReceivedCommitMsg         = "afg.received_commit"
-	txPoolImportMsg              = "txpool.import"
+	afgAuthoritySetMsg        = "afg.authority_set"
+	afgFinalizedBlocksUpToMsg = "afg.finalized_blocks_up_to"
+	afgReceivedCommitMsg      = "afg.received_commit"
+	afgReceivedPrecommitMsg   = "afg.received_precommit"
+	afgReceivedPrevoteMsg     = "afg.received_prevote"
+
+	blockImportMsg = "block.import"
+
+	notifyFinalizedMsg = "notify.finalized"
+
 	preparedBlockForProposingMsg = "prepared_block_for_proposing"
+
+	systemConnectedMsg    = "system.connected"
+	systemIntervalMsg     = "system.interval"
+	systemNetworkStateMsg = "system.network_state"
+
+	txPoolImportMsg = "txpool.import"
 )
 
 type telemetryConnection struct {

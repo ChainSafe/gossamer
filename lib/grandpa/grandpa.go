@@ -6,6 +6,7 @@ package grandpa
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -258,11 +260,39 @@ func (s *Service) updateAuthorities() error {
 	// setting to 0 before incrementing indicates
 	// the setID has been increased
 	s.state.round = 0
+
+	s.sendTelemetryAuthoritySet()
+
 	return nil
 }
 
 func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 	return s.keypair.Public().(*ed25519.PublicKey).AsBytes()
+}
+
+func (s *Service) sendTelemetryAuthoritySet() {
+	authorityID := s.keypair.Public().Hex()
+	authorities := make([]string, len(s.state.voters))
+	for i, voter := range s.state.voters {
+		authorities[i] = fmt.Sprint(voter.ID)
+	}
+
+	authoritiesBytes, err := json.Marshal(authorities)
+	if err != nil {
+		logger.Warnf("could not marshal authorities: %s", err)
+		return
+	}
+
+	err = telemetry.GetInstance().SendMessage(
+		telemetry.NewAfgAuthoritySetTM(
+			authorityID,
+			fmt.Sprint(s.state.setID),
+			string(authoritiesBytes),
+		),
+	)
+	if err != nil {
+		logger.Debugf("problem sending afg.authority_set telemetry message: %s", err)
+	}
 }
 
 func (s *Service) initiateRound() error {
@@ -609,6 +639,15 @@ func (s *Service) attemptToFinalize() error {
 
 		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
+
+		err = telemetry.GetInstance().SendMessage(telemetry.NewAfgFinalizedBlocksUpToTM(
+			s.head.Hash(),
+			s.head.Number.String(),
+		))
+		if err != nil {
+			logger.Debugf("problem sending `afg.finalized_blocks_up_to` telemetry message: %s", err)
+		}
+
 		return nil
 	}
 }
