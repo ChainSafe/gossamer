@@ -44,7 +44,7 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNodes, reservedPeers []pee
 
 	handler.AddPeer(0, bootNodes...)
 	handler.AddReservedPeer(0, reservedPeers...)
-	time.Sleep(time.Millisecond * 4000)
+	time.Sleep(time.Millisecond * 100)
 
 	return handler
 }

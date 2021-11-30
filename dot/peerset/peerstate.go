@@ -249,7 +249,7 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
 	ps.sets[idx].noSlotNodes[peerID] = struct{}{}
 	n, err := ps.getNode(peerID)
 	if err != nil {
-		return fmt.Errorf("could not get node: %w", err)
+		return fmt.Errorf("could not get node for peer id %s: %w", peerID, err)
 	}
 
 	switch n.state[idx] {

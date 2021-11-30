@@ -432,6 +432,8 @@ func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 			return nil
 		}
 
+		ps.peerState.discover(setID, peerID)
+
 		ps.reservedNode[peerID] = struct{}{}
 		if err := ps.peerState.addNoSlotNode(setID, peerID); err != nil {
 			return fmt.Errorf("could not add to list of no-slot nodes: %w", err)
