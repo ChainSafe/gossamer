@@ -41,7 +41,6 @@ type Handler struct {
 	grandpaPause           *pause
 	grandpaResume          *resume
 
-	// log
 	logger log.LeveledLogger
 }
 
