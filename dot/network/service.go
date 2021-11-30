@@ -671,6 +671,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 	peerID := msg.PeerID
 	if peerID == "" {
 		logger.Errorf("found empty peer id in peerset message")
+		return
 	}
 	switch msg.Status {
 	case peerset.Connect:
