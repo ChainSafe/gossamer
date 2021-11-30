@@ -47,9 +47,11 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 			return nil, err
 		}
 
-		for !recorder.IsEmpty() {
+		for {
 			recNode, err := recorder.Next()
-			if err != nil {
+			if errors.Is(err, record.ErrNoNextNode) {
+				break
+			} else if err != nil {
 				return nil, fmt.Errorf("recorder failed for key 0x%x: %w", k, err)
 			}
 			nodeHashHex := common.BytesToHex(recNode.Hash)

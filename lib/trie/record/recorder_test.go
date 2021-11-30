@@ -127,37 +127,3 @@ func Test_Recorder_Next(t *testing.T) {
 		})
 	}
 }
-
-func Test_Recorder_IsEmpty(t *testing.T) {
-	testCases := map[string]struct {
-		recorder *Recorder
-		empty    bool
-	}{
-		"nil nodes": {
-			recorder: &Recorder{},
-			empty:    true,
-		},
-		"empty nodes": {
-			recorder: &Recorder{
-				nodes: []Node{},
-			},
-			empty: true,
-		},
-		"non-empty nodes": {
-			recorder: &Recorder{
-				nodes: []Node{{}},
-			},
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			empty := testCase.recorder.IsEmpty()
-
-			assert.Equal(t, testCase.empty, empty)
-		})
-	}
-}

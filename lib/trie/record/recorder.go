@@ -36,9 +36,3 @@ func (r *Recorder) Next() (node Node, err error) {
 
 	return node, nil
 }
-
-// IsEmpty returns true if no node is in in the current
-// recorded list of nodes.
-func (r *Recorder) IsEmpty() (empty bool) {
-	return len(r.nodes) == 0
-}
