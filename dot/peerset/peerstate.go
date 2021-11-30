@@ -265,7 +265,7 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
 
 func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) error {
 	if _, ok := ps.sets[idx].noSlotNodes[peerID]; !ok {
-		logger.Debugf("peer %s is not in \"no slot node\" map", peerID)
+		logger.Debugf("peer %s is not in no-slot node map", peerID)
 		return nil
 	}
 

@@ -398,7 +398,6 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 	}
 
 	for peerState.hasFreeOutgoingSlot(setIdx) {
-
 		peerID := peerState.highestNotConnectedPeer(setIdx)
 		if peerID == "" {
 			break
@@ -411,7 +410,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if err = peerState.tryOutgoing(setIdx, peerID); err != nil {
-			logger.Errorf("could not set peer as outgoing connection, peer: %s, error: %s", peerID.Pretty(), err)
+			logger.Errorf("could not set peer %s as outgoing connection: %s", peerID.Pretty(), err)
 			break
 		}
 
@@ -435,10 +434,10 @@ func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 
 		ps.reservedNode[peerID] = struct{}{}
 		if err := ps.peerState.addNoSlotNode(setID, peerID); err != nil {
-			return err
+			return fmt.Errorf("could not add to list of no-slot nodes: %w", err)
 		}
 		if err := ps.allocSlots(setID); err != nil {
-			return err
+			return fmt.Errorf("could not allocate slots: %w", err)
 		}
 	}
 	return nil
@@ -453,7 +452,7 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 
 		delete(ps.reservedNode, peerID)
 		if err := ps.peerState.removeNoSlotNode(setID, peerID); err != nil {
-			return err
+			return fmt.Errorf("could not remove from the list of no-slot nodes: %w", err)
 		}
 
 		// nothing more to do if not in reservedOnly mode.

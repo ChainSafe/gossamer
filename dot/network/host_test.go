@@ -453,7 +453,7 @@ func Test_AddReservedPeers(t *testing.T) {
 	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
 	require.NoError(t, err)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
 }
@@ -485,7 +485,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
 	require.NoError(t, err)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
 	pID := nodeB.host.addrInfo().ID.String()
