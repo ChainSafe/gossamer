@@ -561,13 +561,11 @@ func (cs *chainSync) handleWork(ps *peerState) error {
 	logger.Tracef("handling potential work for target block number %s and hash %s", ps.number, ps.hash)
 	worker, err := cs.handler.handleNewPeerState(ps)
 	if err != nil {
-		if errors.Is(err, errNoWorker) {
-			return nil
-		}
 		return err
+	} else if worker != nil {
+		cs.tryDispatchWorker(worker)
 	}
 
-	cs.tryDispatchWorker(worker)
 	return nil
 }
 

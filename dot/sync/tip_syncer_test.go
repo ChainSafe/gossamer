@@ -40,7 +40,7 @@ func TestTipSyncer_handleNewPeerState(t *testing.T) {
 	}
 
 	w, err := s.handleNewPeerState(ps)
-	require.ErrorIs(t, err, errNoWorker)
+	require.NoError(t, err)
 	require.Nil(t, w)
 
 	ps = &peerState{

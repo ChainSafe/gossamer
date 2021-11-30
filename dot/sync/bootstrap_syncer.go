@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -27,8 +26,6 @@ func newBootstrapSyncer(blockState BlockState) *bootstrapSyncer {
 	}
 }
 
-var errNoWorker = errors.New("no worker")
-
 func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	head, err := s.blockState.BestBlockHeader()
 	if err != nil {
@@ -36,9 +33,7 @@ func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}
 
 	if ps.number.Cmp(head.Number) <= 0 {
-		return nil, fmt.Errorf(
-			"%w: for head number %s and peer state number %s",
-			errNoWorker, head.Number, ps.number)
+		return nil, nil //nolint:nilnil
 	}
 
 	return &worker{

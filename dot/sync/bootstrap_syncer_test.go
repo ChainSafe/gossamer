@@ -41,13 +41,13 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 	w, err := s.handleNewPeerState(&peerState{
 		number: big.NewInt(100),
 	})
-	require.ErrorIs(t, err, errNoWorker)
+	require.NoError(t, err)
 	require.Nil(t, w)
 
 	w, err = s.handleNewPeerState(&peerState{
 		number: big.NewInt(99),
 	})
-	require.ErrorIs(t, err, errNoWorker)
+	require.NoError(t, err)
 	require.Nil(t, w)
 
 	// if peer's number is highest, return worker w/ their block as target

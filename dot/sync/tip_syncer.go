@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -36,9 +35,7 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}
 
 	if ps.number.Cmp(fin.Number) <= 0 {
-		return nil, fmt.Errorf(
-			"%w: for finalised number %s and peer state number %s",
-			errNoWorker, fin.Number, ps.number)
+		return nil, nil //nolint:nilnil
 	}
 
 	return &worker{
