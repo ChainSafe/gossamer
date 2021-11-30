@@ -26,7 +26,7 @@ func newTestHandler(t *testing.T) *Handler {
 
 	config := state.Config{
 		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		LogLevel: log.Warn,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
@@ -38,7 +38,7 @@ func newTestHandler(t *testing.T) *Handler {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	logger := log.NewFromGlobal(log.AddContext("pkg", "digest"))
+	logger := log.NewFromGlobal(log.SetLevel(log.Critical))
 	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, logger)
 	require.NoError(t, err)
 	return dh
