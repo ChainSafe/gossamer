@@ -40,12 +40,12 @@ type PublicKey struct {
 // VerifySignature verifies a signature given a public key and a message
 func VerifySignature(publicKey, signature, message []byte) error {
 	ok := secp256k1.VerifySignature(publicKey, message, signature)
-	if !ok {
-		return fmt.Errorf("secp256k1: %w: for message 0x%x, signature 0x%x and public key 0x%x",
-			crypto.ErrSignatureVerificationFailed, message, signature, publicKey)
+	if ok {
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("secp256k1: %w: for message 0x%x, signature 0x%x and public key 0x%x",
+		crypto.ErrSignatureVerificationFailed, message, signature, publicKey)
 }
 
 // RecoverPublicKey returns the 64-byte uncompressed public key that created the given signature.
