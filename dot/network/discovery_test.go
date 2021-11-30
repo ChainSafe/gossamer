@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -22,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 func newTestDiscovery(t *testing.T, num int) []*discovery {
@@ -36,7 +23,7 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint32(7001 + i),
+			Port:        uint16(7001 + i),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -60,8 +47,7 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 	return discs
 }
 
-// nolint
-func connectNoSync(t *testing.T, ctx context.Context, a, b *discovery) {
+func connectNoSync(ctx context.Context, t *testing.T, a, b *discovery) {
 	t.Helper()
 
 	idB := b.h.ID()
@@ -95,7 +81,7 @@ func TestKadDHT(t *testing.T) {
 	defer cancel()
 
 	// connects node 0 and node 2
-	connectNoSync(t, ctx, nodes[2], nodes[0])
+	connectNoSync(ctx, t, nodes[2], nodes[0])
 
 	time.Sleep(startDHTTimeout + 1)
 
@@ -104,7 +90,7 @@ func TestKadDHT(t *testing.T) {
 	require.ErrorIs(t, err, routing.ErrNotFound)
 
 	// connects node 1 and node 0
-	connectNoSync(t, ctx, nodes[1], nodes[0])
+	connectNoSync(ctx, t, nodes[1], nodes[0])
 
 	time.Sleep(startDHTTimeout + 1)
 

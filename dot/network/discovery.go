@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -55,9 +42,12 @@ type discovery struct {
 	ds                 *badger.Datastore
 	pid                protocol.ID
 	minPeers, maxPeers int
+	handler            PeerSetHandler
 }
 
-func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrInfo, ds *badger.Datastore, pid protocol.ID, min, max int) *discovery {
+func newDiscovery(ctx context.Context, h libp2phost.Host,
+	bootnodes []peer.AddrInfo, ds *badger.Datastore,
+	pid protocol.ID, min, max int, handler PeerSetHandler) *discovery {
 	return &discovery{
 		ctx:       ctx,
 		h:         h,
@@ -66,6 +56,7 @@ func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrI
 		pid:       pid,
 		minPeers:  min,
 		maxPeers:  max,
+		handler:   handler,
 	}
 }
 
@@ -99,7 +90,7 @@ func (d *discovery) start() error {
 		}
 	}
 
-	logger.Debug("starting DHT...", "bootnodes", d.bootnodes)
+	logger.Debugf("starting DHT with bootnodes %v...", d.bootnodes)
 
 	dhtOpts := []dual.Option{
 		dual.DHTOption(kaddht.Datastore(d.ds)),
@@ -155,13 +146,13 @@ func (d *discovery) advertise() {
 			logger.Debug("advertising ourselves in the DHT...")
 			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
-				logger.Warn("failed to bootstrap DHT", "error", err)
+				logger.Warnf("failed to bootstrap DHT: %s", err)
 				continue
 			}
 
 			ttl, err = d.rd.Advertise(d.ctx, string(d.pid))
 			if err != nil {
-				logger.Debug("failed to advertise in the DHT", "error", err)
+				logger.Debugf("failed to advertise in the DHT: %s", err)
 				ttl = tryAdvertiseTimeout
 			}
 		case <-d.ctx.Done():
@@ -193,7 +184,7 @@ func (d *discovery) findPeers(ctx context.Context) {
 	logger.Debug("attempting to find DHT peers...")
 	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid))
 	if err != nil {
-		logger.Warn("failed to begin finding peers via DHT", "err", err)
+		logger.Warnf("failed to begin finding peers via DHT: %s", err)
 		return
 	}
 
@@ -206,18 +197,27 @@ func (d *discovery) findPeers(ctx context.Context) {
 				continue
 			}
 
-			logger.Trace("found new peer via DHT", "peer", peer.ID)
+			logger.Tracef("found new peer %s via DHT", peer.ID)
+
+			// TODO: this isn't working on the devnet (#2026)
+			// can remove the code block below which directly connects
+			// once that's fixed
+			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+			d.handler.AddPeer(0, peer.ID)
 
 			// found a peer, try to connect if we need more peers
-			if len(d.h.Network().Peers()) < d.maxPeers {
-				err = d.h.Connect(d.ctx, peer)
-				if err != nil {
-					logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
-				}
-			} else {
+			if len(d.h.Network().Peers()) >= d.maxPeers {
 				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 				return
 			}
+
+			if err = d.h.Connect(d.ctx, peer); err != nil {
+				logger.Tracef("failed to connect to discovered peer %s: %s", peer.ID, err)
+			}
 		}
 	}
+}
+
+func (d *discovery) findPeer(peerID peer.ID) (peer.AddrInfo, error) {
+	return d.dht.FindPeer(d.ctx, peerID)
 }

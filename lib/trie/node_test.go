@@ -1,29 +1,18 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package trie
 
 import (
 	"bytes"
+	"math/rand"
 	"strconv"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,6 +23,16 @@ func byteArray(length int) []byte {
 		b[i] = 0xf
 	}
 	return b
+}
+
+func generateRand(size int) [][]byte {
+	rt := make([][]byte, size)
+	for i := range rt {
+		buf := make([]byte, rand.Intn(379)+1)
+		rand.Read(buf)
+		rt[i] = buf
+	}
+	return rt
 }
 
 func TestChildrenBitmap(t *testing.T) {
@@ -149,46 +148,38 @@ func TestBranchEncode(t *testing.T) {
 
 	for i, testKey := range randKeys {
 		b := &branch{key: testKey, children: [16]node{}, value: randVals[i]}
-		expected := []byte{}
+		expected := bytes.NewBuffer(nil)
 
 		header, err := b.header()
 		if err != nil {
 			t.Fatalf("Error when encoding header: %s", err)
 		}
 
-		expected = append(expected, header...)
-		expected = append(expected, nibblesToKeyLE(b.key)...)
-		expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
+		expected.Write(header)
+		expected.Write(nibblesToKeyLE(b.key))
+		expected.Write(common.Uint16ToBytes(b.childrenBitmap()))
 
-		buf := bytes.Buffer{}
-		encoder := &scale.Encoder{Writer: &buf}
-		_, err = encoder.Encode(b.value)
+		enc, err := scale.Marshal(b.value)
 		if err != nil {
 			t.Fatalf("Fail when encoding value with scale: %s", err)
 		}
 
-		expected = append(expected, buf.Bytes()...)
+		expected.Write(enc)
 
 		for _, child := range b.children {
-			if child != nil {
-				hasher := NewHasher(false)
-				defer hasher.returnToPool()
-				encChild, er := hasher.Hash(child)
-				if er != nil {
-					t.Errorf("Fail when encoding branch child: %s", er)
-				}
-				expected = append(expected, encChild[:]...)
+			if child == nil {
+				continue
 			}
+
+			err := hashNode(child, expected)
+			require.NoError(t, err)
 		}
 
-		hasher := NewHasher(false)
-		defer hasher.returnToPool()
-		res, err := hasher.encodeBranch(b)
-		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
-		} else if err != nil {
-			t.Errorf("Fail when encoding node: %s", err)
-		}
+		buffer := bytes.NewBuffer(nil)
+		const parallel = false
+		err = encodeBranch(b, buffer, parallel)
+		require.NoError(t, err)
+		assert.Equal(t, expected.Bytes(), buffer.Bytes())
 	}
 }
 
@@ -207,23 +198,17 @@ func TestLeafEncode(t *testing.T) {
 		expected = append(expected, header...)
 		expected = append(expected, nibblesToKeyLE(l.key)...)
 
-		buf := bytes.Buffer{}
-		encoder := &scale.Encoder{Writer: &buf}
-		_, err = encoder.Encode(l.value)
+		enc, err := scale.Marshal(l.value)
 		if err != nil {
 			t.Fatalf("Fail when encoding value with scale: %s", err)
 		}
 
-		expected = append(expected, buf.Bytes()...)
+		expected = append(expected, enc...)
 
-		hasher := NewHasher(false)
-		defer hasher.returnToPool()
-		res, err := hasher.encodeLeaf(l)
-		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
-		} else if err != nil {
-			t.Errorf("Fail when encoding node: %s", err)
-		}
+		buffer := bytes.NewBuffer(nil)
+		err = encodeLeaf(l, buffer)
+		require.NoError(t, err)
+		assert.Equal(t, expected, buffer.Bytes())
 	}
 }
 
@@ -240,12 +225,10 @@ func TestEncodeRoot(t *testing.T) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 
-			hasher := NewHasher(false)
-			defer hasher.returnToPool()
-			_, err := hasher.encode(trie.root)
-			if err != nil {
-				t.Errorf("Fail to encode trie root: %s", err)
-			}
+			buffer := bytes.NewBuffer(nil)
+			const parallel = false
+			err := encodeNode(trie.root, buffer, parallel)
+			require.NoError(t, err)
 		}
 	}
 }
@@ -258,7 +241,15 @@ func TestBranchDecode(t *testing.T) {
 		{key: []byte{}, children: [16]node{}, value: []byte{0x01}},
 		{key: []byte{}, children: [16]node{&leaf{}}, value: []byte{0x01}},
 		{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
-		{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		{
+			key: []byte{},
+			children: [16]node{
+				&leaf{}, nil, &leaf{}, nil,
+				nil, nil, nil, nil,
+				nil, &leaf{}, nil, &leaf{},
+			},
+			value: []byte{0x01},
+		},
 		{key: byteArray(62), children: [16]node{}, value: nil},
 		{key: byteArray(63), children: [16]node{}, value: nil},
 		{key: byteArray(64), children: [16]node{}, value: nil},
@@ -267,18 +258,16 @@ func TestBranchDecode(t *testing.T) {
 		{key: byteArray(573), children: [16]node{}, value: []byte{0x01}},
 	}
 
-	hasher := NewHasher(false)
-	defer hasher.returnToPool()
+	buffer := bytes.NewBuffer(nil)
+	const parallel = false
+
 	for _, test := range tests {
-		enc, err := hasher.encodeBranch(test)
+		err := encodeBranch(test, buffer, parallel)
 		require.NoError(t, err)
 
 		res := new(branch)
-		r := &bytes.Buffer{}
-		_, err = r.Write(enc)
-		require.NoError(t, err)
+		err = res.decode(buffer, 0)
 
-		err = res.decode(r, 0)
 		require.NoError(t, err)
 		require.Equal(t, test.key, res.key)
 		require.Equal(t, test.childrenBitmap(), res.childrenBitmap())
@@ -298,18 +287,14 @@ func TestLeafDecode(t *testing.T) {
 		{key: byteArray(573), value: []byte{0x01}, dirty: true},
 	}
 
-	hasher := NewHasher(false)
-	defer hasher.returnToPool()
+	buffer := bytes.NewBuffer(nil)
+
 	for _, test := range tests {
-		enc, err := hasher.encodeLeaf(test)
+		err := encodeLeaf(test, buffer)
 		require.NoError(t, err)
 
 		res := new(leaf)
-		r := &bytes.Buffer{}
-		_, err = r.Write(enc)
-		require.NoError(t, err)
-
-		err = res.decode(r, 0)
+		err = res.decode(buffer, 0)
 		require.NoError(t, err)
 
 		res.hash = nil
@@ -326,7 +311,14 @@ func TestDecode(t *testing.T) {
 		&branch{key: []byte{}, children: [16]node{}, value: []byte{0x01}},
 		&branch{key: []byte{}, children: [16]node{&leaf{}}, value: []byte{0x01}},
 		&branch{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
-		&branch{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		&branch{
+			key: []byte{},
+			children: [16]node{
+				&leaf{}, nil, &leaf{}, nil,
+				nil, nil, nil, nil,
+				nil, &leaf{}, nil, &leaf{}},
+			value: []byte{0x01},
+		},
 		&leaf{key: []byte{}, value: nil},
 		&leaf{key: []byte{0x00}, value: nil},
 		&leaf{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil},
@@ -337,17 +329,14 @@ func TestDecode(t *testing.T) {
 		&leaf{key: byteArray(573), value: []byte{0x01}},
 	}
 
-	hasher := NewHasher(false)
-	defer hasher.returnToPool()
+	buffer := bytes.NewBuffer(nil)
+	const parallel = false
+
 	for _, test := range tests {
-		enc, err := hasher.encode(test)
+		err := encodeNode(test, buffer, parallel)
 		require.NoError(t, err)
 
-		r := &bytes.Buffer{}
-		_, err = r.Write(enc)
-		require.NoError(t, err)
-
-		res, err := decode(r)
+		res, err := decode(buffer)
 		require.NoError(t, err)
 
 		switch n := test.(type) {

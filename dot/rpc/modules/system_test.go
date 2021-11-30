@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package modules
 
@@ -25,11 +12,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/dot/core"
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -38,13 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
 var (
@@ -53,7 +40,7 @@ var (
 		IsSyncing:       true,
 		ShouldHavePeers: true,
 	}
-	testPeers = []common.PeerInfo{}
+	testPeers []common.PeerInfo
 )
 
 func newNetworkService(t *testing.T) *network.Service {
@@ -64,6 +51,7 @@ func newNetworkService(t *testing.T) *network.Service {
 		BasePath:           testDir,
 		Syncer:             network.NewMockSyncer(),
 		TransactionHandler: network.NewMockTransactionHandler(),
+		SlotDuration:       time.Second,
 	}
 
 	srv, err := network.NewService(cfg)
@@ -88,17 +76,15 @@ func newNetworkService(t *testing.T) *network.Service {
 
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
-	net := newNetworkService(t)
-	net.Stop()
-	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
+	networkMock := new(mocks.NetworkAPI)
+	networkMock.On("Health").Return(testHealth)
+
+	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
 	require.NoError(t, err)
-
-	if *res != SystemHealthResponse(testHealth) {
-		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, *res)
-	}
+	require.Equal(t, SystemHealthResponse(testHealth), *res)
 }
 
 // Test RPC's System.NetworkState() response
@@ -154,8 +140,8 @@ var testGenesisData = &genesis.Data{
 	ChainType: "Local",
 }
 
-func newMockSystemAPI() *mocks.MockSystemAPI {
-	sysapimock := new(mocks.MockSystemAPI)
+func newMockSystemAPI() *mocks.SystemAPI {
+	sysapimock := new(mocks.SystemAPI)
 	sysapimock.On("SystemName").Return(testSystemInfo.SystemName)
 	sysapimock.On("SystemVersion").Return(testSystemInfo.SystemVersion)
 	sysapimock.On("ChainName").Return(testGenesisData.Name)
@@ -307,17 +293,16 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	err = chain.Block.AddBlock(&types.Block{
-		Header: &types.Header{
-			Number:     big.NewInt(1),
+		Header: types.Header{
+			Number:     big.NewInt(3),
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	})
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	// TODO (ed) add transactions to txQueue and add test for those
 	txQueue := state.NewTransactionState()
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil)
 }
@@ -325,7 +310,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.Info)
 	ks := keystore.NewGlobalKeystore()
 	t.Cleanup(func() {
 		rt.Stop()
@@ -340,7 +325,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		srvc = newTestStateService(t)
 	}
 
-	mocknet := new(coremocks.MockNetwork)
+	mocknet := new(coremocks.Network)
 	mocknet.On("GossipMessage", mock.AnythingOfType("network.NotificationsMessage"))
 
 	cfg := &core.Config{
@@ -367,7 +352,7 @@ func TestSyncState(t *testing.T) {
 	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
 
-	netapiMock := new(mocks.MockNetworkAPI)
+	netapiMock := new(mocks.NetworkAPI)
 	netapiMock.On("HighestBlock").Return(int64(90))
 	netapiMock.On("StartingBlock").Return(int64(10))
 
@@ -401,7 +386,7 @@ func TestLocalListenAddresses(t *testing.T) {
 		Multiaddrs: []multiaddr.Multiaddr{ma},
 	}
 
-	mockNetAPI := new(mocks.MockNetworkAPI)
+	mockNetAPI := new(mocks.NetworkAPI)
 	mockNetAPI.On("NetworkState").Return(mockedNetState).Once()
 
 	res := make([]string, 0)
@@ -428,7 +413,7 @@ func TestLocalPeerId(t *testing.T) {
 		PeerID: peerID,
 	}
 
-	mocknetAPI := new(mocks.MockNetworkAPI)
+	mocknetAPI := new(mocks.NetworkAPI)
 	mocknetAPI.On("NetworkState").Return(state).Once()
 
 	sysmodules := new(SystemModule)
@@ -448,7 +433,7 @@ func TestLocalPeerId(t *testing.T) {
 
 func TestAddReservedPeer(t *testing.T) {
 	t.Run("Test Add and Remove reserved peers with success", func(t *testing.T) {
-		networkMock := new(mocks.MockNetworkAPI)
+		networkMock := new(mocks.NetworkAPI)
 		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
 		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
 
@@ -469,7 +454,7 @@ func TestAddReservedPeer(t *testing.T) {
 	})
 
 	t.Run("Test Add and Remove reserved peers without success", func(t *testing.T) {
-		networkMock := new(mocks.MockNetworkAPI)
+		networkMock := new(mocks.NetworkAPI)
 		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("some problems")).Once()
 		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("other problems")).Once()
 

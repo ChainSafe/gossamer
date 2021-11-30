@@ -1,24 +1,12 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package kusama
 
 import (
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	log "github.com/ChainSafe/log15"
 )
 
 var (
@@ -37,12 +25,15 @@ var (
 	DefaultMetricsPort = uint32(9876)
 
 	// DefaultLvl is the default log level
-	DefaultLvl = log.LvlInfo
+	DefaultLvl = log.Info
 
 	// DefaultPruningMode is the default pruning mode
 	DefaultPruningMode = "archive"
 	// DefaultRetainBlocks is the default retained blocks
 	DefaultRetainBlocks = int64(512)
+
+	// DefaultTelemetryURLs is the default URL of the telemetry server to connect to.
+	DefaultTelemetryURLs []genesis.TelemetryEndpoint
 
 	// InitConfig
 
@@ -68,7 +59,7 @@ var (
 	// NetworkConfig
 
 	// DefaultNetworkPort network port
-	DefaultNetworkPort = uint32(7001)
+	DefaultNetworkPort = uint16(7001)
 	// DefaultNetworkBootnodes network bootnodes
 	DefaultNetworkBootnodes = []string(nil)
 	// DefaultNoBootstrap disables bootstrap
@@ -83,7 +74,30 @@ var (
 	// DefaultRPCHTTPPort rpc port
 	DefaultRPCHTTPPort = uint32(8545)
 	// DefaultRPCModules rpc modules
-	DefaultRPCModules = []string{"system", "author", "chain", "state", "rpc", "grandpa"}
+	DefaultRPCModules = []string{
+		"system", "author", "chain",
+		"state", "rpc", "grandpa",
+		"offchain", "childstate", "syncstate",
+		"payment",
+	}
 	// DefaultRPCWSPort rpc websocket port
 	DefaultRPCWSPort = uint32(8546)
+)
+
+const (
+	// PprofConfig
+
+	// DefaultPprofEnabled to indicate the pprof http server should be enabled or not.
+	DefaultPprofEnabled = false
+
+	// DefaultPprofListeningAddress default pprof HTTP server listening address.
+	DefaultPprofListeningAddress = "localhost:6060"
+
+	// DefaultPprofBlockRate default block profile rate.
+	// Set to 0 to disable profiling.
+	DefaultPprofBlockRate = 0
+
+	// DefaultPprofMutexRate default mutex profile rate.
+	// Set to 0 to disable profiling.
+	DefaultPprofMutexRate = 0
 )

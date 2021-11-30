@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package core
 
@@ -21,7 +8,11 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/ChainSafe/gossamer/dot/core/mocks" // nolint
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
@@ -31,11 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
-
-	"github.com/stretchr/testify/require"
 )
 
 func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
@@ -79,10 +65,8 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	return extBytes
 }
 
-func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
-	// TODO: move to sync package
-	net := new(MockNetwork) // nolint
-
+func TestService_HandleBlockProduced(t *testing.T) {
+	net := new(mocks.Network)
 	cfg := &Config{
 		Network:  net,
 		Keystore: keystore.NewGlobalKeystore(),
@@ -93,13 +77,19 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	// simulate block sent from BABE session
-	newBlock := &types.Block{
-		Header: &types.Header{
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
+	newBlock := types.Block{
+		Header: types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: s.blockState.BestBlockHash(),
-			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
+			Digest:     digest,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
 	expected := &network.BlockAnnounceMessage{
@@ -107,7 +97,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 		Number:         newBlock.Header.Number,
 		StateRoot:      newBlock.Header.StateRoot,
 		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
-		Digest:         newBlock.Header.Digest,
+		Digest:         digest,
 		BestBlock:      true,
 	}
 
@@ -116,7 +106,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	err = s.HandleBlockProduced(newBlock, state)
+	err = s.HandleBlockProduced(&newBlock, state)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -124,15 +114,15 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 }
 
 func TestService_HandleTransactionMessage(t *testing.T) {
+	t.Parallel()
+
+	const peer1 = "testPeer1"
+
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
-
-	bp := new(MockBlockProducer) // nolint
-	blockC := make(chan types.Block)
-	bp.On("GetBlockChannel", nil).Return(blockC)
 
 	cfg := &Config{
 		Keystore:         ks,
@@ -158,7 +148,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	extBytes := createExtrinsic(t, rt, genHash, 0)
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	b, err := s.HandleTransactionMessage(msg)
+	b, err := s.HandleTransactionMessage(peer1, msg)
 	require.NoError(t, err)
 	require.True(t, b)
 
@@ -168,7 +158,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	extBytes = []byte(`bogus extrinsic`)
 	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	b, err = s.HandleTransactionMessage(msg)
+	b, err = s.HandleTransactionMessage(peer1, msg)
 	require.NoError(t, err)
 	require.False(t, b)
 }

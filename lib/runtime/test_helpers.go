@@ -1,28 +1,16 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package runtime
 
 import (
+	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,8 +23,7 @@ import (
 
 // NewInMemoryDB creates a new in-memory database
 func NewInMemoryDB(t *testing.T) chaindb.Database {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir:  testDatadirPath,
@@ -57,6 +44,8 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 		return GetAbsolutePath(NODE_RUNTIME_FP), NODE_RUNTIME_URL
 	case NODE_RUNTIME_v098:
 		return GetAbsolutePath(NODE_RUNTIME_FP_v098), NODE_RUNTIME_URL_v098
+	case POLKADOT_RUNTIME_v0910:
+		return GetAbsolutePath(POLKADOT_RUNTIME_FP_v0910), POLKADOT_RUNTIME_URL_v0910
 	case POLKADOT_RUNTIME:
 		return GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
 	case HOST_API_TEST_RUNTIME:
@@ -78,37 +67,41 @@ func GetAbsolutePath(targetDir string) string {
 }
 
 // GetRuntimeBlob checks if the test wasm @testRuntimeFilePath exists and if not, it fetches it from @testRuntimeURL
-func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err error) {
+func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
 	if utils.PathExists(testRuntimeFilePath) {
-		return 0, nil
+		return nil
 	}
 
-	out, err := os.Create(testRuntimeFilePath)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, testRuntimeURL, nil)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	defer func() {
-		_ = out.Close()
-	}()
 
-	/* #nosec */
-	resp, err := http.Get(testRuntimeURL)
+	const runtimeReqTimout = time.Second * 30
+
+	httpcli := http.Client{Timeout: runtimeReqTimout}
+	resp, err := httpcli.Do(req)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
 
-	n, err = io.Copy(out, resp.Body)
-	return n, err
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	return os.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
 }
 
 // TestRuntimeNetwork ...
 type TestRuntimeNetwork struct{}
 
 // NetworkState ...
-func (trn *TestRuntimeNetwork) NetworkState() common.NetworkState {
+func (*TestRuntimeNetwork) NetworkState() common.NetworkState {
 	testAddrs := []ma.Multiaddr(nil)
 
 	// create mock multiaddress
@@ -148,11 +141,12 @@ func GenerateRuntimeWasmFile() ([]string, error) {
 	var wasmFilePaths []string
 	for _, rt := range runtimes {
 		testRuntimeFilePath, testRuntimeURL := GetRuntimeVars(rt)
-		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
-		_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+		err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 		if err != nil {
 			return nil, err
 		}
+
+		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
 	}
 	return wasmFilePaths, nil
 }

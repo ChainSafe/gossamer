@@ -9,7 +9,7 @@ jobs:
     name: Deploy docs
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main 
+      - name: Checkout main
         uses: actions/checkout@v2
 
       - name: Deploy docs

@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package toml
 
@@ -25,6 +12,7 @@ type Config struct {
 	Core    CoreConfig    `toml:"core,omitempty"`
 	Network NetworkConfig `toml:"network,omitempty"`
 	RPC     RPCConfig     `toml:"rpc,omitempty"`
+	Pprof   PprofConfig   `toml:"pprof,omitempty"`
 }
 
 // GlobalConfig is to marshal/unmarshal toml global config vars
@@ -63,7 +51,7 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port              uint32   `toml:"port,omitempty"`
+	Port              uint16   `toml:"port,omitempty"`
 	Bootnodes         []string `toml:"bootnodes,omitempty"`
 	ProtocolID        string   `toml:"protocol,omitempty"`
 	NoBootstrap       bool     `toml:"nobootstrap,omitempty"`
@@ -72,6 +60,7 @@ type NetworkConfig struct {
 	MaxPeers          int      `toml:"max-peers,omitempty"`
 	PersistentPeers   []string `toml:"persistent-peers,omitempty"`
 	DiscoveryInterval int      `toml:"discovery-interval,omitempty"`
+	PublicIP          string   `toml:"public-ip,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -82,6 +71,8 @@ type CoreConfig struct {
 	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
 	EpochLength      uint64 `toml:"epoch-length,omitempty"`
 	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
+	GrandpaInterval  uint32 `toml:"grandpa-interval,omitempty"`
+	BABELead         bool   `toml:"babe-lead,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -98,4 +89,12 @@ type RPCConfig struct {
 	WSExternal       bool     `toml:"ws-external,omitempty"`
 	WSUnsafe         bool     `toml:"ws-unsafe,omitempty"`
 	WSUnsafeExternal bool     `toml:"ws-unsafe-external,omitempty"`
+}
+
+// PprofConfig contains the configuration for Pprof.
+type PprofConfig struct {
+	Enabled          bool   `toml:"enabled,omitempty"`
+	ListeningAddress string `toml:"listening-address,omitempty"`
+	BlockRate        int    `toml:"block-rate,omitempty"`
+	MutexRate        int    `toml:"mutex-rate,omitempty"`
 }

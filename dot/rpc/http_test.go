@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package rpc
 
@@ -21,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"testing"
@@ -37,6 +23,31 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRegisterModules(t *testing.T) {
+	rpcapiMocks := new(mocks.RPCAPI)
+
+	mods := []string{
+		"system", "author", "chain",
+		"state", "rpc", "grandpa",
+		"offchain", "childstate", "syncstate",
+	}
+
+	for _, modName := range mods {
+		rpcapiMocks.On("BuildMethodNames", mock.Anything, modName).Once()
+	}
+
+	cfg := &HTTPServerConfig{
+		Modules: mods,
+		RPCAPI:  rpcapiMocks,
+	}
+
+	NewHTTPServer(cfg)
+
+	for _, modName := range mods {
+		rpcapiMocks.AssertCalled(t, "BuildMethodNames", mock.Anything, modName)
+	}
+}
 
 func TestNewHTTPServer(t *testing.T) {
 	coreAPI := core.NewTestService(t, nil)
@@ -104,7 +115,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 func TestUnsafeRPCProtection(t *testing.T) {
 	cfg := &HTTPServerConfig{
-		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev"},
+		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev", "syncstate"},
 		RPCPort:           7878,
 		RPCAPI:            NewService(),
 		RPCUnsafe:         false,
@@ -127,8 +138,15 @@ func TestUnsafeRPCProtection(t *testing.T) {
 			require.NoError(t, err)
 
 			_, resBody := PostRequest(t, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
-			expected := fmt.Sprintf(
-				`{"jsonrpc":"2.0","error":{"code":-32000,"message":"unsafe rpc method %s cannot be reachable","data":null},"id":1}`+"\n",
+			expected := fmt.Sprintf(`{`+
+				`"jsonrpc":"2.0",`+
+				`"error":{`+
+				`"code":-32000,`+
+				`"message":"unsafe rpc method %s cannot be reachable",`+
+				`"data":null`+
+				`},`+
+				`"id":1`+
+				`}`+"\n",
 				unsafe,
 			)
 
@@ -146,7 +164,7 @@ func TestRPCUnsafeExpose(t *testing.T) {
 	_, err := buf.Write(data)
 	require.NoError(t, err)
 
-	netmock := new(mocks.MockNetworkAPI)
+	netmock := new(mocks.NetworkAPI)
 	netmock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
 
 	cfg := &HTTPServerConfig{
@@ -183,7 +201,7 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	_, err := buf.Write(data)
 	require.NoError(t, err)
 
-	netmock := new(mocks.MockNetworkAPI)
+	netmock := new(mocks.NetworkAPI)
 	netmock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
 
 	cfg := &HTTPServerConfig{
@@ -205,7 +223,15 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	require.NoError(t, err)
 
 	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:7880/", ip), buf)
-	expected := `{"jsonrpc":"2.0","error":{"code":-32000,"message":"external HTTP request refused","data":null},"id":1}` + "\n"
+	expected := `{` +
+		`"jsonrpc":"2.0",` +
+		`"error":{` +
+		`"code":-32000,` +
+		`"message":"external HTTP request refused",` +
+		`"data":null` +
+		`},` +
+		`"id":1` +
+		`}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
 
@@ -223,7 +249,7 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	safebuf := new(bytes.Buffer)
 	safebuf.Write(safeData)
 
-	netmock := new(mocks.MockNetworkAPI)
+	netmock := new(mocks.NetworkAPI)
 	netmock.On("NetworkState").Return(common.NetworkState{
 		PeerID: "peer id",
 	})
@@ -255,7 +281,15 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 
 	// unsafe method should not be ok
 	_, resBody = PostRequest(t, fmt.Sprintf("http://%s:%v/", ip, httpServerConfig.RPCPort), unsafebuf)
-	expected = `{"jsonrpc":"2.0","error":{"code":-32000,"message":"external HTTP request refused","data":null},"id":1}` + "\n"
+	expected = `{` +
+		`"jsonrpc":"2.0",` +
+		`"error":{` +
+		`"code":-32000,` +
+		`"message":"external HTTP request refused",` +
+		`"data":null` +
+		`},` +
+		`"id":1` +
+		`}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
 
@@ -271,7 +305,7 @@ func PostRequest(t *testing.T, url string, data io.Reader) (int, []byte) {
 
 	defer res.Body.Close()
 
-	resBody, err := ioutil.ReadAll(res.Body)
+	resBody, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 
 	responseData := new(bytes.Buffer)

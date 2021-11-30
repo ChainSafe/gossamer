@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package subscription
 
@@ -21,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -29,10 +16,9 @@ import (
 	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
@@ -42,10 +28,7 @@ type httpclient interface {
 
 var errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
 var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
-var logger = log.New("pkg", "rpc/subscription")
-
-// DEFAULT_BUFFER_SIZE buffer size for channels
-const DEFAULT_BUFFER_SIZE = 100
+var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
@@ -59,26 +42,25 @@ type WSConn struct {
 	CoreAPI       modules.CoreAPI
 	TxStateAPI    modules.TransactionStateAPI
 	RPCHost       string
-
-	HTTP httpclient
+	HTTP          httpclient
 }
 
 // readWebsocketMessage will read and parse the message data to a string->interface{} data
 func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) {
 	_, mbytes, err := c.Wsconn.ReadMessage()
 	if err != nil {
-		logger.Debug("websocket failed to read message", "error", err)
+		logger.Debugf("websocket failed to read message: %s", err)
 		return nil, nil, errCannotReadFromWebsocket
 	}
 
-	logger.Trace("websocket received", "message", mbytes)
+	logger.Tracef("websocket message received: %s", string(mbytes))
 
 	// determine if request is for subscribe method type
 	var msg map[string]interface{}
 	err = json.Unmarshal(mbytes, &msg)
 
 	if err != nil {
-		logger.Debug("websocket failed to unmarshal request message", "error", err)
+		logger.Debugf("websocket failed to unmarshal request message: %s", err)
 		return nil, nil, errCannotUnmarshalMessage
 	}
 
@@ -102,19 +84,19 @@ func (c *WSConn) HandleComm() {
 		reqid := msg["id"].(float64)
 		method := msg["method"].(string)
 
-		logger.Debug("ws method called", "method", method, "params", params)
+		logger.Debugf("ws method %s called with params %v", method, params)
 
 		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
-			setup := c.getSetupListener(method)
+			setupListener := c.getSetupListener(method)
 
-			if setup == nil {
+			if setupListener == nil {
 				c.executeRPCCall(mbytes)
 				continue
 			}
 
-			listener, err := setup(reqid, params) //nolint
+			listener, err := setupListener(reqid, params)
 			if err != nil {
-				logger.Warn("failed to create listener", "method", method, "error", err)
+				logger.Warnf("failed to create listener (method=%s): %s", method, err)
 				continue
 			}
 
@@ -122,10 +104,10 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		listener, err := c.getUnsubListener(params) //nolint
+		listener, err := c.getUnsubListener(params)
 
 		if err != nil {
-			logger.Warn("failed to get unsubscriber", "method", method, "error", err)
+			logger.Warnf("failed to get unsubscriber (method=%s): %s", method, err)
 
 			if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
 				c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
@@ -140,7 +122,7 @@ func (c *WSConn) HandleComm() {
 
 		err = listener.Stop()
 		if err != nil {
-			logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
+			logger.Warnf("failed to stop listener goroutine (method=%s): %s", method, err)
 			c.safeSend(newBooleanResponseJSON(false, reqid))
 		}
 
@@ -152,14 +134,14 @@ func (c *WSConn) HandleComm() {
 func (c *WSConn) executeRPCCall(data []byte) {
 	request, err := c.prepareRequest(data)
 	if err != nil {
-		logger.Warn("failed while preparing the request", "error", err)
+		logger.Warnf("failed while preparing the request: %s", err)
 		return
 	}
 
 	var wsresponse interface{}
 	err = c.executeRequest(request, &wsresponse)
 	if err != nil {
-		logger.Warn("problems while executing the request", "error", err)
+		logger.Warnf("problems while executing the request: %s", err)
 		return
 	}
 
@@ -213,25 +195,14 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 }
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
-	bl := &BlockListener{
-		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:        c,
-		cancel:        make(chan struct{}, 1),
-		cancelTimeout: defaultCancelTimeout,
-		done:          make(chan struct{}, 1),
-	}
+	bl := NewBlockListener(c)
 
 	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	var err error
-	bl.ChanID, err = c.BlockAPI.RegisterImportedChannel(bl.Channel)
-
-	if err != nil {
-		return nil, err
-	}
+	bl.Channel = c.BlockAPI.GetImportedBlockNotifierChannel()
 
 	c.mu.Lock()
 
@@ -246,8 +217,7 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 }
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
-	bfl := &BlockFinalizedListener{
-		channel:       make(chan *types.FinalisationInfo),
+	blockFinalizedListener := &BlockFinalizedListener{
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
@@ -259,76 +229,88 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Liste
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	var err error
-	bfl.chanID, err = c.BlockAPI.RegisterFinalizedChannel(bfl.channel)
-	if err != nil {
-		return nil, err
-	}
+	blockFinalizedListener.channel = c.BlockAPI.GetFinalisedNotifierChannel()
 
 	c.mu.Lock()
 
-	bfl.subID = atomic.AddUint32(&c.qtyListeners, 1)
-	c.Subscriptions[bfl.subID] = bfl
+	blockFinalizedListener.subID = atomic.AddUint32(&c.qtyListeners, 1)
+	c.Subscriptions[blockFinalizedListener.subID] = blockFinalizedListener
 
 	c.mu.Unlock()
 
-	initRes := NewSubscriptionResponseJSON(bfl.subID, reqID)
+	initRes := NewSubscriptionResponseJSON(blockFinalizedListener.subID, reqID)
 	c.safeSend(initRes)
 
-	return bfl, nil
+	return blockFinalizedListener, nil
+}
+
+func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener, error) {
+	listener := newAllBlockListener(c)
+
+	if c.BlockAPI == nil {
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
+		return nil, fmt.Errorf("error BlockAPI not set")
+	}
+
+	listener.importedChan = c.BlockAPI.GetImportedBlockNotifierChannel()
+	listener.finalizedChan = c.BlockAPI.GetFinalisedNotifierChannel()
+
+	c.mu.Lock()
+	listener.subID = atomic.AddUint32(&c.qtyListeners, 1)
+	c.Subscriptions[listener.subID] = listener
+	c.mu.Unlock()
+
+	c.safeSend(NewSubscriptionResponseJSON(listener.subID, reqID))
+	return listener, nil
 }
 
 func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener, error) {
 	pA := params.([]interface{})
+
+	if len(pA) != 1 {
+		return nil, errors.New("expecting only one parameter")
+	}
+
+	// The passed parameter should be a HEX of a SCALE encoded extrinsic
 	extBytes, err := common.HexToBytes(pA[0].(string))
 	if err != nil {
 		return nil, err
 	}
 
-	// listen for built blocks
-	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:        c,
-		extrinsic:     types.Extrinsic(extBytes),
-		finalisedChan: make(chan *types.FinalisationInfo),
-		cancel:        make(chan struct{}, 1),
-		done:          make(chan struct{}, 1),
-		cancelTimeout: defaultCancelTimeout,
-	}
-
 	if c.BlockAPI == nil {
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
-	esl.importedChanID, err = c.BlockAPI.RegisterImportedChannel(esl.importedChan)
-	if err != nil {
-		return nil, err
-	}
 
-	esl.finalisedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalisedChan)
-	if err != nil {
-		return nil, err
-	}
+	txStatusChan := c.TxStateAPI.GetStatusNotifierChannel(extBytes)
+	importedChan := c.BlockAPI.GetImportedBlockNotifierChannel()
+	finalizedChan := c.BlockAPI.GetFinalisedNotifierChannel()
+
+	extSubmitListener := NewExtrinsicSubmitListener(
+		c,
+		extBytes,
+		importedChan,
+		txStatusChan,
+		finalizedChan,
+	)
 
 	c.mu.Lock()
-
-	esl.subID = atomic.AddUint32(&c.qtyListeners, 1)
-	c.Subscriptions[esl.subID] = esl
-
+	extSubmitListener.subID = atomic.AddUint32(&c.qtyListeners, 1)
+	c.Subscriptions[extSubmitListener.subID] = extSubmitListener
 	c.mu.Unlock()
 
 	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
-	if err != nil {
+	if errors.Is(err, runtime.ErrInvalidTransaction) || errors.Is(err, runtime.ErrUnknownTransaction) {
+		c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, extSubmitListener.subID, "invalid"))
+		return nil, err
+	} else if err != nil {
 		c.safeSendError(reqID, nil, err.Error())
 		return nil, err
 	}
-	c.safeSend(NewSubscriptionResponseJSON(esl.subID, reqID))
 
-	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
-	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
-	c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, "ready"))
+	c.safeSend(NewSubscriptionResponseJSON(extSubmitListener.subID, reqID))
 
-	// todo (ed) determine which peer extrinsic has been broadcast to, and set status
-	return esl, err
+	// todo (ed) determine which peer extrinsic has been broadcast to, and set status (#1535)
+	return extSubmitListener, err
 }
 
 func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Listener, error) {
@@ -372,15 +354,10 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		wsconn:        c,
-		finalisedCh:   make(chan *types.FinalisationInfo, 1),
 		cancelTimeout: defaultCancelTimeout,
 	}
 
-	var err error
-	jl.finalisedChID, err = c.BlockAPI.RegisterFinalizedChannel(jl.finalisedCh)
-	if err != nil {
-		return nil, err
-	}
+	jl.finalisedCh = c.BlockAPI.GetFinalisedNotifierChannel()
 
 	c.mu.Lock()
 
@@ -399,7 +376,7 @@ func (c *WSConn) safeSend(msg interface{}) {
 	defer c.mu.Unlock()
 	err := c.Wsconn.WriteJSON(msg)
 	if err != nil {
-		logger.Debug("error sending websocket message", "error", err)
+		logger.Debugf("error sending websocket message: %s", err)
 	}
 }
 
@@ -416,20 +393,20 @@ func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string
 	defer c.mu.Unlock()
 	err := c.Wsconn.WriteJSON(res)
 	if err != nil {
-		logger.Debug("error sending websocket message", "error", err)
+		logger.Debugf("error sending websocket message: %s", err)
 	}
 }
 
 func (c *WSConn) prepareRequest(b []byte) (*http.Request, error) {
 	buff := &bytes.Buffer{}
 	if _, err := buff.Write(b); err != nil {
-		logger.Warn("failed to write message to buffer", "error", buff)
+		logger.Warnf("failed to write message to buffer: %s", err)
 		return nil, err
 	}
 
 	req, err := http.NewRequest("POST", c.RPCHost, buff)
 	if err != nil {
-		logger.Warn("failed request to rpc service", "error", err)
+		logger.Warnf("failed request to rpc service: %s", err)
 		return nil, err
 	}
 
@@ -440,26 +417,26 @@ func (c *WSConn) prepareRequest(b []byte) (*http.Request, error) {
 func (c *WSConn) executeRequest(r *http.Request, d interface{}) error {
 	res, err := c.HTTP.Do(r)
 	if err != nil {
-		logger.Warn("websocket error calling rpc", "error", err)
+		logger.Warnf("websocket error calling rpc: %s", err)
 		return err
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		logger.Warn("error reading response body", "error", err)
+		logger.Warnf("error reading response body: %s", err)
 		return err
 	}
 
 	err = res.Body.Close()
 	if err != nil {
-		logger.Warn("error closing response body", "error", err)
+		logger.Warnf("error closing response body: %s", err)
 		return err
 	}
 
 	err = json.Unmarshal(body, d)
 
 	if err != nil {
-		logger.Warn("error unmarshal rpc response", "error", err)
+		logger.Warnf("error unmarshal rpc response: %s", err)
 		return err
 	}
 

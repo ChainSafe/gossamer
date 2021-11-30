@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package scale
 
@@ -204,7 +191,8 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 }
 
 // encodeBigInt performs the same encoding as encodeInteger, except on a big.Int.
-// if 2^30 <= n < 2^536 write [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
+// if 2^30 <= n < 2^536 write
+// [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
 // [append i as a byte array to the first byte]
 func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 	switch {
@@ -283,8 +271,9 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 	return
 }
 
-// encodeStruct reads the number of fields in the struct and their types and writes to the buffer each of the struct fields
-// encoded as their respective types
+// encodeStruct reads the number of fields in the struct and their types
+// and writes to the buffer each of the struct fields encoded
+// as their respective types
 func (es *encodeState) encodeStruct(in interface{}) (err error) {
 	v, indices, err := es.fieldScaleIndices(in)
 	if err != nil {

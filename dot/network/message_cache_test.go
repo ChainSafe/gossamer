@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package network
 
 import (
@@ -30,14 +33,14 @@ func TestMessageCache(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         types.Digest{},
+		Digest:         types.NewDigest(),
 	}
 
 	ok, err := msgCache.put(peerID, msg)
 	require.NoError(t, err)
 	require.True(t, ok)
 
-	time.Sleep(750 * time.Millisecond)
+	time.Sleep(time.Millisecond * 500)
 
 	ok = msgCache.exists(peerID, msg)
 	require.True(t, ok)

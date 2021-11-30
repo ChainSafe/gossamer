@@ -1,30 +1,16 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -40,17 +26,17 @@ type BlockAnnounceMessage struct {
 	Number         *big.Int
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
-	Digest         types.Digest
+	Digest         scale.VaryingDataTypeSlice
 	BestBlock      bool
 }
 
 // SubProtocol returns the block-announces sub-protocol
-func (bm *BlockAnnounceMessage) SubProtocol() string {
+func (*BlockAnnounceMessage) SubProtocol() string {
 	return blockAnnounceID
 }
 
 // Type returns BlockAnnounceMsgType
-func (bm *BlockAnnounceMessage) Type() byte {
+func (*BlockAnnounceMessage) Type() byte {
 	return BlockAnnounceMsgType
 }
 
@@ -66,7 +52,7 @@ func (bm *BlockAnnounceMessage) String() string {
 
 // Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
 func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
-	enc, err := scale.Encode(bm)
+	enc, err := scale.Marshal(*bm)
 	if err != nil {
 		return enc, err
 	}
@@ -75,24 +61,10 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 
 // Decode the message into a BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Decode(in []byte) error {
-	r := &bytes.Buffer{}
-	_, _ = r.Write(in)
-	h, err := types.NewEmptyHeader().Decode(r)
+	err := scale.Unmarshal(in, bm)
 	if err != nil {
 		return err
 	}
-
-	bm.ParentHash = h.ParentHash
-	bm.Number = h.Number
-	bm.StateRoot = h.StateRoot
-	bm.ExtrinsicsRoot = h.ExtrinsicsRoot
-	bm.Digest = h.Digest
-	bestBlock, err := common.ReadByte(r)
-	if err != nil {
-		return err
-	}
-
-	bm.BestBlock = bestBlock == 1
 	return nil
 }
 
@@ -105,27 +77,31 @@ func (bm *BlockAnnounceMessage) Hash() common.Hash {
 }
 
 // IsHandshake returns false
-func (bm *BlockAnnounceMessage) IsHandshake() bool {
+func (*BlockAnnounceMessage) IsHandshake() bool {
 	return false
 }
 
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
-	hs, err := scale.Decode(in, new(BlockAnnounceHandshake))
+	hs := BlockAnnounceHandshake{}
+	err := scale.Unmarshal(in, &hs)
 	if err != nil {
 		return nil, err
 	}
 
-	return hs.(*BlockAnnounceHandshake), err
+	return &hs, err
 }
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
-	msg := new(BlockAnnounceMessage)
+	msg := BlockAnnounceMessage{
+		Number: big.NewInt(0),
+		Digest: types.NewDigest(),
+	}
 	err := msg.Decode(in)
 	if err != nil {
 		return nil, err
 	}
 
-	return msg, nil
+	return &msg, nil
 }
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
@@ -137,7 +113,7 @@ type BlockAnnounceHandshake struct {
 }
 
 // SubProtocol returns the block-announces sub-protocol
-func (hs *BlockAnnounceHandshake) SubProtocol() string {
+func (*BlockAnnounceHandshake) SubProtocol() string {
 	return blockAnnounceID
 }
 
@@ -152,35 +128,30 @@ func (hs *BlockAnnounceHandshake) String() string {
 
 // Encode encodes a BlockAnnounceHandshake message using SCALE
 func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
-	return scale.Encode(hs)
+	return scale.Marshal(*hs)
 }
 
 // Decode the message into a BlockAnnounceHandshake
 func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
-	msg, err := scale.Decode(in, hs)
+	err := scale.Unmarshal(in, hs)
 	if err != nil {
 		return err
 	}
-
-	hs.Roles = msg.(*BlockAnnounceHandshake).Roles
-	hs.BestBlockNumber = msg.(*BlockAnnounceHandshake).BestBlockNumber
-	hs.BestBlockHash = msg.(*BlockAnnounceHandshake).BestBlockHash
-	hs.GenesisHash = msg.(*BlockAnnounceHandshake).GenesisHash
 	return nil
 }
 
 // Type ...
-func (hs *BlockAnnounceHandshake) Type() byte {
+func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
 // Hash ...
-func (hs *BlockAnnounceHandshake) Hash() common.Hash {
+func (*BlockAnnounceHandshake) Hash() common.Hash {
 	return common.Hash{}
 }
 
 // IsHandshake returns true
-func (hs *BlockAnnounceHandshake) IsHandshake() bool {
+func (*BlockAnnounceHandshake) IsHandshake() bool {
 	return true
 }
 
@@ -198,13 +169,9 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 	}, nil
 }
 
-func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) error {
-	var (
-		bhs *BlockAnnounceHandshake
-		ok  bool
-	)
-
-	if bhs, ok = hs.(*BlockAnnounceHandshake); !ok {
+func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) error {
+	bhs, ok := hs.(*BlockAnnounceHandshake)
+	if !ok {
 		return errors.New("invalid handshake type")
 	}
 
@@ -220,12 +187,10 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	// don't need to lock here, since function is always called inside the func returned by
 	// `createNotificationsMessageHandler` which locks the map beforehand.
-	data, ok := np.getHandshakeData(peer, true)
+	data, ok := np.getInboundHandshakeData(from)
 	if ok {
 		data.handshake = hs
-		// TODO: since this is used only for rpc system_peers only,
-		// we can just set the inbound handshake and use that in Peers()
-		np.inboundHandshakeData.Store(peer, data)
+		np.inboundHandshakeData.Store(from, data)
 	}
 
 	// if peer has higher best block than us, begin syncing
@@ -241,21 +206,20 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return nil
 	}
 
-	go s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
-
-	return nil
+	return s.syncer.HandleBlockAnnounceHandshake(from, bhs)
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
-func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) (propagate bool, err error) {
-	if an, ok := msg.(*BlockAnnounceMessage); ok {
-		s.syncQueue.handleBlockAnnounce(an, peer)
-		err = s.syncer.HandleBlockAnnounce(an)
-		if err != nil {
-			return false, err
-		}
+func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMessage) (propagate bool, err error) {
+	bam, ok := msg.(*BlockAnnounceMessage)
+	if !ok {
+		return false, errors.New("invalid message")
+	}
+
+	if err = s.syncer.HandleBlockAnnounce(from, bam); err != nil {
+		return false, err
 	}
 
 	return true, nil

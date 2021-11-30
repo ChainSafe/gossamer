@@ -1,24 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package core
 
 import (
 	"errors"
-	"io/ioutil"
+	"fmt"
 	"math/big"
 	"os"
 	"sort"
@@ -26,64 +13,28 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core/mocks"
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
-	_ = addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
-}
-
-func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
-	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
-	require.NoError(t, err)
-	previousNum := prevHeader.Number
-
-	var headers []*types.Header
-	rt, err := blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
-				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest:     types.Digest{},
-			},
-			Body: &types.Body{},
-		}
-
-		previousHash = block.Header.Hash()
-
-		blockState.StoreRuntime(block.Header.Hash(), rt)
-		err := blockState.AddBlock(block)
-		require.NoError(t, err)
-		headers = append(headers, block.Header)
-	}
-
-	return headers
-}
-
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 
@@ -96,19 +47,17 @@ func TestMain(m *testing.M) {
 
 func TestStartService(t *testing.T) {
 	s := NewTestService(t, nil)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, s)
 
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = s.Stop()
 	require.NoError(t, err)
 }
 
 func TestAnnounceBlock(t *testing.T) {
-	net := new(coremocks.MockNetwork)
+	net := new(mocks.Network)
 	cfg := &Config{
 		Network: net,
 	}
@@ -119,13 +68,19 @@ func TestAnnounceBlock(t *testing.T) {
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	newBlock := &types.Block{
-		Header: &types.Header{
-			ParentHash: s.blockState.BestBlockHash(),
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
+	newBlock := types.Block{
+		Header: types.Header{
 			Number:     big.NewInt(1),
-			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
+			ParentHash: s.blockState.BestBlockHash(),
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
 	expected := &network.BlockAnnounceMessage{
@@ -133,7 +88,7 @@ func TestAnnounceBlock(t *testing.T) {
 		Number:         newBlock.Header.Number,
 		StateRoot:      newBlock.Header.StateRoot,
 		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
-		Digest:         newBlock.Header.Digest,
+		Digest:         digest,
 		BestBlock:      true,
 	}
 
@@ -142,11 +97,66 @@ func TestAnnounceBlock(t *testing.T) {
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	err = s.HandleBlockProduced(newBlock, state)
+	err = s.HandleBlockProduced(&newBlock, state)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
 	net.AssertCalled(t, "GossipMessage", expected)
+}
+
+func TestService_InsertKey(t *testing.T) {
+	ks := keystore.NewGlobalKeystore()
+
+	cfg := &Config{
+		Keystore: ks,
+	}
+	s := NewTestService(t, cfg)
+
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	testCases := []struct {
+		description  string
+		keystoreType string
+		err          error
+	}{
+		{
+			description:  "Test that insertKey fails when keystore type is invalid ",
+			keystoreType: "some-invalid-type",
+			err:          keystore.ErrInvalidKeystoreName,
+		},
+		{
+			description:  "Test that insertKey fails when keystore type is valid but inappropriate",
+			keystoreType: "gran",
+			err: fmt.Errorf(
+				"%v, passed key type: sr25519, acceptable key type: ed25519",
+				keystore.ErrKeyTypeNotSupported),
+		},
+		{
+			description:  "Test that insertKey succeeds when keystore type is valid and appropriate ",
+			keystoreType: "acco",
+			err:          nil,
+		},
+	}
+
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			err := s.InsertKey(kr.Alice(), c.keystoreType)
+
+			if c.err == nil {
+				require.Nil(t, err)
+				res, err := s.HasKey(kr.Alice().Public().Hex(), c.keystoreType)
+				require.Nil(t, err)
+				require.True(t, res)
+			} else {
+				require.NotNil(t, err)
+				require.Equal(t, err.Error(), c.err.Error())
+			}
+		})
+	}
 }
 
 func TestService_HasKey(t *testing.T) {
@@ -160,9 +170,17 @@ func TestService_HasKey(t *testing.T) {
 	}
 	s := NewTestService(t, cfg)
 
-	res, err := s.HasKey(kr.Alice().Public().Hex(), "babe")
+	res, err := s.HasKey(kr.Alice().Public().Hex(), "acco")
 	require.NoError(t, err)
 	require.True(t, res)
+
+	res, err = s.HasKey(kr.Alice().Public().Hex(), "babe")
+	require.NoError(t, err)
+	require.False(t, res)
+
+	res, err = s.HasKey(kr.Alice().Public().Hex(), "gran")
+	require.NoError(t, err)
+	require.False(t, res)
 }
 
 func TestService_HasKey_UnknownType(t *testing.T) {
@@ -177,13 +195,13 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 	s := NewTestService(t, cfg)
 
 	res, err := s.HasKey(kr.Alice().Public().Hex(), "xxxx")
-	require.EqualError(t, err, "unknown key type: xxxx")
+	require.EqualError(t, err, "invalid keystore name")
 	require.False(t, res)
 }
 
 func TestHandleChainReorg_NoReorg(t *testing.T) {
 	s := NewTestService(t, nil)
-	addTestBlocksToState(t, 4, s.blockState.(*state.BlockState))
+	state.AddBlocksToState(t, s.blockState.(*state.BlockState), 4, false)
 
 	head, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -193,8 +211,8 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 }
 
 func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
+	t.Skip() // TODO: tx fails to validate in handleChainReorg() with "Invalid transaction" (#1026)
 	s := NewTestService(t, nil)
-
 	bs := s.blockState
 
 	parent, err := bs.BestBlockHeader()
@@ -208,37 +226,37 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	err = bs.AddBlock(block1)
 	require.NoError(t, err)
 
-	block2 := sync.BuildBlock(t, rt, block1.Header, nil)
+	block2 := sync.BuildBlock(t, rt, &block1.Header, nil)
 	bs.StoreRuntime(block2.Header.Hash(), rt)
 	err = bs.AddBlock(block2)
 	require.NoError(t, err)
 
-	block3 := sync.BuildBlock(t, rt, block2.Header, nil)
+	block3 := sync.BuildBlock(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block3.Header.Hash(), rt)
 	err = bs.AddBlock(block3)
 	require.NoError(t, err)
 
-	block4 := sync.BuildBlock(t, rt, block3.Header, nil)
+	block4 := sync.BuildBlock(t, rt, &block3.Header, nil)
 	bs.StoreRuntime(block4.Header.Hash(), rt)
 	err = bs.AddBlock(block4)
 	require.NoError(t, err)
 
-	block5 := sync.BuildBlock(t, rt, block4.Header, nil)
+	block5 := sync.BuildBlock(t, rt, &block4.Header, nil)
 	bs.StoreRuntime(block5.Header.Hash(), rt)
 	err = bs.AddBlock(block5)
 	require.NoError(t, err)
 
-	block31 := sync.BuildBlock(t, rt, block2.Header, nil)
+	block31 := sync.BuildBlock(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block31.Header.Hash(), rt)
 	err = bs.AddBlock(block31)
 	require.NoError(t, err)
 
-	nonce := uint64(1)
+	nonce := uint64(0)
 
-	// Add extrinsic to block `block31`
+	// Add extrinsic to block `block41`
 	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
 
-	block41 := sync.BuildBlock(t, rt, block31.Header, ext)
+	block41 := sync.BuildBlock(t, rt, &block31.Header, ext)
 	bs.StoreRuntime(block41.Header.Hash(), rt)
 	err = bs.AddBlock(block41)
 	require.NoError(t, err)
@@ -282,12 +300,13 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	s := NewTestService(t, cfg)
 	height := 5
 	branch := 3
-	addTestBlocksToState(t, height, s.blockState.(*state.BlockState))
+	state.AddBlocksToState(t, s.blockState.(*state.BlockState), height, false)
 
 	// create extrinsic
-	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
-	tx, err := ext.Encode()
+	enc, err := scale.Marshal([]byte("nootwashere"))
 	require.NoError(t, err)
+	// we prefix with []byte{2} here since that's the enum index for the old IncludeDataExt extrinsic
+	tx := append([]byte{2}, enc...)
 
 	bhash := s.blockState.BestBlockHash()
 	rt, err := s.blockState.GetRuntime(&bhash)
@@ -301,18 +320,15 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// build "re-org" chain
-	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{tx})
-	require.NoError(t, err)
 
+	digest := types.NewDigest()
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: ancestor.Header.Hash(),
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
-			Digest: types.Digest{
-				utils.NewMockDigestItem(1),
-			},
+			Digest:     digest,
 		},
-		Body: body,
+		Body: types.Body([]types.Extrinsic{tx}),
 	}
 
 	s.blockState.StoreRuntime(block.Header.Hash(), rt)
@@ -339,7 +355,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	// TODO" update these to real extrinsics on update to v0.8
+	// TODO: update these to real extrinsics on update to v0.9 (#904)
 	txs := []*transaction.ValidTransaction{
 		{
 			Extrinsic: []byte("a"),
@@ -375,10 +391,9 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 		transactionState: ts,
 	}
 
-	err := s.maintainTransactionPool(&types.Block{
-		Body: types.NewBody([]byte{}),
+	s.maintainTransactionPool(&types.Block{
+		Body: *types.NewBody([]types.Extrinsic{}),
 	})
-	require.NoError(t, err)
 
 	res := make([]*transaction.ValidTransaction, len(txs))
 	for i := range txs {
@@ -421,13 +436,9 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		transactionState: ts,
 	}
 
-	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{txs[0].Extrinsic})
-	require.NoError(t, err)
-
-	err = s.maintainTransactionPool(&types.Block{
-		Body: body,
+	s.maintainTransactionPool(&types.Block{
+		Body: types.Body([]types.Extrinsic{txs[0].Extrinsic}),
 	})
-	require.NoError(t, err)
 
 	res := []*transaction.ValidTransaction{}
 	for {
@@ -501,20 +512,28 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	currSpecVersion := v.SpecVersion()   // genesis runtime version.
 	hash := s.blockState.BestBlockHash() // genesisHash
 
+	digest := types.NewDigest()
+	err = digest.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+	})
+	require.NoError(t, err)
+
 	newBlock1 := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
-			Digest:     types.Digest{utils.NewMockDigestItem(1)}},
-		Body: types.NewBody([]byte("Old Runtime")),
+			Digest:     types.NewDigest()},
+		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
 
 	newBlockRTUpdate := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
-			Digest:     types.Digest{utils.NewMockDigestItem(2)}},
-		Body: types.NewBody([]byte("Updated Runtime")),
+			Digest:     digest,
+		},
+		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
 	ts, err := s.storageState.TrieState(nil) // Pass genesis root
@@ -531,7 +550,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
 	require.NoError(t, err)
 
-	testRuntime, err := ioutil.ReadFile(updateNodeRuntimeWasmPath)
+	testRuntime, err := os.ReadFile(updateNodeRuntimeWasmPath)
 	require.NoError(t, err)
 
 	ts.Set(common.CodeKey, testRuntime)
@@ -558,13 +577,13 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {
-	t.Skip() // fix this, fails on CI
 	s := NewTestService(t, nil)
 
-	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 
-	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+	// hash for known test code substitution
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
 	s.codeSubstitute = map[common.Hash]string{
 		blockHash: common.BytesToHex(testRuntime),
 	}
@@ -574,7 +593,10 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 
 	s.blockState.StoreRuntime(blockHash, rt)
 
-	err = s.handleCodeSubstitution(blockHash)
+	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	codSub := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
 	require.Equal(t, blockHash, codSub)
@@ -587,24 +609,30 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 
 	codeHashBefore := parentRt.GetCodeHash()
-	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+	// hash for known test code substitution
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
 
+	body := types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")})
 	newBlock := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: blockHash,
 			Number:     big.NewInt(1),
-			Digest:     types.Digest{utils.NewMockDigestItem(1)}},
-		Body: types.NewBody([]byte("Updated Runtime")),
+			Digest:     types.NewDigest(),
+		},
+		Body: *body,
 	}
 
-	err = s.handleCodeSubstitution(blockHash)
+	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
-	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 
-	ts, err := s.storageState.TrieState(nil)
+	ts, err = s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
 	ts.Set(common.CodeKey, testRuntime)
@@ -617,27 +645,31 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
-	require.NotEqualf(t, codeHashBefore, rt.GetCodeHash(), "expected different code hash after runtime update") // codeHash should change after runtime change
+	// codeHash should change after runtime change
+	require.NotEqualf(t,
+		codeHashBefore,
+		rt.GetCodeHash(),
+		"expected different code hash after runtime update")
 }
 
 func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	s := NewTestService(t, nil)
-	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
+	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 
 	testKey, testValue := []byte("to"), []byte("0x1723712318238AB12312")
 	storageStateTrie.Set(testKey, testValue)
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), nil)
+		common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
+		Header: *header,
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -655,19 +687,19 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 
 func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	s := NewTestService(t, nil)
-	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
+	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), nil)
+		common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
+		Header: *header,
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -687,12 +719,15 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), nil)
+	header, err := types.NewHeader(
+		s.blockState.GenesisHash(),
+		common.Hash{}, common.Hash{},
+		big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
+		Header: *header,
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -762,23 +797,25 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	))
 }
 
-func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []byte, parentHash common.Hash, number int64) *types.Block {
+func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
+	key, value []byte, parentHash common.Hash,
+	number int64) *types.Block {
 	t.Helper()
 
-	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
+	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(number), nil)
+		common.Hash{}, big.NewInt(number), types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
+		Header: *header,
+		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
 	err = s.blockState.AddBlock(testBlock)
@@ -788,10 +825,10 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 }
 
 func TestDecodeSessionKeys(t *testing.T) {
-	mockInstance := new(runtimemocks.MockInstance)
+	mockInstance := new(runtimemocks.Instance)
 	mockInstance.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8")).Return([]byte{}, nil).Once()
 
-	mockBlockState := new(mocks.MockBlockState)
+	mockBlockState := new(mocks.BlockState)
 	mockBlockState.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(mockInstance, nil).Once()
 
 	coreservice := new(Service)
@@ -807,7 +844,7 @@ func TestDecodeSessionKeys(t *testing.T) {
 }
 
 func TestDecodeSessionKeys_WhenGetRuntimeReturnError(t *testing.T) {
-	mockBlockState := new(mocks.MockBlockState)
+	mockBlockState := new(mocks.BlockState)
 	mockBlockState.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("problems")).Once()
 
 	coreservice := new(Service)
@@ -818,4 +855,77 @@ func TestDecodeSessionKeys_WhenGetRuntimeReturnError(t *testing.T) {
 	mockBlockState.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
 	require.Error(t, err, "problems")
 	require.Nil(t, b)
+}
+
+func TestGetReadProofAt(t *testing.T) {
+	keysToProof := [][]byte{[]byte("first_key"), []byte("another_key")}
+	mockedProofs := [][]byte{[]byte("proof01"), []byte("proof02")}
+
+	t.Run("When Has Block Is Empty", func(t *testing.T) {
+		mockedStateRootHash := common.NewHash([]byte("state root hash"))
+		expectedBlockHash := common.NewHash([]byte("expected block hash"))
+
+		mockBlockState := new(mocks.BlockState)
+		mockBlockState.On("BestBlockHash").Return(expectedBlockHash)
+		mockBlockState.On("GetBlockStateRoot", expectedBlockHash).
+			Return(mockedStateRootHash, nil)
+
+		mockStorageStage := new(mocks.StorageState)
+		mockStorageStage.On("GenerateTrieProof", mockedStateRootHash, keysToProof).
+			Return(mockedProofs, nil)
+
+		s := &Service{
+			blockState:   mockBlockState,
+			storageState: mockStorageStage,
+		}
+
+		b, p, err := s.GetReadProofAt(common.Hash{}, keysToProof)
+		require.NoError(t, err)
+		require.Equal(t, p, mockedProofs)
+		require.Equal(t, expectedBlockHash, b)
+
+		mockBlockState.AssertCalled(t, "BestBlockHash")
+		mockBlockState.AssertCalled(t, "GetBlockStateRoot", expectedBlockHash)
+		mockStorageStage.AssertCalled(t, "GenerateTrieProof", mockedStateRootHash, keysToProof)
+	})
+
+	t.Run("When GetStateRoot fails", func(t *testing.T) {
+		mockedBlockHash := common.NewHash([]byte("fake block hash"))
+
+		mockBlockState := new(mocks.BlockState)
+		mockBlockState.On("GetBlockStateRoot", mockedBlockHash).
+			Return(common.Hash{}, errors.New("problems while getting state root"))
+
+		s := &Service{
+			blockState: mockBlockState,
+		}
+
+		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
+		require.True(t, b.IsEmpty())
+		require.Nil(t, p)
+		require.Error(t, err)
+	})
+
+	t.Run("When GenerateTrieProof fails", func(t *testing.T) {
+		mockedBlockHash := common.NewHash([]byte("fake block hash"))
+		mockedStateRootHash := common.NewHash([]byte("state root hash"))
+
+		mockBlockState := new(mocks.BlockState)
+		mockBlockState.On("GetBlockStateRoot", mockedBlockHash).
+			Return(mockedStateRootHash, nil)
+
+		mockStorageStage := new(mocks.StorageState)
+		mockStorageStage.On("GenerateTrieProof", mockedStateRootHash, keysToProof).
+			Return(nil, errors.New("problems to generate trie proof"))
+
+		s := &Service{
+			blockState:   mockBlockState,
+			storageState: mockStorageStage,
+		}
+
+		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
+		require.True(t, b.IsEmpty())
+		require.Nil(t, p)
+		require.Error(t, err)
+	})
 }

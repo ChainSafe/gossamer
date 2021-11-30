@@ -1,23 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
 import (
-	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/chain/dev"
@@ -26,11 +14,13 @@ import (
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/pprof"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
-// TODO: create separate types for toml config and internal config, needed since we don't want to expose all
-// the internal config options, also type conversions might be needed from toml -> internal types
+// TODO: update config to have toml rules and perhaps un-export some fields, since we don't want to expose all
+// the internal config options, also type conversions might be needed from toml -> internal types (#1848)
 
 // Config is a collection of configurations throughout the system
 type Config struct {
@@ -43,6 +33,7 @@ type Config struct {
 	RPC     RPCConfig
 	System  types.SystemInfo
 	State   StateConfig
+	Pprof   PprofConfig
 }
 
 // GlobalConfig is used for every node command
@@ -50,24 +41,25 @@ type GlobalConfig struct {
 	Name           string
 	ID             string
 	BasePath       string
-	LogLvl         log.Lvl
+	LogLvl         log.Level
 	PublishMetrics bool
 	MetricsPort    uint32
 	NoTelemetry    bool
+	TelemetryURLs  []genesis.TelemetryEndpoint
 	RetainBlocks   int64
 	Pruning        pruner.Mode
 }
 
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
-	CoreLvl           log.Lvl
-	SyncLvl           log.Lvl
-	NetworkLvl        log.Lvl
-	RPCLvl            log.Lvl
-	StateLvl          log.Lvl
-	RuntimeLvl        log.Lvl
-	BlockProducerLvl  log.Lvl
-	FinalityGadgetLvl log.Lvl
+	CoreLvl           log.Level
+	SyncLvl           log.Level
+	NetworkLvl        log.Level
+	RPCLvl            log.Level
+	StateLvl          log.Level
+	RuntimeLvl        log.Level
+	BlockProducerLvl  log.Level
+	FinalityGadgetLvl log.Level
 }
 
 // InitConfig is the configuration for the node initialization
@@ -77,13 +69,13 @@ type InitConfig struct {
 
 // AccountConfig is to marshal/unmarshal account config vars
 type AccountConfig struct {
-	Key    string // TODO: change to array
-	Unlock string // TODO: change to array
+	Key    string
+	Unlock string // TODO: change to []int (#1849)
 }
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port              uint32
+	Port              uint16
 	Bootnodes         []string
 	ProtocolID        string
 	NoBootstrap       bool
@@ -92,16 +84,17 @@ type NetworkConfig struct {
 	MaxPeers          int
 	PersistentPeers   []string
 	DiscoveryInterval time.Duration
+	PublicIP          string
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
 	Roles            byte
 	BabeAuthority    bool
+	BABELead         bool
 	GrandpaAuthority bool
-	SlotDuration     uint64
-	EpochLength      uint64
 	WasmInterpreter  string
+	GrandpaInterval  time.Duration
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -128,15 +121,27 @@ func (r *RPCConfig) isWSEnabled() bool {
 	return r.WS || r.WSExternal || r.WSUnsafe || r.WSUnsafeExternal
 }
 
+// Strings returns the configuration in the format
+// field1=value1 field2=value2.
+func (r *RPCConfig) String() string {
+	return "" +
+		"enabled=" + fmt.Sprint(r.Enabled) + " " +
+		"external=" + fmt.Sprint(r.External) + " " +
+		"unsafe=" + fmt.Sprint(r.Unsafe) + " " +
+		"unsafeexternal=" + fmt.Sprint(r.UnsafeExternal) + " " +
+		"port=" + fmt.Sprint(r.Port) + " " +
+		"host=" + r.Host + " " +
+		"modules=" + strings.Join(r.Modules, ",") + " " +
+		"wsport=" + fmt.Sprint(r.WSPort) + " " +
+		"ws=" + fmt.Sprint(r.WS) + " " +
+		"wsexternal=" + fmt.Sprint(r.WSExternal) + " " +
+		"wsunsafe=" + fmt.Sprint(r.WSUnsafe) + " " +
+		"wsunsafeexternal=" + fmt.Sprint(r.WSUnsafeExternal)
+}
+
 // StateConfig is the config for the State service
 type StateConfig struct {
 	Rewind int
-}
-
-// String will return the json representation for a Config
-func (c *Config) String() string {
-	out, _ := json.MarshalIndent(c, "", "\t")
-	return string(out)
 }
 
 // networkServiceEnabled returns true if the network service is enabled
@@ -144,17 +149,32 @@ func networkServiceEnabled(cfg *Config) bool {
 	return cfg.Core.Roles != byte(0)
 }
 
+// PprofConfig is the configuration for the pprof HTTP server.
+type PprofConfig struct {
+	Enabled  bool
+	Settings pprof.Settings
+}
+
+func (p PprofConfig) String() string {
+	if !p.Enabled {
+		return "disabled"
+	}
+
+	return p.Settings.String()
+}
+
 // GssmrConfig returns a new test configuration using the provided basepath
 func GssmrConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:         gssmr.DefaultName,
-			ID:           gssmr.DefaultID,
-			BasePath:     gssmr.DefaultBasePath,
-			LogLvl:       gssmr.DefaultLvl,
-			MetricsPort:  gssmr.DefaultMetricsPort,
-			RetainBlocks: gssmr.DefaultRetainBlocks,
-			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
+			Name:          gssmr.DefaultName,
+			ID:            gssmr.DefaultID,
+			BasePath:      gssmr.DefaultBasePath,
+			LogLvl:        gssmr.DefaultLvl,
+			MetricsPort:   gssmr.DefaultMetricsPort,
+			RetainBlocks:  gssmr.DefaultRetainBlocks,
+			Pruning:       pruner.Mode(gssmr.DefaultPruningMode),
+			TelemetryURLs: gssmr.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
@@ -178,6 +198,7 @@ func GssmrConfig() *Config {
 			BabeAuthority:    gssmr.DefaultBabeAuthority,
 			GrandpaAuthority: gssmr.DefaultGrandpaAuthority,
 			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+			GrandpaInterval:  gssmr.DefaultGrandpaInterval,
 		},
 		Network: NetworkConfig{
 			Port:              gssmr.DefaultNetworkPort,
@@ -185,12 +206,21 @@ func GssmrConfig() *Config {
 			NoBootstrap:       gssmr.DefaultNoBootstrap,
 			NoMDNS:            gssmr.DefaultNoMDNS,
 			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
+			MinPeers:          gssmr.DefaultMinPeers,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,
 			Host:    gssmr.DefaultRPCHTTPHost,
 			Modules: gssmr.DefaultRPCModules,
 			WSPort:  gssmr.DefaultRPCWSPort,
+		},
+		Pprof: PprofConfig{
+			Enabled: gssmr.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: gssmr.DefaultPprofListeningAddress,
+				BlockProfileRate: gssmr.DefaultPprofBlockRate,
+				MutexProfileRate: gssmr.DefaultPprofMutexRate,
+			},
 		},
 	}
 }
@@ -199,13 +229,14 @@ func GssmrConfig() *Config {
 func KusamaConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:         kusama.DefaultName,
-			ID:           kusama.DefaultID,
-			BasePath:     kusama.DefaultBasePath,
-			LogLvl:       kusama.DefaultLvl,
-			MetricsPort:  kusama.DefaultMetricsPort,
-			RetainBlocks: gssmr.DefaultRetainBlocks,
-			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
+			Name:          kusama.DefaultName,
+			ID:            kusama.DefaultID,
+			BasePath:      kusama.DefaultBasePath,
+			LogLvl:        kusama.DefaultLvl,
+			MetricsPort:   kusama.DefaultMetricsPort,
+			RetainBlocks:  gssmr.DefaultRetainBlocks,
+			Pruning:       pruner.Mode(gssmr.DefaultPruningMode),
+			TelemetryURLs: kusama.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           kusama.DefaultLvl,
@@ -240,6 +271,14 @@ func KusamaConfig() *Config {
 			Modules: kusama.DefaultRPCModules,
 			WSPort:  kusama.DefaultRPCWSPort,
 		},
+		Pprof: PprofConfig{
+			Enabled: kusama.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: kusama.DefaultPprofListeningAddress,
+				BlockProfileRate: kusama.DefaultPprofBlockRate,
+				MutexProfileRate: kusama.DefaultPprofMutexRate,
+			},
+		},
 	}
 }
 
@@ -247,13 +286,14 @@ func KusamaConfig() *Config {
 func PolkadotConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:         polkadot.DefaultName,
-			ID:           polkadot.DefaultID,
-			BasePath:     polkadot.DefaultBasePath,
-			LogLvl:       polkadot.DefaultLvl,
-			RetainBlocks: gssmr.DefaultRetainBlocks,
-			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
-			MetricsPort:  gssmr.DefaultMetricsPort,
+			Name:          polkadot.DefaultName,
+			ID:            polkadot.DefaultID,
+			BasePath:      polkadot.DefaultBasePath,
+			LogLvl:        polkadot.DefaultLvl,
+			RetainBlocks:  gssmr.DefaultRetainBlocks,
+			Pruning:       pruner.Mode(gssmr.DefaultPruningMode),
+			MetricsPort:   gssmr.DefaultMetricsPort,
+			TelemetryURLs: polkadot.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           polkadot.DefaultLvl,
@@ -288,6 +328,14 @@ func PolkadotConfig() *Config {
 			Modules: polkadot.DefaultRPCModules,
 			WSPort:  polkadot.DefaultRPCWSPort,
 		},
+		Pprof: PprofConfig{
+			Enabled: polkadot.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: polkadot.DefaultPprofListeningAddress,
+				BlockProfileRate: polkadot.DefaultPprofBlockRate,
+				MutexProfileRate: polkadot.DefaultPprofMutexRate,
+			},
+		},
 	}
 }
 
@@ -295,13 +343,14 @@ func PolkadotConfig() *Config {
 func DevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:         dev.DefaultName,
-			ID:           dev.DefaultID,
-			BasePath:     dev.DefaultBasePath,
-			LogLvl:       dev.DefaultLvl,
-			MetricsPort:  dev.DefaultMetricsPort,
-			RetainBlocks: dev.DefaultRetainBlocks,
-			Pruning:      pruner.Mode(dev.DefaultPruningMode),
+			Name:          dev.DefaultName,
+			ID:            dev.DefaultID,
+			BasePath:      dev.DefaultBasePath,
+			LogLvl:        dev.DefaultLvl,
+			MetricsPort:   dev.DefaultMetricsPort,
+			RetainBlocks:  dev.DefaultRetainBlocks,
+			Pruning:       pruner.Mode(dev.DefaultPruningMode),
+			TelemetryURLs: dev.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           dev.DefaultLvl,
@@ -325,6 +374,7 @@ func DevConfig() *Config {
 			BabeAuthority:    dev.DefaultBabeAuthority,
 			GrandpaAuthority: dev.DefaultGrandpaAuthority,
 			WasmInterpreter:  dev.DefaultWasmInterpreter,
+			BABELead:         dev.DefaultBabeAuthority,
 		},
 		Network: NetworkConfig{
 			Port:        dev.DefaultNetworkPort,
@@ -339,6 +389,14 @@ func DevConfig() *Config {
 			WSPort:  dev.DefaultRPCWSPort,
 			Enabled: dev.DefaultRPCEnabled,
 			WS:      dev.DefaultWSEnabled,
+		},
+		Pprof: PprofConfig{
+			Enabled: dev.DefaultPprofEnabled,
+			Settings: pprof.Settings{
+				ListeningAddress: dev.DefaultPprofListeningAddress,
+				BlockProfileRate: dev.DefaultPprofBlockRate,
+				MutexProfileRate: dev.DefaultPprofMutexRate,
+			},
 		},
 	}
 }

@@ -1,24 +1,12 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -41,11 +29,12 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -54,8 +43,8 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range voters {
-		equivocated := gs.checkForEquivocation(v, &SignedVote{
-			Vote: vote,
+		equivocated := gs.checkForEquivocation(&v, &SignedVote{
+			Vote: *vote,
 		}, prevote)
 		require.False(t, equivocated)
 	}
@@ -75,6 +64,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -91,14 +81,14 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
-		Vote: vote1,
+		Vote: *vote1,
 	})
 
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(voter, &SignedVote{
-		Vote: vote2,
+	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
+		Vote: *vote2,
 	}, prevote)
 	require.True(t, equivocated)
 
@@ -121,47 +111,41 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
-		if len(branches) > 1 {
-			break
-		}
-	}
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
+	leaves := gs.blockState.Leaves()
 
-	h, err := st.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	vote := NewVoteFromHeader(h)
+	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
-		Vote: vote,
+		Vote: *vote1,
 	})
 
-	vote2 := NewVoteFromHeader(branches[0])
+	vote2, err := NewVoteFromHash(leaves[0], gs.blockState)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(voter, &SignedVote{
-		Vote: vote2,
+	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
+		Vote: *vote2,
 	}, prevote)
 	require.True(t, equivocated)
 
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
-	vote3 := NewVoteFromHeader(branches[1])
-	require.NoError(t, err)
+	vote3 := vote1
 
-	equivocated = gs.checkForEquivocation(voter, &SignedVote{
-		Vote: vote3,
+	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
+		Vote: *vote3,
 	}, prevote)
 	require.True(t, equivocated)
 
@@ -184,11 +168,12 @@ func TestValidateMessage_Valid(t *testing.T) {
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -217,11 +202,12 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -250,11 +236,12 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 		DigestHandler: NewMockDigestHandler(),
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
+	state.AddBlocksToState(t, st.Block, 3, false)
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -284,20 +271,17 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
-		if len(branches) != 0 {
-			break
-		}
-	}
-
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
 	leaves := gs.blockState.Leaves()
+
 	voteA, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
 	voteB, err := NewVoteFromHash(leaves[1], st.Block)
@@ -306,7 +290,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
-		Vote: voteA,
+		Vote: *voteA,
 	})
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -332,13 +316,13 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
-	gs.tracker, err = newTracker(st.Block, gs.in)
-	require.NoError(t, err)
+	state.AddBlocksToState(t, st.Block, 3, false)
+	gs.tracker = newTracker(st.Block, gs.messageHandler)
 
 	fake := &types.Header{
 		Number: big.NewInt(77),
@@ -367,30 +351,29 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
+		Interval:      time.Second,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	gs.tracker, err = newTracker(gs.blockState, gs.in)
-	require.NoError(t, err)
+	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 8)
-		if len(branches) != 0 {
-			break
-		}
-	}
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
+	leaves := gs.blockState.Leaves()
 
-	h, err := st.Block.BestBlockHeader()
+	gs.head, err = gs.blockState.GetHeader(leaves[0])
 	require.NoError(t, err)
-	gs.head = h
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(branches[0]), prevote)
+	vote, err := NewVoteFromHash(leaves[1], gs.blockState)
+	require.NoError(t, err)
+
+	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage("", msg)
-	require.Equal(t, ErrDescendantNotFound, err, gs.prevotes)
+	require.Equal(t, errInvalidVoteBlock, err, gs.prevotes)
 }

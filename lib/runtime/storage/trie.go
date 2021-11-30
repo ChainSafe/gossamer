@@ -1,23 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package storage
 
 import (
 	"encoding/binary"
+	"sort"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -57,7 +45,8 @@ func (s *TrieState) Snapshot() *trie.Trie {
 	return s.t.Snapshot()
 }
 
-// BeginStorageTransaction begins a new nested storage transaction which will either be committed or rolled back at a later time.
+// BeginStorageTransaction begins a new nested storage transaction
+// which will either be committed or rolled back at a later time.
 func (s *TrieState) BeginStorageTransaction() {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -136,6 +125,15 @@ func (s *TrieState) ClearPrefix(prefix []byte) error {
 	return nil
 }
 
+// ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
+func (s *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	num, del := s.t.ClearPrefixLimit(prefix, limit)
+	return num, del
+}
+
 // TrieEntries returns every key-value pair in the trie
 func (s *TrieState) TrieEntries() map[string][]byte {
 	s.lock.RLock()
@@ -176,6 +174,43 @@ func (s *TrieState) DeleteChild(key []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.DeleteChild(key)
+}
+
+// DeleteChildLimit deletes up to limit of database entries by lexicographic order, return number
+//  deleted, true if all delete otherwise false
+func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (uint32, bool, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	tr, err := s.t.GetChild(key)
+	if err != nil {
+		return 0, false, err
+	}
+	qtyEntries := uint32(len(tr.Entries()))
+	if limit == nil {
+		s.t.DeleteChild(key)
+		return qtyEntries, true, nil
+	}
+	limitUint := binary.LittleEndian.Uint32(*limit)
+
+	keys := make([]string, 0, len(tr.Entries()))
+	for k := range tr.Entries() {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	deleted := uint32(0)
+	for _, k := range keys {
+		tr.Delete([]byte(k))
+		deleted++
+		if deleted == limitUint {
+			break
+		}
+	}
+
+	if deleted == qtyEntries {
+		return deleted, true, nil
+	}
+
+	return deleted, false, nil
 }
 
 // ClearChildStorage removes the child storage entry from the trie
@@ -226,37 +261,6 @@ func (s *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 		return nil, nil
 	}
 	return child.GetKeysWithPrefix(prefix), nil
-}
-
-// TODO: remove functions below
-
-// SetBalance sets the balance for a given public key
-func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return err
-	}
-
-	bb := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bb, balance)
-
-	s.Set(skey, bb)
-	return nil
-}
-
-// GetBalance returns the balance for a given public key
-func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return 0, err
-	}
-
-	bal := s.Get(skey)
-	if len(bal) != 8 {
-		return 0, nil
-	}
-
-	return binary.LittleEndian.Uint64(bal), nil
 }
 
 // LoadCode returns the runtime code (located at :code)

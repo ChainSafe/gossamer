@@ -17,11 +17,10 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
-## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint` on project files.
 .PHONY: lint
-lint: 
-	./scripts/install-lint.sh
-	${GOPATH}/bin/golangci-lint run
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
+	golangci-lint run
 
 clean:
 	rm -fr ./bin
@@ -36,7 +35,6 @@ proto:
 ## test: Runs `go test` on project test files.
 test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
-	#GOBIN=$(PWD)/bin go run scripts/ci.go test
 	git lfs pull
 	go test -short -coverprofile c.out ./... -timeout=30m
 
@@ -80,18 +78,17 @@ deps:
 ## build: Builds application binary and stores it in `./bin/gossamer`
 build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
-	GOBIN=$(PWD)/bin go run scripts/ci.go install
+	go build -trimpath -o ./bin/gossamer ./cmd/gossamer
 
 ## debug: Builds application binary with debug flags and stores it in `./bin/gossamer`
 build-debug: clean
-	cd cmd/gossamer && go build -gcflags=all="-N -l" -o ../../bin/gossamer && cd ../..
+	go build -trimpath -gcflags=all="-N -l" -o ./bin/gossamer ./cmd/gossamer
 
 ## init: Initialise gossamer using the default genesis and toml configuration files
 init:
 	./bin/gossamer init --force
 
-## init-repo: Set initial configuration for the repo
-init-repo:
+githooks:
 	git config core.hooksPath .githooks
 
 ## start: Starts application from binary executable in `./bin/gossamer` with built-in key alice
@@ -99,14 +96,26 @@ start:
 	@echo "  >  \033[32mStarting node...\033[0m "
 	./bin/gossamer --key alice
 
-$(ADDLICENSE):
-	go get -u github.com/google/addlicense
-
-## license: Adds license header to missing files, go gets addLicense if missing. Runs `addlicense -c gossamer -f ./copyright.txt -y 2019 .` on project files.
+## license: Adds license header to missing files, go install addlicense if it's missing.
 .PHONY: license
-license: $(ADDLICENSE)
+license:
 	@echo "  >  \033[32mAdding license headers...\033[0m "
-	addlicense -c gossamer -f ./copyright.txt -y 2019 .
+	go install github.com/google/addlicense@v1.0.0
+	addlicense -v \
+		-s=only \
+		-l="LGPL-3.0-only" \
+		-f ./copyright.txt \
+		-c "ChainSafe Systems (ON)" \
+		-ignore "**/*.md" \
+		-ignore "**/*.html" \
+		-ignore "**/*.css" \
+		-ignore "**/*.scss" \
+		-ignore "**/*.yml" \
+		-ignore "**/*.yaml" \
+		-ignore "**/*.js" \
+		-ignore "**/*.sh" \
+		-ignore "*Dockerfile" \
+		.
 
 docker: docker-build
 	@echo "  >  \033[32mStarting Gossamer Container...\033[0m "
@@ -120,28 +129,8 @@ docker-build:
 	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
 	docker build -t $(FULLDOCKERNAME) -f Dockerfile .
 
-gossamer: clean
-	cd cmd/gossamer && go build -o ../../bin/gossamer && cd ../..
+gossamer: clean build
 
 ## install: install the gossamer binary in $GOPATH/bin
-install:
-	GOBIN=$(GOPATH)/bin go run scripts/ci.go install
-
-MOCKGEN := $(shell command -v $(GOPATH)/bin/mockery 2> /dev/null)
-INMOCKS=0
-mock:
-ifndef MOCKGEN
-	@echo "> Installing mockery ..."
-	@go get github.com/vektra/mockery/v2/.../
-endif
-	@echo "> Generating mocks at $(path)"
-
-ifeq ($(INMOCKS),1)
-	cd $(path); $(GOPATH)/bin/mockery --name $(interface) --structname Mock$(interface) --case underscore --keeptree
-else
-	$(GOPATH)/bin/mockery --srcpkg $(path) --name $(interface) --case underscore --inpackage
-endif
-
-
-
-
+install: build
+	mv ./bin/gossamer $(GOPATH)/bin/gossamer

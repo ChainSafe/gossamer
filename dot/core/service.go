@@ -1,43 +1,32 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package core
 
 import (
 	"context"
+	"fmt"
 	"math/big"
-	"os"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
 )
 
 var (
 	_      services.Service = &Service{}
-	logger log.Logger       = log.New("pkg", "core")
+	logger                  = log.NewFromGlobal(log.AddContext("pkg", "core"))
 )
 
 // QueryKeyValueChanges represents the key-value data inside a block storage
@@ -70,7 +59,7 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
-	LogLvl log.Lvl
+	LogLvl log.Level
 
 	BlockState       BlockState
 	EpochState       EpochState
@@ -112,9 +101,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errNilCodeSubstitutedState
 	}
 
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	blockAddCh := make(chan *types.Block, 256)
 
@@ -176,28 +163,41 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+	if err := s.handleBlock(block, state); err != nil {
+		return err
+	}
+
+	digest := types.NewDigest()
+	for i := range block.Header.Digest.Types {
+		err := digest.Add(block.Header.Digest.Types[i].Value())
+		if err != nil {
+			return err
+		}
+	}
+
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
 		StateRoot:      block.Header.StateRoot,
 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
-		Digest:         block.Header.Digest,
+		Digest:         digest,
 		BestBlock:      true,
 	}
 
 	s.net.GossipMessage(msg)
-	return s.handleBlock(block, state)
+	return nil
 }
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
-	if block == nil || block.Header == nil || state == nil {
-		return nil
+	if block == nil || state == nil {
+		return fmt.Errorf("unable to handle block due to nil parameter")
 	}
 
 	// store updates state trie nodes in database
-	err := s.storageState.StoreTrie(state, block.Header)
+	err := s.storageState.StoreTrie(state, &block.Header)
 	if err != nil {
-		logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
+		logger.Warnf("failed to store state trie for imported block %s: %s",
+			block.Header.Hash(), err)
 		return err
 	}
 
@@ -212,10 +212,11 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
-	logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
+	logger.Debugf("imported block %s and stored state trie with root %s",
+		block.Header.Hash(), state.MustRoot())
 
 	// handle consensus digests
-	s.digestHandler.HandleDigests(block.Header)
+	s.digestHandler.HandleDigests(&block.Header)
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if err != nil {
@@ -224,19 +225,13 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	// check for runtime changes
 	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
-		logger.Crit("failed to update runtime code", "error", err)
+		logger.Criticalf("failed to update runtime code: %s", err)
 		return err
 	}
 
 	// check if there was a runtime code substitution
-	if err := s.handleCodeSubstitution(block.Header.Hash()); err != nil {
-		logger.Crit("failed to substitute runtime code", "error", err)
-		return err
-	}
-
-	// check if block production epoch transitioned
-	if err := s.handleCurrentSlot(block.Header); err != nil {
-		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
+	if err := s.handleCodeSubstitution(block.Header.Hash(), state); err != nil {
+		logger.Criticalf("failed to substitute runtime code: %s", err)
 		return err
 	}
 
@@ -253,13 +248,13 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(hash common.Hash) error {
+func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
 	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil
 	}
 
-	logger.Info("🔄 detected runtime code substitution, upgrading...", "block", hash)
+	logger.Infof("🔄 detected runtime code substitution, upgrading for block %s...", hash)
 	code := common.MustHexToBytes(value)
 	if len(code) == 0 {
 		return ErrEmptyRuntimeCode
@@ -270,9 +265,22 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 		return err
 	}
 
-	// TODO: this needs to create a new runtime instance, otherwise it will update
+	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	err = rt.UpdateRuntimeCode(code)
+	cfg := &wasmer.Config{
+		Imports: wasmer.ImportsNodeRuntime,
+	}
+
+	cfg.Storage = state
+	cfg.Keystore = rt.Keystore()
+	cfg.NodeStorage = rt.NodeStorage()
+	cfg.Network = rt.NetworkService()
+
+	if rt.Validator() {
+		cfg.Role = 4
+	}
+
+	next, err := wasmer.NewInstance(code, cfg)
 	if err != nil {
 		return err
 	}
@@ -282,30 +290,8 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 		return err
 	}
 
+	s.blockState.StoreRuntime(hash, next)
 	return nil
-}
-
-func (s *Service) handleCurrentSlot(header *types.Header) error {
-	head := s.blockState.BestBlockHash()
-	if header.Hash() != head {
-		return nil
-	}
-
-	epoch, err := s.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
-	currEpoch, err := s.epochState.GetCurrentEpoch()
-	if err != nil {
-		return err
-	}
-
-	if currEpoch == epoch {
-		return nil
-	}
-
-	return s.epochState.SetCurrentEpoch(epoch)
 }
 
 // handleBlocksAsync handles a block asynchronously; the handling performed by this function
@@ -315,18 +301,20 @@ func (s *Service) handleBlocksAsync() {
 		prev := s.blockState.BestBlockHash()
 
 		select {
-		case block := <-s.blockAddCh:
+		case block, ok := <-s.blockAddCh:
+			if !ok {
+				return
+			}
+
 			if block == nil {
 				continue
 			}
 
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+				logger.Warnf("failed to re-add transactions to chain upon re-org: %s", err)
 			}
 
-			if err := s.maintainTransactionPool(block); err != nil {
-				logger.Warn("failed to maintain transaction pool", "error", err)
-			}
+			s.maintainTransactionPool(block)
 		case <-s.ctx.Done():
 			return
 		}
@@ -356,6 +344,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	// subchain contains the ancestor as well so we need to remove it.
 	if len(subchain) > 0 {
 		subchain = subchain[1:]
+	} else {
+		return nil
 	}
 
 	// Check transaction validation on the best block.
@@ -364,31 +354,28 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return err
 	}
 
+	if rt == nil {
+		return ErrNilRuntime
+	}
+
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		body, err := s.blockState.GetBlockBody(hash)
-		if err != nil {
+		if err != nil || body == nil {
 			continue
 		}
 
-		exts, err := body.AsExtrinsics()
-		if err != nil {
-			continue
-		}
-
-		// TODO: decode extrinsic and make sure it's not an inherent.
-		// currently we are attempting to re-add inherents, causing lots of "'Bad input data provided to validate_transaction" errors.
-		for _, ext := range exts {
-			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
+		for _, ext := range *body {
+			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
 			}
 
+			// decode extrinsic and make sure it's not an inherent.
 			decExt := &types.ExtrinsicData{}
-			err = decExt.DecodeVersion(encExt)
-			if err != nil {
-				return err
+			if err = decExt.DecodeVersion(encExt); err != nil {
+				continue
 			}
 
 			// Inherent are not signed.
@@ -399,7 +386,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Debug("failed to validate transaction", "error", err, "extrinsic", ext)
+				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
 
@@ -411,24 +398,20 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	return nil
 }
 
-// maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
-// and moves them to the queue if valid.
+// maintainTransactionPool removes any transactions that were included in
+// the new block, revalidates the transactions in the pool, and moves
+// them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
-func (s *Service) maintainTransactionPool(block *types.Block) error {
-	exts, err := block.Body.AsExtrinsics()
-	if err != nil {
-		return err
-	}
-
+func (s *Service) maintainTransactionPool(block *types.Block) {
 	// remove extrinsics included in a block
-	for _, ext := range exts {
+	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
 
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		// TODO: re-add this
+		// TODO: re-add this, need to update tests (#904)
 		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
 		// if err != nil {
 		// 	// failed to validate tx, remove it from the pool or queue
@@ -446,22 +429,29 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 		}
 
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
-		logger.Trace("moved transaction to queue", "hash", h)
+		logger.Tracef("moved transaction %s to queue", h)
 	}
-
-	return nil
 }
 
 // InsertKey inserts keypair into the account keystore
-// TODO: define which keystores need to be updated and create separate insert funcs for each
-func (s *Service) InsertKey(kp crypto.Keypair) {
-	s.keys.Acco.Insert(kp)
+func (s *Service) InsertKey(kp crypto.Keypair, keystoreType string) error {
+	ks, err := s.keys.GetKeystore([]byte(keystoreType))
+	if err != nil {
+		return err
+	}
+
+	return ks.Insert(kp)
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
-//  are issues decoding string
-func (s *Service) HasKey(pubKeyStr, keyType string) (bool, error) {
-	return keystore.HasKey(pubKeyStr, keyType, s.keys.Acco)
+// are issues decoding string
+func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
+	ks, err := s.keys.GetKeystore([]byte(keystoreType))
+	if err != nil {
+		return false, err
+	}
+
+	return keystore.HasKey(pubKeyStr, keystoreType, ks)
 }
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys
@@ -514,7 +504,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	rt, err := s.blockState.GetRuntime(nil)
 	if err != nil {
-		logger.Crit("failed to get runtime")
+		logger.Critical("failed to get runtime")
 		return err
 	}
 
@@ -567,7 +557,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 // QueryStorage returns the key-value data by block based on `keys` params
 // on every block starting `from` until `to` block, if `to` is not nil
 func (s *Service) QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
-	if to == common.EmptyHash {
+	if to.IsEmpty() {
 		to = s.blockState.BestBlockHash()
 	}
 
@@ -617,4 +607,25 @@ func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyVa
 	}
 
 	return changes, nil
+}
+
+// GetReadProofAt will return an array with the proofs for the keys passed as params
+// based on the block hash passed as param as well, if block hash is nil then the current state will take place
+func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
+	hash common.Hash, proofForKeys [][]byte, err error) {
+	if block.IsEmpty() {
+		block = s.blockState.BestBlockHash()
+	}
+
+	stateRoot, err := s.blockState.GetBlockStateRoot(block)
+	if err != nil {
+		return hash, nil, err
+	}
+
+	proofForKeys, err = s.storageState.GenerateTrieProof(stateRoot, keys)
+	if err != nil {
+		return hash, nil, err
+	}
+
+	return block, proofForKeys, nil
 }

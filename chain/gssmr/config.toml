@@ -24,16 +24,24 @@ unlock = ""
 roles = 4
 babe-authority = true
 grandpa-authority = true
+grandpa-interval = 1
 
 [network]
 port = 7001
 nobootstrap = false
 nomdns = false
 discovery-interval = 10
+min-peers = 1
 
 [rpc]
 enabled = false
 port = 8545
 host = "localhost"
-modules = ["system", "author", "chain", "state", "rpc", "grandpa"]
+modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
 ws-port = 8546
+
+[pprof]
+enabled = false
+listening-address = "localhost:6060"
+block-rate = 0
+mutex-rate = 0

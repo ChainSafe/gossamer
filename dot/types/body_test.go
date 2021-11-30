@@ -1,113 +1,64 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package types
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBodyToExtrinsics(t *testing.T) {
-	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
+var exts = []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	body, err := NewBodyFromExtrinsics(exts)
+func TestBodyToSCALEEncodedBody(t *testing.T) {
+	bodyBefore := NewBody(exts)
+	scaleEncodedBody, err := scale.Marshal(*bodyBefore)
 	require.NoError(t, err)
 
-	res, err := body.AsExtrinsics()
+	bodyAfter, err := NewBodyFromBytes(scaleEncodedBody)
 	require.NoError(t, err)
-	require.Equal(t, exts, res)
+
+	require.Equal(t, bodyBefore, bodyAfter)
 }
 
-func TestNewBodyFromExtrinsicStrings(t *testing.T) {
-	strs := []string{"0xabcd", "0xff9988", "0x7654acdf"}
-	body, err := NewBodyFromExtrinsicStrings(strs)
-	require.NoError(t, err)
+func TestHasExtrinsics(t *testing.T) {
+	body := NewBody(exts)
 
-	exts, err := body.AsExtrinsics()
+	found, err := body.HasExtrinsic(Extrinsic{1, 2, 3})
 	require.NoError(t, err)
-
-	for i, e := range exts {
-		b, err := common.HexToBytes(strs[i])
-		require.NoError(t, err)
-		require.Equal(t, []byte(e), b)
-	}
+	require.True(t, found)
 }
 
-func TestNewBodyFromExtrinsicStrings_Mixed(t *testing.T) {
-	strs := []string{"0xabcd", "0xff9988", "noot"}
-	body, err := NewBodyFromExtrinsicStrings(strs)
+func TestBodyFromEncodedBytes(t *testing.T) {
+	bodyBefore := NewBody(exts)
+
+	encodeExtrinsics, err := bodyBefore.AsEncodedExtrinsics()
 	require.NoError(t, err)
 
-	exts, err := body.AsExtrinsics()
+	encodedBytes := ExtrinsicsArrayToBytesArray(encodeExtrinsics)
+
+	bodyAfter, err := NewBodyFromEncodedBytes(encodedBytes)
 	require.NoError(t, err)
 
-	for i, e := range exts {
-		b, err := common.HexToBytes(strs[i])
-		if err == common.ErrNoPrefix {
-			b = []byte(strs[i])
-		} else if err != nil {
-			t.Fatal(err)
-		}
-		require.Equal(t, []byte(e), b)
-	}
+	require.Equal(t, bodyBefore, bodyAfter)
 }
 
-func TestBody_EncodedExtrinsics(t *testing.T) {
-	exts := [][]byte{{16, 1, 3, 5, 7}, {12, 9, 1, 2}, {12, 3, 4, 5}}
-	body, err := NewBodyFromEncodedBytes(exts)
-	require.NoError(t, err)
+func TestBodyFromExtrinsicStrings(t *testing.T) {
+	extStrings := []string{}
 
-	res, err := body.AsEncodedExtrinsics()
-	require.NoError(t, err)
-	require.Equal(t, BytesArrayToExtrinsics(exts), res)
-}
-
-func TestBody_FindEncodedExtrinsic(t *testing.T) {
-	target := Extrinsic([]byte{0x1, 0x2, 0x3, 0x4, 0x5})
-
-	body1, err := NewBodyFromExtrinsics([]Extrinsic{})
-	require.Nil(t, err)
-
-	decodedTarget, err := scale.Decode(target, []byte{})
-	require.Nil(t, err)
-
-	body2, err := NewBodyFromExtrinsics([]Extrinsic{decodedTarget.([]byte)})
-	require.Nil(t, err)
-
-	tests := []struct {
-		body   *Body
-		expect bool
-	}{
-		{
-			body:   body1,
-			expect: false,
-		},
-		{
-			body:   body2,
-			expect: true,
-		},
+	for _, ext := range exts {
+		extStrings = append(extStrings, common.BytesToHex(ext))
 	}
 
-	for _, test := range tests {
-		res, err := test.body.HasExtrinsic(target)
-		require.Nil(t, err)
-		require.Equal(t, test.expect, res)
-	}
+	fmt.Println(extStrings)
+
+	bodyFromByteExtrinsics := NewBody(exts)
+	bodyFromStringExtrinsics, err := NewBodyFromExtrinsicStrings(extStrings)
+	require.NoError(t, err)
+
+	require.Equal(t, bodyFromByteExtrinsics, bodyFromStringExtrinsics)
 }

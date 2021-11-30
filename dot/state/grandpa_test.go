@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
@@ -29,8 +16,8 @@ import (
 
 var (
 	kr, _     = keystore.NewEd25519Keyring()
-	testAuths = []*types.GrandpaVoter{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+	testAuths = []types.GrandpaVoter{
+		{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	}
 )
 
@@ -57,16 +44,12 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	testAuths2 := []*types.GrandpaVoter{
-		{Key: kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
-	}
-
-	err = gs.SetNextChange(testAuths2, big.NewInt(1))
+	err = gs.SetNextChange(testAuths, big.NewInt(1))
 	require.NoError(t, err)
 
 	auths, err := gs.GetAuthorities(genesisSetID + 1)
 	require.NoError(t, err)
-	require.Equal(t, testAuths2, auths)
+	require.Equal(t, testAuths, auths)
 
 	atBlock, err := gs.GetSetIDChange(genesisSetID + 1)
 	require.NoError(t, err)
@@ -91,11 +74,7 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	testAuths2 := []*types.GrandpaVoter{
-		{Key: kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
-	}
-
-	err = gs.SetNextChange(testAuths2, big.NewInt(100))
+	err = gs.SetNextChange(testAuths, big.NewInt(100))
 	require.NoError(t, err)
 
 	setID, err := gs.GetSetIDByBlockNumber(big.NewInt(50))

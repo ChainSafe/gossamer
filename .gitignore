@@ -5,6 +5,7 @@
 *.idea
 *.vscode
 *.sublime
+*.devcontainer
 
 # Output of go coverage tool when used with LiteIDE
 *.out

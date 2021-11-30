@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package digest
 
@@ -23,17 +10,16 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/services"
-
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var maxUint64 = uint64(math.MaxUint64)
 
 var (
-	_      services.Service = &Handler{}
-	logger log.Logger       = log.New("pkg", "digest") // TODO: add to config options
+	_      services.Service  = &Handler{}
+	logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "digest")) // TODO: add to config options (#1851)
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -47,10 +33,8 @@ type Handler struct {
 	grandpaState GrandpaState
 
 	// block notification channels
-	imported    chan *types.Block
-	importedID  byte
-	finalised   chan *types.FinalisationInfo
-	finalisedID byte
+	imported  chan *types.Block
+	finalised chan *types.FinalisationInfo
 
 	// GRANDPA changes
 	grandpaScheduledChange *grandpaChange
@@ -60,7 +44,7 @@ type Handler struct {
 }
 
 type grandpaChange struct {
-	auths   []*types.Authority
+	auths   []types.Authority
 	atBlock *big.Int
 }
 
@@ -74,17 +58,9 @@ type resume struct {
 
 // NewHandler returns a new Handler
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
-	imported := make(chan *types.Block, 16)
-	finalised := make(chan *types.FinalisationInfo, 16)
-	iid, err := blockState.RegisterImportedChannel(imported)
-	if err != nil {
-		return nil, err
-	}
+	imported := blockState.GetImportedBlockNotifierChannel()
 
-	fid, err := blockState.RegisterFinalizedChannel(finalised)
-	if err != nil {
-		return nil, err
-	}
+	finalised := blockState.GetFinalisedNotifierChannel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -95,9 +71,7 @@ func NewHandler(blockState BlockState, epochState EpochState, grandpaState Grand
 		epochState:   epochState,
 		grandpaState: grandpaState,
 		imported:     imported,
-		importedID:   iid,
 		finalised:    finalised,
-		finalisedID:  fid,
 	}, nil
 }
 
@@ -111,10 +85,8 @@ func (h *Handler) Start() error {
 // Stop stops the Handler
 func (h *Handler) Stop() error {
 	h.cancel()
-	h.blockState.UnregisterImportedChannel(h.importedID)
-	h.blockState.UnregisterFinalisedChannel(h.finalisedID)
-	close(h.imported)
-	close(h.finalised)
+	h.blockState.FreeImportedBlockNotifierChannel(h.imported)
+	h.blockState.FreeFinalisedNotifierChannel(h.finalised)
 	return nil
 }
 
@@ -144,69 +116,90 @@ func (h *Handler) NextGrandpaAuthorityChange() uint64 {
 
 // HandleDigests handles consensus digests for an imported block
 func (h *Handler) HandleDigests(header *types.Header) {
-	for i, d := range header.Digest {
-		if d.Type() == types.ConsensusDigestType {
-			cd, ok := d.(*types.ConsensusDigest)
-			if !ok {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
-				continue
-			}
-
-			err := h.handleConsensusDigest(cd, header)
+	for i, d := range header.Digest.Types {
+		val, ok := d.Value().(types.ConsensusDigest)
+		if ok {
+			err := h.handleConsensusDigest(&val, header)
 			if err != nil {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
+				logger.Errorf("cannot handle digests for block number %s, index %d, digest %s: %s",
+					header.Number, i, d.Value(), err)
 			}
 		}
 	}
 }
 
 func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.Header) error {
-	t := d.DataType()
-
-	if d.ConsensusEngineID == types.GrandpaEngineID {
-		switch t {
-		case types.GrandpaScheduledChangeType:
-			return h.handleScheduledChange(d, header)
-		case types.GrandpaForcedChangeType:
-			return h.handleForcedChange(d, header)
-		case types.GrandpaOnDisabledType:
-			return nil // do nothing, as this is not implemented in substrate
-		case types.GrandpaPauseType:
-			return h.handlePause(d)
-		case types.GrandpaResumeType:
-			return h.handleResume(d)
-		default:
-			return errors.New("invalid consensus digest data")
+	switch d.ConsensusEngineID {
+	case types.GrandpaEngineID:
+		data := types.NewGrandpaConsensusDigest()
+		err := scale.Unmarshal(d.Data, &data)
+		if err != nil {
+			return err
 		}
-	}
-
-	if d.ConsensusEngineID == types.BabeEngineID {
-		switch t {
-		case types.NextEpochDataType:
-			return h.handleNextEpochData(d, header)
-		case types.BABEOnDisabledType:
-			return h.handleBABEOnDisabled(d, header)
-		case types.NextConfigDataType:
-			return h.handleNextConfigData(d, header)
-		default:
-			return errors.New("invalid consensus digest data")
+		err = h.handleGrandpaConsensusDigest(data, header)
+		if err != nil {
+			return err
 		}
+		return nil
+	case types.BabeEngineID:
+		data := types.NewBabeConsensusDigest()
+		err := scale.Unmarshal(d.Data, &data)
+		if err != nil {
+			return err
+		}
+		err = h.handleBabeConsensusDigest(data, header)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	return errors.New("unknown consensus engine ID")
+}
+
+func (h *Handler) handleGrandpaConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
+	switch val := digest.Value().(type) {
+	case types.GrandpaScheduledChange:
+		return h.handleScheduledChange(val, header)
+	case types.GrandpaForcedChange:
+		return h.handleForcedChange(val, header)
+	case types.GrandpaOnDisabled:
+		return nil // do nothing, as this is not implemented in substrate
+	case types.GrandpaPause:
+		return h.handlePause(val)
+	case types.GrandpaResume:
+		return h.handleResume(val)
+	}
+
+	return errors.New("invalid consensus digest data")
+}
+
+func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
+	switch val := digest.Value().(type) {
+	case types.NextEpochData:
+		logger.Debugf("handling BABENextEpochData data: %v", digest)
+		return h.handleNextEpochData(val, header)
+	case types.BABEOnDisabled:
+		return h.handleBABEOnDisabled(val, header)
+	case types.NextConfigData:
+		logger.Debugf("handling BABENextConfigData data: %v", digest)
+		return h.handleNextConfigData(val, header)
+	}
+
+	return errors.New("invalid consensus digest data")
 }
 
 func (h *Handler) handleBlockImport(ctx context.Context) {
 	for {
 		select {
 		case block := <-h.imported:
-			if block == nil || block.Header == nil {
+			if block == nil {
 				continue
 			}
 
 			err := h.handleGrandpaChangesOnImport(block.Header.Number)
 			if err != nil {
-				logger.Error("failed to handle grandpa changes on block import", "error", err)
+				logger.Errorf("failed to handle grandpa changes on block import: %s", err)
 			}
 		case <-ctx.Done():
 			return
@@ -218,13 +211,13 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 	for {
 		select {
 		case info := <-h.finalised:
-			if info == nil || info.Header == nil {
+			if info == nil {
 				continue
 			}
 
 			err := h.handleGrandpaChangesOnFinalization(info.Header.Number)
 			if err != nil {
-				logger.Error("failed to handle grandpa changes on block finalisation", "error", err)
+				logger.Errorf("failed to handle grandpa changes on block finalisation: %s", err)
 			}
 		case <-ctx.Done():
 			return
@@ -251,7 +244,7 @@ func (h *Handler) handleGrandpaChangesOnImport(num *big.Int) error {
 			return err
 		}
 
-		logger.Debug("incremented grandpa set ID", "set ID", curr)
+		logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
 	return nil
@@ -276,7 +269,7 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 			return err
 		}
 
-		logger.Debug("incremented grandpa set ID", "set ID", curr)
+		logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
 	// if blocks get finalised before forced change takes place, disregard it
@@ -284,28 +277,17 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 	return nil
 }
 
-func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleScheduledChange(sc types.GrandpaScheduledChange, header *types.Header) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
-	}
-
-	if d.ConsensusEngineID != types.GrandpaEngineID {
-		return nil
 	}
 
 	if h.grandpaScheduledChange != nil {
 		return nil
 	}
 
-	sc := &types.GrandpaScheduledChange{}
-	dec, err := scale.Decode(d.Data[1:], sc)
-	if err != nil {
-		return err
-	}
-	sc = dec.(*types.GrandpaScheduledChange)
-
-	logger.Debug("handling GrandpaScheduledChange", "data", sc)
+	logger.Debugf("handling GrandpaScheduledChange data: %v", sc)
 
 	c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
 	if err != nil {
@@ -318,19 +300,15 @@ func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.
 	if err != nil {
 		return err
 	}
-
-	logger.Debug("setting GrandpaScheduledChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
+	logger.Debugf("setting GrandpaScheduledChange at block %s",
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))),
 	)
 }
 
-func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
-	if d.ConsensusEngineID != types.GrandpaEngineID {
-		return nil
-	}
-
+func (h *Handler) handleForcedChange(fc types.GrandpaForcedChange, header *types.Header) error {
 	if header == nil {
 		return errors.New("header is nil")
 	}
@@ -339,14 +317,7 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 		return errors.New("already have forced change scheduled")
 	}
 
-	fc := &types.GrandpaForcedChange{}
-	dec, err := scale.Decode(d.Data[1:], fc)
-	if err != nil {
-		return err
-	}
-	fc = dec.(*types.GrandpaForcedChange)
-
-	logger.Debug("handling GrandpaForcedChange", "data", fc)
+	logger.Debugf("handling GrandpaForcedChange with data %v", fc)
 
 	c, err := newGrandpaChange(fc.Auths, fc.Delay, header.Number)
 	if err != nil {
@@ -360,25 +331,19 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 		return err
 	}
 
-	logger.Debug("setting GrandpaForcedChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
+	logger.Debugf("setting GrandpaForcedChange at block %s",
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))),
 	)
 }
 
-func (h *Handler) handlePause(d *types.ConsensusDigest) error {
+func (h *Handler) handlePause(p types.GrandpaPause) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}
-
-	p := &types.GrandpaPause{}
-	dec, err := scale.Decode(d.Data[1:], p)
-	if err != nil {
-		return err
-	}
-	p = dec.(*types.GrandpaPause)
 
 	delay := big.NewInt(int64(p.Delay))
 
@@ -389,21 +354,13 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 	return h.grandpaState.SetNextPause(h.grandpaPause.atBlock)
 }
 
-func (h *Handler) handleResume(d *types.ConsensusDigest) error {
+func (h *Handler) handleResume(r types.GrandpaResume) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}
 
-	p := &types.GrandpaResume{}
-	dec, err := scale.Decode(d.Data[1:], p)
-	if err != nil {
-		return err
-	}
-	p = dec.(*types.GrandpaResume)
-
-	delay := big.NewInt(int64(p.Delay))
-
+	delay := big.NewInt(int64(r.Delay))
 	h.grandpaResume = &resume{
 		atBlock: big.NewInt(-1).Add(curr.Number, delay),
 	}
@@ -411,7 +368,7 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 	return h.grandpaState.SetNextResume(h.grandpaResume.atBlock)
 }
 
-func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
+func newGrandpaChange(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
 	auths, err := types.GrandpaAuthoritiesRawToAuthorities(raw)
 	if err != nil {
 		return nil, err
@@ -425,53 +382,36 @@ func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBloc
 	}, nil
 }
 
-func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
-	od := &types.BABEOnDisabled{}
-	logger.Debug("handling BABEOnDisabled", "data", od)
+func (h *Handler) handleBABEOnDisabled(d types.BABEOnDisabled, _ *types.Header) error {
+	logger.Debug("handling BABEOnDisabled")
 	return nil
 }
 
-func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
-	od := &types.NextEpochData{}
-	dec, err := scale.Decode(d.Data[1:], od)
-	if err != nil {
-		return err
-	}
-	od = dec.(*types.NextEpochData)
-
-	logger.Debug("handling BABENextEpochData", "data", od)
-
+func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Header) error {
 	currEpoch, err := h.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}
 
 	// set EpochState epoch data for upcoming epoch
-	data, err := od.ToEpochData()
+	data, err := act.ToEpochData()
 	if err != nil {
 		return err
 	}
 
-	logger.Debug("setting epoch data", "blocknum", header.Number, "epoch", currEpoch+1, "data", data)
+	logger.Debugf("setting data for block number %s and epoch %d with data: %v",
+		header.Number, currEpoch+1, data)
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
-func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
-	od := &types.NextConfigData{}
-	dec, err := scale.Decode(d.Data[1:], od)
-	if err != nil {
-		return err
-	}
-	od = dec.(*types.NextConfigData)
-
-	logger.Debug("handling BABENextConfigData", "data", od)
-
+func (h *Handler) handleNextConfigData(config types.NextConfigData, header *types.Header) error {
 	currEpoch, err := h.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}
 
-	logger.Debug("setting BABE config data", "blocknum", header.Number, "epoch", currEpoch+1, "data", od.ToConfigData())
+	logger.Debugf("setting BABE config data for block number %s and epoch %d with data: %v",
+		header.Number, currEpoch+1, config.ToConfigData())
 	// set EpochState config data for upcoming epoch
-	return h.epochState.SetConfigData(currEpoch+1, od.ToConfigData())
+	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())
 }

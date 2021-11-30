@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package runtime
 
@@ -23,6 +10,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
+
+//go:generate mockery --name Instance --structname Instance --case underscore --keeptree
 
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
@@ -40,7 +29,7 @@ type Instance interface {
 	Version() (Version, error)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
-	GrandpaAuthorities() ([]*types.Authority, error)
+	GrandpaAuthorities() ([]types.Authority, error)
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 	InitializeBlock(header *types.Header) error
 	InherentExtrinsics(data []byte) ([]byte, error)
@@ -48,9 +37,11 @@ type Instance interface {
 	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
 
-	// TODO: parameters and return values for these are undefined in the spec
-	CheckInherents()
+	CheckInherents() // TODO: use this in block verification process (#1873)
+
+	// parameters and return values for these are undefined in the spec
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
@@ -66,15 +57,18 @@ type Storage interface {
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte)
 	DeleteChild(keyToChild []byte)
+	DeleteChildLimit(keyToChild []byte, limit *[]byte) (uint32, bool, error)
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
 	ClearPrefix(prefix []byte) error
+	ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool)
 	BeginStorageTransaction()
 	CommitStorageTransaction()
 	RollbackStorageTransaction()
+	LoadCode() []byte
 }
 
 // BasicNetwork interface for functions used by runtime network state function
@@ -86,7 +80,10 @@ type BasicNetwork interface {
 type BasicStorage interface {
 	Put(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
+	Del(key []byte) error
 }
+
+//go:generate mockery --name TransactionState --structname TransactionState --case underscore --keeptree
 
 // TransactionState interface for adding transactions to pool
 type TransactionState interface {

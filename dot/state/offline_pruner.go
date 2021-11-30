@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package state
 
 import (
@@ -7,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -32,28 +34,22 @@ type OfflinePruner struct {
 }
 
 // NewOfflinePruner creates an instance of OfflinePruner.
-func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNum int64) (*OfflinePruner, error) {
+func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
+	retainBlockNum int64) (*OfflinePruner, error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	base := NewBaseState(db)
-	bestHash, err := base.LoadBestBlockHash()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get best block hash: %w", err)
-	}
-
-	// load blocktree
-	bt := blocktree.NewEmptyBlockTree(db)
-	if err = bt.Load(); err != nil {
-		return nil, fmt.Errorf("failed to load blocktree: %w", err)
-	}
-
 	// create blockState state
-	blockState, err := NewBlockState(db, bt)
+	blockState, err := NewBlockState(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
+	}
+
+	bestHash, err := blockState.GetHighestFinalisedHash()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get best finalised hash: %w", err)
 	}
 
 	// create bloom filter
@@ -81,22 +77,33 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retain
 }
 
 // SetBloomFilter loads keys with storage prefix of last `retainBlockNum` blocks into the bloom filter
-func (p *OfflinePruner) SetBloomFilter() error {
-	defer p.inputDB.Close() // nolint: errcheck
-	finalisedHash, err := p.blockState.GetFinalisedHash(0, 0)
+func (p *OfflinePruner) SetBloomFilter() (err error) {
+	defer func() {
+		closeErr := p.inputDB.Close()
+		switch {
+		case closeErr == nil:
+			return
+		case err == nil:
+			err = fmt.Errorf("cannot close input database: %w", closeErr)
+		default:
+			logger.Errorf("cannot close input database: %s", err)
+		}
+	}()
+
+	finalisedHash, err := p.blockState.GetHighestFinalisedHash()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get highest finalised hash: %w", err)
 	}
 
 	header, err := p.blockState.GetHeader(finalisedHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get highest finalised header: %w", err)
 	}
 
 	latestBlockNum := header.Number.Int64()
 	keys := make(map[common.Hash]struct{})
 
-	logger.Info("Latest block number", "num", latestBlockNum)
+	logger.Infof("Latest block number is %d", latestBlockNum)
 
 	if latestBlockNum-p.retainBlockNum <= 0 {
 		return fmt.Errorf("not enough block to perform pruning")
@@ -130,7 +137,7 @@ func (p *OfflinePruner) SetBloomFilter() error {
 		}
 	}
 
-	logger.Info("Total keys added in bloom filter", "keysCount", len(keys))
+	logger.Infof("Total keys added in bloom filter: %d", len(keys))
 	return nil
 }
 
@@ -140,13 +147,33 @@ func (p *OfflinePruner) Prune() error {
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)
 	}
-	defer inputDB.Close() // nolint: errcheck
+	defer func() {
+		closeErr := inputDB.Close()
+		switch {
+		case closeErr == nil:
+			return
+		case err == nil:
+			err = fmt.Errorf("cannot close input database: %w", closeErr)
+		default:
+			logger.Errorf("cannot close input database: %s", err)
+		}
+	}()
 
 	prunedDB, err := utils.LoadBadgerDB(p.prunedDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)
 	}
-	defer prunedDB.Close() // nolint: errcheck
+	defer func() {
+		closeErr := prunedDB.Close()
+		switch {
+		case closeErr == nil:
+			return
+		case err == nil:
+			err = fmt.Errorf("cannot close pruned database: %w", closeErr)
+		default:
+			logger.Errorf("cannot close pruned database: %s", err)
+		}
+	}()
 
 	writer := prunedDB.NewStreamWriter()
 	if err = writer.Prepare(); err != nil {

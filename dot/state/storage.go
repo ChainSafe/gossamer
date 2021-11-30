@@ -1,23 +1,9 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
@@ -57,7 +43,8 @@ type StorageState struct {
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, onlinePruner pruner.Config) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState,
+	t *trie.Trie, onlinePruner pruner.Config) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -106,7 +93,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 	if s.syncing {
 		// keep only the trie at the head of the chain when syncing
-		// TODO: probably remove this when memory usage improves
+		// TODO: probably remove this when memory usage improves (#1494)
 		s.tries.Range(func(k, _ interface{}) bool {
 			s.tries.Delete(k)
 			return true
@@ -132,10 +119,10 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		}
 	}
 
-	logger.Trace("cached trie in storage state", "root", root)
+	logger.Tracef("cached trie in storage state: %s", root)
 
 	if err := ts.Trie().WriteDirty(s.db); err != nil {
-		logger.Warn("failed to write trie to database", "root", root, "error", err)
+		logger.Warnf("failed to write trie with root %s to database: %s", root, err)
 		return err
 	}
 
@@ -177,7 +164,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	logger.Trace("returning trie to be modified", "root", root)
+	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil
 }
 
@@ -241,33 +228,47 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash
-func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error) {
-	header, err := s.blockState.GetHeader(bhash)
-	if err != nil {
-		return nil, err
+func (s *StorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
+	var (
+		root common.Hash
+		err  error
+	)
+
+	if bhash != nil {
+		header, err := s.blockState.GetHeader(*bhash)
+		if err != nil {
+			return nil, err
+		}
+
+		root = header.StateRoot
+	} else {
+		root, err = s.StorageRoot()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return s.GetStorage(&header.StateRoot, key)
+	return s.GetStorage(&root, key)
 }
 
 // GetStateRootFromBlock returns the state root hash of a given block hash
 func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
+	if bhash == nil {
+		b := s.blockState.BestBlockHash()
+		bhash = &b
+	}
+
 	header, err := s.blockState.GetHeader(*bhash)
 	if err != nil {
 		return nil, err
 	}
+
 	return &header.StateRoot, nil
 }
 
 // StorageRoot returns the root hash of the current storage trie
 func (s *StorageState) StorageRoot() (common.Hash, error) {
 	return s.blockState.BestBlockStateRoot()
-}
-
-// EnumeratedTrieRoot not implemented
-func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
-	//TODO
-	panic("not implemented")
 }
 
 // Entries returns Entries from the trie with the given state root
@@ -280,7 +281,8 @@ func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
 	return tr.Entries(), nil
 }
 
-// GetKeysWithPrefix returns all that match the given prefix for the given hash (or best block state root if hash is nil) in lexicographic order
+// GetKeysWithPrefix returns all that match the given prefix for the given hash
+// (or best block state root if hash is nil) in lexicographic order
 func (s *StorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
 	tr, err := s.loadTrie(root)
 	if err != nil {
@@ -325,23 +327,9 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 	return common.Blake2bHash(code)
 }
 
-// GetBalance gets the balance for an account with the given public key
-func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, error) {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return 0, err
-	}
-
-	bal, err := s.GetStorage(hash, skey)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(bal) != 8 {
-		return 0, nil
-	}
-
-	return binary.LittleEndian.Uint64(bal), nil
+// GenerateTrieProof returns the proofs related to the keys on the state root trie
+func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
+	return trie.GenerateProof(stateRoot[:], keys, s.db)
 }
 
 func (s *StorageState) pruneStorage(closeCh chan interface{}) {

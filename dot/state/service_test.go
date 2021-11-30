@@ -1,25 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -27,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -34,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
@@ -44,17 +30,17 @@ func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	state = NewService(config)
 	return state
 }
 
-func newTestMemDBService() *Service {
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+func newTestMemDBService(t *testing.T) *Service {
+	testDatadirPath := t.TempDir()
 	config := Config{
 		Path:     testDatadirPath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	state := NewService(config)
 	state.UseMemDB()
@@ -84,7 +70,8 @@ func TestService_Initialise(t *testing.T) {
 	err := state.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}),
+		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	err = state.Initialise(genData, genesisHeader, genTrie)
@@ -99,7 +86,7 @@ func TestService_Initialise(t *testing.T) {
 }
 
 func TestMemDB_Start(t *testing.T) {
-	state := newTestMemDBService()
+	state := newTestMemDBService(t)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
@@ -120,7 +107,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	stateA := NewService(config)
 
@@ -132,7 +119,11 @@ func TestService_BlockTree(t *testing.T) {
 	require.NoError(t, err)
 
 	// add blocks to state
-	AddBlocksToState(t, stateA.Block, 10)
+	AddBlocksToState(t, stateA.Block, 10, false)
+	head := stateA.Block.BestBlockHash()
+
+	err = stateA.Block.SetFinalisedHash(head, 1, 1)
+	require.NoError(t, err)
 
 	err = stateA.Stop()
 	require.NoError(t, err)
@@ -154,7 +145,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	retainBlocks := 2
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 		PrunerCfg: pruner.Config{
 			Mode:           pruner.Full,
 			RetainedBlocks: int64(retainBlocks),
@@ -180,7 +171,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(trieState, block.Header)
+		err = serv.Storage.StoreTrie(trieState, &block.Header)
 		require.NoError(t, err)
 
 		blocks = append(blocks, block)
@@ -205,7 +196,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -225,9 +216,12 @@ func TestService_PruneStorage(t *testing.T) {
 	var toFinalize common.Hash
 	for i := 0; i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
-		block.Header.Digest = types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest(),
-		}
+		digest := types.NewDigest()
+		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest()
+		require.NoError(t, err)
+		err = digest.Add(*prd)
+		require.NoError(t, err)
+		block.Header.Digest = digest
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -283,7 +277,7 @@ func TestService_Rewind(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -307,7 +301,11 @@ func TestService_Rewind(t *testing.T) {
 	err = serv.Grandpa.setSetIDChangeAtBlock(3, big.NewInt(10))
 	require.NoError(t, err)
 
-	AddBlocksToState(t, serv.Block, 12)
+	AddBlocksToState(t, serv.Block, 12, false)
+	head := serv.Block.BestBlockHash()
+	err = serv.Block.SetFinalisedHash(head, 0, 0)
+	require.NoError(t, err)
+
 	err = serv.Rewind(6)
 	require.NoError(t, err)
 
@@ -335,7 +333,7 @@ func TestService_Import(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -359,10 +357,15 @@ func TestService_Import(t *testing.T) {
 		tr.Put([]byte(tc), []byte(tc))
 	}
 
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
 	header := &types.Header{
 		Number:    big.NewInt(77),
 		StateRoot: tr.MustHash(),
-		Digest:    types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest()},
+		Digest:    digest,
 	}
 
 	firstSlot := uint64(100)
@@ -395,11 +398,12 @@ func TestStateServiceMetrics(t *testing.T) {
 
 	config := Config{
 		Path:     testDir,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	ethmetrics.Enabled = true
 	serv := NewService(config)
 	serv.Transaction = NewTransactionState()
+	serv.Block = newTestBlockState(t, testGenesisHeader)
 
 	m := metrics.NewCollector(context.Background())
 	m.AddGauge(serv)
@@ -424,7 +428,7 @@ func TestStateServiceMetrics(t *testing.T) {
 		hashes[i] = h
 	}
 
-	time.Sleep(time.Second + metrics.Refresh)
+	time.Sleep(time.Second + metrics.RefreshInterval)
 	gpool := ethmetrics.GetOrRegisterGauge(readyPoolTransactionsMetrics, nil)
 	gqueue := ethmetrics.GetOrRegisterGauge(readyPriorityQueueTransactions, nil)
 
@@ -434,7 +438,7 @@ func TestStateServiceMetrics(t *testing.T) {
 	serv.Transaction.pool.Remove(hashes[0])
 	serv.Transaction.queue.Pop()
 
-	time.Sleep(time.Second + metrics.Refresh)
+	time.Sleep(time.Second + metrics.RefreshInterval)
 	require.Equal(t, int64(1), gpool.Value())
 	require.Equal(t, int64(1), gqueue.Value())
 }

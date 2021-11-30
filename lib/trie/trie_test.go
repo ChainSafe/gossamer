@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package trie
 
@@ -20,7 +7,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -32,9 +18,9 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 type commonPrefixTest struct {
@@ -65,7 +51,8 @@ func TestCommonPrefix(t *testing.T) {
 	}
 }
 
-var (
+//nolint:revive
+const (
 	PUT          = 0
 	DEL          = 1
 	CLEAR_PREFIX = 2
@@ -129,7 +116,7 @@ func writeToTestFile(tests []Test) error {
 		return err
 	}
 	os.Remove(fp)
-	err = ioutil.WriteFile(fp, []byte(testString), 0644)
+	err = os.WriteFile(fp, []byte(testString), 0644)
 	if err != nil {
 		return err
 	}
@@ -291,7 +278,7 @@ func TestFailingTests(t *testing.T) {
 		t.Error(err)
 	}
 
-	data, err := ioutil.ReadFile(fp)
+	data, err := os.ReadFile(fp)
 	if err != nil {
 		t.SkipNow()
 	}
@@ -474,8 +461,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	testDataDirPath, _ := ioutil.TempDir(t.TempDir(), "test-badger-datadir")
-	defer os.RemoveAll(testDataDirPath)
+	testDataDirPath := t.TempDir()
 
 	cfg := &chaindb.Config{
 		DataDir:  testDataDirPath,
@@ -531,14 +517,6 @@ func TestTrieDiff(t *testing.T) {
 	dbTrie := NewEmptyTrie()
 	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.getHash()))
 	require.NoError(t, err)
-
-	enc, err := dbTrie.Encode()
-	require.NoError(t, err)
-
-	newEnc, err := newTrie.Encode()
-	require.NoError(t, err)
-
-	require.Equal(t, enc, newEnc)
 }
 
 func TestDelete(t *testing.T) {
@@ -1128,8 +1106,6 @@ func TestNextKey_Random(t *testing.T) {
 			trie.Put(tc, tc)
 		}
 
-		fmt.Println("Iteration: ", i)
-
 		for idx, tc := range testCases {
 			next := trie.NextKey(tc)
 			if idx == len(testCases)-1 {
@@ -1141,39 +1117,43 @@ func TestNextKey_Random(t *testing.T) {
 	}
 }
 
-func TestRootHashNonParallel(t *testing.T) {
-	rt := GenerateRandomTests(t, 1000000)
+func Benchmark_Trie_Hash(b *testing.B) {
+	rt := GenerateRandomTests(b, 1000000)
 	trie := NewEmptyTrie()
 	for i := range rt {
 		test := &rt[i]
 		trie.Put(test.key, test.value)
 	}
 
-	t.Run("Non Parallel Hash", func(t *testing.T) {
+	trieTwo, err := trie.DeepCopy()
+	require.NoError(b, err)
+
+	b.Run("Sequential hash", func(b *testing.B) {
 		trie.parallel = false
+
+		b.StartTimer()
 		_, err := trie.Hash()
-		require.NoError(t, err)
-		PrintMemUsage()
+		b.StopTimer()
+
+		require.NoError(b, err)
+
+		printMemUsage()
+	})
+
+	b.Run("Parallel hash", func(b *testing.B) {
+		trieTwo.parallel = true
+
+		b.StartTimer()
+		_, err := trieTwo.Hash()
+		b.StopTimer()
+
+		require.NoError(b, err)
+
+		printMemUsage()
 	})
 }
 
-func TestRootHashParallel(t *testing.T) {
-	rt := GenerateRandomTests(t, 1000000)
-	trie := NewEmptyTrie()
-	for i := range rt {
-		test := &rt[i]
-		trie.Put(test.key, test.value)
-	}
-
-	t.Run("Parallel Hash", func(t *testing.T) {
-		trie.parallel = true
-		_, err := trie.Hash()
-		require.NoError(t, err)
-		PrintMemUsage()
-	})
-}
-
-func PrintMemUsage() {
+func printMemUsage() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
@@ -1274,4 +1254,250 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 
 	require.Equal(t, expectedA.MustHash(), trieA.MustHash())
 	require.Equal(t, expectedB.MustHash(), trieB.MustHash())
+}
+
+func TestTrie_ClearPrefixLimit(t *testing.T) {
+	prefixes := [][]byte{
+		{},
+		{0x00},
+		{0x01},
+		{0x01, 0x35},
+		{0xf0},
+		{0xf2},
+		{0x01, 0x30},
+		{0x01, 0x35, 0x70},
+		{0x01, 0x35, 0x77},
+		{0xf2, 0x0},
+		{0x07},
+		{0x09},
+	}
+
+	cases := [][]Test{
+
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x36}, value: []byte("pencil")},
+			{key: []byte{0x02}, value: []byte("feather")},
+			{key: []byte{0x03}, value: []byte("birds")},
+		},
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+		{
+			{key: []byte("asdf"), value: []byte("asdf")},
+			{key: []byte("ghjk"), value: []byte("ghjk")},
+			{key: []byte("qwerty"), value: []byte("qwerty")},
+			{key: []byte("uiopl"), value: []byte("uiopl")},
+			{key: []byte("zxcv"), value: []byte("zxcv")},
+			{key: []byte("bnm"), value: []byte("bnm")},
+		},
+	}
+
+	testFn := func(testCase []Test, prefix []byte) {
+		prefixNibbles := keyToNibbles(prefix)
+		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
+			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
+		}
+
+		for lim := 0; lim < len(testCase)+1; lim++ {
+			trieClearPrefix := NewEmptyTrie()
+
+			for _, test := range testCase {
+				trieClearPrefix.Put(test.key, test.value)
+			}
+
+			num, allDeleted := trieClearPrefix.ClearPrefixLimit(prefix, uint32(lim))
+			deleteCount := uint32(0)
+			isAllDeleted := true
+
+			for _, test := range testCase {
+				val := trieClearPrefix.Get(test.key)
+
+				keyNibbles := keyToNibbles(test.key)
+				length := lenCommonPrefix(keyNibbles, prefixNibbles)
+
+				if length == len(prefixNibbles) {
+					if val == nil {
+						deleteCount++
+					} else {
+						isAllDeleted = false
+						require.Equal(t, test.value, val)
+					}
+				} else {
+					require.NotNil(t, val)
+				}
+			}
+			require.Equal(t, num, deleteCount)
+			require.LessOrEqual(t, deleteCount, uint32(lim))
+			if lim > 0 {
+				require.Equal(t, allDeleted, isAllDeleted)
+			}
+		}
+	}
+
+	for _, testCase := range cases {
+		t.Run("Test", func(t *testing.T) {
+			for _, prefix := range prefixes {
+				testFn(testCase, prefix)
+			}
+		})
+	}
+}
+
+func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
+	prefixes := [][]byte{
+		{},
+		{0x00},
+		{0x01},
+		{0x01, 0x35},
+		{0xf0},
+		{0xf2},
+		{0x01, 0x30},
+		{0x01, 0x35, 0x70},
+		{0x01, 0x35, 0x77},
+		{0xf2, 0x0},
+		{0x07},
+		{0x09},
+	}
+
+	cases := [][]Test{
+
+		{
+			{key: []byte{0x01}, value: []byte("feather")},
+		},
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x36}, value: []byte("pencil")},
+			{key: []byte{0x02}, value: []byte("feather")},
+			{key: []byte{0x03}, value: []byte("birds")},
+		},
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+		{
+			{key: []byte("asdf"), value: []byte("asdf")},
+			{key: []byte("ghjk"), value: []byte("ghjk")},
+			{key: []byte("qwerty"), value: []byte("qwerty")},
+			{key: []byte("uiopl"), value: []byte("uiopl")},
+			{key: []byte("zxcv"), value: []byte("zxcv")},
+			{key: []byte("bnm"), value: []byte("bnm")},
+		},
+	}
+
+	for _, testCase := range cases {
+		for _, prefix := range prefixes {
+			prefixNibbles := keyToNibbles(prefix)
+			if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
+				prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
+			}
+
+			for lim := 0; lim < len(testCase)+1; lim++ {
+				trieClearPrefix := NewEmptyTrie()
+
+				for _, test := range testCase {
+					trieClearPrefix.Put(test.key, test.value)
+				}
+
+				// DeepCopy the trie.
+				dcTrie, err := trieClearPrefix.DeepCopy()
+				require.NoError(t, err)
+
+				// Take Snapshot of the trie.
+				ssTrie := trieClearPrefix.Snapshot()
+
+				// Get the Trie root hash for all the 3 tries.
+				tHash, err := trieClearPrefix.Hash()
+				require.NoError(t, err)
+
+				dcTrieHash, err := dcTrie.Hash()
+				require.NoError(t, err)
+
+				ssTrieHash, err := ssTrie.Hash()
+				require.NoError(t, err)
+
+				// Root hash for all the 3 tries should be equal.
+				require.Equal(t, tHash, dcTrieHash)
+				require.Equal(t, dcTrieHash, ssTrieHash)
+
+				num, allDeleted := ssTrie.ClearPrefixLimit(prefix, uint32(lim))
+				deleteCount := uint32(0)
+				isAllDeleted := true
+
+				for _, test := range testCase {
+					val := ssTrie.Get(test.key)
+
+					keyNibbles := keyToNibbles(test.key)
+					length := lenCommonPrefix(keyNibbles, prefixNibbles)
+
+					if length == len(prefixNibbles) {
+						if val == nil {
+							deleteCount++
+						} else {
+							isAllDeleted = false
+							require.Equal(t, test.value, val)
+						}
+					} else {
+						require.NotNil(t, val)
+					}
+				}
+				require.LessOrEqual(t, deleteCount, uint32(lim))
+				require.Equal(t, num, deleteCount)
+				if lim > 0 {
+					require.Equal(t, allDeleted, isAllDeleted)
+				}
+
+				// Get the updated root hash of all tries.
+				tHash, err = trieClearPrefix.Hash()
+				require.NoError(t, err)
+
+				dcTrieHash, err = dcTrie.Hash()
+				require.NoError(t, err)
+
+				ssTrieHash, err = ssTrie.Hash()
+				require.NoError(t, err)
+
+				// If node got deleted then root hash must be updated else it has same root hash.
+				if num > 0 {
+					require.NotEqual(t, ssTrieHash, dcTrieHash)
+					require.NotEqual(t, ssTrieHash, tHash)
+				} else {
+					require.Equal(t, ssTrieHash, tHash)
+				}
+
+				require.Equal(t, dcTrieHash, tHash)
+			}
+		}
+	}
 }

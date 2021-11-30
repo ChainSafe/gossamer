@@ -1,0 +1,29 @@
+name: Mocks check
+on:
+  pull_request:
+    branches:
+      - development
+    paths:
+      - .github/workflows/mocks.yml
+      - "**/*.go"
+
+jobs:
+  mocks-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "^1.17"
+
+      - run: go install github.com/vektra/mockery/v2@v2.9.4
+
+      - run: go install github.com/golang/mock/mockgen@v1.6.0
+
+      - run: go generate -run "mockery" ./...
+
+      - run: go generate -run "mockgen" ./...
+
+      - name: mocks updated check
+        run: git diff --exit-code

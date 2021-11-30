@@ -12,11 +12,13 @@ Gossamer consumes a `.toml` file containing predefined settings for the node fro
 
 ```toml
 [global]
-basepath = "~/.gossamer/gssmr" // TODO: confirm
+basepath = "~/.gossamer/gssmr" 
 log = " | trace | debug | info | warn | error | crit"
-cpuprof = "~/cpuprof.txt"  // TODO: Syntax? 
-memprof = "~/memprof.txt" // TODO: Syntax? 
 name = "gssmr"
+pprofserver = false
+pprofaddress = ":6060"
+pprofblockrate = 0
+pprofmutexrate = 0
 
 [log]
 core = " | trace | debug | info | warn | error | crit"

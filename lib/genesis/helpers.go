@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package genesis
 
@@ -21,9 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
+	"os"
 	"path/filepath"
 	"reflect"
 
@@ -62,7 +49,7 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	data, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +83,7 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 	}
 
 	// create genesis block header
-	header, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.Digest{})
+	header, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis block header: %s", err)
 	}
@@ -153,7 +140,7 @@ func NewGenesisSpecFromJSON(file string) (*Genesis, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	data, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +287,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 				return err
 			}
 		case string:
-			// todo check to confirm it's an address
+			// TODO: check to confirm it's an address (#1865)
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 			kv.iVal = append(kv.iVal, tba)
@@ -379,7 +366,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 			return nil, err
 		}
 	case [][]interface{}:
-		// TODO: for members field in phragmenElection struct figure out the correct format for encoding value
+		// TODO: for members field in phragmenElection struct figure out the correct format for encoding value (#1866)
 		for _, data := range t {
 			for _, v := range data {
 				var accAddr accountAddr
@@ -403,7 +390,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("errror")
+		return nil, fmt.Errorf("invalid value type")
 	}
 	return encode, nil
 }
@@ -413,6 +400,7 @@ func generateContractKeyValue(c *contracts, prefixKey string, res map[string]str
 		key string
 		err error
 	)
+
 	// First field of contract is the storage key
 	val := reflect.ValueOf(c)
 	if k := reflect.Indirect(val).Type().Field(0).Name; k == currentSchedule {
@@ -426,6 +414,7 @@ func generateContractKeyValue(c *contracts, prefixKey string, res map[string]str
 	if err != nil {
 		return err
 	}
+
 	res[key] = common.BytesToHex(encode)
 	return nil
 }
@@ -433,20 +422,24 @@ func generateContractKeyValue(c *contracts, prefixKey string, res map[string]str
 func generateKeyValue(s interface{}, prefixKey string, res map[string]string) error {
 	val := reflect.ValueOf(s)
 	n := reflect.Indirect(val).NumField()
+
 	for i := 0; i < n; i++ {
 		val := reflect.ValueOf(s)
 		storageKey := reflect.Indirect(val).Type().Field(i).Name
-		if storageKey == phantom { //TODO: figure out what to do with Phantom as its value is null
+		if storageKey == phantom { // ignore Phantom as its value is null
 			continue
 		}
+
 		key, err := generateStorageKey(prefixKey, storageKey)
 		if err != nil {
 			return err
 		}
+
 		value, err := generateStorageValue(s, i)
 		if err != nil {
 			return err
 		}
+
 		res[key] = common.BytesToHex(value)
 	}
 	return nil
@@ -693,7 +686,6 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 		if _, err = reader.Read(buf); err == nil {
 			var arr = [32]byte{}
 			copy(arr[:], buf)
-			//nolint
 			pa, err := bytesToAddress(kt, arr[:])
 			if err != nil {
 				return err

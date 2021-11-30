@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package types
 
@@ -27,29 +14,13 @@ import (
 // Extrinsic is a generic transaction whose format is verified in the runtime
 type Extrinsic []byte
 
-// ExtrinsicData is a transaction which embeds the `ctypes.Extrinsic` and has additional functionality.
-type ExtrinsicData struct {
-	ctypes.Extrinsic
-}
-
 // NewExtrinsic creates a new Extrinsic given a byte slice
 func NewExtrinsic(e []byte) Extrinsic {
 	return Extrinsic(e)
 }
 
-// DecodeVersion decodes only the version field of the Extrinsic.
-func (e *ExtrinsicData) DecodeVersion(encExt Extrinsic) error {
-	decoder := scale.NewDecoder(bytes.NewReader(encExt))
-	_, err := decoder.DecodeUintCompact()
-	if err != nil {
-		return err
-	}
-
-	err = decoder.Decode(&e.Version)
-	if err != nil {
-		return err
-	}
-	return nil
+func (e Extrinsic) String() string {
+	return common.BytesToHex(e)
 }
 
 // Hash returns the blake2b hash of the extrinsic
@@ -75,7 +46,23 @@ func ExtrinsicsArrayToBytesArray(exts []Extrinsic) [][]byte {
 func BytesArrayToExtrinsics(b [][]byte) []Extrinsic {
 	exts := make([]Extrinsic, len(b))
 	for i, be := range b {
-		exts[i] = Extrinsic(be)
+		exts[i] = be
 	}
 	return exts
+}
+
+// ExtrinsicData is a transaction which embeds the `ctypes.Extrinsic` and has additional functionality.
+type ExtrinsicData struct {
+	ctypes.Extrinsic
+}
+
+// DecodeVersion decodes only the version field of the Extrinsic.
+func (e *ExtrinsicData) DecodeVersion(encExt Extrinsic) error {
+	decoder := scale.NewDecoder(bytes.NewReader(encExt))
+	_, err := decoder.DecodeUintCompact()
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(&e.Version)
 }

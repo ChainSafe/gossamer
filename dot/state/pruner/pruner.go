@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package pruner
 
 import (
@@ -6,9 +9,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 const (
@@ -17,9 +20,10 @@ const (
 	pruneInterval = time.Second
 )
 
-// nolint
 const (
-	Full    = Mode("full")
+	// Full pruner mode.
+	Full = Mode("full")
+	// Archive pruner mode.
 	Archive = Mode("archive")
 )
 
@@ -66,12 +70,14 @@ type deathRow []*deathRecord
 
 // FullNode stores state trie diff and allows online state trie pruning
 type FullNode struct {
-	logger        log.Logger
-	deathList     []deathRow
-	storageDB     chaindb.Database
-	journalDB     chaindb.Database
-	deathIndex    map[common.Hash]int64 // Mapping from deleted key hash to block number.
-	pendingNumber int64                 // block number to be pruned. Initial value is set to 1 and is incremented after every block pruning.
+	logger     log.LeveledLogger
+	deathList  []deathRow
+	storageDB  chaindb.Database
+	journalDB  chaindb.Database
+	deathIndex map[common.Hash]int64 // Mapping from deleted key hash to block number.
+	// pendingNumber is the block number to be pruned.
+	// Initial value is set to 1 and is incremented after every block pruning.
+	pendingNumber int64
 	retainBlocks  int64
 	sync.RWMutex
 }
@@ -99,7 +105,7 @@ func newJournalRecord(hash common.Hash, insertedKeys, deletedKeys []common.Hash)
 }
 
 // NewFullNode creates a Pruner for full node.
-func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Logger) (Pruner, error) {
+func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.LeveledLogger) (Pruner, error) {
 	p := &FullNode{
 		deathList:    make([]deathRow, 0),
 		deathIndex:   make(map[common.Hash]int64),
@@ -114,7 +120,7 @@ func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Logge
 		return nil, err
 	}
 
-	p.logger.Debug("last pruned block", "block num", blockNum)
+	p.logger.Debugf("last pruned block is %d", blockNum)
 	blockNum++
 
 	p.pendingNumber = blockNum
@@ -139,7 +145,7 @@ func (p *FullNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash
 		return fmt.Errorf("failed to store journal record for %d: %w", blockNum, err)
 	}
 
-	p.logger.Debug("journal record stored", "block num", blockNum)
+	p.logger.Debugf("journal record stored for block number %d", blockNum)
 	p.addDeathRow(jr, blockNum)
 	return nil
 }
@@ -217,13 +223,13 @@ func (p *FullNode) start() {
 		row := p.deathList[0]
 		blockNum := p.pendingNumber
 
-		p.logger.Debug("pruning block", "block num", blockNum)
+		p.logger.Debugf("pruning block number %d", blockNum)
 
 		sdbBatch := p.storageDB.NewBatch()
 		for _, record := range row {
 			err := p.deleteKeys(sdbBatch, record.deletedKeys)
 			if err != nil {
-				p.logger.Warn("failed to prune keys", "block num", blockNum, "error", err)
+				p.logger.Warnf("failed to prune keys for block number %d: %s", blockNum, err)
 				sdbBatch.Reset()
 				return
 			}
@@ -234,13 +240,13 @@ func (p *FullNode) start() {
 		}
 
 		if err := sdbBatch.Flush(); err != nil {
-			p.logger.Warn("failed to prune keys", "block num", blockNum, "error", err)
+			p.logger.Warnf("failed to prune keys for block number %d: %s", blockNum, err)
 			return
 		}
 
 		err := p.storeLastPrunedIndex(blockNum)
 		if err != nil {
-			p.logger.Warn("failed to store last pruned index", "block num", blockNum, "error", err)
+			p.logger.Warnf("failed to store last pruned index for block number %d: %s", blockNum, err)
 			return
 		}
 
@@ -252,17 +258,17 @@ func (p *FullNode) start() {
 			jk := &journalKey{blockNum, record.blockHash}
 			err = p.deleteJournalRecord(jdbBatch, jk)
 			if err != nil {
-				p.logger.Warn("failed to delete journal record", "block num", blockNum, "error", err)
+				p.logger.Warnf("failed to delete journal record for block number %d: %s", blockNum, err)
 				jdbBatch.Reset()
 				return
 			}
 		}
 
 		if err = jdbBatch.Flush(); err != nil {
-			p.logger.Warn("failed to delete journal record", "block num", blockNum, "error", err)
+			p.logger.Warnf("failed to flush delete journal record for block number %d: %s", blockNum, err)
 			return
 		}
-		p.logger.Debug("pruned block", "block num", blockNum)
+		p.logger.Debugf("pruned block number %d", blockNum)
 	}
 
 	for {
@@ -275,12 +281,12 @@ func (p *FullNode) start() {
 }
 
 func (p *FullNode) storeJournal(key *journalKey, jr *journalRecord) error {
-	encKey, err := scale.Encode(key)
+	encKey, err := scale.Marshal(*key)
 	if err != nil {
 		return fmt.Errorf("failed to encode journal key block num %d: %w", key.blockNum, err)
 	}
 
-	encRecord, err := scale.Encode(jr)
+	encRecord, err := scale.Marshal(*jr)
 	if err != nil {
 		return fmt.Errorf("failed to encode journal record block num %d: %w", key.blockNum, err)
 	}
@@ -299,26 +305,27 @@ func (p *FullNode) loadDeathList() error {
 	defer itr.Release()
 
 	for itr.Next() {
-		jk, err := scale.Decode(itr.Key(), new(journalKey))
+		key := &journalKey{}
+		err := scale.Unmarshal(itr.Key(), key)
 		if err != nil {
 			return fmt.Errorf("failed to decode journal key %w", err)
 		}
 
-		key := jk.(*journalKey)
 		val := itr.Value()
 
-		jr, err := scale.Decode(val, new(journalRecord))
+		jr := &journalRecord{}
+		err = scale.Unmarshal(val, jr)
 		if err != nil {
 			return fmt.Errorf("failed to decode journal record block num %d : %w", key.blockNum, err)
 		}
 
-		p.addDeathRow(jr.(*journalRecord), key.blockNum)
+		p.addDeathRow(jr, key.blockNum)
 	}
 	return nil
 }
 
 func (p *FullNode) deleteJournalRecord(b chaindb.Batch, key *journalKey) error {
-	encKey, err := scale.Encode(key)
+	encKey, err := scale.Marshal(*key)
 	if err != nil {
 		return err
 	}
@@ -332,7 +339,7 @@ func (p *FullNode) deleteJournalRecord(b chaindb.Batch, key *journalKey) error {
 }
 
 func (p *FullNode) storeLastPrunedIndex(blockNum int64) error {
-	encNum, err := scale.Encode(blockNum)
+	encNum, err := scale.Marshal(blockNum)
 	if err != nil {
 		return err
 	}
@@ -355,12 +362,13 @@ func (p *FullNode) getLastPrunedIndex() (int64, error) {
 		return 0, err
 	}
 
-	blockNum, err := scale.Decode(val, int64(0))
+	blockNum := int64(0)
+	err = scale.Unmarshal(val, &blockNum)
 	if err != nil {
 		return 0, err
 	}
 
-	return blockNum.(int64), nil
+	return blockNum, nil
 }
 
 func (p *FullNode) deleteKeys(b chaindb.Batch, nodesHash map[common.Hash]int64) error {

@@ -1,28 +1,18 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package rpc
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/gorilla/rpc/v2"
 	"github.com/stretchr/testify/require"
@@ -48,46 +38,48 @@ func TestService_Methods(t *testing.T) {
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods, len(m))
 
-	authMod := modules.NewAuthorModule(nil, nil, nil)
+	authMod := modules.NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, nil)
 	rpcService.BuildMethodNames(authMod, "author")
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods+qtyAuthorMethods, len(m))
 }
 
-type MockService struct{}
+type mockService struct{}
 
+// MockServiceArrayRequest must be exported for ReadArray or tests will fail.
 type MockServiceArrayRequest struct {
 	Key   []string
 	Bhash []common.Hash
 }
 
+// MockServiceArrayResponse must be exported for ReadArray or tests will fail.
 type MockServiceArrayResponse struct {
 	Key   []string
 	Bhash []common.Hash
 }
 
-func (t *MockService) ReadArray(r *http.Request, req *MockServiceArrayRequest, res *MockServiceArrayResponse) error {
+func (t *mockService) ReadArray(r *http.Request, req *MockServiceArrayRequest, res *MockServiceArrayResponse) error {
 	res.Key = req.Key
 	res.Bhash = req.Bhash
 	return nil
 }
 
-type MockResponseWriter struct {
+type mockResponseWriter struct {
 	header http.Header
 	Status int
 	Body   string
 }
 
-func NewMockResponseWriter() *MockResponseWriter {
+func newMockResponseWriter() *mockResponseWriter {
 	header := make(http.Header)
-	return &MockResponseWriter{header: header}
+	return &mockResponseWriter{header: header}
 }
 
-func (w *MockResponseWriter) Header() http.Header {
+func (w *mockResponseWriter) Header() http.Header {
 	return w.header
 }
 
-func (w *MockResponseWriter) Write(p []byte) (int, error) {
+func (w *mockResponseWriter) Write(p []byte) (int, error) {
 	w.Body = string(p)
 	if w.Status == 0 {
 		w.Status = 200
@@ -95,13 +87,13 @@ func (w *MockResponseWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (w *MockResponseWriter) WriteHeader(status int) {
+func (w *mockResponseWriter) WriteHeader(status int) {
 	w.Status = status
 }
 
 func TestJson2ReadRequest(t *testing.T) {
 	s := rpc.NewServer()
-	s.RegisterService(new(MockService), "mockService")
+	s.RegisterService(new(mockService), "mockService")
 	s.RegisterCodec(NewDotUpCodec(), "application/json")
 
 	testCase := []struct {
@@ -109,18 +101,29 @@ func TestJson2ReadRequest(t *testing.T) {
 		params string
 		isErr  bool
 	}{
-		{method: `"mockService_readArray"`, params: `[["key1","key2"], ["0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b29d4","0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b2977"]]`},
-		{method: `"mockService_readArray"`, params: `["key1", ["0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b29d4"]]`, isErr: true},
+		{
+			method: `"mockService_readArray"`,
+			params: `[["key1","key2"], ` +
+				`["0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b29d4",` +
+				`"0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b2977"]]`,
+		},
+		{
+			method: `"mockService_readArray"`,
+			params: `["key1", ["0x2ea162e982746e9ea1b3133a4e2d5b586740700b239c14d78209ebf96d3b29d4"]]`,
+			isErr:  true,
+		},
 	}
 
 	for _, test := range testCase {
 		t.Run(test.method, func(t *testing.T) {
 
-			reader := strings.NewReader(fmt.Sprintf(`{"id":1, "jsonrpc":"2.0", "method":%s, "params":%s}`, test.method, test.params))
+			reader := strings.NewReader(
+				fmt.Sprintf(`{"id":1, "jsonrpc":"2.0", "method":%s, "params":%s}`,
+					test.method, test.params))
 			req, err := http.NewRequest("POST", "", reader)
 			require.NoError(t, err)
 
-			resWriter := NewMockResponseWriter()
+			resWriter := newMockResponseWriter()
 			req.Header.Set("Content-Type", "application/json")
 			s.ServeHTTP(resWriter, req)
 

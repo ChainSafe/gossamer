@@ -1,25 +1,32 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package life
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
 
-	"github.com/perlin-network/life/exec"
-
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
+	rtype "github.com/ChainSafe/gossamer/lib/common/types"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/perlin-network/life/exec"
 )
 
 // Resolver resolves the imports for life
-type Resolver struct{} // TODO: move context inside resolver
+type Resolver struct{} // TODO: move context inside resolver (#1875)
 
 // ResolveFunc ...
-func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
+func (*Resolver) ResolveFunc(module, field string) exec.FunctionImport { //nolint:gocyclo
 	switch module {
 	case "env":
 		switch field {
@@ -67,6 +74,52 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_offchain_index_set_version_1
 		case "ext_storage_exists_version_1":
 			return ext_storage_exists_version_1
+		case "ext_default_child_storage_set_version_1":
+			return ext_default_child_storage_set_version_1
+		case "ext_default_child_storage_get_version_1":
+			return ext_default_child_storage_get_version_1
+		case "ext_default_child_storage_read_version_1":
+			return ext_default_child_storage_read_version_1
+		case "ext_default_child_storage_clear_version_1":
+			return ext_default_child_storage_clear_version_1
+		case "ext_default_child_storage_storage_kill_version_1":
+			return ext_default_child_storage_storage_kill_version_1
+		case "ext_default_child_storage_exists_version_1":
+			return ext_default_child_storage_exists_version_1
+		case "ext_default_child_storage_clear_prefix_version_1":
+			return ext_default_child_storage_clear_prefix_version_1
+		case "ext_default_child_storage_root_version_1":
+			return ext_default_child_storage_root_version_1
+		case "ext_default_child_storage_next_key_version_1":
+			return ext_default_child_storage_next_key_version_1
+		case "ext_crypto_ed25519_public_keys_version_1":
+			return ext_crypto_ed25519_public_keys_version_1
+		case "ext_crypto_ed25519_generate_version_1":
+			return ext_crypto_ed25519_generate_version_1
+		case "ext_crypto_ed25519_sign_version_1":
+			return ext_crypto_ed25519_sign_version_1
+		case "ext_crypto_ed25519_verify_version_1":
+			return ext_crypto_ed25519_verify_version_1
+		case "ext_crypto_sr25519_public_keys_version_1":
+			return ext_crypto_sr25519_public_keys_version_1
+		case "ext_crypto_sr25519_generate_version_1":
+			return ext_crypto_sr25519_generate_version_1
+		case "ext_crypto_sr25519_sign_version_1":
+			return ext_crypto_sr25519_sign_version_1
+		case "ext_crypto_sr25519_verify_version_1":
+			return ext_crypto_sr25519_verify_version_1
+		case "ext_crypto_secp256k1_ecdsa_recover_version_1":
+			return ext_crypto_secp256k1_ecdsa_recover_version_1
+		case "ext_hashing_keccak_256_version_1":
+			return ext_hashing_keccak_256_version_1
+		case "ext_hashing_sha2_256_version_1":
+			return ext_hashing_sha2_256_version_1
+		case "ext_hashing_blake2_128_version_1":
+			return ext_hashing_blake2_128_version_1
+		case "ext_hashing_twox_256_version_1":
+			return ext_hashing_twox_256_version_1
+		case "ext_trie_blake2_256_root_version_1":
+			return ext_trie_blake2_256_root_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -76,7 +129,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 }
 
 // ResolveGlobal ...
-func (r *Resolver) ResolveGlobal(module, field string) int64 {
+func (*Resolver) ResolveGlobal(_, _ string) int64 {
 	panic("we're not resolving global variables for now")
 }
 
@@ -91,17 +144,17 @@ func ext_logging_log_version_1(vm *exec.VirtualMachine) int64 {
 
 	switch int(level) {
 	case 0:
-		logger.Crit("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Criticalf("[ext_logging_log_version_1] target=%s message=%s", string(target), string(msg))
 	case 1:
-		logger.Warn("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Warnf("[ext_logging_log_version_1] target=%s message=%s", string(target), string(msg))
 	case 2:
-		logger.Info("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Infof("[ext_logging_log_version_1] target=%s message=%s", string(target), string(msg))
 	case 3:
-		logger.Debug("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Debugf("[ext_logging_log_version_1] target=%s message=%s", string(target), string(msg))
 	case 4:
-		logger.Trace("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Tracef("[ext_logging_log_version_1] target=%s message=%s", string(target), string(msg))
 	default:
-		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", target, "message", msg)
+		logger.Errorf("[ext_logging_log_version_1] level=%d target=%s message=%s", level, string(target), string(msg))
 	}
 
 	return 0
@@ -111,7 +164,7 @@ func ext_misc_print_utf8_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
 	dataSpan := vm.GetCurrentFrame().Locals[0]
 	data := asMemorySlice(vm.Memory, dataSpan)
-	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", data)
+	logger.Debugf("[ext_misc_print_utf8_version_1] utf8 data: 0x%x", data)
 	return 0
 }
 
@@ -119,18 +172,18 @@ func ext_misc_print_hex_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
 	dataSpan := vm.GetCurrentFrame().Locals[0]
 	data := asMemorySlice(vm.Memory, dataSpan)
-	logger.Debug("[ext_misc_print_hex_version_1]", "hex", fmt.Sprintf("0x%x", data))
+	logger.Debugf("[ext_misc_print_hex_version_1] data is: 0x%x", data)
 	return 0
 }
 
 func ext_allocator_malloc_version_1(vm *exec.VirtualMachine) int64 {
 	size := uint32(vm.GetCurrentFrame().Locals[0])
-	logger.Trace("[ext_allocator_malloc_version_1] executing...", "size", size)
+	logger.Tracef("[ext_allocator_malloc_version_1] executing with size %d...", size)
 
 	// Allocate memory
 	res, err := ctx.Allocator.Allocate(size)
 	if err != nil {
-		logger.Error("[ext_allocator_malloc_version_1]", "error", err)
+		logger.Errorf("[ext_allocator_malloc_version_1]: %s", err)
 		panic(err)
 	}
 
@@ -139,12 +192,12 @@ func ext_allocator_malloc_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_allocator_free_version_1(vm *exec.VirtualMachine) int64 {
 	addr := uint32(vm.GetCurrentFrame().Locals[0])
-	logger.Trace("[ext_allocator_free_version_1] executing...", "addr", addr)
+	logger.Tracef("[ext_allocator_free_version_1] executing at address %d...", addr)
 
 	// Deallocate memory
 	err := ctx.Allocator.Deallocate(addr)
 	if err != nil {
-		logger.Error("[ext_allocator_free_version_1]", "error", err)
+		logger.Errorf("[ext_allocator_free_version_1]: %s", err)
 		panic(err)
 	}
 
@@ -159,15 +212,15 @@ func ext_hashing_blake2_256_version_1(vm *exec.VirtualMachine) int64 {
 
 	hash, err := common.Blake2bHash(data)
 	if err != nil {
-		logger.Error("[ext_hashing_blake2_256_version_1]", "error", err)
+		logger.Errorf("[ext_hashing_blake2_256_version_1]: %s", err)
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_blake2_256_version_1]", "data", data, "hash", hash)
+	logger.Debugf("[ext_hashing_blake2_256_version_1] data is 0x%x and hash is 0x%x", data, hash)
 
 	out, err := toWasmMemorySized(vm.Memory, hash[:], 32)
 	if err != nil {
-		logger.Error("[ext_hashing_blake2_256_version_1] failed to allocate", "error", err)
+		logger.Errorf("[ext_hashing_blake2_256_version_1] failed to allocate: %s", err)
 		return 0
 	}
 
@@ -181,15 +234,15 @@ func ext_hashing_twox_128_version_1(vm *exec.VirtualMachine) int64 {
 
 	hash, err := common.Twox128Hash(data)
 	if err != nil {
-		logger.Error("[ext_hashing_twox_128_version_1]", "error", err)
+		logger.Errorf("[ext_hashing_twox_128_version_1]: %s", err)
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_twox_128_version_1]", "data", data, "hash", fmt.Sprintf("0x%x", hash))
+	logger.Debugf("[ext_hashing_twox_128_version_1] data is 0x%x and hash is 0x%x", data, hash)
 
 	out, err := toWasmMemorySized(vm.Memory, hash, 16)
 	if err != nil {
-		logger.Error("[ext_hashing_twox_128_version_1] failed to allocate", "error", err)
+		logger.Errorf("[ext_hashing_twox_128_version_1] failed to allocate: %s", err)
 		return 0
 	}
 
@@ -203,15 +256,15 @@ func ext_hashing_twox_64_version_1(vm *exec.VirtualMachine) int64 {
 
 	hash, err := common.Twox64(data)
 	if err != nil {
-		logger.Error("[ext_hashing_twox_64_version_1]", "error", err)
+		logger.Errorf("[ext_hashing_twox_64_version_1]: %s", err)
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_twox_64_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", fmt.Sprintf("0x%x", hash))
+	logger.Debugf("[ext_hashing_twox_64_version_1] data is 0x%x and hash is 0x%x", data, hash)
 
 	out, err := toWasmMemorySized(vm.Memory, hash, 8)
 	if err != nil {
-		logger.Error("[ext_hashing_twox_64_version_1] failed to allocate", "error", err)
+		logger.Errorf("[ext_hashing_twox_64_version_1] failed to allocate: %s", err)
 		return 0
 	}
 
@@ -224,14 +277,14 @@ func ext_storage_get_version_1(vm *exec.VirtualMachine) int64 {
 	storage := ctx.Storage
 
 	key := asMemorySlice(vm.Memory, keySpan)
-	logger.Debug("[ext_storage_get_version_1]", "key", fmt.Sprintf("0x%x", key))
+	logger.Debugf("[ext_storage_get_version_1] key: 0x%x", key)
 
 	value := storage.Get(key)
-	logger.Debug("[ext_storage_get_version_1]", "value", fmt.Sprintf("0x%x", value))
+	logger.Debugf("[ext_storage_get_version_1] value: 0x%x", value)
 
 	valueSpan, err := toWasmMemoryOptional(vm.Memory, value)
 	if err != nil {
-		logger.Error("[ext_storage_get_version_1] failed to allocate", "error", err)
+		logger.Errorf("[ext_storage_get_version_1] failed to allocate: %s", err)
 		ptr, _ := toWasmMemoryOptional(vm.Memory, nil)
 		return ptr
 	}
@@ -248,7 +301,7 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 	key := asMemorySlice(vm.Memory, keySpan)
 	value := asMemorySlice(vm.Memory, valueSpan)
 
-	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
+	logger.Infof("[ext_storage_set_version_1] key 0x%x and value 0x%x", key, value)
 
 	cp := make([]byte, len(value))
 	copy(cp, value)
@@ -264,11 +317,11 @@ func ext_storage_next_key_version_1(vm *exec.VirtualMachine) int64 {
 	key := asMemorySlice(vm.Memory, keySpan)
 
 	next := storage.NextKey(key)
-	logger.Debug("[ext_storage_next_key_version_1]", "key", fmt.Sprintf("0x%x", key), "next", fmt.Sprintf("0x%x", next))
+	logger.Debugf("[ext_storage_next_key_version_1] key is 0x%x and next is 0x%x", key, next)
 
 	nextSpan, err := toWasmMemoryOptional(vm.Memory, next)
 	if err != nil {
-		logger.Error("[ext_storage_next_key_version_1] failed to allocate", "error", err)
+		logger.Errorf("[ext_storage_next_key_version_1] failed to allocate: %s", err)
 		return 0
 	}
 
@@ -282,7 +335,7 @@ func ext_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
 
 	key := asMemorySlice(vm.Memory, keySpan)
 
-	logger.Debug("[ext_storage_clear_version_1]", "key", fmt.Sprintf("0x%x", key))
+	logger.Debugf("[ext_storage_clear_version_1] key: 0x%x", key)
 	storage.Delete(key)
 	return 0
 }
@@ -293,11 +346,11 @@ func ext_storage_clear_prefix_version_1(vm *exec.VirtualMachine) int64 {
 	prefixSpan := vm.GetCurrentFrame().Locals[0]
 
 	prefix := asMemorySlice(vm.Memory, prefixSpan)
-	logger.Debug("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
+	logger.Debugf("[ext_storage_clear_prefix_version_1] prefix: 0x%x", prefix)
 
 	err := storage.ClearPrefix(prefix)
 	if err != nil {
-		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
+		logger.Errorf("[ext_storage_clear_prefix_version_1]: %s", err)
 	}
 
 	// sanity check
@@ -334,7 +387,7 @@ func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 
 	key := asMemorySlice(memory, keySpan)
 	value := storage.Get(key)
-	logger.Debug("[ext_storage_read_version_1]", "key", fmt.Sprintf("0x%x", key), "value", fmt.Sprintf("0x%x", value))
+	logger.Debugf("[ext_storage_read_version_1] key 0x%x and value 0x%x", key, value)
 
 	if value == nil {
 		ret, _ := toWasmMemoryOptional(memory, nil)
@@ -347,13 +400,13 @@ func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 		size = uint32(0)
 	} else {
 		size = uint32(len(value[offset:]))
-		valueBuf, valueLen := int64ToPointerAndSize(valueOut)
+		valueBuf, valueLen := runtime.Int64ToPointerAndSize(valueOut)
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
 	sizeSpan, err := toWasmMemoryOptionalUint32(memory, &size)
 	if err != nil {
-		logger.Error("[ext_storage_read_version_1] failed to allocate", "error", err)
+		logger.Errorf("[ext_storage_read_version_1] failed to allocate: %s", err)
 		return 0
 	}
 
@@ -371,34 +424,36 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	if len(valueCurr) == 0 {
 		valueRes = valueToAppend
 	} else {
-		// remove length prefix from existing value
-		r := &bytes.Buffer{}
-		_, _ = r.Write(valueCurr)
-		dec := &scale.Decoder{Reader: r}
-		currLength, err := dec.DecodeBigInt() //nolint
+		var currLength *big.Int
+		err := scale.Unmarshal(valueCurr, &currLength)
 		if err != nil {
-			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
+			logger.Tracef("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting at key 0x%x", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
 			return nil
 		}
 
-		// append new item
-		valueRes = append(r.Bytes(), valueToAppend...)
+		lengthBytes, err := scale.Marshal(currLength)
+		if err != nil {
+			return err
+		}
+		// append new item, pop off number of bytes required for length encoding,
+		// since we're not using old scale.Decoder
+		valueRes = append(valueCurr[len(lengthBytes):], valueToAppend...)
 
 		// increase length by 1
 		nextLength = big.NewInt(0).Add(currLength, big.NewInt(1))
 	}
 
-	lengthEnc, err := scale.Encode(nextLength)
+	lengthEnc, err := scale.Marshal(nextLength)
 	if err != nil {
-		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
+		logger.Tracef("[ext_storage_append_version_1] failed to encode new length: %s", err)
 		return err
 	}
 
 	// append new length prefix to start of items array
-	finalVal := append(lengthEnc, valueRes...)
-	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", finalVal))
-	storage.Set(key, finalVal)
+	lengthEnc = append(lengthEnc, valueRes...)
+	logger.Debugf("[ext_storage_append_version_1] resulting value: 0x%x", lengthEnc)
+	storage.Set(key, lengthEnc)
 	return nil
 }
 
@@ -406,15 +461,15 @@ func ext_storage_append_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_append_version_1] executing...")
 	storage := ctx.Storage
 	keySpan := vm.GetCurrentFrame().Locals[0]
-	valueSpan := vm.GetCurrentFrame().Locals[0]
+	valueSpan := vm.GetCurrentFrame().Locals[1]
 
 	key := asMemorySlice(vm.Memory, keySpan)
-	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
+	logger.Debugf("[ext_storage_append_version_1] key 0x%x", key)
 	valueAppend := asMemorySlice(vm.Memory, valueSpan)
 
 	err := storageAppend(storage, key, valueAppend)
 	if err != nil {
-		logger.Error("[ext_storage_append_version_1]", "error", err)
+		logger.Errorf("[ext_storage_append_version_1]: %s", err)
 	}
 
 	return 0
@@ -427,21 +482,20 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 	data := asMemorySlice(memory, dataSpan)
 
 	t := trie.NewEmptyTrie()
-	v, err := scale.Decode(data, [][]byte{})
+	var v [][]byte
+	err := scale.Unmarshal(data, &v)
 	if err != nil {
-		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
+		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
 		return 0
 	}
 
-	values := v.([][]byte)
-
-	for i, val := range values {
-		key, err := scale.Encode(big.NewInt(int64(i))) //nolint
+	for i, val := range v {
+		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+			logger.Errorf("[ext_blake2_256_enumerated_trie_root]: %s", err)
 			return 0
 		}
-		logger.Trace("[ext_trie_blake2_256_ordered_root_version_1]", "key", key, "value", val)
+		logger.Tracef("[ext_trie_blake2_256_ordered_root_version_1] key 0x%x and value 0x%x", key, val)
 
 		t.Put(key, val)
 	}
@@ -449,17 +503,17 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 	// allocate memory for value and copy value to memory
 	ptr, err := ctx.Allocator.Allocate(32)
 	if err != nil {
-		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
+		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
 		return 0
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
-		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
+		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
 		return 0
 	}
 
-	logger.Debug("[ext_trie_blake2_256_ordered_root_version_1]", "root", hash)
+	logger.Debugf("[ext_trie_blake2_256_ordered_root_version_1] root hash: %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
 	return int64(ptr)
 }
@@ -470,15 +524,15 @@ func ext_storage_root_version_1(vm *exec.VirtualMachine) int64 {
 
 	root, err := storage.Root()
 	if err != nil {
-		logger.Error("[ext_storage_root_version_1] failed to get storage root", "error", err)
+		logger.Errorf("[ext_storage_root_version_1] failed to get storage root: %s", err)
 		return 0
 	}
 
-	logger.Debug("[ext_storage_root_version_1]", "root", root)
+	logger.Debugf("[ext_storage_root_version_1] root hash: %s", root)
 
 	rootSpan, err := toWasmMemory(vm.Memory, root[:])
 	if err != nil {
-		logger.Error("[ext_storage_root_version_1] failed to allocate", "error", err)
+		logger.Errorf("[ext_storage_root_version_1] failed to allocate: %s", err)
 		return 0
 	}
 
@@ -491,31 +545,792 @@ func ext_storage_changes_root_version_1(vm *exec.VirtualMachine) int64 {
 
 	rootSpan, err := toWasmMemoryOptional(vm.Memory, nil)
 	if err != nil {
-		logger.Error("[ext_storage_changes_root_version_1] failed to allocate", "error", err)
+		logger.Errorf("[ext_storage_changes_root_version_1] failed to allocate: %s", err)
 		return 0
 	}
 
 	return rootSpan
 }
 
-func ext_crypto_start_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
+func ext_crypto_start_batch_verify_version_1(_ *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_crypto_start_batch_verify_version_1] executing...")
 	return 0
 }
 
-func ext_crypto_finish_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
+func ext_crypto_finish_batch_verify_version_1(_ *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
 	return 1
 }
 
-func ext_offchain_index_set_version_1(vm *exec.VirtualMachine) int64 {
+func ext_offchain_index_set_version_1(_ *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 	return 0
 }
 
+func ext_default_child_storage_set_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_set_version_1] executing...")
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	childStorageKeySpan := vm.GetCurrentFrame().Locals[0]
+	childStorageKey := asMemorySlice(memory, childStorageKeySpan)
+	keySpan := vm.GetCurrentFrame().Locals[1]
+	key := asMemorySlice(memory, keySpan)
+	valueSpan := vm.GetCurrentFrame().Locals[2]
+	value := asMemorySlice(memory, valueSpan)
+
+	cp := make([]byte, len(value))
+	copy(cp, value)
+
+	err := storage.SetChildStorage(childStorageKey, key, cp)
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_set_version_1] failed to set value in child storage: %s", err)
+		return 0
+	}
+
+	return 0
+}
+
+func ext_default_child_storage_get_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_get_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	child, err := storage.GetChildStorage(asMemorySlice(memory, childStorageKey), asMemorySlice(memory, key))
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_get_version_1] failed to get child from child storage: %s", err)
+		return 0
+	}
+
+	value, err := toWasmMemoryOptional(memory, child)
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_get_version_1] failed to allocate: %s", err)
+		return 0
+	}
+
+	return value
+}
+
+func ext_default_child_storage_read_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_read_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	valueOut := vm.GetCurrentFrame().Locals[2]
+	offset := vm.GetCurrentFrame().Locals[3]
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	value, err := storage.GetChildStorage(asMemorySlice(memory, childStorageKey), asMemorySlice(memory, key))
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_read_version_1] failed to get child storage: %s", err)
+		return 0
+	}
+
+	valueBuf, valueLen := runtime.Int64ToPointerAndSize(valueOut)
+	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
+
+	size := uint32(len(value[offset:]))
+	sizeBuf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(sizeBuf, size)
+
+	sizeSpan, err := toWasmMemoryOptional(memory, sizeBuf)
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_read_version_1] failed to allocate: %s", err)
+		return 0
+	}
+
+	return sizeSpan
+}
+
+func ext_default_child_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Debug("[ext_default_child_storage_clear_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	keySpan := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+	storage := ctx.Storage
+
+	keyToChild := asMemorySlice(memory, childStorageKey)
+	key := asMemorySlice(memory, keySpan)
+
+	err := storage.ClearChildStorage(keyToChild, key)
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_clear_version_1] failed to clear child storage: %s", err)
+	}
+	return 0
+}
+
+func ext_default_child_storage_storage_kill_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
+
+	childStorageKeySpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+	storage := ctx.Storage
+
+	childStorageKey := asMemorySlice(memory, childStorageKeySpan)
+	storage.DeleteChild(childStorageKey)
+	return 0
+}
+
+func ext_default_child_storage_exists_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_exists_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	child, err := storage.GetChildStorage(asMemorySlice(memory, childStorageKey), asMemorySlice(memory, key))
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_exists_version_1] failed to get child from child storage: %s", err)
+		return 0
+	}
+	if child != nil {
+		return 1
+	}
+	return 0
+}
+
+func ext_default_child_storage_clear_prefix_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_clear_prefix_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	prefixSpan := vm.GetCurrentFrame().Locals[1]
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	keyToChild := asMemorySlice(memory, childStorageKey)
+	prefix := asMemorySlice(memory, prefixSpan)
+
+	err := storage.ClearPrefixInChild(keyToChild, prefix)
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_clear_prefix_version_1] failed to clear prefix in child: %s", err)
+	}
+	return 0
+}
+
+func ext_default_child_storage_root_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_root_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+	storage := ctx.Storage
+
+	child, err := storage.GetChild(asMemorySlice(memory, childStorageKey))
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_root_version_1] failed to retrieve child: %s", err)
+		return 0
+	}
+
+	childRoot, err := child.Hash()
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_root_version_1] failed to encode child root: %s", err)
+		return 0
+	}
+
+	root, err := toWasmMemoryOptional(memory, childRoot[:])
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_root_version_1] failed to allocate: %s", err)
+		return 0
+	}
+
+	return root
+}
+
+func ext_default_child_storage_next_key_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_next_key_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+	storage := ctx.Storage
+
+	child, err := storage.GetChildNextKey(asMemorySlice(memory, childStorageKey), asMemorySlice(memory, key))
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_next_key_version_1] failed to get child's next key: %s", err)
+		return 0
+	}
+
+	value, err := toWasmMemoryOptional(memory, child)
+	if err != nil {
+		logger.Errorf("[ext_default_child_storage_next_key_version_1] failed to allocate: %s", err)
+		return 0
+	}
+
+	return value
+}
+
+func ext_crypto_ed25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_ed25519_public_keys_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_public_keys_version_1] error for id 0x%x: %s", id, err)
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warnf(
+			"[ext_crypto_ed25519_public_keys_version_1] keystore type for id 0x%x is %s and not the expected ed25519",
+			id, ks.Type())
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	keys := ks.PublicKeys()
+
+	var encodedKeys []byte
+	for _, key := range keys {
+		encodedKeys = append(encodedKeys, key.Encode()...)
+	}
+
+	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
+	if err != nil {
+		logger.Errorf("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory: %s", err)
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	ret, err := toWasmMemory(memory, append(prefix, encodedKeys...))
+	if err != nil {
+		logger.Errorf("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory: %s", err)
+		ret, _ = toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	return ret
+}
+
+func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	seedSpan := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+	seedBytes := asMemorySlice(memory, seedSpan)
+
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_generate_version_1] cannot generate key: %s", err)
+		return 0
+	}
+
+	var kp crypto.Keypair
+
+	if seed != nil {
+		kp, err = ed25519.NewKeypairFromMnenomic(string(*seed), "")
+	} else {
+		kp, err = ed25519.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_generate_version_1] cannot generate key: %s", err)
+		return 0
+	}
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_generate_version_1] error for id 0x%x: %s", id, err)
+		return 0
+	}
+
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_generate_version_1] failed to insert key: %s", err)
+		return 0
+	}
+
+	ret, err := toWasmMemorySized(memory, kp.Public().Encode(), 32)
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_generate_version_1] failed to allocate memory: %s", err)
+		return 0
+	}
+
+	logger.Debug(
+		"[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair with resulting public key: " +
+			kp.Public().Hex())
+	return int64(ret)
+}
+
+func ext_crypto_ed25519_sign_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_ed25519_sign_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	msg := vm.GetCurrentFrame().Locals[2]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	pubKeyData := memory[key : key+32]
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Errorf("[ext_crypto_ed25519_sign_version_1] failed to get public keys: %s", err)
+		return 0
+	}
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("[ext_crypto_ed25519_sign_version_1] error for id 0x%x: %s", id, err)
+		ret, _ := toWasmMemoryOptional(memory, nil)
+		return ret
+	}
+
+	var ret int64
+	signingKey := ks.GetKeypair(pubKey)
+	if signingKey == nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] could not find public key " + pubKey.Hex() + " in keystore")
+		ret, err = toWasmMemoryOptional(memory, nil)
+		if err != nil {
+			logger.Errorf("[ext_crypto_ed25519_sign_version_1] failed to allocate memory: %s", err)
+			return 0
+		}
+		return ret
+	}
+
+	sig, err := signingKey.Sign(asMemorySlice(memory, msg))
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] could not sign message")
+	}
+
+	ret, err = toWasmMemoryFixedSizeOptional(memory, sig)
+	if err != nil {
+		logger.Errorf("[ext_crypto_ed25519_sign_version_1] failed to allocate memory: %s", err)
+		return 0
+	}
+
+	return ret
+}
+
+func ext_crypto_ed25519_verify_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_ed25519_verify_version_1] executing...")
+
+	sig := vm.GetCurrentFrame().Locals[0]
+	msg := vm.GetCurrentFrame().Locals[1]
+	key := vm.GetCurrentFrame().Locals[2]
+	memory := vm.Memory
+	sigVerifier := ctx.SigVerifier
+
+	signature := memory[sig : sig+64]
+	message := asMemorySlice(memory, msg)
+	pubKeyData := memory[key : key+32]
+
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to create public key")
+		return 0
+	}
+
+	if sigVerifier.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pubKey.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Ed25519Type,
+		}
+		sigVerifier.Add(&signature)
+		return 1
+	}
+
+	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to verify")
+		return 0
+	}
+
+	logger.Debug("[ext_crypto_ed25519_verify_version_1] verified ed25519 signature")
+	return 1
+}
+
+func ext_crypto_sr25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("[ext_crypto_sr25519_public_keys_version_1] error for id 0x%x: %s", id, err)
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warnf(
+			"[ext_crypto_ed25519_public_keys_version_1] keystore type for id 0x%x is %s and not the expected sr25519",
+			id, ks.Type())
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	keys := ks.PublicKeys()
+
+	var encodedKeys []byte
+	for _, key := range keys {
+		encodedKeys = append(encodedKeys, key.Encode()...)
+	}
+
+	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
+	if err != nil {
+		logger.Errorf("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory: %s", err)
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	ret, err := toWasmMemory(memory, append(prefix, encodedKeys...))
+	if err != nil {
+		logger.Errorf("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory: %s", err)
+		ret, _ = toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	return ret
+}
+
+func ext_crypto_sr25519_generate_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	seedSpan := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+	seedBytes := asMemorySlice(memory, seedSpan)
+
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
+	if err != nil {
+		logger.Warnf("[ext_crypto_sr25519_generate_version_1] cannot generate key: %s", err)
+		return 0
+	}
+
+	var kp crypto.Keypair
+	if seed != nil {
+		kp, err = sr25519.NewKeypairFromMnenomic(string(*seed), "")
+	} else {
+		kp, err = sr25519.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Tracef("[ext_crypto_sr25519_generate_version_1] cannot generate key: %s", err)
+		panic(err)
+	}
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("[ext_crypto_sr25519_generate_version_1] error for id 0x%x: %s", id, err)
+		return 0
+	}
+
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warnf("[ext_crypto_sr25519_generate_version_1] failed to insert key: %s", err)
+		return 0
+	}
+
+	ret, err := toWasmMemorySized(memory, kp.Public().Encode(), 32)
+	if err != nil {
+		logger.Errorf("[ext_crypto_sr25519_generate_version_1] failed to allocate memory: %s", err)
+		return 0
+	}
+
+	logger.Debug(
+		"[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair with resulting public key: " +
+			kp.Public().Hex())
+	return int64(ret)
+}
+
+func ext_crypto_sr25519_sign_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_sr25519_sign_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	msg := vm.GetCurrentFrame().Locals[2]
+	memory := vm.Memory
+
+	emptyRet, _ := toWasmMemoryOptional(memory, nil)
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("[ext_crypto_sr25519_sign_version_1] error for id 0x%x: %s", id, err)
+		return emptyRet
+	}
+
+	var ret int64
+	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
+	if err != nil {
+		logger.Errorf("[ext_crypto_sr25519_sign_version_1] failed to get public key: %s", err)
+		return emptyRet
+	}
+
+	signingKey := ks.GetKeypair(pubKey)
+	if signingKey == nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] could not find public key " + pubKey.Hex() + " in keystore")
+		return emptyRet
+	}
+
+	msgData := asMemorySlice(memory, msg)
+	sig, err := signingKey.Sign(msgData)
+	if err != nil {
+		logger.Errorf("[ext_crypto_sr25519_sign_version_1] could not sign message: %s", err)
+		return emptyRet
+	}
+
+	ret, err = toWasmMemoryFixedSizeOptional(memory, sig)
+	if err != nil {
+		logger.Errorf("[ext_crypto_sr25519_sign_version_1] failed to allocate memory: %s", err)
+		return emptyRet
+	}
+
+	return ret
+}
+
+func ext_crypto_sr25519_verify_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_sr25519_verify_version_1] executing...")
+
+	sig := vm.GetCurrentFrame().Locals[0]
+	msg := vm.GetCurrentFrame().Locals[1]
+	key := vm.GetCurrentFrame().Locals[2]
+	memory := vm.Memory
+	sigVerifier := ctx.SigVerifier
+
+	message := asMemorySlice(memory, msg)
+	signature := memory[sig : sig+64]
+
+	pub, err := sr25519.NewPublicKey(memory[key : key+32])
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_verify_version_1] invalid sr25519 public key")
+		return 0
+	}
+
+	logger.Debugf(
+		"[ext_crypto_sr25519_verify_version_1] pub=%s; message=0x%x; signature=0x%x",
+		pub.Hex(), message, signature)
+
+	if sigVerifier.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Sr25519Type,
+		}
+		sigVerifier.Add(&signature)
+		return 1
+	}
+
+	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
+		logger.Debugf("[ext_crypto_sr25519_verify_version_1] failed to validate signature: %s", err)
+		// this fails at block 3876, however based on discussions this seems to be expected
+		return 1
+	}
+
+	logger.Debug("[ext_crypto_sr25519_verify_version_1] verified sr25519 signature")
+	return 1
+}
+
+func ext_crypto_secp256k1_ecdsa_recover_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_1] executing...")
+
+	sig := vm.GetCurrentFrame().Locals[0]
+	msg := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+
+	// msg must be the 32-byte hash of the message to be signed.
+	// sig must be a 65-byte compact ECDSA signature containing the
+	// recovery id as the last element
+	message := memory[msg : msg+32]
+	signature := memory[sig : sig+65]
+
+	if signature[64] == 27 {
+		signature[64] = 0
+	}
+
+	if signature[64] == 28 {
+		signature[64] = 1
+	}
+
+	pub, err := secp256k1.RecoverPublicKey(message, signature)
+	if err != nil {
+		logger.Errorf("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key: %s", err)
+		var ret int64
+		ret, err = toWasmMemoryResult(memory, nil)
+		if err != nil {
+			logger.Errorf("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory: %s", err)
+			return 0
+		}
+		return ret
+	}
+
+	logger.Debugf(
+		"[ext_crypto_secp256k1_ecdsa_recover_version_1] recovered public key of length %d: 0x%x",
+		len(pub), pub)
+
+	ret, err := toWasmMemoryResult(memory, pub[1:])
+	if err != nil {
+		logger.Errorf("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory: %s", err)
+		return 0
+	}
+
+	return ret
+}
+
+func ext_hashing_keccak_256_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_keccak_256_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+
+	hash, err := common.Keccak256(data)
+	if err != nil {
+		logger.Errorf("[ext_hashing_keccak_256_version_1]: %s", err)
+		return 0
+	}
+
+	logger.Debugf("[ext_hashing_keccak_256_version_1] data 0x%x has hash %s", data, hash)
+
+	out, err := toWasmMemorySized(memory, hash[:], 32)
+	if err != nil {
+		logger.Errorf("[ext_hashing_keccak_256_version_1] failed to allocate: %s", err)
+		return 0
+	}
+
+	return int64(out)
+}
+
+func ext_hashing_sha2_256_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_sha2_256_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+	hash := common.Sha256(data)
+
+	logger.Debugf("[ext_hashing_sha2_256_version_1] data 0x%x hash hash %x", data, hash)
+
+	out, err := toWasmMemorySized(memory, hash[:], 32)
+	if err != nil {
+		logger.Errorf("[ext_hashing_sha2_256_version_1] failed to allocate: %s", err)
+		return 0
+	}
+
+	return int64(out)
+}
+
+func ext_hashing_blake2_128_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_blake2_128_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+
+	hash, err := common.Blake2b128(data)
+	if err != nil {
+		logger.Errorf("[ext_hashing_blake2_128_version_1]: %s", err)
+		return 0
+	}
+
+	logger.Debugf("[ext_hashing_blake2_128_version_1] data 0x%x has hash 0x%x", data, hash)
+
+	out, err := toWasmMemorySized(memory, hash, 16)
+	if err != nil {
+		logger.Errorf("[ext_hashing_blake2_128_version_1] failed to allocate: %s", err)
+		return 0
+	}
+
+	return int64(out)
+}
+
+func ext_hashing_twox_256_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_twox_256_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+
+	hash, err := common.Twox256(data)
+	if err != nil {
+		logger.Errorf("[ext_hashing_twox_256_version_1]: %s", err)
+		return 0
+	}
+
+	logger.Debugf("[ext_hashing_twox_256_version_1] data 0x%x has hash %s", data, hash)
+
+	out, err := toWasmMemorySized(memory, hash[:], 32)
+	if err != nil {
+		logger.Errorf("[ext_hashing_twox_256_version_1] failed to allocate: %s", err)
+		return 0
+	}
+
+	return int64(out)
+}
+
+func ext_trie_blake2_256_root_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Debug("[ext_trie_blake2_256_root_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+
+	t := trie.NewEmptyTrie()
+
+	// this function is expecting an array of (key, value) tuples
+	type kv struct {
+		Key, Value []byte
+	}
+
+	var kvs []kv
+	if err := scale.Unmarshal(data, &kvs); err != nil {
+		logger.Errorf("[ext_trie_blake2_256_root_version_1]: %s", err)
+		return 0
+	}
+
+	for _, kv := range kvs {
+		t.Put(kv.Key, kv.Value)
+	}
+
+	// allocate memory for value and copy value to memory
+	ptr, err := ctx.Allocator.Allocate(32)
+	if err != nil {
+		logger.Errorf("[ext_trie_blake2_256_root_version_1]: %s", err)
+		return 0
+	}
+
+	hash, err := t.Hash()
+	if err != nil {
+		logger.Errorf("[ext_trie_blake2_256_root_version_1]: %s", err)
+		return 0
+	}
+
+	logger.Debugf("[ext_trie_blake2_256_root_version_1] root hash: %s", hash)
+	copy(memory[ptr:ptr+32], hash[:])
+	return int64(ptr)
+}
+
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(memory []byte, span int64) []byte {
-	ptr, size := int64ToPointerAndSize(span)
+	ptr, size := runtime.Int64ToPointerAndSize(span)
 	return memory[ptr : ptr+size]
 }
 
@@ -537,14 +1352,12 @@ func toWasmMemorySized(memory, data []byte, size uint32) (uint32, error) {
 
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(memory, data []byte) (int64, error) {
-	var opt *optional.Bytes
-	if data == nil {
-		opt = optional.NewBytes(false, nil)
-	} else {
-		opt = optional.NewBytes(true, data)
+	var opt *[]byte
+	if data != nil {
+		opt = &data
 	}
 
-	enc, err := opt.Encode()
+	enc, err := scale.Marshal(opt)
 	if err != nil {
 		return 0, err
 	}
@@ -563,18 +1376,48 @@ func toWasmMemory(memory, data []byte) (int64, error) {
 	}
 
 	copy(memory[out:out+size], data)
-	return pointerAndSizeToInt64(int32(out), int32(size)), nil
+	return runtime.PointerAndSizeToInt64(int32(out), int32(size)), nil
 }
 
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptionalUint32(memory []byte, data *uint32) (int64, error) {
-	var opt *optional.Uint32
-	if data == nil {
-		opt = optional.NewUint32(false, 0)
-	} else {
-		opt = optional.NewUint32(true, *data)
+	var opt *uint32
+	if data != nil {
+		temp := *data
+		opt = &temp
 	}
 
-	enc := opt.Encode()
+	enc, err := scale.Marshal(opt)
+	if err != nil {
+		return int64(0), err
+	}
+	return toWasmMemory(memory, enc)
+}
+
+// Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryFixedSizeOptional(memory, data []byte) (int64, error) {
+	var opt [64]byte
+	copy(opt[:], data[:])
+	enc, err := scale.Marshal(&opt)
+	if err != nil {
+		return 0, err
+	}
+	return toWasmMemory(memory, enc)
+}
+
+// Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryResult(memory, data []byte) (int64, error) {
+	var res *rtype.Result
+	if len(data) == 0 {
+		res = rtype.NewResult(byte(1), nil)
+	} else {
+		res = rtype.NewResult(byte(0), data)
+	}
+
+	enc, err := res.Encode()
+	if err != nil {
+		return 0, err
+	}
+
 	return toWasmMemory(memory, enc)
 }

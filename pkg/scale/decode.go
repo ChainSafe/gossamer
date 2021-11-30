@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package scale
 
@@ -21,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"reflect"
 )
@@ -87,7 +75,7 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	ds.Buffer = *buf
+	ds.Reader = buf
 
 	err = ds.unmarshal(elem)
 	if err != nil {
@@ -96,8 +84,36 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	return
 }
 
+// Decoder is used to decode from an io.Reader
+type Decoder struct {
+	decodeState
+}
+
+// Decode accepts a pointer to a destination and decodes into supplied destination
+func (d *Decoder) Decode(dst interface{}) (err error) {
+	dstv := reflect.ValueOf(dst)
+	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
+		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
+		return
+	}
+
+	elem := indirect(dstv)
+	if err != nil {
+		return
+	}
+	return d.unmarshal(elem)
+}
+
+// NewDecoder is constructor for Decoder
+func NewDecoder(r io.Reader) (d *Decoder) {
+	d = &Decoder{
+		decodeState{r},
+	}
+	return
+}
+
 type decodeState struct {
-	bytes.Buffer
+	io.Reader
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
@@ -230,6 +246,12 @@ func (ds *decodeState) decodeCustomPrimitive(dstv reflect.Value) (err error) {
 	return
 }
 
+func (ds *decodeState) ReadByte() (byte, error) {
+	b := make([]byte, 1)        // make buffer
+	_, err := ds.Reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
+	return b[0], err
+}
+
 func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 	res := dstv.Interface().(Result)
 	var rb byte
@@ -263,7 +285,8 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 		}
 		dstv.Set(reflect.ValueOf(res))
 	default:
-		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, ds.Bytes())
+		bytes, _ := io.ReadAll(ds.Reader)
+		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, bytes)
 	}
 	return
 }
@@ -295,7 +318,8 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 			dstv.Set(tempElem)
 		}
 	default:
-		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, ds.Bytes())
+		bytes, _ := io.ReadAll(ds.Reader)
+		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, bytes)
 	}
 	return
 }
@@ -396,6 +420,12 @@ func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
 		field := temp.Elem().Field(i.fieldIndex)
 		if !field.CanInterface() {
 			continue
+		}
+		// if the value is not a zero value, set it as non-zero value from dst.
+		// this is required for VaryingDataTypeSlice and VaryingDataType
+		inv := reflect.ValueOf(in)
+		if inv.Field(i.fieldIndex).IsValid() && !inv.Field(i.fieldIndex).IsZero() {
+			field.Set(inv.Field(i.fieldIndex))
 		}
 		err = ds.unmarshal(field)
 		if err != nil {
@@ -584,7 +614,7 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		if err != nil {
 			return
 		}
-		out = uint8(b) // nolint
+		out = b
 	case int16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)
@@ -635,7 +665,8 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 	return
 }
 
-// decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
+// decodeUint128 accepts a byte array representing a SCALE encoded
+// common.Uint128 and performs SCALE decoding of the Uint128
 func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 	buf := make([]byte, 16)
 	err = binary.Read(ds, binary.LittleEndian, buf)

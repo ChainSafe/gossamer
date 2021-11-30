@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -22,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
 	"os"
 	"path"
@@ -33,6 +19,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
+
+func isInbound(stream libp2pnetwork.Stream) bool {
+	return stream.Stat().Direction == libp2pnetwork.DirInbound
+}
 
 // stringToAddrInfos converts a single string peer id to AddrInfo
 func stringToAddrInfo(s string) (peer.AddrInfo, error) {
@@ -68,7 +58,7 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 	if seed == 0 {
 		r = crand.Reader
 	} else {
-		r = mrand.New(mrand.NewSource(seed)) //nolint
+		r = mrand.New(mrand.NewSource(seed)) //nolint:gosec
 	}
 	key, _, err := crypto.GenerateEd25519Key(r)
 	if err != nil {
@@ -91,7 +81,7 @@ func loadKey(fp string) (crypto.PrivKey, error) {
 	if _, err := os.Stat(pth); os.IsNotExist(err) {
 		return nil, nil
 	}
-	keyData, err := ioutil.ReadFile(filepath.Clean(pth))
+	keyData, err := os.ReadFile(filepath.Clean(pth))
 	if err != nil {
 		return nil, err
 	}
@@ -150,20 +140,24 @@ func uint64ToLEB128(in uint64) []byte {
 	return out
 }
 
-func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, error) {
+func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
 	if len(buf) == 0 {
-		return 0, errors.New("buffer has length 0")
+		return 0, 0, errors.New("buffer has length 0")
 	}
 
 	var out uint64
 	var shift uint
 
 	maxSize := 10 // Max bytes in LEB128 encoding of uint64 is 10.
+	bytesRead := 0
+
 	for {
-		_, err := r.Read(buf)
+		n, err := r.Read(buf[:1])
 		if err != nil {
-			return 0, err
+			return 0, bytesRead, err
 		}
+
+		bytesRead += n
 
 		b := buf[0]
 		out |= uint64(0x7F&b) << shift
@@ -173,12 +167,12 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, error) {
 
 		maxSize--
 		if maxSize == 0 {
-			return 0, fmt.Errorf("invalid LEB128 encoded data")
+			return 0, bytesRead, fmt.Errorf("invalid LEB128 encoded data")
 		}
 
 		shift += 7
 	}
-	return out, nil
+	return out, bytesRead, nil
 }
 
 // readStream reads from the stream into the given buffer, returning the number of bytes read
@@ -191,9 +185,9 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		tot int
 	)
 
-	length, err := readLEB128ToUint64(stream, buf[:1])
+	length, bytesRead, err := readLEB128ToUint64(stream, buf[:1])
 	if err != nil {
-		return 0, err // TODO: return bytes read from readLEB128ToUint64
+		return bytesRead, fmt.Errorf("failed to read length: %w", err)
 	}
 
 	if length == 0 {
@@ -201,12 +195,12 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	}
 
 	if length > uint64(len(buf)) {
-		logger.Warn("received message with size greater than allocated message buffer", "length", length, "buffer size", len(buf))
+		logger.Warnf("received message with size %d greater than allocated message buffer size %d", length, len(buf))
 		return 0, fmt.Errorf("message size greater than allocated message buffer: got %d", length)
 	}
 
 	if length > maxBlockResponseSize {
-		logger.Warn("received message with size greater than maxBlockResponseSize, closing stream", "length", length)
+		logger.Warnf("received message with size %d greater than maxBlockResponseSize, closing stream", length)
 		return 0, fmt.Errorf("message size greater than maximum: got %d", length)
 	}
 

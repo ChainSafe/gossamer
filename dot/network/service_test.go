@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -24,9 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var TestProtocolID = "/gossamer/test/0"
@@ -48,7 +36,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint32(7001 + i),
+			Port:        uint16(7001 + i),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -56,7 +44,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 		srvc := createTestService(t, config)
 		srvc.noGossip = true
 		handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-		srvc.host.registerStreamHandler("", handler.handleStream)
+		srvc.host.registerStreamHandler(srvc.host.protocolID, handler.handleStream)
 
 		srvcs = append(srvcs, srvc)
 	}
@@ -65,6 +53,8 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
+	t.Helper()
+
 	if cfg == nil {
 		basePath := utils.NewTestBasePath(t, "node")
 
@@ -83,10 +73,15 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	if cfg.TransactionHandler == nil {
 		mocktxhandler := &MockTransactionHandler{}
-		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*TransactionMessage")).Return(nil)
+		mocktxhandler.On("HandleTransactionMessage",
+			mock.AnythingOfType("peer.ID"),
+			mock.AnythingOfType("*network.TransactionMessage")).
+			Return(true, nil)
 		mocktxhandler.On("TransactionsCount").Return(0)
 		cfg.TransactionHandler = mocktxhandler
 	}
+
+	cfg.SlotDuration = time.Second
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
@@ -107,7 +102,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	err = srvc.Start()
 	require.NoError(t, err)
-	srvc.syncQueue.stop()
 
 	t.Cleanup(func() {
 		srvc.Stop()
@@ -163,7 +157,7 @@ func TestBroadcastMessages(t *testing.T) {
 	defer nodeB.Stop()
 	nodeB.noGossip = true
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
-	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
 	addrInfoB := nodeB.host.addrInfo()
 	err := nodeA.host.connect(addrInfoB)
@@ -208,7 +202,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	nodeB.noGossip = true
 
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
-	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
 	addrInfoB := nodeB.host.addrInfo()
 	err := nodeA.host.connect(addrInfoB)
@@ -224,7 +218,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	require.NotNil(t, stream)
 
 	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	protocol.outboundHandshakeData.Store(nodeB.host.id(), handshakeData{
+	protocol.outboundHandshakeData.Store(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 		stream:    stream,
@@ -334,15 +328,6 @@ func TestHandleConn(t *testing.T) {
 		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
-
-	time.Sleep(time.Second)
-
-	bScore, ok := nodeA.syncQueue.peerScore.Load(nodeB.host.id())
-	require.True(t, ok)
-	require.Equal(t, 1, bScore)
-	aScore, ok := nodeB.syncQueue.peerScore.Load(nodeA.host.id())
-	require.True(t, ok)
-	require.Equal(t, 1, aScore)
 }
 
 func TestSerivceIsMajorSyncMetrics(t *testing.T) {

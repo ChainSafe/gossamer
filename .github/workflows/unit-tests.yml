@@ -5,17 +5,18 @@ env:
 
 jobs:
   unit-tests:
+    timeout-minutes: 60
     strategy:
       matrix:
-        go-version: [1.15.x]
-        platform: [macos-latest, ubuntu-latest]
+        go-version: [1.17.x]
+        platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - id: go-cache-paths
         run: |
           echo "::set-output name=go-build::$(go env GOCACHE)"
           echo "::set-output name=go-mod::$(go env GOMODCACHE)"
-      
+
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go-version }}

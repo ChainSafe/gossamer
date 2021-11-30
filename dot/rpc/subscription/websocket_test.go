@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package subscription
 
 import (
@@ -6,12 +9,14 @@ import (
 	"testing"
 	"time"
 
-	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -32,7 +37,9 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.EqualError(t, err, "error StorageAPI not set")
 	_, msg, err := c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error StorageAPI not set"},"id":1}`+"\n"), msg)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0",`+
+		`"error":{"code":null,"message":"error StorageAPI not set"},`+
+		`"id":1}`+"\n"), msg)
 
 	wsconn.StorageAPI = modules.NewMockStorageAPI()
 
@@ -82,7 +89,13 @@ func TestWSConn_HandleComm(t *testing.T) {
 	c.WriteMessage(websocket.TextMessage, []byte(`{
     "jsonrpc": "2.0",
     "method": "state_subscribeStorage",
-    "params": ["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"],
+    "params": ["`+
+		`0x26aa394eea5630e07c48ae0c9558c`+
+		`ef7b99d880ec681799c0cf30e888637`+
+		`1da9de1e86a9a8c739864cf3cc5ec2b`+
+		`ea59fd43593c715fdd31c61141abd04`+
+		`a99fd6822c8558854ccde39a5684e7a`+
+		`56da27d"],
     "id": 7}`))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
@@ -194,51 +207,58 @@ func TestWSConn_HandleComm(t *testing.T) {
 	// test initExtrinsicWatch
 	wsconn.CoreAPI = modules.NewMockCoreAPI()
 	wsconn.BlockAPI = nil
-	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
+	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI()
+	listner, err := wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
-	require.Nil(t, res)
+	require.Nil(t, listner)
 
-	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
+	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.EqualError(t, err, "error BlockAPI not set")
-	require.Nil(t, res)
+	require.Nil(t, listner)
 
 	wsconn.BlockAPI = modules.NewMockBlockAPI()
-	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
+	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
-	require.NotNil(t, res)
+	require.NotNil(t, listner)
 	require.Len(t, wsconn.Subscriptions, 8)
 
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
 
+	// test initExtrinsicWatch with invalid transaction
+	coreAPI := new(mocks.CoreAPI)
+	coreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(runtime.ErrInvalidTransaction)
+	wsconn.CoreAPI = coreAPI
+	listner, err = wsconn.initExtrinsicWatch(0,
+		[]interface{}{"0xa9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019e91c8d44bf01ffe36d54f9e43dade2b2fc653270a0e002daed1581435c2e1755bc4349f1434876089d99c9dac4d4128e511c2a3e0788a2a74dd686519cb7c83000000000104ab"}) //nolint:lll
+	require.Error(t, err)
+	require.Nil(t, listner)
+
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
+	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate",`+
+		`"params":{"result":"invalid","subscription":9}}`+"\n", string(msg))
 
-	var fCh chan<- *types.FinalisationInfo
 	mockedJust := grandpa.Justification{
 		Round: 1,
-		Commit: &grandpa.Commit{
-			Hash:       common.Hash{},
+		Commit: grandpa.Commit{
 			Number:     1,
 			Precommits: nil,
 		},
 	}
 
-	mockedJustBytes, err := mockedJust.Encode()
+	mockedJustBytes, err := scale.Marshal(mockedJust)
 	require.NoError(t, err)
 
-	BlockAPI := new(modulesmocks.BlockAPI)
-	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
-		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.FinalisationInfo)
-			fCh = ch
-		}).
-		Return(uint8(4), nil)
+	wsconn.CoreAPI = modules.NewMockCoreAPI()
+	BlockAPI := new(mocks.BlockAPI)
+
+	fCh := make(chan *types.FinalisationInfo, 5)
+	BlockAPI.On("GetFinalisedNotifierChannel").Return(fCh)
 
 	BlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
 	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
@@ -247,21 +267,20 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","result":9,"id":0}`+"\n", string(msg))
+	require.Equal(t, `{"jsonrpc":"2.0","result":10,"id":0}`+"\n", string(msg))
 
 	listener.Listen()
 	header := &types.Header{
-		ParentHash: common.Hash{},
-		Number:     big.NewInt(1),
+		Number: big.NewInt(1),
 	}
 
 	fCh <- &types.FinalisationInfo{
-		Header: header,
+		Header: *header,
 	}
 
 	time.Sleep(time.Second * 2)
 
-	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":9}}` + "\n"
+	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":10}}` + "\n"
 	expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
@@ -269,4 +288,88 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	err = listener.Stop()
 	require.NoError(t, err)
+}
+
+func TestSubscribeAllHeads(t *testing.T) {
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleComm()
+	time.Sleep(time.Second * 2)
+
+	_, err := wsconn.initAllBlocksListerner(1, nil)
+	require.EqualError(t, err, "error BlockAPI not set")
+	_, msg, err := c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
+
+	mockBlockAPI := new(mocks.BlockAPI)
+
+	wsconn.BlockAPI = mockBlockAPI
+
+	iCh := make(chan *types.Block)
+	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(iCh).Once()
+
+	fCh := make(chan *types.FinalisationInfo)
+	mockBlockAPI.On("GetFinalisedNotifierChannel").Return(fCh).Once()
+
+	l, err := wsconn.initAllBlocksListerner(1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, l)
+	require.IsType(t, &AllBlocksListener{}, l)
+	require.Len(t, wsconn.Subscriptions, 1)
+
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":1,"id":1}`+"\n"), msg)
+
+	l.Listen()
+	time.Sleep(time.Millisecond * 500)
+
+	expected := fmt.Sprintf(
+		`{"jsonrpc":"2.0","method":"chain_allHead",`+
+			`"params":{"result":{"parentHash":"%s","number":"0x00",`+
+			`"stateRoot":"%s","extrinsicsRoot":"%s",`+
+			`"digest":{"logs":["0x064241424504ff"]}},"subscription":1}}`,
+		common.Hash{},
+		common.Hash{},
+		common.Hash{},
+	)
+
+	digest := types.NewDigest()
+	err = digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	require.NoError(t, err)
+	fCh <- &types.FinalisationInfo{
+		Header: types.Header{
+			Number: big.NewInt(0),
+			Digest: digest,
+		},
+	}
+
+	time.Sleep(time.Millisecond * 500)
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, expected+"\n", string(msg))
+
+	digest = types.NewDigest()
+	err = digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	require.NoError(t, err)
+
+	iCh <- &types.Block{
+		Header: types.Header{
+			Number: big.NewInt(0),
+			Digest: digest,
+		},
+	}
+	time.Sleep(time.Millisecond * 500)
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(expected+"\n"), msg)
+
+	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
+	mockBlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
+
+	require.NoError(t, l.Stop())
+	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 }

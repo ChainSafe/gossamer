@@ -1,22 +1,10 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package scale
 
 import (
+	"bytes"
 	"math/big"
 	"reflect"
 	"testing"
@@ -170,7 +158,10 @@ func Test_unmarshal_optionality(t *testing.T) {
 					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				diff := cmp.Diff(vdt.value, tt.in.(VaryingDataType).value, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+				diff := cmp.Diff(
+					vdt.value,
+					tt.in.(VaryingDataType).value,
+					cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
 				if diff != "" {
 					t.Errorf("decodeState.unmarshal() = %s", diff)
 				}
@@ -182,14 +173,19 @@ func Test_unmarshal_optionality(t *testing.T) {
 				}
 				var diff string
 				if tt.out != nil {
-					diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.out).Interface(), cmpopts.IgnoreUnexported(tt.in))
+					diff = cmp.Diff(
+						reflect.ValueOf(dst).Elem().Interface(),
+						reflect.ValueOf(tt.out).Interface(),
+						cmpopts.IgnoreUnexported(tt.in))
 				} else {
-					diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.in).Interface(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+					diff = cmp.Diff(
+						reflect.ValueOf(dst).Elem().Interface(),
+						reflect.ValueOf(tt.in).Interface(),
+						cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
 				}
 				if diff != "" {
 					t.Errorf("decodeState.unmarshal() = %s", diff)
 				}
-
 			}
 		})
 	}
@@ -228,12 +224,80 @@ func Test_unmarshal_optionality_nil_case(t *testing.T) {
 			}
 			var diff string
 			if tt.out != nil {
-				diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.out).Interface())
+				diff = cmp.Diff(
+					reflect.ValueOf(dst).Elem().Interface(),
+					reflect.ValueOf(tt.out).Interface())
 			} else {
-				diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.in).Interface(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+				diff = cmp.Diff(
+					reflect.ValueOf(dst).Elem().Interface(),
+					reflect.ValueOf(tt.in).Interface(),
+					cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
 			}
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
+			}
+		})
+	}
+}
+
+func Test_Decoder_Decode(t *testing.T) {
+	for _, tt := range newTests(fixedWidthIntegerTests, variableWidthIntegerTests, stringTests,
+		boolTests, sliceTests, arrayTests,
+	) {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			wantBuf := bytes.NewBuffer(tt.want)
+			d := NewDecoder(wantBuf)
+			if err := d.Decode(&dst); (err != nil) != tt.wantErr {
+				t.Errorf("Decoder.Decode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("Decoder.Decode() = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
+
+func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
+	tests := []struct {
+		name    string
+		ins     []interface{}
+		want    []byte
+		wantErr []bool
+	}{
+		{
+			name: "int64 and []byte",
+			ins:  []interface{}{int64(9223372036854775807), []byte{0x01}},
+			want: append([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, []byte{0x04, 0x01}...),
+		},
+		{
+			name:    "eof error",
+			ins:     []interface{}{int64(9223372036854775807), []byte{0x01}},
+			want:    []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+			wantErr: []bool{false, true},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := bytes.NewBuffer(tt.want)
+			d := NewDecoder(buf)
+
+			for i := range tt.ins {
+				in := tt.ins[i]
+				dst := reflect.New(reflect.TypeOf(in)).Elem().Interface()
+				var wantErr bool
+				if len(tt.wantErr) > i {
+					wantErr = tt.wantErr[i]
+				}
+				if err := d.Decode(&dst); (err != nil) != wantErr {
+					t.Errorf("Decoder.Decode() error = %v, wantErr %v", err, tt.wantErr[i])
+					return
+				}
+				if !wantErr && !reflect.DeepEqual(dst, in) {
+					t.Errorf("Decoder.Decode() = %v, want %v", dst, in)
+					return
+				}
 			}
 		})
 	}

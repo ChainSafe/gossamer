@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package blocktree
 
@@ -27,7 +14,7 @@ func TestNode_GetLeaves(t *testing.T) {
 	var branches []testBranch
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		bt, branches = createTestBlockTree(t, testHeader, 5)
 		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
 			break
 		}
@@ -51,7 +38,7 @@ func TestNode_Prune(t *testing.T) {
 	var branches []testBranch
 
 	for {
-		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		bt, branches = createTestBlockTree(t, testHeader, 5)
 		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
 			break
 		}
@@ -60,8 +47,8 @@ func TestNode_Prune(t *testing.T) {
 	copy := bt.DeepCopy()
 
 	// pick some block to finalise
-	finalised := bt.head.children[0].children[0].children[0]
-	pruned := bt.head.prune(finalised, nil)
+	finalised := bt.root.children[0].children[0].children[0]
+	pruned := bt.root.prune(finalised, nil)
 
 	for _, prunedHash := range pruned {
 		prunedNode := copy.getNode(prunedHash)

@@ -1,26 +1,14 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package modules
 
 import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -330,7 +318,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 	})
 
 	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
-		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock := new(mocks.CoreAPI)
 		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(nil, errors.New("problem while querying"))
 
 		module := new(StateModule)
@@ -354,7 +342,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 				"0x90": "another value",
 			}),
 		}
-		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock := new(mocks.CoreAPI)
 		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
 
 		module := new(StateModule)
@@ -374,12 +362,12 @@ func TestStateModule_QueryStorage(t *testing.T) {
 }
 
 func TestStateModule_GetMetadata(t *testing.T) {
-	t.Skip() // TODO: update expected_metadata
+	t.Skip() // TODO: update expected_metadata (#1026)
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
-	expectedMetadata, err := ioutil.ReadFile("./test_data/expected_metadata")
+	expectedMetadata, err := os.ReadFile("./test_data/expected_metadata")
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -476,6 +464,51 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 	}
 }
 
+func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
+	coreAPIMock := new(mocks.CoreAPI)
+	coreAPIMock.
+		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
+		Return(common.Hash{}, nil, errors.New("mocked error"))
+
+	sm := new(StateModule)
+	sm.coreAPI = coreAPIMock
+
+	req := &StateGetReadProofRequest{
+		Keys: []string{},
+	}
+	err := sm.GetReadProof(nil, req, nil)
+	require.Error(t, err, "mocked error")
+}
+
+func TestGetReadProof_WhenReturnsProof(t *testing.T) {
+	expectedBlock := common.BytesToHash([]byte("random hash"))
+	mockedProof := [][]byte{[]byte("proof-1"), []byte("proof-2")}
+
+	coreAPIMock := new(mocks.CoreAPI)
+	coreAPIMock.
+		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
+		Return(expectedBlock, mockedProof, nil)
+
+	sm := new(StateModule)
+	sm.coreAPI = coreAPIMock
+
+	req := &StateGetReadProofRequest{
+		Keys: []string{},
+	}
+
+	res := new(StateGetReadProofResponse)
+	err := sm.GetReadProof(nil, req, res)
+	require.NoError(t, err)
+	require.Equal(t, res.At, expectedBlock)
+
+	expectedProof := []string{
+		common.BytesToHex([]byte("proof-1")),
+		common.BytesToHex([]byte("proof-2")),
+	}
+
+	require.Equal(t, res.Proof, expectedProof)
+}
+
 func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	// setup service
 	net := newNetworkService(t)
@@ -486,6 +519,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	ts.Set([]byte(`:key2`), []byte(`value2`))
 	ts.Set([]byte(`:key1`), []byte(`value1`))
+	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)
@@ -493,12 +527,12 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	require.NoError(t, err)
 
 	b := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
-			Number:     big.NewInt(2),
+			Number:     big.NewInt(3),
 			StateRoot:  sr1,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *types.NewBody([]types.Extrinsic{[]byte{}}),
 	}
 
 	err = chain.Block.AddBlock(b)
@@ -509,7 +543,9 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	chain.Block.StoreRuntime(b.Header.Hash(), rt)
 
-	hash, _ := chain.Block.GetBlockHash(big.NewInt(2))
+	hash, err := chain.Block.GetHashByNumber(big.NewInt(3))
+	require.NoError(t, err)
+
 	core := newCoreService(t, chain)
 	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }

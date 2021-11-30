@@ -1,238 +1,160 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package trie
 
 import (
-	crand "crypto/rand"
-	"io/ioutil"
-	"math/rand"
-	"os"
-	"sync"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
-func inMemoryChainDB(t *testing.T) (*chaindb.BadgerDB, func()) {
-	t.Helper()
+func TestProofGeneration(t *testing.T) {
+	t.Parallel()
 
-	tmpdir, err := ioutil.TempDir("", "trie-chaindb-*")
-	require.NoError(t, err)
+	tmp := t.TempDir()
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
 		InMemory: true,
-		DataDir:  tmpdir,
+		DataDir:  tmp,
 	})
 	require.NoError(t, err)
 
-	clear := func() {
-		err = db.Close()
-		require.NoError(t, err)
+	expectedValue := rand32Bytes()
 
-		err = os.RemoveAll(tmpdir)
-		require.NoError(t, err)
+	trie := NewEmptyTrie()
+	trie.Put([]byte("cat"), rand32Bytes())
+	trie.Put([]byte("catapulta"), rand32Bytes())
+	trie.Put([]byte("catapora"), expectedValue)
+	trie.Put([]byte("dog"), rand32Bytes())
+	trie.Put([]byte("doguinho"), rand32Bytes())
+
+	err = trie.Store(memdb)
+	require.NoError(t, err)
+
+	hash, err := trie.Hash()
+	require.NoError(t, err)
+
+	proof, err := GenerateProof(hash.ToBytes(), [][]byte{[]byte("catapulta"), []byte("catapora")}, memdb)
+	require.NoError(t, err)
+
+	require.Equal(t, 5, len(proof))
+
+	pl := []Pair{
+		{Key: []byte("catapora"), Value: expectedValue},
 	}
 
-	return db, clear
-}
-
-func TestVerifyProof(t *testing.T) {
-	trie, entries := randomTrie(t, 200)
-	root, err := trie.Hash()
+	v, err := VerifyProof(proof, hash.ToBytes(), pl)
+	require.True(t, v)
 	require.NoError(t, err)
-
-	amount := make(chan struct{}, 15)
-	wg := new(sync.WaitGroup)
-
-	for _, entry := range entries {
-		wg.Add(1)
-		go func(kv *kv) {
-			defer func() {
-				wg.Done()
-				<-amount
-			}()
-
-			amount <- struct{}{}
-
-			proof, clear := inMemoryChainDB(t)
-			defer clear()
-
-			_, err := trie.GenerateProof(kv.k, proof)
-			require.NoError(t, err)
-			v, err := VerifyProof(root, kv.k, proof)
-
-			require.NoError(t, err)
-			require.True(t, v)
-		}(entry)
-	}
-
-	wg.Wait()
 }
 
-func TestVerifyProofOneElement(t *testing.T) {
-	trie := NewEmptyTrie()
-	key := randBytes(32)
-	trie.Put(key, []byte("V"))
-
-	rootHash, err := trie.Hash()
-	require.NoError(t, err)
-
-	proof, clear := inMemoryChainDB(t)
-	defer clear()
-
-	_, err = trie.GenerateProof(key, proof)
-	require.NoError(t, err)
-
-	val, err := VerifyProof(rootHash, key, proof)
-	require.NoError(t, err)
-
-	require.True(t, val)
-}
-
-func TestVerifyProof_BadProof(t *testing.T) {
-	trie, entries := randomTrie(t, 200)
-	rootHash, err := trie.Hash()
-	require.NoError(t, err)
-
-	amount := make(chan struct{}, 15)
-	wg := new(sync.WaitGroup)
-
-	for _, entry := range entries {
-		wg.Add(1)
-
-		go func(kv *kv) {
-			defer func() {
-				wg.Done()
-				<-amount
-			}()
-
-			amount <- struct{}{}
-			proof, clear := inMemoryChainDB(t)
-			defer clear()
-
-			nLen, err := trie.GenerateProof(kv.k, proof)
-			require.Greater(t, nLen, 0)
-			require.NoError(t, err)
-
-			it := proof.NewIterator()
-			for i, d := 0, rand.Intn(nLen); i <= d; i++ {
-				it.Next()
-			}
-			key := it.Key()
-			val, _ := proof.Get(key)
-			proof.Del(key)
-			it.Release()
-
-			newhash, err := common.Keccak256(val)
-			require.NoError(t, err)
-			proof.Put(newhash.ToBytes(), val)
-
-			v, err := VerifyProof(rootHash, kv.k, proof)
-			require.NoError(t, err)
-			require.False(t, v)
-		}(entry)
-	}
-
-	wg.Wait()
-}
-
-func TestGenerateProofMissingKey(t *testing.T) {
-	trie := NewEmptyTrie()
-
-	parentKey, parentVal := randBytes(32), randBytes(20)
-	chieldKey, chieldValue := modifyLastBytes(parentKey), modifyLastBytes(parentVal)
-	gransonKey, gransonValue := modifyLastBytes(chieldKey), modifyLastBytes(chieldValue)
-
-	trie.Put(parentKey, parentVal)
-	trie.Put(chieldKey, chieldValue)
-	trie.Put(gransonKey, gransonValue)
-
-	proof, clear := inMemoryChainDB(t)
-	defer clear()
-
-	searchfor := make([]byte, len(gransonKey))
-	copy(searchfor[:], gransonKey[:])
-
-	// keep the path til the key but modify the last element
-	searchfor[len(searchfor)-1] = searchfor[len(searchfor)-1] + byte(0xff)
-
-	_, err := trie.GenerateProof(searchfor, proof)
-	require.Error(t, err, "leaf node doest not match the key")
-}
-
-func TestGenerateProofNoMorePathToFollow(t *testing.T) {
-	trie := NewEmptyTrie()
-
-	parentKey, parentVal := randBytes(32), randBytes(20)
-	chieldKey, chieldValue := modifyLastBytes(parentKey), modifyLastBytes(parentVal)
-	gransonKey, gransonValue := modifyLastBytes(chieldKey), modifyLastBytes(chieldValue)
-
-	trie.Put(parentKey, parentVal)
-	trie.Put(chieldKey, chieldValue)
-	trie.Put(gransonKey, gransonValue)
-
-	proof, clear := inMemoryChainDB(t)
-	defer clear()
-
-	searchfor := make([]byte, len(parentKey))
-	copy(searchfor[:], parentKey[:])
-
-	// the keys are equals until the byte number 20 so we modify the byte number 20 to another
-	// value and the branch node will no be able to found the right slot
-	searchfor[20] = searchfor[20] + byte(0xff)
-
-	_, err := trie.GenerateProof(searchfor, proof)
-	require.Error(t, err, "no more paths to follow")
-}
-
-type kv struct {
-	k []byte
-	v []byte
-}
-
-func randomTrie(t *testing.T, n int) (*Trie, map[string]*kv) {
+func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][]byte, []Pair) {
 	t.Helper()
 
-	trie := NewEmptyTrie()
-	vals := make(map[string]*kv)
+	tmp := t.TempDir()
 
-	for i := 0; i < n; i++ {
-		v := &kv{randBytes(32), randBytes(20)}
-		trie.Put(v.k, v.v)
-		vals[string(v.k)] = v
+	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
+		InMemory: true,
+		DataDir:  tmp,
+	})
+	require.NoError(t, err)
+
+	trie := NewEmptyTrie()
+	for _, e := range entries {
+		trie.Put(e.Key, e.Value)
 	}
 
-	return trie, vals
+	err = trie.Store(memdb)
+	require.NoError(t, err)
+
+	root := trie.root.getHash()
+	proof, err := GenerateProof(root, keys, memdb)
+	require.NoError(t, err)
+
+	items := make([]Pair, len(keys))
+	for idx, key := range keys {
+		value := trie.Get(key)
+		require.NotNil(t, value)
+
+		itemFromDB := Pair{
+			Key:   key,
+			Value: value,
+		}
+		items[idx] = itemFromDB
+	}
+
+	return root, proof, items
 }
 
-func randBytes(n int) []byte {
-	r := make([]byte, n)
-	crand.Read(r)
-	return r
+func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	entries := []Pair{
+		{Key: []byte("alpha"), Value: make([]byte, 32)},
+		{Key: []byte("bravo"), Value: []byte("bravo")},
+		{Key: []byte("do"), Value: []byte("verb")},
+		{Key: []byte("dog"), Value: []byte("puppy")},
+		{Key: []byte("doge"), Value: make([]byte, 32)},
+		{Key: []byte("horse"), Value: []byte("stallion")},
+		{Key: []byte("house"), Value: []byte("building")},
+	}
+
+	keys := [][]byte{
+		[]byte("do"),
+		[]byte("dog"),
+		[]byte("doge"),
+	}
+
+	root, proof, pl := testGenerateProof(t, entries, keys)
+
+	v, err := VerifyProof(proof, root, pl)
+	require.True(t, v)
+	require.NoError(t, err)
 }
 
-func modifyLastBytes(b []byte) []byte {
-	newB := make([]byte, len(b))
-	copy(newB[:], b)
+func TestVerifyProof_ShouldReturnDuplicateKeysError(t *testing.T) {
+	t.Parallel()
 
-	rb := randBytes(12)
-	copy(newB[20:], rb)
+	pl := []Pair{
+		{Key: []byte("do"), Value: []byte("verb")},
+		{Key: []byte("do"), Value: []byte("puppy")},
+	}
 
-	return newB
+	v, err := VerifyProof([][]byte{}, []byte{}, pl)
+	require.False(t, v)
+	require.Error(t, err, ErrDuplicateKeys)
+}
+
+func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
+	t.Parallel()
+
+	entries := []Pair{
+		{Key: []byte("alpha"), Value: make([]byte, 32)},
+		{Key: []byte("bravo"), Value: []byte("bravo")},
+		{Key: []byte("do"), Value: []byte("verb")},
+		{Key: []byte("dog"), Value: []byte("puppy")},
+		{Key: []byte("doge"), Value: make([]byte, 32)},
+		{Key: []byte("horse"), Value: []byte("stallion")},
+		{Key: []byte("house"), Value: []byte("building")},
+	}
+
+	keys := [][]byte{
+		[]byte("do"),
+		[]byte("dog"),
+		[]byte("doge"),
+	}
+
+	root, proof, _ := testGenerateProof(t, entries, keys)
+
+	pl := []Pair{
+		{Key: []byte("do"), Value: nil},
+		{Key: []byte("dog"), Value: nil},
+		{Key: []byte("doge"), Value: nil},
+	}
+
+	v, err := VerifyProof(proof, root, pl)
+	require.True(t, v)
+	require.NoError(t, err)
 }

@@ -1,32 +1,17 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
 import (
 	"bytes"
-	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-//nolint
+//nolint:revive
 type (
 	Voter      = types.GrandpaVoter
 	Voters     = types.GrandpaVoters
@@ -34,37 +19,16 @@ type (
 	SignedVote = types.GrandpaSignedVote
 )
 
-type subround byte
+// Subround subrounds in a grandpa round
+type Subround byte
 
 var (
-	prevote         subround
-	precommit       subround = 1
-	primaryProposal subround = 2
+	prevote         Subround
+	precommit       Subround = 1
+	primaryProposal Subround = 2
 )
 
-func (s subround) Encode() ([]byte, error) {
-	return []byte{byte(s)}, nil
-}
-
-func (s subround) Decode(r io.Reader) (subround, error) {
-	b, err := common.ReadByte(r)
-	if err != nil {
-		return 255, nil
-	}
-
-	switch b {
-	case 0:
-		return prevote, nil
-	case 1:
-		return precommit, nil
-	case 2:
-		return primaryProposal, nil
-	default:
-		return 255, ErrCannotDecodeSubround
-	}
-}
-
-func (s subround) String() string {
+func (s Subround) String() string {
 	switch s {
 	case prevote:
 		return "prevote"
@@ -79,13 +43,13 @@ func (s subround) String() string {
 
 // State represents a GRANDPA state
 type State struct {
-	voters []*Voter // set of voters
-	setID  uint64   // authority set ID
-	round  uint64   // voting round number
+	voters []Voter // set of voters
+	setID  uint64  // authority set ID
+	round  uint64  // voting round number
 }
 
 // NewState returns a new GRANDPA state
-func NewState(voters []*Voter, setID, round uint64) *State {
+func NewState(voters []Voter, setID, round uint64) *State {
 	return &State{
 		voters: voters,
 		setID:  setID,
@@ -110,13 +74,13 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	}
 
 	return &Voter{
-		Key: pk,
+		Key: *pk,
 		ID:  id,
 	}, nil
 }
 
 // threshold returns the 2/3 |voters| threshold value
-// TODO: determine rounding, is currently set to floor
+// rounding is currently set to floor, which is ok since we check for strictly greater than the threshold
 func (s *State) threshold() uint64 {
 	return uint64(2 * len(s.voters) / 3)
 }
@@ -160,41 +124,22 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 type Commit struct {
 	Hash       common.Hash
 	Number     uint32
-	Precommits []*SignedVote
+	Precommits []SignedVote
 }
 
 // Justification represents a finality justification for a block
 type Justification struct {
 	Round  uint64
-	Commit *Commit
+	Commit Commit
 }
 
-func newJustification(round uint64, hash common.Hash, number uint32, j []*SignedVote) *Justification {
+func newJustification(round uint64, hash common.Hash, number uint32, j []SignedVote) *Justification {
 	return &Justification{
 		Round: round,
-		Commit: &Commit{
+		Commit: Commit{
 			Hash:       hash,
 			Number:     number,
 			Precommits: j,
 		},
 	}
-}
-
-// Encode returns the SCALE encoding of a Justification
-func (j *Justification) Encode() ([]byte, error) {
-	return scale.Encode(j)
-}
-
-// Decode returns a SCALE decoded Justification
-func (j *Justification) Decode(r io.Reader) error {
-	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode(&Justification{Commit: &Commit{}})
-	if err != nil {
-		return err
-	}
-
-	dec := i.(*Justification)
-	j.Round = dec.Round
-	j.Commit = dec.Commit
-	return nil
 }

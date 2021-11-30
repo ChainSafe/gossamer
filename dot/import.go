@@ -1,34 +1,21 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 // ImportState imports the state in the given files to the database with the given path.
@@ -43,18 +30,18 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 		return err
 	}
 
-	log.Info("ImportState", "header", header)
+	logger.Infof("ImportState with header: %v", header)
 
 	config := state.Config{
 		Path:     basepath,
-		LogLevel: log.LvlInfo,
+		LogLevel: log.Info,
 	}
 	srv := state.NewService(config)
 	return srv.Import(header, tr, firstSlot)
 }
 
 func newTrieFromPairs(filename string) (*trie.Trie, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(filename))
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +71,7 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 }
 
 func newHeaderFromFile(filename string) (*types.Header, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(filename))
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -126,18 +113,20 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 	}
 	logs := digestRaw["logs"].([]interface{})
 
-	digest := types.Digest{}
+	digest := types.NewDigest()
 
 	for _, log := range logs {
 		digestBytes := common.MustHexToBytes(log.(string))
-		r := &bytes.Buffer{}
-		_, _ = r.Write(digestBytes)
-		digestItem, err := types.DecodeDigestItem(r)
+		var digestItem = types.NewDigestItem()
+		err := scale.Unmarshal(digestBytes, &digestItem)
 		if err != nil {
 			return nil, err
 		}
 
-		digest = append(digest, digestItem)
+		err = digest.Add(digestItem.Value())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	header := &types.Header{

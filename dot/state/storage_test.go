@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package state
 
 import (
@@ -57,18 +60,22 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
+	body, err := types.NewBodyFromBytes([]byte{})
+	require.NoError(t, err)
+
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
 			StateRoot:  root,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *body,
 	}
 	err = storage.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	res, err := storage.GetStorageByBlockHash(block.Header.Hash(), key)
+	hash := block.Header.Hash()
+	res, err := storage.GetStorageByBlockHash(&hash, key)
 	require.NoError(t, err)
 	require.Equal(t, value, res)
 }

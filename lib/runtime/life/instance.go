@@ -1,32 +1,22 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package life
 
 import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	log "github.com/ChainSafe/log15"
+
 	"github.com/perlin-network/life/exec"
+	wasm_validation "github.com/perlin-network/life/wasm-validation"
 )
 
 // Name represents the name of the interpreter
@@ -35,8 +25,11 @@ const Name = "life"
 // Check that runtime interfaces are satisfied
 var (
 	_      runtime.Instance = (*Instance)(nil)
-	logger                  = log.New("pkg", "runtime", "module", "perlin/life")
-	ctx    *runtime.Context
+	logger                  = log.NewFromGlobal(
+		log.AddContext("pkg", "runtime"),
+		log.AddContext("component", "perlin/life"),
+	)
+	ctx *runtime.Context
 )
 
 // Config represents a life configuration
@@ -53,34 +46,47 @@ type Instance struct {
 }
 
 // GetCodeHash returns code hash of the runtime
-func (in *Instance) GetCodeHash() common.Hash {
+func (*Instance) GetCodeHash() common.Hash {
 	return common.Hash{}
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) { // TODO: simplify, get :code from storage
-	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
+func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
+	if cfg.Storage == nil {
+		return nil, errors.New("storage is nil")
 	}
 
-	code := common.MustHexToBytes(codeStr)
+	code := cfg.Storage.LoadCode()
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in state")
+	}
+
 	cfg.Resolver = new(Resolver)
 	return NewInstance(code, cfg)
 }
 
+// NewInstanceFromFile instantiates a runtime from a .wasm file
+func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
+	// Reads the WebAssembly module as bytes.
+	bytes, err := os.ReadFile(filepath.Clean(fp))
+	if err != nil {
+		return nil, err
+	}
+
+	if err = wasm_validation.ValidateWasm(bytes); err != nil {
+		return nil, err
+	}
+
+	return NewInstance(bytes, cfg)
+}
+
 // NewInstance ...
-func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
+func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}
 
-	// if cfg.LogLvl set to < 0, then don't change package log level
-	if cfg.LogLvl >= 0 {
-		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-		h = log.CallerFileHandler(h)
-		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
-	}
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	vmCfg := exec.VMConfig{
 		DefaultMemoryPages: 23,
@@ -95,7 +101,7 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 		memory: instance.Memory,
 	}
 
-	// TODO: use __heap_base
+	// TODO: use __heap_base (#1874)
 	allocator := runtime.NewAllocator(memory, 0)
 
 	runtimeCtx := &runtime.Context{
@@ -106,17 +112,20 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 		NodeStorage: cfg.NodeStorage,
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
-		SigVerifier: runtime.NewSignatureVerifier(),
+		SigVerifier: runtime.NewSignatureVerifier(logger),
 	}
 
-	logger.Debug("creating new runtime instance", "context", runtimeCtx)
+	logger.Debugf("creating new runtime instance with context: %v", runtimeCtx)
 
 	inst := &Instance{
 		vm: instance,
 	}
 
 	ctx = runtimeCtx
-	inst.version, _ = inst.Version()
+	inst.version, err = inst.Version()
+	if err != nil {
+		logger.Errorf("error checking instance version: %s", err)
+	}
 	return inst, nil
 }
 
@@ -143,17 +152,17 @@ func (m *Memory) Grow(numPages uint32) error {
 }
 
 // UpdateRuntimeCode ...
-func (in *Instance) UpdateRuntimeCode(_ []byte) error {
+func (*Instance) UpdateRuntimeCode(_ []byte) error {
 	return errors.New("unimplemented")
 }
 
 // CheckRuntimeVersion ...
-func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
+func (*Instance) CheckRuntimeVersion(_ []byte) (runtime.Version, error) {
 	return nil, errors.New("unimplemented")
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
-func (in *Instance) SetContextStorage(s runtime.Storage) {
+func (*Instance) SetContextStorage(s runtime.Storage) {
 	ctx.Storage = s
 }
 
@@ -172,7 +181,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	fnc, ok := in.vm.GetFunctionExport(function)
 	if !ok {
-		panic("entry function not found")
+		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
 
 	ret, err := in.vm.Run(fnc, int64(ptr), int64(len(data)))
@@ -181,41 +190,29 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	offset, length := int64ToPointerAndSize(ret)
+	offset, length := runtime.Int64ToPointerAndSize(ret)
 	return in.vm.Memory[offset : offset+length], nil
 }
 
 // Stop ...
-func (in *Instance) Stop() {}
+func (*Instance) Stop() {}
 
 // NodeStorage to get reference to runtime node service
-func (in *Instance) NodeStorage() runtime.NodeStorage {
+func (*Instance) NodeStorage() runtime.NodeStorage {
 	return ctx.NodeStorage
 }
 
 // NetworkService to get referernce to runtime network service
-func (in *Instance) NetworkService() runtime.BasicNetwork {
+func (*Instance) NetworkService() runtime.BasicNetwork {
 	return ctx.Network
 }
 
 // Validator returns the context's Validator
-func (in *Instance) Validator() bool {
+func (*Instance) Validator() bool {
 	return ctx.Validator
 }
 
 // Keystore to get reference to runtime keystore
-func (in *Instance) Keystore() *keystore.GlobalKeystore {
+func (*Instance) Keystore() *keystore.GlobalKeystore {
 	return ctx.Keystore
-}
-
-// TODO: move below to lib/runtime
-
-// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
-func int64ToPointerAndSize(in int64) (ptr, length int32) {
-	return int32(in), int32(in >> 32)
-}
-
-// pointerAndSizeToInt64 converts int32 pointer and size to a int64
-func pointerAndSizeToInt64(ptr, size int32) int64 {
-	return int64(ptr) | (int64(size) << 32)
 }

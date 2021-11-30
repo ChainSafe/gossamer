@@ -1,28 +1,16 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package trie
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-//nolint
+// EmptyHash is the empty trie hash.
 var EmptyHash, _ = NewEmptyTrie().Hash()
 
 // Trie is a Merkle Patricia Trie.
@@ -114,15 +102,13 @@ func (t *Trie) DeepCopy() (*Trie, error) {
 }
 
 // RootNode returns the root of the trie
-func (t *Trie) RootNode() node { //nolint
+func (t *Trie) RootNode() node {
 	return t.root
 }
 
-// EncodeRoot returns the encoded root of the trie
-func (t *Trie) EncodeRoot() ([]byte, error) {
-	h := NewHasher(t.parallel)
-	defer h.returnToPool()
-	return h.encode(t.RootNode())
+// encodeRoot returns the encoded root of the trie
+func (t *Trie) encodeRoot(buffer *bytes.Buffer) (err error) {
+	return encodeNode(t.RootNode(), buffer, t.parallel)
 }
 
 // MustHash returns the hashed root of the trie. It panics if it fails to hash the root node.
@@ -137,12 +123,16 @@ func (t *Trie) MustHash() common.Hash {
 
 // Hash returns the hashed root of the trie
 func (t *Trie) Hash() (common.Hash, error) {
-	encRoot, err := t.EncodeRoot()
+	buffer := encodingBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer encodingBufferPool.Put(buffer)
+
+	err := t.encodeRoot(buffer)
 	if err != nil {
 		return [32]byte{}, err
 	}
 
-	return common.Blake2bHash(encRoot)
+	return common.Blake2bHash(buffer.Bytes())
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
@@ -196,7 +186,9 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 			cmp = bytes.Compare(fullKey, key[:len(fullKey)])
 		}
 
-		// length of key arg is less than branch key, return key of first child (or key of this branch, if it's a branch w/ value)
+		// if length of key arg is less than branch key,
+		// return key of first child, or key of this branch,
+		// if it's a branch with value.
 		if (cmp == 0 && len(key) == len(fullKey)) || cmp == 1 {
 			if c.value != nil && bytes.Compare(fullKey, key) > 0 {
 				return fullKey
@@ -270,7 +262,6 @@ func (t *Trie) insert(parent node, key []byte, value node) node {
 		n := t.updateBranch(p, key, value)
 
 		if p != nil && n != nil && n.isDirty() {
-			// TODO: set all `Copy` nodes as dirty?
 			p.setDirty(true)
 		}
 		return n
@@ -510,6 +501,134 @@ func (t *Trie) retrieve(parent node, key []byte) *leaf {
 	return value
 }
 
+// ClearPrefixLimit deletes the keys having the prefix till limit reached
+func (t *Trie) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
+	if limit == 0 {
+		return 0, false
+	}
+
+	p := keyToNibbles(prefix)
+	if len(p) > 0 && p[len(p)-1] == 0 {
+		p = p[:len(p)-1]
+	}
+
+	l := limit
+	var allDeleted bool
+	t.root, _, allDeleted = t.clearPrefixLimit(t.root, p, &limit)
+	return l - limit, allDeleted
+}
+
+// clearPrefixLimit deletes the keys having the prefix till limit reached and returns updated trie root node,
+// true if any node in the trie got updated, and next bool returns true if there is no keys left with prefix.
+func (t *Trie) clearPrefixLimit(cn node, prefix []byte, limit *uint32) (node, bool, bool) {
+	curr := t.maybeUpdateGeneration(cn)
+
+	switch c := curr.(type) {
+	case *branch:
+		length := lenCommonPrefix(c.key, prefix)
+		if length == len(prefix) {
+			n, _ := t.deleteNodes(c, []byte{}, limit)
+			if n == nil {
+				return nil, true, true
+			}
+			return n, true, false
+		}
+
+		if len(prefix) == len(c.key)+1 && length == len(prefix)-1 {
+			i := prefix[len(c.key)]
+			c.children[i], _ = t.deleteNodes(c.children[i], []byte{}, limit)
+
+			c.setDirty(true)
+			curr = handleDeletion(c, prefix)
+
+			if c.children[i] == nil {
+				return curr, true, true
+			}
+			return c, true, false
+		}
+
+		if len(prefix) <= len(c.key) || length < len(c.key) {
+			// this node doesn't have the prefix, return
+			return c, false, true
+		}
+
+		i := prefix[len(c.key)]
+
+		var wasUpdated, allDeleted bool
+		c.children[i], wasUpdated, allDeleted = t.clearPrefixLimit(c.children[i], prefix[len(c.key)+1:], limit)
+		if wasUpdated {
+			c.setDirty(true)
+			curr = handleDeletion(c, prefix)
+		}
+
+		return curr, curr.isDirty(), allDeleted
+	case *leaf:
+		length := lenCommonPrefix(c.key, prefix)
+		if length == len(prefix) {
+			*limit--
+			return nil, true, true
+		}
+		// Prefix not found might be all deleted
+		return curr, false, true
+
+	case nil:
+		return nil, false, true
+	}
+
+	return nil, false, true
+}
+
+func (t *Trie) deleteNodes(cn node, prefix []byte, limit *uint32) (node, bool) {
+	curr := t.maybeUpdateGeneration(cn)
+
+	switch c := curr.(type) {
+	case *leaf:
+		if *limit == 0 {
+			return c, false
+		}
+		*limit--
+		return nil, true
+	case *branch:
+		if len(c.key) != 0 {
+			prefix = append(prefix, c.key...)
+		}
+
+		for i, child := range c.children {
+			if child == nil {
+				continue
+			}
+
+			var isDel bool
+			if c.children[i], isDel = t.deleteNodes(child, prefix, limit); !isDel {
+				continue
+			}
+
+			c.setDirty(true)
+			curr = handleDeletion(c, prefix)
+			isAllNil := c.numChildren() == 0
+			if isAllNil && c.value == nil {
+				curr = nil
+			}
+
+			if *limit == 0 {
+				return curr, true
+			}
+		}
+
+		if *limit == 0 {
+			return c, true
+		}
+
+		// Delete the current node as well
+		if c.value != nil {
+			*limit--
+		}
+		return nil, true
+	}
+
+	return curr, true
+}
+
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *Trie) ClearPrefix(prefix []byte) {
 	if len(prefix) == 0 {
@@ -612,10 +731,10 @@ func (t *Trie) delete(parent node, key []byte) (node, bool) {
 		// Key doesn't exist.
 		return p, false
 	case nil:
-		// do nothing
+		return nil, false
+	default:
+		panic(fmt.Sprintf("%T: invalid node: %v (%v)", p, p, key))
 	}
-	// This should never happen.
-	return nil, false
 }
 
 // handleDeletion is called when a value is deleted from a branch

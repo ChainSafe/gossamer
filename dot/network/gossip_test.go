@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -42,7 +29,7 @@ func TestGossip(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeA.host.registerStreamHandler("", handlerA.handleStream)
+	nodeA.host.registerStreamHandler(nodeA.host.protocolID, handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
@@ -54,7 +41,7 @@ func TestGossip(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeB.host.registerStreamHandler("", handlerB.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handlerB.handleStream)
 
 	addrInfoA := nodeA.host.addrInfo()
 	err := nodeB.host.connect(addrInfoA)
@@ -75,7 +62,7 @@ func TestGossip(t *testing.T) {
 
 	nodeC := createTestService(t, configC)
 	handlerC := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeC.host.registerStreamHandler("", handlerC.handleStream)
+	nodeC.host.registerStreamHandler(nodeC.host.protocolID, handlerC.handleStream)
 
 	err = nodeC.host.connect(addrInfoA)
 	// retry connect if "failed to dial" error

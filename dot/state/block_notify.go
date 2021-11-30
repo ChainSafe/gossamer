@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
@@ -26,66 +13,42 @@ import (
 	"github.com/google/uuid"
 )
 
-// RegisterImportedChannel registers a channel for block notification upon block import.
-// It returns the channel ID (used for unregistering the channel)
-func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
-	bs.importedLock.RLock()
+const defaultBufferSize = 128
 
-	id, err := bs.importedBytePool.Get()
-	if err != nil {
-		return 0, err
-	}
-
-	bs.importedLock.RUnlock()
-
-	bs.importedLock.Lock()
-	bs.imported[id] = ch
-	bs.importedLock.Unlock()
-	return id, nil
-}
-
-// RegisterFinalizedChannel registers a channel for block notification upon block finalisation.
-// It returns the channel ID (used for unregistering the channel)
-func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
-	bs.finalisedLock.RLock()
-
-	id, err := bs.finalisedBytePool.Get()
-	if err != nil {
-		return 0, err
-	}
-
-	bs.finalisedLock.RUnlock()
-
-	bs.finalisedLock.Lock()
-	bs.finalised[id] = ch
-	bs.finalisedLock.Unlock()
-	return id, nil
-}
-
-// UnregisterImportedChannel removes the block import notification channel with the given ID.
-// A channel must be unregistered before closing it.
-func (bs *BlockState) UnregisterImportedChannel(id byte) {
+// GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
+func (bs *BlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 	bs.importedLock.Lock()
 	defer bs.importedLock.Unlock()
 
-	delete(bs.imported, id)
-	err := bs.importedBytePool.Put(id)
-	if err != nil {
-		logger.Error("failed to unregister imported channel", "error", err)
-	}
+	ch := make(chan *types.Block, defaultBufferSize)
+	bs.imported[ch] = struct{}{}
+	return ch
 }
 
-// UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
-// A channel must be unregistered before closing it.
-func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
+// GetFinalisedNotifierChannel function to retrieve a finalised block notifier channel
+func (bs *BlockState) GetFinalisedNotifierChannel() chan *types.FinalisationInfo {
 	bs.finalisedLock.Lock()
 	defer bs.finalisedLock.Unlock()
 
-	delete(bs.finalised, id)
-	err := bs.finalisedBytePool.Put(id)
-	if err != nil {
-		logger.Error("failed to unregister finalised channel", "error", err)
-	}
+	ch := make(chan *types.FinalisationInfo, defaultBufferSize)
+	bs.finalised[ch] = struct{}{}
+
+	return ch
+}
+
+// FreeImportedBlockNotifierChannel to free imported block notifier channel
+func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
+	bs.importedLock.Lock()
+	defer bs.importedLock.Unlock()
+	delete(bs.imported, ch)
+}
+
+// FreeFinalisedNotifierChannel to free finalised notifier channel
+func (bs *BlockState) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
+	bs.finalisedLock.Lock()
+	defer bs.finalisedLock.Unlock()
+
+	delete(bs.finalised, ch)
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
@@ -96,9 +59,9 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 		return
 	}
 
-	logger.Trace("notifying imported block chans...", "chans", bs.imported)
-	for _, ch := range bs.imported {
-		go func(ch chan<- *types.Block) {
+	logger.Trace("notifying imported block channels...")
+	for ch := range bs.imported {
+		go func(ch chan *types.Block) {
 			select {
 			case ch <- block:
 			default:
@@ -117,19 +80,19 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		logger.Error("failed to get finalised header", "hash", hash, "error", err)
+		logger.Errorf("failed to get finalised header for hash %s: %s", hash, err)
 		return
 	}
 
-	logger.Debug("notifying finalised block chans...", "chans", bs.finalised)
+	logger.Debug("notifying finalised block channels...")
 	info := &types.FinalisationInfo{
-		Header: header,
+		Header: *header,
 		Round:  round,
 		SetID:  setID,
 	}
 
-	for _, ch := range bs.finalised {
-		go func(ch chan<- *types.FinalisationInfo) {
+	for ch := range bs.finalised {
+		go func(ch chan *types.FinalisationInfo) {
 			select {
 			case ch <- info:
 			default:
@@ -146,7 +109,7 @@ func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
 		return
 	}
 
-	logger.Debug("notifying runtime updated chans...", "chans", bs.runtimeUpdateSubscriptions)
+	logger.Debug("notifying runtime updated channels...")
 	var wg sync.WaitGroup
 	wg.Add(len(bs.runtimeUpdateSubscriptions))
 	for _, ch := range bs.runtimeUpdateSubscriptions {

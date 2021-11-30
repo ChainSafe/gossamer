@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package grandpa
 
 import (
@@ -8,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +28,40 @@ var testVote2 = &Vote{
 
 var testSignature = [64]byte{1, 2, 3, 4}
 var testAuthorityID = [32]byte{5, 6, 7, 8}
+
+func TestCommitMessageEncode(t *testing.T) {
+	exp := common.MustHexToBytes("0x4d0000000000000000000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a00000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000040102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000034602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691") //nolint:lll
+	gs, st := newTestService(t)
+	just := []SignedVote{
+		{
+			Vote:        *testVote,
+			Signature:   testSignature,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+	}
+	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	require.NoError(t, err)
+
+	fm, err := gs.newCommitMessage(gs.head, 77)
+	require.NoError(t, err)
+	precommits, authData := justificationToCompact(just)
+
+	expected := CommitMessage{
+		Round:      77,
+		Vote:       *NewVoteFromHeader(gs.head),
+		Precommits: precommits,
+		AuthData:   authData,
+	}
+
+	enc, err := scale.Marshal(*fm)
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
+
+	msg := CommitMessage{}
+	err = scale.Unmarshal(enc, &msg)
+	require.NoError(t, err)
+	require.Equal(t, expected, msg)
+}
 
 func TestVoteMessageToConsensusMessage(t *testing.T) {
 	gs, st := newTestService(t)
@@ -43,7 +81,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	expected := &VoteMessage{
 		Round: gs.state.round,
 		SetID: gs.state.setID,
-		Message: &SignedMessage{
+		Message: SignedMessage{
 			Stage:       precommit,
 			Hash:        v.Hash,
 			Number:      v.Number,
@@ -61,7 +99,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	expected = &VoteMessage{
 		Round: gs.state.round,
 		SetID: gs.state.setID,
-		Message: &SignedMessage{
+		Message: SignedMessage{
 			Stage:       prevote,
 			Hash:        v.Hash,
 			Number:      v.Number,
@@ -74,9 +112,9 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 
 func TestCommitMessageToConsensusMessage(t *testing.T) {
 	gs, st := newTestService(t)
-	just := []*SignedVote{
+	just := []SignedVote{
 		{
-			Vote:        testVote,
+			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
@@ -90,7 +128,7 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 
 	expected := &CommitMessage{
 		Round:      77,
-		Vote:       NewVoteFromHeader(gs.head),
+		Vote:       *NewVoteFromHeader(gs.head),
 		Precommits: precommits,
 		AuthData:   authData,
 	}
@@ -104,15 +142,18 @@ func TestNewCatchUpResponse(t *testing.T) {
 	round := uint64(1)
 	setID := uint64(1)
 
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
 	hash := block.Header.Hash()
@@ -121,7 +162,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 		Number: 1,
 	}
 
-	err := st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(hash, round, setID)
@@ -129,17 +170,17 @@ func TestNewCatchUpResponse(t *testing.T) {
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)
 
-	pvj := []*SignedVote{
+	pvj := []SignedVote{
 		{
-			Vote:        testVote,
+			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: testAuthorityID,
 		},
 	}
 
-	pcj := []*SignedVote{
+	pcj := []SignedVote{
 		{
-			Vote:        testVote2,
+			Vote:        *testVote2,
 			Signature:   testSignature,
 			AuthorityID: testAuthorityID,
 		},
@@ -153,7 +194,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	resp, err := gs.newCatchUpResponse(round, setID)
 	require.NoError(t, err)
 
-	expected := &catchUpResponse{
+	expected := &CatchUpResponse{
 		Round:                  round,
 		SetID:                  setID,
 		PreVoteJustification:   pvj,

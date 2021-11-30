@@ -1,23 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -26,119 +14,89 @@ import (
 )
 
 var (
-	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
+	// ErrEmptyTrieRoot ...
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
 
-	// ErrEmptyNibbles occurs when trying to prove or valid a proof to an empty key
-	ErrEmptyNibbles = errors.New("empty nibbles provided from key")
+	// ErrValueNotFound ...
+	ErrValueNotFound = errors.New("expected value not found in the trie")
+
+	// ErrKeyNotFound ...
+	ErrKeyNotFound = errors.New("expected key not found in the trie")
+
+	// ErrDuplicateKeys ...
+	ErrDuplicateKeys = errors.New("duplicate keys on verify proof")
+
+	// ErrLoadFromProof ...
+	ErrLoadFromProof = errors.New("failed to build the proof trie")
 )
 
-// GenerateProof constructs the merkle-proof for key. The result contains all encoded nodes
-// on the path to the key. Returns the amount of nodes of the path and error if could not found the key
-func (t *Trie) GenerateProof(key []byte, db chaindb.Writer) (int, error) {
-	key = keyToNibbles(key)
-	if len(key) == 0 {
-		return 0, ErrEmptyNibbles
+// GenerateProof receive the keys to proof, the trie root and a reference to database
+func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
+	trackedProofs := make(map[string][]byte)
+
+	proofTrie := NewEmptyTrie()
+	if err := proofTrie.Load(db, common.BytesToHash(root)); err != nil {
+		return nil, err
 	}
 
-	var nodes []node
-	currNode := t.root
+	for _, k := range keys {
+		nk := keyToNibbles(k)
 
-proveLoop:
-	for {
-		switch n := currNode.(type) {
-		case nil:
-			return 0, errors.New("no more paths to follow")
+		recorder := new(recorder)
+		err := findAndRecord(proofTrie, nk, recorder)
+		if err != nil {
+			return nil, err
+		}
 
-		case *leaf:
-			nodes = append(nodes, n)
-
-			if bytes.Equal(n.key, key) {
-				break proveLoop
+		for !recorder.isEmpty() {
+			recNode := recorder.next()
+			nodeHashHex := common.BytesToHex(recNode.hash)
+			if _, ok := trackedProofs[nodeHashHex]; !ok {
+				trackedProofs[nodeHashHex] = recNode.rawData
 			}
-
-			return 0, errors.New("leaf node doest not match the key")
-
-		case *branch:
-			nodes = append(nodes, n)
-			if bytes.Equal(n.key, key) || len(key) == 0 {
-				break proveLoop
-			}
-
-			length := lenCommonPrefix(n.key, key)
-			currNode = n.children[key[length]]
-			key = key[length+1:]
 		}
 	}
 
-	for _, n := range nodes {
-		var (
-			hashNode    []byte
-			encHashNode []byte
-			err         error
-		)
-
-		if encHashNode, hashNode, err = n.encodeAndHash(); err != nil {
-			return 0, fmt.Errorf("problems while encoding and hashing the node: %w", err)
-		}
-
-		if err = db.Put(hashNode, encHashNode); err != nil {
-			return len(nodes), err
-		}
+	proofs := make([][]byte, 0)
+	for _, p := range trackedProofs {
+		proofs = append(proofs, p)
 	}
 
-	return len(nodes), nil
+	return proofs, nil
 }
 
-// VerifyProof checks merkle proofs given an proof
-func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) (bool, error) {
-	key = keyToNibbles(key)
-	if len(key) == 0 {
-		return false, ErrEmptyNibbles
+// Pair holds the key and value to check while verifying the proof
+type Pair struct{ Key, Value []byte }
+
+// VerifyProof ensure a given key is inside a proof by creating a proof trie based on the proof slice
+// this function ignores the order of proofs
+func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
+	set := make(map[string]struct{}, len(items))
+
+	// check for duplicate keys
+	for _, item := range items {
+		hexKey := hex.EncodeToString(item.Key)
+		if _, ok := set[hexKey]; ok {
+			return false, ErrDuplicateKeys
+		}
+		set[hexKey] = struct{}{}
 	}
 
-	var wantedHash []byte
-	wantedHash = rootHash.ToBytes()
+	proofTrie := NewEmptyTrie()
+	if err := proofTrie.LoadFromProof(proof, root); err != nil {
+		return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
+	}
 
-	for {
-		enc, err := db.Get(wantedHash)
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
-			return false, nil
-		} else if err != nil {
-			return false, nil
+	for _, item := range items {
+		recValue := proofTrie.Get(item.Key)
+		if recValue == nil {
+			return false, ErrKeyNotFound
 		}
-
-		currNode, err := decodeBytes(enc)
-		if err != nil {
-			return false, fmt.Errorf("could not decode node bytes: %w", err)
-		}
-
-		switch n := currNode.(type) {
-		case nil:
-			return false, nil
-		case *leaf:
-			if bytes.Equal(n.key, key) {
-				return true, nil
-			}
-
-			return false, nil
-		case *branch:
-			if bytes.Equal(n.key, key) {
-				return true, nil
-			}
-
-			if len(key) == 0 {
-				return false, nil
-			}
-
-			length := lenCommonPrefix(n.key, key)
-			next := n.children[key[length]]
-			if next == nil {
-				return false, nil
-			}
-
-			key = key[length+1:]
-			wantedHash = next.getHash()
+		// here we need to compare value only if the caller pass the value
+		if len(item.Value) > 0 && !bytes.Equal(item.Value, recValue) {
+			return false, ErrValueNotFound
 		}
 	}
+
+	return true, nil
 }

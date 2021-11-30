@@ -1,24 +1,10 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
 import (
 	"github.com/ChainSafe/gossamer/chain/dev"
-	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
@@ -26,8 +12,10 @@ import (
 var (
 	// UnlockFlag keystore
 	UnlockFlag = cli.StringFlag{
-		Name:  "unlock",
-		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2",
+		Name: "unlock",
+		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. " +
+			"Can be used with --password=[password] to avoid prompt. " +
+			"For multiple passwords, do --password=password1,password2",
 	}
 	// ForceFlag disables all confirm prompts ("Y" to all)
 	ForceFlag = cli.BoolFlag{
@@ -56,9 +44,41 @@ var (
 	// LogFlag cli service settings
 	LogFlag = cli.StringFlag{
 		Name:  "log",
-		Usage: "Supports levels crit (silent) to trce (trace)",
-		Value: log.LvlInfo.String(),
+		Usage: "Global log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
 	}
+	LogCoreLevelFlag = cli.StringFlag{
+		Name:  "log-core",
+		Usage: "Core package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
+	LogSyncLevelFlag = cli.StringFlag{
+		Name:  "log-sync",
+		Usage: "Sync package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
+	LogNetworkLevelFlag = cli.StringFlag{
+		Name:  "log-network",
+		Usage: "Network package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
+	LogRPCLevelFlag = cli.StringFlag{
+		Name:  "log-rpc",
+		Usage: "RPC package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
+	LogStateLevelFlag = cli.StringFlag{
+		Name:  "log-state",
+		Usage: "State package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
+	LogRuntimeLevelFlag = cli.StringFlag{
+		Name:  "log-runtime",
+		Usage: "Runtime package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
+	LogBabeLevelFlag = cli.StringFlag{
+		Name:  "log-babe",
+		Usage: "BABE package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
+	LogGrandpaLevelFlag = cli.StringFlag{
+		Name:  "log-grandpa",
+		Usage: "Grandpa package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
+
 	// NameFlag node implementation name
 	NameFlag = cli.StringFlag{
 		Name:  "name",
@@ -79,13 +99,23 @@ var (
 		Name:  "basepath",
 		Usage: "Data directory for the node",
 	}
-	CPUProfFlag = cli.StringFlag{
-		Name:  "cpuprof",
-		Usage: "File to write CPU profile to",
+	PprofServerFlag = cli.StringFlag{
+		Name:  "pprofserver",
+		Usage: "enable or disable the pprof HTTP server",
 	}
-	MemProfFlag = cli.StringFlag{
-		Name:  "memprof",
-		Usage: "File to write memory profile to",
+	PprofAddressFlag = cli.StringFlag{
+		Name:  "pprofaddress",
+		Usage: "pprof HTTP server listening address, if it is enabled.",
+	}
+	PprofBlockRateFlag = cli.IntFlag{
+		Name:  "pprofblockrate",
+		Value: -1,
+		Usage: "pprof block rate. See https://pkg.go.dev/runtime#SetBlockProfileRate.",
+	}
+	PprofMutexRateFlag = cli.IntFlag{
+		Name:  "pprofmutexrate",
+		Value: -1,
+		Usage: "profiling mutex rate. See https://pkg.go.dev/runtime#SetMutexProfileFraction.",
 	}
 
 	// PublishMetricsFlag publishes node metrics to prometheus.
@@ -104,6 +134,19 @@ var (
 	NoTelemetryFlag = cli.BoolFlag{
 		Name:  "no-telemetry",
 		Usage: "Disable connecting to the Substrate telemetry server",
+	}
+
+	// TelemetryURLFlag is URL of the telemetry server to connect to.
+	// This flag can be passed multiple times as a means to specify multiple
+	// telemetry endpoints. Verbosity levels range from 0-9, with 0 denoting the
+	// least verbosity.
+	// Expected format is 'URL VERBOSITY', e.g. `--telemetry-url 'wss://foo/bar 0'`.
+	TelemetryURLFlag = cli.StringSliceFlag{
+		Name: "telemetry-url",
+		Usage: `The URL of the telemetry server to connect to, this flag can be
+		passed multiple times, the verbosity levels range from 0-9, with 0 denoting
+		least verbosity.
+		Expected format --telemetry-url 'wss://foo/bar 0'`,
 	}
 )
 
@@ -174,6 +217,11 @@ var (
 	NoMDNSFlag = cli.BoolFlag{
 		Name:  "nomdns",
 		Usage: "Disables network mDNS discovery",
+	}
+	// PublicIPFlag uses the supplied IP for broadcasting
+	PublicIPFlag = cli.StringFlag{
+		Name:  "pubip",
+		Usage: "Overrides public IP address used for peer to peer networking",
 	}
 )
 
@@ -300,19 +348,29 @@ var (
 		Usage: "Data directory for the output DB",
 	}
 
-	// RetainBlockNumberFlag retain number of block from latest block while pruning, valid for the use with prune-state subcommand
+	// RetainBlockNumberFlag retain number of block from latest block while pruning,
+	// valid for the use with prune-state subcommand
 	RetainBlockNumberFlag = cli.Int64Flag{
 		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
 		Value: dev.DefaultRetainBlocks,
 	}
 
-	// PruningFlag triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value
-	// should be set to `full`.
+	// PruningFlag triggers the online pruning of historical state tries.
+	// It's either full or archive.
+	// To enable pruning the value should be set to `full`.
 	PruningFlag = cli.StringFlag{
 		Name:  "pruning",
 		Usage: `State trie online pruning ("full", "archive")`,
 		Value: dev.DefaultPruningMode,
+	}
+)
+
+// BABE flags
+var (
+	BABELeadFlag = cli.BoolFlag{
+		Name:  "babe-lead",
+		Usage: `specify whether node should build block 1 of the network. only used when starting a new network`,
 	}
 )
 
@@ -321,12 +379,22 @@ var (
 	// GlobalFlags are flags that are valid for use with the root command and all subcommands
 	GlobalFlags = []cli.Flag{
 		LogFlag,
+		LogCoreLevelFlag,
+		LogSyncLevelFlag,
+		LogNetworkLevelFlag,
+		LogRPCLevelFlag,
+		LogStateLevelFlag,
+		LogRuntimeLevelFlag,
+		LogBabeLevelFlag,
+		LogGrandpaLevelFlag,
 		NameFlag,
 		ChainFlag,
 		ConfigFlag,
 		BasePathFlag,
-		CPUProfFlag,
-		MemProfFlag,
+		PprofServerFlag,
+		PprofAddressFlag,
+		PprofBlockRateFlag,
+		PprofMutexRateFlag,
 		RewindFlag,
 		DBPathFlag,
 		BloomFilterSizeFlag,
@@ -345,6 +413,7 @@ var (
 		RolesFlag,
 		NoBootstrapFlag,
 		NoMDNSFlag,
+		PublicIPFlag,
 
 		// rpc flags
 		RPCEnabledFlag,
@@ -366,6 +435,10 @@ var (
 
 		// telemetry flags
 		NoTelemetryFlag,
+		TelemetryURLFlag,
+
+		// BABE flags
+		BABELeadFlag,
 	}
 )
 
@@ -431,7 +504,7 @@ var (
 // `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
-		trace := "trace"
+		const trace = "trace"
 
 		// loop through all flags (global and local)
 		for _, flagName := range ctx.FlagNames() {
@@ -440,7 +513,7 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 			if ctx.GlobalIsSet(flagName) {
 				// log global flag if log equals trace
 				if ctx.String(LogFlag.Name) == trace {
-					log.Trace("[cmd] global flag set", "name", flagName)
+					logger.Trace("[cmd] global flag set with name: " + flagName)
 				}
 			} else if ctx.IsSet(flagName) {
 				// check if global flag using set as global flag
@@ -448,12 +521,12 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 				if err == nil {
 					// log fixed global flag if log equals trace
 					if ctx.String(LogFlag.Name) == trace {
-						log.Trace("[cmd] global flag fixed", "name", flagName)
+						logger.Trace("[cmd] global flag fixed with name: " + flagName)
 					}
 				} else {
 					// if not global flag, log local flag if log equals trace
 					if ctx.String(LogFlag.Name) == trace {
-						log.Trace("[cmd] local flag set", "name", flagName)
+						logger.Trace("[cmd] local flag set with name: " + flagName)
 					}
 				}
 			}

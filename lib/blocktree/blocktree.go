@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package blocktree
 
@@ -22,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -34,55 +20,42 @@ type Hash = common.Hash
 
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
-	head   *node // root node TODO: rename this!!
+	root   *node
 	leaves *leafMap
-	db     database.Database
 	sync.RWMutex
-	nodeCache map[Hash]*node
-	runtime   *sync.Map
+	runtime *sync.Map // map[Hash]runtime.Instance
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
-func NewEmptyBlockTree(db database.Database) *BlockTree {
+func NewEmptyBlockTree() *BlockTree {
 	return &BlockTree{
-		head:      nil,
-		leaves:    newEmptyLeafMap(),
-		db:        db,
-		nodeCache: make(map[Hash]*node),
-		runtime:   &sync.Map{}, // map[Hash]runtime.Instance
+		root:    nil,
+		leaves:  newEmptyLeafMap(),
+		runtime: &sync.Map{},
 	}
 }
 
 // NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
 // finalised block (ie the genesis block if the node is just starting.)
-func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
-	head := &node{
+func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
+	n := &node{
 		hash:        root.Hash(),
 		parent:      nil,
 		children:    []*node{},
-		depth:       big.NewInt(0),
-		arrivalTime: uint64(time.Now().Unix()), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
+		number:      root.Number,
+		arrivalTime: time.Now(),
 	}
 
 	return &BlockTree{
-		head:      head,
-		leaves:    newLeafMap(head),
-		db:        db,
-		nodeCache: make(map[Hash]*node),
-		runtime:   &sync.Map{},
+		root:    n,
+		leaves:  newLeafMap(n),
+		runtime: &sync.Map{},
 	}
-}
-
-// GenesisHash returns the hash of the genesis block
-func (bt *BlockTree) GenesisHash() Hash {
-	bt.RLock()
-	defer bt.RUnlock()
-	return bt.head.hash
 }
 
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
-func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime uint64) error {
+func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error {
 	bt.Lock()
 	defer bt.Unlock()
 
@@ -92,90 +65,54 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime uint64) error {
 	}
 
 	// Check if it already exists
-	n := bt.getNode(header.Hash())
-	if n != nil {
+	if n := bt.getNode(header.Hash()); n != nil {
 		return ErrBlockExists
 	}
 
-	depth := big.NewInt(0)
-	depth.Add(parent.depth, big.NewInt(1))
+	number := big.NewInt(0)
+	number.Add(parent.number, big.NewInt(1))
 
-	n = &node{
+	if number.Cmp(header.Number) != 0 {
+		return errUnexpectedNumber
+	}
+
+	n := &node{
 		hash:        header.Hash(),
 		parent:      parent,
 		children:    []*node{},
-		depth:       depth,
+		number:      number,
 		arrivalTime: arrivalTime,
 	}
+
 	parent.addChild(n)
 	bt.leaves.replace(parent, n)
-	bt.setInCache(n)
-
 	return nil
 }
 
-// Rewind rewinds the block tree by the given height. If the blocktree is less than the given height,
-// it will only rewind until the blocktree has one node.
-func (bt *BlockTree) Rewind(numBlocks int) {
-	bt.Lock()
-	defer bt.Unlock()
-
-	for i := 0; i < numBlocks; i++ {
-		deepest := bt.leaves.deepestLeaf()
-
-		for _, leaf := range bt.leaves.nodes() {
-			if leaf.parent == nil || leaf.depth.Cmp(deepest.depth) < 0 {
-				continue
-			}
-
-			bt.leaves.replace(leaf, leaf.parent)
-			leaf.parent.deleteChild(leaf)
-		}
-	}
-}
-
-// GetAllBlocksAtDepth will return all blocks hashes with the depth of the given hash plus one.
-// To find all blocks at a depth matching a certain block, pass in that block's parent hash
-func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
+// GetAllBlocksAtNumber will return all blocks hashes with the number of the given hash plus one.
+// To find all blocks at a number matching a certain block, pass in that block's parent hash
+func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Hash) {
 	bt.RLock()
 	defer bt.RUnlock()
-
-	hashes := []common.Hash{}
 
 	if bt.getNode(hash) == nil {
 		return hashes
 	}
 
-	depth := big.NewInt(0).Add(bt.getNode(hash).depth, big.NewInt(1))
+	number := big.NewInt(0).Add(bt.getNode(hash).number, big.NewInt(1))
 
-	if bt.head.depth.Cmp(depth) == 0 {
-		hashes = append(hashes, bt.head.hash)
+	if bt.root.number.Cmp(number) == 0 {
+		hashes = append(hashes, bt.root.hash)
 		return hashes
 	}
 
-	return bt.head.getNodesWithDepth(depth, hashes)
-}
-
-func (bt *BlockTree) setInCache(b *node) {
-	if b == nil {
-		return
-	}
-
-	if _, has := bt.nodeCache[b.hash]; !has {
-		bt.nodeCache[b.hash] = b
-	}
+	return bt.root.getNodesWithNumber(number, hashes)
 }
 
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
 func (bt *BlockTree) getNode(h Hash) (ret *node) {
-	defer func() { bt.setInCache(ret) }()
-
-	if b, ok := bt.nodeCache[h]; ok {
-		return b
-	}
-
-	if bt.head.hash == h {
-		return bt.head
+	if bt.root.hash == h {
+		return bt.root
 	}
 
 	for _, leaf := range bt.leaves.nodes() {
@@ -184,7 +121,7 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 		}
 	}
 
-	for _, child := range bt.head.children {
+	for _, child := range bt.root.children {
 		if n := child.getNode(h); n != nil {
 			return n
 		}
@@ -193,19 +130,14 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 	return nil
 }
 
-// Prune sets the given hash as the new blocktree root, removing all nodes that are not the new root node or its descendant
+// Prune sets the given hash as the new blocktree root,
+// removing all nodes that are not the new root node or its descendant
 // It returns an array of hashes that have been pruned
 func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	bt.Lock()
 	defer bt.Unlock()
-	defer func() {
-		for _, hash := range pruned {
-			delete(bt.nodeCache, hash)
-			bt.runtime.Delete(hash)
-		}
-	}()
 
-	if finalised == bt.head.hash {
+	if finalised == bt.root.hash {
 		return pruned
 	}
 
@@ -214,12 +146,18 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		return pruned
 	}
 
-	pruned = bt.head.prune(n, nil)
-	bt.head = n
+	pruned = bt.root.prune(n, nil)
+	bt.root = n
+	bt.root.parent = nil
+
 	leaves := n.getLeaves(nil)
 	bt.leaves = newEmptyLeafMap()
 	for _, leaf := range leaves {
 		bt.leaves.store(leaf.hash, leaf)
+	}
+
+	for _, hash := range pruned {
+		bt.runtime.Delete(hash)
 	}
 
 	return pruned
@@ -231,9 +169,9 @@ func (bt *BlockTree) String() string {
 	defer bt.RUnlock()
 
 	// Construct tree
-	tree := gotree.New(bt.head.string())
+	tree := gotree.New(bt.root.string())
 
-	for _, child := range bt.head.children {
+	for _, child := range bt.root.children {
 		sub := tree.Add(child.string())
 		child.createTree(sub)
 	}
@@ -250,8 +188,8 @@ func (bt *BlockTree) String() string {
 	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
 }
 
-// longestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) longestPath() []*node { //nolint
+// longestPath returns the path from the root to the deepest leaf in the blocktree
+func (bt *BlockTree) longestPath() []*node {
 	dl := bt.deepestLeaf()
 	var path []*node
 	for curr := dl; ; curr = curr.parent {
@@ -292,8 +230,8 @@ func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 
 }
 
-// DeepestLeaf returns leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) deepestLeaf() *node { //nolint
+// deepestLeaf returns the deepest leaf in the block tree.
+func (bt *BlockTree) deepestLeaf() *node {
 	return bt.leaves.deepestLeaf()
 }
 
@@ -358,12 +296,20 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 	if an == nil {
 		return common.Hash{}, ErrNodeNotFound
 	}
+
 	bn := bt.getNode(b)
 	if bn == nil {
 		return common.Hash{}, ErrNodeNotFound
 	}
 
-	return an.highestCommonAncestor(bn).hash, nil
+	ancestor := an.highestCommonAncestor(bn)
+	if ancestor == nil {
+		// this case shouldn't happen - any two nodes in the blocktree must
+		// have a common ancestor, the lowest of which is the root node
+		return common.Hash{}, fmt.Errorf("%w: %s and %s", ErrNoCommonAncestor, a, b)
+	}
+
+	return ancestor.hash, nil
 }
 
 // GetAllBlocks returns all the blocks in the tree
@@ -371,7 +317,57 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	return bt.head.getAllDescendants(nil)
+	return bt.root.getAllDescendants(nil)
+}
+
+// GetHashByNumber returns the block hash with the given number that is on the best chain.
+// If the number is lower or higher than the numbers in the blocktree, an error is returned.
+func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
+	bt.RLock()
+	defer bt.RUnlock()
+
+	deepest := bt.leaves.deepestLeaf()
+	if deepest.number.Cmp(num) == -1 {
+		return common.Hash{}, ErrNumGreaterThanHighest
+	}
+
+	if deepest.number.Cmp(num) == 0 {
+		return deepest.hash, nil
+	}
+
+	if bt.root.number.Cmp(num) == 1 {
+		return common.Hash{}, ErrNumLowerThanRoot
+	}
+
+	if bt.root.number.Cmp(num) == 0 {
+		return bt.root.hash, nil
+	}
+
+	curr := deepest.parent
+	for {
+		if curr == nil {
+			return common.Hash{}, ErrNodeNotFound
+		}
+
+		if curr.number.Cmp(num) == 0 {
+			return curr.hash, nil
+		}
+
+		curr = curr.parent
+	}
+}
+
+// GetArrivalTime returns the arrival time of a block
+func (bt *BlockTree) GetArrivalTime(hash common.Hash) (time.Time, error) {
+	bt.RLock()
+	defer bt.RUnlock()
+
+	n := bt.getNode(hash)
+	if n == nil {
+		return time.Time{}, ErrNodeNotFound
+	}
+
+	return n.arrivalTime, nil
 }
 
 // DeepCopy returns a copy of the BlockTree
@@ -379,16 +375,13 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	btCopy := &BlockTree{
-		db:        bt.db,
-		nodeCache: make(map[Hash]*node),
-	}
+	btCopy := &BlockTree{}
 
-	if bt.head == nil {
+	if bt.root == nil {
 		return btCopy
 	}
 
-	btCopy.head = bt.head.deepCopy(nil)
+	btCopy.root = bt.root.deepCopy(nil)
 
 	if bt.leaves != nil {
 		btCopy.leaves = newEmptyLeafMap()
@@ -397,10 +390,6 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 		for hash, val := range lMap {
 			btCopy.leaves.store(hash, btCopy.getNode(val.hash))
 		}
-	}
-
-	for hash := range bt.nodeCache {
-		btCopy.nodeCache[hash] = btCopy.getNode(hash)
 	}
 
 	return btCopy

@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package types
 
 import (
@@ -6,18 +9,25 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestBABEAuthorityRaw(t *testing.T) {
-	ad := new(AuthorityRaw)
-	buf := &bytes.Buffer{}
-	data := []byte{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28, 1, 0, 0, 0, 0, 0, 0, 0}
-	buf.Write(data)
+	exp := []byte{
+		0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152,
+		85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40,
+		246, 76, 38, 235, 204, 43, 31, 179, 28, 1, 0, 0,
+		0, 0, 0, 0, 0}
 
-	_, err := ad.Decode(buf)
+	dec := AuthorityRaw{}
+	err := scale.Unmarshal(exp, &dec)
 	require.NoError(t, err)
+
+	enc, err := scale.Marshal(dec)
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
 }
 
 func TestBABEAuthority(t *testing.T) {
@@ -55,13 +65,13 @@ func TestEpochData(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	auth := &Authority{
+	auth := Authority{
 		Key:    kr.Alice().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 
 	data := &EpochData{
-		Authorities: []*Authority{auth},
+		Authorities: []Authority{auth},
 		Randomness:  [32]byte{77},
 	}
 

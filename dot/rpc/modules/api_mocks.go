@@ -1,16 +1,22 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package modules
 
 import (
 	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/stretchr/testify/mock"
 )
 
 // NewMockStorageAPI creates and return an rpc StorageAPI interface mock
-func NewMockStorageAPI() *modulesmocks.MockStorageAPI {
-	m := new(modulesmocks.MockStorageAPI)
+func NewMockStorageAPI() *modulesmocks.StorageAPI {
+	m := new(modulesmocks.StorageAPI)
 	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
+	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
 	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("RegisterStorageObserver", mock.Anything)
@@ -26,13 +32,13 @@ func NewMockBlockAPI() *modulesmocks.BlockAPI {
 	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
 	m.On("BestBlockHash").Return(common.Hash{})
 	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil)
-	m.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(nil, nil)
+	m.On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(nil, nil)
 	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(common.Hash{}, nil)
 	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil)
-	m.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).Return(byte(0), nil)
-	m.On("UnregisterImportedChannel", mock.AnythingOfType("uint8"))
-	m.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).Return(byte(0), nil)
-	m.On("UnregisterFinalizedChannel", mock.AnythingOfType("uint8"))
+	m.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block, 5))
+	m.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
+	m.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 5))
+	m.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil)
 	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
 	m.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(make([]common.Hash, 0), nil)
@@ -41,10 +47,19 @@ func NewMockBlockAPI() *modulesmocks.BlockAPI {
 	return m
 }
 
+// NewMockTransactionStateAPI creates and return an rpc TransactionStateAPI interface mock
+func NewMockTransactionStateAPI() *modulesmocks.TransactionStateAPI {
+	m := new(modulesmocks.TransactionStateAPI)
+	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status"))
+	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status))
+	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{})
+	return m
+}
+
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
-func NewMockCoreAPI() *modulesmocks.MockCoreAPI {
-	m := new(modulesmocks.MockCoreAPI)
-	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"))
+func NewMockCoreAPI() *modulesmocks.CoreAPI {
+	m := new(modulesmocks.CoreAPI)
+	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil)
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(NewMockVersion(), nil)
 	m.On("IsBlockProducer").Return(false)
@@ -54,8 +69,8 @@ func NewMockCoreAPI() *modulesmocks.MockCoreAPI {
 }
 
 // NewMockVersion creates and returns an runtime Version interface mock
-func NewMockVersion() *runtimemocks.MockVersion {
-	m := new(runtimemocks.MockVersion)
+func NewMockVersion() *runtimemocks.Version {
+	m := new(runtimemocks.Version)
 	m.On("SpecName").Return([]byte(`mock-spec`))
 	m.On("ImplName").Return(nil)
 	m.On("AuthoringVersion").Return(uint32(0))

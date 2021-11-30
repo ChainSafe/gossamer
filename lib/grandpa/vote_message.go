@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
@@ -20,10 +7,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -38,31 +27,55 @@ func (s *Service) receiveMessages(ctx context.Context) {
 	for {
 		select {
 		case msg, ok := <-s.in:
-			if msg == nil || msg.msg == nil {
-				continue
-			}
-
 			if !ok {
 				return
 			}
 
-			logger.Trace("received vote message", "msg", msg)
-			vm := msg.msg
-
-			v, err := s.validateMessage(msg.from, vm)
-			if err != nil {
-				logger.Debug("failed to validate vote message", "message", vm, "error", err)
+			if msg == nil || msg.msg == nil {
 				continue
 			}
 
-			logger.Debug("validated vote message",
-				"vote", v,
-				"round", vm.Round,
-				"subround", vm.Message.Stage,
-				"prevote count", s.lenVotes(prevote),
-				"precommit count", s.lenVotes(precommit),
-				"votes needed", s.state.threshold(),
-			)
+			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
+			vm := msg.msg
+
+			switch vm.Message.Stage {
+			case prevote:
+				err := telemetry.GetInstance().SendMessage(
+					telemetry.NewAfgReceivedPrevoteTM(
+						vm.Message.Hash,
+						fmt.Sprint(vm.Message.Number),
+						vm.Message.AuthorityID.String(),
+					),
+				)
+				if err != nil {
+					logger.Debugf("problem sending afg.received_prevote telemetry message: %s", err)
+				}
+			case precommit:
+				err := telemetry.GetInstance().SendMessage(
+					telemetry.NewAfgReceivedPrecommitTM(
+						vm.Message.Hash,
+						fmt.Sprint(vm.Message.Number),
+						vm.Message.AuthorityID.String(),
+					),
+				)
+				if err != nil {
+					logger.Debugf("problem sending afg.received_precommit telemetry message: %s", err)
+				}
+			default:
+				logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
+			}
+
+			v, err := s.validateMessage(msg.from, vm)
+			if err != nil {
+				logger.Debugf("failed to validate vote message %v: %s", vm, err)
+				continue
+			}
+
+			logger.Debugf(
+				"validated vote message %v from %s, round %d, subround %d, "+
+					"prevote count %d, precommit count %d, votes needed %d",
+				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
+				s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
 			return
@@ -70,10 +83,10 @@ func (s *Service) receiveMessages(ctx context.Context) {
 	}
 }
 
-func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*SignedVote, *VoteMessage, error) {
-	msg, err := scale.Encode(&FullVote{
+func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*SignedVote, *VoteMessage, error) {
+	msg, err := scale.Marshal(FullVote{
 		Stage: stage,
-		Vote:  vote,
+		Vote:  *vote,
 		Round: s.state.round,
 		SetID: s.state.setID,
 	})
@@ -87,7 +100,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 	}
 
 	pc := &SignedVote{
-		Vote:        vote,
+		Vote:        *vote,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
@@ -103,7 +116,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 	vm := &VoteMessage{
 		Round:   s.state.round,
 		SetID:   s.state.setID,
-		Message: sm,
+		Message: *sm,
 	}
 
 	return pc, vm, nil
@@ -115,10 +128,6 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	// make sure round does not increment while VoteMessage is being validated
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
-
-	if m.Message == nil {
-		return nil, errors.New("invalid VoteMessage; missing Message field")
-	}
 
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.Message.AuthorityID[:])
@@ -153,7 +162,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	if m.Round != s.state.round {
 		if m.Round < s.state.round {
 			// peer doesn't know round was finalised, send out another commit message
-			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID) //nolint
+			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
 			if err != nil {
 				return nil, err
 			}
@@ -170,11 +179,17 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 			}
 
 			if err = s.network.SendMessage(from, msg); err != nil {
-				logger.Warn("failed to send CommitMessage", "error", err)
+				logger.Warnf("failed to send CommitMessage: %s", err)
 			}
+		} else {
+			// round is higher than ours, perhaps we are behind. store vote in tracker for now
+			s.tracker.addVote(&networkVoteMessage{
+				from: from,
+				msg:  m,
+			})
 		}
 
-		// TODO: get justification if your round is lower, or just do catch-up?
+		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
 		return nil, errRoundMismatch(m.Round, s.state.round)
 	}
 
@@ -193,11 +208,11 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	}
 
 	err = s.validateVote(vote)
-	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrDescendantNotFound) || errors.Is(err, blocktree.ErrEndNodeNotFound) || errors.Is(err, blocktree.ErrStartNodeNotFound) {
-		// TODO: cancel if block is imported; if we refactor the syncing this will likely become cleaner
-		// as we can have an API to synchronously sync and import a block
-		go s.network.SendBlockReqestByHash(vote.Hash)
-		s.tracker.add(&networkVoteMessage{
+	if errors.Is(err, ErrBlockDoesNotExist) ||
+		errors.Is(err, blocktree.ErrDescendantNotFound) ||
+		errors.Is(err, blocktree.ErrEndNodeNotFound) ||
+		errors.Is(err, blocktree.ErrStartNodeNotFound) {
+		s.tracker.addVote(&networkVoteMessage{
 			from: from,
 			msg:  m,
 		})
@@ -207,7 +222,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	}
 
 	just := &SignedVote{
-		Vote:        vote,
+		Vote:        *vote,
 		Signature:   m.Message.Signature,
 		AuthorityID: pk.AsBytes(),
 	}
@@ -230,7 +245,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage subround) bool {
+func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) bool {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification
@@ -288,16 +303,16 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	if !isDescendant {
-		return ErrDescendantNotFound
+		return errInvalidVoteBlock
 	}
 
 	return nil
 }
 
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
-	msg, err := scale.Encode(&FullVote{
+	msg, err := scale.Marshal(FullVote{
 		Stage: m.Message.Stage,
-		Vote:  NewVote(m.Message.Hash, m.Message.Number),
+		Vote:  *NewVote(m.Message.Hash, m.Message.Number),
 		Round: m.Round,
 		SetID: m.SetID,
 	})

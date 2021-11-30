@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package babe
 
@@ -54,7 +41,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 	block, err := builder.buildBlock(parent, slot, rt)
 
 	// is necessary to enable ethmetrics to be possible register values
-	ethmetrics.Enabled = true //nolint
+	ethmetrics.Enabled = true
 
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
@@ -68,7 +55,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 	return block, nil
 }
 
-// nolint
+// BlockBuilder builds blocks.
 type BlockBuilder struct {
 	keypair               *sr25519.Keypair
 	transactionState      TransactionState
@@ -77,8 +64,10 @@ type BlockBuilder struct {
 	currentAuthorityIndex uint32
 }
 
-// nolint
-func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp map[uint64]*VrfOutputAndProof, authidx uint32) (*BlockBuilder, error) {
+// NewBlockBuilder creates a new block builder.
+func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
+	bs BlockState, sp map[uint64]*VrfOutputAndProof,
+	authidx uint32) (*BlockBuilder, error) {
 	if ts == nil {
 		return nil, errors.New("cannot create block builder; transaction state is nil")
 	}
@@ -101,7 +90,7 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp
 }
 
 func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
-	logger.Trace("build block", "parent", parent, "slot", slot)
+	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
 	// create pre-digest
 	preDigest, err := b.buildBlockPreDigest(slot)
@@ -113,7 +102,12 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewDigest(preDigest))
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	if err != nil {
+		return nil, err
+	}
+	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +126,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
 
-	logger.Trace("built block inherents", "encoded inherents", inherents)
+	logger.Tracef("built block encoded inherents: %v", inherents)
 
 	// add block extrinsics
 	included := b.buildBlockExtrinsics(slot, rt)
@@ -154,17 +148,20 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 		return nil, err
 	}
 
-	header.Digest = append(header.Digest, seal)
+	err = header.Digest.Add(*seal)
+	if err != nil {
+		return nil, err
+	}
 
 	logger.Trace("built block seal")
 
-	body, err := ExtrinsicsToBody(inherents, included)
+	body, err := extrinsicsToBody(inherents, included)
 	if err != nil {
 		return nil, err
 	}
 
 	block := &types.Block{
-		Header: header,
+		Header: *header,
 		Body:   body,
 	}
 
@@ -174,7 +171,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 // buildBlockSeal creates the seal for the block header.
 // the seal consists of the ConsensusEngineID and a signature of the encoded block header.
 func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
-	encHeader, err := header.Encode()
+	encHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return nil, err
 	}
@@ -198,12 +195,21 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 // buildBlockPreDigest creates the pre-digest for the slot.
 // the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
 func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
-	babeHeader, err := b.buildBlockBABEPrimaryPreDigest(slot)
+	babeHeader := types.NewBabeDigest()
+	data, err := b.buildBlockBABEPrimaryPreDigest(slot)
 	if err != nil {
 		return nil, err
 	}
 
-	encBABEPrimaryPreDigest := babeHeader.Encode()
+	err = babeHeader.Set(*data)
+	if err != nil {
+		return nil, err
+	}
+
+	encBABEPrimaryPreDigest, err := scale.Marshal(babeHeader)
+	if err != nil {
+		return nil, err
+	}
 
 	return &types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -241,17 +247,17 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 		}
 
 		extrinsic := txn.Extrinsic
-		logger.Trace("build block", "applying extrinsic", extrinsic)
+		logger.Tracef("build block, applying extrinsic %s", extrinsic)
 
 		ret, err := rt.ApplyExtrinsic(extrinsic)
 		if err != nil {
-			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
+			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
 			continue
 		}
 
 		err = determineErr(ret)
 		if err != nil {
-			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
+			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
 
 			// Failure of the module call dispatching doesn't invalidate the extrinsic.
 			// It is included in the block.
@@ -269,12 +275,12 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 			if errors.Is(e.msg, errExhaustsResources) || errors.Is(e.msg, errInvalidTransaction) {
 				hash, err := b.transactionState.Push(txn)
 				if err != nil {
-					logger.Debug("failed to re-add transaction to queue", "tx", hash, "error", err)
+					logger.Debugf("failed to re-add transaction with hash %s to queue: %s", hash, err)
 				}
 			}
 		}
 
-		logger.Debug("build block applied extrinsic", "extrinsic", extrinsic)
+		logger.Debugf("build block applied extrinsic %s", extrinsic)
 		included = append(included, txn)
 	}
 
@@ -284,7 +290,8 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 func (b *BlockBuilder) buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
-	err := idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	timestamp := uint64(time.Now().UnixMilli())
+	err := idata.SetInt64Inherent(types.Timstap0, timestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -338,9 +345,9 @@ func (b *BlockBuilder) addToQueue(txs []*transaction.ValidTransaction) {
 	for _, t := range txs {
 		hash, err := b.transactionState.Push(t)
 		if err != nil {
-			logger.Trace("Failed to add transaction to queue", "error", err)
+			logger.Tracef("Failed to add transaction to queue: %s", err)
 		} else {
-			logger.Trace("Added transaction to queue", "hash", hash)
+			logger.Tracef("Added transaction with hash %s to queue", hash)
 		}
 	}
 }
@@ -350,8 +357,7 @@ func hasSlotEnded(slot Slot) bool {
 	return time.Since(slotEnd) >= 0
 }
 
-// ExtrinsicsToBody returns scale encoded block body which contains inherent and extrinsic.
-func ExtrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (*types.Body, error) {
+func extrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (types.Body, error) {
 	extrinsics := types.BytesArrayToExtrinsics(inherents)
 
 	for _, tx := range txs {
@@ -363,10 +369,5 @@ func ExtrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (
 		extrinsics = append(extrinsics, decExt)
 	}
 
-	enc, err := scale.Marshal(extrinsics)
-	if err != nil {
-		return nil, err
-	}
-	body := types.Body(enc)
-	return &body, nil
+	return types.Body(extrinsics), nil
 }

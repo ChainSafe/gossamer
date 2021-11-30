@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package runtime
 
@@ -26,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func NewMemoryMock(size uint32) *MockMemory {
-	m := new(MockMemory)
+func newMemoryMock(size uint32) *mockMemory {
+	m := new(mockMemory)
 	testobj := make([]byte, size)
 
 	m.On("Data").Return(testobj)
@@ -291,7 +278,7 @@ var allTests = []testHolder{
 //  test holder
 func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
-		memmock := NewMemoryMock(1 << 16)
+		memmock := newMemoryMock(1 << 16)
 		allocator := NewAllocator(memmock, test.offset)
 
 		for _, theTest := range test.tests {
@@ -316,7 +303,8 @@ func TestAllocator(t *testing.T) {
 }
 
 // compare test results to expected results and fail test if differences are found
-func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, result interface{}, output interface{}, t *testing.T) {
+func compareState(allocator FreeingBumpHeapAllocator, state allocatorState,
+	result interface{}, output interface{}, t *testing.T) {
 	if !reflect.DeepEqual(allocator.bumper, state.bumper) {
 		t.Errorf("Fail: got %v expected %v", allocator.bumper, state.bumper)
 	}
@@ -336,7 +324,7 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 
 // test that allocator should grow memory if the allocation request is larger than current size
 func TestShouldGrowMemory(t *testing.T) {
-	mem := NewMemoryMock(1 << 16)
+	mem := newMemoryMock(1 << 16)
 	currentSize := mem.Length()
 
 	fbha := NewAllocator(mem, 0)
@@ -349,7 +337,7 @@ func TestShouldGrowMemory(t *testing.T) {
 
 // test that the allocator should grow memory if it's already full
 func TestShouldGrowMemoryIfFull(t *testing.T) {
-	mem := NewMemoryMock(1 << 16)
+	mem := newMemoryMock(1 << 16)
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
@@ -369,10 +357,10 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
-	mem := NewMemoryMock(1 << 16)
+	mem := newMemoryMock(1 << 16)
 
 	pagesNeeded := (MaxPossibleAllocation / PageSize) - (mem.Length() / PageSize) + 1
-	mem = NewMemoryMock(mem.Length() + pagesNeeded*65*1024)
+	mem = newMemoryMock(mem.Length() + pagesNeeded*65*1024)
 
 	fbha := NewAllocator(mem, 0)
 
@@ -388,7 +376,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
-	fbha := NewAllocator(NewMemoryMock(1<<16), 0)
+	fbha := NewAllocator(newMemoryMock(1<<16), 0)
 
 	// when
 	_, err := fbha.Allocate(MaxPossibleAllocation + 1)

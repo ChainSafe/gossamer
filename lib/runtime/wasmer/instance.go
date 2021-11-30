@@ -1,34 +1,20 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
 
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -40,7 +26,10 @@ var (
 	_ runtime.Instance = (*Instance)(nil)
 	_ runtime.Memory   = (*wasm.Memory)(nil)
 
-	logger = log.New("pkg", "runtime", "module", "go-wasmer")
+	logger = log.NewFromGlobal(
+		log.AddContext("pkg", "runtime"),
+		log.AddContext("module", "go-wasmer"),
+	)
 )
 
 // Config represents a wasmer configuration
@@ -61,13 +50,16 @@ type Instance struct {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) { // TODO: simplify, get :code from storage
-	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
+func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
+	if cfg.Storage == nil {
+		return nil, errors.New("storage is nil")
 	}
 
-	code := common.MustHexToBytes(codeStr)
+	code := cfg.Storage.LoadCode()
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in state")
+	}
+
 	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
@@ -96,21 +88,11 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg *Config) (*Instance, error) {
-	// TODO: verify that v0.8 specific funcs are available
-	return newInstance(code, cfg)
-}
-
-func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}
 
-	// if cfg.LogLvl set to < 0, then don't change package log level
-	if cfg.LogLvl >= 0 {
-		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-		h = log.CallerFileHandler(h)
-		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
-	}
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	imports, err := cfg.Imports()
 	if err != nil {
@@ -118,7 +100,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	// Provide importable memory for newer runtimes
-	// TODO: determine memory descriptor size that the runtime wants from the wasm.
+	// TODO: determine memory descriptor size that the runtime wants from the wasm. (#1268)
 	// should be doable w/ wasmer 1.0.0.
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
@@ -137,7 +119,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
 	// Assume imported memory is used if runtime does not export any
@@ -148,17 +130,18 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	allocator := runtime.NewAllocator(instance.Memory, heapBase)
 
 	runtimeCtx := &runtime.Context{
-		Storage:     cfg.Storage,
-		Allocator:   allocator,
-		Keystore:    cfg.Keystore,
-		Validator:   cfg.Role == byte(4),
-		NodeStorage: cfg.NodeStorage,
-		Network:     cfg.Network,
-		Transaction: cfg.Transaction,
-		SigVerifier: runtime.NewSignatureVerifier(),
+		Storage:         cfg.Storage,
+		Allocator:       allocator,
+		Keystore:        cfg.Keystore,
+		Validator:       cfg.Role == byte(4),
+		NodeStorage:     cfg.NodeStorage,
+		Network:         cfg.Network,
+		Transaction:     cfg.Transaction,
+		SigVerifier:     runtime.NewSignatureVerifier(logger),
+		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 
-	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
+	logger.Debugf("NewInstance called with runtimeCtx: %v", runtimeCtx)
 	instance.SetContextData(runtimeCtx)
 
 	inst := &Instance{
@@ -220,7 +203,7 @@ func (in *Instance) setupInstanceVM(code []byte) error {
 	}
 
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
-	// should be doable w/ wasmer 1.0.0.
+	// should be doable w/ wasmer 1.0.0. (#1268)
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
 		return err
@@ -243,7 +226,7 @@ func (in *Instance) setupInstanceVM(code []byte) error {
 	}
 
 	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
 	in.ctx.Allocator = runtime.NewAllocator(in.vm.Memory, heapBase)
@@ -319,7 +302,7 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	offset, length := int64ToPointerAndSize(res.ToI64())
+	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
 	return in.load(offset, length), nil
 }
 
@@ -349,14 +332,4 @@ func (in *Instance) Keystore() *keystore.GlobalKeystore {
 // Validator returns the context's Validator
 func (in *Instance) Validator() bool {
 	return in.ctx.Validator
-}
-
-// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
-func int64ToPointerAndSize(in int64) (ptr, length int32) {
-	return int32(in), int32(in >> 32)
-}
-
-// pointerAndSizeToInt64 converts int32 pointer and size to a int64
-func pointerAndSizeToInt64(ptr, size int32) int64 {
-	return int64(ptr) | (int64(size) << 32)
 }
