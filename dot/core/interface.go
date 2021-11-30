@@ -47,6 +47,7 @@ type BlockState interface {
 	StoreRuntime(common.Hash, runtime.Instance)
 }
 
+//go:generate mockgen -destination=./mocks/storage_state_mock.go -package mocks . StorageState
 //go:generate mockery --name StorageState --structname StorageState --case underscore --keeptree
 
 // StorageState interface for storage state methods
@@ -68,6 +69,7 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 	RemoveExtrinsicFromPool(ext types.Extrinsic)
 	PendingInPool() []*transaction.ValidTransaction
+	InPool(ext types.Extrinsic) bool
 }
 
 //go:generate mockgen -destination=./mocks/network_mock.go -package mocks . Networks
@@ -93,7 +95,6 @@ type CodeSubstitutedState interface {
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
 }
 
-//go:generate mockgen -destination=./mocks/digest_handler_mock.go -package mocks . DigestHandler
 //go:generate mockery --name DigestHandler --structname DigestHandler --case underscore --keeptree
 
 // DigestHandler is the interface for the consensus digest handler

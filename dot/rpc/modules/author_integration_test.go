@@ -8,6 +8,7 @@ package modules
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -90,7 +92,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Parallel()
 	tmpbasepath := t.TempDir()
 
-	intCtrl := setupRuntime2Test(t, tmpbasepath)
+	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState()
 
 	genesisHash := intCtrl.genesisHeader.Hash()
@@ -100,10 +102,10 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	extHex := runtime.CreateTestExtrinsic(t,
 		intCtrl.runtime, genesisHash, blockHash, 0, "System.remark", []byte{0xab, 0xcd})
 
+	extBytes := common.MustHexToBytes(extHex)
+
 	ctrl := gomock.NewController(t)
 	net2test := coremocks.NewMockNetwork(ctrl)
-
-	extBytes := common.MustHexToBytes(extHex)
 	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
 	intCtrl.network = net2test
 
@@ -141,14 +143,14 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Parallel()
 	tmpbasepath := t.TempDir()
 
-	intCtrl := setupRuntime2Test(t, tmpbasepath)
+	intCtrl := setupStateAndRuntime(t, tmpbasepath)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState()
 
 	genesisHash := intCtrl.genesisHeader.Hash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.CreateTestExtrinsic(t,
-		intCtrl.runtime, genesisHash, genesisHash, 2, "Balances.transfer", []byte{})
+		intCtrl.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
 
 	ctrl := gomock.NewController(t)
 	net2test := coremocks.NewMockNetwork(ctrl)
@@ -170,9 +172,13 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
+	t.Parallel()
+	tmppath := t.TempDir()
+
 	// setup service
 	// setup auth module
-	auth := setupAuhtorModule2Test(t, nil)
+	intctrl := setupStateAndRuntime(t, tmppath)
+	auth := setupAuhtorModule2Test(t, intctrl)
 
 	// create and submit extrinsic
 	ext := Extrinsic{fmt.Sprintf("%x", "1")}
@@ -182,128 +188,211 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
 }
 
-func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
-	t.Skip()
-	// setup auth module
-	txQueue := state.NewTransactionState()
+func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
+	t.Parallel()
 
-	auth := setupAuhtorModule2Test(t, nil)
+	tmpbasepath := t.TempDir()
+	intCtrl := setupStateAndRuntime(t, tmpbasepath)
+	intCtrl.stateSrv.Transaction = state.NewTransactionState()
+
+	genesisHash := intCtrl.genesisHeader.Hash()
+
+	// creating an extrisinc to the System.remark call using a sample argument
+	extHex := runtime.CreateTestExtrinsic(t,
+		intCtrl.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+	extBytes := common.MustHexToBytes(extHex)
+
+	ctrl := gomock.NewController(t)
+
+	storageState := coremocks.NewMockStorageState(ctrl)
+	// should not call storage.TrieState
+	storageState.EXPECT().TrieState(nil).MaxTimes(0)
+	intCtrl.storageState = storageState
+
+	net2test := coremocks.NewMockNetwork(ctrl)
+	// should not call network.GossipMessage
+	net2test.EXPECT().GossipMessage(nil).MaxTimes(0)
+	intCtrl.network = net2test
+
+	// setup auth module
+	auth := setupAuhtorModule2Test(t, intCtrl)
 
 	// create and submit extrinsic
-	ext := Extrinsic{fmt.Sprintf("0x%x", testExt)}
+	ext := Extrinsic{extHex}
 
 	res := new(ExtrinsicHashResponse)
 
-	// setup expected results
-	val := &transaction.Validity{
-		Priority:  69,
-		Requires:  [][]byte{},
-		Provides:  [][]byte{{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
-		Longevity: 64,
-		Propagate: true,
-	}
+	expectedExtrinsic := types.NewExtrinsic(extBytes)
 	expected := &transaction.ValidTransaction{
-		Extrinsic: types.NewExtrinsic(testExt),
-		Validity:  val,
+		Extrinsic: expectedExtrinsic,
+		Validity: &transaction.Validity{
+			Priority:  39325240425794630,
+			Requires:  nil,
+			Provides:  [][]byte{{212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 0, 0, 0, 0}}, // nolint:lll
+			Longevity: 18446744073709551614,
+			Propagate: true,
+		},
 	}
 
-	_, err := txQueue.Push(expected)
-	require.Nil(t, err)
+	intCtrl.stateSrv.Transaction.AddToPool(expected)
 
-	// this should cause error since transaction is already in txQueue
-	err = auth.SubmitExtrinsic(nil, &ext, res)
-	require.EqualError(t, err, transaction.ErrTransactionExists.Error())
-
+	// should not cause error, since a transaction
+	err := auth.SubmitExtrinsic(nil, &ext, res)
+	require.NoError(t, err)
 }
 
-func TestAuthorModule_InsertKey_Valid(t *testing.T) {
-	seed := "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
-	kp, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes(seed))
+func TestAuthorModule_InsertKey_Integration(t *testing.T) {
+	tmppath := t.TempDir()
+
+	intctrl := setupStateAndRuntime(t, tmppath)
+	intctrl.keystore = keystore.NewGlobalKeystore()
+
+	auth := setupAuhtorModule2Test(t, intctrl)
+
+	const seed = "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
+
+	babeKp, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes(seed))
 	require.NoError(t, err)
 
-	auth := setupAuhtorModule2Test(t, nil)
-	req := &KeyInsertRequest{"babe", seed, kp.Public().Hex()}
-	res := &KeyInsertResponse{}
-	err = auth.InsertKey(nil, req, res)
-	require.Nil(t, err)
-	require.Len(t, *res, 0) // zero len result on success
-}
-
-func TestAuthorModule_InsertKey_Valid_Gran_Keytype(t *testing.T) {
-	seed := "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
-	kp, err := ed25519.NewKeypairFromSeed(common.MustHexToBytes(seed))
+	grandKp, err := ed25519.NewKeypairFromSeed(common.MustHexToBytes(seed))
 	require.NoError(t, err)
 
-	auth := setupAuhtorModule2Test(t, nil)
-	req := &KeyInsertRequest{"gran", seed, kp.Public().Hex()}
-	res := &KeyInsertResponse{}
-	err = auth.InsertKey(nil, req, res)
-	require.Nil(t, err)
+	testcases := map[string]struct {
+		ksType, seed string
+		kp           interface{}
+		waitErr      error
+	}{
+		"insert a valid babe key type": {
+			ksType: "babe",
+			seed:   seed,
+			kp:     babeKp,
+		},
 
-	require.Len(t, *res, 0) // zero len result on success
-}
+		"insert a valid gran key type": {
+			ksType: "gran",
+			seed:   seed,
+			kp:     grandKp,
+		},
 
-func TestAuthorModule_InsertKey_InValid(t *testing.T) {
-	auth := setupAuhtorModule2Test(t, nil)
-	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x0000000000000000000000000000000000000000000000000000000000000000"}
-	res := &KeyInsertResponse{}
-	err := auth.InsertKey(nil, req, res)
-	require.EqualError(t, err, "generated public key does not equal provide public key")
-}
+		"invalid babe key type": {
+			ksType:  "babe",
+			seed:    seed,
+			kp:      "0x0000000000000000000000000000000000000000000000000000000000000000",
+			waitErr: errors.New("generated public key does not equal provide public key"),
+		},
 
-func TestAuthorModule_InsertKey_UnknownKeyType(t *testing.T) {
-	auth := setupAuhtorModule2Test(t, nil)
-	req := &KeyInsertRequest{"mack", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
-	res := &KeyInsertResponse{}
-	err := auth.InsertKey(nil, req, res)
-	require.EqualError(t, err, "cannot decode key: invalid key type")
+		"unkown key type": {
+			ksType:  "someothertype",
+			seed:    seed,
+			kp:      grandKp,
+			waitErr: errors.New("cannot decode key: invalid key type"),
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			var expectedKp crypto.Keypair
+			var pubkey string
+
+			if kp, ok := tt.kp.(crypto.Keypair); ok {
+				expectedKp = kp
+				pubkey = kp.Public().Hex()
+			} else {
+				pubkey = tt.kp.(string)
+			}
+
+			req := &KeyInsertRequest{tt.ksType, tt.seed, pubkey}
+			res := new(KeyInsertResponse)
+			err = auth.InsertKey(nil, req, res)
+
+			if tt.waitErr != nil {
+				require.EqualError(t, tt.waitErr, err.Error())
+				return
+			}
+
+			require.Nil(t, err)
+
+			ks, err := intctrl.keystore.GetKeystore([]byte(tt.ksType))
+			require.NoError(t, err)
+
+			foundKp := ks.GetKeypairFromAddress(expectedKp.Public().Address())
+			require.NotNil(t, foundKp)
+			require.Equal(t, expectedKp, foundKp)
+		})
+	}
 
 }
 
 func TestAuthorModule_HasKey_Integration(t *testing.T) {
-	auth := setupAuhtorModule2Test(t, nil)
+	tmppath := t.TempDir()
+
+	intctrl := setupStateAndRuntime(t, tmppath)
+
+	ks := keystore.NewGlobalKeystore()
+
 	kr, err := keystore.NewSr25519Keyring()
 	require.Nil(t, err)
 
-	var res bool
-	req := []string{kr.Alice().Public().Hex(), "babe"}
-	err = auth.HasKey(nil, &req, &res)
-	require.NoError(t, err)
-	require.True(t, res)
-}
+	ks.Babe.Insert(kr.Alice())
 
-func TestAuthorModule_HasKey_NotFound(t *testing.T) {
-	auth := setupAuhtorModule2Test(t, nil)
-	kr, err := keystore.NewSr25519Keyring()
-	require.Nil(t, err)
+	intctrl.keystore = ks
 
-	var res bool
-	req := []string{kr.Bob().Public().Hex(), "babe"}
-	err = auth.HasKey(nil, &req, &res)
-	require.NoError(t, err)
-	require.False(t, res)
-}
+	auth := setupAuhtorModule2Test(t, intctrl)
 
-func TestAuthorModule_HasKey_InvalidKey(t *testing.T) {
-	auth := setupAuhtorModule2Test(t, nil)
+	testcases := map[string]struct {
+		pub, keytype string
+		hasKey       bool
+		waitErr      error
+	}{
+		"key exists and should return true": {
+			pub:     kr.Alice().Public().Hex(),
+			keytype: "babe",
+			hasKey:  true,
+		},
 
-	var res bool
-	req := []string{"0xaa11", "babe"}
-	err := auth.HasKey(nil, &req, &res)
-	require.EqualError(t, err, "cannot create public key: input is not 32 bytes")
-	require.False(t, res)
-}
+		"key does not exists and should return false": {
+			pub:     kr.Bob().Public().Hex(),
+			keytype: "babe",
+			hasKey:  false,
+		},
 
-func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
-	auth := setupAuhtorModule2Test(t, nil)
-	kr, err := keystore.NewSr25519Keyring()
-	require.Nil(t, err)
+		"invalid key should return error": {
+			pub:     "0xaa11",
+			keytype: "babe",
+			hasKey:  false,
+			waitErr: errors.New("cannot create public key: input is not 32 bytes"),
+		},
+		"invalid key type should return error": {
+			pub:     kr.Alice().Public().Hex(),
+			keytype: "xxxx",
+			hasKey:  false,
+			waitErr: keystore.ErrInvalidKeystoreName,
+		},
+	}
 
-	var res bool
-	req := []string{kr.Alice().Public().Hex(), "xxxx"}
-	err = auth.HasKey(nil, &req, &res)
-	require.EqualError(t, err, "unknown key type: xxxx")
-	require.False(t, res)
+	for tname, tt := range testcases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			var res bool
+			req := []string{tt.pub, tt.keytype}
+
+			err = auth.HasKey(nil, &req, &res)
+
+			if tt.waitErr != nil {
+				require.EqualError(t, tt.waitErr, err.Error())
+				require.False(t, res)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.hasKey, res)
+		})
+	}
 }
 
 type integrationTestController struct {
@@ -313,9 +402,58 @@ type integrationTestController struct {
 	runtime       runtime.Instance
 	stateSrv      *state.Service
 	network       core.Network
+	storageState  core.StorageState
+	keystore      *keystore.GlobalKeystore
 }
 
-func setupRuntime2Test(t *testing.T, basepath string) *integrationTestController {
+func setupStateAndRuntime(t *testing.T, basepath string) *integrationTestController {
+	t.Helper()
+
+	config := &state.Config{
+		Path:     basepath,
+		LogLevel: log.Info,
+	}
+
+	state2test := state.NewService2Test(t, config)
+
+	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+
+	err := state2test.Initialise(gen, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = state2test.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		state2test.Stop()
+	})
+
+	rtStorage, err := state2test.Storage.TrieState(nil)
+	require.NoError(t, err)
+
+	cfg := &wasmer.Config{}
+	cfg.Storage = rtStorage
+	cfg.LogLvl = 4
+	nodeStorage := runtime.NodeStorage{}
+	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
+	cfg.NodeStorage = nodeStorage
+
+	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
+	require.NoError(t, err)
+
+	genesisHash := genesisHeader.Hash()
+	state2test.Block.StoreRuntime(genesisHash, rt)
+
+	return &integrationTestController{
+		genesis:       gen,
+		genesisTrie:   genTrie,
+		genesisHeader: genesisHeader,
+		stateSrv:      state2test,
+		runtime:       rt,
+	}
+}
+
+func setupStateAndPopulateTrieState(t *testing.T, basepath string) *integrationTestController {
 	t.Helper()
 
 	config := &state.Config{
@@ -368,6 +506,7 @@ func setupRuntime2Test(t *testing.T, basepath string) *integrationTestController
 		genesisTrie:   genTrie,
 		genesisHeader: genesisHeader,
 		stateSrv:      state2test,
+		storageState:  state2test.Storage,
 		runtime:       rt,
 	}
 }
@@ -378,8 +517,9 @@ func setupAuhtorModule2Test(t *testing.T, intCtrl *integrationTestController) *A
 	cfg := &core.Config{
 		TransactionState: intCtrl.stateSrv.Transaction,
 		BlockState:       intCtrl.stateSrv.Block,
-		StorageState:     intCtrl.stateSrv.Storage,
+		StorageState:     intCtrl.storageState,
 		Network:          intCtrl.network,
+		Keystore:         intCtrl.keystore,
 	}
 
 	core2test := core.NewService2Test(t, context.TODO(), cfg, nil)

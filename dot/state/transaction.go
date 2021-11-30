@@ -59,6 +59,14 @@ func (s *TransactionState) PendingInPool() []*transaction.ValidTransaction {
 	return s.pool.Transactions()
 }
 
+// InPool returs true if a extrinsic is already in the pool, false otherwise
+func (s *TransactionState) InPool(ext types.Extrinsic) bool {
+	hash := ext.Hash()
+	vdt := s.pool.Get(hash)
+
+	return vdt != nil
+}
+
 // RemoveExtrinsic removes an extrinsic from the queue and pool
 func (s *TransactionState) RemoveExtrinsic(ext types.Extrinsic) {
 	s.pool.Remove(ext.Hash())

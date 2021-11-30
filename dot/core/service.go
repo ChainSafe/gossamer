@@ -496,6 +496,10 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
+	if s.transactionState.InPool(ext) {
+		return nil
+	}
+
 	ts, err := s.storageState.TrieState(nil)
 	if err != nil {
 		return err

@@ -143,7 +143,7 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 }
 
 // InsertKey inserts a key into the keystore
-func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
+func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, _ *KeyInsertResponse) error {
 	keyReq := *req
 
 	keyBytes, err := common.HexToBytes(req.Seed)
