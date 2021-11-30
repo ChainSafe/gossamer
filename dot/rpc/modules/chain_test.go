@@ -121,11 +121,11 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 
 	mockBlockAPI := new(apimocks.BlockAPI)
 	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
-	mockBlockAPI.On("GetBlockHash", new(big.Int).SetInt64(int64(21))).Return(testHash, nil)
+	mockBlockAPI.On("GetHashByNumber", new(big.Int).SetInt64(int64(21))).Return(testHash, nil)
 
 	mockBlockAPIErr := new(apimocks.BlockAPI)
 	mockBlockAPIErr.On("BestBlockHash").Return(testHash, nil)
-	mockBlockAPIErr.On("GetBlockHash", new(big.Int).SetInt64(int64(21))).Return(nil, errors.New("GetBlockHash Error"))
+	mockBlockAPIErr.On("GetHashByNumber", new(big.Int).SetInt64(int64(21))).Return(nil, errors.New("GetBlockHash Error"))
 
 	expRes := ChainHashResponse(testHash.String())
 	type fields struct {
@@ -424,13 +424,13 @@ func TestChainModule_ErrSubscriptionTransport(t *testing.T) {
 	cm := NewChainModule(new(apimocks.BlockAPI))
 
 	err := cm.SubscribeFinalizedHeads(nil, req, res)
-	require.Equal(t, err, ErrSubscriptionTransport)
+	require.ErrorIs(t, err, ErrSubscriptionTransport)
 
 	err = cm.SubscribeNewHead(nil, req, res)
-	require.Equal(t, err, ErrSubscriptionTransport)
+	require.ErrorIs(t, err, ErrSubscriptionTransport)
 
 	err = cm.SubscribeNewHeads(nil, req, res)
-	require.Equal(t, err, ErrSubscriptionTransport)
+	require.ErrorIs(t, err, ErrSubscriptionTransport)
 }
 
 func TestHeaderToJSON(t *testing.T) {
@@ -468,14 +468,14 @@ func TestHeaderToJSON(t *testing.T) {
 		exp  ChainBlockHeaderResponse
 	}{
 		{
-			name: "HeaderToJSON Empty Header",
+			name: "empty",
 			args: args{
 				header: *emptyHeader,
 			},
 			exp: expResEmpty,
 		},
 		{
-			name: "HeaderToJSON NonEmpty Header",
+			name: "not empty",
 			args: args{
 				header: *header,
 			},

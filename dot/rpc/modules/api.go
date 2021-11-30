@@ -147,6 +147,8 @@ type RuntimeStorageAPI interface {
 	GetPersistent(k []byte) ([]byte, error)
 }
 
+//go:generate mockery --name SyncStateAPI --structname SyncStateAPI --case underscore --keeptree
+
 // SyncStateAPI is the interface to interact with sync state.
 type SyncStateAPI interface {
 	GenSyncSpec(raw bool) (*genesis.Genesis, error)

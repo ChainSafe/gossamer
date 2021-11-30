@@ -294,7 +294,7 @@ func TestDevModule_Control(t *testing.T) {
 				networkAPI:       tt.fields.networkAPI,
 				blockProducerAPI: tt.fields.blockProducerAPI,
 			}
-			res := ""
+			var res string
 			err := m.Control(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())

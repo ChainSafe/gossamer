@@ -186,7 +186,7 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 
 	reqBytes, err := common.HexToBytes(*req.Prefix)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot convert hex prefix %s to bytes: %w", *req.Prefix, err)
 	}
 	keys, err := sm.storageAPI.GetKeysWithPrefix(stateRootHash, reqBytes)
 	if err != nil {
