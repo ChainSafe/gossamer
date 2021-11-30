@@ -72,7 +72,7 @@ type TransactionState interface {
 	InPool(ext types.Extrinsic) bool
 }
 
-//go:generate mockgen -destination=./mocks/network_mock.go -package mocks . Networks
+//go:generate mockgen -destination=./mocks/network_mock.go -package mocks . Network
 //go:generate mockery --name Network --structname Network --case underscore --keeptree
 
 // Network is the interface for the network service
