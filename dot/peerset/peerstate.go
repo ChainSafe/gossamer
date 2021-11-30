@@ -58,7 +58,7 @@ type Info struct {
 
 // node represents state of a single node that we know about
 type node struct {
-	// list of Set, the node belongs to.
+	// state is a list of sets containing the node.
 	// always has a fixed size, equal to the one of PeersState Set. The various possible Set
 	// are indices into this Set.
 	state []MembershipState
@@ -361,8 +361,8 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 }
 
 // tryOutgoing tries to set the peer as connected as an outgoing connection.
-// If there are enough slots available, switches the node to Connected and returns
-// nil error. If the slots are full, the node stays "not connected" and we return error.
+// If there are enough slots available, switches the node to Connected and returns nil.
+// If the slots are full, the node stays "not connected" and we return the error.
 // non slot occupying nodes don't count towards the number of slots.
 func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 	_, isNoSlotNode := ps.sets[setID].noSlotNodes[peerID]

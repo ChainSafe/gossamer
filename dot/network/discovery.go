@@ -152,7 +152,6 @@ func (d *discovery) advertise() {
 
 			ttl, err = d.rd.Advertise(d.ctx, string(d.pid))
 			if err != nil {
-				// TODO: This fails consistently.
 				logger.Warnf("failed to advertise in the DHT: %s", err)
 				ttl = tryAdvertiseTimeout
 			}

@@ -98,7 +98,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	// TODO: What should be the right value of max in and max out?
+	// We have tried to set maxInPeers and maxOutPeers such that number of peer
+	// connections remain between min peers and max peers
 	const reservedOnly = false
 	peerCfgSet := peerset.NewConfigSet(
 		uint32(cfg.MaxPeers-cfg.MinPeers),
