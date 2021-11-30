@@ -3,6 +3,12 @@
 
 package record
 
+import "errors"
+
+var (
+	ErrNoNextNode = errors.New("no next node")
+)
+
 // Recorder records the list of nodes found by Lookup.Find
 type Recorder struct {
 	nodes []Node
@@ -20,15 +26,15 @@ func (r *Recorder) Record(hash, rawData []byte) {
 
 // Next returns the first node in the recorded list
 // and removes it (shift operation).
-func (r *Recorder) Next() (node *Node) {
+func (r *Recorder) Next() (node Node, err error) {
 	if len(r.nodes) == 0 {
-		return nil
+		return node, ErrNoNextNode
 	}
 
-	node = &r.nodes[0]
+	node = r.nodes[0]
 	r.nodes = r.nodes[1:]
 
-	return node
+	return node, nil
 }
 
 // IsEmpty returns true if no node is in in the current

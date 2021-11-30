@@ -73,11 +73,13 @@ func Test_Recorder_Record(t *testing.T) {
 func Test_Recorder_Next(t *testing.T) {
 	testCases := map[string]struct {
 		recorder         *Recorder
-		node             *Node
+		node             Node
+		err              error
 		expectedRecorder *Recorder
 	}{
 		"no node": {
 			recorder:         &Recorder{},
+			err:              ErrNoNextNode,
 			expectedRecorder: &Recorder{},
 		},
 		"get single node from recorder": {
@@ -86,7 +88,7 @@ func Test_Recorder_Next(t *testing.T) {
 					{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 				},
 			},
-			node: &Node{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
+			node: Node{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 			expectedRecorder: &Recorder{
 				nodes: []Node{},
 			},
@@ -99,7 +101,7 @@ func Test_Recorder_Next(t *testing.T) {
 					{Hash: []byte{9, 6}, RawData: []byte{7, 8}},
 				},
 			},
-			node: &Node{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
+			node: Node{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 			expectedRecorder: &Recorder{
 				nodes: []Node{
 					{Hash: []byte{5, 6}, RawData: []byte{7, 8}},
@@ -114,8 +116,12 @@ func Test_Recorder_Next(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			node := testCase.recorder.Next()
+			node, err := testCase.recorder.Next()
 
+			assert.ErrorIs(t, err, testCase.err)
+			if testCase.err != nil {
+				assert.EqualError(t, err, testCase.err.Error())
+			}
 			assert.Equal(t, testCase.node, node)
 			assert.Equal(t, testCase.expectedRecorder, testCase.recorder)
 		})
