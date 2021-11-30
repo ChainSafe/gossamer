@@ -20,7 +20,8 @@ var (
 const (
 	// disconnectReputationChange Reputation change value for a node when we get disconnected from it.
 	disconnectReputationChange Reputation = -256
-	// forgetAfterTime amount of time between the moment we disconnect from a node and the moment we remove it from the list.
+	// forgetAfterTime amount of time between the moment we disconnect
+	// from a node and the moment we remove it from the list.
 	forgetAfterTime = time.Second * 3600 // one hour
 	// default channel size for peerSet.
 	msgChanSize = 100
@@ -140,7 +141,7 @@ type PeerSet struct {
 	// TODO: this will be useful for reserved only mode
 	// this is for future purpose if reserved-only flag is enabled (#1888).
 	isReservedOnly bool
-	resultMsgCh    chan interface{}
+	resultMsgCh    chan Message
 	// time when the PeerSet was created.
 	created time.Time
 	// last time when we updated the reputations of connected nodes.
@@ -182,6 +183,8 @@ func NewConfigSet(in, out uint32, reservedOnly bool, allocTime time.Duration) *C
 	}
 
 	return &ConfigSet{
+		// Why are we using an array of config in the set, when we are
+		// using just one config
 		Set: []*config{set},
 	}
 }
@@ -227,8 +230,8 @@ func reputationTick(reput Reputation) Reputation {
 	return reput.sub(diff)
 }
 
-// updateTime updates the value of latestTimeUpdate and performs all the updates that happen
-// over time, such as Reputation increases for staying connected.
+// updateTime updates the value of latestTimeUpdate and performs all the updates that
+// happen over time, such as Reputation increases for staying connected.
 func (ps *PeerSet) updateTime() error {
 	currTime := time.Now()
 	// identify the time difference between current time and last update time for peer reputation in seconds.
@@ -281,8 +284,8 @@ func (ps *PeerSet) updateTime() error {
 }
 
 // reportPeer on report ReputationChange of the peer based on its behaviour,
-// if the updated Reputation is below BannedThresholdValue then, this node need to be disconnected
-// and a drop message for the peer is sent in order to disconnect.
+// if the updated Reputation is below BannedThresholdValue then, this node need to
+// be disconnected and a drop message for the peer is sent in order to disconnect.
 func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	// we want reputations to be up-to-date before adjusting them.
 	if err := ps.updateTime(); err != nil {
@@ -515,8 +518,9 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 	return nil
 }
 
-// incoming indicates that we have received an incoming connection. Must be answered either with
-// a corresponding `Accept` or `Reject`, except if we were already connected to this peer.
+// incoming indicates that we have received an incoming connection. Must be answered
+// either with a corresponding `Accept` or `Reject`, except if we were already
+// connected to this peer.
 func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	if err := ps.updateTime(); err != nil {
 		return err
@@ -526,7 +530,11 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	for _, pid := range peers {
 		if ps.isReservedOnly {
 			if _, ok := ps.reservedNode[pid]; !ok {
-				ps.resultMsgCh <- Message{Status: Reject}
+				ps.resultMsgCh <- Message{
+					Status: Reject,
+					setID:  uint64(setID),
+					PeerID: pid,
+				}
 				continue
 			}
 		}
@@ -545,11 +553,24 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		p := state.nodes[pid]
 		switch {
 		case p.getReputation() < BannedThresholdValue:
-			ps.resultMsgCh <- Message{Status: Reject}
+			ps.resultMsgCh <- Message{
+				Status: Reject,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		case state.tryAcceptIncoming(setID, pid) != nil:
-			ps.resultMsgCh <- Message{Status: Reject}
+			ps.resultMsgCh <- Message{
+				Status: Reject,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		default:
-			ps.resultMsgCh <- Message{Status: Accept}
+			logger.Debugf("incoming connection accepted from peer %s", pid)
+			ps.resultMsgCh <- Message{
+				Status: Accept,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		}
 	}
 
@@ -592,6 +613,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 		}
 		ps.resultMsgCh <- Message{
 			Status: Drop,
+			setID:  uint64(setIdx),
 			PeerID: pid,
 		}
 
@@ -609,7 +631,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 // start handles all the action for the peerSet.
 func (ps *PeerSet) start(aq chan action) {
 	ps.actionQueue = aq
-	ps.resultMsgCh = make(chan interface{}, msgChanSize)
+	ps.resultMsgCh = make(chan Message, msgChanSize)
 	go ps.doWork()
 }
 

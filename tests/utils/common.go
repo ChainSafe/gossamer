@@ -11,17 +11,22 @@ import (
 	"time"
 )
 
-//nolint
 var (
+	// MODE is the value for the environnent variable MODE.
 	MODE = os.Getenv("MODE")
 
+	// HOSTNAME is the value for the environnent variable HOSTNAME.
 	HOSTNAME = os.Getenv("HOSTNAME")
-	PORT     = os.Getenv("PORT")
+	// PORT is the value for the environnent variable PORT.
+	PORT = os.Getenv("PORT")
 
+	// LOGLEVEL is the value for the environnent variable LOGLEVEL.
 	LOGLEVEL = os.Getenv("LOG")
 
-	NETWORK_SIZE = os.Getenv("NETWORK_SIZE")
+	// NETWORK_SIZE is the value for the environnent variable NETWORK_SIZE.
+	NETWORK_SIZE = os.Getenv("NETWORK_SIZE") //nolint:revive
 
+	// ContentTypeJSON is the JSON header application/json.
 	ContentTypeJSON   = "application/json"
 	dialTimeout       = 60 * time.Second
 	httpClientTimeout = 120 * time.Second

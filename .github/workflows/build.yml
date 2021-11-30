@@ -6,6 +6,7 @@ on:
 
 jobs:
   builds:
+    timeout-minutes: 60
     strategy:
       matrix:
         go-version: [1.17.x]
@@ -41,6 +42,7 @@ jobs:
         run: make build
 
   publish-code-coverage:
+    timeout-minutes: 60
     strategy:
       matrix:
         go-version: [1.17.x]

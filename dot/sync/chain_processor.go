@@ -41,7 +41,10 @@ type chainProcessor struct {
 	blockImportHandler BlockImportHandler
 }
 
-func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
+func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
+	blockState BlockState, storageState StorageState,
+	transactionState TransactionState, babeVerifier BabeVerifier,
+	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
@@ -95,7 +98,8 @@ func (s *chainProcessor) processReadyBlocks() {
 	}
 }
 
-// processBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
+// processBlockData processes the BlockData from a BlockResponse and
+// eturns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if bd == nil {
@@ -109,13 +113,15 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 		// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
 		// code block can be removed (#1784)
-		block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
+		block, err := s.blockState.GetBlockByHash(bd.Hash)
 		if err != nil {
 			logger.Debugf("failed to get block header for hash %s: %s", bd.Hash, err)
 			return err
 		}
 
-		logger.Debugf("skipping block number %s with hash %s, already have", block.Header.Number, bd.Hash) // TODO is this valid?
+		logger.Debugf(
+			"skipping block number %s with hash %s, already have",
+			block.Header.Number, bd.Hash) // TODO is this valid?
 
 		err = s.blockState.AddBlockToBlockTree(block)
 		if errors.Is(err, blocktree.ErrBlockExists) {

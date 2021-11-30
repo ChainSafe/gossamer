@@ -195,7 +195,9 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		networkSrvc *network.Service
 	)
 
-	nodeSrvcs = append(nodeSrvcs, createPprofService(cfg.Pprof.Settings))
+	if cfg.Pprof.Enabled {
+		nodeSrvcs = append(nodeSrvcs, createPprofService(cfg.Pprof.Settings))
+	}
 
 	stateSrvc, err := createStateService(cfg)
 	if err != nil {
@@ -400,7 +402,9 @@ func (n *Node) Stop() {
 	n.wg.Done()
 }
 
-func loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
+func loadRuntime(cfg *Config, ns *runtime.NodeStorage,
+	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
+	net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {

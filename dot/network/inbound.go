@@ -30,7 +30,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 		s.streamManager.logMessageReceived(stream.ID())
 
 		// decode message based on message type
-		msg, err := decoder(msgBytes[:n], peer, isInbound(stream)) // stream should always be inbound if it passes through service.readStream
+		// stream should always be inbound if it passes through service.readStream
+		msg, err := decoder(msgBytes[:n], peer, isInbound(stream))
 		if err != nil {
 			logger.Tracef("failed to decode message from stream id %s using protocol %s: %s",
 				stream.ID(), stream.Protocol(), err)

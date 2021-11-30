@@ -1,0 +1,48 @@
+services: 
+  alice:
+    image: 500822580415.dkr.ecr.us-east-2.amazonaws.com/gssmr-devnet-alice
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 8540
+      - 9876
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.2
+
+  bob:
+    image: 500822580415.dkr.ecr.us-east-2.amazonaws.com/gssmr-devnet-bob
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 8540
+      - 9876
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.3
+    depends_on:
+      - alice
+
+  charlie:
+    image: 500822580415.dkr.ecr.us-east-2.amazonaws.com/gssmr-devnet-charlie
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 8540
+      - 9876
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.4
+    depends_on:
+      - alice
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1

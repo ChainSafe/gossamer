@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"time"
 )
 
 // Run runs the HTTP server until ctx is canceled.
@@ -28,11 +27,12 @@ func (s *Server) Run(ctx context.Context, ready chan<- struct{}, done chan<- err
 		}
 
 		s.logger.Warn(s.name + " http server shutting down: " + ctx.Err().Error())
-		const shutdownGraceDuration = 3 * time.Second
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownGraceDuration)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(),
+			s.optional.shutdownTimeout)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil {
-			s.logger.Error(s.name + " http server failed shutting down: " + err.Error())
+			s.logger.Error(s.name + " http server failed shutting down within " +
+				s.optional.shutdownTimeout.String())
 		}
 	}()
 

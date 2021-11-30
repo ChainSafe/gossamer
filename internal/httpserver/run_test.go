@@ -7,6 +7,7 @@ import (
 	"context"
 	"regexp"
 	"testing"
+	"time"
 
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,9 @@ func Test_Server_Run_success(t *testing.T) {
 		address:    "127.0.0.1:0",
 		addressSet: make(chan struct{}),
 		logger:     logger,
+		optional: optionalSettings{
+			shutdownTimeout: 10 * time.Second,
+		},
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

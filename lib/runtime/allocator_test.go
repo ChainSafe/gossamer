@@ -303,7 +303,8 @@ func TestAllocator(t *testing.T) {
 }
 
 // compare test results to expected results and fail test if differences are found
-func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, result interface{}, output interface{}, t *testing.T) {
+func compareState(allocator FreeingBumpHeapAllocator, state allocatorState,
+	result interface{}, output interface{}, t *testing.T) {
 	if !reflect.DeepEqual(allocator.bumper, state.bumper) {
 		t.Errorf("Fail: got %v expected %v", allocator.bumper, state.bumper)
 	}
