@@ -38,6 +38,8 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 			return err
 		}
 
+		logger.Infof("epoch authorities: %v", data.Authorities)
+
 		idx, err := b.getAuthorityIndex(data.Authorities)
 		if err != nil {
 			return err

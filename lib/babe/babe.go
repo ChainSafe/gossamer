@@ -349,7 +349,8 @@ func (b *Service) invokeBlockAuthoring() error {
 		err := b.initiateEpoch(epoch)
 		if err != nil {
 			logger.Errorf("failed to initiate epoch %d: %s", epoch, err)
-			return err
+			_, _ = b.waitForEpochStart(epoch + 1)
+			//return err
 		}
 
 		logger.Debugf("initiated epoch with threshold %s, randomness 0x%x and authorities %v",
