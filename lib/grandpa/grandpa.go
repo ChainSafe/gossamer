@@ -483,6 +483,7 @@ func (s *Service) playGrandpaRound() error {
 	go s.sendVoteMessage(prevote, vm, roundComplete)
 
 	logger.Debug("receiving pre-commit messages...")
+	// through goroutine s.receiveMessages(ctx)
 	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
@@ -526,9 +527,10 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 
 		if err := s.sendMessage(msg); err != nil {
 			logger.Warnf("could not send message for stage %s: %s", stage, err)
+		} else {
+			logger.Tracef("sent vote message for stage %s: %s", stage, msg.Message)
 		}
 
-		logger.Tracef("sent vote message for stage %s: %s", stage, msg.Message)
 		select {
 		case <-roundComplete:
 			return
