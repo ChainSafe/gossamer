@@ -212,7 +212,7 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 }
 
 // VrfSign creates a VRF output and proof from a message and private key
-func (kp *Keypair) VrfSign(t *merlin.Transcript) ([32]byte, [64]byte, error) {
+func (kp *Keypair) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VRFProofLength]byte, error) {
 	return kp.private.VrfSign(t)
 }
 
