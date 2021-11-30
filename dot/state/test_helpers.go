@@ -20,6 +20,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func NewService2Test(t *testing.T, cfg *Config) *Service {
+	t.Helper()
+	stateSrvc := NewService(*cfg)
+	stateSrvc.UseMemDB()
+
+	return stateSrvc
+}
+
 var inc, _ = time.ParseDuration("1s")
 
 // NewInMemoryDB creates a new in-memory database

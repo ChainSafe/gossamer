@@ -109,7 +109,7 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
 	_, fullpath, _, _ := runtime.Caller(0)
-	rootDir := path.Dir(path.Dir(fullpath)) // same as ../..
+	rootDir := path.Dir(path.Dir(path.Dir(fullpath))) // same as ../../..
 	genesisPath := path.Join(rootDir, "chain/gssmr/genesis.json")
 
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
@@ -121,11 +121,12 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 
 // NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	gen, err := NewGenesisFromJSONRaw("../../chain/dev/genesis.json")
-	if err != nil {
-		gen, err = NewGenesisFromJSONRaw("../../../chain/dev/genesis.json")
-		require.NoError(t, err)
-	}
+	_, fullpath, _, _ := runtime.Caller(0)
+	rootDir := path.Dir(path.Dir(path.Dir(fullpath))) // same as ../../..
+	genesisPath := path.Join(rootDir, "chain/gssmr/genesis.json")
+
+	gen, err := NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
 
 	tr, h := newGenesisTrieAndHeader(t, gen)
 	return gen, tr, h

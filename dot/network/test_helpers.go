@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -17,7 +18,17 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const blockRequestSize uint32 = 128
+const (
+	TestProtocolID = "/gossamer/test/0"
+
+	// maximum wait time for non-status message to be handled
+	TestMessageTimeout = time.Second
+
+	// time between connection retries (BackoffBase default 5 seconds)
+	TestBackoffTimeout = 5 * time.Second
+
+	blockRequestSize uint32 = 128
+)
 
 // NewMockBlockState create and return a network BlockState interface mock
 func NewMockBlockState(n *big.Int) *MockBlockState {

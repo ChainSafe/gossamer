@@ -70,6 +70,7 @@ type TransactionState interface {
 	PendingInPool() []*transaction.ValidTransaction
 }
 
+//go:generate mockgen -destination=./mocks/network_mock.go -package mocks . Networks
 //go:generate mockery --name Network --structname Network --case underscore --keeptree
 
 // Network is the interface for the network service
@@ -92,6 +93,7 @@ type CodeSubstitutedState interface {
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
 }
 
+//go:generate mockgen -destination=./mocks/digest_handler_mock.go -package mocks . DigestHandler
 //go:generate mockery --name DigestHandler --structname DigestHandler --case underscore --keeptree
 
 // DigestHandler is the interface for the consensus digest handler

@@ -4,11 +4,13 @@
 package core
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -22,14 +24,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func NewService2Test(t *testing.T, ctx context.Context, cfg *Config, blockAddCh chan *types.Block) *Service {
+	t.Helper()
+	ctx, cancel := context.WithCancel(ctx)
+
+	return &Service{
+		ctx:                  ctx,
+		cancel:               cancel,
+		keys:                 cfg.Keystore,
+		blockState:           cfg.BlockState,
+		epochState:           cfg.EpochState,
+		storageState:         cfg.StorageState,
+		transactionState:     cfg.TransactionState,
+		net:                  cfg.Network,
+		blockAddCh:           blockAddCh,
+		codeSubstitute:       cfg.CodeSubstitutes,
+		codeSubstitutedState: cfg.CodeSubstitutedState,
+		digestHandler:        cfg.DigestHandler,
+	}
+}
+
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
+	t.Helper()
+
 	if cfg == nil {
 		cfg = &Config{}
 	}
 
-	cfg.DigestHandler = new(coremocks.DigestHandler)
-	cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
+	if cfg.DigestHandler == nil {
+		cfg.DigestHandler = new(coremocks.DigestHandler)
+		cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
+	}
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()

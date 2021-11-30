@@ -60,6 +60,8 @@ var (
 )
 
 func newNetworkService(t *testing.T) *network.Service {
+	t.Helper()
+
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
