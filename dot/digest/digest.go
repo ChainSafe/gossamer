@@ -60,7 +60,7 @@ type resume struct {
 
 // NewHandler returns a new Handler
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState,
-	logLevel log.LeveledLogger) (*Handler, error) {
+	logger log.LeveledLogger) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()
 
 	finalised := blockState.GetFinalisedNotifierChannel()
@@ -75,7 +75,7 @@ func NewHandler(blockState BlockState, epochState EpochState, grandpaState Grand
 		grandpaState: grandpaState,
 		imported:     imported,
 		finalised:    finalised,
-		logger:       logLevel,
+		logger:       logger,
 	}, nil
 }
 
