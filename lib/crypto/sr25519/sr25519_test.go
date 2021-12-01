@@ -129,6 +129,8 @@ func TestVerifySignature(t *testing.T) {
 	keypair, err := GenerateKeypair()
 	require.NoError(t, err)
 
+	publicKey := keypair.public.Encode()
+
 	message := []byte("Hello world!")
 
 	signature, err := keypair.Sign(message)
@@ -139,7 +141,7 @@ func TestVerifySignature(t *testing.T) {
 		err                           error
 	}{
 		"success": {
-			publicKey: keypair.public.Encode(),
+			publicKey: publicKey,
 			signature: signature,
 			message:   message,
 		},
@@ -150,17 +152,17 @@ func TestVerifySignature(t *testing.T) {
 			err:       errors.New("sr25519: cannot create public key: input is not 32 bytes"),
 		},
 		"invalid signature length": {
-			publicKey: keypair.public.Encode(),
+			publicKey: publicKey,
 			signature: []byte{},
 			message:   message,
 			err:       fmt.Errorf("sr25519: invalid signature length"),
 		},
 		"verification failed": {
-			publicKey: keypair.public.Encode(),
+			publicKey: publicKey,
 			signature: signature,
 			message:   []byte("a225e8c75da7da319af6335e7642d473"),
 			err: fmt.Errorf("sr25519: %w: for message 0x%x, signature 0x%x and public key 0x%x",
-				crypto.ErrSignatureVerificationFailed, []byte("a225e8c75da7da319af6335e7642d473"), signature, keypair.public.Encode()),
+				crypto.ErrSignatureVerificationFailed, []byte("a225e8c75da7da319af6335e7642d473"), signature, publicKey),
 		},
 	}
 
