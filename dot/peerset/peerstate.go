@@ -71,8 +71,7 @@ type node struct {
 	rep Reputation
 }
 
-// newNode method to create a node with 0 Reputation at starting.
-// Here, n is number of sets.
+// newNode creates a node with n number of sets and 0 reputation.
 func newNode(n int) *node {
 	now := time.Now()
 	sets := make([]MembershipState, n)
