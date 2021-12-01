@@ -362,7 +362,7 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 
 // tryOutgoing tries to set the peer as connected as an outgoing connection.
 // If there are enough slots available, switches the node to Connected and returns nil.
-// If the slots are full, the node stays "not connected" and we return the error.
+// If the slots are full, the node stays "not connected" and we return the error ErrOutgoingSlotsUnavailable.
 // non slot occupying nodes don't count towards the number of slots.
 func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 	_, isNoSlotNode := ps.sets[setID].noSlotNodes[peerID]
