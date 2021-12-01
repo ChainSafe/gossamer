@@ -571,7 +571,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 }
 
 func TestSync_SubmitExtrinsicLoad(t *testing.T) {
-	// This sample shows how to create a transaction to make a transfer from one an account to another.
+	t.Skip()
 
 	// Instantiate the API
 	// send tx to non-authority node
@@ -587,7 +587,7 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 
 	// 1 unit of transfer
 	bal, ok := new(big.Int).SetString("1000", 10)
-	require.NoError(t, err, "failed to convert balance")
+	require.True(t, ok, "failed to convert balance")
 
 	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompact(bal))
 	require.NoError(t, err)
@@ -611,13 +611,12 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 	require.True(t, ok)
 
 	previous := accountInfo.Data.Free
-	fmt.Printf("%#x has a balance of %v\n", alice, previous)
-	fmt.Printf("You may leave this example running and transfer any value to %#x\n", alice)
+	t.Logf("%#x has a balance of %v\n", alice, previous)
+	t.Logf("You may leave this example running and transfer any value to %#x\n", alice)
 
 	nonce := uint32(accountInfo.Nonce)
 	for i := 0; i < 1000; i++ {
-
-		fmt.Println("nonce", nonce)
+		t.Logf("nonce: %v", nonce)
 		o := types.SignatureOptions{
 			BlockHash:          genesisHash,
 			Era:                types.ExtrinsicEra{IsMortalEra: false},
@@ -638,7 +637,7 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEqual(t, types.Hash{}, hash)
 
-		fmt.Printf("Balance transferred from Alice to Bob: %v\n", bal.String())
+		t.Logf("Balance transferred from Alice to Bob: %v\n", bal.String())
 		// Output: Balance transferred from Alice to Bob: 100000000000000
 	}
 }
