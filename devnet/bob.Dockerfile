@@ -20,16 +20,14 @@ RUN cp -f devnet/chain/gssmr/genesis-spec.json chain/gssmr/genesis-spec.json
 
 ARG key
 RUN test -n "$key"
-ARG pubip
-RUN test -n "$pubip"
-
 ENV key=${key}
-ENV pubip=${pubip}
 
 RUN gossamer --key=${key} init
 
-RUN go run devnet/cmd/update-dd-agent-confd/main.go -n=gossamer.local.devnet -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+ARG METRICS_NAMESPACE=gossamer.local.devnet
 
-ENTRYPOINT service datadog-agent start && gossamer --key=${key} --bootnodes=/ip4/10.5.0.2/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU --publish-metrics --rpc --pubip=${pubip}
+RUN go run devnet/cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+
+ENTRYPOINT service datadog-agent start && gossamer --key=${key} --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU --publish-metrics --rpc --pubdns=${key}
 
 EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp

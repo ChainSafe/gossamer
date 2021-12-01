@@ -531,6 +531,21 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				PublicIP:          "10.0.5.2",
 			},
 		},
+		{
+			"Test gossamer --pubdns",
+			[]string{"config", "pubdns"},
+			[]interface{}{testCfgFile.Name(), "alice"},
+			dot.NetworkConfig{
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            false,
+				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
+				PublicDNS:         "alice",
+			},
+		},
 	}
 
 	for _, c := range testcases {

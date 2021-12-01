@@ -85,6 +85,7 @@ type NetworkConfig struct {
 	PersistentPeers   []string
 	DiscoveryInterval time.Duration
 	PublicIP          string
+	PublicDNS         string
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

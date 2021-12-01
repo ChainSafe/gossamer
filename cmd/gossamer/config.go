@@ -678,6 +678,11 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.PublicIP = pubip
 	}
 
+	// check --pubdns flag and update node configuration
+	if pubdns := ctx.GlobalString(PublicDNSFlag.Name); pubdns != "" {
+		cfg.PublicDNS = pubdns
+	}
+
 	if len(cfg.PersistentPeers) == 0 {
 		cfg.PersistentPeers = []string(nil)
 	}

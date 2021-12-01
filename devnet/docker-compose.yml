@@ -5,16 +5,18 @@ services:
       dockerfile: devnet/alice.Dockerfile
       args:
         DD_API_KEY: ${DD_API_KEY}
-        pubip: 10.5.0.2
+    healthcheck:
+      test: >
+        curl --request POST 'http://localhost:8545' --header 'Content-Type: application/json' --data-raw '{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}' || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 5
     ports:
       - 7001
       - 8545
       - 8546
       - 8540
       - 9876
-    networks:
-      vpcbr:
-        ipv4_address: 10.5.0.2
 
   bob:
     build:
@@ -23,16 +25,19 @@ services:
       args:
         DD_API_KEY: ${DD_API_KEY}
         key: bob
-        pubip: 10.5.0.3
+        port: 7002
+    healthcheck:
+      test: >
+        curl --request POST 'http://localhost:8545' --header 'Content-Type: application/json' --data-raw '{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}' || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 5
     ports:
-      - 7001
+      - 7002
       - 8545
       - 8546
       - 8540
       - 9876
-    networks:
-      vpcbr:
-        ipv4_address: 10.5.0.3
     depends_on:
       - alice
 
@@ -43,23 +48,18 @@ services:
       args:
         DD_API_KEY: ${DD_API_KEY}
         key: charlie
-        pubip: 10.5.0.4
+        port: 7003
+    healthcheck:
+      test: >
+        curl --request POST 'http://localhost:8545' --header 'Content-Type: application/json' --data-raw '{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}' || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 5
     ports:
-      - 7001
+      - 7003
       - 8545
       - 8546
       - 8540
       - 9876
-    networks:
-      vpcbr:
-        ipv4_address: 10.5.0.4
     depends_on:
       - alice
-
-networks:
-  vpcbr:
-    driver: bridge
-    ipam:
-     config:
-       - subnet: 10.5.0.0/16
-         gateway: 10.5.0.1

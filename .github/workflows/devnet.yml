@@ -1,0 +1,68 @@
+name: devnet
+on:
+  push:
+    branches:
+      - devnet
+      - tim/ecs_devnet
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push alice image to Amazon ECR
+        id: build-alice
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: gssmr-devnet-alice
+          IMAGE_TAG: ${{ github.sha }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+        run: |
+          docker build -f=devnet/alice.Dockerfile . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Build, tag, and push bob image to Amazon ECR
+        id: build-bob
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: gssmr-devnet-bob
+          IMAGE_TAG: ${{ github.sha }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+        run: |
+          docker build -f=devnet/bob.Dockerfile . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg key=bob --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Build, tag, and push charlie image to Amazon ECR
+        id: build-charlie
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: gssmr-devnet-charlie
+          IMAGE_TAG: ${{ github.sha }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+        run: |
+          docker build -f=devnet/bob.Dockerfile . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg key=charlie --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+      
+      - name: docker compose up
+        id: docker-compose-up
+        working-directory: ./devnet/gssmr-ecs
+        run: |
+          curl -L https://raw.githubusercontent.com/docker/compose-cli/main/scripts/install/install_linux.sh | sh
+          docker context create ecs gssmr-ecs --from-env
+          docker context use gssmr-ecs
+          docker compose up

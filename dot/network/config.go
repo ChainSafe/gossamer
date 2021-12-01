@@ -65,6 +65,9 @@ type Config struct {
 
 	// Used to specify the address broadcasted to other peers, and avoids using pubip.Get
 	PublicIP string
+	// Used to specify the dns broadcasted to other peers, and avoids using pubip.Get.
+	// Only PublicIP or PublicDNS will be used
+	PublicDNS string
 	// Port the network port used for listening
 	Port uint16
 	// RandSeed the seed used to generate the network p2p identity (0 = non-deterministic random seed)
