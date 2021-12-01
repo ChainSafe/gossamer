@@ -290,7 +290,8 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 func (b *BlockBuilder) buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
-	err := idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	timestamp := uint64(time.Now().UnixMilli())
+	err := idata.SetInt64Inherent(types.Timstap0, timestamp)
 	if err != nil {
 		return nil, err
 	}

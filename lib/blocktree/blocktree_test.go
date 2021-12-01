@@ -283,12 +283,7 @@ func TestBlockTree_GetNode(t *testing.T) {
 	}
 
 	block := bt.getNode(branches[0].hash)
-
-	cachedBlock, ok := bt.nodeCache[block.hash]
-	require.True(t, len(bt.nodeCache) > 0)
-	require.True(t, ok)
-	require.NotNil(t, cachedBlock)
-	require.Equal(t, cachedBlock, block)
+	require.NotNil(t, block)
 }
 
 func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
@@ -458,38 +453,15 @@ func TestBlockTree_Prune(t *testing.T) {
 	}
 }
 
-func TestBlockTree_PruneCache(t *testing.T) {
-	var bt *BlockTree
-	var branches []testBranch
-
-	for {
-		bt, branches = createTestBlockTree(t, testHeader, 5)
-		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
-			break
-		}
-	}
-
-	// pick some block to finalise
-	finalised := bt.root.children[0].children[0].children[0]
-	pruned := bt.Prune(finalised.hash)
-
-	for _, prunedHash := range pruned {
-		block, ok := bt.nodeCache[prunedHash]
-
-		require.False(t, ok)
-		require.Nil(t, block)
-	}
-}
-
 func TestBlockTree_GetHashByNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	best := bt.DeepestBlockHash()
-	bn := bt.nodeCache[best]
+	bn := bt.getNode(best)
 
 	for i := int64(0); i < bn.number.Int64(); i++ {
 		hash, err := bt.GetHashByNumber(big.NewInt(i))
 		require.NoError(t, err)
-		require.Equal(t, big.NewInt(i), bt.nodeCache[hash].number)
+		require.Equal(t, big.NewInt(i), bt.getNode(hash).number)
 		desc, err := bt.IsDescendantOf(hash, best)
 		require.NoError(t, err)
 		require.True(t, desc, fmt.Sprintf("index %d failed, got hash=%s", i, hash))
@@ -506,17 +478,6 @@ func TestBlockTree_DeepCopy(t *testing.T) {
 	bt, _ := createFlatTree(t, 8)
 
 	btCopy := bt.DeepCopy()
-	for hash := range bt.nodeCache {
-		b, ok := btCopy.nodeCache[hash]
-		b2 := bt.nodeCache[hash]
-
-		require.True(t, ok)
-		require.True(t, b != b2)
-
-		require.True(t, equalNodeValue(b, b2))
-
-	}
-
 	require.True(t, equalNodeValue(bt.root, btCopy.root), "BlockTree heads not equal")
 	require.True(t, equalLeaves(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
 

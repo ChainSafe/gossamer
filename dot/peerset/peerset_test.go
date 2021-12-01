@@ -68,9 +68,7 @@ func TestAddReservedPeers(t *testing.T) {
 		if len(ps.resultMsgCh) == 0 {
 			break
 		}
-		m := <-ps.resultMsgCh
-		msg, ok := m.(Message)
-		require.True(t, ok)
+		msg := <-ps.resultMsgCh
 		require.Equal(t, expectedMsgs[i], msg)
 	}
 }

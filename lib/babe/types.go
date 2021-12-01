@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Randomness is an alias for a byte array with length types.RandomnessLength
@@ -60,7 +59,7 @@ type epochData struct {
 	randomness     Randomness
 	authorityIndex uint32
 	authorities    []types.Authority
-	threshold      *common.Uint128
+	threshold      *scale.Uint128
 }
 
 func (ed *epochData) String() string {
