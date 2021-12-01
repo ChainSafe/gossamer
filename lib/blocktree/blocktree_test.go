@@ -38,7 +38,6 @@ func newBlockTreeFromNode(root *node) *BlockTree {
 }
 
 func createTestBlockTree(t *testing.T, header *types.Header, number int) (*BlockTree, []testBranch) {
-	fmt.Printf("Building the block tree\n")
 	bt := NewBlockTreeFromRoot(header)
 	previousHash := header.Hash()
 
@@ -59,8 +58,6 @@ func createTestBlockTree(t *testing.T, header *types.Header, number int) (*Block
 		hash := header.Hash()
 		err := bt.AddBlock(header, time.Unix(0, at))
 		require.NoError(t, err)
-
-		fmt.Printf("BUILDING #%v (%v) => %s\n", i, at, hash)
 
 		previousHash = hash
 
@@ -92,8 +89,6 @@ func createTestBlockTree(t *testing.T, header *types.Header, number int) (*Block
 			hash := header.Hash()
 			err := bt.AddBlock(header, time.Unix(0, at))
 			require.NoError(t, err)
-
-			fmt.Printf("BRANCHING #%v (%v) => %s\n", branch.number.Uint64(), at, hash)
 
 			previousHash = hash
 			at += int64(r.Intn(8))
@@ -466,16 +461,11 @@ func TestBlockTree_GetHashByNumber(t *testing.T) {
 	best := bt.DeepestBlockHash()
 	bn := bt.getNode(best)
 
-	fmt.Printf("Assert the descendents\n")
 	for i := int64(0); i < bn.number.Int64(); i++ {
-		deepest := bt.leaves.deepestLeaf()
-
 		hash, err := bt.GetHashByNumber(big.NewInt(i))
 		require.NoError(t, err)
 		require.Equal(t, big.NewInt(i), bt.getNode(hash).number)
 		desc, err := bt.IsDescendantOf(hash, best)
-		fmt.Printf("%s -> %s\n", hash, deepest.hash)
-
 		require.NoError(t, err)
 		require.True(t, desc, fmt.Sprintf("index %d failed, got hash=%s", i, hash))
 	}
