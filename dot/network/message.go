@@ -317,6 +317,8 @@ func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 		}
 
 		bd.Header = header
+	} else {
+		bd.Header = nil
 	}
 
 	if pbd.Body != nil {
