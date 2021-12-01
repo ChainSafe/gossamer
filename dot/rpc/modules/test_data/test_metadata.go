@@ -11,10 +11,10 @@ import (
 )
 
 //go:embed test_metadata.zip
-var testMetaData []byte
+var testRuntimeMetaData []byte
 
 func init() {
-	bytesReader := bytes.NewReader(testMetaData)
+	bytesReader := bytes.NewReader(testRuntimeMetaData)
 	zipReader, err := zip.NewReader(bytesReader, int64(bytesReader.Len()))
 	if err != nil {
 		panic(err)
@@ -30,8 +30,7 @@ func init() {
 	}
 
 	defer func() {
-		err := file.Close()
-		if err != nil {
+		if err := file.Close(); err != nil {
 			panic(err)
 		}
 	}()
