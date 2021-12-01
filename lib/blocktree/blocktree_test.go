@@ -490,7 +490,7 @@ func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_DeepestBlockHash_ShouldH
 	// and all block with the same arrival time
 
 	/**
-	base tree and nodes representation, all with the same arraival time and all
+	base tree and nodes representation, all with the same arrival time and all
 	the leaves has the same number (8) the numbers in the right represents the order
 	the nodes are inserted into the blocktree.
 
@@ -526,7 +526,7 @@ func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_DeepestBlockHash_ShouldH
 		}
 	}
 
-	// create all the branch nodes with the same arraival time
+	// create all the branch nodes with the same arrival time
 	for _, branch := range branches {
 		previousHash = branch.hash
 
