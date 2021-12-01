@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/trie/branch"
-	"github.com/ChainSafe/gossamer/lib/trie/decode"
 	"github.com/ChainSafe/gossamer/lib/trie/leaf"
 	"github.com/ChainSafe/gossamer/lib/trie/node"
 	"github.com/stretchr/testify/assert"
@@ -79,8 +78,10 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			err := testCase.branchToEncode.Encode(buffer)
 			require.NoError(t, err)
 
-			header, err := decode.ReadNextByte(buffer)
+			oneBuffer := make([]byte, 1)
+			_, err = buffer.Read(oneBuffer)
 			require.NoError(t, err)
+			header := oneBuffer[0]
 
 			resultBranch, err := branch.Decode(buffer, header)
 			require.NoError(t, err)

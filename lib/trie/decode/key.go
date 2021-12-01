@@ -4,9 +4,12 @@
 package decode
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/ChainSafe/gossamer/lib/trie/pools"
 )
 
 const maxPartialKeySize = ^uint16(0)
@@ -23,11 +26,16 @@ func Key(reader io.Reader, keyLength byte) (b []byte, err error) {
 
 	if keyLength == 0x3f {
 		// partial key longer than 63, read next bytes for rest of pk len
+		buffer := pools.SingleByteBuffers.Get().(*bytes.Buffer)
+		defer pools.SingleByteBuffers.Put(buffer)
+		oneByteBuf := buffer.Bytes()
 		for {
-			nextKeyLen, err := ReadNextByte(reader)
+			_, err = reader.Read(oneByteBuf)
 			if err != nil {
 				return nil, fmt.Errorf("%w: %s", ErrReadKeyLength, err)
 			}
+			nextKeyLen := oneByteBuf[0]
+
 			publicKeyLength += int(nextKeyLen)
 
 			if nextKeyLen < 0xff {

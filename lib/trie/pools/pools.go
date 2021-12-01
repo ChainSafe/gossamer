@@ -10,6 +10,15 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
+// SingleByteBuffers is a sync pool of buffers of capacity 1.
+var SingleByteBuffers = &sync.Pool{
+	New: func() interface{} {
+		const bufferLength = 1
+		b := make([]byte, bufferLength)
+		return bytes.NewBuffer(b)
+	},
+}
+
 // DigestBuffers is a sync pool of buffers of capacity 32.
 var DigestBuffers = &sync.Pool{
 	New: func() interface{} {
