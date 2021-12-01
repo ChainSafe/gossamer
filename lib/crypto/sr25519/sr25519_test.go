@@ -153,7 +153,7 @@ func TestVerifySignature(t *testing.T) {
 			publicKey: keypair.public.Encode(),
 			signature: []byte{},
 			message:   message,
-			err:       fmt.Errorf("sr25519: %w: invalid signature length", crypto.ErrSignatureVerificationFailed),
+			err:       fmt.Errorf("sr25519: invalid signature length"),
 		},
 		"verification failed": {
 			publicKey: keypair.public.Encode(),
