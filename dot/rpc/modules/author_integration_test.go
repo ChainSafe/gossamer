@@ -52,7 +52,8 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 
 	tmpdir := t.TempDir()
 
-	state2test := state.NewService2Test(t, &state.Config{LogLevel: log.DoNotChange, Path: tmpdir})
+	state2test := state.NewService(state.Config{LogLevel: log.DoNotChange, Path: tmpdir})
+	state2test.UseMemDB()
 	state2test.Transaction = state.NewTransactionState()
 
 	auth := setupAuhtorModule2Test(t, &integrationTestController{stateSrv: state2test})
@@ -271,7 +272,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 			waitErr: errors.New("generated public key does not equal provide public key"),
 		},
 
-		"unkown key type": {
+		"unknown key type": {
 			ksType:  "someothertype",
 			seed:    seed,
 			kp:      grandKp,
@@ -501,12 +502,9 @@ type integrationTestController struct {
 func setupStateAndRuntime(t *testing.T, basepath string) *integrationTestController {
 	t.Helper()
 
-	config := &state.Config{
-		Path:     basepath,
-		LogLevel: log.Info,
-	}
-
-	state2test := state.NewService2Test(t, config)
+	state2test := state.NewService(state.Config{LogLevel: log.DoNotChange, Path: basepath})
+	state2test.UseMemDB()
+	state2test.Transaction = state.NewTransactionState()
 
 	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
@@ -548,12 +546,9 @@ func setupStateAndRuntime(t *testing.T, basepath string) *integrationTestControl
 func setupStateAndPopulateTrieState(t *testing.T, basepath string) *integrationTestController {
 	t.Helper()
 
-	config := &state.Config{
-		Path:     basepath,
-		LogLevel: log.Info,
-	}
-
-	state2test := state.NewService2Test(t, config)
+	state2test := state.NewService(state.Config{LogLevel: log.DoNotChange, Path: basepath})
+	state2test.UseMemDB()
+	state2test.Transaction = state.NewTransactionState()
 
 	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
@@ -614,6 +609,6 @@ func setupAuhtorModule2Test(t *testing.T, intCtrl *integrationTestController) *A
 		Keystore:         intCtrl.keystore,
 	}
 
-	core2test := core.NewService2Test(t, context.TODO(), cfg, nil)
+	core2test := core.NewService2Test(context.TODO(), t, cfg, nil)
 	return NewAuthorModule(log.New(log.SetLevel(log.Debug)), core2test, intCtrl.stateSrv.Transaction)
 }

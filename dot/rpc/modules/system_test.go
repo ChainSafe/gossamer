@@ -211,7 +211,7 @@ func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
 	require.Equal(t, expectedStored, *res)
 
 	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
-	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
+	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd") //nolint:lll
 	vtx := &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(signedExt),
 		Validity:  new(transaction.Validity),
@@ -246,7 +246,8 @@ func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
 	}
 
 	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
-	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
+	const txExt = "0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd" //nolint:lll
+	signedExt := common.MustHexToBytes(txExt)
 	vtx := &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(signedExt),
 		Validity:  new(transaction.Validity),
@@ -267,7 +268,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
 
-	aliceAcctStoKey, err := common.HexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+	aliceAcctStoKey, err := common.HexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d") //nolint:lll
 	require.NoError(t, err)
 
 	aliceAcctInfo := types.AccountInfo{

@@ -24,7 +24,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func NewService2Test(t *testing.T, ctx context.Context, cfg *Config, blockAddCh chan *types.Block) *Service {
+// NewService2Test is ideal to Integration tests because creates a pointer to core.Service
+// given a configuration without doing extra checks or assign default values to nil dependencies
+func NewService2Test(ctx context.Context, t *testing.T, cfg *Config, blockAddCh chan *types.Block) *Service {
 	t.Helper()
 	ctx, cancel := context.WithCancel(ctx)
 

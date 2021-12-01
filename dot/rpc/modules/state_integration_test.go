@@ -103,7 +103,8 @@ func TestStateModule_GetPairs_Integration(t *testing.T) {
 		{params: []string{""}, expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
 		{params: []string{":key1"}, expected: []interface{}{[]string{":key1", "value1"}}},
 		{params: []string{"0x00", hash.String()}, expected: nil},
-		{params: []string{"", hash.String()}, expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
+		{params: []string{"", hash.String()},
+			expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
 		{params: []string{":key1", hash.String()}, expected: []interface{}{[]string{":key1", "value1"}}},
 		{params: []string{"", randomHash.String()}, errMsg: "Key not found"},
 	}
@@ -315,7 +316,8 @@ func TestStateModule_QueryStorage_Integration(t *testing.T) {
 
 	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
 		coreapimock := new(mocks.CoreAPI)
-		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(nil, errors.New("problem while querying"))
+		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"),
+			mock.AnythingOfType("common.Hash")).Return(nil, errors.New("problem while querying"))
 
 		module := new(StateModule)
 		module.coreAPI = coreapimock
@@ -339,7 +341,8 @@ func TestStateModule_QueryStorage_Integration(t *testing.T) {
 			}),
 		}
 		coreapimock := new(mocks.CoreAPI)
-		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
+		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"),
+			mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
 
 		module := new(StateModule)
 		module.coreAPI = coreapimock
@@ -353,7 +356,8 @@ func TestStateModule_QueryStorage_Integration(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, res, 1)
 
-		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80")
+		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"),
+			mock.AnythingOfType("common.Hash"), "0x90", "0x80")
 	})
 }
 

@@ -136,7 +136,7 @@ func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash,
 }
 
 // GetStorage returns a child storage entry.
-func (cs *ChildStateModule) GetStorage(_ *http.Request, req *ChildStateStorageRequest, res *StateStorageResponse) error {
+func (cs *ChildStateModule) GetStorage(_ *http.Request, req *ChildStateStorageRequest, res *StateStorageResponse) error { //nolint:lll
 	var (
 		item []byte
 		err  error

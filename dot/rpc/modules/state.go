@@ -256,7 +256,7 @@ func (sm *StateModule) GetMetadata(_ *http.Request, req *StateRuntimeMetadataQue
 }
 
 // GetReadProof returns the proof to the received storage keys
-func (sm *StateModule) GetReadProof(_ *http.Request, req *StateGetReadProofRequest, res *StateGetReadProofResponse) error {
+func (sm *StateModule) GetReadProof(_ *http.Request, req *StateGetReadProofRequest, res *StateGetReadProofResponse) error { //nolint:lll
 	keys := make([][]byte, len(req.Keys))
 	for i, hexKey := range req.Keys {
 		bKey, err := common.HexToBytes(hexKey)
@@ -287,7 +287,7 @@ func (sm *StateModule) GetReadProof(_ *http.Request, req *StateGetReadProofReque
 
 // GetRuntimeVersion Get the runtime version at a given block.
 //  If no block hash is provided, the latest version gets returned.
-func (sm *StateModule) GetRuntimeVersion(_ *http.Request, req *StateRuntimeVersionRequest, res *StateRuntimeVersionResponse) error {
+func (sm *StateModule) GetRuntimeVersion(_ *http.Request, req *StateRuntimeVersionRequest, res *StateRuntimeVersionResponse) error { //nolint:lll
 	rtVersion, err := sm.coreAPI.GetRuntimeVersion(req.Bhash)
 	if err != nil {
 		return err
@@ -304,8 +304,9 @@ func (sm *StateModule) GetRuntimeVersion(_ *http.Request, req *StateRuntimeVersi
 	return nil
 }
 
-// GetStorage Returns a storage entry at a specific block's state. If not block hash is provided, the latest value is returned.
-func (sm *StateModule) GetStorage(_ *http.Request, req *StateStorageRequest, res *StateStorageResponse) error {
+// GetStorage Returns a storage entry at a specific block's state.
+// If not block hash is provided, the latest value is returned.
+func (sm *StateModule) GetStorage(_ *http.Request, req *StateStorageRequest, res *StateStorageResponse) error { //nolint:lll
 	var (
 		item []byte
 		err  error
@@ -334,7 +335,7 @@ func (sm *StateModule) GetStorage(_ *http.Request, req *StateStorageRequest, res
 
 // GetStorageHash returns the hash of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is returned.
-func (sm *StateModule) GetStorageHash(_ *http.Request, req *StateStorageHashRequest, res *StateStorageHashResponse) error {
+func (sm *StateModule) GetStorageHash(_ *http.Request, req *StateStorageHashRequest, res *StateStorageHashResponse) error { //nolint:lll
 	var (
 		item []byte
 		err  error
@@ -363,7 +364,7 @@ func (sm *StateModule) GetStorageHash(_ *http.Request, req *StateStorageHashRequ
 
 // GetStorageSize returns the size of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is used.
-func (sm *StateModule) GetStorageSize(_ *http.Request, req *StateStorageSizeRequest, res *StateStorageSizeResponse) error {
+func (sm *StateModule) GetStorageSize(_ *http.Request, req *StateStorageSizeRequest, res *StateStorageSizeResponse) error { //nolint:lll
 	var (
 		item []byte
 		err  error
@@ -391,7 +392,7 @@ func (sm *StateModule) GetStorageSize(_ *http.Request, req *StateStorageSizeRequ
 }
 
 // QueryStorage isn't implemented properly yet.
-func (sm *StateModule) QueryStorage(_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
+func (sm *StateModule) QueryStorage(_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error { //nolint:lll
 	if req.StartBlock.IsEmpty() {
 		return errors.New("the start block hash cannot be an empty value")
 	}
@@ -422,14 +423,15 @@ func (sm *StateModule) QueryStorage(_ *http.Request, req *StateStorageQueryRange
 
 // SubscribeRuntimeVersion initialised a runtime version subscription and returns the current version
 // See dot/rpc/subscription
-func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, _ *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) error {
+func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, _ *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) error { //nolint:lll
 	return sm.GetRuntimeVersion(r, nil, res)
 }
 
-// SubscribeStorage Storage subscription. If storage keys are specified, it creates a message for each block which
-//  changes the specified storage keys. If none are specified, then it creates a message for every block.
-//  This endpoint communicates over the Websocket protocol, but this func should remain here so it's added to rpc_methods list
-func (*StateModule) SubscribeStorage(_ *http.Request, _ *StateStorageQueryRangeRequest, _ *StorageChangeSetResponse) error {
+// SubscribeStorage Storage subscription. If storage keys are specified,
+// it creates a message for each block which changes the specified storage keys.
+// If none are specified, then it creates a message for every block. This endpoint communicates over
+// the Websocket protocol, but this func should remain here so it's added to rpc_methods list
+func (*StateModule) SubscribeStorage(_ *http.Request, _ *StateStorageQueryRangeRequest, _ *StorageChangeSetResponse) error { //nolint:lll
 	return nil
 }
 

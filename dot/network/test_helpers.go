@@ -20,12 +20,13 @@ import (
 )
 
 const (
+	// TestProtocolID default protocol to testing
 	TestProtocolID = "/gossamer/test/0"
 
-	// maximum wait time for non-status message to be handled
+	// TestMessageTimeout maximum wait time for non-status message to be handled
 	TestMessageTimeout = time.Second
 
-	// time between connection retries (BackoffBase default 5 seconds)
+	// TestBackoffTimeout time between connection retries (BackoffBase default 5 seconds)
 	TestBackoffTimeout = 5 * time.Second
 
 	blockRequestSize uint32 = 128

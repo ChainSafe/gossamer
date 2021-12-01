@@ -246,7 +246,6 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 
 	// apply each inherent extrinsic
 	for _, ext := range exts {
-		//nolint
 		in, err := scale.Marshal(ext)
 		require.NoError(t, err)
 
