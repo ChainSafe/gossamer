@@ -64,7 +64,7 @@ func (lm *leafMap) deepestLeaf() *node {
 
 	max := big.NewInt(-1)
 
-	var foundDeepest *node
+	var deepest *node
 	lm.smap.Range(func(h, n interface{}) bool {
 		if n == nil {
 			return true
@@ -74,30 +74,30 @@ func (lm *leafMap) deepestLeaf() *node {
 
 		if max.Cmp(node.number) < 0 {
 			max = node.number
-			foundDeepest = node
-		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(foundDeepest.arrivalTime) {
-			foundDeepest = node
+			deepest = node
+		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(deepest.arrivalTime) {
+			deepest = node
 		}
 
 		return true
 	})
 
 	if lm.currentDeepestLeaf != nil {
-		if lm.currentDeepestLeaf.hash == foundDeepest.hash {
+		if lm.currentDeepestLeaf.hash == deepest.hash {
 			return lm.currentDeepestLeaf
 		}
 
-		// update the current deepest leaf if the foundDeepest has a greater number or
+		// update the current deepest leaf if the found deepest has a greater number or
 		// if the current and the found deepest has the same number however the current
 		// arrived later then the found deepest
-		if foundDeepest.number.Cmp(lm.currentDeepestLeaf.number) == 1 {
-			lm.currentDeepestLeaf = foundDeepest
-		} else if foundDeepest.number.Cmp(lm.currentDeepestLeaf.number) == 0 &&
-			foundDeepest.arrivalTime.Before(lm.currentDeepestLeaf.arrivalTime) {
-			lm.currentDeepestLeaf = foundDeepest
+		if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 1 {
+			lm.currentDeepestLeaf = deepest
+		} else if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 0 &&
+			deepest.arrivalTime.Before(lm.currentDeepestLeaf.arrivalTime) {
+			lm.currentDeepestLeaf = deepest
 		}
 	} else {
-		lm.currentDeepestLeaf = foundDeepest
+		lm.currentDeepestLeaf = deepest
 	}
 
 	return lm.currentDeepestLeaf
