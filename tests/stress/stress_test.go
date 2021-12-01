@@ -627,7 +627,7 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 			TransactionVersion: rv.TransactionVersion,
 		}
 
-		nonce += 1
+		nonce++
 		// Sign the transaction using Alice's default account
 		err = ext.Sign(signature.TestKeyringPairAlice, o)
 		require.NoError(t, err)
