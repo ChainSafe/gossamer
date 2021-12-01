@@ -6,10 +6,11 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
+	"net/http"
 	"os"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -45,6 +46,35 @@ func TestMain(m *testing.M) {
 
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
+}
+
+func Test_ext_offchain_timestamp_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	runtimeFunc, ok := inst.vm.Exports["rtm_ext_offchain_timestamp_version_1"]
+	require.True(t, ok)
+
+	res, err := runtimeFunc(0, 0)
+	require.NoError(t, err)
+
+	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
+	data := inst.load(offset, length)
+	var timestamp int64
+	err = scale.Unmarshal(data, &timestamp)
+	require.NoError(t, err)
+
+	expected := time.Now().Unix()
+	require.GreaterOrEqual(t, expected, timestamp)
+}
+
+func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	input := time.Now().UnixMilli()
+	enc, err := scale.Marshal(input)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) //auto conversion to i64
+	require.NoError(t, err)
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
@@ -281,6 +311,71 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	requestNumber, err = resReqID.Unwrap()
 	require.NoError(t, err)
 	require.Equal(t, int16(3), requestNumber)
+}
+
+func Test_ext_offchain_http_request_add_header(t *testing.T) {
+	t.Parallel()
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	cases := map[string]struct {
+		key, value  string
+		expectedErr bool
+	}{
+		"should add headers without problems": {
+			key:         "SOME_HEADER_KEY",
+			value:       "SOME_HEADER_VALUE",
+			expectedErr: false,
+		},
+
+		"should return a result error": {
+			key:         "",
+			value:       "",
+			expectedErr: true,
+		},
+	}
+
+	for tname, tcase := range cases {
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			reqID, err := inst.ctx.OffchainHTTPSet.StartRequest(http.MethodGet, "http://uri.example")
+			require.NoError(t, err)
+
+			encID, err := scale.Marshal(uint32(reqID))
+			require.NoError(t, err)
+
+			encHeaderKey, err := scale.Marshal(tcase.key)
+			require.NoError(t, err)
+
+			encHeaderValue, err := scale.Marshal(tcase.value)
+			require.NoError(t, err)
+
+			params := append([]byte{}, encID...)
+			params = append(params, encHeaderKey...)
+			params = append(params, encHeaderValue...)
+
+			ret, err := inst.Exec("rtm_ext_offchain_http_request_add_header_version_1", params)
+			require.NoError(t, err)
+
+			gotResult := scale.NewResult(nil, nil)
+			err = scale.Unmarshal(ret, &gotResult)
+			require.NoError(t, err)
+
+			ok, err := gotResult.Unwrap()
+			if tcase.expectedErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			offchainReq := inst.ctx.OffchainHTTPSet.Get(reqID)
+			gotValue := offchainReq.Request.Header.Get(tcase.key)
+			require.Equal(t, tcase.value, gotValue)
+
+			require.Nil(t, ok)
+		})
+	}
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
@@ -810,34 +905,38 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 		err      error
 	}{
 		"valid signature": {
-			sig:      []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			sig:      []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
-			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
 			expected: []byte{1, 0, 0, 0},
 		},
 		"invalid signature": {
-			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
-			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
 			expected: []byte{0, 0, 0, 0},
 		},
 		"wrong key": {
-			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
-			key:      []byte{132, 2, 39, 0, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
+			key:      []byte{132, 2, 39, 0, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
 			expected: []byte{0, 0, 0, 0},
 		},
 		"invalid key": {
-			sig: []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			sig: []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
-			key: []byte{132, 2, 39, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
-			err: wasmer.NewExportedFunctionError("rtm_ext_crypto_ecdsa_verify_version_2", "Failed to call the `%s` exported function."),
+			key: []byte{132, 2, 39, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
+			err: wasmer.NewExportedFunctionError(
+				"rtm_ext_crypto_ecdsa_verify_version_2",
+				"Failed to call the `%s` exported function."),
 		},
 		"invalid message": {
-			sig: []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1},
+			sig: []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100},
-			key: []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109},
-			err: wasmer.NewExportedFunctionError("rtm_ext_crypto_ecdsa_verify_version_2", "Failed to call the `%s` exported function."),
+			key: []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
+			err: wasmer.NewExportedFunctionError(
+				"rtm_ext_crypto_ecdsa_verify_version_2",
+				"Failed to call the `%s` exported function."),
 		},
 	}
 	for name, tc := range testCases {
@@ -1113,7 +1212,10 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 	encOffset, err := scale.Marshal(testOffset)
 	require.NoError(t, err)
 
-	ret, err := inst.Exec("rtm_ext_default_child_storage_read_version_1", append(append(encChildKey, encKey...), append(encOffset, encBufferSize...)...))
+	ret, err := inst.Exec(
+		"rtm_ext_default_child_storage_read_version_1",
+		append(append(encChildKey, encKey...),
+			append(encOffset, encBufferSize...)...))
 	require.NoError(t, err)
 
 	var read *[]byte
@@ -1454,8 +1556,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
 
-	var val *[]byte // nolint
-	val = nil
+	var val *[]byte
 	optLimit, err := scale.Marshal(val)
 	require.NoError(t, err)
 
@@ -1489,7 +1590,12 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 		expected []byte
 		errMsg   string
 	}{
-		{key: []byte(`fakekey`), limit: optLimit2, expected: []byte{0, 0, 0, 0, 0}, errMsg: "Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function."},
+		{
+			key:      []byte(`fakekey`),
+			limit:    optLimit2,
+			expected: []byte{0, 0, 0, 0, 0},
+			errMsg:   "Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function.",
+		},
 		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
 		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
 	}
@@ -1660,10 +1766,7 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	t.Parallel()
 
-	tmp, err := ioutil.TempDir("", "*-test-trie")
-	require.NoError(t, err)
-
-	defer os.RemoveAll(tmp)
+	tmp := t.TempDir()
 
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
 		InMemory: true,
@@ -1709,13 +1812,20 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 		proof            [][]byte
 		expect           bool
 	}{
-		"Proof should be true":                        {root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
-		"Root empty, proof should be false":           {root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
-		"Other root, proof should be false":           {root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
-		"Value empty, proof should be true":           {root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
-		"Unknow key, proof should be false":           {root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
-		"Key and value unknow, proof should be false": {root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
-		"Empty proof, should be false":                {root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
+		"Proof should be true": {
+			root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+		"Root empty, proof should be false": {
+			root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		"Other root, proof should be false": {
+			root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+		"Value empty, proof should be true": {
+			root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+		"Unknow key, proof should be false": {
+			root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+		"Key and value unknow, proof should be false": {
+			root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+		"Empty proof, should be false": {
+			root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}
 
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)

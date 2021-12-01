@@ -43,7 +43,6 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
 type Node struct {
 	Name     string
 	Services *services.ServiceRegistry // registry of all node services
-	StopFunc func()                    // func to call when node stops, currently used for profiling
 	wg       sync.WaitGroup
 	started  chan struct{}
 }
@@ -547,7 +546,7 @@ func NewNodeB(cfg *Config, stopFunc func()) (*Node, error) {
 	serviceRegistryLogger := logger.New(log.AddContext("pkg", "services"))
 	node := &Node{
 		Name:     cfg.Global.Name,
-		StopFunc: stopFunc,
+		//StopFunc: stopFunc,
 		Services: services.NewServiceRegistry(serviceRegistryLogger),
 		started:  make(chan struct{}),
 	}
@@ -638,8 +637,7 @@ func (nodeInterface)initKeystore(cfg *Config) (*keystore.GlobalKeystore, error){
 }
 
 // NewNode creates a new dot node from a dot node configuration
-func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
-	nodeI := nodeInterface{}
+func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
@@ -663,6 +661,10 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		networkSrvc *network.Service
 	)
 
+	if cfg.Pprof.Enabled {
+		nodeSrvcs = append(nodeSrvcs, createPprofService(cfg.Pprof.Settings))
+	}
+	nodeI := nodeInterface{}
 	stateSrvc, err := nodeI.createStateService(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
@@ -756,7 +758,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	serviceRegistryLogger := logger.New(log.AddContext("pkg", "services"))
 	node := &Node{
 		Name:     cfg.Global.Name,
-		StopFunc: stopFunc,
 		Services: services.NewServiceRegistry(serviceRegistryLogger),
 		started:  make(chan struct{}),
 	}
@@ -862,16 +863,14 @@ func (n *Node) Start() error {
 
 // Stop stops all dot node services
 func (n *Node) Stop() {
-	if n.StopFunc != nil {
-		n.StopFunc()
-	}
-
 	// stop all node services
 	n.Services.StopAll()
 	n.wg.Done()
 }
 
-func (nodeInterface)loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
+func (nodeInterface)loadRuntime(cfg *Config, ns *runtime.NodeStorage,
+	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
+	net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {

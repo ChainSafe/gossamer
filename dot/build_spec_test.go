@@ -71,6 +71,54 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+//<<<<<<< HEAD
+//=======
+//
+//	bs.genesis.ChainType = expectedChainType
+//	bs.genesis.Properties = expectedProperties
+//
+//	require.NoError(t, err)
+//
+//	// confirm human-readable fields
+//	hr, err := bs.ToJSON()
+//	require.NoError(t, err)
+//	jGen := genesis.Genesis{}
+//	err = json.Unmarshal(hr, &jGen)
+//	require.NoError(t, err)
+//	genesis.TestGenesis.Genesis = genesis.TestFieldsHR
+//	require.Equal(t, genesis.TestGenesis.Genesis.Runtime, jGen.Genesis.Runtime)
+//	require.Equal(t, expectedChainType, jGen.ChainType)
+//	require.Equal(t, expectedProperties, jGen.Properties)
+//
+//	// confirm raw fields
+//	raw, err := bs.ToJSONRaw()
+//	require.NoError(t, err)
+//	jGenRaw := genesis.Genesis{}
+//	err = json.Unmarshal(raw, &jGenRaw)
+//	require.NoError(t, err)
+//	genesis.TestGenesis.Genesis = genesis.TestFieldsRaw
+//	require.Equal(t, genesis.TestGenesis.Genesis.Raw, jGenRaw.Genesis.Raw)
+//	require.Equal(t, expectedChainType, jGenRaw.ChainType)
+//	require.Equal(t, expectedProperties, jGenRaw.Properties)
+//}
+//
+//func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
+//	bs, err := BuildFromGenesis("/not/exists/genesis.json", 0)
+//	require.Nil(t, bs)
+//	require.Error(t, err, os.ErrNotExist)
+//}
+//
+//func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
+//	f, err := os.CreateTemp("", "existing file data")
+//	require.NoError(t, err)
+//	defer os.Remove(f.Name())
+//
+//	someBytes := []byte("Testing some bytes")
+//	err = WriteGenesisSpecFile(someBytes, f.Name())
+//
+//	require.Error(t, err,
+//		fmt.Sprintf("file %s already exists, rename to avoid overwritten", f.Name()))
+//>>>>>>> development
 }
 
 func TestBuildFromDB(t *testing.T) {
@@ -116,6 +164,25 @@ func TestBuildFromGenesis(t *testing.T) {
 	file, err := genesis.CreateTestGenesisJSONFile(false)
 	assert.NoError(t, err)
 	defer os.Remove(file)
+//=======
+//	for _, tmpFile := range tmpFiles {
+//		err = WriteGenesisSpecFile(data, tmpFile)
+//		require.NoError(t, err)
+//		require.FileExists(t, tmpFile)
+//
+//		defer os.Remove(tmpFile)
+//
+//		file, err := os.Open(tmpFile)
+//		require.NoError(t, err)
+//		defer file.Close()
+//
+//		genesisBytes, err := io.ReadAll(file)
+//		require.NoError(t, err)
+//
+//		gen := new(genesis.Genesis)
+//		err = json.Unmarshal(genesisBytes, gen)
+//		require.NoError(t, err)
+//>>>>>>> development
 
 	type args struct {
 		path      string

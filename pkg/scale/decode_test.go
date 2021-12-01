@@ -158,7 +158,10 @@ func Test_unmarshal_optionality(t *testing.T) {
 					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				diff := cmp.Diff(vdt.value, tt.in.(VaryingDataType).value, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+				diff := cmp.Diff(
+					vdt.value,
+					tt.in.(VaryingDataType).value,
+					cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
 				if diff != "" {
 					t.Errorf("decodeState.unmarshal() = %s", diff)
 				}
@@ -170,9 +173,15 @@ func Test_unmarshal_optionality(t *testing.T) {
 				}
 				var diff string
 				if tt.out != nil {
-					diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.out).Interface(), cmpopts.IgnoreUnexported(tt.in))
+					diff = cmp.Diff(
+						reflect.ValueOf(dst).Elem().Interface(),
+						reflect.ValueOf(tt.out).Interface(),
+						cmpopts.IgnoreUnexported(tt.in))
 				} else {
-					diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.in).Interface(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+					diff = cmp.Diff(
+						reflect.ValueOf(dst).Elem().Interface(),
+						reflect.ValueOf(tt.in).Interface(),
+						cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
 				}
 				if diff != "" {
 					t.Errorf("decodeState.unmarshal() = %s", diff)
@@ -215,9 +224,14 @@ func Test_unmarshal_optionality_nil_case(t *testing.T) {
 			}
 			var diff string
 			if tt.out != nil {
-				diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.out).Interface())
+				diff = cmp.Diff(
+					reflect.ValueOf(dst).Elem().Interface(),
+					reflect.ValueOf(tt.out).Interface())
 			} else {
-				diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.in).Interface(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+				diff = cmp.Diff(
+					reflect.ValueOf(dst).Elem().Interface(),
+					reflect.ValueOf(tt.in).Interface(),
+					cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
 			}
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)

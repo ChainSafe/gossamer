@@ -4,7 +4,6 @@
 package digest
 
 import (
-	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -23,8 +22,7 @@ import (
 )
 
 func newTestHandler(t *testing.T) *Handler {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	config := state.Config{
 		Path:     testDatadirPath,
@@ -34,7 +32,7 @@ func newTestHandler(t *testing.T) *Handler {
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err = stateSrvc.Initialise(gen, genHeader, genTrie)
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -375,7 +373,7 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 }
 
 func TestHandler_HandleNextEpochData(t *testing.T) {
-	expData := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000")
+	expData := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000") //nolint:lll
 
 	handler := newTestHandler(t)
 	handler.Start()

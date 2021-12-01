@@ -6,18 +6,22 @@ package network
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 var (
 	_ NotificationsMessage = &TransactionMessage{}
 	_ NotificationsMessage = &transactionHandshake{}
 )
+
+// txnBatchChTimeout is the timeout for adding a transaction to the batch processing channel
+const txnBatchChTimeout = time.Millisecond * 200
 
 // TransactionMessage is a network message that is sent to notify of new transactions entering the network
 type TransactionMessage struct {
@@ -106,36 +110,61 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func (s *Service) createBatchMessageHandler(txnBatch chan *BatchMessage) NotificationsMessageBatchHandler {
-	return func(peer peer.ID, msg NotificationsMessage) (msgs []*BatchMessage, err error) {
+func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage) {
+	protocolID := s.host.protocolID + transactionsID
+	ticker := time.NewTicker(s.cfg.SlotDuration)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-ticker.C:
+			timer := time.NewTimer(s.cfg.SlotDuration / 3)
+			var timedOut bool
+			for !timedOut {
+				select {
+				case <-timer.C:
+					timedOut = true
+				case txnMsg := <-txnBatchCh:
+					propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
+					if err != nil {
+						s.host.closeProtocolStream(protocolID, txnMsg.peer)
+						continue
+					}
+
+					if s.noGossip || !propagate {
+						continue
+					}
+
+					if !s.gossip.hasSeen(txnMsg.msg) {
+						s.broadcastExcluding(s.notificationsProtocols[TransactionMsgType], txnMsg.peer, txnMsg.msg)
+					}
+				}
+			}
+		}
+	}
+}
+
+func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) NotificationsMessageBatchHandler {
+	go s.startTxnBatchProcessing(txnBatchCh)
+
+	return func(peer peer.ID, msg NotificationsMessage) {
 		data := &BatchMessage{
 			msg:  msg,
 			peer: peer,
 		}
-		txnBatch <- data
 
-		if len(txnBatch) < s.batchSize {
-			return nil, nil
-		}
+		timer := time.NewTimer(txnBatchChTimeout)
 
-		var propagateMsgs []*BatchMessage
-		for txnData := range txnBatch {
-			propagate, err := s.handleTransactionMessage(txnData.peer, txnData.msg)
-			if err != nil {
-				continue
+		select {
+		case txnBatchCh <- data:
+			if !timer.Stop() {
+				<-timer.C
 			}
-			if propagate {
-				propagateMsgs = append(propagateMsgs, &BatchMessage{
-					msg:  txnData.msg,
-					peer: txnData.peer,
-				})
-			}
-			if len(txnBatch) == 0 {
-				break
-			}
+		case <-timer.C:
+			logger.Debugf("transaction message %s for peer %s not included into batch", msg, peer)
 		}
-		// May be use error to compute peer score.
-		return propagateMsgs, nil
 	}
 }
 

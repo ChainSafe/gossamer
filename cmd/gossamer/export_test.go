@@ -76,13 +76,17 @@ func TestExportCommand(t *testing.T) {
 					DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 					MinPeers:          testCfg.Network.MinPeers,
 				},
-				RPC: testCfg.RPC,
+				RPC:   testCfg.RPC,
+				Pprof: testCfg.Pprof,
 			},
 		},
 		{
 			"Test gossamer export --config --genesis --bootnodes --log --force",
 			[]string{"config", "genesis", "bootnodes", "name", "force", "pruning", "retain-blocks"},
-			[]interface{}{testConfig, genFile.Name(), testBootnode, "Gossamer", "true", gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
+			[]interface{}{
+				testConfig, genFile.Name(), testBootnode,
+				"Gossamer", "true", gssmr.DefaultPruningMode,
+				gssmr.DefaultRetainBlocks},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
@@ -109,13 +113,17 @@ func TestExportCommand(t *testing.T) {
 					DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 					MinPeers:          testCfg.Network.MinPeers,
 				},
-				RPC: testCfg.RPC,
+				RPC:   testCfg.RPC,
+				Pprof: testCfg.Pprof,
 			},
 		},
 		{
 			"Test gossamer export --config --genesis --protocol --log --force",
 			[]string{"config", "genesis", "protocol", "force", "name", "pruning", "retain-blocks"},
-			[]interface{}{testConfig, genFile.Name(), testProtocol, "true", "Gossamer", gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
+			[]interface{}{
+				testConfig, genFile.Name(), testProtocol,
+				"true", "Gossamer", gssmr.DefaultPruningMode,
+				gssmr.DefaultRetainBlocks},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
@@ -142,7 +150,8 @@ func TestExportCommand(t *testing.T) {
 					DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 					MinPeers:          testCfg.Network.MinPeers,
 				},
-				RPC: testCfg.RPC,
+				RPC:   testCfg.RPC,
+				Pprof: testCfg.Pprof,
 			},
 		},
 	}

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/chaindb"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -19,6 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -78,7 +81,9 @@ func (nodeInterface)createRuntimeStorage(st *state.Service) (*runtime.NodeStorag
 	}, nil
 }
 
-func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service, code []byte) (runtime.Instance, error) {
+func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
+	ks *keystore.GlobalKeystore, net *network.Service, code []byte) (
+	runtime.Instance, error) {
 	logger.Info("creating runtime with interpreter " + cfg.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code
@@ -86,7 +91,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *k
 
 	if !codeSubHash.IsEmpty() {
 		logger.Infof("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash)
-		genData, err := st.Base.LoadGenesisData() // nolint
+		genData, err := st.Base.LoadGenesisData()
 		if err != nil {
 			return nil, err
 		}
@@ -198,7 +203,9 @@ func (nodeInterface)createBABEService(cfg *Config, st *state.Service, ks keystor
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func (nodeInterface)createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
+func (nodeInterface)createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
+	st *state.Service, net *network.Service, dh *digest.Handler) (
+	*core.Service, error) {
 	logger.Debug("creating core service" +
 		asAuthority(cfg.Core.Roles == types.AuthorityRole) +
 		"...")
@@ -246,6 +253,11 @@ func (nodeInterface)createNetworkService(cfg *Config, stateSrvc *state.Service) 
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
 		cfg.Network.NoBootstrap, cfg.Network.NoMDNS)
 
+	slotDuration, err := stateSrvc.Epoch.GetSlotDuration()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get slot duration: %w", err)
+	}
+
 	// network service configuation
 	networkConfig := network.Config{
 		LogLvl:            cfg.Log.NetworkLvl,
@@ -262,6 +274,8 @@ func (nodeInterface)createNetworkService(cfg *Config, stateSrvc *state.Service) 
 		PublishMetrics:    cfg.Global.PublishMetrics,
 		PersistentPeers:   cfg.Network.PersistentPeers,
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
+		SlotDuration:      slotDuration,
+		PublicIP:          cfg.Network.PublicIP,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -276,7 +290,9 @@ func (nodeInterface)createNetworkService(cfg *Config, stateSrvc *state.Service) 
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func (nodeInterface)createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
+func (nodeInterface)createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service,
+	coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI,
+	sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
 	logger.Infof(
 		"creating rpc service with host %s, external=%t, port %d, modules %s, ws=%t, ws port %d and ws external=%t",
 		cfg.RPC.Host, cfg.RPC.External, cfg.RPC.Port, strings.Join(cfg.RPC.Modules, ","), cfg.RPC.WS,
@@ -335,7 +351,8 @@ func (nodeInterface)createSystemService(cfg *types.SystemInfo, stateSrvc *state.
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func (nodeInterface)createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+func (nodeInterface)createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
+	ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
 	rt, err := st.Block.GetRuntime(nil)
 	if err != nil {
 		return nil, err
@@ -384,7 +401,9 @@ func (nodeInterface)createBlockVerifier(st *state.Service) (*babe.VerificationMa
 	return ver, nil
 }
 
-func (nodeInterface)newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service, net *network.Service) (*sync.Service, error) {
+func (nodeInterface)newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
+	verifier *babe.VerificationManager, cs *core.Service, net *network.Service) (
+	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {
 		return nil, err
@@ -409,4 +428,9 @@ func (nodeInterface)newSyncService(cfg *Config, st *state.Service, fg sync.Final
 
 func (nodeInterface)createDigestHandler(st *state.Service) (*digest.Handler, error) {
 	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
+}
+
+func createPprofService(settings pprof.Settings) (service *pprof.Service) {
+	pprofLogger := log.NewFromGlobal(log.AddContext("pkg", "pprof"))
+	return pprof.NewService(settings, pprofLogger)
 }

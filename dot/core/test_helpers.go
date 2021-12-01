@@ -4,7 +4,6 @@
 package core
 
 import (
-	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -45,12 +44,13 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.LogLvl = 3
 
 	var stateSrvc *state.Service
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
-	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
+	if cfg.BlockState == nil || cfg.StorageState == nil ||
+		cfg.TransactionState == nil || cfg.EpochState == nil ||
+		cfg.CodeSubstitutedState == nil {
 		config := state.Config{
 			Path:     testDatadirPath,
 			LogLevel: log.Info,
@@ -58,7 +58,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err = stateSrvc.Initialise(gen, genHeader, genTrie)
+		err := stateSrvc.Initialise(gen, genHeader, genTrie)
 		require.Nil(t, err)
 
 		err = stateSrvc.Start()
@@ -88,6 +88,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
 
+		var err error
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 		require.NoError(t, err)
 
@@ -121,7 +122,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.CodeSubstitutes == nil {
 		cfg.CodeSubstitutes = make(map[common.Hash]string)
 
-		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData() //nolint
+		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData()
 		require.NoError(t, err)
 
 		for k, v := range genesisData.CodeSubstitutes {

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"reflect"
 )
@@ -286,7 +285,7 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 		}
 		dstv.Set(reflect.ValueOf(res))
 	default:
-		bytes, _ := ioutil.ReadAll(ds.Reader)
+		bytes, _ := io.ReadAll(ds.Reader)
 		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, bytes)
 	}
 	return
@@ -319,7 +318,7 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 			dstv.Set(tempElem)
 		}
 	default:
-		bytes, _ := ioutil.ReadAll(ds.Reader)
+		bytes, _ := io.ReadAll(ds.Reader)
 		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, bytes)
 	}
 	return
@@ -615,7 +614,7 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		if err != nil {
 			return
 		}
-		out = uint8(b) // nolint
+		out = b
 	case int16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)
@@ -666,7 +665,8 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 	return
 }
 
-// decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
+// decodeUint128 accepts a byte array representing a SCALE encoded
+// common.Uint128 and performs SCALE decoding of the Uint128
 func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 	buf := make([]byte, 16)
 	err = binary.Read(ds, binary.LittleEndian, buf)

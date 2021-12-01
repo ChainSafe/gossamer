@@ -45,7 +45,9 @@ type discovery struct {
 	handler            PeerSetHandler
 }
 
-func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrInfo, ds *badger.Datastore, pid protocol.ID, min, max int, handler PeerSetHandler) *discovery {
+func newDiscovery(ctx context.Context, h libp2phost.Host,
+	bootnodes []peer.AddrInfo, ds *badger.Datastore,
+	pid protocol.ID, min, max int, handler PeerSetHandler) *discovery {
 	return &discovery{
 		ctx:       ctx,
 		h:         h,
@@ -197,8 +199,21 @@ func (d *discovery) findPeers(ctx context.Context) {
 
 			logger.Tracef("found new peer %s via DHT", peer.ID)
 
+			// TODO: this isn't working on the devnet (#2026)
+			// can remove the code block below which directly connects
+			// once that's fixed
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
+
+			// found a peer, try to connect if we need more peers
+			if len(d.h.Network().Peers()) >= d.maxPeers {
+				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+				return
+			}
+
+			if err = d.h.Connect(d.ctx, peer); err != nil {
+				logger.Tracef("failed to connect to discovered peer %s: %s", peer.ID, err)
+			}
 		}
 	}
 }

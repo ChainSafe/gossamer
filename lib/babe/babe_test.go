@@ -5,7 +5,6 @@ package babe
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -17,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -26,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -38,8 +37,8 @@ var (
 
 	keyring, _ = keystore.NewSr25519Keyring()
 
-	maxThreshold = common.MaxUint128
-	minThreshold = &common.Uint128{}
+	maxThreshold = scale.MaxUint128
+	minThreshold = &scale.Uint128{}
 
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{
@@ -73,7 +72,10 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+	cfg.BlockImportHandler.(*mocks.BlockImportHandler).
+		On("HandleBlockProduced",
+			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
+		Return(nil)
 
 	if cfg.Keypair == nil {
 		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
@@ -91,7 +93,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.TransactionState = state.NewTransactionState()
 	}
 
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
+	testDatadirPath := t.TempDir()
 	require.NoError(t, err)
 
 	var dbSrv *state.Service
@@ -167,8 +169,7 @@ func TestMain(m *testing.M) {
 }
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	config := state.Config{
 		Path:     testDatadirPath,
@@ -178,7 +179,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	dbSrv.UseMemDB()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err = dbSrv.Initialise(gen, genHeader, genTrie)
+	err := dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -325,7 +326,10 @@ func TestService_ProducesBlocks(t *testing.T) {
 	}()
 
 	time.Sleep(babeService.slotDuration * 2)
-	babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
+	babeService.blockImportHandler.(*mocks.BlockImportHandler).
+		AssertCalled(t, "HandleBlockProduced",
+			mock.AnythingOfType("*types.Block"),
+			mock.AnythingOfType("*storage.TrieState"))
 }
 
 func TestService_GetAuthorityIndex(t *testing.T) {
@@ -389,12 +393,12 @@ func TestService_PauseAndResume(t *testing.T) {
 	}()
 
 	go func() {
-		err := bs.Resume() //nolint
+		err := bs.Resume()
 		require.NoError(t, err)
 	}()
 
 	go func() {
-		err := bs.Resume() //nolint
+		err := bs.Resume()
 		require.NoError(t, err)
 	}()
 

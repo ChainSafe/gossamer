@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -86,7 +85,8 @@ func EncryptPrivateKey(pk crypto.PrivateKey, password []byte) ([]byte, error) {
 	return Encrypt(pk.Encode(), password)
 }
 
-// DecryptPrivateKey uses AES to decrypt the ciphertext into a `crypto.PrivateKey` with a symmetric key deterministically
+// DecryptPrivateKey uses AES to decrypt the ciphertext into a
+// `crypto.PrivateKey` with a symmetric key deterministically
 // created from `password`
 func DecryptPrivateKey(data, password []byte, keytype string) (crypto.PrivateKey, error) {
 	pk, err := Decrypt(data, password)
@@ -148,7 +148,7 @@ func ReadFromFileAndDecrypt(filename string, password []byte) (crypto.PrivateKey
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	data, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}

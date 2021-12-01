@@ -6,8 +6,6 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -16,7 +14,7 @@ import (
 )
 
 func newTestDB(t *testing.T) chaindb.Database {
-	testDatadirPath, _ := ioutil.TempDir(os.TempDir(), "test-datadir-*")
+	testDatadirPath := t.TempDir()
 	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 	return chaindb.NewTable(db, "trie")
@@ -141,7 +139,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		require.Equal(t, trie.MustHash(), res.MustHash())
 
 		for _, test := range testCase {
-			val, err := GetFromDB(db, trie.MustHash(), test.key) //nolint
+			val, err := GetFromDB(db, trie.MustHash(), test.key)
 			require.NoError(t, err)
 			if bytes.Equal(test.key, []byte("asdf")) {
 				continue

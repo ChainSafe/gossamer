@@ -6,7 +6,6 @@ package state
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -37,8 +36,8 @@ func newTestService(t *testing.T) (state *Service) {
 	return state
 }
 
-func newTestMemDBService() *Service {
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+func newTestMemDBService(t *testing.T) *Service {
+	testDatadirPath := t.TempDir()
 	config := Config{
 		Path:     testDatadirPath,
 		LogLevel: log.Info,
@@ -71,7 +70,8 @@ func TestService_Initialise(t *testing.T) {
 	err := state.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}),
+		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	err = state.Initialise(genData, genesisHeader, genTrie)
@@ -86,7 +86,7 @@ func TestService_Initialise(t *testing.T) {
 }
 
 func TestMemDB_Start(t *testing.T) {
-	state := newTestMemDBService()
+	state := newTestMemDBService(t)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
@@ -217,7 +217,7 @@ func TestService_PruneStorage(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
 		digest := types.NewDigest()
-		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest() //nolint
+		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest()
 		require.NoError(t, err)
 		err = digest.Add(*prd)
 		require.NoError(t, err)

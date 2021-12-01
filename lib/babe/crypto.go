@@ -5,17 +5,19 @@ package babe
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gtank/merlin"
 )
 
-// the code in this file is based off https://github.com/paritytech/substrate/blob/89275433863532d797318b75bb5321af098fea7c/primitives/consensus/babe/src/lib.rs#L93
-var babe_vrf_prefix = []byte("substrate-babe-vrf")
+// the code in this file is based off
+// https://github.com/paritytech/substrate/blob/89275433863532d797318b75bb5321af098fea7c/primitives/consensus/babe/src/lib.rs#L93
+var babeVRFPrefix = []byte("substrate-babe-vrf")
 
 func makeTranscript(randomness Randomness, slot, epoch uint64) *merlin.Transcript {
 	t := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
@@ -29,7 +31,7 @@ func makeTranscript(randomness Randomness, slot, epoch uint64) *merlin.Transcrip
 // https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L239
 func claimPrimarySlot(randomness Randomness,
 	slot, epoch uint64,
-	threshold *common.Uint128,
+	threshold *scale.Uint128,
 	keypair *sr25519.Keypair,
 ) (*VrfOutputAndProof, error) {
 	transcript := makeTranscript(randomness, slot, epoch)
@@ -42,7 +44,10 @@ func claimPrimarySlot(randomness Randomness,
 	logger.Tracef("claimPrimarySlot pub=%s slot=%d epoch=%d output=0x%x proof=0x%x",
 		keypair.Public().Hex(), slot, epoch, out, proof)
 
-	ok := checkPrimaryThreshold(randomness, slot, epoch, out, threshold, keypair.Public().(*sr25519.PublicKey))
+	ok, err := checkPrimaryThreshold(randomness, slot, epoch, out, threshold, keypair.Public().(*sr25519.PublicKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to compare with threshold, %w", err)
+	}
 	if !ok {
 		return nil, nil
 	}
@@ -57,25 +62,28 @@ func claimPrimarySlot(randomness Randomness,
 func checkPrimaryThreshold(randomness Randomness,
 	slot, epoch uint64,
 	output [sr25519.VRFOutputLength]byte,
-	threshold *common.Uint128,
+	threshold *scale.Uint128,
 	pub *sr25519.PublicKey,
-) bool {
+) (bool, error) {
 	t := makeTranscript(randomness, slot, epoch)
 	inout := sr25519.AttachInput(output, pub, t)
-	res := sr25519.MakeBytes(inout, 16, babe_vrf_prefix)
+	res := sr25519.MakeBytes(inout, 16, babeVRFPrefix)
 
-	inoutUint := common.Uint128FromLEBytes(res)
+	inoutUint, err := scale.NewUint128(res)
+	if err != nil {
+		return false, fmt.Errorf("failed to convert bytes to Uint128: %w", err)
+	}
 
 	logger.Tracef("checkPrimaryThreshold pub=%s randomness=0x%x slot=%d epoch=%d threshold=0x%x output=0x%x inout=0x%x",
 		pub.Hex(), randomness, slot, epoch, threshold, output, res)
 
-	return inoutUint.Cmp(threshold) < 0
+	return inoutUint.Compare(threshold) < 0, nil
 }
 
 // CalculateThreshold calculates the slot lottery threshold
 // equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
 // see https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L44
-func CalculateThreshold(C1, C2 uint64, numAuths int) (*common.Uint128, error) {
+func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
 	c := float64(C1) / float64(C2)
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")
@@ -86,28 +94,28 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*common.Uint128, error) {
 
 	// (1-c)^(theta)
 	pp := 1 - c
-	pp_exp := math.Pow(pp, theta)
+	ppExp := math.Pow(pp, theta)
 
 	// 1 - (1-c)^(theta)
-	p := 1 - pp_exp
-	p_rat := new(big.Rat).SetFloat64(p)
+	p := 1 - ppExp
+	pRat := new(big.Rat).SetFloat64(p)
 
 	// 1 << 128
 	shift := new(big.Int).Lsh(big.NewInt(1), 128)
-	numer := new(big.Int).Mul(shift, p_rat.Num())
-	denom := p_rat.Denom()
+	numer := new(big.Int).Mul(shift, pRat.Num())
+	denom := pRat.Denom()
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
-	threshold_big := new(big.Int).Div(numer, denom)
+	thresholdBig := new(big.Int).Div(numer, denom)
 
 	// special case where threshold is maximum
-	if threshold_big.Cmp(shift) == 0 {
-		return common.MaxUint128, nil
+	if thresholdBig.Cmp(shift) == 0 {
+		return scale.MaxUint128, nil
 	}
 
-	if len(threshold_big.Bytes()) > 16 {
+	if len(thresholdBig.Bytes()) > 16 {
 		return nil, errors.New("threshold must be under or equal to 16 bytes")
 	}
 
-	return common.Uint128FromBigInt(threshold_big), nil
+	return scale.NewUint128(thresholdBig)
 }

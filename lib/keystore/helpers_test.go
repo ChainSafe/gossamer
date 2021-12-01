@@ -5,7 +5,6 @@ package keystore
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -100,7 +99,7 @@ func TestGenerateKey_Ed25519(t *testing.T) {
 		t.Fatalf("Fail: got %s expected %s", keys[0], keyfile)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +137,7 @@ func TestGenerateKey_Secp256k1(t *testing.T) {
 		t.Fatalf("Fail: got %s expected %s", keys[0], keyfile)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +162,7 @@ func TestGenerateKey_NoType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,68 +295,84 @@ func TestImportRawPrivateKey_NoType(t *testing.T) {
 	testdir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "", testdir, testPassword)
+	keyfile, err := ImportRawPrivateKey(
+		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+		"", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
 	require.NoError(t, err)
 	require.Equal(t, "sr25519", kscontents.Type)
-	require.Equal(t, "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", kscontents.PublicKey)
+	require.Equal(t,
+		"0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+		kscontents.PublicKey)
 }
 
 func TestImportRawPrivateKey_Sr25519(t *testing.T) {
 	testdir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "sr25519", testdir, testPassword)
+	keyfile, err := ImportRawPrivateKey(
+		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+		"sr25519", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
 	require.NoError(t, err)
 	require.Equal(t, "sr25519", kscontents.Type)
-	require.Equal(t, "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", kscontents.PublicKey)
+	require.Equal(t,
+		"0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+		kscontents.PublicKey)
 }
 
 func TestImportRawPrivateKey_Ed25519(t *testing.T) {
 	testdir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "ed25519", testdir, testPassword)
+	keyfile, err := ImportRawPrivateKey(
+		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+		"ed25519", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
 	require.NoError(t, err)
 	require.Equal(t, "ed25519", kscontents.Type)
-	require.Equal(t, "0x6dfb362eb332449782b7260bcff6d8777242acdea3293508b22d33ce7336a8b3", kscontents.PublicKey)
+	require.Equal(t,
+		"0x6dfb362eb332449782b7260bcff6d8777242acdea3293508b22d33ce7336a8b3",
+		kscontents.PublicKey)
 }
 
 func TestImportRawPrivateKey_Secp256k1(t *testing.T) {
 	testdir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "secp256k1", testdir, testPassword)
+	keyfile, err := ImportRawPrivateKey(
+		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+		"secp256k1", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
 	require.NoError(t, err)
 	require.Equal(t, "secp256k1", kscontents.Type)
-	require.Equal(t, "0x03409094a319b2961660c3ebcc7d206266182c1b3e60d341b5fb17e6851865825c", kscontents.PublicKey)
+	require.Equal(t,
+		"0x03409094a319b2961660c3ebcc7d206266182c1b3e60d341b5fb17e6851865825c",
+		kscontents.PublicKey)
 }
 
 func TestDecodeKeyPairFromHex(t *testing.T) {

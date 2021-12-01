@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -29,9 +29,6 @@ type httpclient interface {
 var errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
 var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
-
-// DEFAULT_BUFFER_SIZE buffer size for channels
-const DEFAULT_BUFFER_SIZE = 100
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
@@ -97,7 +94,7 @@ func (c *WSConn) HandleComm() {
 				continue
 			}
 
-			listener, err := setupListener(reqid, params) //nolint
+			listener, err := setupListener(reqid, params)
 			if err != nil {
 				logger.Warnf("failed to create listener (method=%s): %s", method, err)
 				continue
@@ -107,7 +104,7 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		listener, err := c.getUnsubListener(params) //nolint
+		listener, err := c.getUnsubListener(params)
 
 		if err != nil {
 			logger.Warnf("failed to get unsubscriber (method=%s): %s", method, err)
@@ -424,7 +421,7 @@ func (c *WSConn) executeRequest(r *http.Request, d interface{}) error {
 		return err
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		logger.Warnf("error reading response body: %s", err)
 		return err

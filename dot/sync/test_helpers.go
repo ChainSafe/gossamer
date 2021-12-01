@@ -54,7 +54,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 
 	// apply each inherent extrinsic
 	for _, inherent := range inExts {
-		in, err := scale.Marshal(inherent) //nolint
+		in, err := scale.Marshal(inherent)
 		require.NoError(t, err)
 
 		ret, err := instance.ApplyExtrinsic(in)

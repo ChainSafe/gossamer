@@ -252,6 +252,8 @@ func TestNewNode(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
+	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BABELead = true
 
 	ni := nodeInterface{}
 	err := ni.initNode(cfg)
@@ -295,7 +297,7 @@ func TestNewNode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewNode(tt.args.cfg, tt.args.ks, tt.args.stopFunc)
+			got, err := NewNode(tt.args.cfg, tt.args.ks)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

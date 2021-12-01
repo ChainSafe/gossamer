@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 // Logger is the utils package local logger.
@@ -78,7 +78,6 @@ type Node struct {
 
 // InitGossamer initialises given node number and returns node reference
 func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
-	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--config", config,
 		"--basepath", basePath,
@@ -131,7 +130,6 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		params = append(params, "--ws",
 			"--wsport", node.WSPort)
 	}
-	//nolint
 	node.Process = exec.Command(gossamerCMD, params...)
 
 	node.Key = key
@@ -152,8 +150,10 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 
 	t.Cleanup(func() {
 		time.Sleep(time.Second) // wait for goroutine to finish writing
-		outfile.Close()         //nolint
-		errfile.Close()         //nolint
+		err = outfile.Close()
+		assert.NoError(t, err)
+		err = errfile.Close()
+		assert.NoError(t, err)
 	})
 
 	stdoutPipe, err := node.Process.StdoutPipe()
@@ -176,9 +176,19 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	writer := bufio.NewWriter(outfile)
-	go io.Copy(writer, stdoutPipe) //nolint
+	go func() {
+		_, err := io.Copy(writer, stdoutPipe)
+		if err != nil {
+			Logger.Errorf("failed copying stdout to writer: %s", err)
+		}
+	}()
 	errWriter := bufio.NewWriter(errfile)
-	go io.Copy(errWriter, stderrPipe) //nolint
+	go func() {
+		_, err := io.Copy(errWriter, stderrPipe)
+		if err != nil {
+			Logger.Errorf("failed copying stderr to writer: %s", err)
+		}
+	}()
 
 	var started bool
 	for i := 0; i < maxRetries; i++ {
@@ -193,7 +203,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		Logger.Infof("node started with key %s and cmd.Process.Pid %d", key, node.Process.Process.Pid)
 	} else {
 		Logger.Criticalf("node didn't start: %s", err)
-		errFileContents, _ := ioutil.ReadFile(errfile.Name())
+		errFileContents, _ := os.ReadFile(errfile.Name())
 		t.Logf("%s\n", errFileContents)
 		return err
 	}
@@ -256,7 +266,7 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 // InitNodes initialises given number of nodes
 func InitNodes(num int, config string) ([]*Node, error) {
 	var nodes []*Node
-	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
+	tempDir, err := os.MkdirTemp("", "gossamer-stress-")
 	if err != nil {
 		return nil, err
 	}

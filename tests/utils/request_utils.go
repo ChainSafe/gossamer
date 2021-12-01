@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -52,7 +52,7 @@ func PostRPC(method, host, params string) ([]byte, error) {
 		_ = resp.Body.Close()
 	}()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 
 	return respBody, err
 
@@ -121,7 +121,7 @@ func DecodeWebsocket(t *testing.T, body []byte, target interface{}) error {
 }
 
 // DecodeRPC_NT will decode []body into target interface (NT is Not Test testing required)
-func DecodeRPC_NT(body []byte, target interface{}) error {
+func DecodeRPC_NT(body []byte, target interface{}) error { //nolint:revive
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 

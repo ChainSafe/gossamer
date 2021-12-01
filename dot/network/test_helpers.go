@@ -8,10 +8,11 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/stretchr/testify/mock"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -50,17 +51,32 @@ func NewMockBlockState(n *big.Int) *MockBlockState {
 // NewMockSyncer create and return a network Syncer interface mock
 func NewMockSyncer() *MockSyncer {
 	mocksyncer := new(MockSyncer)
-	mocksyncer.On("HandleBlockAnnounceHandshake", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockAnnounceHandshake")).Return(nil, nil)
-	mocksyncer.On("HandleBlockAnnounce", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockAnnounceMessage")).Return(nil, nil)
-	mocksyncer.On("CreateBlockResponse", mock.AnythingOfType("*network.BlockRequestMessage")).Return(testBlockResponseMessage(), nil)
-	mocksyncer.On("IsSynced").Return(false)
+	mocksyncer.
+		On("HandleBlockAnnounceHandshake",
+			mock.AnythingOfType("peer.ID"),
+			mock.AnythingOfType("*network.BlockAnnounceHandshake")).
+		Return(nil, nil)
+	mocksyncer.
+		On("HandleBlockAnnounce",
+			mock.AnythingOfType("peer.ID"),
+			mock.AnythingOfType("*network.BlockAnnounceMessage")).
+		Return(nil, nil)
+	mocksyncer.
+		On("CreateBlockResponse",
+			mock.AnythingOfType("*network.BlockRequestMessage")).
+		Return(testBlockResponseMessage(), nil)
+	mocksyncer.
+		On("IsSynced").Return(false)
 	return mocksyncer
 }
 
 // NewMockTransactionHandler create and return a network TransactionHandler interface
 func NewMockTransactionHandler() *MockTransactionHandler {
 	mocktxhandler := new(MockTransactionHandler)
-	mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(nil)
+	mocktxhandler.On("HandleTransactionMessage",
+		mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.TransactionMessage")).
+		Return(true, nil)
 	mocktxhandler.On("TransactionsCount").Return(0)
 	return mocktxhandler
 }
@@ -135,7 +151,8 @@ func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Messa
 	return err
 }
 
-func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
+func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
+	peer peer.ID, decoder messageDecoder, handler messageHandler) {
 	msgBytes := make([]byte, maxBlockResponseSize)
 
 	defer func() {

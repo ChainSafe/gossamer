@@ -7,8 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -367,7 +367,7 @@ func TestStateModule_GetMetadata(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
-	expectedMetadata, err := ioutil.ReadFile("./test_data/expected_metadata")
+	expectedMetadata, err := os.ReadFile("./test_data/expected_metadata")
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -543,7 +543,9 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	chain.Block.StoreRuntime(b.Header.Hash(), rt)
 
-	hash, _ := chain.Block.GetBlockHash(big.NewInt(3))
+	hash, err := chain.Block.GetHashByNumber(big.NewInt(3))
+	require.NoError(t, err)
+
 	core := newCoreService(t, chain)
 	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }

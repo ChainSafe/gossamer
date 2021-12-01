@@ -6,11 +6,11 @@ package subscription
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -228,7 +228,8 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	_, msg, err := ws.ReadMessage()
 	require.NoError(t, err)
 	resImported := map[string]interface{}{"inBlock": block.Header.Hash().String()}
-	expectedImportedBytes, err := json.Marshal(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resImported))
+	expectedImportedBytes, err := json.Marshal(
+		newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resImported))
 	require.NoError(t, err)
 	require.Equal(t, string(expectedImportedBytes)+"\n", string(msg))
 
@@ -240,7 +241,8 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	_, msg, err = ws.ReadMessage()
 	require.NoError(t, err)
 	resFinalised := map[string]interface{}{"finalised": block.Header.Hash().String()}
-	expectedFinalizedBytes, err := json.Marshal(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resFinalised))
+	expectedFinalizedBytes, err := json.Marshal(
+		newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resFinalised))
 	require.NoError(t, err)
 	require.Equal(t, string(expectedFinalizedBytes)+"\n", string(msg))
 }
@@ -355,7 +357,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	require.NoError(t, err)
 	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
-	code, err := ioutil.ReadFile(fp)
+	code, err := os.ReadFile(fp)
 	require.NoError(t, err)
 	version, err := instance.CheckRuntimeVersion(code)
 	require.NoError(t, err)

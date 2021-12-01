@@ -53,6 +53,8 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
+	t.Helper()
+
 	if cfg == nil {
 		basePath := utils.NewTestBasePath(t, "node")
 
@@ -71,10 +73,15 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	if cfg.TransactionHandler == nil {
 		mocktxhandler := &MockTransactionHandler{}
-		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*TransactionMessage")).Return(nil)
+		mocktxhandler.On("HandleTransactionMessage",
+			mock.AnythingOfType("peer.ID"),
+			mock.AnythingOfType("*network.TransactionMessage")).
+			Return(true, nil)
 		mocktxhandler.On("TransactionsCount").Return(0)
 		cfg.TransactionHandler = mocktxhandler
 	}
+
+	cfg.SlotDuration = time.Second
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
@@ -211,7 +218,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	require.NotNil(t, stream)
 
 	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	protocol.outboundHandshakeData.Store(nodeB.host.id(), handshakeData{
+	protocol.outboundHandshakeData.Store(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 		stream:    stream,

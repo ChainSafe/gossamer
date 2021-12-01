@@ -6,7 +6,6 @@ package genesis
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -18,7 +17,7 @@ import (
 
 func TestNewGenesisRawFromJSON(t *testing.T) {
 	// Create temp file
-	file, err := ioutil.TempFile("", "genesis-test")
+	file, err := os.CreateTemp("", "genesis-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,6 +48,7 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 	require.Equal(t, expected, genesis)
 }
 
+//nolint:lll
 func TestNewGenesisFromJSON(t *testing.T) {
 	var expectedGenesis = &Genesis{}
 	const zeroByte = "0x00"
@@ -86,7 +86,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	}
 
 	// Create temp file
-	file, err := ioutil.TempFile("", "genesis_hr-test")
+	file, err := os.CreateTemp("", "genesis_hr-test")
 	require.NoError(t, err)
 
 	defer os.Remove(file.Name())

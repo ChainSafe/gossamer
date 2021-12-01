@@ -191,7 +191,8 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 }
 
 // encodeBigInt performs the same encoding as encodeInteger, except on a big.Int.
-// if 2^30 <= n < 2^536 write [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
+// if 2^30 <= n < 2^536 write
+// [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
 // [append i as a byte array to the first byte]
 func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 	switch {
@@ -270,8 +271,9 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 	return
 }
 
-// encodeStruct reads the number of fields in the struct and their types and writes to the buffer each of the struct fields
-// encoded as their respective types
+// encodeStruct reads the number of fields in the struct and their types
+// and writes to the buffer each of the struct fields encoded
+// as their respective types
 func (es *encodeState) encodeStruct(in interface{}) (err error) {
 	v, indices, err := es.fieldScaleIndices(in)
 	if err != nil {

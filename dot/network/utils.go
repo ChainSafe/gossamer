@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
 	"os"
 	"path"
@@ -20,6 +19,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
+
+func isInbound(stream libp2pnetwork.Stream) bool {
+	return stream.Stat().Direction == libp2pnetwork.DirInbound
+}
 
 // stringToAddrInfos converts a single string peer id to AddrInfo
 func stringToAddrInfo(s string) (peer.AddrInfo, error) {
@@ -55,7 +58,7 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 	if seed == 0 {
 		r = crand.Reader
 	} else {
-		r = mrand.New(mrand.NewSource(seed)) //nolint
+		r = mrand.New(mrand.NewSource(seed)) //nolint:gosec
 	}
 	key, _, err := crypto.GenerateEd25519Key(r)
 	if err != nil {
@@ -78,7 +81,7 @@ func loadKey(fp string) (crypto.PrivKey, error) {
 	if _, err := os.Stat(pth); os.IsNotExist(err) {
 		return nil, nil
 	}
-	keyData, err := ioutil.ReadFile(filepath.Clean(pth))
+	keyData, err := os.ReadFile(filepath.Clean(pth))
 	if err != nil {
 		return nil, err
 	}

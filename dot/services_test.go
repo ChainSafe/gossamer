@@ -19,6 +19,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
+
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -628,6 +630,10 @@ func Test_createStateService(t *testing.T) {
 
 	ni := nodeInterface{}
 	err := ni.initNode(cfg)
+	//networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	//require.NoError(t, err)
+	//
+	//gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	require.NoError(t, err)
 
 	cfg2 := NewTestConfig(t)
@@ -669,6 +675,32 @@ func Test_createStateService(t *testing.T) {
 			}
 		})
 	}
+//var addr = flag.String("addr", "localhost:8546", "http service address")
+//var testCalls = []struct {
+//	call     []byte
+//	expected []byte
+//}{
+//	{
+//		call:     []byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
+//		expected: []byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")}, // working request
+//	{
+//		call: []byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`),
+//		// unknown method
+//		expected: []byte(`{"error":{"code":-32000,"data":null,` +
+//			`"message":"rpc error method unknown not found"},"id":2,` +
+//			`"jsonrpc":"2.0"}` + "\n")},
+//	{
+//		call: []byte{},
+//		// empty request
+//		expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,` +
+//			`"message":"Invalid request"},"id":0}` + "\n")},
+//	{
+//		call:     []byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`),
+//		expected: []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
+//	{
+//		call:     []byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`),
+//		expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
+//
 }
 
 func Test_createSystemService(t *testing.T) {
@@ -821,4 +853,14 @@ func Test_newSyncService(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_createPprofService(t *testing.T) {
+	t.Parallel()
+
+	settings := pprof.Settings{}
+
+	service := createPprofService(settings)
+
+	require.NotNil(t, service)
 }

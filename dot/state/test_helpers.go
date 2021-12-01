@@ -6,7 +6,6 @@ package state
 import (
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -25,8 +24,7 @@ var inc, _ = time.ParseDuration("1s")
 
 // NewInMemoryDB creates a new in-memory database
 func NewInMemoryDB(t *testing.T) chaindb.Database {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
@@ -44,7 +42,8 @@ type testBranch struct {
 }
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranches bool) ([]*types.Header, []*types.Header) {
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
+	withBranches bool) ([]*types.Header, []*types.Header) {
 	var (
 		currentChain, branchChains []*types.Header
 		branches                   []testBranch
@@ -218,7 +217,8 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	}
 }
 
-func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
+func generateBlockWithRandomTrie(t *testing.T, serv *Service,
+	parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 
