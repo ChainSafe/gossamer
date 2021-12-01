@@ -494,13 +494,13 @@ func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_DeepestBlockHash_ShouldH
 	the leaves has the same number (8) the numbers in the right represents the order
 	the nodes are inserted into the blocktree.
 
-		a -> b -> c -> d -> e -> f -> g -> h (1)
-			 |    |    |    |    |    |->  h (7)
-			 |    |    |    |    |->  g -> h (6)
-		     |    |    |    |->  f -> g -> h (5)
-	         |    |    |->  e -> f -> g -> h (4)
-		     |    |->  d -> e -> f -> g -> h (3)
-		     |->  c -> d -> e -> f -> g -> h (2)
+	a -> b -> c -> d -> e -> f -> g -> h (1)
+		|    |    |    |    |    |> h (7)
+		|    |    |    |    |> g -> h (6)
+		|    |    |    |> f -> g -> h (5)
+		|    |    |> e -> f -> g -> h (4)
+		|    |> d -> e -> f -> g -> h (3)
+		|> c -> d -> e -> f -> g -> h (2)
 	**/
 
 	for i := 1; i <= deep; i++ {
