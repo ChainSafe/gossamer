@@ -397,11 +397,6 @@ main:
 			if err != nil {
 				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
-
-			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
-			if err != nil {
-				logger.Debugf("problem sending system.interval telemetry message: %s", err)
-			}
 		}
 	}
 }
