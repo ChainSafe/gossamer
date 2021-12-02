@@ -33,32 +33,6 @@ func KeyLength(keyLength int) (encoding []byte, err error) {
 	return encoding, nil
 }
 
-// NibblesToKey converts a slice of nibbles with length k into a
-// Big Endian byte slice.
-// It assumes nibbles are already in Little Endian and does not rearrange nibbles.
-// If the length of the input is odd, the result is
-// [ in[1] in[0] | ... | 0000 in[k-1] ]
-// Otherwise, the result is
-// [ in[1] in[0] | ... | in[k-1] in[k-2] ]
-func NibblesToKey(nibbles []byte) (key []byte) {
-	if len(nibbles)%2 == 0 {
-		key = make([]byte, len(nibbles)/2)
-		for i := 0; i < len(nibbles); i += 2 {
-			key[i/2] = (nibbles[i] & 0xf) | (nibbles[i+1] << 4 & 0xf0)
-		}
-	} else {
-		key = make([]byte, len(nibbles)/2+1)
-		for i := 0; i < len(nibbles); i += 2 {
-			key[i/2] = nibbles[i] & 0xf
-			if i < len(nibbles)-1 {
-				key[i/2] |= (nibbles[i+1] << 4 & 0xf0)
-			}
-		}
-	}
-
-	return key
-}
-
 // NibblesToKeyLE converts a slice of nibbles with length k into a
 // Little Endian byte slice.
 // It assumes nibbles are already in Little Endian and does not rearrange nibbles.
