@@ -475,7 +475,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sm := tt.sysModule
 			res := ""
-			err := sm.LocalPeerID(tt.args.r, tt.args.req, &res)
+			err := sm.LocalPeerId(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {

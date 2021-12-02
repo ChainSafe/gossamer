@@ -257,8 +257,9 @@ func (sm *SystemModule) LocalListenAddresses(r *http.Request, req *EmptyRequest,
 	return nil
 }
 
-// LocalPeerID Returns the base58-encoded PeerId fo the node.
-func (sm *SystemModule) LocalPeerID(r *http.Request, req *EmptyRequest, res *string) error {
+// LocalPeerId Returns the base58-encoded PeerId fo the node.
+//nolint
+func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *string) error {
 	netstate := sm.networkAPI.NetworkState()
 	if netstate.PeerID == "" {
 		return errors.New("peer id cannot be empty")

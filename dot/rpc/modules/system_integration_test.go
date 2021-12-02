@@ -440,14 +440,14 @@ func TestLocalPeerId(t *testing.T) {
 	sysmodules.networkAPI = mocknetAPI
 
 	var res string
-	err := sysmodules.LocalPeerID(nil, nil, &res)
+	err := sysmodules.LocalPeerId(nil, nil, &res)
 	require.NoError(t, err)
 
 	require.Equal(t, res, encoded)
 
 	state.PeerID = ""
 	mocknetAPI.On("NetworkState").Return(state).Once()
-	err = sysmodules.LocalPeerID(nil, nil, &res)
+	err = sysmodules.LocalPeerId(nil, nil, &res)
 	require.Error(t, err)
 }
 
