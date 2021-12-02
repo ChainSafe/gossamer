@@ -51,4 +51,25 @@ This key is injected in `alice.Dockerfile` so it uses the same public key for th
 
 ### docker-compose.yml
 
-The Docker Compose file.  Specifies the IP addresses of all the nodes.  
+The Docker Compose file.  Specifies the IP addresses of all the nodes. 
+
+
+## ECS Fargate Deployment
+
+The `docker-compose.yml` file within `devnet/gssmr-ecs` folder uses Docker Compose ECS plugin to deploy and update an existing AWS ECS Cluster using the Fargate launch type running a Gossamer devnet with 3 services corresponding to the 3 keys used `alice`, `bob`, and `charlie`.  
+
+### Deployment
+
+Currently deployment is handled via a github workflow.  Pushing the `devnet` branch will initiate the deploy process.  Steps are outlined in `/.github/workflows/devnet.yml`. 
+
+At a high level, images for the `alice`, `bob` and `charlie` correspond to ECS services under the same name.  The docker images are built based on the latest commit on the `devnet` branch.  These images are pushed to ECR.  A specific type of Docker context is required to use the ECS plugin.  Deploying and updating is as simple as:
+
+```
+docker context create ecs gssmr-ecs --from-env
+docker context use gssmr-ecs
+docker compose up
+```
+### Prometheus to Datadog
+
+Prometheus metrics are automatically piped to Datadog.  All metrics from the ECS devnet are prefixed with `gossamer.ecs.devnet`.  
+
