@@ -711,10 +711,18 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
 		block := pendingBlocks.getBlock(bd.Hash)
-		bd.Header = block.header
+		if block != nil {
+			bd.Header = block.header
+		} else {
+			logger.Criticalf("block with unknown header is ready: hash=%s", bd.Hash)
+		}
 	}
 
-	logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)
+	if bd.Header != nil {
+		logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)
+	} else {
+		logger.Criticalf("new ready block number (unknown) with hash %s", bd.Header.Number, bd.Hash)
+	}
 
 	ready := []*types.BlockData{bd}
 	ready = pendingBlocks.getReadyDescendants(bd.Hash, ready)
