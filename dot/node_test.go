@@ -6,6 +6,7 @@ package dot
 import (
 	"errors"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/golang/mock/gomock"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -200,17 +201,75 @@ func TestNewNodeC(t *testing.T) {
 			},
 			err:  errors.New("no keys provided for authority node"),
 		},
-		// TODO this is commented out because in holds a lock on badger db, causing next test to foil
+		{
+			name: "minimal config",
+			args: args{
+				cfg: &Config{
+					Global:  GlobalConfig{BasePath: cfg.Global.BasePath,},
+					Init:    InitConfig{Genesis: genFile.Name()},
+					Account: AccountConfig{Key: "alice"},
+					Core:    CoreConfig{WasmInterpreter: wasmer.Name,},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewNodeC(tt.args.cfg)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+				utils.RemoveTestDir(t)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			if tt.want != nil {
+				assert.Equal(t, tt.want.Name, got.Name)
+			}
+		})
+	}
+}
+
+func TestNewNodeMock(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	m := NewMocknewNodeIface(ctrl)
+	m.EXPECT().nodeInitialised(gomock.Any()).Return(true)
+	m.EXPECT().initKeystore(gomock.Any())
+	m.EXPECT().createStateService(gomock.Any())
+	m.EXPECT().createRuntimeStorage(gomock.Any())
+	m.EXPECT().loadRuntime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+	m.EXPECT().createBlockVerifier(gomock.Any())
+	m.EXPECT().createDigestHandler(gomock.Any())
+	m.EXPECT().createCoreService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+	defer utils.RemoveTestDir(t)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	type args struct {
+		cfg      *Config
+		stopFunc func()
+	}
+	tests := []struct {
+		name string
+		args args
+		want *Node
+		err  error
+	}{
 		//{
-		//	name: "missing wasm config",
+		//	name: "missing account key",
 		//	args: args{
 		//		cfg: &Config{
 		//			Global: GlobalConfig{BasePath: cfg.Global.BasePath},
 		//			Init:   InitConfig{Genesis: genFile.Name()},
-		//			Account: AccountConfig{Key: "alice"},
+		//			Core: CoreConfig{Roles: types.AuthorityRole },
 		//		},
 		//	},
-		//	err:  errors.New("failed to get runtime instance"),
+		//	err:  errors.New("no keys provided for authority node"),
 		//},
 		{
 			name: "minimal config",
@@ -226,8 +285,7 @@ func TestNewNodeC(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//got, err := NewNodeB(tt.args.cfg, tt.args.stopFunc)
-			got, err := NewNodeC(tt.args.cfg)
+			got, err := newNodeC(tt.args.cfg, m)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 				utils.RemoveTestDir(t)

@@ -326,6 +326,7 @@ func newNodeC(cfg *Config, nn newNodeIface) (*Node, error) {
 
 	return node, nil
 }
+//go:generate mockgen -source=node.go -destination=mock_node.go -package=dot
 
 type newNodeIface interface {
 	nodeInitialised(string) bool
