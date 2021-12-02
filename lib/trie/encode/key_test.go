@@ -9,27 +9,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ExtraPartialKeyLength(t *testing.T) {
+func Test_KeyLength(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		publicKeyLength int
-		encoding        []byte
-		err             error
+		partialKeyLength int
+		encoding         []byte
+		err              error
 	}{
 		"length equal to maximum": {
-			publicKeyLength: int(maxPartialKeySize) + 63,
-			err:             ErrPartialKeyTooBig,
+			partialKeyLength: int(maxPartialKeySize) + 63,
+			err:              ErrPartialKeyTooBig,
 		},
 		"zero length": {
 			encoding: []byte{0xc1},
 		},
 		"one length": {
-			publicKeyLength: 1,
-			encoding:        []byte{0xc2},
+			partialKeyLength: 1,
+			encoding:         []byte{0xc2},
 		},
 		"length at maximum allowed": {
-			publicKeyLength: int(maxPartialKeySize) + 62,
+			partialKeyLength: int(maxPartialKeySize) + 62,
 			encoding: []byte{
 				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -65,7 +65,7 @@ func Test_ExtraPartialKeyLength(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, err := ExtraPartialKeyLength(testCase.publicKeyLength)
+			encoding, err := KeyLength(testCase.partialKeyLength)
 
 			assert.ErrorIs(t, err, testCase.err)
 			assert.Equal(t, testCase.encoding, encoding)

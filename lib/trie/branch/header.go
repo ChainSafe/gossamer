@@ -17,7 +17,7 @@ func (b *Branch) Header() (encoding []byte, err error) {
 	var encodedPublicKeyLength []byte
 	if len(b.Key) >= 63 {
 		header = header | 0x3f
-		encodedPublicKeyLength, err = encode.ExtraPartialKeyLength(len(b.Key))
+		encodedPublicKeyLength, err = encode.KeyLength(len(b.Key))
 		if err != nil {
 			return nil, err
 		}

@@ -12,7 +12,7 @@ func (l *Leaf) Header() (encoding []byte, err error) {
 
 	if len(l.Key) >= 63 {
 		header = header | 0x3f
-		encodedPublicKeyLength, err = encode.ExtraPartialKeyLength(len(l.Key))
+		encodedPublicKeyLength, err = encode.KeyLength(len(l.Key))
 		if err != nil {
 			return nil, err
 		}

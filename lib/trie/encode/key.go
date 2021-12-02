@@ -12,22 +12,22 @@ const maxPartialKeySize = ^uint16(0)
 
 var ErrPartialKeyTooBig = errors.New("partial key length cannot be larger than or equal to 2^16")
 
-// ExtraPartialKeyLength encodes the public key length.
-func ExtraPartialKeyLength(publicKeyLength int) (encoding []byte, err error) {
-	publicKeyLength -= 63
+// KeyLength encodes the public key length.
+func KeyLength(keyLength int) (encoding []byte, err error) {
+	keyLength -= 63
 
-	if publicKeyLength >= int(maxPartialKeySize) {
+	if keyLength >= int(maxPartialKeySize) {
 		return nil, fmt.Errorf("%w: %d",
-			ErrPartialKeyTooBig, publicKeyLength)
+			ErrPartialKeyTooBig, keyLength)
 	}
 
 	for i := uint16(0); i < maxPartialKeySize; i++ {
-		if publicKeyLength < 255 {
-			encoding = append(encoding, byte(publicKeyLength))
+		if keyLength < 255 {
+			encoding = append(encoding, byte(keyLength))
 			break
 		}
 		encoding = append(encoding, byte(255))
-		publicKeyLength -= 255
+		keyLength -= 255
 	}
 
 	return encoding, nil
