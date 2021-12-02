@@ -6,7 +6,6 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -398,11 +397,6 @@ main:
 			if err != nil {
 				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
-
-			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
-			if err != nil {
-				logger.Debugf("problem sending system.interval telemetry message: %s", err)
-			}
 		}
 	}
 }
@@ -670,6 +664,10 @@ func (s *Service) startPeerSetHandler() {
 
 func (s *Service) processMessage(msg peerset.Message) {
 	peerID := msg.PeerID
+	if peerID == "" {
+		logger.Errorf("found empty peer id in peerset message")
+		return
+	}
 	switch msg.Status {
 	case peerset.Connect:
 		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
@@ -704,12 +702,7 @@ func (s *Service) startProcessingMsg() {
 		select {
 		case <-s.ctx.Done():
 			return
-		case m := <-msgCh:
-			msg, ok := m.(peerset.Message)
-			if !ok {
-				logger.Error(fmt.Sprintf("failed to get message from peerSet: type is %T instead of peerset.Message", m))
-				continue
-			}
+		case msg := <-msgCh:
 			s.processMessage(msg)
 		}
 	}
