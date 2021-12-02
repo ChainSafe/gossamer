@@ -71,7 +71,6 @@ func NewStateSync(gData *genesis.Data, storageAPI StorageAPI) (SyncStateAPI, err
 	tmpGen.ID = gData.ID
 	tmpGen.Bootnodes = common.BytesToStringArray(gData.Bootnodes)
 	tmpGen.ProtocolID = gData.ProtocolID
-
 	return syncState{chainSpecification: tmpGen}, nil
 }
 

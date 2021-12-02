@@ -191,7 +191,7 @@ func (am *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, re
 }
 
 // RemoveExtrinsic Remove given extrinsic from the pool and temporarily ban it to prevent reimporting
-func (am *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *RemoveExtrinsicsResponse) error {
+func (am *AuthorModule) RemoveExtrinsic(r *http.Request, _ *ExtrinsicOrHashRequest, _ *RemoveExtrinsicsResponse) error {
 	return nil
 }
 
