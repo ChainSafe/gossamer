@@ -39,7 +39,7 @@ func newPrivateIPFilters() (privateIPs *ma.Filters, err error) {
 	}
 	privateIPs = ma.NewFilters()
 	for _, cidr := range privateCIDRs {
-		_, ipnet, err := net.ParseCIDR(cidr) //nolint
+		_, ipnet, err := net.ParseCIDR(cidr)
 		if err != nil {
 			return privateIPs, err
 		}
