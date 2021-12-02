@@ -715,6 +715,7 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 			bd.Header = block.header
 		} else {
 			logger.Criticalf("block with unknown header is ready: hash=%s", bd.Hash)
+			return
 		}
 	}
 
@@ -722,6 +723,7 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 		logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)
 	} else {
 		logger.Criticalf("new ready block number (unknown) with hash %s", bd.Header.Number, bd.Hash)
+		return
 	}
 
 	ready := []*types.BlockData{bd}
