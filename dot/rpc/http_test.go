@@ -245,7 +245,7 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 
 	safeData := []byte(fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"%s","params":[],"id":2}`,
-		"system_localPeerId"))
+		"system_localPeerID"))
 	safebuf := new(bytes.Buffer)
 	safebuf.Write(safeData)
 
