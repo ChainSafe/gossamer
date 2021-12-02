@@ -39,7 +39,7 @@ func (s *Service) receiveMessages(ctx context.Context) {
 			vm := msg.msg
 
 			switch vm.Message.Stage {
-			case prevote:
+			case prevote, primaryProposal:
 				err := telemetry.GetInstance().SendMessage(
 					telemetry.NewAfgReceivedPrevoteTM(
 						vm.Message.Hash,
