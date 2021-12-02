@@ -22,7 +22,8 @@ import (
 func TestSystemModule_ChainTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("ChainName").Return("polkadot", nil)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI), new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var res string
@@ -35,7 +36,8 @@ func TestSystemModule_ChainTest(t *testing.T) {
 func TestSystemModule_NameTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("SystemName").Return("kusama", nil)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI), new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var res string
@@ -48,7 +50,8 @@ func TestSystemModule_NameTest(t *testing.T) {
 func TestSystemModule_ChainTypeTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("ChainType").Return("testChainType", nil)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI), new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var res string
@@ -62,7 +65,8 @@ func TestSystemModule_PropertiesTest(t *testing.T) {
 	var emptyMap map[string]interface{}
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("Properties").Return(emptyMap)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI), new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var resMap interface{}
@@ -74,7 +78,8 @@ func TestSystemModule_PropertiesTest(t *testing.T) {
 func TestSystemModule_SystemVersionTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("SystemVersion").Return("1.2.1", nil)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI), new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var res string
@@ -87,7 +92,8 @@ func TestSystemModule_SystemVersionTest(t *testing.T) {
 func TestSystemModule_HealthTest(t *testing.T) {
 	mockNetworkAPI := new(mocks.NetworkAPI)
 	mockNetworkAPI.On("Health").Return(common.Health{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI), new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var sysHealthRes SystemHealthResponse
@@ -99,7 +105,8 @@ func TestSystemModule_HealthTest(t *testing.T) {
 func TestSystemModule_NetworkStateTest(t *testing.T) {
 	mockNetworkAPI := new(mocks.NetworkAPI)
 	mockNetworkAPI.On("NetworkState").Return(common.NetworkState{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI), new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var networkStateRes SystemNetworkStateResponse
@@ -111,7 +118,8 @@ func TestSystemModule_NetworkStateTest(t *testing.T) {
 func TestSystemModule_PeersTest(t *testing.T) {
 	mockNetworkAPI := new(mocks.NetworkAPI)
 	mockNetworkAPI.On("Peers").Return([]common.PeerInfo{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI), new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
 
 	req := &EmptyRequest{}
 	var sysPeerRes SystemPeersResponse
@@ -193,8 +201,11 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 }
 
 func TestSystemModule_AccountNextIndex(t *testing.T) {
-	storageKeyHex := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da93116aec311d8421cece41129ffaac05aa7f9580382edb384b1b43cbcf3d1b1e7f1a1d232cf4139bd48eaafb9656da27d")
-	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
+	storageKeyHex := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886" +
+		"371da93116aec311d8421cece41129ffaac05aa7f9580382edb384b1b43cbcf3d1b1e7f1a1d232cf4139bd48eaafb9656da27d")
+	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e" +
+		"7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91" +
+		"c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
 	v := make([]*transaction.ValidTransaction, 1)
 	v[0] = &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(signedExt),
@@ -215,7 +226,9 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	mockCoreAPIMagicNumMismatch.On("GetMetadata", (*common.Hash)(nil)).Return(storageKeyHex, nil)
 
 	mockStorageAPI := new(mocks.StorageAPI)
-	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(common.MustHexToBytes("0x03000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
+	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), storageKeyHex).
+		Return(common.MustHexToBytes("0x0300000000000000000000000000000000000000000000000000000000000000000000"+
+			"0000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
 
 	mockStorageAPIErr := new(mocks.StorageAPI)
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
@@ -462,7 +475,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sm := tt.sysModule
 			res := ""
-			err := sm.LocalPeerId(tt.args.r, tt.args.req, &res)
+			err := sm.LocalPeerID(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {

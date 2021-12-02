@@ -55,7 +55,8 @@ func TestStateModuleGetPairs(t *testing.T) {
 	mockStorageAPIGetKeysErr := new(mocks.StorageAPI)
 	mockStorageAPIGetKeysErr.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
 	mockStorageAPIGetKeysErr.On("Entries", &hash).Return(m, nil)
-	mockStorageAPIGetKeysErr.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return(nil, errors.New("GetKeysWithPrefix Err"))
+	mockStorageAPIGetKeysErr.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).
+		Return(nil, errors.New("GetKeysWithPrefix Err"))
 
 	mockStorageAPIEntriesErr := new(mocks.StorageAPI)
 	mockStorageAPIEntriesErr.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
@@ -188,13 +189,16 @@ func TestStateModuleGetPairs(t *testing.T) {
 
 func TestStateModuleGetKeysPaged(t *testing.T) {
 	mockStorageAPI := new(mocks.StorageAPI)
-	mockStorageAPI.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).Return([][]byte{{1}, {2}}, nil)
+	mockStorageAPI.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).
+		Return([][]byte{{1}, {2}}, nil)
 
 	mockStorageAPI2 := new(mocks.StorageAPI)
-	mockStorageAPI2.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).Return([][]byte{{1, 1, 1}, {1, 1, 1}}, nil)
+	mockStorageAPI2.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).
+		Return([][]byte{{1, 1, 1}, {1, 1, 1}}, nil)
 
 	mockStorageAPIErr := new(mocks.StorageAPI)
-	mockStorageAPIErr.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).Return(nil, errors.New("GetKeysWithPrefix Err"))
+	mockStorageAPIErr.On("GetKeysWithPrefix", (*common.Hash)(nil), common.MustHexToBytes("0x")).
+		Return(nil, errors.New("GetKeysWithPrefix Err"))
 
 	type fields struct {
 		networkAPI NetworkAPI
@@ -393,7 +397,9 @@ func TestStateModuleGetReadProof(t *testing.T) {
 				},
 			},
 			exp: StateGetReadProofResponse{
-				At:    common.Hash{0x3a, 0xa9, 0x6b, 0x1, 0x49, 0xb6, 0xca, 0x36, 0x88, 0x87, 0x8b, 0xdb, 0xd1, 0x94, 0x64, 0x44, 0x86, 0x24, 0x13, 0x63, 0x98, 0xe3, 0xce, 0x45, 0xb9, 0xe7, 0x55, 0xd3, 0xab, 0x61, 0x35, 0x5a},
+				At: common.Hash{
+					0x3a, 0xa9, 0x6b, 0x1, 0x49, 0xb6, 0xca, 0x36, 0x88, 0x87, 0x8b, 0xdb, 0xd1, 0x94, 0x64, 0x44,
+					0x86, 0x24, 0x13, 0x63, 0x98, 0xe3, 0xce, 0x45, 0xb9, 0xe7, 0x55, 0xd3, 0xab, 0x61, 0x35, 0x5a},
 				Proof: []string{"0x010101", "0x010101"},
 			},
 		},

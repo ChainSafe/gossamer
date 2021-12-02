@@ -27,7 +27,9 @@ import (
 )
 
 // https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
-var testExt = common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670")
+var testExt = common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8e" +
+	"fbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b98" +
+	"2757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670")
 
 // invalid transaction (above tx, with last byte changed)
 //nolint
@@ -209,7 +211,10 @@ func TestAuthorModule_InsertKey_Valid_Gran_Keytype(t *testing.T) {
 
 func TestAuthorModule_InsertKey_InValid(t *testing.T) {
 	auth := setupAuthModule(t, nil)
-	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x0000000000000000000000000000000000000000000000000000000000000000"}
+	req := &KeyInsertRequest{
+		"babe",
+		"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
+		"0x0000000000000000000000000000000000000000000000000000000000000000"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
 	require.EqualError(t, err, "generated public key does not equal provide public key")
@@ -217,7 +222,9 @@ func TestAuthorModule_InsertKey_InValid(t *testing.T) {
 
 func TestAuthorModule_InsertKey_UnknownKeyType(t *testing.T) {
 	auth := setupAuthModule(t, nil)
-	req := &KeyInsertRequest{"mack", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
+	req := &KeyInsertRequest{"mack",
+		"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
+		"0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
 	require.EqualError(t, err, "cannot decode key: invalid key type")

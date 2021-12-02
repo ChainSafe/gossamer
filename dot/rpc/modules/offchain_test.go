@@ -17,7 +17,8 @@ import (
 
 func TestOffchainModule_LocalStorageGet(t *testing.T) {
 	mockRuntimeStorageAPI := new(mocks.RuntimeStorageAPI)
-	mockRuntimeStorageAPI.On("GetPersistent", common.MustHexToBytes("0x11111111111111")).Return(nil, errors.New("GetPersistent error"))
+	mockRuntimeStorageAPI.On("GetPersistent", common.MustHexToBytes("0x11111111111111")).
+		Return(nil, errors.New("GetPersistent error"))
 	mockRuntimeStorageAPI.On("GetLocal", common.MustHexToBytes("0x11111111111111")).Return([]byte("some-value"), nil)
 	offChainModule := NewOffchainModule(mockRuntimeStorageAPI)
 
@@ -107,8 +108,12 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 
 func TestOffchainModule_LocalStorageSet(t *testing.T) {
 	mockRuntimeStorageAPI := new(mocks.RuntimeStorageAPI)
-	mockRuntimeStorageAPI.On("SetLocal", common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).Return(nil)
-	mockRuntimeStorageAPI.On("SetPersistent", common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).Return(errors.New("SetPersistent error"))
+	mockRuntimeStorageAPI.On("SetLocal",
+		common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).
+		Return(nil)
+	mockRuntimeStorageAPI.On("SetPersistent",
+		common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).
+		Return(errors.New("SetPersistent error"))
 
 	type fields struct {
 		nodeStorage RuntimeStorageAPI

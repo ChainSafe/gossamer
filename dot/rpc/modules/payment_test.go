@@ -48,7 +48,8 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 		Class:      21,
 		PartialFee: u,
 	}, nil)
-	runtimeErrorMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, errors.New("PaymentQueryInfo error"))
+	runtimeErrorMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).
+		Return(nil, errors.New("PaymentQueryInfo error"))
 
 	paymentModule := NewPaymentModule(blockAPIMock)
 	type fields struct {
