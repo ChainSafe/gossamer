@@ -176,6 +176,7 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 }
 
 
+// NewNodeC to create node
 func NewNodeC(cfg *Config) (*Node, error) {
 	return newNodeC(cfg, nodeInterface{})
 }
@@ -426,6 +427,8 @@ func (nodeInterface) initialiseTelemetry(cfg *Config, stateSrvc *state.Service, 
 		logger.Debugf("problem sending system.connected telemetry message: %s", err)
 	}
 }
+
+// NewNodeB to create new node (to be replaced)
 func NewNodeB(cfg *Config, stopFunc func()) (*Node, error) {
 	nodeI := nodeInterface{}
 	if !NodeInitialized(cfg.Global.BasePath) {
@@ -635,6 +638,12 @@ func (nodeInterface)initKeystore(cfg *Config) (*keystore.GlobalKeystore, error){
 	}
 
 	return ks, nil
+}
+
+// InitNode init Node
+func InitNode(cfg *Config) error {
+	nodeI := nodeInterface{}
+	return nodeI.initNode(cfg)
 }
 
 // NewNode creates a new dot node from a dot node configuration

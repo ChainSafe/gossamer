@@ -182,7 +182,7 @@ func TestNewNodeC(t *testing.T) {
 
 	type args struct {
 		cfg      *Config
-		stopFunc func()
+		//stopFunc func()
 	}
 	tests := []struct {
 		name string
@@ -234,14 +234,25 @@ func TestNewNodeMock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	m := NewMocknewNodeIface(ctrl)
-	m.EXPECT().nodeInitialised(gomock.Any()).Return(true)
-	m.EXPECT().initKeystore(gomock.Any())
-	m.EXPECT().createStateService(gomock.Any())
-	m.EXPECT().createRuntimeStorage(gomock.Any())
-	m.EXPECT().loadRuntime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-	m.EXPECT().createBlockVerifier(gomock.Any())
-	m.EXPECT().createDigestHandler(gomock.Any())
-	m.EXPECT().createCoreService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+	m.EXPECT().nodeInitialised(gomock.Any()).Return(true).AnyTimes()
+	m.EXPECT().initKeystore(gomock.Any()).DoAndReturn(func (config *Config) (*keystore.GlobalKeystore, error) {
+		if len(config.Account.Key) == 0 {
+			return nil, errors.New("no keys provided for authority node")
+		}
+		return &keystore.GlobalKeystore{}, nil
+	}).AnyTimes()
+	m.EXPECT().createStateService(gomock.Any()).Return(&state.Service{}, nil).AnyTimes()
+	m.EXPECT().createRuntimeStorage(gomock.Any()).AnyTimes()
+	m.EXPECT().loadRuntime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().createBlockVerifier(gomock.Any()).AnyTimes()
+	m.EXPECT().createDigestHandler(gomock.Any()).AnyTimes()
+	m.EXPECT().createCoreService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().createGRANDPAService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().newSyncService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().createBABEService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().createSystemService(gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().initialiseTelemetry(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().createNetworkService(gomock.Any(), gomock.Any()).AnyTimes()
 
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -252,7 +263,7 @@ func TestNewNodeMock(t *testing.T) {
 
 	type args struct {
 		cfg      *Config
-		stopFunc func()
+		//stopFunc func()
 	}
 	tests := []struct {
 		name string
@@ -260,17 +271,17 @@ func TestNewNodeMock(t *testing.T) {
 		want *Node
 		err  error
 	}{
-		//{
-		//	name: "missing account key",
-		//	args: args{
-		//		cfg: &Config{
-		//			Global: GlobalConfig{BasePath: cfg.Global.BasePath},
-		//			Init:   InitConfig{Genesis: genFile.Name()},
-		//			Core: CoreConfig{Roles: types.AuthorityRole },
-		//		},
-		//	},
-		//	err:  errors.New("no keys provided for authority node"),
-		//},
+		{
+			name: "missing account key",
+			args: args{
+				cfg: &Config{
+					Global: GlobalConfig{BasePath: cfg.Global.BasePath},
+					Init:   InitConfig{Genesis: genFile.Name()},
+					Core: CoreConfig{Roles: types.AuthorityRole },
+				},
+			},
+			err:  errors.New("no keys provided for authority node"),
+		},
 		{
 			name: "minimal config",
 			args: args{
@@ -328,7 +339,7 @@ func TestNewNode(t *testing.T) {
 	type args struct {
 		cfg      *Config
 		ks       *keystore.GlobalKeystore
-		stopFunc func()
+		//stopFunc func()
 	}
 	tests := []struct {
 		name string

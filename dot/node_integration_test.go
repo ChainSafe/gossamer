@@ -117,7 +117,7 @@ func TestNewNode_Integration(t *testing.T) {
 
 	cfg.Core.Roles = types.FullNodeRole
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	bp := node.Services.Get(&babe.Service{})
@@ -150,7 +150,7 @@ func TestNewNode_Authority(t *testing.T) {
 
 	cfg.Core.Roles = types.AuthorityRole
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	bp := node.Services.Get(&babe.Service{})
@@ -249,7 +249,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	ks.Gran.Insert(ed25519Keyring.Alice())
 	sr25519Keyring, _ := keystore.NewSr25519Keyring()
 	ks.Babe.Insert(sr25519Keyring.Alice())
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
@@ -307,7 +307,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
@@ -359,7 +359,7 @@ func TestStartNode(t *testing.T) {
 
 	cfg.Core.Roles = types.FullNodeRole
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	go func() {
@@ -373,13 +373,12 @@ func TestStartNode(t *testing.T) {
 
 func TestNode_StopFunc(t *testing.T) {
 	testvar := "before"
-	stopFunc := func() {
-		testvar = "after"
-	}
+	//stopFunc := func() {
+	//	testvar = "after"
+	//}
 
 	node := &Node{
 		Services: &services.ServiceRegistry{},
-		StopFunc: stopFunc,
 		wg:       sync.WaitGroup{},
 	}
 	node.wg.Add(1)

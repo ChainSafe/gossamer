@@ -50,7 +50,8 @@ func TestCreateStateService(t *testing.T) {
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.Nil(t, err)
 	require.NotNil(t, stateSrvc)
 }
@@ -73,7 +74,8 @@ func TestCreateCoreService(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -83,10 +85,10 @@ func TestCreateCoreService(t *testing.T) {
 
 	networkSrvc := &network.Service{}
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := nodeI.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := nodeI.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	require.NoError(t, err)
 	require.NotNil(t, coreSrvc)
 }
@@ -105,10 +107,11 @@ func TestCreateBlockVerifier(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.NoError(t, err)
 
-	_, err = createBlockVerifier(stateSrvc)
+	_, err = nodeI.createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
 
@@ -126,22 +129,23 @@ func TestCreateSyncService(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
 
-	ver, err := createBlockVerifier(stateSrvc)
+	ver, err := nodeI.createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := nodeI.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	coreSrvc, err := nodeI.createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	_, err = newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{})
+	_, err = nodeI.newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{})
 	require.NoError(t, err)
 }
 
@@ -160,10 +164,11 @@ func TestCreateNetworkService(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.NoError(t, err)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	networkSrvc, err := nodeI.createNetworkService(cfg, stateSrvc)
 	require.NoError(t, err)
 	require.NotNil(t, networkSrvc)
 }
@@ -186,7 +191,8 @@ func TestCreateRPCService(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
@@ -195,21 +201,21 @@ func TestCreateRPCService(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	ns, err := createRuntimeStorage(stateSrvc)
+	ns, err := nodeI.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
-	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
-	require.NoError(t, err)
-
-	dh, err := createDigestHandler(stateSrvc)
+	err = nodeI.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	dh, err := nodeI.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
+	coreSrvc, err := nodeI.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	require.NoError(t, err)
 
-	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	sysSrvc, err := nodeI.createSystemService(&cfg.System, stateSrvc)
+	require.NoError(t, err)
+
+	rpcSrvc, err := nodeI.createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, rpcSrvc)
 }
@@ -229,7 +235,8 @@ func TestCreateBABEService(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -237,18 +244,18 @@ func TestCreateBABEService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Babe.Insert(kr.Alice())
 
-	ns, err := createRuntimeStorage(stateSrvc)
+	ns, err := nodeI.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
-	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
-	require.NoError(t, err)
-
-	dh, err := createDigestHandler(stateSrvc)
+	err = nodeI.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	dh, err := nodeI.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	bs, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
+	coreSrvc, err := nodeI.createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	require.NoError(t, err)
+
+	bs, err := nodeI.createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }
@@ -268,7 +275,8 @@ func TestCreateGrandpaService(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -276,16 +284,16 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
 
-	ns, err := createRuntimeStorage(stateSrvc)
+	ns, err := nodeI.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
 
-	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
+	err = nodeI.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := nodeI.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, &network.Service{})
+	gs, err := nodeI.createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, &network.Service{})
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }
@@ -323,7 +331,8 @@ func TestNewWebSocketServer(t *testing.T) {
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeI := nodeInterface{}
+	stateSrvc, err := nodeI.createStateService(cfg)
 	require.Nil(t, err)
 
 	networkSrvc := &network.Service{}
@@ -332,21 +341,21 @@ func TestNewWebSocketServer(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	ns, err := createRuntimeStorage(stateSrvc)
+	ns, err := nodeI.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
-	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
-	require.NoError(t, err)
-
-	dh, err := createDigestHandler(stateSrvc)
+	err = nodeI.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	dh, err := nodeI.createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
+	coreSrvc, err := nodeI.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	require.Nil(t, err)
 
-	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
+	sysSrvc, err := nodeI.createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	rpcSrvc, err := nodeI.createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
 	require.NoError(t, err)
 	err = rpcSrvc.Start()
 	require.Nil(t, err)
