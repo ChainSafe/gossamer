@@ -719,7 +719,7 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 		bd.Header = block.header
 	}
 
-	if bd.Header != nil {
+	if bd.Header == nil {
 		logger.Criticalf("new ready block number (unknown) with hash %s", bd.Header.Number, bd.Hash)
 		return
 	}
