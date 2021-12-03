@@ -458,6 +458,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -472,6 +473,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -486,6 +488,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -500,6 +503,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -514,6 +518,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            true,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -528,6 +533,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            false,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 				PublicIP:          "10.0.5.2",
 			},
 		},
@@ -909,6 +915,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			NoMDNS:            testCfg.Network.NoMDNS,
 			DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 			MinPeers:          testCfg.Network.MinPeers,
+			MaxPeers:          testCfg.Network.MaxPeers,
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,
