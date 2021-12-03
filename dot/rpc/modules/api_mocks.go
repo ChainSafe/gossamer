@@ -16,7 +16,8 @@ import (
 func NewMockStorageAPI() *modulesmocks.StorageAPI {
 	m := new(modulesmocks.StorageAPI)
 	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
-	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
+	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"),
+		mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
 	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("RegisterStorageObserver", mock.Anything)
@@ -41,7 +42,8 @@ func NewMockBlockAPI() *modulesmocks.BlockAPI {
 	m.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil)
 	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
-	m.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(make([]common.Hash, 0), nil)
+	m.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).
+		Return(make([]common.Hash, 0), nil)
 	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).Return(uint32(0), nil)
 
 	return m

@@ -214,7 +214,6 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	if err != nil {
 		return err
 	}
-
 	var accountInfo ctypes.AccountInfo
 	err = ctypes.DecodeFromBytes(accountRaw, &accountInfo)
 	if err != nil {
@@ -259,6 +258,7 @@ func (sm *SystemModule) LocalListenAddresses(r *http.Request, req *EmptyRequest,
 }
 
 // LocalPeerId Returns the base58-encoded PeerId fo the node.
+//nolint
 func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *string) error {
 	netstate := sm.networkAPI.NetworkState()
 	if netstate.PeerID == "" {

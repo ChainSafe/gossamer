@@ -675,21 +675,21 @@ func (s *Service) processMessage(msg peerset.Message) {
 			var err error
 			addrInfo, err = s.host.discovery.findPeer(peerID)
 			if err != nil {
-				logger.Debugf("failed to find peer id %s: %s", peerID, err)
+				logger.Warnf("failed to find peer id %s: %s", peerID, err)
 				return
 			}
 		}
 
 		err := s.host.connect(addrInfo)
 		if err != nil {
-			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
+			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
-			logger.Debugf("failed to close connection with peer %s: %s", peerID, err)
+			logger.Warnf("failed to close connection with peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)

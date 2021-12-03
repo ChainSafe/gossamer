@@ -128,7 +128,8 @@ func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res 
 }
 
 // GetFinalizedHeadByRound returns the hash of the block finalised at the given round and setID
-func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainFinalizedHeadRequest, res *ChainHashResponse) error {
+func (cm *ChainModule) GetFinalizedHeadByRound(
+	r *http.Request, req *ChainFinalizedHeadRequest, res *ChainHashResponse) error {
 	h, err := cm.blockAPI.GetFinalisedHash(req.Round, req.SetID)
 	if err != nil {
 		return err
@@ -152,7 +153,7 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 
 // SubscribeFinalizedHeads handled by websocket handler, but this func should remain
 //  here so it's added to rpc_methods list
-func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+func (cm *ChainModule) SubscribeFinalizedHeads(_ *http.Request, _ *EmptyRequest, _ *ChainBlockHeaderResponse) error {
 	return ErrSubscriptionTransport
 }
 

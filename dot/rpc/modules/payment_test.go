@@ -5,141 +5,163 @@ package modules
 
 import (
 	"errors"
+	"math/big"
+	"net/http"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestPaymentQueryInfo(t *testing.T) {
-	state := newTestStateService(t)
-	bestBlockHash := state.Block.BestBlockHash()
+func TestPaymentModule_QueryInfo(t *testing.T) {
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	u, err := scale.NewUint128(new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6}))
+	require.NoError(t, err)
 
-	t.Run("When there is no errors", func(t *testing.T) {
-		mockedQueryInfo := &types.TransactionPaymentQueryInfo{
-			Weight:     0,
-			Class:      0,
-			PartialFee: scale.MaxUint128,
-		}
+	runtimeMock := new(mocksruntime.Instance)
+	runtimeMock2 := new(mocksruntime.Instance)
+	runtimeErrorMock := new(mocksruntime.Instance)
 
-		expected := PaymentQueryInfoResponse{
-			Weight:     0,
-			Class:      0,
-			PartialFee: scale.MaxUint128.String(),
-		}
+	blockAPIMock := new(mocks.BlockAPI)
+	blockAPIMock2 := new(mocks.BlockAPI)
+	blockErrorAPIMock1 := new(mocks.BlockAPI)
+	blockErrorAPIMock2 := new(mocks.BlockAPI)
 
-		runtimeMock := new(mocksruntime.Instance)
-		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(mockedQueryInfo, nil)
+	blockAPIMock.On("BestBlockHash").Return(testHash, nil)
+	blockAPIMock.On("GetRuntime", &testHash).Return(runtimeMock, nil)
 
-		blockAPIMock := new(mocks.BlockAPI)
-		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
+	blockAPIMock2.On("GetRuntime", &testHash).Return(runtimeMock2, nil)
 
-		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
+	blockErrorAPIMock1.On("GetRuntime", &testHash).Return(runtimeErrorMock, nil)
 
-		mod := &PaymentModule{
-			blockAPI: blockAPIMock,
-		}
+	blockErrorAPIMock2.On("GetRuntime", &testHash).Return(nil, errors.New("GetRuntime error"))
 
-		var req PaymentQueryInfoRequest
-		req.Ext = "0x0001"
-		req.Hash = nil
+	runtimeMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, nil)
+	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.TransactionPaymentQueryInfo{
+		Weight:     uint64(21),
+		Class:      21,
+		PartialFee: u,
+	}, nil)
+	runtimeErrorMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).
+		Return(nil, errors.New("PaymentQueryInfo error"))
 
-		var res PaymentQueryInfoResponse
-		err := mod.QueryInfo(nil, &req, &res)
-
-		require.NoError(t, err)
-		require.Equal(t, expected, res)
-
-		// should be called because req.Hash is nil
-		blockAPIMock.AssertCalled(t, "BestBlockHash")
-		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
-		runtimeMock.AssertCalled(t, "PaymentQueryInfo", mock.AnythingOfType("[]uint8"))
-	})
-
-	t.Run("When could not get runtime", func(t *testing.T) {
-		blockAPIMock := new(mocks.BlockAPI)
-		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
-
-		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).
-			Return(nil, errors.New("mocked problems"))
-
-		mod := &PaymentModule{
-			blockAPI: blockAPIMock,
-		}
-
-		var req PaymentQueryInfoRequest
-		req.Ext = "0x0011"
-		req.Hash = nil
-
-		var res PaymentQueryInfoResponse
-		err := mod.QueryInfo(nil, &req, &res)
-
-		require.Error(t, err)
-		require.Equal(t, res, PaymentQueryInfoResponse{})
-
-		blockAPIMock.AssertCalled(t, "BestBlockHash")
-		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
-	})
-
-	t.Run("When PaymentQueryInfo returns error", func(t *testing.T) {
-		runtimeMock := new(mocksruntime.Instance)
-		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("mocked error"))
-
-		blockAPIMock := new(mocks.BlockAPI)
-		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
-
-		mod := &PaymentModule{
-			blockAPI: blockAPIMock,
-		}
-
-		mockedHash := common.NewHash([]byte{0x01, 0x02})
-		var req PaymentQueryInfoRequest
-		req.Ext = "0x0000"
-		req.Hash = &mockedHash
-
-		var res PaymentQueryInfoResponse
-		err := mod.QueryInfo(nil, &req, &res)
-
-		require.Error(t, err)
-		require.Equal(t, res, PaymentQueryInfoResponse{})
-
-		// should be called because req.Hash is nil
-		blockAPIMock.AssertNotCalled(t, "BestBlockHash")
-		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
-		runtimeMock.AssertCalled(t, "PaymentQueryInfo", mock.AnythingOfType("[]uint8"))
-	})
-
-	t.Run("When PaymentQueryInfo returns a nil info", func(t *testing.T) {
-		runtimeMock := new(mocksruntime.Instance)
-		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, nil)
-
-		blockAPIMock := new(mocks.BlockAPI)
-		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
-
-		mod := &PaymentModule{
-			blockAPI: blockAPIMock,
-		}
-
-		mockedHash := common.NewHash([]byte{0x01, 0x02})
-		var req PaymentQueryInfoRequest
-		req.Ext = "0x0020"
-		req.Hash = &mockedHash
-
-		var res PaymentQueryInfoResponse
-		err := mod.QueryInfo(nil, &req, &res)
-
-		require.NoError(t, err)
-		require.Equal(t, res, PaymentQueryInfoResponse{})
-
-		// should be called because req.Hash is nil
-		blockAPIMock.AssertNotCalled(t, "BestBlockHash")
-		blockAPIMock.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
-		runtimeMock.AssertCalled(t, "PaymentQueryInfo", mock.AnythingOfType("[]uint8"))
-	})
+	paymentModule := NewPaymentModule(blockAPIMock)
+	type fields struct {
+		blockAPI BlockAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *PaymentQueryInfoRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    PaymentQueryInfoResponse
+	}{
+		{
+			name: "Nil Query Info",
+			fields: fields{
+				paymentModule.blockAPI,
+			},
+			args: args{
+				req: &PaymentQueryInfoRequest{
+					Ext:  "0x0000",
+					Hash: &testHash,
+				},
+			},
+			exp: PaymentQueryInfoResponse{},
+		},
+		{
+			name: "Not Nil Query Info",
+			fields: fields{
+				blockAPIMock2,
+			},
+			args: args{
+				req: &PaymentQueryInfoRequest{
+					Ext:  "0x0000",
+					Hash: &testHash,
+				},
+			},
+			exp: PaymentQueryInfoResponse{
+				Weight: uint64(21),
+				Class:  21,
+				PartialFee: scale.MustNewUint128(new(big.Int).SetBytes(
+					[]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6}),
+				).String(),
+			},
+		},
+		{
+			name: "Nil Hash",
+			fields: fields{
+				paymentModule.blockAPI,
+			},
+			args: args{
+				req: &PaymentQueryInfoRequest{
+					Ext: "0x0",
+				},
+			},
+			expErr: errors.New("cannot decode an odd length string"),
+		},
+		{
+			name: "Invalid Ext",
+			fields: fields{
+				paymentModule.blockAPI,
+			},
+			args: args{
+				req: &PaymentQueryInfoRequest{
+					Ext: "0x0000",
+				},
+			},
+			exp: PaymentQueryInfoResponse{},
+		},
+		{
+			name: "PaymentQueryInfo error",
+			fields: fields{
+				blockErrorAPIMock1,
+			},
+			args: args{
+				req: &PaymentQueryInfoRequest{
+					Ext:  "0x0000",
+					Hash: &testHash,
+				},
+			},
+			expErr: errors.New("PaymentQueryInfo error"),
+		},
+		{
+			name: "GetRuntime error",
+			fields: fields{
+				blockErrorAPIMock2,
+			},
+			args: args{
+				req: &PaymentQueryInfoRequest{
+					Ext:  "0x0000",
+					Hash: &testHash,
+				},
+			},
+			expErr: errors.New("GetRuntime error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &PaymentModule{
+				blockAPI: tt.fields.blockAPI,
+			}
+			res := PaymentQueryInfoResponse{}
+			err := p.QueryInfo(tt.args.in0, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }

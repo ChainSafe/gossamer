@@ -74,6 +74,8 @@ var (
 	DefaultNoMDNS = false
 	// DefaultMinPeers is the default minimum desired peer count
 	DefaultMinPeers = 1
+	// DefaultMaxPeers is the default maximum desired peer count
+	DefaultMaxPeers = 50
 
 	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Second * 10
