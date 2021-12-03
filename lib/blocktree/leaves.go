@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package blocktree
 
@@ -26,6 +13,8 @@ import (
 
 // leafMap provides quick lookup for existing leaves
 type leafMap struct {
+	currentDeepestLeaf *node
+	sync.RWMutex
 	smap *sync.Map // map[common.Hash]*node
 }
 
@@ -37,8 +26,8 @@ func newEmptyLeafMap() *leafMap {
 
 func newLeafMap(n *node) *leafMap {
 	smap := &sync.Map{}
-	for _, child := range n.getLeaves(nil) {
-		smap.Store(child.hash, child)
+	for _, leaf := range n.getLeaves(nil) {
+		smap.Store(leaf.hash, leaf)
 	}
 
 	return &leafMap{
@@ -46,12 +35,12 @@ func newLeafMap(n *node) *leafMap {
 	}
 }
 
-func (ls *leafMap) store(key Hash, value *node) {
-	ls.smap.Store(key, value)
+func (lm *leafMap) store(key Hash, value *node) {
+	lm.smap.Store(key, value)
 }
 
-func (ls *leafMap) load(key Hash) (*node, error) {
-	v, ok := ls.smap.Load(key)
+func (lm *leafMap) load(key Hash) (*node, error) {
+	v, ok := lm.smap.Load(key)
 	if !ok {
 		return nil, errors.New("key not found")
 	}
@@ -60,41 +49,67 @@ func (ls *leafMap) load(key Hash) (*node, error) {
 }
 
 // Replace deletes the old node from the map and inserts the new one
-func (ls *leafMap) replace(oldNode, newNode *node) {
-	ls.smap.Delete(oldNode.hash)
-	ls.store(newNode.hash, newNode)
+func (lm *leafMap) replace(oldNode, newNode *node) {
+	lm.Lock()
+	defer lm.Unlock()
+	lm.smap.Delete(oldNode.hash)
+	lm.store(newNode.hash, newNode)
 }
 
-// DeepestLeaf searches the stored leaves to the find the one with the greatest depth.
-// If there are two leaves with the same depth, choose the one with the earliest arrival time.
-func (ls *leafMap) deepestLeaf() *node {
+// DeepestLeaf searches the stored leaves to the find the one with the greatest number.
+// If there are two leaves with the same number, choose the one with the earliest arrival time.
+func (lm *leafMap) deepestLeaf() *node {
+	lm.RLock()
+	defer lm.RUnlock()
+
 	max := big.NewInt(-1)
 
-	var dLeaf *node
-	ls.smap.Range(func(h, n interface{}) bool {
+	var deepest *node
+	lm.smap.Range(func(h, n interface{}) bool {
 		if n == nil {
 			return true
 		}
 
 		node := n.(*node)
 
-		if max.Cmp(node.depth) < 0 {
-			max = node.depth
-			dLeaf = node
-		} else if max.Cmp(node.depth) == 0 && node.arrivalTime < dLeaf.arrivalTime {
-			dLeaf = node
+		if max.Cmp(node.number) < 0 {
+			max = node.number
+			deepest = node
+		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(deepest.arrivalTime) {
+			deepest = node
 		}
 
 		return true
 	})
 
-	return dLeaf
+	if lm.currentDeepestLeaf != nil {
+		if lm.currentDeepestLeaf.hash == deepest.hash {
+			return lm.currentDeepestLeaf
+		}
+
+		// update the current deepest leaf if the found deepest has a greater number or
+		// if the current and the found deepest has the same number however the current
+		// arrived later then the found deepest
+		if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 1 {
+			lm.currentDeepestLeaf = deepest
+		} else if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 0 &&
+			deepest.arrivalTime.Before(lm.currentDeepestLeaf.arrivalTime) {
+			lm.currentDeepestLeaf = deepest
+		}
+	} else {
+		lm.currentDeepestLeaf = deepest
+	}
+
+	return lm.currentDeepestLeaf
 }
 
-func (ls *leafMap) toMap() map[common.Hash]*node {
+func (lm *leafMap) toMap() map[common.Hash]*node {
+	lm.RLock()
+	defer lm.RUnlock()
+
 	mmap := make(map[common.Hash]*node)
 
-	ls.smap.Range(func(h, n interface{}) bool {
+	lm.smap.Range(func(h, n interface{}) bool {
 		hash := h.(Hash)
 		node := n.(*node)
 		mmap[hash] = node
@@ -104,10 +119,13 @@ func (ls *leafMap) toMap() map[common.Hash]*node {
 	return mmap
 }
 
-func (ls *leafMap) nodes() []*node {
+func (lm *leafMap) nodes() []*node {
+	lm.RLock()
+	defer lm.RUnlock()
+
 	nodes := []*node{}
 
-	ls.smap.Range(func(h, n interface{}) bool {
+	lm.smap.Range(func(h, n interface{}) bool {
 		node := n.(*node)
 		nodes = append(nodes, node)
 		return true

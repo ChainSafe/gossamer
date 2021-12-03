@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package rpc
 
@@ -71,14 +58,11 @@ func TestChainRPC(t *testing.T) {
 		},
 	}
 
-	utils.CreateConfigBabeMaxThreshold()
-	defer os.Remove(utils.ConfigBABEMaxThreshold)
-
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.Nil(t, err)
 
-	time.Sleep(time.Second) // give server a second to start
+	time.Sleep(time.Second * 5) // give server a few seconds to start
 
 	chainBlockHeaderHash := ""
 	for _, test := range testCases {
@@ -156,6 +140,7 @@ func TestChainSubscriptionRPC(t *testing.T) {
 						"parentHash":     "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
 						"stateRoot":      "0x3b1a31d10d4d8a444579fd5a3fb17cbe6bebba9d939d88fe7bafb9d48036abb5",
 						"extrinsicsRoot": "0x8025c0d64df303f79647611c8c2b0a77bc2247ee12d851df4624e1f71ebb3aed",
+						//nolint:lll
 						"digest": map[string](interface{}){"logs": []interface{}{
 							"0x0642414245c101c809062df1d1271d6a50232754baa64870515a7ada927886467748a220972c6d58347fd7317e286045604c5ddb78b84018c4b3a3836ee6626c8da6957338720053588d9f29c307fade658661d8d6a57c525f48553a253cf6e1475dbd319ca90200000000000000000e00000000000000",
 							"0x054241424501017cac567e5b5688260d9d0a1f7fe6a9f81ae0f1900a382e1c73a4929fcaf6e33ed9e7347eb81ebb2699d58f6c8b01c7bdf0714e5f6f4495bc4b5fb3becb287580"}}}}},
@@ -180,6 +165,7 @@ func TestChainSubscriptionRPC(t *testing.T) {
 						"parentHash":     "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
 						"stateRoot":      "0x3b1a31d10d4d8a444579fd5a3fb17cbe6bebba9d939d88fe7bafb9d48036abb5",
 						"extrinsicsRoot": "0x8025c0d64df303f79647611c8c2b0a77bc2247ee12d851df4624e1f71ebb3aed",
+						//nolint:lll
 						"digest": map[string](interface{}){"logs": []interface{}{
 							"0x0642414245c101c809062df1d1271d6a50232754baa64870515a7ada927886467748a220972c6d58347fd7317e286045604c5ddb78b84018c4b3a3836ee6626c8da6957338720053588d9f29c307fade658661d8d6a57c525f48553a253cf6e1475dbd319ca90200000000000000000e00000000000000",
 							"0x054241424501017cac567e5b5688260d9d0a1f7fe6a9f81ae0f1900a382e1c73a4929fcaf6e33ed9e7347eb81ebb2699d58f6c8b01c7bdf0714e5f6f4495bc4b5fb3becb287580"}}}}},
@@ -188,13 +174,8 @@ func TestChainSubscriptionRPC(t *testing.T) {
 		},
 	}
 
-	utils.GenerateGenesisOneAuth()
-	defer os.Remove(utils.GenesisOneAuth)
-	utils.CreateConfigBabeMaxThreshold()
-	defer os.Remove(utils.ConfigBABEMaxThreshold)
-
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start

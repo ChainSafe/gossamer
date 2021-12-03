@@ -1,23 +1,9 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package babe
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -26,14 +12,16 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // verifierInfo contains the information needed to verify blocks
 // it remains the same for an epoch
 type verifierInfo struct {
-	authorities []*types.Authority
-	randomness  Randomness
-	threshold   *common.Uint128
+	authorities    []types.Authority
+	randomness     Randomness
+	threshold      *scale.Uint128
+	secondarySlots bool
 }
 
 // onDisabledInfo contains information about an authority that's been disabled at a certain
@@ -51,18 +39,20 @@ type VerificationManager struct {
 	blockState BlockState
 	epochState EpochState
 	epochInfo  map[uint64]*verifierInfo // map of epoch number -> info needed for verification
-	// there may be different OnDisabled digests on different branches of the chain, so we need to keep track of all of them.
-	onDisabled map[uint64]map[uint32][]*onDisabledInfo // map of epoch number -> block producer index -> block number and hash
+	// there may be different OnDisabled digests on different
+	// branches of the chain, so we need to keep track of all of them.
+	// map of epoch number -> block producer index -> block number and hash
+	onDisabled map[uint64]map[uint32][]*onDisabledInfo
 }
 
 // NewVerificationManager returns a new NewVerificationManager
 func NewVerificationManager(blockState BlockState, epochState EpochState) (*VerificationManager, error) {
 	if blockState == nil {
-		return nil, ErrNilBlockState
+		return nil, errNilBlockState
 	}
 
 	if epochState == nil {
-		return nil, ErrNilEpochState
+		return nil, errNilEpochState
 	}
 
 	return &VerificationManager{
@@ -141,44 +131,43 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
-	epoch, err := v.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return fmt.Errorf("failed to get epoch for block header: %w", err)
-	}
-
 	var (
 		info *verifierInfo
 		has  bool
 	)
 
-	v.lock.Lock()
+	// special case for block 1 - the network doesn't necessarily start in epoch 1.
+	// if this happens, the database will be missing info for epochs before the first block.
+	if header.Number.Cmp(big.NewInt(1)) == 0 {
+		block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
+		if err != nil {
+			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
+		}
 
-	if info, has = v.epochInfo[epoch]; !has {
-		// special case for block 1 - the network doesn't necessarily start in epoch 1.
-		// if this happens, the database will be missing info for epochs before the first block.
-		if header.Number.Cmp(big.NewInt(1)) == 0 {
-			epoch = 0
-
-			// set network starting slot
-			// TODO: first slot should be confirmed when block with number=1 is marked final
-			var firstSlot uint64
-			firstSlot, err = types.GetSlotFromHeader(header)
+		if !block1IsFinal {
+			firstSlot, err := types.GetSlotFromHeader(header)
 			if err != nil {
-				v.lock.Unlock()
 				return fmt.Errorf("failed to get slot from block 1: %w", err)
 			}
 
+			logger.Debugf("syncing block 1, setting first slot as %d", firstSlot)
+
 			err = v.epochState.SetFirstSlot(firstSlot)
 			if err != nil {
-				v.lock.Unlock()
 				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
 			}
-
-			info, err = v.getVerifierInfo(0)
-		} else {
-			info, err = v.getVerifierInfo(epoch)
 		}
+	}
 
+	epoch, err := v.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return fmt.Errorf("failed to get epoch for block header: %w", err)
+	}
+
+	v.lock.Lock()
+
+	if info, has = v.epochInfo[epoch]; !has {
+		info, err = v.getVerifierInfo(epoch)
 		if err != nil {
 			v.lock.Unlock()
 			// SkipVerify is set to true only in the case where we have imported a state at a given height,
@@ -200,58 +189,12 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Unlock()
 
-	// TODO: fix and re-add this, seems like we are disabling authorities that aren't actually disabled
-	// isDisabled, err := v.isDisabled(epoch, header)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to check if authority is disabled: %w", err)
-	// }
-
-	// if isDisabled {
-	// 	return ErrAuthorityDisabled
-	// }
-
 	verifier, err := newVerifier(v.blockState, epoch, info)
 	if err != nil {
 		return fmt.Errorf("failed to create new BABE verifier: %w", err)
 	}
 
 	return verifier.verifyAuthorshipRight(header)
-}
-
-func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) { //nolint
-	v.lock.RLock()
-	defer v.lock.RUnlock()
-
-	// check if any authorities have been disabled this epoch
-	if _, has := v.onDisabled[epoch]; !has {
-		return false, nil
-	}
-
-	// if authorities have been disabled, check which ones
-	idx, err := getAuthorityIndex(header)
-	if err != nil {
-		return false, err
-	}
-
-	if _, has := v.onDisabled[epoch][idx]; !has {
-		return false, nil
-	}
-
-	// this authority has been disabled on some branch, check if we are on that branch
-	producerInfos := v.onDisabled[epoch][idx]
-	for _, info := range producerInfos {
-		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.ParentHash)
-		if err != nil {
-			return false, err
-		}
-
-		if isDescendant && header.Number.Cmp(info.blockNumber) > 0 {
-			// this authority has been disabled on this branch
-			return true, nil
-		}
-	}
-
-	return false, nil
 }
 
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
@@ -271,9 +214,10 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, erro
 	}
 
 	return &verifierInfo{
-		authorities: epochData.Authorities,
-		randomness:  epochData.Randomness,
-		threshold:   threshold,
+		authorities:    epochData.Authorities,
+		randomness:     epochData.Randomness,
+		threshold:      threshold,
+		secondarySlots: configData.SecondarySlots > 0,
 	}, nil
 }
 
@@ -294,25 +238,27 @@ func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, er
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
-	blockState  BlockState
-	epoch       uint64
-	authorities []*types.Authority
-	randomness  Randomness
-	threshold   *common.Uint128
+	blockState     BlockState
+	epoch          uint64
+	authorities    []types.Authority
+	randomness     Randomness
+	threshold      *scale.Uint128
+	secondarySlots bool
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
 func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*verifier, error) {
 	if blockState == nil {
-		return nil, ErrNilBlockState
+		return nil, errNilBlockState
 	}
 
 	return &verifier{
-		blockState:  blockState,
-		epoch:       epoch,
-		authorities: info.authorities,
-		randomness:  info.randomness,
-		threshold:   info.threshold,
+		blockState:     blockState,
+		epoch:          epoch,
+		authorities:    info.authorities,
+		randomness:     info.randomness,
+		threshold:      info.threshold,
+		secondarySlots: info.secondarySlots,
 	}, nil
 }
 
@@ -320,42 +266,62 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*veri
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
-	if len(header.Digest) < 2 {
+	if len(header.Digest.Types) < 2 {
 		return fmt.Errorf("block header is missing digest items")
 	}
 
-	logger.Trace("beginning BABE authorship right verification", "block", header.Hash())
+	logger.Tracef("beginning BABE authorship right verification for block %s", header.Hash())
 
 	// check for valid seal by verifying signature
-	preDigestItem := header.Digest[0]
-	sealItem := header.Digest[len(header.Digest)-1]
+	preDigestItem := header.Digest.Types[0]
+	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
 
-	preDigest, ok := preDigestItem.(*types.PreRuntimeDigest)
+	preDigest, ok := preDigestItem.Value().(types.PreRuntimeDigest)
 	if !ok {
 		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	seal, ok := sealItem.(*types.SealDigest)
+	seal, ok := sealItem.Value().(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("last digest item is not seal")
+		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	babePreDigest, err := b.verifyPreRuntimeDigest(preDigest)
+	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
 	if err != nil {
 		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 	}
 
-	logger.Trace("verified block BABE pre-runtime digest", "block", header.Hash())
+	logger.Tracef("verified block %s BABE pre-runtime digest", header.Hash())
 
-	authorPub := b.authorities[babePreDigest.AuthorityIndex()].Key
+	var authIdx uint32
+	switch d := babePreDigest.(type) {
+	case types.BabePrimaryPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryVRFPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryPlainPreDigest:
+		authIdx = d.AuthorityIndex
+	}
+
+	authorPub := b.authorities[authIdx].Key
 
 	// remove seal before verifying signature
-	header.Digest = header.Digest[:len(header.Digest)-1]
+	h := types.NewDigest()
+	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
+		err = h.Add(val.Value())
+		if err != nil {
+			return err
+		}
+	}
+
+	header.Digest = h
 	defer func() {
-		header.Digest = append(header.Digest, sealItem)
+		if err = header.Digest.Add(sealItem.Value()); err != nil {
+			logger.Errorf("failed to re-add seal to digest: %s", err)
+		}
 	}()
 
-	encHeader, err := header.Encode()
+	encHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return err
 	}
@@ -389,7 +355,15 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			continue
 		}
 
-		existingBlockProducerIndex := babePreDigest.AuthorityIndex()
+		var existingBlockProducerIndex uint32
+		switch d := babePreDigest.(type) {
+		case types.BabePrimaryPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		case types.BabeSecondaryVRFPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		case types.BabeSecondaryPlainPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		}
 
 		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
 			return ErrProducerEquivocated
@@ -399,16 +373,25 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	return nil
 }
 
-func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types.BabePreRuntimeDigest, error) {
-	r := &bytes.Buffer{}
-	_, _ = r.Write(digest.Data)
-	babePreDigest, err := types.DecodeBabePreDigest(r)
+func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {
+	babePreDigest, err := types.DecodeBabePreDigest(digest.Data)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(b.authorities) <= int(babePreDigest.AuthorityIndex()) {
-		logger.Trace("verifyPreRuntimeDigest", "invalid auth index", babePreDigest.AuthorityIndex(), "our auths", len(b.authorities))
+	var authIdx uint32
+	switch d := babePreDigest.(type) {
+	case types.BabePrimaryPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryVRFPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryPlainPreDigest:
+		authIdx = d.AuthorityIndex
+	}
+
+	if len(b.authorities) <= int(authIdx) {
+		logger.Tracef("verifyPreRuntimeDigest invalid auth index %d, we have %d auths",
+			authIdx, len(b.authorities))
 		return nil, ErrInvalidBlockProducerIndex
 	}
 
@@ -417,20 +400,33 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	)
 
 	switch d := babePreDigest.(type) {
-	case *types.BabePrimaryPreDigest:
-		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
-	case *types.BabeSecondaryVRFPreDigest:
-		pub := b.authorities[d.AuthorityIndex()].Key
-		var pk *sr25519.PublicKey
-		pk, err = sr25519.NewPublicKey(pub.Encode())
+	case types.BabePrimaryPreDigest:
+		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex, d.SlotNumber, d.VRFOutput, d.VRFProof)
+	case types.BabeSecondaryVRFPreDigest:
+		if !b.secondarySlots {
+			ok = false
+			break
+		}
+		pub := b.authorities[d.AuthorityIndex].Key
+
+		pk, err := sr25519.NewPublicKey(pub.Encode())
 		if err != nil {
 			return nil, err
 		}
 
-		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
-	case *types.BabeSecondaryPlainPreDigest:
+		ok, err = verifySecondarySlotVRF(&d, pk, b.epoch, len(b.authorities), b.randomness)
+		if err != nil {
+			return nil, err
+		}
+
+	case types.BabeSecondaryPlainPreDigest:
+		if !b.secondarySlots {
+			ok = false
+			break
+		}
+
 		ok = true
-		err = verifySecondarySlotPlain(d.AuthorityIndex(), d.SlotNumber(), len(b.authorities), b.randomness)
+		err = verifySecondarySlotPlain(d.AuthorityIndex, d.SlotNumber, len(b.authorities), b.randomness)
 	}
 
 	// verify that they are the slot winner
@@ -446,7 +442,9 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 }
 
 // verifyPrimarySlotWinner verifies the claim for a slot
-func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
+func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
+	slot uint64, vrfOutput [sr25519.VRFOutputLength]byte,
+	vrfProof [sr25519.VRFProofLength]byte) (bool, error) {
 	pub := b.authorities[authorityIndex].Key
 
 	pk, err := sr25519.NewPublicKey(pub.Encode())
@@ -455,51 +453,56 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, v
 	}
 
 	// check that VRF output was under threshold
-	ok := checkPrimaryThreshold(b.randomness,
+	ok, err := checkPrimaryThreshold(b.randomness,
 		slot,
 		b.epoch,
 		vrfOutput,
 		b.threshold,
 		pk,
 	)
-
+	if err != nil {
+		return false, fmt.Errorf("failed to compare with threshold, %w", err)
+	}
 	if !ok {
 		return false, ErrVRFOutputOverThreshold
 	}
 
 	// validate VRF proof
-	logger.Trace("verifyPrimarySlotWinner",
-		"index", authorityIndex,
-		"pub", pub.Hex(),
-		"randomness", b.randomness,
-		"slot", slot,
-		"epoch", b.epoch,
-		"output", fmt.Sprintf("0x%x", vrfOutput),
-		"proof", fmt.Sprintf("0x%x", vrfProof),
-	)
+	logger.Tracef("verifyPrimarySlotWinner authority index %d, "+
+		"public key %s, randomness 0x%x, slot %d, epoch %d, "+
+		"output 0x%x and proof 0x%x",
+		authorityIndex,
+		pub.Hex(), b.randomness, slot, b.epoch,
+		vrfOutput, vrfProof[:])
 
 	t := makeTranscript(b.randomness, slot, b.epoch)
 	return pk.VrfVerify(t, vrfOutput, vrfProof)
 }
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {
-	if len(header.Digest) == 0 {
+	if len(header.Digest.Types) == 0 {
 		return 0, fmt.Errorf("no digest provided")
 	}
 
-	digestItem := header.Digest[0]
-
-	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	preDigest, ok := header.Digest.Types[0].Value().(types.PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}
 
-	r := &bytes.Buffer{}
-	_, _ = r.Write(preDigest.Data)
-	babePreDigest, err := types.DecodeBabePreDigest(r)
+	babePreDigest, err := types.DecodeBabePreDigest(preDigest.Data)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
-	return babePreDigest.AuthorityIndex(), nil
+	var authIdx uint32
+	switch d := babePreDigest.(type) {
+	case types.BabePrimaryPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryVRFPreDigest:
+		authIdx = d.AuthorityIndex
+	case types.BabeSecondaryPlainPreDigest:
+		authIdx = d.AuthorityIndex
+	}
+
+	return authIdx, nil
 }

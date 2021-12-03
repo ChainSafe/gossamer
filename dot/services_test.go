@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
@@ -24,6 +11,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/pprof"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -48,8 +37,6 @@ func TestCreateStateService(t *testing.T) {
 
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, stateSrvc)
 }
 
@@ -63,7 +50,6 @@ func TestCreateCoreService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
@@ -82,11 +68,11 @@ func TestCreateCoreService(t *testing.T) {
 
 	networkSrvc := &network.Service{}
 
-	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
+	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, networkSrvc)
-	require.Nil(t, err)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	require.NoError(t, err)
 	require.NotNil(t, coreSrvc)
 }
 
@@ -102,13 +88,11 @@ func TestCreateBlockVerifier(t *testing.T) {
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	_, err = createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
@@ -125,22 +109,24 @@ func TestCreateSyncService(t *testing.T) {
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
-	rt, err := createRuntime(cfg, stateSrvc, ks, &network.Service{})
-	require.NoError(t, err)
 
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	_, err = createSyncService(cfg, stateSrvc, nil, nil, nil, ver, rt)
+	dh, err := createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	require.NoError(t, err)
+
+	_, err = newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{})
 	require.NoError(t, err)
 }
 
@@ -157,15 +143,13 @@ func TestCreateNetworkService(t *testing.T) {
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	networkSrvc, err := createNetworkService(cfg, stateSrvc)
-	require.Nil(t, err)
-
-	// TODO: improve dot tests #687
+	require.NoError(t, err)
 	require.NotNil(t, networkSrvc)
 }
 
@@ -179,17 +163,16 @@ func TestCreateRPCService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
 
@@ -197,16 +180,22 @@ func TestCreateRPCService(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, networkSrvc)
-	require.Nil(t, err)
+	dh, err := createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	require.NoError(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, nil, rt, sysSrvc)
+	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	require.NoError(t, err)
 	require.NotNil(t, rpcSrvc)
 }
 
@@ -219,25 +208,32 @@ func TestCreateBABEService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
 	kr, err := keystore.NewSr25519Keyring()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	ks.Babe.Insert(kr.Alice())
 
-	rt, err := createRuntime(cfg, stateSrvc, ks, &network.Service{})
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	bs, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
+	dh, err := createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	require.NoError(t, err)
+
+	bs, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }
@@ -251,7 +247,6 @@ func TestCreateGrandpaService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.AuthorityRole
 	cfg.Init.Genesis = genFile.Name()
 
@@ -266,13 +261,19 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
 
-	rt, err := createRuntime(cfg, stateSrvc, ks, &network.Service{})
+	ns, err := createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil)
+	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, &network.Service{})
+	dh, err := createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
+	networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	require.NoError(t, err)
+
+	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }
@@ -282,11 +283,26 @@ var testCalls = []struct {
 	call     []byte
 	expected []byte
 }{
-	{[]byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`), []byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")},                                                            // working request
-	{[]byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`), []byte(`{"error":{"code":-32000,"data":null,"message":"rpc error method unknown not found"},"id":2,"jsonrpc":"2.0"}` + "\n")}, // unknown method
-	{[]byte{}, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n")},                                                                                         // empty request
-	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`), []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
-	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`), []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
+	{
+		call:     []byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
+		expected: []byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")}, // working request
+	{
+		call: []byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`),
+		// unknown method
+		expected: []byte(`{"error":{"code":-32000,"data":null,` +
+			`"message":"rpc error method unknown not found"},"id":2,` +
+			`"jsonrpc":"2.0"}` + "\n")},
+	{
+		call: []byte{},
+		// empty request
+		expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,` +
+			`"message":"Invalid request"},"id":0}` + "\n")},
+	{
+		call:     []byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`),
+		expected: []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
+	{
+		call:     []byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`),
+		expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 }
 
 func TestNewWebSocketServer(t *testing.T) {
@@ -318,16 +334,23 @@ func TestNewWebSocketServer(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
-	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
+
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, networkSrvc)
+	dh, err := createDigestHandler(stateSrvc)
+	require.NoError(t, err)
+
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	require.Nil(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, nil, rt, sysSrvc)
+	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	require.NoError(t, err)
 	err = rpcSrvc.Start()
 	require.Nil(t, err)
 
@@ -347,4 +370,14 @@ func TestNewWebSocketServer(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, item.expected, message)
 	}
+}
+
+func Test_createPprofService(t *testing.T) {
+	t.Parallel()
+
+	settings := pprof.Settings{}
+
+	service := createPprofService(settings)
+
+	require.NotNil(t, service)
 }

@@ -1,10 +1,15 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package state
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -16,7 +21,7 @@ func newTestStorageState(t *testing.T) *StorageState {
 	db := NewInMemoryDB(t)
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	s, err := NewStorageState(db, bs, trie.NewEmptyTrie())
+	s, err := NewStorageState(db, bs, trie.NewEmptyTrie(), pruner.Config{})
 	require.NoError(t, err)
 	return s
 }
@@ -28,7 +33,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	root, err := ts.Root()
 	require.NoError(t, err)
-	err = storage.StoreTrie(ts)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
@@ -37,8 +42,8 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.NoError(t, err)
 	ts2, err := runtime.NewTrieState(trie)
 	require.NoError(t, err)
-	ts2.Snapshot()
-	require.Equal(t, ts.Trie(), ts2.Trie())
+	new := ts2.Snapshot()
+	require.Equal(t, ts.Trie(), new)
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
@@ -52,21 +57,25 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 
 	root, err := ts.Root()
 	require.NoError(t, err)
-	err = storage.StoreTrie(ts)
+	err = storage.StoreTrie(ts, nil)
+	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{})
 	require.NoError(t, err)
 
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
 			StateRoot:  root,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *body,
 	}
 	err = storage.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	res, err := storage.GetStorageByBlockHash(block.Header.Hash(), key)
+	hash := block.Header.Hash()
+	res, err := storage.GetStorageByBlockHash(&hash, key)
 	require.NoError(t, err)
 	require.Equal(t, value, res)
 }
@@ -79,15 +88,13 @@ func TestStorage_TrieState(t *testing.T) {
 
 	root, err := ts.Root()
 	require.NoError(t, err)
-	err = storage.StoreTrie(ts)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
 
 	// get trie from db
-	storage.lock.Lock()
-	delete(storage.tries, root)
-	storage.lock.Unlock()
+	storage.tries.Delete(root)
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
 	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
@@ -115,33 +122,36 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	require.NoError(t, err)
 
 	// Write trie to disk.
-	err = storage.StoreTrie(ts)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.lock.Lock()
-	delete(storage.tries, root)
-	storage.lock.Unlock()
+	storage.tries.Delete(root)
 
 	data, err := storage.GetStorage(&root, trieKV[0].key)
 	require.NoError(t, err)
 	require.Equal(t, trieKV[0].value, data)
 
-	storage.lock.Lock()
-	delete(storage.tries, root)
-	storage.lock.Unlock()
+	storage.tries.Delete(root)
 
 	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(prefixKeys))
 
-	storage.lock.Lock()
-	delete(storage.tries, root)
-	storage.lock.Unlock()
+	storage.tries.Delete(root)
 
 	entries, err := storage.Entries(&root)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(entries))
+}
+
+func syncMapLen(m *sync.Map) int {
+	l := 0
+	m.Range(func(_, _ interface{}) bool {
+		l++
+		return true
+	})
+	return l
 }
 
 func TestStorage_StoreTrie_Syncing(t *testing.T) {
@@ -154,9 +164,9 @@ func TestStorage_StoreTrie_Syncing(t *testing.T) {
 	ts.Set(key, value)
 
 	storage.SetSyncing(true)
-	err = storage.StoreTrie(ts)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(storage.tries))
+	require.Equal(t, 1, syncMapLen(storage.tries))
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
@@ -169,7 +179,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	ts.Set(key, value)
 
 	storage.SetSyncing(false)
-	err = storage.StoreTrie(ts)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(storage.tries))
+	require.Equal(t, 2, syncMapLen(storage.tries))
 }

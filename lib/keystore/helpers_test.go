@@ -1,24 +1,10 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package keystore
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -26,7 +12,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
@@ -110,7 +99,7 @@ func TestGenerateKey_Ed25519(t *testing.T) {
 		t.Fatalf("Fail: got %s expected %s", keys[0], keyfile)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +137,7 @@ func TestGenerateKey_Secp256k1(t *testing.T) {
 		t.Fatalf("Fail: got %s expected %s", keys[0], keyfile)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +162,7 @@ func TestGenerateKey_NoType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,66 +295,111 @@ func TestImportRawPrivateKey_NoType(t *testing.T) {
 	testdir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "", testdir, testPassword)
+	keyfile, err := ImportRawPrivateKey(
+		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+		"", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
 	require.NoError(t, err)
 	require.Equal(t, "sr25519", kscontents.Type)
-	require.Equal(t, "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", kscontents.PublicKey)
+	require.Equal(t,
+		"0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+		kscontents.PublicKey)
 }
 
 func TestImportRawPrivateKey_Sr25519(t *testing.T) {
 	testdir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "sr25519", testdir, testPassword)
+	keyfile, err := ImportRawPrivateKey(
+		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+		"sr25519", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
 	require.NoError(t, err)
 	require.Equal(t, "sr25519", kscontents.Type)
-	require.Equal(t, "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", kscontents.PublicKey)
+	require.Equal(t,
+		"0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+		kscontents.PublicKey)
 }
 
 func TestImportRawPrivateKey_Ed25519(t *testing.T) {
 	testdir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "ed25519", testdir, testPassword)
+	keyfile, err := ImportRawPrivateKey(
+		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+		"ed25519", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
 	require.NoError(t, err)
 	require.Equal(t, "ed25519", kscontents.Type)
-	require.Equal(t, "0x6dfb362eb332449782b7260bcff6d8777242acdea3293508b22d33ce7336a8b3", kscontents.PublicKey)
+	require.Equal(t,
+		"0x6dfb362eb332449782b7260bcff6d8777242acdea3293508b22d33ce7336a8b3",
+		kscontents.PublicKey)
 }
 
 func TestImportRawPrivateKey_Secp256k1(t *testing.T) {
 	testdir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	keyfile, err := ImportRawPrivateKey("0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "secp256k1", testdir, testPassword)
+	keyfile, err := ImportRawPrivateKey(
+		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
+		"secp256k1", testdir, testPassword)
 	require.NoError(t, err)
 
-	contents, err := ioutil.ReadFile(keyfile)
+	contents, err := os.ReadFile(keyfile)
 	require.NoError(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
 	require.NoError(t, err)
 	require.Equal(t, "secp256k1", kscontents.Type)
-	require.Equal(t, "0x03409094a319b2961660c3ebcc7d206266182c1b3e60d341b5fb17e6851865825c", kscontents.PublicKey)
+	require.Equal(t,
+		"0x03409094a319b2961660c3ebcc7d206266182c1b3e60d341b5fb17e6851865825c",
+		kscontents.PublicKey)
+}
+
+func TestDecodeKeyPairFromHex(t *testing.T) {
+	keytype := DetermineKeyType("babe")
+	seed := "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8"
+
+	keyBytes, err := common.HexToBytes(seed)
+	require.NoError(t, err)
+
+	kp, err := DecodeKeyPairFromHex(keyBytes, keytype)
+	require.NoError(t, err)
+	require.IsType(t, &sr25519.Keypair{}, kp)
+
+	expectedPublic := "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
+	require.Equal(t, kp.Public().Hex(), expectedPublic)
+
+	keytype = DetermineKeyType("gran")
+	keyBytes, err = common.HexToBytes("0x9d96ebdb66b7b6851d529f0c366393782baeba71732a59ce201ea80760d4d66c")
+	require.NoError(t, err)
+
+	kp, err = DecodeKeyPairFromHex(keyBytes, keytype)
+	require.NoError(t, err)
+	require.IsType(t, &ed25519.Keypair{}, kp)
+
+	expectedPublic = "0xd3db685ed1f94c195dc3e72803fa3d8549df45381388e313fa8170f0b397895c"
+	require.Equal(t, kp.Public().Hex(), expectedPublic)
+
+	_, err = DecodeKeyPairFromHex(nil, "")
+	require.Error(t, err, "cannot decode key: invalid key type")
 }

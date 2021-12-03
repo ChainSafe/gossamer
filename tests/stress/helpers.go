@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package stress
 
@@ -23,17 +10,17 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
 var (
 	maxRetries  = 32
 	testTimeout = time.Minute * 3
-	logger      = log.New("pkg", "tests/stress")
+	logger      = log.NewFromGlobal(log.AddContext("pkg", "tests/stress"))
 )
 
 // compareChainHeads calls getChainHead for each node in the array
@@ -42,7 +29,7 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		header := utils.GetChainHead(t, node)
-		logger.Info("got header from node", "hash", header.Hash(), "node", node.Key)
+		logger.Infof("got header with hash %s from node with key %s", header.Hash(), node.Key)
 		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
 	}
 
@@ -86,7 +73,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 
 	for _, node := range nodes {
 		go func(node *utils.Node) {
-			logger.Debug("calling chain_getBlockHash", "node", node.Idx)
+			logger.Debugf("calling chain_getBlockHash for node index %d", node.Idx)
 			hash, err := utils.GetBlockHash(t, node, num)
 			mapMu.Lock()
 			defer func() {
@@ -97,7 +84,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 				errs = append(errs, err)
 				return
 			}
-			logger.Debug("got hash from node", "hash", hash, "node", node.Key)
+			logger.Debugf("got hash %s from node with key %s", hash, node.Key)
 
 			hashes[hash] = append(hashes[hash], node.Key)
 		}(node)
@@ -153,7 +140,7 @@ func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		hash := utils.GetFinalizedHead(t, node)
-		logger.Info("got finalised head from node", "hash", hash, "node", node.Key)
+		logger.Infof("got finalised head with hash %s from node with key %s", hash, node.Key)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
@@ -179,7 +166,7 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 			return nil, err
 		}
 
-		logger.Info("got finalised head from node", "hash", hash, "node", node.Key, "round", round)
+		logger.Infof("got finalised head with hash %s from node with key %s at round %d", hash, node.Key, round)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
@@ -225,7 +212,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 	return common.Hash{}, nil
 }
 
-func getPendingExtrinsics(t *testing.T, node *utils.Node) []string { //nolint
+func getPendingExtrinsics(t *testing.T, node *utils.Node) []string {
 	respBody, err := utils.PostRPC(utils.AuthorPendingExtrinsics, utils.NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 

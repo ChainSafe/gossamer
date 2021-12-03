@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package common
 
@@ -20,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -73,4 +61,53 @@ func TestCustomMarshalJson(t *testing.T) {
 			require.True(t, strings.Contains(string(byt), test.expected))
 		})
 	}
+}
+
+func Test_Hash_IsEmpty(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		hash  Hash
+		empty bool
+	}{
+		"empty": {
+			empty: true,
+		},
+		"not empty": {
+			hash: Hash{1},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			empty := testCase.hash.IsEmpty()
+
+			assert.Equal(t, testCase.empty, empty)
+		})
+	}
+}
+
+func Benchmark_IsEmpty(b *testing.B) {
+	h := Hash{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	b.Run("using equal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = h == Hash{}
+		}
+	})
+
+	b.Run("using equal with predefined empty", func(b *testing.B) {
+		empty := Hash{}
+		for i := 0; i < b.N; i++ {
+			_ = h == empty
+		}
+	})
+
+	b.Run("using bytes.Equal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = h.Equal(Hash{})
+		}
+	})
 }

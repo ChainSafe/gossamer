@@ -16,9 +16,9 @@ Gossamer packages can be categorized into **four package types**:
 
     - `cmd/...` - command-line packages for running nodes and other services
 
-- **[host packages](#host-packages)**
+- **[dot packages](#dot-packages)**
 
-    - `host/...` - the host node package and host node service packages
+    - `dot/...` - the dot node package and host node service packages
 
 - **[lib packages](#lib-packages)**
 
@@ -92,11 +92,7 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `lib/runtime`
 
-- the **runtime package** contains various wasm interpreters used to interpret the runtime. It currently contains `life`, `wasmer`, and `wasmtime`; however, `wasmer` is the only interpreter that is fully supported at the moment. In the future, all interpreters will be fully supported.
-
-#### `lib/scale`
-
-- the **scale package** implements the SCALE codec.
+- the **runtime package** contains various wasm interpreters used to interpret the runtime. It currently contains `life` and `wasmer`; however, `wasmer` is the only interpreter that is fully supported at the moment. In the future, all interpreters will be fully supported.
 
 #### `lib/services`
 

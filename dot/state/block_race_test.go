@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
@@ -42,22 +29,20 @@ func TestConcurrencySetHeader(t *testing.T) {
 		go func(index int) {
 			defer pend.Done()
 
-			bs := &BlockState{
-				db: dbs[index],
-			}
+			bs, err := NewBlockStateFromGenesis(dbs[index], testGenesisHeader)
+			require.NoError(t, err)
 
 			header := &types.Header{
-				Number:    big.NewInt(0),
+				Number:    big.NewInt(1),
 				StateRoot: trie.EmptyHash,
-				Digest:    types.Digest{},
+				Digest:    types.NewDigest(),
 			}
 
-			err := bs.SetHeader(header)
-			require.Nil(t, err)
+			err = bs.SetHeader(header)
+			require.NoError(t, err)
 
 			res, err := bs.GetHeader(header.Hash())
-			require.Nil(t, err)
-
+			require.NoError(t, err)
 			require.Equal(t, header, res)
 
 		}(i)

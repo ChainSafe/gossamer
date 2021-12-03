@@ -1,23 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package storage
 
 import (
 	"bytes"
+	"encoding/binary"
 	"sort"
 	"testing"
 
@@ -196,4 +184,57 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 
 	val := ts.Get([]byte(testCases[0]))
 	require.Equal(t, []byte(testCases[0]), val)
+}
+
+func TestTrieState_DeleteChildLimit(t *testing.T) {
+	ts := newTestTrieState(t)
+	child := trie.NewEmptyTrie()
+
+	keys := []string{
+		"key3",
+		"key1",
+		"key2",
+	}
+
+	for i, key := range keys {
+		child.Put([]byte(key), []byte{byte(i)})
+	}
+
+	keyToChild := []byte("keytochild")
+
+	err := ts.SetChild(keyToChild, child)
+	require.NoError(t, err)
+
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
+	optLimit2 := &testLimitBytes
+
+	testCases := []struct {
+		key             []byte
+		limit           *[]byte
+		expectedDeleted uint32
+		expectedDelAll  bool
+		errMsg          string
+	}{
+		{
+			key:             []byte("fakekey"),
+			limit:           optLimit2,
+			expectedDeleted: 0,
+			expectedDelAll:  false,
+			errMsg:          "child trie does not exist at key :child_storage:default:fakekey",
+		},
+		{key: []byte("keytochild"), limit: optLimit2, expectedDeleted: 2, expectedDelAll: false},
+		{key: []byte("keytochild"), limit: nil, expectedDeleted: 1, expectedDelAll: true},
+	}
+	for _, test := range testCases {
+		deleted, all, err := ts.DeleteChildLimit(test.key, test.limit)
+		if test.errMsg != "" {
+			require.Error(t, err)
+			require.EqualError(t, err, test.errMsg)
+			continue
+		}
+		require.NoError(t, err)
+		require.Equal(t, test.expectedDeleted, deleted)
+		require.Equal(t, test.expectedDelAll, all)
+	}
 }

@@ -1,26 +1,12 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
 import (
+	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -29,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -37,13 +24,9 @@ var inc, _ = time.ParseDuration("1s")
 
 // NewInMemoryDB creates a new in-memory database
 func NewInMemoryDB(t *testing.T) chaindb.Database {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	})
+	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.Close()
@@ -58,44 +41,50 @@ type testBranch struct {
 	depth int
 }
 
-// AddBlocksToState adds blocks to a BlockState up to depth, with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types.Header, []*types.Header) {
-	previousHash := blockState.BestBlockHash()
-
-	branches := []testBranch{}
-	r := *rand.New(rand.NewSource(rand.Int63())) //nolint
+// AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
+	withBranches bool) ([]*types.Header, []*types.Header) {
+	var (
+		currentChain, branchChains []*types.Header
+		branches                   []testBranch
+	)
 
 	arrivalTime := time.Now()
-	currentChain := []*types.Header{}
-	branchChains := []*types.Header{}
-
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
+	previousHash := head.Hash()
 
 	// create base tree
 	startNum := int(head.Number.Int64())
-	for i := startNum + 1; i <= depth; i++ {
+	for i := startNum + 1; i <= depth+startNum; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
+		digest := types.NewDigest()
+		prd, err := d.ToPreRuntimeDigest()
+		require.NoError(t, err)
+		err = digest.Add(*prd)
+		require.NoError(t, err)
+
 		block := &types.Block{
-			Header: &types.Header{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
-				Digest:     types.Digest{d.ToPreRuntimeDigest()},
+				Digest:     digest,
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
-		currentChain = append(currentChain, block.Header)
+		currentChain = append(currentChain, &block.Header)
 
 		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
 
 		previousHash = hash
 
-		isBranch := r.Intn(2)
-		if isBranch == 1 {
+		isBranch, err := rand.Int(rand.Reader, big.NewInt(2))
+		require.NoError(t, err)
+		if isBranch.Cmp(big.NewInt(1)) == 0 {
 			branches = append(branches, testBranch{
 				hash:  hash,
 				depth: i,
@@ -105,26 +94,31 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		arrivalTime = arrivalTime.Add(inc)
 	}
 
+	if !withBranches {
+		return currentChain, nil
+	}
+
 	// create tree branches
 	for _, branch := range branches {
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
+			digest := types.NewDigest()
+			_ = digest.Add(types.PreRuntimeDigest{
+				Data: []byte{byte(i)},
+			})
+
 			block := &types.Block{
-				Header: &types.Header{
+				Header: types.Header{
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
-					Digest: types.Digest{
-						&types.PreRuntimeDigest{
-							Data: []byte{byte(i)},
-						},
-					},
+					Digest:     digest,
 				},
-				Body: &types.Body{},
+				Body: types.Body{},
 			}
 
-			branchChains = append(branchChains, block.Header)
+			branchChains = append(branchChains, &block.Header)
 
 			hash := block.Header.Hash()
 			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
@@ -145,24 +139,36 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	tb := []testBranch{}
 	arrivalTime := time.Now()
 
+	rt, err := blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	// create base tree
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
+		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+		require.NoError(t, err)
+		require.NotNil(t, d)
+		digest := types.NewDigest()
+		_ = digest.Add(*d)
+
 		block := &types.Block{
-			Header: &types.Header{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
+				Digest:     digest,
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
 		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
+
+		blockState.StoreRuntime(hash, rt)
 
 		previousHash = hash
 
@@ -184,23 +190,26 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
+			digest := types.NewDigest()
+			_ = digest.Add(types.PreRuntimeDigest{
+				Data: []byte{byte(i), byte(j), r},
+			})
+
 			block := &types.Block{
-				Header: &types.Header{
+				Header: types.Header{
 					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i)),
+					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
-					Digest: types.Digest{
-						&types.PreRuntimeDigest{
-							Data: []byte{byte(i), byte(j), r},
-						},
-					},
+					Digest:     digest,
 				},
-				Body: &types.Body{},
+				Body: types.Body{},
 			}
 
 			hash := block.Header.Hash()
 			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			require.Nil(t, err)
+
+			blockState.StoreRuntime(hash, rt)
 
 			previousHash = hash
 			arrivalTime = arrivalTime.Add(inc)
@@ -208,8 +217,9 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	}
 }
 
-func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash) (*types.Block, *runtime.TrieState) {
-	trieState, err := serv.Storage.TrieState(&trie.EmptyHash)
+func generateBlockWithRandomTrie(t *testing.T, serv *Service,
+	parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
+	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 
 	// Generate random data for trie state.
@@ -226,14 +236,16 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Has
 		parent = &bb
 	}
 
-	// Generate a block with the above StateRoot.
+	body, err := types.NewBodyFromBytes([]byte{})
+	require.NoError(t, err)
+
 	block := &types.Block{
-		Header: &types.Header{
+		Header: types.Header{
 			ParentHash: *parent,
-			Number:     big.NewInt(rand),
+			Number:     big.NewInt(bNum),
 			StateRoot:  trieStateRoot,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *body,
 	}
 	return block, trieState
 }

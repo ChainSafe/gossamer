@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package utils
 
@@ -22,13 +9,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -64,7 +52,7 @@ func PostRPC(method, host, params string) ([]byte, error) {
 		_ = resp.Body.Close()
 	}()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 
 	return respBody, err
 
@@ -133,7 +121,7 @@ func DecodeWebsocket(t *testing.T, body []byte, target interface{}) error {
 }
 
 // DecodeRPC_NT will decode []body into target interface (NT is Not Test testing required)
-func DecodeRPC_NT(body []byte, target interface{}) error {
+func DecodeRPC_NT(body []byte, target interface{}) error { //nolint:revive
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
@@ -159,19 +147,19 @@ func NewEndpoint(port string) string {
 	return "http://" + HOSTNAME + ":" + port
 }
 
-func rpcLogsToDigest(t *testing.T, logs []string) types.Digest {
-	digest := types.Digest{}
+func rpcLogsToDigest(t *testing.T, logs []string) scale.VaryingDataTypeSlice {
+	digest := types.NewDigest()
 
 	for _, l := range logs {
 		itemBytes, err := common.HexToBytes(l)
 		require.NoError(t, err)
 
-		r := &bytes.Buffer{}
-		_, _ = r.Write(itemBytes)
-		item, err := types.DecodeDigestItem(r)
+		var di = types.NewDigestItem()
+		err = scale.Unmarshal(itemBytes, &di)
 		require.NoError(t, err)
 
-		digest = append(digest, item)
+		err = digest.Add(di.Value())
+		require.NoError(t, err)
 	}
 
 	return digest

@@ -72,6 +72,16 @@ Gossamer is an implementation of the Polkadot Host in Go. To learn more about Go
 
 - <a target="_blank" rel="noopener noreferrer" href="https://medium.com/chainsafe-systems/the-future-of-polkadot-in-golang-gossamer-3345f0d6143d">The Future of Polkadot in Golang: Gossamer</a> - February 24th 2020
 
+- <a target="_blank" rel="noopener noreferrer" href="https://medium.com/chainsafe-systems/gossamer-update-august-2020-179e19a24e02">Gossamer Update: August 2020</a> - August 25th 2020
+  
+- <a target="_blank" rel="noopener noreferrer" href="https://medium.com/chainsafe-systems/gossamer-update-september-2020-c00d1c47d3aa">Gossamer Update: September 2020</a> - October 6th 2020
+
+- <a target="_blank" rel="noopener noreferrer" href="https://medium.com/chainsafe-systems/gossamer-update-november-2020-c8d00327b68b">Gossamer Update: November 2020</a> - November 27th 2020
+
+- <a target="_blank" rel="noopener noreferrer" href="https://medium.com/chainsafe-systems/gossamer-into-the-polkadot-verse-pt-1-361a1d90091">Gossamer: Into the Polkadot-verse Pt.1</a> - February 26th 2021
+
+- <a target="_blank" rel="noopener noreferrer" href="https://medium.com/chainsafe-systems/building-parachains-with-go-cumulus-9998735fa5a4">Building parachains with go-cumulus</a> - April 20th 2021
+
 ## Substrate
 
 #### Docs

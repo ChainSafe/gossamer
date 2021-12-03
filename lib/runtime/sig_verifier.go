@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package runtime
 
 import (
@@ -5,10 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
@@ -25,6 +28,7 @@ type SignatureVerifier struct {
 	batch   []*Signature
 	init    bool // Indicates whether the batch processing is started.
 	invalid bool // Set to true if any signature verification fails.
+	logger  log.LeveledLogger
 	closeCh chan struct{}
 	sync.RWMutex
 	sync.Once
@@ -35,11 +39,12 @@ type SignatureVerifier struct {
 // Start() is called to start the verification process.
 // Finish() is called to stop the verification process.
 // Signatures can be added to the batch using Add().
-func NewSignatureVerifier() *SignatureVerifier {
+func NewSignatureVerifier(logger log.LeveledLogger) *SignatureVerifier {
 	return &SignatureVerifier{
 		batch:   make([]*Signature, 0),
 		init:    false,
 		invalid: false,
+		logger:  logger,
 		RWMutex: sync.RWMutex{},
 		closeCh: make(chan struct{}),
 	}
@@ -67,7 +72,7 @@ func (sv *SignatureVerifier) Start() {
 				}
 				err := sign.verify()
 				if err != nil {
-					log.Error("[ext_crypto_start_batch_verify_version_1]", "error", err)
+					sv.logger.Errorf("[ext_crypto_start_batch_verify_version_1]: %s", err)
 					sv.Invalid()
 					return
 				}

@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package sr25519
 
@@ -27,14 +14,19 @@ import (
 	"github.com/gtank/merlin"
 )
 
-//nolint
 const (
-	PublicKeyLength  int = 32
-	SeedLength       int = 32
-	PrivateKeyLength int = 32
-	SignatureLength  int = 64
-	VrfOutputLength  int = 32
-	VrfProofLength   int = 64
+	// PublicKeyLength is the expected public key length for sr25519.
+	PublicKeyLength = 32
+	// SeedLength is the expected seed length for sr25519.
+	SeedLength = 32
+	// PrivateKeyLength is the expected private key length for sr25519.
+	PrivateKeyLength = 32
+	// SignatureLength is the expected signature length for sr25519.
+	SignatureLength = 64
+	// VRFOutputLength is the expected VFR output length for sr25519.
+	VRFOutputLength = 32
+	// VRFProofLength is the expected VFR proof length for sr25519.
+	VRFProofLength = 64
 )
 
 // SigningContext is the context for signatures used or created with substrate
@@ -83,9 +75,13 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 }
 
 // NewKeypairFromSeed returns a new sr25519 Keypair given a seed
-func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
+func NewKeypairFromSeed(keystr []byte) (*Keypair, error) {
+	if len(keystr) != SeedLength {
+		return nil, errors.New("cannot generate key from seed: seed is not 32 bytes long")
+	}
+
 	buf := [SeedLength]byte{}
-	copy(buf[:], seed)
+	copy(buf[:], keystr)
 	msc, err := sr25519.NewMiniSecretKeyFromRaw(buf)
 	if err != nil {
 		return nil, err
@@ -199,7 +195,7 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 }
 
 // VrfSign creates a VRF output and proof from a message and private key
-func (kp *Keypair) VrfSign(t *merlin.Transcript) ([VrfOutputLength]byte, [VrfProofLength]byte, error) {
+func (kp *Keypair) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VRFProofLength]byte, error) {
 	return kp.private.VrfSign(t)
 }
 
@@ -218,7 +214,7 @@ func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 }
 
 // VrfSign creates a VRF output and proof from a message and private key
-func (k *PrivateKey) VrfSign(t *merlin.Transcript) ([VrfOutputLength]byte, [VrfProofLength]byte, error) {
+func (k *PrivateKey) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VRFProofLength]byte, error) {
 	inout, proof, err := k.key.VrfSign(t)
 	if err != nil {
 		return [32]byte{}, [64]byte{}, err
@@ -327,7 +323,8 @@ func (k *PublicKey) VerifyDeprecated(msg, sig []byte) (bool, error) {
 }
 
 // VrfVerify confirms that the output and proof are valid given a message and public key
-func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VrfOutputLength]byte, proof [VrfProofLength]byte) (bool, error) {
+func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VRFOutputLength]byte,
+	proof [VRFProofLength]byte) (bool, error) {
 	o := new(sr25519.VrfOutput)
 	err := o.Decode(out)
 	if err != nil {
@@ -384,7 +381,7 @@ func (k *PublicKey) AsBytes() [PublicKeyLength]byte {
 }
 
 // AttachInput wraps schnorrkel *VrfOutput.AttachInput
-func AttachInput(output [VrfOutputLength]byte, pub *PublicKey, t *merlin.Transcript) *sr25519.VrfInOut {
+func AttachInput(output [VRFOutputLength]byte, pub *PublicKey, t *merlin.Transcript) *sr25519.VrfInOut {
 	out := sr25519.NewOutput(output)
 	return out.AttachInput(pub.key, t)
 }

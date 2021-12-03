@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package rpc
 
@@ -20,12 +7,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
@@ -34,7 +22,7 @@ import (
 
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
-	logger       log.Logger
+	logger       *log.Logger
 	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
 	wsConns      []*subscription.WSConn
@@ -42,33 +30,54 @@ type HTTPServer struct {
 
 // HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
-	LogLvl              log.Lvl
+	LogLvl              log.Level
 	BlockAPI            modules.BlockAPI
 	StorageAPI          modules.StorageAPI
 	NetworkAPI          modules.NetworkAPI
 	CoreAPI             modules.CoreAPI
 	BlockProducerAPI    modules.BlockProducerAPI
-	RuntimeAPI          modules.RuntimeAPI
+	BlockFinalityAPI    modules.BlockFinalityAPI
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
-	External            bool
+	SyncStateAPI        modules.SyncStateAPI
+	NodeStorage         *runtime.NodeStorage
+	RPC                 bool
+	RPCExternal         bool
+	RPCUnsafe           bool
+	RPCUnsafeExternal   bool
 	Host                string
 	RPCPort             uint32
 	WS                  bool
 	WSExternal          bool
+	WSUnsafe            bool
+	WSUnsafeExternal    bool
 	WSPort              uint32
 	Modules             []string
 }
 
-var logger log.Logger
+func (h *HTTPServerConfig) rpcUnsafeEnabled() bool {
+	return h.RPCUnsafe || h.RPCUnsafeExternal
+}
+
+func (h *HTTPServerConfig) wsUnsafeEnabled() bool {
+	return h.WSUnsafe || h.WSUnsafeExternal
+}
+
+func (h *HTTPServerConfig) exposeWS() bool {
+	return h.WSExternal || h.WSUnsafeExternal
+}
+
+func (h *HTTPServerConfig) exposeRPC() bool {
+	return h.RPCExternal || h.RPCUnsafeExternal
+}
+
+var logger *log.Logger
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
-	logger = log.New("pkg", "rpc")
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	h = log.CallerFileHandler(h)
-	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	logger = log.NewFromGlobal(log.AddContext("pkg", "rpc"))
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	server := &HTTPServer{
 		logger:       logger,
@@ -77,44 +86,46 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	}
 
 	server.RegisterModules(cfg.Modules)
-	if !cfg.External {
-		server.rpcServer.RegisterValidateRequestFunc(LocalRequestOnly)
-	}
-
 	return server
 }
 
 // RegisterModules registers the RPC services associated with the given API modules
 func (h *HTTPServer) RegisterModules(mods []string) {
-
 	for _, mod := range mods {
-		h.logger.Debug("Enabling rpc module", "module", mod)
+		h.logger.Debug("Enabling rpc module " + mod)
 		var srvc interface{}
 		switch mod {
 		case "system":
 			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI, h.serverConfig.SystemAPI,
-				h.serverConfig.CoreAPI, h.serverConfig.StorageAPI, h.serverConfig.TransactionQueueAPI)
+				h.serverConfig.CoreAPI, h.serverConfig.StorageAPI, h.serverConfig.TransactionQueueAPI, h.serverConfig.BlockAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(h.logger, h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
+			srvc = modules.NewAuthorModule(h.logger, h.serverConfig.CoreAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		case "grandpa":
-			srvc = modules.NewGrandpaModule(h.serverConfig.BlockAPI)
+			srvc = modules.NewGrandpaModule(h.serverConfig.BlockAPI, h.serverConfig.BlockFinalityAPI)
 		case "state":
 			srvc = modules.NewStateModule(h.serverConfig.NetworkAPI, h.serverConfig.StorageAPI, h.serverConfig.CoreAPI)
 		case "rpc":
 			srvc = modules.NewRPCModule(h.serverConfig.RPCAPI)
 		case "dev":
 			srvc = modules.NewDevModule(h.serverConfig.BlockProducerAPI, h.serverConfig.NetworkAPI)
+		case "offchain":
+			srvc = modules.NewOffchainModule(h.serverConfig.NodeStorage)
+		case "childstate":
+			srvc = modules.NewChildStateModule(h.serverConfig.StorageAPI, h.serverConfig.BlockAPI)
+		case "syncstate":
+			srvc = modules.NewSyncStateModule(h.serverConfig.SyncStateAPI)
+		case "payment":
+			srvc = modules.NewPaymentModule(h.serverConfig.BlockAPI)
 		default:
-			h.logger.Warn("Unrecognised module", "module", mod)
+			h.logger.Warn("Unrecognised module: " + mod)
 			continue
 		}
 
 		err := h.rpcServer.RegisterService(srvc, mod)
-
 		if err != nil {
-			h.logger.Warn("Failed to register module", "mod", mod, "err", err)
+			h.logger.Warnf("Failed to register module %s: %s", mod, err)
 		}
 
 		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod)
@@ -129,7 +140,7 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
 
-	h.logger.Info("Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.RPCPort)
+	h.logger.Infof("Starting HTTP Server on host %s and port %d...", h.serverConfig.Host, h.serverConfig.RPCPort)
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 
@@ -137,19 +148,12 @@ func (h *HTTPServer) Start() error {
 	// Add custom validator for `common.Hash`
 	validate.RegisterCustomTypeFunc(common.HashValidator, common.Hash{})
 
-	validateHandler := func(r *rpc.RequestInfo, v interface{}) error {
-		err := validate.Struct(v)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
+	h.rpcServer.RegisterValidateRequestFunc(rpcValidator(h.serverConfig, validate))
 
-	h.rpcServer.RegisterValidateRequestFunc(validateHandler)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {
-			h.logger.Error("http error", "err", err)
+			h.logger.Errorf("http error: %s", err)
 		}
 	}()
 
@@ -157,13 +161,14 @@ func (h *HTTPServer) Start() error {
 		return nil
 	}
 
-	h.logger.Info("Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
+	h.logger.Infof("Starting WebSocket Server on host %s and port %d...",
+		h.serverConfig.Host, h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
-			h.logger.Error("http error", "err", err)
+			h.logger.Errorf("http error: %s", err)
 		}
 	}()
 
@@ -180,14 +185,13 @@ func (h *HTTPServer) Stop() error {
 				case *subscription.StorageObserver:
 					h.serverConfig.StorageAPI.UnregisterStorageObserver(v)
 				case *subscription.BlockListener:
-					h.serverConfig.BlockAPI.UnregisterImportedChannel(v.ChanID)
-					close(v.Channel)
+					h.serverConfig.BlockAPI.FreeImportedBlockNotifierChannel(v.Channel)
 				}
 			}
 
 			err := conn.Wsconn.Close()
 			if err != nil {
-				h.logger.Error("error closing websocket connection", "error", err)
+				h.logger.Errorf("error closing websocket connection: %s", err)
 			}
 		}
 	}
@@ -198,10 +202,10 @@ func (h *HTTPServer) Stop() error {
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			if !h.serverConfig.WSExternal {
-				ip, _, error := net.SplitHostPort(r.RemoteAddr)
-				if error != nil {
-					logger.Error("unable to parse IP", "error")
+			if !h.serverConfig.exposeWS() {
+				ip, _, err := net.SplitHostPort(r.RemoteAddr)
+				if err != nil {
+					logger.Errorf("unable to parse remote address %s: %s", ip, err)
 					return false
 				}
 
@@ -210,16 +214,17 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return true
 				}
 
-				logger.Debug("external websocket request refused", "error")
+				logger.Debug("external websocket request refused")
 				return false
 			}
+
 			return true
 		},
 	}
 
 	ws, err := upg.Upgrade(w, r, nil)
 	if err != nil {
-		h.logger.Error("websocket upgrade failed", "error", err)
+		h.logger.Errorf("websocket upgrade failed: %s", err)
 		return
 	}
 	// create wsConn
@@ -232,16 +237,17 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // NewWSConn to create new WebSocket Connection struct
 func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *subscription.WSConn {
 	c := &subscription.WSConn{
-		Wsconn:             conn,
-		Subscriptions:      make(map[uint]subscription.Listener),
-		BlockSubChannels:   make(map[uint]byte),
-		StorageSubChannels: make(map[int]byte),
-		StorageAPI:         cfg.StorageAPI,
-		BlockAPI:           cfg.BlockAPI,
-		RuntimeAPI:         cfg.RuntimeAPI,
-		CoreAPI:            cfg.CoreAPI,
-		TxStateAPI:         cfg.TransactionQueueAPI,
-		RPCHost:            fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort),
+		UnsafeEnabled: cfg.wsUnsafeEnabled(),
+		Wsconn:        conn,
+		Subscriptions: make(map[uint32]subscription.Listener),
+		StorageAPI:    cfg.StorageAPI,
+		BlockAPI:      cfg.BlockAPI,
+		CoreAPI:       cfg.CoreAPI,
+		TxStateAPI:    cfg.TransactionQueueAPI,
+		RPCHost:       fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort),
+		HTTP: &http.Client{
+			Timeout: time.Second * 30,
+		},
 	}
 	return c
 }

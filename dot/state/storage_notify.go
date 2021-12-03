@@ -1,23 +1,12 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package state
 
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -28,11 +17,27 @@ type KeyValue struct {
 	Value []byte
 }
 
+func (kv KeyValue) String() string {
+	return fmt.Sprintf("{Key: 0x%x, Value: 0x%x}", kv.Key, kv.Value)
+}
+
 //SubscriptionResult holds results of storage changes
 type SubscriptionResult struct {
 	Hash    common.Hash
 	Changes []KeyValue
 }
+
+// String serialises the subscription result changes
+// to human readable strings.
+func (s SubscriptionResult) String() string {
+	changes := make([]string, len(s.Changes))
+	for i := range s.Changes {
+		changes[i] = s.Changes[i].String()
+	}
+	return "[" + strings.Join(changes, ", ") + "]"
+}
+
+//go:generate mockery --name Observer --structname MockObserver --case underscore --inpackage
 
 // Observer interface defines functions needed for observers, Observer Design Pattern
 type Observer interface {
@@ -48,12 +53,12 @@ func (s *StorageState) RegisterStorageObserver(o Observer) {
 	// notifyObserver here to send storage value of current state
 	sr, err := s.blockState.BestBlockStateRoot()
 	if err != nil {
-		logger.Debug("error registering storage change channel", "error", err)
+		logger.Debugf("error registering storage change channel: %s", err)
 		return
 	}
 	go func() {
 		if err := s.notifyObserver(sr, o); err != nil {
-			logger.Warn("failed to notify storage subscriptions", "error", err)
+			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}()
 
@@ -70,7 +75,7 @@ func (s *StorageState) notifyAll(root common.Hash) {
 	for _, observer := range s.observerList {
 		err := s.notifyObserver(root, observer)
 		if err != nil {
-			logger.Warn("failed to notify storage subscriptions", "error", err)
+			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}
 }
@@ -93,7 +98,7 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 		ent := t.TrieEntries()
 		for k, v := range ent {
 			if k != ":code" {
-				// todo, currently we're ignoring :code since this is a lot of data
+				// currently we're ignoring :code since this is a lot of data
 				kv := &KeyValue{
 					Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
 					Value: v,
@@ -117,7 +122,7 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 	}
 
 	if len(subRes.Changes) > 0 {
-		logger.Trace("update observer", "changes", subRes.Changes)
+		logger.Tracef("update observer, changes are %v", subRes.Changes)
 		go func() {
 			o.Update(subRes)
 		}()

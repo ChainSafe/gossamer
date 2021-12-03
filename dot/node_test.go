@@ -1,28 +1,12 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package dot
 
 import (
-	"encoding/binary"
 	"math/big"
 	"reflect"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -33,11 +17,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -83,13 +66,13 @@ func TestNodeInitialized(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 
-	expected := NodeInitialized(cfg.Global.BasePath, false)
+	expected := NodeInitialized(cfg.Global.BasePath)
 	require.Equal(t, expected, false)
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	expected = NodeInitialized(cfg.Global.BasePath, true)
+	expected = NodeInitialized(cfg.Global.BasePath)
 	require.Equal(t, expected, true)
 }
 
@@ -114,10 +97,9 @@ func TestNewNode(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	bp := node.Services.Get(&babe.Service{})
@@ -149,10 +131,8 @@ func TestNewNode_Authority(t *testing.T) {
 	require.Equal(t, 1, ks.Babe.Size())
 
 	cfg.Core.Roles = types.AuthorityRole
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	bp := node.Services.Get(&babe.Service{})
@@ -173,6 +153,7 @@ func TestStartNode(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BABELead = true
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -183,14 +164,13 @@ func TestStartNode(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
-	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	go func() {
-		time.Sleep(time.Second)
+		<-node.started
 		node.Stop()
 	}()
 
@@ -214,7 +194,11 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc := state.NewService(cfg.Global.BasePath, log.LvlTrace)
+	config := state.Config{
+		Path:     cfg.Global.BasePath,
+		LogLevel: log.Info,
+	}
+	stateSrvc := state.NewService(config)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)
@@ -222,7 +206,8 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
+		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
@@ -253,7 +238,8 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	stateRoot := genesisHeader.StateRoot
-	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.NewEmptyDigest())
+	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}),
+		stateRoot, trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 	require.Equal(t, expectedHeader.Hash(), genesisHeader.Hash())
 }
@@ -284,7 +270,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	ks.Gran.Insert(ed25519Keyring.Alice())
 	sr25519Keyring, _ := keystore.NewSr25519Keyring()
 	ks.Babe.Insert(sr25519Keyring.Alice())
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
@@ -313,6 +299,14 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	require.Equal(t, expectedRoot, stateRoot)
 }
 
+// balanceKey returns the storage trie key for the balance of the account with the given public key
+func balanceKey(t *testing.T, key [32]byte) []byte {
+	accKey := append([]byte("balance:"), key[:]...)
+	hash, err := common.Blake2bHash(accKey)
+	require.NoError(t, err)
+	return hash[:]
+}
+
 func TestInitNode_LoadBalances(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -325,8 +319,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	cfg.Init.Genesis = genPath
 
 	err := InitNode(cfg)
@@ -336,7 +328,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
@@ -356,31 +348,12 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	kr, _ := keystore.NewSr25519Keyring()
 	alice := kr.Alice().Public().(*sr25519.PublicKey).AsBytes()
 
-	bal, err := stateSrv.Storage.GetBalance(nil, alice)
+	bal, err := stateSrv.Storage.GetStorage(nil, balanceKey(t, alice))
 	require.NoError(t, err)
 
 	genbal := "0x0000000000000001"
-	balbytes, _ := common.HexToBytes(genbal)
-	expected := binary.LittleEndian.Uint64(balbytes)
-
+	expected, _ := common.HexToBytes(genbal)
 	require.Equal(t, expected, bal)
-}
-
-func TestNode_StopFunc(t *testing.T) {
-	testvar := "before"
-	stopFunc := func() {
-		testvar = "after"
-	}
-
-	node := &Node{
-		Services: &services.ServiceRegistry{},
-		StopFunc: stopFunc,
-		wg:       sync.WaitGroup{},
-	}
-	node.wg.Add(1)
-
-	node.Stop()
-	require.Equal(t, testvar, "after")
 }
 
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
@@ -398,8 +371,6 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	cfg.Init.Genesis = genPath
 
 	err := InitNode(cfg)

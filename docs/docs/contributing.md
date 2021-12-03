@@ -67,7 +67,7 @@ $ go test <file_you_are_working_on>
 Before opening a pull request be sure to run the linter
 
 ```
-$ gometallinter ./...
+$ make lint
 ```
 
 **9. Create a pull request.**

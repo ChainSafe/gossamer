@@ -1,40 +1,30 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
-	epochPrefix      = "epoch"
-	epochLengthKey   = []byte("epochlength")
-	currentEpochKey  = []byte("current")
-	firstSlotKey     = []byte("firstslot")
-	epochDataPrefix  = []byte("epochinfo")
-	configDataPrefix = []byte("configinfo")
-	skipToKey        = []byte("skipto")
+	epochPrefix         = "epoch"
+	epochLengthKey      = []byte("epochlength")
+	currentEpochKey     = []byte("current")
+	firstSlotKey        = []byte("firstslot")
+	slotDurationKey     = []byte("slotduration")
+	epochDataPrefix     = []byte("epochinfo")
+	configDataPrefix    = []byte("configinfo")
+	latestConfigDataKey = []byte("lcfginfo")
+	skipToKey           = []byte("skipto")
 )
 
 func epochDataKey(epoch uint64) []byte {
@@ -53,13 +43,14 @@ func configDataKey(epoch uint64) []byte {
 type EpochState struct {
 	db          chaindb.Database
 	baseState   *BaseState
+	blockState  *BlockState
 	epochLength uint64 // measured in slots
-	firstSlot   uint64
 	skipToEpoch uint64
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
-func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConfiguration) (*EpochState, error) {
+func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState,
+	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
 	err := baseState.storeFirstSlot(1) // this may change once the first block is imported
@@ -79,9 +70,9 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 
 	s := &EpochState{
 		baseState:   NewBaseState(db),
+		blockState:  blockState,
 		db:          epochDB,
 		epochLength: genesisConfig.EpochLength,
-		firstSlot:   1,
 	}
 
 	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
@@ -106,8 +97,11 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
-	err = storeEpochLength(db, genesisConfig.EpochLength)
-	if err != nil {
+	if err = s.baseState.storeEpochLength(genesisConfig.EpochLength); err != nil {
+		return nil, err
+	}
+
+	if err = s.baseState.storeSlotDuration(genesisConfig.SlotDuration); err != nil {
 		return nil, err
 	}
 
@@ -119,15 +113,10 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 }
 
 // NewEpochState returns a new EpochState
-func NewEpochState(db chaindb.Database) (*EpochState, error) {
+func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
-	epochLength, err := loadEpochLength(db)
-	if err != nil {
-		return nil, err
-	}
-
-	firstSlot, err := baseState.loadFirstSlot()
+	epochLength, err := baseState.loadEpochLength()
 	if err != nil {
 		return nil, err
 	}
@@ -139,26 +128,26 @@ func NewEpochState(db chaindb.Database) (*EpochState, error) {
 
 	return &EpochState{
 		baseState:   baseState,
+		blockState:  blockState,
 		db:          chaindb.NewTable(db, epochPrefix),
 		epochLength: epochLength,
-		firstSlot:   firstSlot,
 		skipToEpoch: skipToEpoch,
 	}, nil
 }
 
-func storeEpochLength(db chaindb.Database, l uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, l)
-	return db.Put(epochLengthKey, buf)
+// GetEpochLength returns the length of an epoch in slots
+func (s *EpochState) GetEpochLength() (uint64, error) {
+	return s.baseState.loadEpochLength()
 }
 
-func loadEpochLength(db chaindb.Database) (uint64, error) {
-	data, err := db.Get(epochLengthKey)
+// GetSlotDuration returns the duration of a slot
+func (s *EpochState) GetSlotDuration() (time.Duration, error) {
+	d, err := s.baseState.loadSlotDuration()
 	if err != nil {
 		return 0, err
 	}
 
-	return binary.LittleEndian.Uint64(data), nil
+	return time.ParseDuration(fmt.Sprintf("%dms", d))
 }
 
 // SetCurrentEpoch sets the current epoch
@@ -184,21 +173,37 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, errors.New("header is nil")
 	}
 
-	for _, d := range header.Digest {
-		if d.Type() != types.PreRuntimeDigestType {
+	firstSlot, err := s.baseState.loadFirstSlot()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, d := range header.Digest.Types {
+		predigest, ok := d.Value().(types.PreRuntimeDigest)
+		if !ok {
 			continue
 		}
 
-		predigest := d.(*types.PreRuntimeDigest)
-
-		r := &bytes.Buffer{}
-		_, _ = r.Write(predigest.Data)
-		digest, err := types.DecodeBabePreDigest(r)
+		digest, err := types.DecodeBabePreDigest(predigest.Data)
 		if err != nil {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
 		}
 
-		return (digest.SlotNumber() - s.firstSlot) / s.epochLength, nil
+		var slotNumber uint64
+		switch d := digest.(type) {
+		case types.BabePrimaryPreDigest:
+			slotNumber = d.SlotNumber
+		case types.BabeSecondaryVRFPreDigest:
+			slotNumber = d.SlotNumber
+		case types.BabeSecondaryPlainPreDigest:
+			slotNumber = d.SlotNumber
+		}
+
+		if slotNumber < firstSlot {
+			return 0, nil
+		}
+
+		return (slotNumber - firstSlot) / s.epochLength, nil
 	}
 
 	return 0, errors.New("header does not contain pre-runtime digest")
@@ -208,7 +213,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	raw := info.ToEpochDataRaw()
 
-	enc, err := scale.Encode(raw)
+	enc, err := scale.Marshal(*raw)
 	if err != nil {
 		return err
 	}
@@ -223,14 +228,10 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 		return nil, err
 	}
 
-	info, err := scale.Decode(enc, &types.EpochDataRaw{})
+	raw := &types.EpochDataRaw{}
+	err = scale.Unmarshal(enc, raw)
 	if err != nil {
 		return nil, err
-	}
-
-	raw, ok := info.(*types.EpochDataRaw)
-	if !ok {
-		return nil, errors.New("failed to decode raw epoch data")
 	}
 
 	return raw.ToEpochData()
@@ -253,12 +254,23 @@ func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
 
 // SetConfigData sets the BABE config data for a given epoch
 func (s *EpochState) SetConfigData(epoch uint64, info *types.ConfigData) error {
-	enc, err := scale.Encode(info)
+	enc, err := scale.Marshal(*info)
 	if err != nil {
 		return err
 	}
 
+	// this assumes the most recently set config data is the highest on the chain
+	if err = s.setLatestConfigData(epoch); err != nil {
+		return err
+	}
+
 	return s.db.Put(configDataKey(epoch), enc)
+}
+
+func (s *EpochState) setLatestConfigData(epoch uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, epoch)
+	return s.db.Put(latestConfigDataKey, buf)
 }
 
 // GetConfigData returns the BABE config data for a given epoch
@@ -268,12 +280,24 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 		return nil, err
 	}
 
-	info, err := scale.Decode(enc, new(types.ConfigData))
+	info := &types.ConfigData{}
+	err = scale.Unmarshal(enc, info)
 	if err != nil {
 		return nil, err
 	}
 
-	return info.(*types.ConfigData), nil
+	return info, nil
+}
+
+// GetLatestConfigData returns the most recently set ConfigData
+func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
+	b, err := s.db.Get(latestConfigDataKey)
+	if err != nil {
+		return nil, err
+	}
+
+	epoch := binary.LittleEndian.Uint64(b)
+	return s.GetConfigData(epoch)
 }
 
 // HasConfigData returns whether config data exists for a given epoch
@@ -284,12 +308,47 @@ func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 // GetStartSlotForEpoch returns the first slot in the given epoch.
 // If 0 is passed as the epoch, it returns the start slot for the current epoch.
 func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
-	return s.epochLength*epoch + s.firstSlot, nil
+	firstSlot, err := s.baseState.loadFirstSlot()
+	if err != nil {
+		return 0, err
+	}
+
+	return s.epochLength*epoch + firstSlot, nil
+}
+
+// GetEpochFromTime returns the epoch for a given time
+func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
+	slotDuration, err := s.GetSlotDuration()
+	if err != nil {
+		return 0, err
+	}
+
+	firstSlot, err := s.baseState.loadFirstSlot()
+	if err != nil {
+		return 0, err
+	}
+
+	slot := uint64(t.UnixNano()) / uint64(slotDuration.Nanoseconds())
+
+	if slot < firstSlot {
+		return 0, errors.New("given time is before network start")
+	}
+
+	return (slot - firstSlot) / s.epochLength, nil
 }
 
 // SetFirstSlot sets the first slot number of the network
 func (s *EpochState) SetFirstSlot(slot uint64) error {
-	s.firstSlot = slot
+	// check if block 1 was finalised already; if it has, don't set first slot again
+	header, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return err
+	}
+
+	if header.Number.Cmp(big.NewInt(1)) > -1 {
+		return errors.New("first slot has already been set")
+	}
+
 	return s.baseState.storeFirstSlot(slot)
 }
 

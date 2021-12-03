@@ -1,23 +1,11 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -38,24 +26,17 @@ func exportAction(ctx *cli.Context) error {
 
 	// check if configuration file already exists at export destination
 	if utils.PathExists(config) {
-		logger.Warn(
-			"toml configuration file already exists",
-			"config", config,
-		)
+		logger.Warn("toml configuration file " + config + "already exists")
 
 		// use --force value to force overwrite the toml configuration file
 		force := ctx.Bool(ForceFlag.Name)
 
 		// prompt user to confirm overwriting existing toml configuration file
 		if force || confirmMessage("Are you sure you want to overwrite the file? [Y/n]") {
-			logger.Warn(
-				"overwriting toml configuration file",
-				"config", config,
-			)
+			logger.Warn("overwriting toml configuration file " + config)
 		} else {
 			logger.Warn(
-				"exiting without exporting toml configuration file",
-				"config", config,
+				"exiting without exporting toml configuration file " + config,
 			)
 			return nil // exit if reinitialization is not confirmed
 		}
@@ -70,20 +51,29 @@ func exportAction(ctx *cli.Context) error {
 	file := exportConfig(tomlCfg, config)
 	// export config will exit and log error on error
 
-	logger.Info("exported toml configuration file", "path", file.Name())
+	logger.Info("exported toml configuration to " + file.Name())
 
 	return nil
 }
 
 func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
-	cfg := &ctoml.Config{}
+	cfg := &ctoml.Config{
+		Pprof: ctoml.PprofConfig{
+			Enabled:          dcfg.Pprof.Enabled,
+			ListeningAddress: dcfg.Pprof.Settings.ListeningAddress,
+			BlockRate:        dcfg.Pprof.Settings.BlockProfileRate,
+			MutexRate:        dcfg.Pprof.Settings.MutexProfileRate,
+		},
+	}
 
 	cfg.Global = ctoml.GlobalConfig{
-		Name:        dcfg.Global.Name,
-		ID:          dcfg.Global.ID,
-		BasePath:    dcfg.Global.BasePath,
-		LogLvl:      dcfg.Global.LogLvl.String(),
-		MetricsPort: dcfg.Global.MetricsPort,
+		Name:         dcfg.Global.Name,
+		ID:           dcfg.Global.ID,
+		BasePath:     dcfg.Global.BasePath,
+		LogLvl:       dcfg.Global.LogLvl.String(),
+		MetricsPort:  dcfg.Global.MetricsPort,
+		RetainBlocks: dcfg.Global.RetainBlocks,
+		Pruning:      string(dcfg.Global.Pruning),
 	}
 
 	cfg.Log = ctoml.LogConfig{
@@ -107,21 +97,21 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.Core = ctoml.CoreConfig{
-		Roles:                    dcfg.Core.Roles,
-		BabeAuthority:            dcfg.Core.BabeAuthority,
-		GrandpaAuthority:         dcfg.Core.GrandpaAuthority,
-		EpochLength:              dcfg.Core.EpochLength,
-		BabeThresholdNumerator:   dcfg.Core.BabeThresholdNumerator,
-		BabeThresholdDenominator: dcfg.Core.BabeThresholdDenominator,
-		SlotDuration:             dcfg.Core.SlotDuration,
+		Roles:            dcfg.Core.Roles,
+		BabeAuthority:    dcfg.Core.BabeAuthority,
+		GrandpaAuthority: dcfg.Core.GrandpaAuthority,
+		GrandpaInterval:  uint32(dcfg.Core.GrandpaInterval / time.Second),
 	}
 
 	cfg.Network = ctoml.NetworkConfig{
-		Port:        dcfg.Network.Port,
-		Bootnodes:   dcfg.Network.Bootnodes,
-		ProtocolID:  dcfg.Network.ProtocolID,
-		NoBootstrap: dcfg.Network.NoBootstrap,
-		NoMDNS:      dcfg.Network.NoMDNS,
+		Port:              dcfg.Network.Port,
+		Bootnodes:         dcfg.Network.Bootnodes,
+		ProtocolID:        dcfg.Network.ProtocolID,
+		NoBootstrap:       dcfg.Network.NoBootstrap,
+		NoMDNS:            dcfg.Network.NoMDNS,
+		DiscoveryInterval: int(dcfg.Network.DiscoveryInterval / time.Second),
+		MinPeers:          dcfg.Network.MinPeers,
+		MaxPeers:          dcfg.Network.MaxPeers,
 	}
 
 	cfg.RPC = ctoml.RPCConfig{

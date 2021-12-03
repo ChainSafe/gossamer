@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
@@ -23,7 +10,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,14 +19,11 @@ var testMessageTimeout = time.Second * 3
 
 func TestImportChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
+	ch := bs.GetImportedBlockNotifierChannel()
 
-	ch := make(chan *types.Block, 3)
-	id, err := bs.RegisterImportedChannel(ch)
-	require.NoError(t, err)
+	defer bs.FreeImportedBlockNotifierChannel(ch)
 
-	defer bs.UnregisterImportedChannel(id)
-
-	AddBlocksToState(t, bs, 3)
+	AddBlocksToState(t, bs, 3, false)
 
 	for i := 0; i < 3; i++ {
 		select {
@@ -49,19 +34,26 @@ func TestImportChannel(t *testing.T) {
 	}
 }
 
+func TestFreeImportedBlockNotifierChannel(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+	ch := bs.GetImportedBlockNotifierChannel()
+	require.Equal(t, 1, len(bs.imported))
+
+	bs.FreeImportedBlockNotifierChannel(ch)
+	require.Equal(t, 0, len(bs.imported))
+}
+
 func TestFinalizedChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	ch := make(chan *types.FinalisationInfo, 3)
-	id, err := bs.RegisterFinalizedChannel(ch)
-	require.NoError(t, err)
+	ch := bs.GetFinalisedNotifierChannel()
 
-	defer bs.UnregisterFinalizedChannel(id)
+	defer bs.FreeFinalisedNotifierChannel(ch)
 
-	chain, _ := AddBlocksToState(t, bs, 3)
+	chain, _ := AddBlocksToState(t, bs, 3, false)
 
 	for _, b := range chain {
-		bs.SetFinalizedHash(b.Hash(), 0, 0)
+		bs.SetFinalisedHash(b.Hash(), 1, 0)
 	}
 
 	for i := 0; i < 1; i++ {
@@ -78,13 +70,9 @@ func TestImportChannel_Multi(t *testing.T) {
 
 	num := 5
 	chs := make([]chan *types.Block, num)
-	ids := make([]byte, num)
 
-	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.Block)
-		ids[i], err = bs.RegisterImportedChannel(chs[i])
-		require.NoError(t, err)
+		chs[i] = bs.GetImportedBlockNotifierChannel()
 	}
 
 	var wg sync.WaitGroup
@@ -92,7 +80,7 @@ func TestImportChannel_Multi(t *testing.T) {
 
 	for i, ch := range chs {
 
-		go func(i int, ch chan *types.Block) {
+		go func(i int, ch <-chan *types.Block) {
 			select {
 			case b := <-ch:
 				require.Equal(t, big.NewInt(1), b.Header.Number)
@@ -105,12 +93,9 @@ func TestImportChannel_Multi(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 10)
-	AddBlocksToState(t, bs, 1)
+	AddBlocksToState(t, bs, 1, false)
 	wg.Wait()
 
-	for _, id := range ids {
-		bs.UnregisterImportedChannel(id)
-	}
 }
 
 func TestFinalizedChannel_Multi(t *testing.T) {
@@ -118,16 +103,12 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 
 	num := 5
 	chs := make([]chan *types.FinalisationInfo, num)
-	ids := make([]byte, num)
 
-	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.FinalisationInfo)
-		ids[i], err = bs.RegisterFinalizedChannel(chs[i])
-		require.NoError(t, err)
+		chs[i] = bs.GetFinalisedNotifierChannel()
 	}
 
-	chain, _ := AddBlocksToState(t, bs, 1)
+	chain, _ := AddBlocksToState(t, bs, 1, false)
 
 	var wg sync.WaitGroup
 	wg.Add(num)
@@ -146,10 +127,56 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 10)
-	bs.SetFinalizedHash(chain[0].Hash(), 0, 0)
+	bs.SetFinalisedHash(chain[0].Hash(), 1, 0)
 	wg.Wait()
 
-	for _, id := range ids {
-		bs.UnregisterFinalizedChannel(id)
+	for _, ch := range chs {
+		bs.FreeFinalisedNotifierChannel(ch)
 	}
+}
+
+func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+	ch := make(chan<- runtime.Version)
+	chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
+	require.NoError(t, err)
+	require.NotNil(t, chID)
+
+	res := bs.UnregisterRuntimeUpdatedChannel(chID)
+	require.True(t, res)
+}
+
+func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	go func() {
+		for i := 0; i < 100; i++ {
+			testVer := NewMockVersion(uint32(i))
+			go bs.notifyRuntimeUpdated(testVer)
+		}
+	}()
+
+	for i := 0; i < 100; i++ {
+		go func() {
+
+			ch := make(chan<- runtime.Version)
+			chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
+			require.NoError(t, err)
+			unReg := bs.UnregisterRuntimeUpdatedChannel(chID)
+			require.True(t, unReg)
+		}()
+	}
+}
+
+// NewMockVersion creates and returns an runtime Version interface mock
+func NewMockVersion(specVer uint32) *runtimemocks.Version {
+	m := new(runtimemocks.Version)
+	m.On("SpecName").Return([]byte(`mock-spec`))
+	m.On("ImplName").Return(nil)
+	m.On("AuthoringVersion").Return(uint32(0))
+	m.On("SpecVersion").Return(specVer)
+	m.On("ImplVersion").Return(uint32(0))
+	m.On("TransactionVersion").Return(uint32(0))
+	m.On("APIItems").Return(nil)
+	return m
 }

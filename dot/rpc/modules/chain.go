@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package modules
 
@@ -24,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ChainHashRequest Hash as a string
@@ -91,18 +79,18 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 		return err
 	}
 
-	res.Block.Header, err = HeaderToJSON(*block.Header)
+	res.Block.Header, err = HeaderToJSON(block.Header)
 	if err != nil {
 		return err
 	}
 
-	if *block.Body != nil {
+	if block.Body != nil {
 		ext, err := block.Body.AsEncodedExtrinsics()
 		if err != nil {
 			return err
 		}
 		for _, e := range ext {
-			res.Block.Body = append(res.Block.Body, fmt.Sprintf("0x%x", e))
+			res.Block.Body = append(res.Block.Body, e.String())
 		}
 	}
 	return nil
@@ -128,14 +116,9 @@ func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberReques
 	return err
 }
 
-// GetHead alias for GetBlockHash
-func (cm *ChainModule) GetHead(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) error {
-	return cm.GetBlockHash(r, req, res)
-}
-
 // GetFinalizedHead returns the most recently finalised block hash
 func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) error {
-	h, err := cm.blockAPI.GetFinalizedHash(0, 0)
+	h, err := cm.blockAPI.GetHighestFinalisedHash()
 	if err != nil {
 		return err
 	}
@@ -145,8 +128,9 @@ func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res 
 }
 
 // GetFinalizedHeadByRound returns the hash of the block finalised at the given round and setID
-func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainFinalizedHeadRequest, res *ChainHashResponse) error {
-	h, err := cm.blockAPI.GetFinalizedHash(req.Round, req.SetID)
+func (cm *ChainModule) GetFinalizedHeadByRound(
+	r *http.Request, req *ChainFinalizedHeadRequest, res *ChainHashResponse) error {
+	h, err := cm.blockAPI.GetFinalisedHash(req.Round, req.SetID)
 	if err != nil {
 		return err
 	}
@@ -169,7 +153,7 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 
 // SubscribeFinalizedHeads handled by websocket handler, but this func should remain
 //  here so it's added to rpc_methods list
-func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+func (cm *ChainModule) SubscribeFinalizedHeads(_ *http.Request, _ *EmptyRequest, _ *ChainBlockHeaderResponse) error {
 	return ErrSubscriptionTransport
 }
 
@@ -241,7 +225,7 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 		return "", fmt.Errorf("unknown request number type: %T", x)
 	}
 
-	h, err := cm.blockAPI.GetBlockHash(num)
+	h, err := cm.blockAPI.GetHashByNumber(num)
 	if err != nil {
 		return "", err
 	}
@@ -262,8 +246,9 @@ func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
 	} else {
 		res.Number = common.BytesToHex(header.Number.Bytes())
 	}
-	for _, item := range header.Digest {
-		enc, err := item.Encode()
+
+	for _, item := range header.Digest.Types {
+		enc, err := scale.Marshal(item)
 		if err != nil {
 			return ChainBlockHeaderResponse{}, err
 		}

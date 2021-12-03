@@ -1,28 +1,20 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
-//nolint
+// errRoundMismatch is returned when trying to validate a vote message that isn't for the current round
+func errRoundMismatch(got, want uint64) error {
+	return fmt.Errorf("rounds do not match: got %d, want %d", got, want)
+}
+
 var (
 	ErrNilBlockState    = errors.New("cannot have nil BlockState")
 	ErrNilGrandpaState  = errors.New("cannot have nil GrandpaState")
@@ -36,11 +28,10 @@ var (
 	// ErrInvalidSignature is returned when trying to validate a vote message with an invalid signature
 	ErrInvalidSignature = errors.New("signature is not valid")
 
-	// ErrSetIDMismatch is returned when trying to validate a vote message with an invalid voter set ID, or when receiving a catch up message with a different set ID
+	// ErrSetIDMismatch is returned when trying to validate a vote message
+	// with an invalid voter set ID, or when receiving a catch up message
+	// with a different set ID
 	ErrSetIDMismatch = errors.New("set IDs do not match")
-
-	// ErrRoundMismatch is returned when trying to validate a vote message that isn't for the current round
-	ErrRoundMismatch = errors.New("rounds do not match")
 
 	// ErrEquivocation is returned when trying to validate a vote for that is equivocatory
 	ErrEquivocation = errors.New("vote is equivocatory")
@@ -48,7 +39,8 @@ var (
 	// ErrVoterNotFound is returned when trying to validate a vote for a voter that isn't in the voter set
 	ErrVoterNotFound = errors.New("voter is not in voter set")
 
-	// ErrDescendantNotFound is returned when trying to validate a vote for a block that isn't a descendant of the last finalised block
+	// ErrDescendantNotFound is returned when trying to validate a vote
+	// for a block that isn't a descendant of the last finalised block
 	ErrDescendantNotFound = blocktree.ErrDescendantNotFound
 
 	// ErrNoPreVotedBlock is returned when there is no pre-voted block for a round.
@@ -65,7 +57,7 @@ var (
 	// ErrInvalidMessageType is returned when a network.Message cannot be decoded
 	ErrInvalidMessageType = errors.New("cannot decode invalid message type")
 
-	// ErrNotCommitMessage is returned when calling GetFinalizedHash on a message that isn't a CommitMessage
+	// ErrNotCommitMessage is returned when calling GetFinalisedHash on a message that isn't a CommitMessage
 	ErrNotCommitMessage = errors.New("cannot get finalised hash from VoteMessage")
 
 	// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised
@@ -80,7 +72,8 @@ var (
 	// ErrInvalidCatchUpResponseRound is returned when a catch-up response is received with an invalid round
 	ErrInvalidCatchUpResponseRound = errors.New("catch up response is not for previous round")
 
-	// ErrGHOSTlessCatchUp is returned when a catch up response does not contain a valid grandpa-GHOST (ie. finalised block)
+	// ErrGHOSTlessCatchUp is returned when a catch up response
+	// does not contain a valid grandpa-GHOST (ie. finalised block)
 	ErrGHOSTlessCatchUp = errors.New("catch up response does not contain grandpa-GHOST")
 
 	// ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable
@@ -89,15 +82,18 @@ var (
 	// ErrServicePaused is returned if the service is paused and waiting for catch up messages
 	ErrServicePaused = errors.New("service is paused")
 
-	// ErrPrecommitSignatureMismatch is returned when the number of precommits and signatures in a CommitMessage do not match
+	// ErrPrecommitSignatureMismatch is returned when the number of precommits
+	// and signatures in a CommitMessage do not match
 	ErrPrecommitSignatureMismatch = errors.New("number of precommits does not match number of signatures")
 
-	// ErrJustificationHashMismatch is returned when a precommit hash within a justification does not match the justification hash
-	ErrJustificationHashMismatch = errors.New("precommit hash does not match justification hash")
-
-	// ErrJustificationNumberMismatch is returned when a precommit number within a justification does not match the justification number
-	ErrJustificationNumberMismatch = errors.New("precommit number does not match justification number")
+	// ErrPrecommitBlockMismatch is returned when a precommit hash within a
+	// justification is not a descendant of the committed block
+	ErrPrecommitBlockMismatch = errors.New("precommit block is not descendant of committed block")
 
 	// ErrAuthorityNotInSet is returned when a precommit within a justification is signed by a key not in the authority set
 	ErrAuthorityNotInSet = errors.New("authority is not in set")
+
+	errVoteExists              = errors.New("already have vote")
+	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
+	errInvalidVoteBlock        = errors.New("block in vote is not descendant of previously finalised block")
 )

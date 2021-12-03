@@ -1,24 +1,18 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package genesis
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"math/big"
+	"os"
+	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/stretchr/testify/require"
 )
 
 const testProtocolID = "/gossamer/test/0"
@@ -30,7 +24,11 @@ var testBootnodes = []string{
 
 var testEndpoints = []interface{}{}
 var testEndpoint1 = []interface{}{"wss://telemetry.polkadot.io/submit/", float64(1)}
-var testProperties = map[string]interface{}{"ss58Format": float64(0), "tokenDecimals": float64(10), "tokenSymbol": "DOT"}
+var testProperties = map[string]interface{}{
+	"ss58Format":    float64(0),
+	"tokenDecimals": float64(10),
+	"tokenSymbol":   "DOT",
+}
 
 var testForkBlocks = []string{"fork1", "forkBlock2"}
 
@@ -52,7 +50,7 @@ var TestGenesis = &Genesis{
 var TestFieldsHR = Fields{
 	Raw: map[string]map[string]string{},
 	Runtime: map[string]map[string]interface{}{
-		"system": {
+		"System": {
 			"code": "mocktestcode",
 		},
 	},
@@ -61,14 +59,17 @@ var TestFieldsHR = Fields{
 // TestFieldsRaw instance of raw Fields struct for testing use with TestGenesis
 var TestFieldsRaw = Fields{
 	Raw: map[string]map[string]string{
-		"top": {"0x3a636f6465": "mocktestcode"},
+		"top": {
+			"0x3a636f6465": "mocktestcode",
+			common.BytesToHex(common.UpgradedToDualRefKey): "0x01",
+		},
 	},
 }
 
 // CreateTestGenesisJSONFile utility to create mock test genesis JSON file
 func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 	// Create temp file
-	file, err := ioutil.TempFile("", "genesis-test")
+	file, err := os.CreateTemp("", "genesis-test")
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +86,7 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 		tGen.Genesis = Fields{
 			Raw: map[string]map[string]string{},
 			Runtime: map[string]map[string]interface{}{
-				"system": {
+				"System": {
 					"code": "mocktestcode",
 				},
 			},
@@ -105,4 +106,39 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 	}
 
 	return file.Name(), nil
+}
+
+// NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
+func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
+	gen, err := NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+	if err != nil {
+		gen, err = NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
+		require.NoError(t, err)
+	}
+
+	tr, h := newGenesisTrieAndHeader(t, gen)
+	return gen, tr, h
+}
+
+// NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
+func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
+	gen, err := NewGenesisFromJSONRaw("../../chain/dev/genesis.json")
+	if err != nil {
+		gen, err = NewGenesisFromJSONRaw("../../../chain/dev/genesis.json")
+		require.NoError(t, err)
+	}
+
+	tr, h := newGenesisTrieAndHeader(t, gen)
+	return gen, tr, h
+}
+
+func newGenesisTrieAndHeader(t *testing.T, gen *Genesis) (*trie.Trie, *types.Header) {
+	genTrie, err := NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
+		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	require.NoError(t, err)
+
+	return genTrie, genesisHeader
 }

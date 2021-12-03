@@ -1,17 +1,22 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package life
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"io"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
+// ValidateTransaction runs the extrinsic through runtime function
+// TaggedTransactionQueue_validate_transaction and returns *Validity
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
 	ret, err := in.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
@@ -23,8 +28,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	}
 
 	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	_, err = scale.Decode(ret[1:], v)
-
+	err = scale.Unmarshal(ret[1:], v)
 	return v, err
 }
 
@@ -37,12 +41,14 @@ func (in *Instance) Version() (runtime.Version, error) {
 
 	version := &runtime.VersionData{}
 	err = version.Decode(res)
-	if err == io.EOF {
-		// TODO: kusama seems to use the legacy version format
-		lversion := &runtime.LegacyVersionData{}
-		err = lversion.Decode(res)
-		return lversion, err
-	} else if err != nil {
+	// error comes from scale now, so do a string check
+	if err != nil {
+		if strings.Contains(err.Error(), "EOF") {
+			// kusama seems to use the legacy version format
+			lversion := &runtime.LegacyVersionData{}
+			err = lversion.Decode(res)
+			return lversion, err
+		}
 		return nil, err
 	}
 
@@ -62,7 +68,7 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	}
 
 	bc := new(types.BabeConfiguration)
-	_, err = scale.Decode(data, bc)
+	err = scale.Unmarshal(data, bc)
 	if err != nil {
 		return nil, err
 	}
@@ -71,23 +77,24 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 }
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
-func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
+func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	ret, err := in.Exec(runtime.GrandpaAuthorities, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	adr, err := scale.Decode(ret, []*types.GrandpaAuthoritiesRaw{})
+	var gar []types.GrandpaAuthoritiesRaw
+	err = scale.Unmarshal(ret, &gar)
 	if err != nil {
 		return nil, err
 	}
 
-	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]*types.GrandpaAuthoritiesRaw))
+	return types.GrandpaAuthoritiesRawToAuthorities(gar)
 }
 
 // InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
-	encodedHeader, err := scale.Encode(header)
+	encodedHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
@@ -106,7 +113,6 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.Exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
-//nolint
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := in.Exec(runtime.BlockBuilderFinalizeBlock, []byte{})
@@ -114,8 +120,8 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 		return nil, err
 	}
 
-	bh := new(types.Header)
-	_, err = scale.Decode(data, bh)
+	bh := types.NewEmptyHeader()
+	err = scale.Unmarshal(data, bh)
 	if err != nil {
 		return nil, err
 	}
@@ -126,19 +132,29 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 // ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
-	b := block.DeepCopy()
-	b.Header.Digest = types.NewEmptyDigest()
+	b, err := block.DeepCopy()
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
-		// remove seal digest only
-		for _, d := range block.Header.Digest {
-			if d.Type() == types.SealDigestType {
-				continue
+	b.Header.Digest = types.NewDigest()
+
+	// remove seal digest only
+	for _, d := range block.Header.Digest.Types {
+		// hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
+		// with type prefix (ie Primary, Secondary...)
+		if bytes.Equal(in.version.SpecName(), []byte("node")) {
+			break
+		}
+
+		switch d.Value().(type) {
+		case types.SealDigest:
+			continue
+		default:
+			err = b.Header.Digest.Add(d.Value())
+			if err != nil {
+				return nil, err
 			}
-
-			b.Header.Digest = append(b.Header.Digest, d)
 		}
 	}
 
@@ -150,7 +166,18 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
-func (in *Instance) CheckInherents()      {} //nolint
-func (in *Instance) RandomSeed()          {} //nolint
-func (in *Instance) OffchainWorker()      {} //nolint
-func (in *Instance) GenerateSessionKeys() {} //nolint
+// DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
+func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
+	return in.Exec(runtime.DecodeSessionKeys, enc)
+}
+
+// PaymentQueryInfo returns information of a given extrinsic
+func (*Instance) PaymentQueryInfo([]byte) (*types.TransactionPaymentQueryInfo, error) {
+	// TODO: implement the payment query info (see issue #1892)
+	return nil, errors.New("not implemented yet")
+}
+
+func (in *Instance) CheckInherents()      {} //nolint:revive
+func (in *Instance) RandomSeed()          {} //nolint:revive
+func (in *Instance) OffchainWorker()      {} //nolint:revive
+func (in *Instance) GenerateSessionKeys() {} //nolint:revive

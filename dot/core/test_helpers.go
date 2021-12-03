@@ -1,30 +1,15 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package core
 
 import (
-	"io/ioutil"
-	"math/big"
+	"path/filepath"
 	"testing"
-	"time"
 
-	"github.com/ChainSafe/gossamer/dot/network"
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -32,77 +17,19 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-// testMessageTimeout is the wait time for messages to be exchanged
-var testMessageTimeout = time.Second
-
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
-	if err != nil {
-		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
-		require.NoError(t, err)
-	}
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
-	require.NoError(t, err)
-	return gen, genTrie, genesisHeader
-}
-
-type mockVerifier struct{}
-
-func (v *mockVerifier) SetOnDisabled(_ uint32, _ *types.Header) error {
-	return nil
-}
-
-// mockBlockProducer implements the BlockProducer interface
-type mockBlockProducer struct {
-	disabled uint32
-}
-
-// Start mocks starting
-func (bp *mockBlockProducer) Start() error {
-	return nil
-}
-
-// Stop mocks stopping
-func (bp *mockBlockProducer) Stop() error {
-	return nil
-}
-
-func (bp *mockBlockProducer) SetOnDisabled(idx uint32) {
-	bp.disabled = idx
-}
-
-// GetBlockChannel returns a new channel
-func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
-	return make(chan types.Block)
-}
-
-// SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.Instance) {}
-
-type mockNetwork struct {
-	Message network.Message
-}
-
-func (n *mockNetwork) SendMessage(m network.NotificationsMessage) {
-	n.Message = m
-}
 
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
-		cfg = &Config{
-			IsBlockProducer: false,
-		}
+		cfg = &Config{}
 	}
+
+	cfg.DigestHandler = new(coremocks.DigestHandler)
+	cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
@@ -110,30 +37,28 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		if err != nil {
 			t.Fatal(err)
 		}
-		cfg.Keystore.Acco.Insert(kp)
-	}
-
-	if cfg.NewBlocks == nil {
-		cfg.NewBlocks = make(chan types.Block)
-	}
-
-	if cfg.Verifier == nil {
-		cfg.Verifier = new(mockVerifier)
+		err = cfg.Keystore.Acco.Insert(kp)
+		require.NoError(t, err)
 	}
 
 	cfg.LogLvl = 3
 
 	var stateSrvc *state.Service
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
+	testDatadirPath := t.TempDir()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
-	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil {
-		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
+	if cfg.BlockState == nil || cfg.StorageState == nil ||
+		cfg.TransactionState == nil || cfg.EpochState == nil ||
+		cfg.CodeSubstitutedState == nil {
+		config := state.Config{
+			Path:     testDatadirPath,
+			LogLevel: log.Info,
+		}
+		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err = stateSrvc.Initialise(gen, genHeader, genTrie)
+		err := stateSrvc.Initialise(gen, genHeader, genTrie)
 		require.Nil(t, err)
 
 		err = stateSrvc.Start()
@@ -156,95 +81,61 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.EpochState = stateSrvc.Epoch
 	}
 
-	if cfg.Runtime == nil {
-		rtCfg := &wasmer.Config{}
-		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
-		require.NoError(t, err)
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
-		require.NoError(t, err)
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
 
-	if cfg.Network == nil {
-		config := &network.Config{
-			BasePath:           testDatadirPath,
-			Port:               7001,
-			RandSeed:           1,
-			NoBootstrap:        true,
-			NoMDNS:             true,
-			BlockState:         stateSrvc.Block,
-			TransactionHandler: &mockTransactionHandler{},
+	if cfg.Runtime == nil {
+		rtCfg := &wasmer.Config{}
+
+		var err error
+		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+		require.NoError(t, err)
+
+		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		require.NoError(t, err)
+
+		nodeStorage := runtime.NodeStorage{}
+
+		if stateSrvc != nil {
+			nodeStorage.BaseDB = stateSrvc.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
 		}
-		cfg.Network = createTestNetworkService(t, config)
+
+		rtCfg.NodeStorage = nodeStorage
+
+		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+		require.NoError(t, err)
+	}
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
+
+	if cfg.Network == nil {
+		net := new(coremocks.Network)
+		net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
+		net.On("IsSynced").Return(true)
+		net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
+		cfg.Network = net
+	}
+
+	if cfg.CodeSubstitutes == nil {
+		cfg.CodeSubstitutes = make(map[common.Hash]string)
+
+		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData()
+		require.NoError(t, err)
+
+		for k, v := range genesisData.CodeSubstitutes {
+			cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
+		}
+	}
+
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
 
 	s, err := NewService(cfg)
-	require.Nil(t, err)
-
-	if net, ok := cfg.Network.(*network.Service); ok {
-		net.SetTransactionHandler(s)
-		_ = net.Stop()
-	}
+	require.NoError(t, err)
 
 	return s
-}
-
-// helper method to create and start a new network service
-func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
-	if cfg.LogLvl == 0 {
-		cfg.LogLvl = 3
-	}
-
-	if cfg.Syncer == nil {
-		cfg.Syncer = newMockSyncer()
-	}
-
-	srvc, err := network.NewService(cfg)
-	require.NoError(t, err)
-
-	err = srvc.Start()
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		err := srvc.Stop()
-		require.NoError(t, err)
-	})
-	return srvc
-}
-
-type mockSyncer struct {
-	highestSeen *big.Int
-}
-
-func newMockSyncer() *mockSyncer {
-	return &mockSyncer{
-		highestSeen: big.NewInt(0),
-	}
-}
-
-func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	return nil, nil
-}
-
-func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
-	return nil
-}
-
-func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) IsSynced() bool {
-	return false
-}
-
-func (s *mockSyncer) SetSyncing(bool) {}
-
-type mockTransactionHandler struct{}
-
-func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
-	return nil
 }

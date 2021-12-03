@@ -21,25 +21,25 @@ You'll need to setup the polkadot.js/apps to use a custom endpoint to connect to
 
 Once you've opened the app in your browser, you should see it connected to the Polkadot network: 
 
-<img src= "../../assets/tutorial/connect-1.png" />
+<img src= "../assets/tutorial/connect-1.png" />
 
 In the top left hand corner, click the logo to open the network selection modal: 
 
-<img src="../../assets/tutorial/connect-2.png" />
+<img src="../assets/tutorial/connect-2.png" />
 
 Next, at the bottom of this menu is a "Development" dropdown, click to open that
 
-<img src="../../assets/tutorial/connect-3.png" />
+<img src="../assets/tutorial/connect-3.png" />
 
 Now you should see a text area with the label "custom endpoint", here you add your local node's websocket address, usually "ws://127.0.0.1:8586",
 click the Save icon on the right of the text box to save the endpoint.
 
-<img src="../../assets/tutorial/connect-4.png" />
+<img src="../assets/tutorial/connect-4.png" />
 
 Finally, click the "Switch" button at the top of this modal:
 
-<img src="../../assets/tutorial/connect-5.png" />
+<img src="../assets/tutorial/connect-5.png" />
 
 Congratulations, you've successfully connected to your Gossamer node!
 
-<img src="../../assets/tutorial/connect-6.png" />
+<img src="../assets/tutorial/connect-6.png" />

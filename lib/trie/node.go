@@ -1,19 +1,7 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
+//nolint:lll
 // Modified Merkle-Patricia Trie
 // See https://github.com/w3f/polkadot-spec/blob/master/runtime-environment-spec/polkadot_re_spec.pdf for the full specification.
 //
@@ -47,13 +35,12 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // node is the interface for trie methods
 type node interface {
 	encodeAndHash() ([]byte, []byte, error)
-	encode() ([]byte, error)
 	decode(r io.Reader, h byte) error
 	isDirty() bool
 	setDirty(dirty bool)
@@ -62,6 +49,8 @@ type node interface {
 	setEncodingAndHash([]byte, []byte)
 	getHash() []byte
 	getGeneration() uint64
+	setGeneration(uint64)
+	copy() node
 }
 
 type (
@@ -81,15 +70,27 @@ type (
 		dirty      bool
 		hash       []byte
 		encoding   []byte
+		encodingMu sync.RWMutex
 		generation uint64
 		sync.RWMutex
 	}
 )
 
-func (b *branch) copy() *branch {
+func (b *branch) setGeneration(generation uint64) {
+	b.generation = generation
+}
+
+func (l *leaf) setGeneration(generation uint64) {
+	l.generation = generation
+}
+
+func (b *branch) copy() node {
+	b.RLock()
+	defer b.RUnlock()
+
 	cpy := &branch{
 		key:        make([]byte, len(b.key)),
-		children:   b.children,
+		children:   b.children, // copy interface pointers
 		value:      nil,
 		dirty:      b.dirty,
 		hash:       make([]byte, len(b.hash)),
@@ -109,7 +110,13 @@ func (b *branch) copy() *branch {
 	return cpy
 }
 
-func (l *leaf) copy() *leaf {
+func (l *leaf) copy() node {
+	l.RLock()
+	defer l.RUnlock()
+
+	l.encodingMu.RLock()
+	defer l.encodingMu.RUnlock()
+
 	cpy := &leaf{
 		key:        make([]byte, len(l.key)),
 		value:      make([]byte, len(l.value)),
@@ -131,7 +138,10 @@ func (b *branch) setEncodingAndHash(enc, hash []byte) {
 }
 
 func (l *leaf) setEncodingAndHash(enc, hash []byte) {
+	l.encodingMu.Lock()
 	l.encoding = enc
+	l.encodingMu.Unlock()
+
 	l.hash = hash
 }
 
@@ -153,7 +163,9 @@ func (l *leaf) getHash() []byte {
 
 func (b *branch) String() string {
 	if len(b.value) > 1024 {
-		return fmt.Sprintf("branch key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v", b.key, b.childrenBitmap(), common.MustBlake2bHash(b.value), b.dirty)
+		return fmt.Sprintf(
+			"branch key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v",
+			b.key, b.childrenBitmap(), common.MustBlake2bHash(b.value), b.dirty)
 	}
 	return fmt.Sprintf("branch key=%x childrenBitmap=%16b value=%v dirty=%v", b.key, b.childrenBitmap(), b.value, b.dirty)
 }
@@ -210,156 +222,96 @@ func (b *branch) setKey(key []byte) {
 	b.key = key
 }
 
-// Encode is the high-level function wrapping the encoding for different node types
-// encoding has the following format:
-// NodeHeader | Extra partial key length | Partial Key | Value
-func encode(n node) ([]byte, error) {
-	switch n := n.(type) {
-	case *branch:
-		return n.encode()
-	case *leaf:
-		return n.encode()
-	case nil:
-		return []byte{0}, nil
-	}
-
-	return nil, nil
-}
-
-func (b *branch) encodeAndHash() ([]byte, []byte, error) {
+func (b *branch) encodeAndHash() (encoding, hash []byte, err error) {
 	if !b.dirty && b.encoding != nil && b.hash != nil {
 		return b.encoding, b.hash, nil
 	}
 
-	enc, err := b.encode()
+	buffer := encodingBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer encodingBufferPool.Put(buffer)
+
+	err = encodeBranch(b, buffer, false)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(enc) < 32 {
-		b.encoding = enc
-		b.hash = enc
-		return enc, enc, nil
+	bufferBytes := buffer.Bytes()
+
+	b.encoding = make([]byte, len(bufferBytes))
+	copy(b.encoding, bufferBytes)
+	encoding = b.encoding // no need to copy
+
+	if buffer.Len() < 32 {
+		b.hash = make([]byte, len(bufferBytes))
+		copy(b.hash, bufferBytes)
+		hash = b.hash // no need to copy
+		return encoding, hash, nil
 	}
 
-	hash, err := common.Blake2bHash(enc)
+	// Note: using the sync.Pool's buffer is useful here.
+	hashArray, err := common.Blake2bHash(buffer.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
+	b.hash = hashArray[:]
+	hash = b.hash // no need to copy
 
-	b.encoding = enc
-	b.hash = hash[:]
-	return enc, hash[:], nil
+	return encoding, hash, nil
 }
 
-// Encode encodes a branch with the encoding specified at the top of this package
-func (b *branch) encode() ([]byte, error) {
-	if !b.dirty && b.encoding != nil {
-		return b.encoding, nil
-	}
-
-	encoding, err := b.header()
-	if err != nil {
-		return nil, err
-	}
-
-	encoding = append(encoding, nibblesToKeyLE(b.key)...)
-	encoding = append(encoding, common.Uint16ToBytes(b.childrenBitmap())...)
-
-	if b.value != nil {
-		buffer := bytes.Buffer{}
-		se := scale.Encoder{Writer: &buffer}
-		_, err = se.Encode(b.value)
-		if err != nil {
-			return encoding, err
-		}
-		encoding = append(encoding, buffer.Bytes()...)
-	}
-
-	for _, child := range b.children {
-		if child != nil {
-			hasher, err := NewHasher()
-			if err != nil {
-				return nil, err
-			}
-
-			encChild, err := hasher.Hash(child)
-			if err != nil {
-				return encoding, err
-			}
-
-			scEncChild, err := scale.Encode(encChild)
-			if err != nil {
-				return encoding, err
-			}
-			encoding = append(encoding, scEncChild...)
-		}
-	}
-
-	return encoding, nil
-}
-
-func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
+func (l *leaf) encodeAndHash() (encoding, hash []byte, err error) {
+	l.encodingMu.RLock()
 	if !l.isDirty() && l.encoding != nil && l.hash != nil {
+		l.encodingMu.RUnlock()
 		return l.encoding, l.hash, nil
 	}
+	l.encodingMu.RUnlock()
 
-	enc, err := l.encode()
+	buffer := encodingBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer encodingBufferPool.Put(buffer)
+
+	err = encodeLeaf(l, buffer)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(enc) < 32 {
-		l.encoding = enc
-		l.hash = enc
-		return enc, enc, nil
+	bufferBytes := buffer.Bytes()
+
+	l.encodingMu.Lock()
+	// TODO remove this copying since it defeats the purpose of `buffer`
+	// and the sync.Pool.
+	l.encoding = make([]byte, len(bufferBytes))
+	copy(l.encoding, bufferBytes)
+	l.encodingMu.Unlock()
+	encoding = l.encoding // no need to copy
+
+	if len(bufferBytes) < 32 {
+		l.hash = make([]byte, len(bufferBytes))
+		copy(l.hash, bufferBytes)
+		hash = l.hash // no need to copy
+		return encoding, hash, nil
 	}
 
-	hash, err := common.Blake2bHash(enc)
+	// Note: using the sync.Pool's buffer is useful here.
+	hashArray, err := common.Blake2bHash(buffer.Bytes())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	l.encoding = enc
-	l.hash = hash[:]
-	return enc, hash[:], nil
-}
+	l.hash = hashArray[:]
+	hash = l.hash // no need to copy
 
-// Encode encodes a leaf with the encoding specified at the top of this package
-func (l *leaf) encode() ([]byte, error) {
-	if !l.dirty && l.encoding != nil {
-		return l.encoding, nil
-	}
-
-	encoding, err := l.header()
-	if err != nil {
-		return nil, err
-	}
-
-	encoding = append(encoding, nibblesToKeyLE(l.key)...)
-
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
-	_, err = se.Encode(l.value)
-	if err != nil {
-		return encoding, err
-	}
-	encoding = append(encoding, buffer.Bytes()...)
-	l.encoding = encoding
-	return encoding, nil
+	return encoding, hash, nil
 }
 
 func decodeBytes(in []byte) (node, error) {
-	r := &bytes.Buffer{}
-	_, err := r.Write(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return decode(r)
+	buffer := bytes.NewBuffer(in)
+	return decode(buffer)
 }
 
-// Decode wraps the decoding of different node types back into a node
+// decode wraps the decoding of different node types back into a node
 func decode(r io.Reader) (node, error) {
 	header, err := readByte(r)
 	if err != nil {
@@ -408,26 +360,28 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 		return err
 	}
 
-	sd := &scale.Decoder{Reader: r}
+	sd := scale.NewDecoder(r)
 
 	if nodeType == 3 {
+		var value []byte
 		// branch w/ value
-		value, err := sd.Decode([]byte{})
+		err := sd.Decode(&value)
 		if err != nil {
 			return err
 		}
-		b.value = value.([]byte)
+		b.value = value
 	}
 
 	for i := 0; i < 16; i++ {
 		if (childrenBitmap[i/8]>>(i%8))&1 == 1 {
-			hash, err := sd.Decode([]byte{})
+			var hash []byte
+			err := sd.Decode(&hash)
 			if err != nil {
 				return err
 			}
 
 			b.children[i] = &leaf{
-				hash: hash.([]byte),
+				hash: hash,
 			}
 		}
 	}
@@ -457,14 +411,15 @@ func (l *leaf) decode(r io.Reader, header byte) (err error) {
 		return err
 	}
 
-	sd := &scale.Decoder{Reader: r}
-	value, err := sd.Decode([]byte{})
+	sd := scale.NewDecoder(r)
+	var value []byte
+	err = sd.Decode(&value)
 	if err != nil {
 		return err
 	}
 
-	if len(value.([]byte)) > 0 {
-		l.value = value.([]byte)
+	if len(value) > 0 {
+		l.value = value
 	}
 
 	l.dirty = true
@@ -515,12 +470,14 @@ func (l *leaf) header() ([]byte, error) {
 	return fullHeader, nil
 }
 
+var ErrPartialKeyTooBig = errors.New("partial key length greater than or equal to 2^16")
+
 func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 	pkLen -= 63
 	fullHeader := []byte{}
 
 	if pkLen >= 1<<16 {
-		return nil, errors.New("partial key length greater than or equal to 2^16")
+		return nil, ErrPartialKeyTooBig
 	}
 
 	for i := 0; i < 1<<16; i++ {
@@ -537,7 +494,7 @@ func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 }
 
 func decodeKey(r io.Reader, keyLen byte) ([]byte, error) {
-	var totalKeyLen int = int(keyLen)
+	var totalKeyLen = int(keyLen)
 
 	if keyLen == 0x3f {
 		// partial key longer than 63, read next bytes for rest of pk len

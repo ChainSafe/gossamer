@@ -1,22 +1,10 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package trie
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -38,13 +26,22 @@ func (t *Trie) String() string {
 func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 	switch c := curr.(type) {
 	case *branch:
-		c.encoding, _ = c.encode()
+		buffer := encodingBufferPool.Get().(*bytes.Buffer)
+		buffer.Reset()
+
+		const parallel = false
+		_ = encodeBranch(c, buffer, parallel)
+		c.encoding = buffer.Bytes()
+
 		var bstr string
 		if len(c.encoding) > 1024 {
 			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.encoding), c.generation)
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s enc=%x gen=%d", idx, c.String(), c.encoding, c.generation)
+			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.encoding, c.generation)
 		}
+
+		encodingBufferPool.Put(buffer)
+
 		sub := tree.Add(bstr)
 		for i, child := range c.children {
 			if child != nil {
@@ -52,20 +49,26 @@ func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 			}
 		}
 	case *leaf:
-		c.encoding, _ = c.encode()
+		buffer := encodingBufferPool.Get().(*bytes.Buffer)
+		buffer.Reset()
+
+		_ = encodeLeaf(c, buffer)
+
+		c.encodingMu.Lock()
+		defer c.encodingMu.Unlock()
+		c.encoding = buffer.Bytes()
+
 		var bstr string
 		if len(c.encoding) > 1024 {
 			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.encoding), c.generation)
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s enc=%x gen=%d", idx, c.String(), c.encoding, c.generation)
+			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.encoding, c.generation)
 		}
+
+		encodingBufferPool.Put(buffer)
+
 		tree.Add(bstr)
 	default:
 		return
 	}
-}
-
-// Print prints the trie through pre-order traversal
-func (t *Trie) Print() {
-	fmt.Println(t.String())
 }

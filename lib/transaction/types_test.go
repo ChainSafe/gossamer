@@ -1,8 +1,12 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package transaction
 
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +22,7 @@ func TestValidTransaction_Encode(t *testing.T) {
 	extrinsic := []byte("nootwashere")
 
 	vt := NewValidTransaction(extrinsic, validity)
-	enc, err := vt.Encode()
+	enc, err := scale.Marshal(vt)
 	require.NoError(t, err)
 
 	if len(enc) == 0 {

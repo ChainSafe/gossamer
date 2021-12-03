@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package types
 
@@ -23,14 +10,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-//nolint
 var (
+	// Timstap0 is an inherent key.
 	Timstap0 = []byte("timstap0")
+	// Babeslot is an inherent key.
 	Babeslot = []byte("babeslot")
-	Finalnum = []byte("finalnum")
+	// Uncles00 is an inherent key.
 	Uncles00 = []byte("uncles00")
 )
 
@@ -55,7 +43,7 @@ func (d *InherentsData) String() string {
 	return str
 }
 
-// SetInt64Inherent set the Int64 scale.Encode for a given data
+// SetInt64Inherent set an inherent of type uint64
 func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	if len(key) != 8 {
 		return errors.New("inherent key must be 8 bytes")
@@ -64,7 +52,7 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	val := make([]byte, 8)
 	binary.LittleEndian.PutUint64(val, data)
 
-	venc, err := scale.Encode(val)
+	venc, err := scale.Marshal(val)
 	if err != nil {
 		return err
 	}
@@ -76,37 +64,17 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	return nil
 }
 
-// SetBigIntInherent set as a big.Int (compact int) inherent
-func (d *InherentsData) SetBigIntInherent(key []byte, data *big.Int) error {
-	if len(key) != 8 {
-		return errors.New("inherent key must be 8 bytes")
-	}
-
-	venc, err := scale.Encode(data)
-	if err != nil {
-		return err
-	}
-
-	lenc, err := scale.Encode(big.NewInt(int64(len(venc))))
-	if err != nil {
-		return err
-	}
-
-	kb := [8]byte{}
-	copy(kb[:], key)
-
-	d.data[kb] = append(lenc, venc...)
-	return nil
-}
-
 // Encode will encode a given []byte using scale.Encode
 func (d *InherentsData) Encode() ([]byte, error) {
 	length := big.NewInt(int64(len(d.data)))
-
 	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
 
-	_, err := se.Encode(length)
+	l, err := scale.Marshal(length)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = buffer.Write(l[:])
 	if err != nil {
 		return nil, err
 	}

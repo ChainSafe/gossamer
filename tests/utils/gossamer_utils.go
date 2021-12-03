@@ -1,18 +1,5 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package utils
 
@@ -20,7 +7,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,18 +18,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/assert"
 )
 
-var logger = log.New("pkg", "test/utils")
+// Logger is the utils package local logger.
+var Logger = log.NewFromGlobal(log.AddContext("pkg", "test/utils"))
 var maxRetries = 24
-
-// SetLogLevel sets the logging level for this package
-func SetLogLevel(lvl log.Lvl) {
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(log.LvlFilterHandler(lvl, h))
-}
 
 var (
 	// KeyList is the list of built-in keys
@@ -60,22 +42,26 @@ var (
 	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
 
 	// GenesisOneAuth is the genesis file that has 1 authority
-	GenesisOneAuth string = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
+	GenesisOneAuth = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
 	// GenesisThreeAuths is the genesis file that has 3 authorities
-	GenesisThreeAuths string = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
+	GenesisThreeAuths = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
 	// GenesisSixAuths is the genesis file that has 6 authorities
-	GenesisSixAuths string = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
+	GenesisSixAuths = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
 	// GenesisDefault is the default gssmr genesis file
-	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+	GenesisDefault = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+	// GenesisDev is the default dev genesis file
+	GenesisDev = filepath.Join(currentDir, "../..", "chain/dev/genesis-spec.json")
 
 	// ConfigDefault is the default config file
-	ConfigDefault string = filepath.Join(currentDir, "../utils/config_default.toml")
+	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
 	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
-	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
+	ConfigLogGrandpa = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 	// ConfigNoBABE is a config file with BABE disabled
-	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
-	// ConfigBABEMaxThreshold is a config file with BABE threshold set to maximum (node can produce block every slot)
-	ConfigBABEMaxThreshold string = filepath.Join(currentDir, "../utils/config_babe_max_threshold.toml")
+	ConfigNoBABE = filepath.Join(currentDir, "../utils/config_nobabe.toml")
+	// ConfigNoGrandpa is a config file with grandpa disabled
+	ConfigNoGrandpa = filepath.Join(currentDir, "../utils/config_nograndpa.toml")
+	// ConfigNotAuthority is a config file with no authority functionality
+	ConfigNotAuthority = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
 // Node represents a gossamer process
@@ -87,11 +73,11 @@ type Node struct {
 	basePath string
 	config   string
 	WSPort   string
+	BABELead bool
 }
 
 // InitGossamer initialises given node number and returns node reference
 func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
-	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--config", config,
 		"--basepath", basePath,
@@ -99,17 +85,14 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 		"--force",
 	)
 
-	//add step for init
-	logger.Info("initialising gossamer...", "cmd", cmdInit)
+	Logger.Info("initialising gossamer using " + cmdInit.String() + "...")
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
 		fmt.Printf("%s", stdOutInit)
 		return nil, err
 	}
 
-	// TODO: get init exit code to see if node was successfully initialised
-	logger.Info("initialised gossamer!", "node", idx)
-
+	Logger.Infof("initialised gossamer node %d!", idx)
 	return &Node{
 		Idx:      idx,
 		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
@@ -122,14 +105,18 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 // StartGossamer starts given node
 func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	var key string
-	var params []string = []string{"--port", strconv.Itoa(basePort + node.Idx),
+	var params = []string{"--port", strconv.Itoa(basePort + node.Idx),
 		"--config", node.config,
 		"--basepath", node.basePath,
 		"--rpchost", HOSTNAME,
 		"--rpcport", node.RPCPort,
-		"--rpcmods", "system,author,chain,state,dev",
+		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
 		"--log", "info"}
+
+	if node.BABELead {
+		params = append(params, "--babe-lead")
+	}
 
 	if node.Idx >= len(KeyList) {
 		params = append(params, "--roles", "1")
@@ -143,7 +130,6 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		params = append(params, "--ws",
 			"--wsport", node.WSPort)
 	}
-	//nolint
 	node.Process = exec.Command(gossamerCMD, params...)
 
 	node.Key = key
@@ -151,46 +137,58 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	// create log file
 	outfile, err := os.Create(filepath.Join(node.basePath, "log.out"))
 	if err != nil {
-		logger.Error("Error when trying to set a log file for gossamer output", "error", err)
+		Logger.Errorf("Error when trying to set a log file for gossamer output: %s", err)
 		return err
 	}
 
 	// create error log file
 	errfile, err := os.Create(filepath.Join(node.basePath, "error.out"))
 	if err != nil {
-		logger.Error("Error when trying to set a log file for gossamer output", "error", err)
+		Logger.Errorf("Error when trying to set a log file for gossamer output: %s", err)
 		return err
 	}
 
 	t.Cleanup(func() {
 		time.Sleep(time.Second) // wait for goroutine to finish writing
-		outfile.Close()         //nolint
-		errfile.Close()         //nolint
+		err = outfile.Close()
+		assert.NoError(t, err)
+		err = errfile.Close()
+		assert.NoError(t, err)
 	})
 
 	stdoutPipe, err := node.Process.StdoutPipe()
 	if err != nil {
-		logger.Error("failed to get stdoutPipe from node %d: %s\n", node.Idx, err)
+		Logger.Errorf("failed to get stdoutPipe from node %d: %s", node.Idx, err)
 		return err
 	}
 
 	stderrPipe, err := node.Process.StderrPipe()
 	if err != nil {
-		logger.Error("failed to get stderrPipe from node %d: %s\n", node.Idx, err)
+		Logger.Errorf("failed to get stderrPipe from node %d: %s", node.Idx, err)
 		return err
 	}
 
-	logger.Info("starting gossamer...", "cmd", node.Process)
+	Logger.Infof("starting gossamer at %s...", node.Process)
 	err = node.Process.Start()
 	if err != nil {
-		logger.Error("Could not execute gossamer cmd", "err", err)
+		Logger.Errorf("Could not execute gossamer cmd: %s", err)
 		return err
 	}
 
 	writer := bufio.NewWriter(outfile)
-	go io.Copy(writer, stdoutPipe) //nolint
+	go func() {
+		_, err := io.Copy(writer, stdoutPipe)
+		if err != nil {
+			Logger.Errorf("failed copying stdout to writer: %s", err)
+		}
+	}()
 	errWriter := bufio.NewWriter(errfile)
-	go io.Copy(errWriter, stderrPipe) //nolint
+	go func() {
+		_, err := io.Copy(errWriter, stderrPipe)
+		if err != nil {
+			Logger.Errorf("failed copying stderr to writer: %s", err)
+		}
+	}()
 
 	var started bool
 	for i := 0; i < maxRetries; i++ {
@@ -202,10 +200,10 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	if started {
-		logger.Info("node started", "key", key, "cmd.Process.Pid", node.Process.Process.Pid)
+		Logger.Infof("node started with key %s and cmd.Process.Pid %d", key, node.Process.Process.Pid)
 	} else {
-		logger.Crit("node didn't start!", "err", err)
-		errFileContents, _ := ioutil.ReadFile(errfile.Name())
+		Logger.Criticalf("node didn't start: %s", err)
+		errFileContents, _ := os.ReadFile(errfile.Name())
 		t.Logf("%s\n", errFileContents)
 		return err
 	}
@@ -214,16 +212,20 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 }
 
 // RunGossamer will initialise and start a gossamer instance
-func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket bool) (*Node, error) {
+func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket, babeLead bool) (*Node, error) {
 	node, err := InitGossamer(idx, basepath, genesis, config)
 	if err != nil {
-		logger.Crit("could not initialise gossamer", "error", err)
+		Logger.Criticalf("could not initialise gossamer: %s", err)
 		os.Exit(1)
+	}
+
+	if idx == 0 || babeLead {
+		node.BABELead = true
 	}
 
 	err = StartGossamer(t, node, websocket)
 	if err != nil {
-		logger.Crit("could not start gossamer", "error", err)
+		Logger.Criticalf("could not start gossamer: %s", err)
 		os.Exit(1)
 	}
 
@@ -264,7 +266,7 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 // InitNodes initialises given number of nodes
 func InitNodes(num int, config string) ([]*Node, error) {
 	var nodes []*Node
-	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
+	tempDir, err := os.MkdirTemp("", "gossamer-stress-")
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +274,7 @@ func InitNodes(num int, config string) ([]*Node, error) {
 	for i := 0; i < num; i++ {
 		node, err := InitGossamer(i, tempDir+strconv.Itoa(i), GenesisDefault, config)
 		if err != nil {
-			logger.Error("failed to run gossamer", "i", i)
+			Logger.Errorf("failed to initialise Gossamer for node index %d", i)
 			return nil, err
 		}
 
@@ -306,9 +308,9 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 			if i < len(KeyList) {
 				name = KeyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false)
+			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false, false)
 			if err != nil {
-				logger.Error("failed to run gossamer", "i", i)
+				Logger.Errorf("failed to run Gossamer for node index %d", i)
 			}
 
 			nodeMu.Lock()
@@ -336,9 +338,9 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 			if i < len(KeyList) {
 				name = KeyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true)
+			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true, false)
 			if err != nil {
-				logger.Error("failed to run gossamer", "i", i)
+				Logger.Errorf("failed to run Gossamer for node index %d", i)
 			}
 
 			nodes = append(nodes, node)
@@ -357,7 +359,7 @@ func StopNodes(t *testing.T, nodes []*Node) (errs []error) {
 		cmd := nodes[i].Process
 		err := KillProcess(t, cmd)
 		if err != nil {
-			logger.Error("failed to kill gossamer", "i", i, "cmd", cmd)
+			Logger.Errorf("failed to kill Gossamer (cmd %s) for node index %d", cmd, i)
 			errs = append(errs, err)
 		}
 	}
@@ -371,13 +373,13 @@ func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
 		cmd := nodes[i].Process
 		err := KillProcess(t, cmd)
 		if err != nil {
-			logger.Error("failed to kill gossamer", "i", i, "cmd", cmd)
+			Logger.Errorf("failed to kill Gossamer (cmd %s) for node index %d", cmd, i)
 			errorList = append(errorList, err)
 		}
 
 		err = os.RemoveAll(node.basePath)
 		if err != nil {
-			logger.Error("failed to remove directory", "basepath", node.basePath)
+			Logger.Error("failed to remove base path directory " + node.basePath)
 			errorList = append(errorList, err)
 		}
 	}
@@ -390,21 +392,11 @@ func TestDir(t *testing.T, name string) string {
 	return filepath.Join("/tmp/", t.Name(), name)
 }
 
-// GenerateGenesisOneAuth generates Genesis file with one authority.
-func GenerateGenesisOneAuth() {
-	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 1)
-	if err != nil {
-		logger.Error("genesis file not found", "error", err)
-		os.Exit(1)
-	}
-	_ = dot.CreateJSONRawFile(bs, GenesisOneAuth)
-}
-
 // GenerateGenesisThreeAuth generates Genesis file with three authority.
 func GenerateGenesisThreeAuth() {
 	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 3)
 	if err != nil {
-		logger.Error("genesis file not found", "error", err)
+		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
 	}
 	_ = dot.CreateJSONRawFile(bs, GenesisThreeAuths)
@@ -414,7 +406,7 @@ func GenerateGenesisThreeAuth() {
 func GenerateGenesisSixAuth() {
 	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 6)
 	if err != nil {
-		logger.Error("genesis file not found", "error", err)
+		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
 	}
 	_ = dot.CreateJSONRawFile(bs, GenesisSixAuths)
@@ -423,10 +415,12 @@ func GenerateGenesisSixAuth() {
 func generateDefaultConfig() *ctoml.Config {
 	return &ctoml.Config{
 		Global: ctoml.GlobalConfig{
-			Name:        "Gossamer",
-			ID:          "gssmr",
-			LogLvl:      "crit",
-			MetricsPort: 9876,
+			Name:         "Gossamer",
+			ID:           "gssmr",
+			LogLvl:       "crit",
+			MetricsPort:  9876,
+			RetainBlocks: 256,
+			Pruning:      "archive",
 		},
 		Log: ctoml.LogConfig{
 			CoreLvl: "info",
@@ -443,6 +437,7 @@ func generateDefaultConfig() *ctoml.Config {
 			Roles:            4,
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
+			GrandpaInterval:  1,
 		},
 		Network: ctoml.NetworkConfig{
 			Bootnodes:   nil,
@@ -453,10 +448,12 @@ func generateDefaultConfig() *ctoml.Config {
 			MaxPeers:    3,
 		},
 		RPC: ctoml.RPCConfig{
-			Enabled: false,
-			Host:    "localhost",
-			Modules: []string{"system", "author", "chain", "state"},
-			WS:      false,
+			Enabled:  false,
+			Unsafe:   true,
+			WSUnsafe: true,
+			Host:     "localhost",
+			Modules:  []string{"system", "author", "chain", "state"},
+			WS:       false,
 		},
 	}
 }
@@ -465,31 +462,6 @@ func generateDefaultConfig() *ctoml.Config {
 func CreateDefaultConfig() {
 	cfg := generateDefaultConfig()
 	_ = dot.ExportTomlConfig(cfg, ConfigDefault)
-}
-
-func generateConfigBabeMaxThreshold() *ctoml.Config {
-	cfg := generateDefaultConfig()
-	cfg.Log = ctoml.LogConfig{
-		SyncLvl:          "debug",
-		NetworkLvl:       "debug",
-		BlockProducerLvl: "info",
-	}
-	cfg.Core = ctoml.CoreConfig{
-		Roles:                    4,
-		BabeAuthority:            true,
-		GrandpaAuthority:         true,
-		BabeThresholdNumerator:   1,
-		BabeThresholdDenominator: 1,
-		SlotDuration:             3000,
-	}
-	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc"}
-	return cfg
-}
-
-// CreateConfigBabeMaxThreshold generates and creates babe max threshold config file.
-func CreateConfigBabeMaxThreshold() {
-	cfg := generateConfigBabeMaxThreshold()
-	_ = dot.ExportTomlConfig(cfg, ConfigBABEMaxThreshold)
 }
 
 func generateConfigLogGrandpa() *ctoml.Config {
@@ -517,8 +489,7 @@ func generateConfigNoBabe() *ctoml.Config {
 		SyncLvl:    "debug",
 		NetworkLvl: "debug",
 	}
-	cfg.Core.BabeThresholdNumerator = 1
-	cfg.Core.BabeThresholdDenominator = 1
+
 	cfg.Core.BabeAuthority = false
 	return cfg
 }
@@ -527,4 +498,32 @@ func generateConfigNoBabe() *ctoml.Config {
 func CreateConfigNoBabe() {
 	cfg := generateConfigNoBabe()
 	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
+}
+
+func generateConfigNoGrandpa() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BABELead = true
+	cfg.Core.GrandpaInterval = 1
+	return cfg
+}
+
+// CreateConfigNoGrandpa generates and creates no grandpa config file.
+func CreateConfigNoGrandpa() {
+	cfg := generateConfigNoGrandpa()
+	_ = dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
+}
+
+func generateConfigNotAuthority() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Core.Roles = 1
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	return cfg
+}
+
+// CreateConfigNotAuthority generates and creates non-authority config file.
+func CreateConfigNotAuthority() {
+	cfg := generateConfigNotAuthority()
+	_ = dot.ExportTomlConfig(cfg, ConfigNotAuthority)
 }

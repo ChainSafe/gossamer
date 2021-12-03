@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -36,36 +23,32 @@ func TestGossip(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeA := createTestService(t, configA)
 	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeA.host.registerStreamHandler("", handlerA.handleStream)
+	nodeA.host.registerStreamHandler(nodeA.host.protocolID, handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
 	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeB.host.registerStreamHandler("", handlerB.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handlerB.handleStream)
 
-	addrInfosA, err := nodeA.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeB.host.connect(*addrInfosA[0])
+	addrInfoA := nodeA.host.addrInfo()
+	err := nodeB.host.connect(addrInfoA)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeB.host.connect(*addrInfosA[0])
+		err = nodeB.host.connect(addrInfoA)
 	}
 	require.NoError(t, err)
 
@@ -73,35 +56,32 @@ func TestGossip(t *testing.T) {
 	configC := &Config{
 		BasePath:    basePathC,
 		Port:        7003,
-		RandSeed:    3,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeC := createTestService(t, configC)
 	handlerC := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeC.host.registerStreamHandler("", handlerC.handleStream)
+	nodeC.host.registerStreamHandler(nodeC.host.protocolID, handlerC.handleStream)
 
-	err = nodeC.host.connect(*addrInfosA[0])
+	err = nodeC.host.connect(addrInfoA)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeC.host.connect(*addrInfosA[0])
+		err = nodeC.host.connect(addrInfoA)
 	}
 	require.NoError(t, err)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeC.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err = nodeC.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeC.host.connect(*addrInfosB[0])
+		err = nodeC.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
-	_, err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
+	_, err = nodeA.host.send(addrInfoB.ID, "", testBlockAnnounceMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)

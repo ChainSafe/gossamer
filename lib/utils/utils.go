@@ -1,31 +1,31 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package utils
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/ChainSafe/chaindb"
+	"github.com/dgraph-io/badger/v2"
 )
+
+// DefaultDatabaseDir directory inside basepath where database contents are stored
+const DefaultDatabaseDir = "db"
+
+// SetupDatabase will return an instance of database based on basepath
+func SetupDatabase(basepath string, inMemory bool) (chaindb.Database, error) {
+	return chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  filepath.Join(basepath, DefaultDatabaseDir),
+		InMemory: inMemory,
+	})
+}
 
 // PathExists returns true if the named file or directory exists, otherwise false
 func PathExists(p string) bool {
@@ -114,7 +114,7 @@ func KeystoreFiles(basepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get keystore directory: %s", err)
 	}
 
-	files, err := ioutil.ReadDir(keystorepath)
+	files, err := os.ReadDir(keystorepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read keystore directory: %s", err)
 	}
@@ -191,4 +191,31 @@ func GetKusamaGenesisPath() string {
 	}
 
 	return fp
+}
+
+// LoadChainDB load the db at the given path.
+func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
+	cfg := &chaindb.Config{
+		DataDir: basePath,
+	}
+
+	// Open already existing DB
+	db, err := chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+// LoadBadgerDB load the db at the given path.
+func LoadBadgerDB(basePath string) (*badger.DB, error) {
+	opts := badger.DefaultOptions(basePath)
+	// Open already existing DB
+	db, err := badger.Open(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }

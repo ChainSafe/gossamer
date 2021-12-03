@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package babe
 
 import (
@@ -31,6 +34,16 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 			name:     "Dispatch unknown error",
 			test:     []byte{0, 1, 0, 0x04, 65},
 			expected: "dispatch outcome error: unknown error: A",
+		},
+		{
+			name:     "Dispatch failed lookup",
+			test:     []byte{0, 1, 1},
+			expected: "dispatch outcome error: failed lookup",
+		},
+		{
+			name:     "Dispatch bad origin",
+			test:     []byte{0, 1, 2},
+			expected: "dispatch outcome error: bad origin",
 		},
 		{
 			name:     "Invalid txn payment error",
@@ -69,7 +82,7 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 				_, ok := err.(*TransactionValidityError)
 				require.True(t, ok)
 			}
-			require.Equal(t, err.Error(), c.expected)
+			require.Equal(t, c.expected, err.Error())
 		})
 	}
 }

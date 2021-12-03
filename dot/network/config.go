@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package network
 
@@ -21,8 +8,9 @@ import (
 	"path"
 	"time"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/crypto"
+
+	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 const (
@@ -33,7 +21,7 @@ const (
 	DefaultBasePath = "~/.gossamer/gssmr"
 
 	// DefaultPort the default value for Config.Port
-	DefaultPort = uint32(7000)
+	DefaultPort = uint16(7000)
 
 	// DefaultRandSeed the default value for Config.RandSeed (0 = non-deterministic)
 	DefaultRandSeed = int64(0)
@@ -49,6 +37,11 @@ const (
 
 	// DefaultMaxPeerCount is the default maximum peer count
 	DefaultMaxPeerCount = 50
+
+	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
+	DefaultDiscoveryInterval = time.Minute * 5
+
+	defaultTxnBatchSize = 100
 )
 
 // DefaultBootnodes the default value for Config.Bootnodes
@@ -56,8 +49,8 @@ var DefaultBootnodes = []string(nil)
 
 // Config is used to configure a network service
 type Config struct {
-	LogLvl  log.Lvl
-	logger  log.Logger
+	LogLvl  log.Level
+	logger  log.LeveledLogger
 	ErrChan chan<- error
 
 	// BasePath the data directory for the node
@@ -70,8 +63,10 @@ type Config struct {
 	Syncer             Syncer
 	TransactionHandler TransactionHandler
 
+	// Used to specify the address broadcasted to other peers, and avoids using pubip.Get
+	PublicIP string
 	// Port the network port used for listening
-	Port uint32
+	Port uint16
 	// RandSeed the seed used to generate the network p2p identity (0 = non-deterministic random seed)
 	RandSeed int64
 	// Bootnodes the peer addresses used for bootstrapping
@@ -86,6 +81,8 @@ type Config struct {
 	MinPeers int
 	MaxPeers int
 
+	DiscoveryInterval time.Duration
+
 	// PersistentPeers is a list of multiaddrs which the node should remain connected to
 	PersistentPeers []string
 
@@ -97,12 +94,18 @@ type Config struct {
 
 	// telemetryInterval how often to send telemetry metrics
 	telemetryInterval time.Duration
+
+	noPreAllocate bool // internal option
+
+	batchSize int // internal option
+
+	// SlotDuration is the slot duration to produce a block
+	SlotDuration time.Duration
 }
 
 // build checks the configuration, sets up the private key for the network service,
 // and applies default values where appropriate
 func (c *Config) build() error {
-
 	// check state configuration
 	err := c.checkState()
 	if err != nil {
@@ -169,11 +172,9 @@ func (c *Config) buildIdentity() error {
 
 		// generate key if no key exists
 		if key == nil {
-			c.logger.Info(
-				"Generating p2p identity",
-				"RandSeed", c.RandSeed,
-				"KeyFile", path.Join(c.BasePath, DefaultKeyFile),
-			)
+			c.logger.Infof(
+				"Generating p2p identity with seed %d and key file %s",
+				c.RandSeed, path.Join(c.BasePath, DefaultKeyFile))
 
 			// generate key
 			key, err = generateKey(c.RandSeed, c.BasePath)
@@ -185,11 +186,9 @@ func (c *Config) buildIdentity() error {
 		// set private key
 		c.privateKey = key
 	} else {
-		c.logger.Info(
-			"Generating p2p identity from seed",
-			"RandSeed", c.RandSeed,
-			"KeyFile", path.Join(c.BasePath, DefaultKeyFile),
-		)
+		c.logger.Infof(
+			"Generating p2p identity with seed %d and key file %s",
+			c.RandSeed, path.Join(c.BasePath, DefaultKeyFile))
 
 		// generate temporary deterministic key
 		key, err := generateKey(c.RandSeed, c.BasePath)
@@ -207,10 +206,7 @@ func (c *Config) buildIdentity() error {
 // buildProtocol verifies and applies defaults to the protocol configuration
 func (c *Config) buildProtocol() error {
 	if c.ProtocolID == "" {
-		c.logger.Warn(
-			"ProtocolID not defined, using DefaultProtocolID",
-			"DefaultProtocolID", DefaultProtocolID,
-		)
+		c.logger.Warn("ProtocolID not defined, using default protocol id " + DefaultProtocolID)
 		c.ProtocolID = DefaultProtocolID
 	}
 

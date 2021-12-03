@@ -1,371 +1,501 @@
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package modules
 
 import (
-	"io/ioutil"
+	"errors"
 	"math/big"
+	"net/http"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/trie"
 
-	database "github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestChainGetHeader_Genesis(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
+func TestChainModule_GetBlock(t *testing.T) {
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	inputHash := common.MustHexToHash("0x0102000000000000000000000000000000000000000000000000000000000000")
+	emptyBlock := types.NewEmptyBlock()
 
-	header, err := state.Block.BestBlockHeader()
-	require.NoError(t, err)
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI.On("GetBlockByHash", inputHash).Return(&emptyBlock, nil)
+	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
 
-	expected := &ChainBlockHeaderResponse{
-		ParentHash:     header.ParentHash.String(),
-		Number:         common.BytesToHex(header.Number.Bytes()),
-		StateRoot:      header.StateRoot.String(),
-		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
+	mockBlockAPIGetHashErr := new(mocks.BlockAPI)
+	mockBlockAPIGetHashErr.On("GetBlockByHash", inputHash).Return(nil, errors.New("GetJustification error"))
+
+	bodyBlock := types.NewEmptyBlock()
+	bodyBlock.Body = types.BytesArrayToExtrinsics([][]byte{{1}})
+	mockBlockAPIWithBody := new(mocks.BlockAPI)
+	mockBlockAPIWithBody.On("GetBlockByHash", inputHash).Return(&bodyBlock, nil)
+
+	chainModule := NewChainModule(mockBlockAPI)
+	type fields struct {
+		blockAPI BlockAPI
 	}
-
-	hash := state.Block.BestBlockHash()
-
-	res := &ChainBlockHeaderResponse{}
-	req := &ChainHashRequest{Bhash: &hash}
-
-	err = svc.GetHeader(nil, req, res)
-	require.NoError(t, err)
-	require.Equal(t, expected, res)
-}
-
-func TestChainGetHeader_Latest(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
-
-	header, err := state.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	expected := &ChainBlockHeaderResponse{
-		ParentHash:     header.ParentHash.String(),
-		Number:         common.BytesToHex(header.Number.Bytes()),
-		StateRoot:      header.StateRoot.String(),
-		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
+	type args struct {
+		r   *http.Request
+		req *ChainHashRequest
 	}
-
-	res := &ChainBlockHeaderResponse{}
-	req := &ChainHashRequest{} // empty request should return latest hash
-
-	err = svc.GetHeader(nil, req, res)
-	require.NoError(t, err)
-	require.Equal(t, expected, res)
-}
-
-func TestChainGetHeader_NotFound(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
-
-	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
-	require.NoError(t, err)
-
-	res := &ChainBlockHeaderResponse{}
-	req := &ChainHashRequest{Bhash: &bhash}
-
-	err = svc.GetHeader(nil, req, res)
-	require.EqualError(t, err, database.ErrKeyNotFound.Error())
-}
-
-func TestChainGetBlock_Genesis(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
-
-	header, err := state.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	expectedHeader := &ChainBlockHeaderResponse{
-		ParentHash:     header.ParentHash.String(),
-		Number:         common.BytesToHex(header.Number.Bytes()),
-		StateRoot:      header.StateRoot.String(),
-		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
-	}
-
-	hash := state.Block.BestBlockHash()
-
-	expected := &ChainBlockResponse{
-		Block: ChainBlock{
-			Header: *expectedHeader,
-			Body:   nil,
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		exp    ChainBlockResponse
+		expErr error
+	}{
+		{
+			name: "GetBlock OK",
+			fields: fields{
+				chainModule.blockAPI,
+			},
+			args: args{
+				req: &ChainHashRequest{},
+			},
+			exp: ChainBlockResponse{Block: ChainBlock{
+				Header: ChainBlockHeaderResponse{
+					ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
+					Number:         "0x00",
+					StateRoot:      "0x0000000000000000000000000000000000000000000000000000000000000000",
+					ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
+					Digest:         ChainBlockHeaderDigest{},
+				},
+				Body: nil,
+			}},
+		},
+		{
+			name: "GetBlockByHash Err",
+			fields: fields{
+				mockBlockAPIGetHashErr,
+			},
+			args: args{
+				req: &ChainHashRequest{&testHash},
+			},
+			expErr: errors.New("GetJustification error"),
+		},
+		{
+			name: "GetBlock with body OK",
+			fields: fields{
+				mockBlockAPIWithBody,
+			},
+			args: args{
+				req: &ChainHashRequest{&testHash},
+			},
+			exp: ChainBlockResponse{Block: ChainBlock{
+				Header: ChainBlockHeaderResponse{
+					ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
+					Number:         "0x00",
+					StateRoot:      "0x0000000000000000000000000000000000000000000000000000000000000000",
+					ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
+					Digest:         ChainBlockHeaderDigest{},
+				},
+				Body: []string{"0x0401"},
+			}},
 		},
 	}
-
-	res := &ChainBlockResponse{}
-	req := &ChainHashRequest{Bhash: &hash}
-
-	err = svc.GetBlock(nil, req, res)
-	require.Nil(t, err)
-
-	require.Equal(t, expected, res)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &ChainModule{
+				blockAPI: tt.fields.blockAPI,
+			}
+			res := ChainBlockResponse{}
+			err := cm.GetBlock(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
 
-func TestChainGetBlock_Latest(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
+func TestChainModule_GetBlockHash(t *testing.T) {
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	i := []interface{}{"a"}
 
-	header, err := state.Block.BestBlockHeader()
-	require.NoError(t, err)
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
+	mockBlockAPI.On("GetHashByNumber", new(big.Int).SetInt64(int64(21))).Return(testHash, nil)
 
-	expectedHeader := &ChainBlockHeaderResponse{
-		ParentHash:     header.ParentHash.String(),
-		Number:         common.BytesToHex(header.Number.Bytes()),
-		StateRoot:      header.StateRoot.String(),
-		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
+	mockBlockAPIErr := new(mocks.BlockAPI)
+	mockBlockAPIErr.On("BestBlockHash").Return(testHash, nil)
+	mockBlockAPIErr.On("GetHashByNumber", new(big.Int).SetInt64(int64(21))).Return(nil, errors.New("GetBlockHash Error"))
+
+	expRes := ChainHashResponse(testHash.String())
+	type fields struct {
+		blockAPI BlockAPI
 	}
-
-	expected := &ChainBlockResponse{
-		Block: ChainBlock{
-			Header: *expectedHeader,
-			Body:   nil,
+	type args struct {
+		r   *http.Request
+		req *ChainBlockNumberRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    ChainHashResponse
+	}{
+		{
+			name: "GetBlockHash nil req OK",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				req: &ChainBlockNumberRequest{},
+			},
+			exp: expRes,
+		},
+		{
+			name: "GetBlockHash string req OK",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				req: &ChainBlockNumberRequest{"21"},
+			},
+			exp: expRes,
+		},
+		{
+			name: "GetBlockHash float req OK",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				req: &ChainBlockNumberRequest{float64(21)},
+			},
+			exp: expRes,
+		},
+		{
+			name: "GetBlockHash unknown request number",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				req: &ChainBlockNumberRequest{uintptr(1)},
+			},
+			exp:    []string(nil),
+			expErr: errors.New("unknown request number type: uintptr"),
+		},
+		{
+			name: "GetBlockHash string slice req err",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				req: &ChainBlockNumberRequest{i},
+			},
+			exp:    []string(nil),
+			expErr: errors.New("error setting number from string"),
+		},
+		{
+			name: "GetBlockHash string req Err",
+			fields: fields{
+				mockBlockAPIErr,
+			},
+			args: args{
+				req: &ChainBlockNumberRequest{"21"},
+			},
+			exp:    []string(nil),
+			expErr: errors.New("GetBlockHash Error"),
 		},
 	}
-
-	res := &ChainBlockResponse{}
-	req := &ChainHashRequest{} // empty request should return latest block
-
-	err = svc.GetBlock(nil, req, res)
-	require.NoError(t, err)
-	require.Equal(t, expected, res)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &ChainModule{
+				blockAPI: tt.fields.blockAPI,
+			}
+			res := ChainHashResponse(nil)
+			err := cm.GetBlockHash(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
 
-func TestChainGetBlock_NoFound(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
+func TestChainModule_GetFinalizedHead(t *testing.T) {
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI.On("GetHighestFinalisedHash").Return(testHash, nil)
 
-	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
-	require.NoError(t, err)
+	mockBlockAPIErr := new(mocks.BlockAPI)
+	mockBlockAPIErr.On("GetHighestFinalisedHash").Return(nil, errors.New("GetHighestFinalisedHash Error"))
 
-	res := &ChainBlockResponse{}
-	req := &ChainHashRequest{Bhash: &bhash}
-
-	err = svc.GetBlock(nil, req, res)
-	require.EqualError(t, err, database.ErrKeyNotFound.Error())
+	expRes := ChainHashResponse(common.BytesToHex(testHash[:]))
+	type fields struct {
+		blockAPI BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *EmptyRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    ChainHashResponse
+	}{
+		{
+			name: "happy path",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				req: &EmptyRequest{},
+			},
+			exp: expRes,
+		},
+		{
+			name: "error case",
+			fields: fields{
+				mockBlockAPIErr,
+			},
+			args: args{
+				req: &EmptyRequest{},
+			},
+			expErr: errors.New("GetHighestFinalisedHash Error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &ChainModule{
+				blockAPI: tt.fields.blockAPI,
+			}
+			res := ChainHashResponse(nil)
+			err := cm.GetFinalizedHead(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
 
-func TestChainGetBlockHash_Latest(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
+func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI.On("GetFinalisedHash", uint64(21), uint64(21)).Return(testHash, nil)
 
-	resString := string("")
-	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest{nil}
+	mockBlockAPIErr := new(mocks.BlockAPI)
+	mockBlockAPIErr.On("GetFinalisedHash", uint64(21), uint64(21)).Return(nil, errors.New("GetFinalisedHash Error"))
 
-	err := svc.GetBlockHash(nil, &req, &res)
-	require.Nil(t, err)
-
-	expected := state.Block.BestBlockHash()
-	require.Equal(t, expected.String(), res)
+	expRes := ChainHashResponse(common.BytesToHex(testHash[:]))
+	type fields struct {
+		blockAPI BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *ChainFinalizedHeadRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    ChainHashResponse
+	}{
+		{
+			name: "GetFinalisedHash OK",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				req: &ChainFinalizedHeadRequest{
+					Round: uint64(21),
+					SetID: uint64(21),
+				},
+			},
+			exp: expRes,
+		},
+		{
+			name: "GetFinalisedHash ERR",
+			fields: fields{
+				mockBlockAPIErr,
+			},
+			args: args{
+				req: &ChainFinalizedHeadRequest{
+					Round: uint64(21),
+					SetID: uint64(21),
+				},
+			},
+			expErr: errors.New("GetFinalisedHash Error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &ChainModule{
+				blockAPI: tt.fields.blockAPI,
+			}
+			res := ChainHashResponse(nil)
+			err := cm.GetFinalizedHeadByRound(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
 
-func TestChainGetBlockHash_ByNumber(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
-
-	resString := string("")
-	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest{"1"}
-
-	err := svc.GetBlockHash(nil, &req, &res)
-	require.Nil(t, err)
-
-	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
+func TestChainModule_GetHeader(t *testing.T) {
+	emptyHeader := types.NewEmptyHeader()
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	inputHash, err := common.HexToHash("0x0102000000000000000000000000000000000000000000000000000000000000")
 	require.NoError(t, err)
-	require.Equal(t, expected.Header.Hash().String(), res)
+
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI.On("GetHeader", inputHash).Return(emptyHeader, nil)
+
+	mockBlockAPIErr := new(mocks.BlockAPI)
+	mockBlockAPIErr.On("GetHeader", inputHash).Return(nil, errors.New("GetFinalisedHash Error"))
+
+	expRes, err := HeaderToJSON(*emptyHeader)
+	require.NoError(t, err)
+
+	type fields struct {
+		blockAPI BlockAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *ChainHashRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    ChainBlockHeaderResponse
+	}{
+		{
+			name: "GetHeader OK",
+			fields: fields{
+				mockBlockAPI,
+			},
+			args: args{
+				req: &ChainHashRequest{&testHash},
+			},
+			exp: expRes,
+		},
+		{
+			name: "GetHeader ERR",
+			fields: fields{
+				mockBlockAPIErr,
+			},
+			args: args{
+				req: &ChainHashRequest{&testHash},
+			},
+			expErr: errors.New("GetFinalisedHash Error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &ChainModule{
+				blockAPI: tt.fields.blockAPI,
+			}
+			res := ChainBlockHeaderResponse{}
+			err := cm.GetHeader(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
 
-func TestChainGetBlockHash_ByHex(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
+func TestChainModule_ErrSubscriptionTransport(t *testing.T) {
+	req := &EmptyRequest{}
+	res := &ChainBlockHeaderResponse{}
+	cm := NewChainModule(new(mocks.BlockAPI))
 
-	resString := string("")
-	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest{"0x01"}
+	err := cm.SubscribeFinalizedHeads(nil, req, res)
+	require.ErrorIs(t, err, ErrSubscriptionTransport)
 
-	err := svc.GetBlockHash(nil, &req, &res)
-	require.NoError(t, err)
+	err = cm.SubscribeNewHead(nil, req, res)
+	require.ErrorIs(t, err, ErrSubscriptionTransport)
 
-	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
-	require.NoError(t, err)
-	require.Equal(t, expected.Header.Hash().String(), res)
+	err = cm.SubscribeNewHeads(nil, req, res)
+	require.ErrorIs(t, err, ErrSubscriptionTransport)
 }
 
-func TestChainGetBlockHash_Array(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
-
-	resString := string("")
-	res := ChainHashResponse(resString)
-
-	nums := make([]interface{}, 2)
-	nums[0] = float64(0)     // as number
-	nums[1] = string("0x01") // as hex string
-	req := ChainBlockNumberRequest{nums}
-
-	err := svc.GetBlockHash(nil, &req, &res)
-	require.Nil(t, err)
-
-	expected0, err := state.Block.GetBlockByNumber(big.NewInt(0))
-	require.NoError(t, err)
-	expected1, err := state.Block.GetBlockByNumber(big.NewInt(1))
-	require.NoError(t, err)
-	expected := []string{expected0.Header.Hash().String(), expected1.Header.Hash().String()}
-
-	require.Equal(t, expected, res)
-}
-
-func TestChainGetFinalizedHead(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
-
-	var res ChainHashResponse
-	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
+func TestHeaderToJSON(t *testing.T) {
+	emptyHeader := types.NewEmptyHeader()
+	vdts := types.NewDigest()
+	err := vdts.Add(
+		types.PreRuntimeDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		},
+		types.ConsensusDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data: common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc" +
+				"525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f01000" +
+				"00000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a7" +
+				"1bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5b" +
+				"d61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c8" +
+				"05016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+		types.SealDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data: common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1" +
+				"c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"),
+		},
+	)
 	require.NoError(t, err)
 
-	expected := genesisHeader.Hash()
-	require.Equal(t, common.BytesToHex(expected[:]), res)
-}
-
-func TestChainGetFinalizedHeadByRound(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
-
-	var res ChainHashResponse
-	req := ChainFinalizedHeadRequest{0, 0}
-	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
-	require.NoError(t, err)
-	expected := genesisHeader.Hash()
-	require.Equal(t, common.BytesToHex(expected[:]), res)
-
-	testhash := common.Hash{1, 2, 3, 4}
-	err = state.Block.SetFinalizedHash(testhash, 77, 1)
+	header, err := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(21), vdts)
 	require.NoError(t, err)
 
-	req = ChainFinalizedHeadRequest{77, 1}
-	err = svc.GetFinalizedHeadByRound(nil, &req, &res)
+	expRes, err := HeaderToJSON(*header)
 	require.NoError(t, err)
-	require.Equal(t, common.BytesToHex(testhash[:]), res)
-}
-
-var gen, genTrie, genesisHeader = newTestGenesisWithTrieAndHeader()
-
-func newTestStateService(t *testing.T) *state.Service {
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	expResEmpty, err := HeaderToJSON(*emptyHeader)
 	require.NoError(t, err)
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
-	stateSrvc.UseMemDB()
-
-	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
-	if err != nil {
-		t.Fatal(err)
+	type args struct {
+		header types.Header
 	}
-
-	err = stateSrvc.Start()
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name string
+		args args
+		exp  ChainBlockHeaderResponse
+	}{
+		{
+			name: "empty",
+			args: args{
+				header: *emptyHeader,
+			},
+			exp: expResEmpty,
+		},
+		{
+			name: "not empty",
+			args: args{
+				header: *header,
+			},
+			exp: expRes,
+		},
 	}
-
-	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block)
-	if err != nil {
-		t.Fatal(err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := HeaderToJSON(tt.args.header)
+			if err == nil {
+				assert.Equal(t, tt.exp, res)
+			} else {
+				assert.Error(t, err)
+			}
+		})
 	}
-
-	t.Cleanup(func() {
-		stateSrvc.Stop()
-	})
-	return stateSrvc
-}
-
-func newTestGenesisWithTrieAndHeader() (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
-	if err != nil {
-		panic(err)
-	}
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	if err != nil {
-		panic(err)
-	}
-
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{}) //nolint
-	if err != nil {
-		panic(err)
-	}
-	return gen, genTrie, genesisHeader
-}
-
-func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
-	// Create header
-	header0 := &types.Header{
-		Number:     big.NewInt(0),
-		Digest:     types.Digest{},
-		ParentHash: gh,
-		StateRoot:  trie.EmptyHash,
-	}
-	// Create blockHash
-	blockHash0 := header0.Hash()
-	// BlockBody with fake extrinsics
-	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
-	block0 := &types.Block{
-		Header: header0,
-		Body:   &blockBody0,
-	}
-
-	err := bs.AddBlock(block0)
-	if err != nil {
-		return err
-	}
-
-	// Create header & blockData for block 1
-	header1 := &types.Header{
-		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
-		ParentHash: blockHash0,
-		StateRoot:  trie.EmptyHash,
-	}
-
-	// Create Block with fake extrinsics
-	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
-	block1 := &types.Block{
-		Header: header1,
-		Body:   &blockBody1,
-	}
-
-	// Add the block1 to the DB
-	err = bs.AddBlock(block1)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

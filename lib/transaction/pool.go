@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package transaction
 
 import (
@@ -48,4 +51,12 @@ func (p *Pool) Remove(hash common.Hash) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	delete(p.transactions, hash)
+}
+
+// Len return the current length of the pool
+func (p *Pool) Len() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return len(p.transactions)
 }

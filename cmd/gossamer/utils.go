@@ -1,58 +1,42 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package main
 
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"syscall"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal" //nolint
+	terminal "golang.org/x/term"
 )
 
 const confirmCharacter = "Y"
 
-// setupLogger sets up the gossamer logger
-func setupLogger(ctx *cli.Context) (log.Lvl, error) {
-	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	handler = log.CallerFileHandler(handler)
-
-	var lvl log.Lvl
-
-	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
-		lvl = log.Lvl(lvlToInt)
-	} else if lvl, err = log.LvlFromString(ctx.String(LogFlag.Name)); err != nil {
-		return 0, err
+// setupLogger sets up the global Gossamer logger.
+func setupLogger(ctx *cli.Context) (level log.Level, err error) {
+	level, err = getLogLevel(ctx, LogFlag.Name, "", log.Info)
+	if err != nil {
+		return level, err
 	}
 
-	log.Root().SetHandler(log.LvlFilterHandler(lvl, handler))
+	log.Patch(
+		log.SetWriter(os.Stdout),
+		log.SetFormat(log.FormatConsole),
+		log.SetCallerFile(true),
+		log.SetCallerLine(true),
+		log.SetLevel(level),
+	)
 
-	return lvl, nil
+	return level, nil
 }
 
 // getPassword prompts user to enter password
@@ -86,26 +70,27 @@ func confirmMessage(msg string) bool {
 func newTestConfig(t *testing.T) *dot.Config {
 	dir := utils.NewTestDir(t)
 
-	// TODO: use default config instead of gssmr config for test config #776
-
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{
 			Name:           dot.GssmrConfig().Global.Name,
 			ID:             dot.GssmrConfig().Global.ID,
 			BasePath:       dir,
-			LogLvl:         log.LvlInfo,
+			LogLvl:         log.Info,
 			PublishMetrics: dot.GssmrConfig().Global.PublishMetrics,
 			MetricsPort:    dot.GssmrConfig().Global.MetricsPort,
+			RetainBlocks:   dot.GssmrConfig().Global.RetainBlocks,
+			Pruning:        dot.GssmrConfig().Global.Pruning,
+			TelemetryURLs:  dot.GssmrConfig().Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
-			CoreLvl:           log.LvlInfo,
-			SyncLvl:           log.LvlInfo,
-			NetworkLvl:        log.LvlInfo,
-			RPCLvl:            log.LvlInfo,
-			StateLvl:          log.LvlInfo,
-			RuntimeLvl:        log.LvlInfo,
-			BlockProducerLvl:  log.LvlInfo,
-			FinalityGadgetLvl: log.LvlInfo,
+			CoreLvl:           log.Info,
+			SyncLvl:           log.Info,
+			NetworkLvl:        log.Info,
+			RPCLvl:            log.Info,
+			StateLvl:          log.Info,
+			RuntimeLvl:        log.Info,
+			BlockProducerLvl:  log.Info,
+			FinalityGadgetLvl: log.Info,
 		},
 		Init:    dot.GssmrConfig().Init,
 		Account: dot.GssmrConfig().Account,
@@ -113,6 +98,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 		Network: dot.GssmrConfig().Network,
 		RPC:     dot.GssmrConfig().RPC,
 		System:  dot.GssmrConfig().System,
+		Pprof:   dot.GssmrConfig().Pprof,
 	}
 
 	return cfg
@@ -122,7 +108,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	cfg := newTestConfig(t)
 
-	file, err := ioutil.TempFile(cfg.Global.BasePath, "config-")
+	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
 	require.NoError(t, err)
 
 	tomlCfg := dotConfigToToml(cfg)

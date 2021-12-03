@@ -1,34 +1,22 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package state
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+// storagePrefix storage key prefix.
 var storagePrefix = "storage"
 var codeKey = common.CodeKey
 
@@ -42,20 +30,21 @@ func errTrieDoesNotExist(hash common.Hash) error {
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	blockState *BlockState
-	tries      map[common.Hash]*trie.Trie // map of root -> trie
+	tries      *sync.Map // map[common.Hash]*trie.Trie // map of root -> trie
 
-	db   chaindb.Database
-	lock sync.RWMutex
+	db chaindb.Database
+	sync.RWMutex
 
 	// change notifiers
 	changedLock  sync.RWMutex
 	observerList []Observer
-
-	syncing bool
+	pruner       pruner.Pruner
+	syncing      bool
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState,
+	t *trie.Trie, onlinePruner pruner.Config) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -64,14 +53,28 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 		return nil, fmt.Errorf("cannot have nil trie")
 	}
 
-	tries := make(map[common.Hash]*trie.Trie)
-	tries[t.MustHash()] = t
+	tries := new(sync.Map)
+	tries.Store(t.MustHash(), t)
+
+	storageTable := chaindb.NewTable(db, storagePrefix)
+
+	var p pruner.Pruner
+	if onlinePruner.Mode == pruner.Full {
+		var err error
+		p, err = pruner.NewFullNode(db, storageTable, onlinePruner.RetainedBlocks, logger)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		p = &pruner.ArchiveNode{}
+	}
 
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
-		db:           chaindb.NewTable(db, storagePrefix),
+		db:           storageTable,
 		observerList: []Observer{},
+		pruner:       p,
 	}, nil
 }
 
@@ -81,40 +84,49 @@ func (s *StorageState) SetSyncing(syncing bool) {
 }
 
 func (s *StorageState) pruneKey(keyHeader *types.Header) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	_, ok := s.tries[keyHeader.StateRoot]
-	if !ok {
-		return
-	}
-
-	delete(s.tries, keyHeader.StateRoot)
-	// TODO: database pruning needs to be refactored since the trie is now stored by nodes
+	s.tries.Delete(keyHeader.StateRoot)
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
-	s.lock.Lock()
+func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
+
 	if s.syncing {
 		// keep only the trie at the head of the chain when syncing
-		for key := range s.tries {
-			delete(s.tries, key)
+		// TODO: probably remove this when memory usage improves (#1494)
+		s.tries.Range(func(k, _ interface{}) bool {
+			s.tries.Delete(k)
+			return true
+		})
+	}
+
+	_, _ = s.tries.LoadOrStore(root, ts.Trie())
+
+	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
+		return fmt.Errorf("block cannot be empty for Full node pruner")
+	}
+
+	if header != nil {
+		insKeys, err := ts.GetInsertedNodeHashes()
+		if err != nil {
+			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
+		}
+
+		delKeys := ts.GetDeletedNodeHashes()
+		err = s.pruner.StoreJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
+		if err != nil {
+			return err
 		}
 	}
-	s.tries[root] = ts.Trie()
-	s.lock.Unlock()
 
-	logger.Trace("cached trie in storage state", "root", root)
+	logger.Tracef("cached trie in storage state: %s", root)
 
 	if err := ts.Trie().WriteDirty(s.db); err != nil {
-		logger.Warn("failed to write trie to database", "root", root, "error", err)
+		logger.Warnf("failed to write trie with root %s to database: %s", root, err)
 		return err
 	}
 
 	go s.notifyAll(root)
-
 	return nil
 }
 
@@ -129,31 +141,31 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		root = &sr
 	}
 
-	s.lock.RLock()
-	t := s.tries[*root]
-	s.lock.RUnlock()
-
-	if t != nil && t.MustHash() != *root {
-		panic("trie does not have expected root")
-	}
-
-	if t == nil {
+	st, has := s.tries.Load(*root)
+	if !has {
 		var err error
-		t, err = s.LoadFromDB(*root)
+		st, err = s.LoadFromDB(*root)
 		if err != nil {
 			return nil, err
 		}
+
+		_, _ = s.tries.LoadOrStore(*root, st)
 	}
 
-	curr, err := rtstorage.NewTrieState(t)
+	t := st.(*trie.Trie)
+
+	if has && t.MustHash() != *root {
+		panic("trie does not have expected root")
+	}
+
+	nextTrie := t.Snapshot()
+	next, err := rtstorage.NewTrieState(nextTrie)
 	if err != nil {
 		return nil, err
 	}
 
-	s.lock.Lock()
-	s.tries[*root] = curr.Snapshot()
-	s.lock.Unlock()
-	return curr, nil
+	logger.Tracef("returning trie with root %s to be modified", root)
+	return next, nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
@@ -164,11 +176,29 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 		return nil, err
 	}
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	s.tries[t.MustHash()] = t
+	_, _ = s.tries.LoadOrStore(t.MustHash(), t)
 	return t, nil
+}
+
+func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
+	if root == nil {
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		root = &sr
+	}
+
+	if t, has := s.tries.Load(*root); has && t != nil {
+		return t.(*trie.Trie), nil
+	}
+
+	tr, err := s.LoadFromDB(*root)
+	if err != nil {
+		return nil, errTrieDoesNotExist(*root)
+	}
+
+	return tr, nil
 }
 
 // ExistsStorage check if the key exists in the storage trie with the given storage hash
@@ -189,11 +219,8 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 		root = &sr
 	}
 
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	if trie, ok := s.tries[*root]; ok {
-		val := trie.Get(key)
+	if t, has := s.tries.Load(*root); has {
+		val := t.(*trie.Trie).Get(key)
 		return val, nil
 	}
 
@@ -201,21 +228,41 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash
-func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error) {
-	header, err := s.blockState.GetHeader(bhash)
-	if err != nil {
-		return nil, err
+func (s *StorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
+	var (
+		root common.Hash
+		err  error
+	)
+
+	if bhash != nil {
+		header, err := s.blockState.GetHeader(*bhash)
+		if err != nil {
+			return nil, err
+		}
+
+		root = header.StateRoot
+	} else {
+		root, err = s.StorageRoot()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return s.GetStorage(&header.StateRoot, key)
+	return s.GetStorage(&root, key)
 }
 
 // GetStateRootFromBlock returns the state root hash of a given block hash
 func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
+	if bhash == nil {
+		b := s.blockState.BestBlockHash()
+		bhash = &b
+	}
+
 	header, err := s.blockState.GetHeader(*bhash)
 	if err != nil {
 		return nil, err
 	}
+
 	return &header.StateRoot, nil
 }
 
@@ -224,117 +271,44 @@ func (s *StorageState) StorageRoot() (common.Hash, error) {
 	return s.blockState.BestBlockStateRoot()
 }
 
-// EnumeratedTrieRoot not implemented
-func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
-	//TODO
-	panic("not implemented")
-}
-
 // Entries returns Entries from the trie with the given state root
 func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
-	if root == nil {
-		head, err := s.blockState.BestBlockStateRoot()
-		if err != nil {
-			return nil, err
-		}
-		root = &head
+	tr, err := s.loadTrie(root)
+	if err != nil {
+		return nil, err
 	}
 
-	s.lock.RLock()
-	tr, ok := s.tries[*root]
-	s.lock.RUnlock()
-
-	if !ok {
-		var err error
-		tr, err = s.LoadFromDB(*root)
-		if err != nil {
-			return nil, errTrieDoesNotExist(*root)
-		}
-	}
-
-	s.lock.RLock()
-	defer s.lock.RUnlock()
 	return tr.Entries(), nil
 }
 
-// GetKeysWithPrefix returns all that match the given prefix for the given hash (or best block state root if hash is nil) in lexicographic order
-func (s *StorageState) GetKeysWithPrefix(hash *common.Hash, prefix []byte) ([][]byte, error) {
-	if hash == nil {
-		sr, err := s.blockState.BestBlockStateRoot()
-		if err != nil {
-			return nil, err
-		}
-		hash = &sr
+// GetKeysWithPrefix returns all that match the given prefix for the given hash
+// (or best block state root if hash is nil) in lexicographic order
+func (s *StorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
+	tr, err := s.loadTrie(root)
+	if err != nil {
+		return nil, err
 	}
 
-	s.lock.RLock()
-	tr, ok := s.tries[*hash]
-	s.lock.RUnlock()
-
-	if !ok {
-		var err error
-		tr, err = s.LoadFromDB(*hash)
-		if err != nil {
-			return nil, errTrieDoesNotExist(*hash)
-		}
-	}
-
-	s.lock.RLock()
-	defer s.lock.RUnlock()
 	return tr.GetKeysWithPrefix(prefix), nil
 }
 
-// GetStorageChild return GetChild from the trie
-func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*trie.Trie, error) {
-	if hash == nil {
-		sr, err := s.blockState.BestBlockStateRoot()
-		if err != nil {
-			return nil, err
-		}
-		hash = &sr
+// GetStorageChild returns a child trie, if it exists
+func (s *StorageState) GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error) {
+	tr, err := s.loadTrie(root)
+	if err != nil {
+		return nil, err
 	}
 
-	s.lock.RLock()
-	tr, ok := s.tries[*hash]
-	s.lock.RUnlock()
-
-	if !ok {
-		var err error
-		tr, err = s.LoadFromDB(*hash)
-		if err != nil {
-			return nil, errTrieDoesNotExist(*hash)
-		}
-	}
-
-	s.lock.RLock()
-	defer s.lock.RUnlock()
 	return tr.GetChild(keyToChild)
 }
 
-// GetStorageFromChild return GetFromChild from the trie
-func (s *StorageState) GetStorageFromChild(hash *common.Hash, keyToChild, key []byte) ([]byte, error) {
-	if hash == nil {
-		sr, err := s.blockState.BestBlockStateRoot()
-		if err != nil {
-			return nil, err
-		}
-		hash = &sr
+// GetStorageFromChild get a value from a child trie
+func (s *StorageState) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error) {
+	tr, err := s.loadTrie(root)
+	if err != nil {
+		return nil, err
 	}
 
-	s.lock.RLock()
-	tr, ok := s.tries[*hash]
-	s.lock.RUnlock()
-
-	if !ok {
-		var err error
-		tr, err = s.LoadFromDB(*hash)
-		if err != nil {
-			return nil, errTrieDoesNotExist(*hash)
-		}
-	}
-
-	s.lock.RLock()
-	defer s.lock.RUnlock()
 	return tr.GetFromChild(keyToChild, key)
 }
 
@@ -353,23 +327,9 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 	return common.Blake2bHash(code)
 }
 
-// GetBalance gets the balance for an account with the given public key
-func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, error) {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return 0, err
-	}
-
-	bal, err := s.GetStorage(hash, skey)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(bal) != 8 {
-		return 0, nil
-	}
-
-	return binary.LittleEndian.Uint64(bal), nil
+// GenerateTrieProof returns the proofs related to the keys on the state root trie
+func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
+	return trie.GenerateProof(stateRoot[:], keys, s.db)
 }
 
 func (s *StorageState) pruneStorage(closeCh chan interface{}) {

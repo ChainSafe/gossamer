@@ -1,18 +1,5 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
 
 package runtime
 
@@ -22,32 +9,28 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-// struct to mock memory interface
-type mockMemory struct {
-	buffer []byte
-}
+func newMemoryMock(size uint32) *mockMemory {
+	m := new(mockMemory)
+	testobj := make([]byte, size)
 
-// return mock memory as byte slice
-func (m *mockMemory) Data() []byte {
-	return m.buffer
-}
+	m.On("Data").Return(testobj)
+	lengthcall := m.On("Length")
+	lengthcall.RunFn = func(args mock.Arguments) {
+		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
+	}
 
-// return mock memory size
-func (m *mockMemory) Length() uint32 {
-	return uint32(len(m.buffer))
-}
+	growcall := m.On("Grow", mock.Anything)
+	growcall.RunFn = func(args mock.Arguments) {
+		arg := args[0].(uint32)
+		testobj = append(testobj, make([]byte, PageSize*arg)...)
+		growcall.ReturnArguments = mock.Arguments{nil}
+	}
 
-func (m *mockMemory) Grow(numPages uint32) error {
-	m.buffer = append(m.buffer, make([]byte, PageSize*numPages)...)
-	return nil
-}
-
-// create new mock memory of specified size
-func newMockMemory(size uint32) *mockMemory {
-	return &mockMemory{buffer: make([]byte, size)}
+	return m
 }
 
 // struct to hold data for a round of tests
@@ -295,13 +278,13 @@ var allTests = []testHolder{
 //  test holder
 func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
-		allocator := NewAllocator(newMockMemory(1<<16), test.offset)
+		memmock := newMemoryMock(1 << 16)
+		allocator := NewAllocator(memmock, test.offset)
 
 		for _, theTest := range test.tests {
 			switch v := theTest.test.(type) {
 			case *allocateTest:
-				result, err1 :=
-					allocator.Allocate(v.size)
+				result, err1 := allocator.Allocate(v.size)
 				if err1 != nil {
 					t.Fatal(err1)
 				}
@@ -320,7 +303,8 @@ func TestAllocator(t *testing.T) {
 }
 
 // compare test results to expected results and fail test if differences are found
-func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, result interface{}, output interface{}, t *testing.T) {
+func compareState(allocator FreeingBumpHeapAllocator, state allocatorState,
+	result interface{}, output interface{}, t *testing.T) {
 	if !reflect.DeepEqual(allocator.bumper, state.bumper) {
 		t.Errorf("Fail: got %v expected %v", allocator.bumper, state.bumper)
 	}
@@ -340,8 +324,9 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 
 // test that allocator should grow memory if the allocation request is larger than current size
 func TestShouldGrowMemory(t *testing.T) {
-	mem := newMockMemory(1 << 16)
+	mem := newMemoryMock(1 << 16)
 	currentSize := mem.Length()
+
 	fbha := NewAllocator(mem, 0)
 
 	// when
@@ -352,7 +337,7 @@ func TestShouldGrowMemory(t *testing.T) {
 
 // test that the allocator should grow memory if it's already full
 func TestShouldGrowMemoryIfFull(t *testing.T) {
-	mem := newMockMemory(1 << 16)
+	mem := newMemoryMock(1 << 16)
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
@@ -372,10 +357,10 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
-	mem := newMockMemory(1 << 16)
+	mem := newMemoryMock(1 << 16)
 
 	pagesNeeded := (MaxPossibleAllocation / PageSize) - (mem.Length() / PageSize) + 1
-	mem = newMockMemory(mem.Length() + pagesNeeded*65*1024)
+	mem = newMemoryMock(mem.Length() + pagesNeeded*65*1024)
 
 	fbha := NewAllocator(mem, 0)
 
@@ -391,7 +376,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
-	fbha := NewAllocator(newMockMemory(1<<16), 0)
+	fbha := NewAllocator(newMemoryMock(1<<16), 0)
 
 	// when
 	_, err := fbha.Allocate(MaxPossibleAllocation + 1)
