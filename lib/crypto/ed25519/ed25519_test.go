@@ -149,7 +149,7 @@ func TestVerifySignature(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err = VerifySignature(testCase.publicKey, testCase.signature, testCase.message)
+			err := VerifySignature(testCase.publicKey, testCase.signature, testCase.message)
 
 			if testCase.err != nil {
 				require.EqualError(t, err, testCase.err.Error())
