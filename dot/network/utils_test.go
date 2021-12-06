@@ -11,6 +11,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const portsAmount = 7100
+
+type portsQueue chan int
+
+func (p *portsQueue) get() int {
+	return <-*p
+}
+
+func (p *portsQueue) put(port int) {
+	*p <- port
+}
+
+var availablePorts portsQueue
+
+func init() {
+	availablePorts = make(portsQueue, portsAmount)
+	for port := 7001; port <= portsAmount; port++ {
+		availablePorts <- port
+	}
+}
+
 // list of IPFS peers, for testing only
 var TestPeers = []string{
 	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",

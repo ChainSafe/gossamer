@@ -60,7 +60,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 		cfg = &Config{
 			BasePath:    basePath,
-			Port:        7001,
+			Port:        uint16(availablePorts.get()),
 			NoBootstrap: true,
 			NoMDNS:      true,
 			LogLvl:      4,
@@ -105,6 +105,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	t.Cleanup(func() {
 		srvc.Stop()
+		availablePorts.put(int(cfg.Port))
 		err = os.RemoveAll(cfg.BasePath)
 		if err != nil {
 			fmt.Printf("failed to remove path %s : %s\n", cfg.BasePath, err)
