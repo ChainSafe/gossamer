@@ -48,7 +48,7 @@ type Node struct {
 	started  chan struct{}
 }
 
-//go:generate mockgen -source=node.go -destination=mock_node.go -package=dot
+//go:generate mockgen -source=node.go -destination=mock_node_test.go -package=$GOPACKAGE
 
 type newNodeIface interface {
 	nodeInitialised(string) bool

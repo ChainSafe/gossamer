@@ -212,7 +212,7 @@ func TestNewNodeMock(t *testing.T) {
 			}
 
 			if tt.want != nil {
-				assert.Equal(t, tt.want.Name, got.Name)
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}
