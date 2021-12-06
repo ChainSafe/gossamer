@@ -424,7 +424,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 
 		logger.Debugf("Sent connect message to peer %s", peerID)
 	}
-	return nil //nolint:nilerr
+	return nil
 }
 
 func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
