@@ -48,6 +48,84 @@ type Node struct {
 	started  chan struct{}
 }
 
+//go:generate mockgen -source=node.go -destination=mock_node.go -package=dot
+
+type newNodeIface interface {
+	nodeInitialised(string) bool
+	initNode(config *Config) error
+	createStateService(config *Config) (*state.Service, error)
+	createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error)
+	createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error)
+	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
+		net *network.Service) error
+	createBlockVerifier(st *state.Service) (*babe.VerificationManager, error)
+	createDigestHandler(st *state.Service) (*digest.Handler, error)
+	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
+		dh *digest.Handler) (*core.Service, error)
+	createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore,
+		net *network.Service) (*grandpa.Service, error)
+	newSyncService(cfg *Config, st *state.Service, fg gsync.FinalityGadget, verifier *babe.VerificationManager,
+		cs *core.Service, net *network.Service) (*gsync.Service, error)
+	createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service) (*babe.Service, error)
+	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)
+	createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service,
+		networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service,
+		finSrvc *grandpa.Service) (*rpc.HTTPServer, error)
+	initialiseTelemetry(cfg *Config, stateSrvc *state.Service, networkSrvc *network.Service, sysSrvc *system.Service)
+}
+
+type nodeInterface struct{}
+
+// NodeInitialized returns true if, within the configured data directory for the
+// node, the state database has been created and the genesis data has been loaded
+func NodeInitialized(basepath string) bool {
+	nodeI := nodeInterface{}
+	return nodeI.nodeInitialised(basepath)
+}
+
+func (nodeInterface) nodeInitialised(basepath string) bool {
+	// check if key registry exists
+	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
+
+	_, err := os.Stat(registry)
+	if os.IsNotExist(err) {
+		logger.Debug("node has not been initialised from base path " + basepath +
+			": failed to locate KEYREGISTRY file in data directory")
+
+		return false
+	}
+
+	// initialise database using data directory
+	db, err := utils.SetupDatabase(basepath, false)
+	if err != nil {
+		logger.Debugf("failed to create database from base path %s: %s", basepath, err)
+		return false
+	}
+
+	defer func() {
+		// close database
+		err = db.Close()
+		if err != nil {
+			logger.Errorf("failed to close database: %s", err)
+		}
+	}()
+
+	// load genesis data from initialised node database
+	_, err = state.NewBaseState(db).LoadGenesisData()
+	if err != nil {
+		logger.Errorf("node has not been initialised from base path %s: %s", basepath, err)
+		return false
+	}
+
+	return true
+}
+
+// InitNode init Node
+func InitNode(cfg *Config) error {
+	nodeI := nodeInterface{}
+	return nodeI.initNode(cfg)
+}
+
 // InitNode initialises a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func (nodeInterface) initNode(cfg *Config) error {
@@ -112,46 +190,6 @@ func (nodeInterface) initNode(cfg *Config) error {
 	return nil
 }
 
-// NodeInitialized returns true if, within the configured data directory for the
-// node, the state database has been created and the genesis data has been loaded
-// todo (ed) remove and use nodeInterface impl instead
-func NodeInitialized(basepath string) bool {
-	// check if key registry exists
-	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
-
-	_, err := os.Stat(registry)
-	if os.IsNotExist(err) {
-		logger.Debug("node has not been initialised from base path " + basepath +
-			": failed to locate KEYREGISTRY file in data directory")
-
-		return false
-	}
-
-	// initialise database using data directory
-	db, err := utils.SetupDatabase(basepath, false)
-	if err != nil {
-		logger.Debugf("failed to create database from base path %s: %s", basepath, err)
-		return false
-	}
-
-	defer func() {
-		// close database
-		err = db.Close()
-		if err != nil {
-			logger.Errorf("failed to close database: %s", err)
-		}
-	}()
-
-	// load genesis data from initialised node database
-	_, err = state.NewBaseState(db).LoadGenesisData()
-	if err != nil {
-		logger.Errorf("node has not been initialised from base path %s: %s", basepath, err)
-		return false
-	}
-
-	return true
-}
-
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
@@ -176,12 +214,12 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	return
 }
 
-// NewNodeC to create node
-func NewNodeC(cfg *Config) (*Node, error) {
-	return newNodeC(cfg, nodeInterface{})
+// NewNode to create node
+func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
+	return newNode(cfg, ks, nodeInterface{})
 }
 
-func newNodeC(cfg *Config, nn newNodeIface) (*Node, error) {
+func newNode(cfg *Config, ks *keystore.GlobalKeystore, nn newNodeIface) (*Node, error) {
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
@@ -194,12 +232,6 @@ func newNodeC(cfg *Config, nn newNodeIface) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	ks, err := nn.initKeystore(cfg)
-	if err != nil {
-		logger.Errorf("failed to initialise keystore: %s", err)
-		return nil, err
 	}
 
 	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
@@ -332,74 +364,6 @@ func newNodeC(cfg *Config, nn newNodeIface) (*Node, error) {
 	return node, nil
 }
 
-//go:generate mockgen -source=node.go -destination=mock_node.go -package=dot
-
-type newNodeIface interface {
-	nodeInitialised(string) bool
-	initNode(config *Config) error
-	initKeystore(config *Config) (*keystore.GlobalKeystore, error)
-	createStateService(config *Config) (*state.Service, error)
-	createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error)
-	createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error)
-	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
-		net *network.Service) error
-	createBlockVerifier(st *state.Service) (*babe.VerificationManager, error)
-	createDigestHandler(st *state.Service) (*digest.Handler, error)
-	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
-		dh *digest.Handler) (*core.Service, error)
-	createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore,
-		net *network.Service) (*grandpa.Service, error)
-	newSyncService(cfg *Config, st *state.Service, fg gsync.FinalityGadget, verifier *babe.VerificationManager,
-		cs *core.Service, net *network.Service) (*gsync.Service, error)
-	createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service) (*babe.Service, error)
-	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)
-	createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service,
-		networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service,
-		finSrvc *grandpa.Service) (*rpc.HTTPServer, error)
-	initialiseTelemetry(cfg *Config, stateSrvc *state.Service, networkSrvc *network.Service, sysSrvc *system.Service)
-}
-
-type nodeInterface struct{}
-
-// NodeInitialised returns true if, within the configured data directory for the
-// node, the state database has been created and the genesis data has been loaded
-func (nodeInterface) nodeInitialised(basepath string) bool {
-	// check if key registry exists
-	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
-
-	_, err := os.Stat(registry)
-	if os.IsNotExist(err) {
-		logger.Debug("node has not been initialised from base path " + basepath +
-			": failed to locate KEYREGISTRY file in data directory")
-
-		return false
-	}
-
-	// initialise database using data directory
-	db, err := utils.SetupDatabase(basepath, false)
-	if err != nil {
-		logger.Debugf("failed to create database from base path %s: %s", basepath, err)
-		return false
-	}
-
-	defer func() {
-		// close database
-		err = db.Close()
-		if err != nil {
-			logger.Errorf("failed to close database: %s", err)
-		}
-	}()
-
-	// load genesis data from initialised node database
-	_, err = state.NewBaseState(db).LoadGenesisData()
-	if err != nil {
-		logger.Errorf("node has not been initialised from base path %s: %s", basepath, err)
-		return false
-	}
-
-	return true
-}
-
 func (nodeInterface) initialiseTelemetry(cfg *Config, stateSrvc *state.Service, networkSrvc *network.Service,
 	sysSrvc *system.Service) {
 	gd, err := stateSrvc.Base.LoadGenesisData()
@@ -440,7 +404,8 @@ func (nodeInterface) initialiseTelemetry(cfg *Config, stateSrvc *state.Service, 
 	}
 }
 
-func (nodeInterface) initKeystore(cfg *Config) (*keystore.GlobalKeystore, error) {
+//InitKeystore to initialize node keystore
+func InitKeystore(cfg *Config) (*keystore.GlobalKeystore, error) {
 	ks := keystore.NewGlobalKeystore()
 	// load built-in test keys if specified by `cfg.Account.Key`
 	err := keystore.LoadKeystore(cfg.Account.Key, ks.Acco)
@@ -467,190 +432,6 @@ func (nodeInterface) initKeystore(cfg *Config) (*keystore.GlobalKeystore, error)
 	}
 
 	return ks, nil
-}
-
-// InitNode init Node
-func InitNode(cfg *Config) error {
-	nodeI := nodeInterface{}
-	return nodeI.initNode(cfg)
-}
-
-// NewNode creates a new dot node from a dot node configuration
-func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
-	// set garbage collection percent to 10%
-	// can be overwritten by setting the GOGC env variable, which defaults to 100
-	prev := debug.SetGCPercent(10)
-	if prev != 100 {
-		debug.SetGCPercent(prev)
-	}
-
-	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
-
-	// if authority node, should have at least 1 key in keystore
-	if cfg.Core.Roles == types.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
-		return nil, ErrNoKeysProvided
-	}
-
-	logger.Infof(
-		"🕸️ initialising node services with global configuration name %s, id %s and base path %s...",
-		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath)
-
-	var (
-		nodeSrvcs   []services.Service
-		networkSrvc *network.Service
-	)
-
-	if cfg.Pprof.Enabled {
-		nodeSrvcs = append(nodeSrvcs, createPprofService(cfg.Pprof.Settings))
-	}
-	nodeI := nodeInterface{}
-	stateSrvc, err := nodeI.createStateService(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create state service: %s", err)
-	}
-
-	// check if network service is enabled
-	if enabled := networkServiceEnabled(cfg); enabled {
-		// create network service and append network service to node services
-		networkSrvc, err = nodeI.createNetworkService(cfg, stateSrvc)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create network service: %s", err)
-		}
-		nodeSrvcs = append(nodeSrvcs, networkSrvc)
-	} else {
-		// do not create or append network service if network service is not enabled
-		logger.Debugf("network service disabled, roles are %d", cfg.Core.Roles)
-	}
-
-	// create runtime
-	ns, err := nodeI.createRuntimeStorage(stateSrvc)
-	if err != nil {
-		return nil, err
-	}
-
-	err = nodeI.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
-	if err != nil {
-		return nil, err
-	}
-
-	ver, err := nodeI.createBlockVerifier(stateSrvc)
-	if err != nil {
-		return nil, err
-	}
-
-	dh, err := nodeI.createDigestHandler(stateSrvc)
-	if err != nil {
-		return nil, err
-	}
-	nodeSrvcs = append(nodeSrvcs, dh)
-
-	coreSrvc, err := nodeI.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create core service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, coreSrvc)
-
-	fg, err := nodeI.createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
-	if err != nil {
-		return nil, err
-	}
-	nodeSrvcs = append(nodeSrvcs, fg)
-
-	syncer, err := nodeI.newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc)
-	if err != nil {
-		return nil, err
-	}
-
-	if networkSrvc != nil {
-		networkSrvc.SetSyncer(syncer)
-		networkSrvc.SetTransactionHandler(coreSrvc)
-	}
-	nodeSrvcs = append(nodeSrvcs, syncer)
-
-	bp, err := nodeI.createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
-	if err != nil {
-		return nil, err
-	}
-	nodeSrvcs = append(nodeSrvcs, bp)
-
-	sysSrvc, err := nodeI.createSystemService(&cfg.System, stateSrvc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create system service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, sysSrvc)
-
-	// check if rpc service is enabled
-	if enabled := cfg.RPC.isRPCEnabled() || cfg.RPC.isWSEnabled(); enabled {
-		var rpcSrvc *rpc.HTTPServer
-		rpcSrvc, err = nodeI.createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create rpc service: %s", err)
-		}
-		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
-	} else {
-		logger.Debug("rpc service disabled by default")
-	}
-
-	// close state service last
-	nodeSrvcs = append(nodeSrvcs, stateSrvc)
-
-	serviceRegistryLogger := logger.New(log.AddContext("pkg", "services"))
-	node := &Node{
-		Name:     cfg.Global.Name,
-		Services: services.NewServiceRegistry(serviceRegistryLogger),
-		started:  make(chan struct{}),
-	}
-
-	for _, srvc := range nodeSrvcs {
-		node.Services.RegisterService(srvc)
-	}
-
-	if cfg.Global.PublishMetrics {
-		c := metrics.NewCollector(context.Background())
-		c.AddGauge(fg)
-		c.AddGauge(stateSrvc)
-		c.AddGauge(networkSrvc)
-
-		go c.Start()
-
-		address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
-		logger.Info("Enabling stand-alone metrics HTTP endpoint at address " + address)
-		metrics.PublishMetrics(address)
-	}
-
-	gd, err := stateSrvc.Base.LoadGenesisData()
-	if err != nil {
-		return nil, err
-	}
-
-	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
-
-	var telemetryEndpoints []*genesis.TelemetryEndpoint
-	if len(cfg.Global.TelemetryURLs) == 0 {
-		telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
-
-	} else {
-		telemetryURLs := cfg.Global.TelemetryURLs
-		for i := range telemetryURLs {
-			telemetryEndpoints = append(telemetryEndpoints, &telemetryURLs[i])
-		}
-	}
-
-	telemetry.GetInstance().AddConnections(telemetryEndpoints)
-	genesisHash := stateSrvc.Block.GenesisHash()
-	err = telemetry.GetInstance().SendMessage(telemetry.NewSystemConnectedTM(
-		cfg.Core.GrandpaAuthority,
-		sysSrvc.ChainName(),
-		&genesisHash,
-		sysSrvc.SystemName(),
-		cfg.Global.Name,
-		networkSrvc.NetworkState().PeerID,
-		strconv.FormatInt(time.Now().UnixNano(), 10),
-		sysSrvc.SystemVersion()))
-	if err != nil {
-		logger.Debugf("problem sending system.connected telemetry message: %s", err)
-	}
-	return node, nil
 }
 
 // stores the global node name to reuse

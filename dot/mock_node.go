@@ -196,21 +196,6 @@ func (mr *MocknewNodeIfaceMockRecorder) createSystemService(cfg, stateSrvc inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createSystemService", reflect.TypeOf((*MocknewNodeIface)(nil).createSystemService), cfg, stateSrvc)
 }
 
-// initKeystore mocks base method.
-func (m *MocknewNodeIface) initKeystore(config *Config) (*keystore.GlobalKeystore, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "initKeystore", config)
-	ret0, _ := ret[0].(*keystore.GlobalKeystore)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// initKeystore indicates an expected call of initKeystore.
-func (mr *MocknewNodeIfaceMockRecorder) initKeystore(config interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "initKeystore", reflect.TypeOf((*MocknewNodeIface)(nil).initKeystore), config)
-}
-
 // initNode mocks base method.
 func (m *MocknewNodeIface) initNode(config *Config) error {
 	m.ctrl.T.Helper()
