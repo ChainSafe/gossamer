@@ -5,8 +5,11 @@ package sr25519
 
 import (
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	bip39 "github.com/cosmos/go-bip39"
 	"github.com/gtank/merlin"
 	"github.com/stretchr/testify/require"
@@ -118,4 +121,64 @@ func TestNewKeypairFromMnenomic(t *testing.T) {
 
 	_, err = NewKeypairFromMnenomic(mnemonic, "")
 	require.NoError(t, err)
+}
+
+func TestVerifySignature(t *testing.T) {
+	t.Parallel()
+
+	keypair, err := GenerateKeypair()
+	require.NoError(t, err)
+
+	publicKey := keypair.public.Encode()
+
+	message := []byte("Hello world!")
+
+	signature, err := keypair.Sign(message)
+	require.NoError(t, err)
+
+	testCase := map[string]struct {
+		publicKey, signature, message []byte
+		err                           error
+	}{
+		"success": {
+			publicKey: publicKey,
+			signature: signature,
+			message:   message,
+		},
+		"bad public key input": {
+			publicKey: []byte{},
+			signature: signature,
+			message:   message,
+			err:       errors.New("sr25519: cannot create public key: input is not 32 bytes"),
+		},
+		"invalid signature length": {
+			publicKey: publicKey,
+			signature: []byte{},
+			message:   message,
+			err:       fmt.Errorf("sr25519: invalid signature length"),
+		},
+		"verification failed": {
+			publicKey: publicKey,
+			signature: signature,
+			message:   []byte("a225e8c75da7da319af6335e7642d473"),
+			err: fmt.Errorf("sr25519: %w: for message 0x%x, signature 0x%x and public key 0x%x",
+				crypto.ErrSignatureVerificationFailed, []byte("a225e8c75da7da319af6335e7642d473"), signature, publicKey),
+		},
+	}
+
+	for name, value := range testCase {
+		testCase := value
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			err := VerifySignature(testCase.publicKey, testCase.signature, testCase.message)
+
+			if testCase.err != nil {
+				require.EqualError(t, err, testCase.err.Error())
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+
 }
