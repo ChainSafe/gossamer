@@ -11,8 +11,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
-// tracker keeps track of messages that have been received that have failed to validate with ErrBlockDoesNotExist
-// these messages may be needed again in the case that we are slightly out of sync with the rest of the network
+// tracker keeps track of messages that have been received that have failed to
+// validate with ErrBlockDoesNotExist. These messages may be needed again in the
+// case that we are slightly out of sync with the rest of the network.
 type tracker struct {
 	blockState BlockState
 	handler    *MessageHandler
