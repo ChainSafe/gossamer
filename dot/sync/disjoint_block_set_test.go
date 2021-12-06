@@ -6,6 +6,7 @@ package sync
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -15,6 +16,9 @@ import (
 
 func TestDisjointBlockSet(t *testing.T) {
 	s := newDisjointBlockSet(pendingBlocksLimit)
+	s.timeNow = func() time.Time {
+		return time.Time{}
+	}
 
 	hash := common.Hash{0xa, 0xb}
 	number := big.NewInt(100)
@@ -23,8 +27,9 @@ func TestDisjointBlockSet(t *testing.T) {
 	require.Equal(t, 1, s.size())
 
 	expected := &pendingBlock{
-		hash:   hash,
-		number: number,
+		hash:    hash,
+		number:  number,
+		clearAt: time.Time{}.Add(ttl),
 	}
 	blocks := s.getBlocks()
 	require.Equal(t, 1, len(blocks))
@@ -36,10 +41,12 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addHeader(header)
 	require.True(t, s.hasBlock(header.Hash()))
 	require.Equal(t, 2, s.size())
+
 	expected = &pendingBlock{
-		hash:   header.Hash(),
-		number: header.Number,
-		header: header,
+		hash:    header.Hash(),
+		number:  header.Number,
+		header:  header,
+		clearAt: time.Time{}.Add(ttl),
 	}
 	require.Equal(t, expected, s.getBlock(header.Hash()))
 
@@ -51,9 +58,10 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addHeader(header2)
 	require.Equal(t, 3, s.size())
 	expected = &pendingBlock{
-		hash:   header2.Hash(),
-		number: header2.Number,
-		header: header2,
+		hash:    header2.Hash(),
+		number:  header2.Number,
+		header:  header2,
+		clearAt: time.Time{}.Add(ttl),
 	}
 	require.Equal(t, expected, s.getBlock(header2.Hash()))
 
@@ -64,10 +72,11 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addBlock(block)
 	require.Equal(t, 3, s.size())
 	expected = &pendingBlock{
-		hash:   header2.Hash(),
-		number: header2.Number,
-		header: header2,
-		body:   &block.Body,
+		hash:    header2.Hash(),
+		number:  header2.Number,
+		header:  header2,
+		body:    &block.Body,
+		clearAt: time.Time{}.Add(ttl),
 	}
 	require.Equal(t, expected, s.getBlock(header2.Hash()))
 
@@ -194,4 +203,25 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 	require.Equal(t, 2, len(ready))
 	require.Equal(t, block1.ToBlockData(), ready[0])
 	require.Equal(t, block2.ToBlockData(), ready[1])
+}
+
+func TestDisjointBlockSet_ClearBlocks(t *testing.T) {
+	s := newDisjointBlockSet(pendingBlocksLimit)
+
+	testHashA := common.Hash{0}
+	testHashB := common.Hash{1}
+
+	s.blocks[testHashA] = &pendingBlock{
+		hash:    testHashA,
+		clearAt: time.Unix(1000, 0),
+	}
+	s.blocks[testHashB] = &pendingBlock{
+		hash:    testHashB,
+		clearAt: time.Now().Add(ttl * 2),
+	}
+
+	s.clearBlocks()
+	require.Equal(t, 1, len(s.blocks))
+	_, has := s.blocks[testHashB]
+	require.True(t, has)
 }

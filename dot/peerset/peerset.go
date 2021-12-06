@@ -53,6 +53,33 @@ const (
 	disconnect
 )
 
+func (a ActionReceiver) String() string {
+	switch a {
+	case addReservedPeer:
+		return "addReservedPeer"
+	case removeReservedPeer:
+		return "removeReservedPeer"
+	case setReservedPeers:
+		return "setReservedPeers"
+	case setReservedOnly:
+		return "setReservedOnly"
+	case reportPeer:
+		return "reportPeer"
+	case addToPeerSet:
+		return "addToPeerSet"
+	case removeFromPeerSet:
+		return "removeFromPeerSet"
+	case incoming:
+		return "incoming"
+	case sortedPeers:
+		return "sortedPeers"
+	case disconnect:
+		return "disconnect"
+	default:
+		return "invalid action"
+	}
+}
+
 // action struct stores the action type and required parameters to perform action
 type action struct {
 	actionCall    ActionReceiver
@@ -67,8 +94,8 @@ func (a action) String() string {
 	for i := range a.peers {
 		peersStrings[i] = a.peers[i].String()
 	}
-	return fmt.Sprintf("{call=%d, set-id=%d, reputation change %v, peers=[%s]",
-		a.actionCall, a.setID, a.reputation, strings.Join(peersStrings, ", "))
+	return fmt.Sprintf("{call=%s, set-id=%d, reputation change %v, peers=[%s]",
+		a.actionCall.String(), a.setID, a.reputation, strings.Join(peersStrings, ", "))
 }
 
 // Status represents the enum value for Message
@@ -141,7 +168,7 @@ type PeerSet struct {
 	// TODO: this will be useful for reserved only mode
 	// this is for future purpose if reserved-only flag is enabled (#1888).
 	isReservedOnly bool
-	resultMsgCh    chan interface{}
+	resultMsgCh    chan Message
 	// time when the PeerSet was created.
 	created time.Time
 	// last time when we updated the reputations of connected nodes.
@@ -156,9 +183,9 @@ type PeerSet struct {
 // config is configuration of a single set.
 type config struct {
 	// maximum number of slot occupying nodes for incoming connections.
-	inPeers uint32
+	maxInPeers uint32
 	// maximum number of slot occupying nodes for outgoing connections.
-	outPeers uint32
+	maxOutPeers uint32
 
 	// TODO Use in future for reserved only peers
 	// if true, we only accept reservedNodes (#1888).
@@ -174,15 +201,17 @@ type ConfigSet struct {
 }
 
 // NewConfigSet creates a new config set for the peerSet
-func NewConfigSet(in, out uint32, reservedOnly bool, allocTime time.Duration) *ConfigSet {
+func NewConfigSet(maxInPeers, maxOutPeers uint32, reservedOnly bool, allocTime time.Duration) *ConfigSet {
 	set := &config{
-		inPeers:           in,
-		outPeers:          out,
+		maxInPeers:        maxInPeers,
+		maxOutPeers:       maxOutPeers,
 		reservedOnly:      reservedOnly,
 		periodicAllocTime: allocTime,
 	}
 
 	return &ConfigSet{
+		// Why are we using an array of config in the set, when we are
+		// using just one config
 		Set: []*config{set},
 	}
 }
@@ -228,8 +257,8 @@ func reputationTick(reput Reputation) Reputation {
 	return reput.sub(diff)
 }
 
-// updateTime updates the value of latestTimeUpdate and performs all the updates that happen
-// over time, such as Reputation increases for staying connected.
+// updateTime updates the value of latestTimeUpdate and performs all the updates that
+// happen over time, such as Reputation increases for staying connected.
 func (ps *PeerSet) updateTime() error {
 	currTime := time.Now()
 	// identify the time difference between current time and last update time for peer reputation in seconds.
@@ -282,8 +311,8 @@ func (ps *PeerSet) updateTime() error {
 }
 
 // reportPeer on report ReputationChange of the peer based on its behaviour,
-// if the updated Reputation is below BannedThresholdValue then, this node need to be disconnected
-// and a drop message for the peer is sent in order to disconnect.
+// if the updated Reputation is below BannedThresholdValue then, this node need to
+// be disconnected and a drop message for the peer is sent in order to disconnect.
 func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	// we want reputations to be up-to-date before adjusting them.
 	if err := ps.updateTime(); err != nil {
@@ -349,6 +378,8 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if n.getReputation() < BannedThresholdValue {
+			logger.Warnf("reputation is lower than banned threshold value, reputation: %d, banned threshold value: %d",
+				n.getReputation(), BannedThresholdValue)
 			break
 		}
 
@@ -362,6 +393,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			PeerID: reservePeer,
 		}
 	}
+
 	// nothing more to do if we're in reserved mode.
 	if ps.isReservedOnly {
 		return nil
@@ -380,6 +412,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if err = peerState.tryOutgoing(setIdx, peerID); err != nil {
+			logger.Errorf("could not set peer %s as outgoing connection: %s", peerID.Pretty(), err)
 			break
 		}
 
@@ -401,10 +434,14 @@ func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 			return nil
 		}
 
+		ps.peerState.discover(setID, peerID)
+
 		ps.reservedNode[peerID] = struct{}{}
-		ps.peerState.addNoSlotNode(setID, peerID)
+		if err := ps.peerState.addNoSlotNode(setID, peerID); err != nil {
+			return fmt.Errorf("could not add to list of no-slot nodes: %w", err)
+		}
 		if err := ps.allocSlots(setID); err != nil {
-			return err
+			return fmt.Errorf("could not allocate slots: %w", err)
 		}
 	}
 	return nil
@@ -418,7 +455,9 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 		}
 
 		delete(ps.reservedNode, peerID)
-		ps.peerState.removeNoSlotNode(setID, peerID)
+		if err := ps.peerState.removeNoSlotNode(setID, peerID); err != nil {
+			return fmt.Errorf("could not remove from the list of no-slot nodes: %w", err)
+		}
 
 		// nothing more to do if not in reservedOnly mode.
 		if !ps.isReservedOnly {
@@ -516,8 +555,9 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 	return nil
 }
 
-// incoming indicates that we have received an incoming connection. Must be answered either with
-// a corresponding `Accept` or `Reject`, except if we were already connected to this peer.
+// incoming indicates that we have received an incoming connection. Must be answered
+// either with a corresponding `Accept` or `Reject`, except if we were already
+// connected to this peer.
 func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	if err := ps.updateTime(); err != nil {
 		return err
@@ -527,7 +567,11 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	for _, pid := range peers {
 		if ps.isReservedOnly {
 			if _, ok := ps.reservedNode[pid]; !ok {
-				ps.resultMsgCh <- Message{Status: Reject}
+				ps.resultMsgCh <- Message{
+					Status: Reject,
+					setID:  uint64(setID),
+					PeerID: pid,
+				}
 				continue
 			}
 		}
@@ -546,11 +590,24 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		p := state.nodes[pid]
 		switch {
 		case p.getReputation() < BannedThresholdValue:
-			ps.resultMsgCh <- Message{Status: Reject}
+			ps.resultMsgCh <- Message{
+				Status: Reject,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		case state.tryAcceptIncoming(setID, pid) != nil:
-			ps.resultMsgCh <- Message{Status: Reject}
+			ps.resultMsgCh <- Message{
+				Status: Reject,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		default:
-			ps.resultMsgCh <- Message{Status: Accept}
+			logger.Debugf("incoming connection accepted from peer %s", pid)
+			ps.resultMsgCh <- Message{
+				Status: Accept,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
 		}
 	}
 
@@ -593,6 +650,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 		}
 		ps.resultMsgCh <- Message{
 			Status: Drop,
+			setID:  uint64(setIdx),
 			PeerID: pid,
 		}
 
@@ -610,7 +668,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 // start handles all the action for the peerSet.
 func (ps *PeerSet) start(aq chan action) {
 	ps.actionQueue = aq
-	ps.resultMsgCh = make(chan interface{}, msgChanSize)
+	ps.resultMsgCh = make(chan Message, msgChanSize)
 	go ps.doWork()
 }
 
@@ -624,7 +682,7 @@ func (ps *PeerSet) doWork() {
 			l := ps.peerState.getSetLength()
 			for i := 0; i < l; i++ {
 				if err := ps.allocSlots(i); err != nil {
-					logger.Debugf("failed to do action on peerSet: %s", err)
+					logger.Warnf("failed to do action on peerSet: %s", err)
 				}
 			}
 		case act, ok := <-ps.actionQueue:

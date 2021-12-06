@@ -15,7 +15,7 @@ type notifyFinalizedTM struct {
 	Height string `json:"height"`
 }
 
-// NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
+// NewNotifyFinalizedTM gets a new notifyFinalizedTM struct.
 func NewNotifyFinalizedTM(best common.Hash, height string) Message {
 	return &notifyFinalizedTM{
 		Best:   best,

@@ -6,11 +6,15 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/metrics"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -18,10 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ethereum/go-ethereum/metrics"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 const (
@@ -89,8 +89,6 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
-
-	batchSize int
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -125,6 +123,9 @@ func NewService(cfg *Config) (*Service, error) {
 		connectToPeersTimeout = cfg.DiscoveryInterval
 	}
 
+	if cfg.batchSize == 0 {
+		cfg.batchSize = defaultTxnBatchSize
+	}
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -162,7 +163,6 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
-		batchSize:              100,
 	}
 
 	return network, err
@@ -211,7 +211,7 @@ func (s *Service) Start() error {
 			blockAnnounceID, err)
 	}
 
-	txnBatch := make(chan *BatchMessage, s.batchSize)
+	txnBatch := make(chan *BatchMessage, s.cfg.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol
@@ -394,11 +394,6 @@ main:
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
 			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
-			if err != nil {
-				logger.Debugf("problem sending system.interval telemetry message: %s", err)
-			}
-
-			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
 			if err != nil {
 				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
@@ -669,6 +664,10 @@ func (s *Service) startPeerSetHandler() {
 
 func (s *Service) processMessage(msg peerset.Message) {
 	peerID := msg.PeerID
+	if peerID == "" {
+		logger.Errorf("found empty peer id in peerset message")
+		return
+	}
 	switch msg.Status {
 	case peerset.Connect:
 		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
@@ -676,21 +675,21 @@ func (s *Service) processMessage(msg peerset.Message) {
 			var err error
 			addrInfo, err = s.host.discovery.findPeer(peerID)
 			if err != nil {
-				logger.Debugf("failed to find peer id %s: %s", peerID, err)
+				logger.Warnf("failed to find peer id %s: %s", peerID, err)
 				return
 			}
 		}
 
 		err := s.host.connect(addrInfo)
 		if err != nil {
-			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
+			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
-			logger.Debugf("failed to close connection with peer %s: %s", peerID, err)
+			logger.Warnf("failed to close connection with peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
@@ -703,12 +702,7 @@ func (s *Service) startProcessingMsg() {
 		select {
 		case <-s.ctx.Done():
 			return
-		case m := <-msgCh:
-			msg, ok := m.(peerset.Message)
-			if !ok {
-				logger.Error(fmt.Sprintf("failed to get message from peerSet: type is %T instead of peerset.Message", m))
-				continue
-			}
+		case msg := <-msgCh:
 			s.processMessage(msg)
 		}
 	}

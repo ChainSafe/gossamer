@@ -4,130 +4,304 @@
 package modules
 
 import (
-	"encoding/binary"
+	"errors"
+	"net/http"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/babe"
-	babemocks "github.com/ChainSafe/gossamer/lib/babe/mocks"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/stretchr/testify/require"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+
+	"github.com/stretchr/testify/assert"
 )
 
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     0,
-}
-
-func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
-	db := state.NewInMemoryDB(t)
-
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader)
-	require.NoError(t, err)
-	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
-	require.NoError(t, err)
-	return bs, es
-}
-
-func newBABEService(t *testing.T) *babe.Service {
-	kr, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-
-	bs, es := newState(t)
-	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.Info)
-	bs.StoreRuntime(bs.GenesisHash(), rt)
-	tt.Put(common.MustHexToBytes("0x886726f904d8372fdabb7707870c2fad"), common.MustHexToBytes("0x24d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48010000000000000090b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe220100000000000000306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc200100000000000000e659a7a1628cdd93febc04a4e0646ea20e9f5f0ce097d9a05290d4a9e054df4e01000000000000001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c01000000000000004603307f855321776922daeea21ee31720388d097cdaac66f05a6f8462b317570100000000000000be1d9d59de1283380100550a7b024501cb62d6cc40e3db35fcc5cf341814986e01000000000000001206960f920a23f7f4c43cc9081ec2ed0721f31a9bef2c10fd7602e16e08a32c0100000000000000"))
-
-	cfg := &babe.ServiceConfig{
-		BlockState:         bs,
-		EpochState:         es,
-		Keypair:            kr.Alice().(*sr25519.Keypair),
-		IsDev:              true,
-		BlockImportHandler: new(babemocks.BlockImportHandler),
+func Test_uint64ToHex(t *testing.T) {
+	type args struct {
+		input uint64
 	}
-
-	babe, err := babe.NewService(cfg)
-	require.NoError(t, err)
-	err = babe.Start()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = babe.Stop()
-	})
-	return babe
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "uint64ToHex one",
+			args: args{
+				input: uint64(1),
+			},
+			want: "0x0100000000000000",
+		},
+		{
+			name: "uint64ToHex zero",
+			args: args{
+				input: uint64(0),
+			},
+			want: "0x0000000000000000",
+		},
+		{
+			name: "uint64ToHex max",
+			args: args{
+				input: uint64(18446744073709551615),
+			},
+			want: "0xffffffffffffffff",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := uint64ToHex(tt.args.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
-func TestDevControl_Babe(t *testing.T) {
-	t.Skip() // skip for now, blocks on `babe.Service.Resume()`
-	bs := newBABEService(t)
-	m := NewDevModule(bs, nil)
+func TestDevModule_EpochLength(t *testing.T) {
+	mockBlockProducerAPI := new(mocks.BlockProducerAPI)
+	mockBlockProducerAPI.On("EpochLength").Return(uint64(23))
+	devModule := NewDevModule(mockBlockProducerAPI, nil)
 
-	var res string
-	err := m.Control(nil, &[]string{"babe", "stop"}, &res)
-	require.NoError(t, err)
-	require.Equal(t, blockProducerStoppedMsg, res)
-	require.True(t, bs.IsPaused())
-
-	err = m.Control(nil, &[]string{"babe", "start"}, &res)
-	require.NoError(t, err)
-	require.Equal(t, blockProducerStartedMsg, res)
-	require.False(t, bs.IsPaused())
+	type fields struct {
+		networkAPI       NetworkAPI
+		blockProducerAPI BlockProducerAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *EmptyRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    string
+	}{
+		{
+			name: "EpochLength OK",
+			fields: fields{
+				devModule.networkAPI,
+				devModule.blockProducerAPI,
+			},
+			args: args{
+				req: &EmptyRequest{},
+			},
+			exp: "0x1700000000000000",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &DevModule{
+				networkAPI:       tt.fields.networkAPI,
+				blockProducerAPI: tt.fields.blockProducerAPI,
+			}
+			res := ""
+			err := m.EpochLength(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
 
-func TestDevControl_Network(t *testing.T) {
-	net := newNetworkService(t)
-	m := NewDevModule(nil, net)
+func TestDevModule_SlotDuration(t *testing.T) {
+	mockBlockProducerAPI := new(mocks.BlockProducerAPI)
+	mockBlockProducerAPI.On("SlotDuration").Return(uint64(23))
 
-	var res string
-	err := m.Control(nil, &[]string{"network", "stop"}, &res)
-	require.NoError(t, err)
-	require.Equal(t, networkStoppedMsg, res)
-	require.True(t, net.IsStopped())
-
-	err = m.Control(nil, &[]string{"network", "start"}, &res)
-	require.NoError(t, err)
-	require.Equal(t, networkStartedMsg, res)
-	require.False(t, net.IsStopped())
+	type fields struct {
+		networkAPI       NetworkAPI
+		blockProducerAPI BlockProducerAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *EmptyRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    string
+	}{
+		{
+			name: "SlotDuration OK",
+			fields: fields{
+				nil,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				req: &EmptyRequest{},
+			},
+			exp: "0x1700000000000000",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &DevModule{
+				networkAPI:       tt.fields.networkAPI,
+				blockProducerAPI: tt.fields.blockProducerAPI,
+			}
+			res := ""
+			err := m.SlotDuration(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
 
-func TestDevControl_SlotDuration(t *testing.T) {
-	bs := newBABEService(t)
-	m := NewDevModule(bs, nil)
+func TestDevModule_Control(t *testing.T) {
+	mockBlockProducerAPI := new(mocks.BlockProducerAPI)
+	mockErrorBlockProducerAPI := new(mocks.BlockProducerAPI)
+	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockErrorNetworkAPI := new(mocks.NetworkAPI)
 
-	slotDurationSource := m.blockProducerAPI.SlotDuration()
+	mockErrorBlockProducerAPI.On("Pause").Return(errors.New("babe pause error"))
+	mockBlockProducerAPI.On("Pause").Return(nil)
 
-	var res string
-	err := m.SlotDuration(nil, &EmptyRequest{}, &res)
-	require.NoError(t, err)
+	mockErrorBlockProducerAPI.On("Resume").Return(errors.New("babe resume error"))
+	mockBlockProducerAPI.On("Resume").Return(nil)
 
-	slotLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(res))
-	require.Equal(t, slotDurationSource, slotLengthFetched)
-}
+	mockErrorNetworkAPI.On("Stop").Return(errors.New("network stop error"))
+	mockNetworkAPI.On("Stop").Return(nil)
 
-func TestDevControl_EpochLength(t *testing.T) {
-	bs := newBABEService(t)
-	m := NewDevModule(bs, nil)
+	mockErrorNetworkAPI.On("Start").Return(errors.New("network start error"))
+	mockNetworkAPI.On("Start").Return(nil)
 
-	epochLengthSource := m.blockProducerAPI.EpochLength()
-
-	var res string
-	err := m.EpochLength(nil, &EmptyRequest{}, &res)
-	require.NoError(t, err)
-
-	epochLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(res))
-	require.Equal(t, epochLengthSource, epochLengthFetched)
+	type fields struct {
+		networkAPI       NetworkAPI
+		blockProducerAPI BlockProducerAPI
+	}
+	type args struct {
+		r   *http.Request
+		req *[]string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    string
+	}{
+		{
+			name: "Not a BlockProducer",
+			fields: fields{
+				nil,
+				nil,
+			},
+			args: args{
+				req: &[]string{"babe", "stop"},
+			},
+			expErr: errors.New("not a block producer"),
+		},
+		{
+			name: "Babe Stop Error",
+			fields: fields{
+				mockNetworkAPI,
+				mockErrorBlockProducerAPI,
+			},
+			args: args{
+				req: &[]string{"babe", "stop"},
+			},
+			exp:    "babe service stopped",
+			expErr: errors.New("babe pause error"),
+		},
+		{
+			name: "Babe Stop OK",
+			fields: fields{
+				mockNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				req: &[]string{"babe", "stop"},
+			},
+			exp: "babe service stopped",
+		},
+		{
+			name: "Babe Start Error",
+			fields: fields{
+				mockNetworkAPI,
+				mockErrorBlockProducerAPI,
+			},
+			args: args{
+				req: &[]string{"babe", "start"},
+			},
+			exp:    "babe service started",
+			expErr: errors.New("babe resume error"),
+		},
+		{
+			name: "Babe Start OK",
+			fields: fields{
+				mockNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				req: &[]string{"babe", "start"},
+			},
+			exp: "babe service started",
+		},
+		{
+			name: "Network Stop Error",
+			fields: fields{
+				mockErrorNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				req: &[]string{"network", "stop"},
+			},
+			exp:    "network service stopped",
+			expErr: errors.New("network stop error"),
+		},
+		{
+			name: "Network Stop OK",
+			fields: fields{
+				mockNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				req: &[]string{"network", "stop"},
+			},
+			exp: "network service stopped",
+		},
+		{
+			name: "Network Start Error",
+			fields: fields{
+				mockErrorNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				req: &[]string{"network", "start"},
+			},
+			exp:    "network service started",
+			expErr: errors.New("network start error"),
+		},
+		{
+			name: "Network Start OK",
+			fields: fields{
+				mockNetworkAPI,
+				mockBlockProducerAPI,
+			},
+			args: args{
+				req: &[]string{"network", "start"},
+			},
+			exp: "network service started",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &DevModule{
+				networkAPI:       tt.fields.networkAPI,
+				blockProducerAPI: tt.fields.blockProducerAPI,
+			}
+			var res string
+			err := m.Control(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }

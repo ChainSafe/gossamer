@@ -1906,10 +1906,14 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 		return C.int64_t(ret)
 	}
 
+	if len(limit) == 0 {
+		// limit is None, set limit to max
+		limit = []byte{0xff, 0xff, 0xff, 0xff}
+	}
+
 	limitUint := binary.LittleEndian.Uint32(limit)
 	numRemoved, all := storage.ClearPrefixLimit(prefix, limitUint)
 	encBytes, err := toKillStorageResultEnum(all, numRemoved)
-
 	if err != nil {
 		logger.Errorf("[ext_storage_clear_prefix_version_2] failed to allocate memory: %s", err)
 		ret, _ := toWasmMemory(instanceContext, nil)

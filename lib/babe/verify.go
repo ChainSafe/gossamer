@@ -20,7 +20,7 @@ import (
 type verifierInfo struct {
 	authorities    []types.Authority
 	randomness     Randomness
-	threshold      *common.Uint128
+	threshold      *scale.Uint128
 	secondarySlots bool
 }
 
@@ -242,7 +242,7 @@ type verifier struct {
 	epoch          uint64
 	authorities    []types.Authority
 	randomness     Randomness
-	threshold      *common.Uint128
+	threshold      *scale.Uint128
 	secondarySlots bool
 }
 
@@ -453,14 +453,16 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 	}
 
 	// check that VRF output was under threshold
-	ok := checkPrimaryThreshold(b.randomness,
+	ok, err := checkPrimaryThreshold(b.randomness,
 		slot,
 		b.epoch,
 		vrfOutput,
 		b.threshold,
 		pk,
 	)
-
+	if err != nil {
+		return false, fmt.Errorf("failed to compare with threshold, %w", err)
+	}
 	if !ok {
 		return false, ErrVRFOutputOverThreshold
 	}

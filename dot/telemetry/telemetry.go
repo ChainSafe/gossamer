@@ -16,13 +16,22 @@ import (
 
 // telemetry message types
 const (
-	systemConnectedMsg           = "system.connected"
-	systemIntervalMsg            = "system.interval"
-	systemNetworkStateMsg        = "system.network_state"
-	blockImportMsg               = "block.import"
-	notifyFinalizedMsg           = "notify.finalized"
-	txPoolImportMsg              = "txpool.import"
+	afgAuthoritySetMsg        = "afg.authority_set"
+	afgFinalizedBlocksUpToMsg = "afg.finalized_blocks_up_to"
+	afgReceivedCommitMsg      = "afg.received_commit"
+	afgReceivedPrecommitMsg   = "afg.received_precommit"
+	afgReceivedPrevoteMsg     = "afg.received_prevote"
+
+	blockImportMsg = "block.import"
+
+	notifyFinalizedMsg = "notify.finalized"
+
 	preparedBlockForProposingMsg = "prepared_block_for_proposing"
+
+	systemConnectedMsg = "system.connected"
+	systemIntervalMsg  = "system.interval"
+
+	txPoolImportMsg = "txpool.import"
 )
 
 type telemetryConnection struct {
@@ -173,12 +182,6 @@ func (h *Handler) msgToJSON(message Message) ([]byte, error) {
 // Message interface for Message functions
 type Message interface {
 	messageType() string
-}
-
-type peerInfo struct {
-	Roles      byte   `json:"roles"`
-	BestHash   string `json:"bestHash"`
-	BestNumber uint64 `json:"bestNumber"`
 }
 
 // NoopHandler struct no op handling (ignoring) telemetry messages
