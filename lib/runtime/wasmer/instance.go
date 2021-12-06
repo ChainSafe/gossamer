@@ -15,6 +15,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
+	"github.com/ChainSafe/gossamer/lib/crypto"
+
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -137,7 +139,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		NodeStorage:     cfg.NodeStorage,
 		Network:         cfg.Network,
 		Transaction:     cfg.Transaction,
-		SigVerifier:     runtime.NewSignatureVerifier(logger),
+		SigVerifier:     crypto.NewSignatureVerifier(logger),
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 

@@ -19,7 +19,7 @@ import (
 
 func TestBackgroundSignVerification(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
+	signVerify := crypto.NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 
@@ -34,7 +34,7 @@ func TestBackgroundSignVerification(t *testing.T) {
 
 func TestBackgroundSignVerificationMultipleStart(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
+	signVerify := crypto.NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	for ii := 0; ii < 5; ii++ {
 		require.False(t, signVerify.IsStarted())
@@ -60,16 +60,16 @@ func TestInvalidSignatureBatch(t *testing.T) {
 	sigData, err := common.HexToBytes("0x90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301") //nolint:lll
 	require.Nil(t, err)
 
-	signature := &Signature{
-		PubKey:    key.Public().Encode(),
-		Sign:      sigData,
-		Msg:       msg,
-		KeyTypeID: crypto.Ed25519Type,
+	signature := &crypto.SignatureInfo{
+		PubKey:     key.Public().Encode(),
+		Sign:       sigData,
+		Msg:        msg,
+		VerifyFunc: ed25519.VerifySignature,
 	}
 
 	signs = append(signs, signature)
 
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
+	signVerify := crypto.NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 	signVerify.Start()
 
 	for _, sig := range signs {
@@ -80,7 +80,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 
 func TestValidSignatureBatch(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
+	signVerify := crypto.NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 
@@ -101,11 +101,11 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 	srSig, err := srKey.Private().Sign(srMsg)
 	require.NoError(t, err)
 
-	srSignature := &Signature{
-		PubKey:    srKey.Public().Encode(),
-		Sign:      srSig,
-		Msg:       srMsg,
-		KeyTypeID: crypto.Sr25519Type,
+	srSignature := &crypto.SignatureInfo{
+		PubKey:     srKey.Public().Encode(),
+		Sign:       srSig,
+		Msg:        srMsg,
+		VerifyFunc: sr25519.VerifySignature,
 	}
 
 	blakeHash, err := common.Blake2bHash([]byte("secp256k1"))
@@ -118,14 +118,14 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	secpSigData = secpSigData[:len(secpSigData)-1] // remove recovery id
-	secpSignature := &Signature{
-		PubKey:    kp.Public().Encode(),
-		Sign:      secpSigData,
-		Msg:       blakeHash.ToBytes(),
-		KeyTypeID: crypto.Secp256k1Type,
+	secpSignature := &crypto.SignatureInfo{
+		PubKey:     kp.Public().Encode(),
+		Sign:       secpSigData,
+		Msg:        blakeHash.ToBytes(),
+		VerifyFunc: secp256k1.VerifySignature,
 	}
 
-	signVerify := NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
+	signVerify := crypto.NewSignatureVerifier(log.New(log.SetWriter(io.Discard)))
 
 	signVerify.Start()
 
