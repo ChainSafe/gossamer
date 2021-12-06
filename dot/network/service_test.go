@@ -6,6 +6,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"os"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
@@ -32,11 +34,12 @@ func failedToDial(err error) bool {
 
 func createServiceHelper(t *testing.T, num int) []*Service {
 	t.Helper()
+
 	var srvcs []*Service
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint16(7001 + i),
+			Port:        uint16(availablePorts.get()),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -106,10 +109,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	t.Cleanup(func() {
 		srvc.Stop()
 		availablePorts.put(int(cfg.Port))
-		err = os.RemoveAll(cfg.BasePath)
-		if err != nil {
-			fmt.Printf("failed to remove path %s : %s\n", cfg.BasePath, err)
-		}
 	})
 	return srvc
 }
@@ -128,34 +127,36 @@ func TestMain(m *testing.M) {
 
 // test network service starts
 func TestStartService(t *testing.T) {
+	t.Parallel()
+
 	node := createTestService(t, nil)
-	node.Stop()
+	require.NoError(t, node.Stop())
 }
 
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeA := createTestService(t, configA)
-	defer nodeA.Stop()
 	nodeA.noGossip = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
-	defer nodeB.Stop()
 	nodeB.noGossip = true
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
@@ -169,37 +170,42 @@ func TestBroadcastMessages(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	anounceMessage := &BlockAnnounceMessage{
+		Number: big.NewInt(128 * 7),
+		Digest: types.NewDigest(),
+	}
+
 	// simulate message sent from core service
-	nodeA.GossipMessage(testBlockAnnounceMessage)
+	nodeA.GossipMessage(anounceMessage)
 	time.Sleep(time.Second * 2)
 	require.NotNil(t, handler.messages[nodeA.host.id()])
 }
 
 func TestBroadcastDuplicateMessage(t *testing.T) {
+	t.Parallel()
+
 	msgCacheTTL = 2 * time.Second
 
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeA := createTestService(t, configA)
-	defer nodeA.Stop()
 	nodeA.noGossip = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
-	defer nodeB.Stop()
 	nodeB.noGossip = true
 
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
@@ -225,9 +231,14 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 		stream:    stream,
 	})
 
+	announceMessage := &BlockAnnounceMessage{
+		Number: big.NewInt(128 * 7),
+		Digest: types.NewDigest(),
+	}
+
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
-		nodeA.GossipMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 
@@ -238,13 +249,15 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	// All 5 message will be sent since cache is disabled.
 	for i := 0; i < 5; i++ {
-		nodeA.GossipMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
 }
 
 func TestService_NodeRoles(t *testing.T) {
+	t.Parallel()
+
 	basePath := utils.NewTestBasePath(t, "node")
 	cfg := &Config{
 		BasePath: basePath,
@@ -257,10 +270,12 @@ func TestService_NodeRoles(t *testing.T) {
 }
 
 func TestService_Health(t *testing.T) {
+	t.Parallel()
+
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
 		BasePath:    basePath,
-		Port:        7001,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -280,6 +295,8 @@ func TestService_Health(t *testing.T) {
 }
 
 func TestPersistPeerStore(t *testing.T) {
+	t.Parallel()
+
 	nodes := createServiceHelper(t, 2)
 	nodeA := nodes[0]
 	nodeB := nodes[1]
@@ -304,9 +321,11 @@ func TestPersistPeerStore(t *testing.T) {
 }
 
 func TestHandleConn(t *testing.T) {
+	t.Parallel()
+
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -315,7 +334,7 @@ func TestHandleConn(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -332,6 +351,8 @@ func TestHandleConn(t *testing.T) {
 }
 
 func TestSerivceIsMajorSyncMetrics(t *testing.T) {
+	t.Parallel()
+
 	mocksyncer := new(MockSyncer)
 
 	node := &Service{

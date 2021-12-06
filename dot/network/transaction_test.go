@@ -16,6 +16,8 @@ import (
 )
 
 func TestDecodeTransactionHandshake(t *testing.T) {
+	t.Parallel()
+
 	testHandshake := &transactionHandshake{}
 
 	enc, err := testHandshake.Encode()
@@ -27,6 +29,8 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 }
 
 func TestHandleTransactionMessage(t *testing.T) {
+	t.Parallel()
+
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	mockhandler := &MockTransactionHandler{}
 	mockhandler.On("HandleTransactionMessage",
@@ -37,7 +41,7 @@ func TestHandleTransactionMessage(t *testing.T) {
 
 	config := &Config{
 		BasePath:           basePath,
-		Port:               7001,
+		Port:               uint16(availablePorts.get()),
 		NoBootstrap:        true,
 		NoMDNS:             true,
 		TransactionHandler: mockhandler,

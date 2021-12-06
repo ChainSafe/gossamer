@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"testing"
 
 	"github.com/stretchr/testify/mock"
 
@@ -134,7 +135,10 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Message) error {
 	msgs := s.messages[stream.Conn().RemotePeer()]
 	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
-	return s.writeToStream(stream, testBlockAnnounceHandshake)
+	announceHandshake := &BlockAnnounceHandshake{
+		BestBlockNumber: 0,
+	}
+	return s.writeToStream(stream, announceHandshake)
 }
 
 func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Message) error {
@@ -190,27 +194,22 @@ var starting, _ = variadic.NewUint64OrHash(uint64(1))
 
 var one = uint32(1)
 
-var testBlockRequestMessage = &BlockRequestMessage{
-	RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-	StartingBlock: *starting,
-	EndBlockHash:  &common.Hash{},
-	Direction:     1,
-	Max:           &one,
+func NewTestBlockRequestMessage(t *testing.T) *BlockRequestMessage {
+	t.Helper()
+
+	return &BlockRequestMessage{
+		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
+		StartingBlock: *starting,
+		EndBlockHash:  &common.Hash{},
+		Direction:     1,
+		Max:           &one,
+	}
 }
 
 func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
-}
-
-var testBlockAnnounceMessage = &BlockAnnounceMessage{
-	Number: big.NewInt(128 * 7),
-	Digest: types.NewDigest(),
-}
-
-var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
-	BestBlockNumber: 0,
 }
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {

@@ -49,6 +49,8 @@ func TestEncodeLightResponse(t *testing.T) {
 }
 
 func TestDecodeLightMessage(t *testing.T) {
+	t.Parallel()
+
 	s := &Service{
 		lightRequest: make(map[peer.ID]struct{}),
 	}
@@ -85,9 +87,11 @@ func TestDecodeLightMessage(t *testing.T) {
 }
 
 func TestHandleLightMessage_Response(t *testing.T) {
+	t.Parallel()
+
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -95,7 +99,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		Port:        uint16(availablePorts.get()),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

@@ -5,7 +5,9 @@ package network
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
+	"regexp"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -16,17 +18,13 @@ import (
 )
 
 func TestEncodeBlockRequestMessage(t *testing.T) {
-	expected, err := common.HexToBytes("0x08808080082220fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1280130011220dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b") //nolint:lll
-	require.Nil(t, err)
+	t.Parallel()
 
-	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	require.Nil(t, err)
+	expected := common.MustHexToBytes("0x08808080082220fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1280130011220dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b") //nolint:lll
+	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	endBlock := common.MustHexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-	require.NoError(t, err)
-
-	one := uint32(1)
-
+	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
@@ -47,13 +45,12 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 }
 
 func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
-	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	require.Nil(t, err)
+	t.Parallel()
 
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-	require.NoError(t, err)
+	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	endBlock := common.MustHexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 
-	one := uint32(1)
+	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
@@ -72,10 +69,11 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 }
 
 func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-	require.NoError(t, err)
+	t.Parallel()
 
-	one := uint32(1)
+	endBlock := common.MustHexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+
+	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint64OrHashFromBytes([]byte{1, 1}),
@@ -94,8 +92,9 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 }
 
 func TestBlockRequestString(t *testing.T) {
-	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	require.Nil(t, err)
+	t.Parallel()
+
+	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
@@ -105,12 +104,18 @@ func TestBlockRequestString(t *testing.T) {
 		Max:           nil,
 	}
 
-	_ = bm.String()
+	var blockRequestStringRegex = regexp.MustCompile(
+		`^\ABlockRequestMessage RequestedData=[0-9]* StartingBlock={[\[0-9(\s?)]+\]} EndBlockHash=0x[0-9]+ Direction=[0-9]* Max=[0-9]*\z$`)
+
+	fmt.Println(bm.String())
+	match := blockRequestStringRegex.MatchString(bm.String())
+	require.True(t, match)
 }
 
 func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
-	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	require.Nil(t, err)
+	t.Parallel()
+
+	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
@@ -130,6 +135,8 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 }
 
 func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
+	t.Parallel()
+
 	bd := types.NewEmptyBlockData()
 	bd.Header = types.NewEmptyHeader()
 	bd.Header.Hash()
@@ -160,12 +167,15 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 }
 
 func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
+	t.Parallel()
+
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf,
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+
 	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
@@ -208,6 +218,8 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 }
 
 func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
+	t.Parallel()
+
 	exp := common.MustHexToBytes("0x0aa2010a2000000000000000000000000000000000000000000000000000000000000000001262000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f001a0510010305071a040c0901021a040c0304052201012a0102320103") //nolint:lll
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{
@@ -258,26 +270,26 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 }
 
 func TestEncodeBlockAnnounceMessage(t *testing.T) {
-	// this value is a concatenation of:
-	//  ParentHash: Hash: 0x4545454545454545454545454545454545454545454545454545454545454545
-	//	Number: *big.Int // block number: 1
-	//	StateRoot:  Hash: 0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0
-	//	ExtrinsicsRoot: Hash: 0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314
-	//	Digest: []byte
+	/* this value is a concatenation of:
+	 *  ParentHash: Hash: 0x4545454545454545454545454545454545454545454545454545454545454545
+	 *	Number: *big.Int // block number: 1
+	 *	StateRoot:  Hash: 0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0
+	 *	ExtrinsicsRoot: Hash: 0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314
+	 *	Digest: []byte
 
-	//nolint:lll
-	//                                    mtparenthash                                                      bnstateroot                                                       extrinsicsroot                                                di
-	expected, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000") //nolint:lll
-	require.Nil(t, err)
+	 * nolint:lll
+	 *                                  mtparenthash                                                      bnstateroot                                                       extrinsicsroot                                                di
+	 */
 
-	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
-	require.Nil(t, err)
+	t.Parallel()
 
-	stateRoot, err := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
-	require.Nil(t, err)
+	expected := common.MustHexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000") //nolint:lll
 
-	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-	require.Nil(t, err)
+	parentHash := common.MustHexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+
+	stateRoot := common.MustHexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
+
+	extrinsicsRoot := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 
 	bhm := &BlockAnnounceMessage{
 		ParentHash:     parentHash,
@@ -293,24 +305,23 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 }
 
 func TestDecode_BlockAnnounceMessage(t *testing.T) {
-	announceMessage, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000") //nolint:lll
-	require.Nil(t, err)
+	t.Parallel()
+
+	announceMessage := common.MustHexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000") //nolint:lll
 
 	bhm := BlockAnnounceMessage{
 		Number: big.NewInt(0),
 		Digest: types.NewDigest(),
 	}
-	err = bhm.Decode(announceMessage)
+
+	err := bhm.Decode(announceMessage)
 	require.Nil(t, err)
 
-	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
-	require.Nil(t, err)
+	parentHash := common.MustHexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 
-	stateRoot, err := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
-	require.Nil(t, err)
+	stateRoot := common.MustHexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
 
-	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-	require.Nil(t, err)
+	extrinsicsRoot := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 
 	expected := BlockAnnounceMessage{
 		ParentHash:     parentHash,
@@ -324,13 +335,13 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 }
 
 func TestEncodeTransactionMessageSingleExtrinsic(t *testing.T) {
-	// expected:
-	// 0x04 - Scale encoded count of Extrinsic array(count = 1)
-	// 0x10 - Scale encoded length of the first Extrinsic(len = 4)
-	// 0x01020304 - value of array extrinsic array
-	expected, err := common.HexToBytes("0x041001020304")
-	require.Nil(t, err)
-
+	/* expected:
+	 * 0x04 - Scale encoded count of Extrinsic array(count = 1)
+	 * 0x10 - Scale encoded length of the first Extrinsic(len = 4)
+	 * 0x01020304 - value of array extrinsic array
+	 */
+	t.Parallel()
+	expected := common.MustHexToBytes("0x041001020304")
 	extrinsic := types.Extrinsic{0x01, 0x02, 0x03, 0x04}
 
 	transactionMessage := TransactionMessage{Extrinsics: []types.Extrinsic{extrinsic}}
@@ -342,14 +353,17 @@ func TestEncodeTransactionMessageSingleExtrinsic(t *testing.T) {
 }
 
 func TestEncodeTransactionMessageTwoExtrinsics(t *testing.T) {
-	// expected:
-	// 0x08 - Scale encoded count of Extrinsic array(count = 2)
-	// 0x0c - Scale encoded length of the first Extrinsic(len = 3)
-	// 0x010203 - Data of first Extrinsic
-	// 0x10 - Scale encoded length of the second Extrinsic(len = 4)
-	// 0x04050607 - Data of second Extrinsic
-	expected, err := common.HexToBytes("0x080c0102031004050607")
-	require.Nil(t, err)
+	/* expected:
+	 * 0x08 - Scale encoded count of Extrinsic array(count = 2)
+	 * 0x0c - Scale encoded length of the first Extrinsic(len = 3)
+	 * 0x010203 - Data of first Extrinsic
+	 * 0x10 - Scale encoded length of the second Extrinsic(len = 4)
+	 * 0x04050607 - Data of second Extrinsic
+	 */
+
+	t.Parallel()
+
+	expected := common.MustHexToBytes("0x080c0102031004050607")
 
 	extrinsic1 := types.Extrinsic{0x01, 0x02, 0x03}
 	extrinsic2 := types.Extrinsic{0x04, 0x05, 0x06, 0x07}
@@ -363,11 +377,13 @@ func TestEncodeTransactionMessageTwoExtrinsics(t *testing.T) {
 }
 
 func TestDecodeTransactionMessageOneExtrinsic(t *testing.T) {
-	originalMessage, err := common.HexToBytes("0x041001020304") // (without message type byte prepended)
-	require.Nil(t, err)
+	t.Parallel()
+
+	// (without message type byte prepended)
+	originalMessage := common.MustHexToBytes("0x041001020304")
 
 	decodedMessage := new(TransactionMessage)
-	err = decodedMessage.Decode(originalMessage)
+	err := decodedMessage.Decode(originalMessage)
 	require.Nil(t, err)
 
 	extrinsic := types.Extrinsic{0x01, 0x02, 0x03, 0x04}
@@ -378,7 +394,10 @@ func TestDecodeTransactionMessageOneExtrinsic(t *testing.T) {
 }
 
 func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
-	originalMessage, err := common.HexToBytes("0x080c0102031004050607") // (without message type byte prepended)
+	t.Parallel()
+
+	// (without message type byte prepended)
+	originalMessage, err := common.HexToBytes("0x080c0102031004050607")
 	require.Nil(t, err)
 
 	decodedMessage := new(TransactionMessage)
@@ -393,17 +412,18 @@ func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
 }
 
 func TestDecodeConsensusMessage(t *testing.T) {
-	testData := "03100405"
-	msg := "0x" + testData
+	t.Parallel()
 
-	encMsg, err := common.HexToBytes(msg)
-	require.Nil(t, err)
+	const testData = "0x03100405"
+
+	encMsg := common.MustHexToBytes(testData)
 
 	m := new(ConsensusMessage)
-	err = m.Decode(encMsg)
+
+	err := m.Decode(encMsg)
 	require.Nil(t, err)
 
-	out, err := hex.DecodeString(testData)
+	out, err := hex.DecodeString(testData[2:])
 	require.Nil(t, err)
 
 	expected := &ConsensusMessage{

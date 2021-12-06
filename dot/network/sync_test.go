@@ -11,8 +11,11 @@ import (
 )
 
 func TestDecodeSyncMessage(t *testing.T) {
+	t.Parallel()
+	testBlockReqMessage := NewTestBlockRequestMessage(t)
+
 	testPeer := peer.ID("noot")
-	reqEnc, err := testBlockRequestMessage.Encode()
+	reqEnc, err := testBlockReqMessage.Encode()
 	require.NoError(t, err)
 
 	msg, err := decodeSyncMessage(reqEnc, testPeer, true)
@@ -20,5 +23,5 @@ func TestDecodeSyncMessage(t *testing.T) {
 
 	req, ok := msg.(*BlockRequestMessage)
 	require.True(t, ok)
-	require.Equal(t, testBlockRequestMessage, req)
+	require.Equal(t, testBlockReqMessage, req)
 }
