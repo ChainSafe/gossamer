@@ -5,8 +5,8 @@ package branch
 
 import "github.com/ChainSafe/gossamer/lib/trie/encode"
 
-// Header creates the encoded header for the branch.
-func (b *Branch) Header() (encoding []byte, err error) {
+// encodeHeader creates the encoded header for the branch.
+func (b *Branch) encodeHeader() (encoding []byte, err error) {
 	var header byte
 	if b.Value == nil {
 		header = 2 << 6

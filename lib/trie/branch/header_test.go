@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Branch_Header(t *testing.T) {
+func Test_Branch_encodeHeader(t *testing.T) {
 	testCases := map[string]struct {
 		branch     *Branch
 		encoding   []byte
@@ -65,7 +65,7 @@ func Test_Branch_Header(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, err := testCase.branch.Header()
+			encoding, err := testCase.branch.encodeHeader()
 
 			if testCase.wrappedErr != nil {
 				assert.ErrorIs(t, err, testCase.wrappedErr)

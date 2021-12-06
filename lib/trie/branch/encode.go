@@ -86,7 +86,7 @@ func (b *Branch) Encode(buffer encode.Buffer) (err error) {
 		return nil
 	}
 
-	encodedHeader, err := b.Header()
+	encodedHeader, err := b.encodeHeader()
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}

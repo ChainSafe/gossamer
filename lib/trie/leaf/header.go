@@ -5,8 +5,8 @@ package leaf
 
 import "github.com/ChainSafe/gossamer/lib/trie/encode"
 
-// Header creates the encoded header for the leaf.
-func (l *Leaf) Header() (encoding []byte, err error) {
+// encodeHeader creates the encoded header for the leaf.
+func (l *Leaf) encodeHeader() (encoding []byte, err error) {
 	var header byte = 1 << 6
 	var encodedPublicKeyLength []byte
 

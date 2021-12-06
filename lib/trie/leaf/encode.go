@@ -97,7 +97,7 @@ func (l *Leaf) Encode(buffer encode.Buffer) (err error) {
 	}
 	l.encodingMu.RUnlock()
 
-	encodedHeader, err := l.Header()
+	encodedHeader, err := l.encodeHeader()
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
