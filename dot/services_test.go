@@ -473,7 +473,8 @@ func Test_createRPCService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ni.createRPCService(tt.args.cfg, tt.args.ns, tt.args.stateSrvc, tt.args.coreSrvc, tt.args.networkSrvc, tt.args.bp, tt.args.sysSrvc, tt.args.finSrvc)
+			got, err := ni.createRPCService(tt.args.cfg, tt.args.ns, tt.args.stateSrvc, tt.args.coreSrvc,
+				tt.args.networkSrvc, tt.args.bp, tt.args.sysSrvc, tt.args.finSrvc)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -540,7 +541,8 @@ func Test_createRuntime(t *testing.T) {
 				st:   stateSrvc,
 				code: []byte(`fake code`),
 			},
-			err: errors.New("failed to create runtime executor: Failed to instantiate the module:\n    compile error: Validation error \"Bad magic number\""),
+			err: errors.New("failed to create runtime executor: Failed to instantiate the module:\n compile error" +
+				": Validation error \"Bad magic number\""),
 		},
 		{
 			name: "working example",
@@ -675,32 +677,6 @@ func Test_createStateService(t *testing.T) {
 			}
 		})
 	}
-//var addr = flag.String("addr", "localhost:8546", "http service address")
-//var testCalls = []struct {
-//	call     []byte
-//	expected []byte
-//}{
-//	{
-//		call:     []byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
-//		expected: []byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")}, // working request
-//	{
-//		call: []byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`),
-//		// unknown method
-//		expected: []byte(`{"error":{"code":-32000,"data":null,` +
-//			`"message":"rpc error method unknown not found"},"id":2,` +
-//			`"jsonrpc":"2.0"}` + "\n")},
-//	{
-//		call: []byte{},
-//		// empty request
-//		expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,` +
-//			`"message":"Invalid request"},"id":0}` + "\n")},
-//	{
-//		call:     []byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`),
-//		expected: []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
-//	{
-//		call:     []byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`),
-//		expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
-//
 }
 
 func Test_createSystemService(t *testing.T) {

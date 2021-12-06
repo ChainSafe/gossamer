@@ -5,15 +5,15 @@ package dot
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/golang/mock/gomock"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -126,10 +126,10 @@ func TestNewNodeB(t *testing.T) {
 				cfg: &Config{
 					Global: GlobalConfig{BasePath: cfg.Global.BasePath},
 					Init:   InitConfig{Genesis: genFile.Name()},
-					Core: CoreConfig{Roles: types.AuthorityRole },
+					Core:   CoreConfig{Roles: types.AuthorityRole},
 				},
 			},
-			err:  errors.New("no keys provided for authority node"),
+			err: errors.New("no keys provided for authority node"),
 		},
 		// TODO this is commented out because in holds a lock on badger db, causing next test to foil
 		//{
@@ -147,10 +147,10 @@ func TestNewNodeB(t *testing.T) {
 			name: "minimal config",
 			args: args{
 				cfg: &Config{
-					Global:  GlobalConfig{BasePath: cfg.Global.BasePath,},
+					Global:  GlobalConfig{BasePath: cfg.Global.BasePath},
 					Init:    InitConfig{Genesis: genFile.Name()},
 					Account: AccountConfig{Key: "alice"},
-					Core:    CoreConfig{WasmInterpreter: wasmer.Name,},
+					Core:    CoreConfig{WasmInterpreter: wasmer.Name},
 				},
 			},
 		},
@@ -181,7 +181,7 @@ func TestNewNodeC(t *testing.T) {
 	require.NotNil(t, genFile)
 
 	type args struct {
-		cfg      *Config
+		cfg *Config
 		//stopFunc func()
 	}
 	tests := []struct {
@@ -196,19 +196,19 @@ func TestNewNodeC(t *testing.T) {
 				cfg: &Config{
 					Global: GlobalConfig{BasePath: cfg.Global.BasePath},
 					Init:   InitConfig{Genesis: genFile.Name()},
-					Core: CoreConfig{Roles: types.AuthorityRole },
+					Core:   CoreConfig{Roles: types.AuthorityRole},
 				},
 			},
-			err:  errors.New("no keys provided for authority node"),
+			err: errors.New("no keys provided for authority node"),
 		},
 		{
 			name: "minimal config",
 			args: args{
 				cfg: &Config{
-					Global:  GlobalConfig{BasePath: cfg.Global.BasePath,},
+					Global:  GlobalConfig{BasePath: cfg.Global.BasePath},
 					Init:    InitConfig{Genesis: genFile.Name()},
 					Account: AccountConfig{Key: "alice"},
-					Core:    CoreConfig{WasmInterpreter: wasmer.Name,},
+					Core:    CoreConfig{WasmInterpreter: wasmer.Name},
 				},
 			},
 		},
@@ -235,7 +235,7 @@ func TestNewNodeMock(t *testing.T) {
 
 	m := NewMocknewNodeIface(ctrl)
 	m.EXPECT().nodeInitialised(gomock.Any()).Return(true).AnyTimes()
-	m.EXPECT().initKeystore(gomock.Any()).DoAndReturn(func (config *Config) (*keystore.GlobalKeystore, error) {
+	m.EXPECT().initKeystore(gomock.Any()).DoAndReturn(func(config *Config) (*keystore.GlobalKeystore, error) {
 		if len(config.Account.Key) == 0 {
 			return nil, errors.New("no keys provided for authority node")
 		}
@@ -248,7 +248,8 @@ func TestNewNodeMock(t *testing.T) {
 	m.EXPECT().createDigestHandler(gomock.Any()).AnyTimes()
 	m.EXPECT().createCoreService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	m.EXPECT().createGRANDPAService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	m.EXPECT().newSyncService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().newSyncService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any()).AnyTimes()
 	m.EXPECT().createBABEService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	m.EXPECT().createSystemService(gomock.Any(), gomock.Any()).AnyTimes()
 	m.EXPECT().initialiseTelemetry(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -262,7 +263,7 @@ func TestNewNodeMock(t *testing.T) {
 	require.NotNil(t, genFile)
 
 	type args struct {
-		cfg      *Config
+		cfg *Config
 		//stopFunc func()
 	}
 	tests := []struct {
@@ -277,19 +278,19 @@ func TestNewNodeMock(t *testing.T) {
 				cfg: &Config{
 					Global: GlobalConfig{BasePath: cfg.Global.BasePath},
 					Init:   InitConfig{Genesis: genFile.Name()},
-					Core: CoreConfig{Roles: types.AuthorityRole },
+					Core:   CoreConfig{Roles: types.AuthorityRole},
 				},
 			},
-			err:  errors.New("no keys provided for authority node"),
+			err: errors.New("no keys provided for authority node"),
 		},
 		{
 			name: "minimal config",
 			args: args{
 				cfg: &Config{
-					Global:  GlobalConfig{BasePath: cfg.Global.BasePath,},
+					Global:  GlobalConfig{BasePath: cfg.Global.BasePath},
 					Init:    InitConfig{Genesis: genFile.Name()},
 					Account: AccountConfig{Key: "alice"},
-					Core:    CoreConfig{WasmInterpreter: wasmer.Name,},
+					Core:    CoreConfig{WasmInterpreter: wasmer.Name},
 				},
 			},
 		},
@@ -337,9 +338,8 @@ func TestNewNode(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 
 	type args struct {
-		cfg      *Config
-		ks       *keystore.GlobalKeystore
-		//stopFunc func()
+		cfg *Config
+		ks  *keystore.GlobalKeystore
 	}
 	tests := []struct {
 		name string
@@ -347,14 +347,6 @@ func TestNewNode(t *testing.T) {
 		want *Node
 		err  error
 	}{
-		//{
-		//	name: "missing keystore",
-		//	args: args{
-		//		cfg: cfg,
-		//	},
-		//	err: errors.New("failed to create core service: cannot have nil keystore"),
-		//},
-		// todo (ed) this second test fails with; failed to create state service: failed to start state service: Cannot acquire directory lock on "/home/emack/projects/ChainSafe/gossamer/dot/test_data/TestNewNode/db".  Another process is using this Badger database.: resource temporarily unavailable
 		{
 			name: "working example",
 			args: args{
