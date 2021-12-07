@@ -7,7 +7,7 @@ import (
 	"bytes"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/lib/trie/record"
+	"github.com/ChainSafe/gossamer/internal/trie/record"
 )
 
 var _ recorder = (*record.Recorder)(nil)
