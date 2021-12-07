@@ -33,7 +33,7 @@ Many peer-to-peer networks, including those built with Gossamer, use
 to allow network participants to securely identify themselves and interact with one another. The term "asymmetric"
 refers to the fact that in a public-key cryptography system, each participant's identity is associated with a set of two
 keys, each of which serve a distinct ("asymmetric") purpose. One of the keys in an asymmetric key pair is public, this
-is the key that the participant uses to identify themselves; the other pair is private and is used by the network
+is the key that the participant uses to identify themselves; the other key is private and is used by the network
 participant to "sign" messages in order to cryptographically prove that the message originated from the private key's
 owner. It may be constructive to think about a public key as a username and private key as a password, such as for a
 banking or social media website. Participants in P2P networks that use asymmetric cryptography must protect their
