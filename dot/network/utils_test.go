@@ -5,22 +5,35 @@ package network
 
 import (
 	"bytes"
+	"net"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
+func availablePort(t *testing.T) uint16 {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	require.NoError(t, err)
+
+	l, err := net.ListenTCP("tcp", addr)
+	require.NoError(t, err)
+	defer l.Close()
+
+	port := l.Addr().(*net.TCPAddr).Port
+	return uint16(port)
+}
+
 const portsAmount = 7100
 
 type portsQueue chan int
 
-func (p *portsQueue) get() int {
-	return <-*p
+func (p portsQueue) get() int {
+	return <-p
 }
 
-func (p *portsQueue) put(port int) {
-	*p <- port
+func (p portsQueue) put(port int) {
+	p <- port
 }
 
 var availablePorts portsQueue

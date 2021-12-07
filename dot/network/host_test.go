@@ -22,7 +22,7 @@ func TestExternalAddrs(t *testing.T) {
 
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -48,7 +48,7 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node"),
 		PublicIP:    "10.0.5.2",
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -83,7 +83,7 @@ func TestConnect(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -95,7 +95,7 @@ func TestConnect(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -127,7 +127,7 @@ func TestBootstrap(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -141,7 +141,7 @@ func TestBootstrap(t *testing.T) {
 
 	configB := &Config{
 		BasePath:  basePathB,
-		Port:      uint16(availablePorts.get()),
+		Port:      availablePort(t),
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
 	}
@@ -169,7 +169,7 @@ func TestSend(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -181,7 +181,7 @@ func TestSend(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -200,7 +200,7 @@ func TestSend(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	testBlockReqMessage := NewTestBlockRequestMessage(t)
+	testBlockReqMessage := newTestBlockRequestMessage(t)
 	_, err = nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockReqMessage)
 	require.NoError(t, err)
 
@@ -219,7 +219,7 @@ func TestExistingStream(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -233,7 +233,7 @@ func TestExistingStream(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -252,7 +252,7 @@ func TestExistingStream(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	testBlockReqMessage := NewTestBlockRequestMessage(t)
+	testBlockReqMessage := newTestBlockRequestMessage(t)
 
 	// node A opens the stream to send the first message
 	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockReqMessage)
@@ -285,7 +285,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -298,7 +298,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -362,7 +362,7 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -372,7 +372,7 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -428,7 +428,7 @@ func Test_AddReservedPeers(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -439,7 +439,7 @@ func Test_AddReservedPeers(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -462,7 +462,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -473,7 +473,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -509,7 +509,7 @@ func TestStreamCloseEOF(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -521,7 +521,7 @@ func TestStreamCloseEOF(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -541,7 +541,7 @@ func TestStreamCloseEOF(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	testBlockReqMessage := NewTestBlockRequestMessage(t)
+	testBlockReqMessage := newTestBlockRequestMessage(t)
 
 	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockReqMessage)
 	require.NoError(t, err)
@@ -562,7 +562,7 @@ func TestPeerConnect(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -576,7 +576,7 @@ func TestPeerConnect(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -604,7 +604,7 @@ func TestBannedPeer(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -618,7 +618,7 @@ func TestBannedPeer(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -661,7 +661,7 @@ func TestPeerReputation(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -675,7 +675,7 @@ func TestPeerReputation(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,

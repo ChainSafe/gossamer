@@ -667,14 +667,14 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 }
 
 // start handles all the action for the peerSet.
-func (ps *PeerSet) start(aq chan action) {
+func (ps *PeerSet) start(aq chan action, stopCh chan struct{}) {
 	ps.actionQueue = aq
 
 	ps.resultMsgCh = make(chan Message, msgChanSize)
-	go ps.doWork()
+	go ps.doWork(stopCh)
 }
 
-func (ps *PeerSet) doWork() {
+func (ps *PeerSet) doWork(stopCh chan struct{}) {
 	ps.stopCh = make(chan struct{})
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
 
@@ -685,7 +685,7 @@ func (ps *PeerSet) doWork() {
 
 	for {
 		select {
-		case <-ps.stopCh:
+		case <-stopCh:
 			return
 		case <-ticker.C:
 			l := ps.peerState.getSetLength()
@@ -730,8 +730,4 @@ func (ps *PeerSet) doWork() {
 			}
 		}
 	}
-}
-
-func (ps *PeerSet) stop() {
-	close(ps.stopCh)
 }

@@ -39,7 +39,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint16(availablePorts.get()),
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -63,7 +63,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 		cfg = &Config{
 			BasePath:    basePath,
-			Port:        uint16(availablePorts.get()),
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 			LogLvl:      4,
@@ -140,7 +140,7 @@ func TestBroadcastMessages(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -151,7 +151,7 @@ func TestBroadcastMessages(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -189,7 +189,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -200,7 +200,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -275,7 +275,7 @@ func TestService_Health(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
 		BasePath:    basePath,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -325,7 +325,7 @@ func TestHandleConn(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -334,7 +334,7 @@ func TestHandleConn(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

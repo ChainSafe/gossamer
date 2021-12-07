@@ -12,7 +12,7 @@ import (
 
 func TestDecodeSyncMessage(t *testing.T) {
 	t.Parallel()
-	testBlockReqMessage := NewTestBlockRequestMessage(t)
+	testBlockReqMessage := newTestBlockRequestMessage(t)
 
 	testPeer := peer.ID("noot")
 	reqEnc, err := testBlockReqMessage.Encode()

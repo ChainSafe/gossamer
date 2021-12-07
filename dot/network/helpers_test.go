@@ -194,7 +194,7 @@ var starting, _ = variadic.NewUint64OrHash(uint64(1))
 
 var one = uint32(1)
 
-func NewTestBlockRequestMessage(t *testing.T) *BlockRequestMessage {
+func newTestBlockRequestMessage(t *testing.T) *BlockRequestMessage {
 	t.Helper()
 
 	return &BlockRequestMessage{

@@ -41,7 +41,7 @@ func TestHandleTransactionMessage(t *testing.T) {
 
 	config := &Config{
 		BasePath:           basePath,
-		Port:               uint16(availablePorts.get()),
+		Port:               availablePort(t),
 		NoBootstrap:        true,
 		NoMDNS:             true,
 		TransactionHandler: mockhandler,

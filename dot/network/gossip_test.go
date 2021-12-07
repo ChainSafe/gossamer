@@ -25,7 +25,7 @@ func TestGossip(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -37,7 +37,7 @@ func TestGossip(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -58,7 +58,7 @@ func TestGossip(t *testing.T) {
 	basePathC := utils.NewTestBasePath(t, "nodeC")
 	configC := &Config{
 		BasePath:    basePathC,
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

@@ -91,7 +91,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -99,7 +99,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

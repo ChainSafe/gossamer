@@ -24,7 +24,7 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint16(availablePorts.get()),
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -106,7 +106,7 @@ func TestBeginDiscovery(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -116,7 +116,7 @@ func TestBeginDiscovery(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -144,7 +144,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -154,7 +154,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -164,7 +164,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 
 	configC := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeC"),
-		Port:        uint16(availablePorts.get()),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

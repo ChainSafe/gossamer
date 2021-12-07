@@ -9,9 +9,10 @@ import (
 
 // Handler manages peerSet.
 type Handler struct {
-	actionQueue chan<- action
-	peerSet     *PeerSet
-	closeCh     chan struct{}
+	actionQueue      chan<- action
+	peerSet          *PeerSet
+	closeCh          chan struct{}
+	peerStateCloseCh chan struct{}
 }
 
 // NewPeerSetHandler creates a new *peerset.Handler.
@@ -117,7 +118,9 @@ func (h *Handler) Start() {
 	actionCh := make(chan action, msgChanSize)
 	h.closeCh = make(chan struct{})
 	h.actionQueue = actionCh
-	h.peerSet.start(actionCh)
+
+	h.peerStateCloseCh = make(chan struct{})
+	h.peerSet.start(actionCh, h.peerStateCloseCh)
 }
 
 // SortedPeers return chan for sorted connected peer in the peerSet.
@@ -139,6 +142,6 @@ func (h *Handler) Stop() {
 	default:
 		close(h.closeCh)
 		close(h.actionQueue)
-		h.peerSet.stop()
+		close(h.peerStateCloseCh)
 	}
 }
