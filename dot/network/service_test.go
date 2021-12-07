@@ -62,11 +62,12 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		basePath := utils.NewTestBasePath(t, "node")
 
 		cfg = &Config{
-			BasePath:    basePath,
-			Port:        availablePort(t),
-			NoBootstrap: true,
-			NoMDNS:      true,
-			LogLvl:      4,
+			BasePath:     basePath,
+			Port:         availablePort(t),
+			NoBootstrap:  true,
+			NoMDNS:       true,
+			LogLvl:       4,
+			SlotDuration: time.Second,
 		}
 	}
 
@@ -85,7 +86,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	cfg.SlotDuration = time.Second
-
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
 	if cfg.LogLvl == 0 {
