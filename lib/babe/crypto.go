@@ -87,7 +87,11 @@ func checkPrimaryThreshold(randomness Randomness,
 // equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
 // see https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L44
 func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
+	if C1 == 0 || C2 == 0 {
+		return nil, errors.New("invalid input: C1 and C2 cannot be 0")
+	}
 	c := float64(C1) / float64(C2)
+	fmt.Println(c)
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")
 	}
@@ -98,9 +102,11 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
 	// (1-c)^(theta)
 	pp := 1 - c
 	ppExp := math.Pow(pp, theta)
+	fmt.Println("ppExp: ", ppExp)
 
 	// 1 - (1-c)^(theta)
 	p := 1 - ppExp
+	fmt.Println(p)
 	pRat := new(big.Rat).SetFloat64(p)
 
 	// 1 << 128
@@ -110,6 +116,8 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
 	thresholdBig := new(big.Int).Div(numer, denom)
+	fmt.Println(len(thresholdBig.Bytes()))
+	fmt.Println(thresholdBig.Cmp(shift))
 
 	// special case where threshold is maximum
 	if thresholdBig.Cmp(shift) == 0 {
