@@ -702,7 +702,11 @@ func (s *Service) startProcessingMsg() {
 		select {
 		case <-s.ctx.Done():
 			return
-		case msg := <-msgCh:
+		case msg, ok := <-msgCh:
+			if !ok {
+				return
+			}
+
 			s.processMessage(msg)
 		}
 	}

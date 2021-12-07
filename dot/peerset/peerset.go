@@ -178,6 +178,7 @@ type PeerSet struct {
 	nextPeriodicAllocSlots time.Duration
 	// chan for receiving action request.
 	actionQueue <-chan action
+	stopCh      chan struct{}
 }
 
 // config is configuration of a single set.
@@ -668,16 +669,24 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 // start handles all the action for the peerSet.
 func (ps *PeerSet) start(aq chan action) {
 	ps.actionQueue = aq
+
 	ps.resultMsgCh = make(chan Message, msgChanSize)
 	go ps.doWork()
 }
 
 func (ps *PeerSet) doWork() {
+	ps.stopCh = make(chan struct{})
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
-	defer ticker.Stop()
+
+	defer func() {
+		ticker.Stop()
+		close(ps.resultMsgCh)
+	}()
 
 	for {
 		select {
+		case <-ps.stopCh:
+			return
 		case <-ticker.C:
 			l := ps.peerState.getSetLength()
 			for i := 0; i < l; i++ {
@@ -724,5 +733,5 @@ func (ps *PeerSet) doWork() {
 }
 
 func (ps *PeerSet) stop() {
-	close(ps.resultMsgCh)
+	close(ps.stopCh)
 }

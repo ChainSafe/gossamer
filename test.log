@@ -1,0 +1,2254 @@
+=== RUN   TestEncodeBlockAnnounce
+=== PAUSE TestEncodeBlockAnnounce
+=== RUN   TestDecodeBlockAnnounce
+=== PAUSE TestDecodeBlockAnnounce
+=== RUN   TestEncodeBlockAnnounceHandshake
+=== PAUSE TestEncodeBlockAnnounceHandshake
+=== RUN   TestDecodeBlockAnnounceHandshake
+=== PAUSE TestDecodeBlockAnnounceHandshake
+=== RUN   TestHandleBlockAnnounceMessage
+=== PAUSE TestHandleBlockAnnounceMessage
+=== RUN   TestValidateBlockAnnounceHandshake
+=== PAUSE TestValidateBlockAnnounceHandshake
+=== RUN   TestBuildIdentity
+=== PAUSE TestBuildIdentity
+=== RUN   TestBuild
+=== PAUSE TestBuild
+=== RUN   TestMinPeers
+=== PAUSE TestMinPeers
+=== RUN   TestMaxPeers
+=== PAUSE TestMaxPeers
+=== RUN   TestProtectUnprotectPeer
+=== PAUSE TestProtectUnprotectPeer
+=== RUN   TestPersistentPeers
+=== PAUSE TestPersistentPeers
+=== RUN   TestRemovePeer
+=== PAUSE TestRemovePeer
+=== RUN   TestSetReservedPeer
+=== PAUSE TestSetReservedPeer
+=== RUN   TestKadDHT
+=== PAUSE TestKadDHT
+=== RUN   TestBeginDiscovery
+=== PAUSE TestBeginDiscovery
+=== RUN   TestBeginDiscovery_ThreeNodes
+=== PAUSE TestBeginDiscovery_ThreeNodes
+=== RUN   TestGossip
+=== PAUSE TestGossip
+=== RUN   TestExternalAddrs
+=== PAUSE TestExternalAddrs
+=== RUN   TestExternalAddrsPublicIP
+=== PAUSE TestExternalAddrsPublicIP
+=== RUN   TestConnect
+=== PAUSE TestConnect
+=== RUN   TestBootstrap
+=== PAUSE TestBootstrap
+=== RUN   TestSend
+=== PAUSE TestSend
+=== RUN   TestExistingStream
+=== PAUSE TestExistingStream
+=== RUN   TestStreamCloseMetadataCleanup
+=== PAUSE TestStreamCloseMetadataCleanup
+=== RUN   Test_PeerSupportsProtocol
+=== PAUSE Test_PeerSupportsProtocol
+=== RUN   Test_AddReservedPeers
+=== PAUSE Test_AddReservedPeers
+=== RUN   Test_RemoveReservedPeers
+=== PAUSE Test_RemoveReservedPeers
+=== RUN   TestStreamCloseEOF
+=== PAUSE TestStreamCloseEOF
+=== RUN   TestPeerConnect
+=== PAUSE TestPeerConnect
+=== RUN   TestBannedPeer
+=== PAUSE TestBannedPeer
+=== RUN   TestPeerReputation
+=== PAUSE TestPeerReputation
+=== RUN   TestEncodeLightRequest
+=== PAUSE TestEncodeLightRequest
+=== RUN   TestEncodeLightResponse
+=== PAUSE TestEncodeLightResponse
+=== RUN   TestDecodeLightMessage
+=== PAUSE TestDecodeLightMessage
+=== RUN   TestHandleLightMessage_Response
+=== PAUSE TestHandleLightMessage_Response
+=== RUN   TestMDNS
+=== PAUSE TestMDNS
+=== RUN   TestMessageCache
+=== PAUSE TestMessageCache
+=== RUN   TestMessageCacheError
+=== PAUSE TestMessageCacheError
+=== RUN   TestEncodeBlockRequestMessage
+=== PAUSE TestEncodeBlockRequestMessage
+=== RUN   TestEncodeBlockRequestMessage_BlockHash
+=== PAUSE TestEncodeBlockRequestMessage_BlockHash
+=== RUN   TestEncodeBlockRequestMessage_BlockNumber
+=== PAUSE TestEncodeBlockRequestMessage_BlockNumber
+=== RUN   TestBlockRequestString
+=== PAUSE TestBlockRequestString
+=== RUN   TestEncodeBlockRequestMessage_NoOptionals
+=== PAUSE TestEncodeBlockRequestMessage_NoOptionals
+=== RUN   TestEncodeBlockResponseMessage_Empty
+=== PAUSE TestEncodeBlockResponseMessage_Empty
+=== RUN   TestEncodeBlockResponseMessage_WithBody
+=== PAUSE TestEncodeBlockResponseMessage_WithBody
+=== RUN   TestEncodeBlockResponseMessage_WithAll
+=== PAUSE TestEncodeBlockResponseMessage_WithAll
+=== RUN   TestEncodeBlockAnnounceMessage
+=== PAUSE TestEncodeBlockAnnounceMessage
+=== RUN   TestDecode_BlockAnnounceMessage
+=== PAUSE TestDecode_BlockAnnounceMessage
+=== RUN   TestEncodeTransactionMessageSingleExtrinsic
+=== PAUSE TestEncodeTransactionMessageSingleExtrinsic
+=== RUN   TestEncodeTransactionMessageTwoExtrinsics
+=== PAUSE TestEncodeTransactionMessageTwoExtrinsics
+=== RUN   TestDecodeTransactionMessageOneExtrinsic
+=== PAUSE TestDecodeTransactionMessageOneExtrinsic
+=== RUN   TestDecodeTransactionMessageTwoExtrinsics
+=== PAUSE TestDecodeTransactionMessageTwoExtrinsics
+=== RUN   TestDecodeConsensusMessage
+=== PAUSE TestDecodeConsensusMessage
+=== RUN   TestCreateDecoder_BlockAnnounce
+=== PAUSE TestCreateDecoder_BlockAnnounce
+=== RUN   TestCreateNotificationsMessageHandler_BlockAnnounce
+=== PAUSE TestCreateNotificationsMessageHandler_BlockAnnounce
+=== RUN   TestCreateNotificationsMessageHandler_BlockAnnounceHandshake
+=== PAUSE TestCreateNotificationsMessageHandler_BlockAnnounceHandshake
+=== RUN   Test_HandshakeTimeout
+=== PAUSE Test_HandshakeTimeout
+=== RUN   TestCreateNotificationsMessageHandler_HandleTransaction
+=== PAUSE TestCreateNotificationsMessageHandler_HandleTransaction
+=== RUN   TestBlockAnnounceHandshakeSize
+=== PAUSE TestBlockAnnounceHandshakeSize
+=== RUN   Test_sizedBufferPool
+=== PAUSE Test_sizedBufferPool
+=== RUN   Test_sizedBufferPool_race
+=== PAUSE Test_sizedBufferPool_race
+=== RUN   TestStartService
+=== PAUSE TestStartService
+=== RUN   TestBroadcastMessages
+=== PAUSE TestBroadcastMessages
+=== RUN   TestBroadcastDuplicateMessage
+=== PAUSE TestBroadcastDuplicateMessage
+=== RUN   TestService_NodeRoles
+=== PAUSE TestService_NodeRoles
+=== RUN   TestService_Health
+=== PAUSE TestService_Health
+=== RUN   TestPersistPeerStore
+=== PAUSE TestPersistPeerStore
+=== RUN   TestHandleConn
+=== PAUSE TestHandleConn
+=== RUN   TestSerivceIsMajorSyncMetrics
+=== PAUSE TestSerivceIsMajorSyncMetrics
+=== RUN   TestStreamManager
+=== PAUSE TestStreamManager
+=== RUN   TestStreamManager_KeepStream
+    stream_manager_test.go:91: 
+--- SKIP: TestStreamManager_KeepStream (0.00s)
+=== RUN   TestDecodeSyncMessage
+=== PAUSE TestDecodeSyncMessage
+=== RUN   TestDecodeTransactionHandshake
+=== PAUSE TestDecodeTransactionHandshake
+=== RUN   TestHandleTransactionMessage
+=== PAUSE TestHandleTransactionMessage
+=== RUN   TestStringToAddrInfo
+--- PASS: TestStringToAddrInfo (0.00s)
+=== RUN   TestStringsToAddrInfos
+--- PASS: TestStringsToAddrInfos (0.00s)
+=== RUN   TestGenerateKey
+--- PASS: TestGenerateKey (0.01s)
+=== RUN   TestReadLEB128ToUint64
+--- PASS: TestReadLEB128ToUint64 (0.00s)
+=== RUN   TestInvalidLeb128
+--- PASS: TestInvalidLeb128 (0.00s)
+=== CONT  TestHandleBlockAnnounceMessage
+=== CONT  TestMessageCache
+=== CONT  TestCreateNotificationsMessageHandler_BlockAnnounce
+=== CONT  TestExternalAddrs
+=== CONT  Test_RemoveReservedPeers
+=== CONT  TestProtectUnprotectPeer
+=== CONT  TestBootstrap
+=== CONT  TestGossip
+=== CONT  TestBeginDiscovery
+--- PASS: TestProtectUnprotectPeer (0.00s)
+2021-12-06T17:45:04-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestGossip3122330010/001/TestGossip/nodeA/node.key	pkg=network
+2021-12-06T17:45:04-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestExternalAddrs1708786389/001/TestExternalAddrs/node/node.key	pkg=network
+2021-12-06T17:45:04-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/Test_RemoveReservedPeers2813187184/001/Test_RemoveReservedPeers/nodeA/node.key	pkg=network
+2021-12-06T17:45:04-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestCreateNotificationsMessageHandler_BlockAnnounce3981515342/001/TestCreateNotificationsMessageHandler_BlockAnnounce/nodeA/node.key	pkg=network
+objc[69995]: Attempt to use unknown class 0x7ff85f1a5500.
+SIGABRT: abort
+PC=0x7ff81d9e3dfe m=9 sigcode=0
+
+goroutine 0 [idle]:
+runtime: unknown pc 0x7ff81d9e3dfe
+stack: frame={sp:0x20b2e1e58, fp:0x0} stack=[0x20b263338,0x20b2e2f38)
+0x000000020b2e1d58:  0x0000000000000002  0x0000000000000002 
+0x000000020b2e1d68:  0x00000000087c2000  0x00000000087c2400 
+0x000000020b2e1d78:  0x0000000000000003  0x000000020b2e1de0 
+0x000000020b2e1d88:  0x00007ff81d816639  0x0c9254b17699798d 
+0x000000020b2e1d98:  0x0000000000000003  0x0c9254b176990000 
+0x000000020b2e1da8:  0x0000000000000030  0x0000000000000000 
+0x000000020b2e1db8:  0x000000000000002d  0x000000000000002d 
+0x000000020b2e1dc8:  0x0000000000000000  0x00000000087c2000 
+0x000000020b2e1dd8:  0x00007ff85f1b8000  0x000000020b2e1e10 
+0x000000020b2e1de8:  0x00007ff81d816566  0x00007ff81d81652e 
+0x000000020b2e1df8:  0x000000000000002d  0x0000000000000001 
+0x000000020b2e1e08:  0x00007ff85f1b8000  0x000000020b2e1e50 
+0x000000020b2e1e18:  0x00007ff81d832ad6  0x000000000000002c 
+0x000000020b2e1e28:  0x000000000000002d  0x0000600003304000 
+0x000000020b2e1e38:  0x0000000000000003  0x0000600002c00000 
+0x000000020b2e1e48:  0x0000000000000000  0x000000020b2e1e80 
+0x000000020b2e1e58: <0x00007ff81d9e5893  0x0000000000000000 
+0x000000020b2e1e68:  0x000000200b2e1ec0  0x0000600002c00000 
+0x000000020b2e1e78:  0x000000020b2e1ec0  0x0000600003304000 
+0x000000020b2e1e88:  0x0000000000000003  0x0000000000000080 
+0x000000020b2e1e98:  0x0000000000000001  0x000000020b2e1eb0 
+0x000000020b2e1ea8:  0x00007ff81d9e5843  0x000000020b2e1ef0 
+0x000000020b2e1eb8:  0x00007ff81d8b1cb2  0x0000600002c00080 
+0x000000020b2e1ec8:  0x0000000000000000  0x0000600002c00000 
+0x000000020b2e1ed8:  0x00007ffffffffff8  0x00007ff85f1a5500 
+0x000000020b2e1ee8:  0x0000000080080001  0x000000020b2e1fd0 
+0x000000020b2e1ef8:  0x00007ff81d8b1c40  0x0000003000000010 
+0x000000020b2e1f08:  0x000000020b2e1fe0  0x000000020b2e1f20 
+0x000000020b2e1f18:  0x0000000000000000  0x0000000000000000 
+0x000000020b2e1f28:  0x00007ff85f1a5500  0x00007ff85f1a5500 
+0x000000020b2e1f38:  0x0000000000000001  0x00000000ffffffff 
+0x000000020b2e1f48:  0x0000000000000000  0x0000000000000000 
+runtime: unknown pc 0x7ff81d9e3dfe
+stack: frame={sp:0x20b2e1e58, fp:0x0} stack=[0x20b263338,0x20b2e2f38)
+0x000000020b2e1d58:  0x0000000000000002  0x0000000000000002 
+0x000000020b2e1d68:  0x00000000087c2000  0x00000000087c2400 
+0x000000020b2e1d78:  0x0000000000000003  0x000000020b2e1de0 
+0x000000020b2e1d88:  0x00007ff81d816639  0x0c9254b17699798d 
+0x000000020b2e1d98:  0x0000000000000003  0x0c9254b176990000 
+0x000000020b2e1da8:  0x0000000000000030  0x0000000000000000 
+0x000000020b2e1db8:  0x000000000000002d  0x000000000000002d 
+0x000000020b2e1dc8:  0x0000000000000000  0x00000000087c2000 
+0x000000020b2e1dd8:  0x00007ff85f1b8000  0x000000020b2e1e10 
+0x000000020b2e1de8:  0x00007ff81d816566  0x00007ff81d81652e 
+0x000000020b2e1df8:  0x000000000000002d  0x0000000000000001 
+0x000000020b2e1e08:  0x00007ff85f1b8000  0x000000020b2e1e50 
+0x000000020b2e1e18:  0x00007ff81d832ad6  0x000000000000002c 
+0x000000020b2e1e28:  0x000000000000002d  0x0000600003304000 
+0x000000020b2e1e38:  0x0000000000000003  0x0000600002c00000 
+0x000000020b2e1e48:  0x0000000000000000  0x000000020b2e1e80 
+0x000000020b2e1e58: <0x00007ff81d9e5893  0x0000000000000000 
+0x000000020b2e1e68:  0x000000200b2e1ec0  0x0000600002c00000 
+0x000000020b2e1e78:  0x000000020b2e1ec0  0x0000600003304000 
+0x000000020b2e1e88:  0x0000000000000003  0x0000000000000080 
+0x000000020b2e1e98:  0x0000000000000001  0x000000020b2e1eb0 
+0x000000020b2e1ea8:  0x00007ff81d9e5843  0x000000020b2e1ef0 
+0x000000020b2e1eb8:  0x00007ff81d8b1cb2  0x0000600002c00080 
+0x000000020b2e1ec8:  0x0000000000000000  0x0000600002c00000 
+0x000000020b2e1ed8:  0x00007ffffffffff8  0x00007ff85f1a5500 
+0x000000020b2e1ee8:  0x0000000080080001  0x000000020b2e1fd0 
+0x000000020b2e1ef8:  0x00007ff81d8b1c40  0x0000003000000010 
+0x000000020b2e1f08:  0x000000020b2e1fe0  0x000000020b2e1f20 
+0x000000020b2e1f18:  0x0000000000000000  0x0000000000000000 
+0x000000020b2e1f28:  0x00007ff85f1a5500  0x00007ff85f1a5500 
+0x000000020b2e1f38:  0x0000000000000001  0x00000000ffffffff 
+0x000000020b2e1f48:  0x0000000000000000  0x0000000000000000 
+
+goroutine 191 [syscall]:
+runtime.cgocall(0x4ef10c0, 0xc000827ca0)
+	/usr/local/go/src/runtime/cgocall.go:156 +0x6e fp=0xc000827c78 sp=0xc000827c40 pc=0x400666e
+net._C2func_getaddrinfo(0xc00081cc26, 0x0, 0xc000813d70, 0xc00012c428)
+	_cgo_gotypes.go:97 +0x8b fp=0xc000827ca0 sp=0xc000827c78 pc=0x42b8a4b
+net.cgoLookupIPCNAME.func1({0xc00081cc26, 0xa, 0xc00081cc04}, 0x0, 0x5ec1da0)
+	/usr/local/go/src/net/cgo_unix.go:163 +0xb2 fp=0xc000827d10 sp=0xc000827ca0 pc=0x42bb712
+net.cgoLookupIPCNAME({0x51584a5, 0x3}, {0xc00081cc04, 0xc000130018})
+	/usr/local/go/src/net/cgo_unix.go:163 +0x26e fp=0xc000827f10 sp=0xc000827d10 pc=0x42bac0e
+net.cgoIPLookup(0x5ec1db0, {0x51584a5, 0x3}, {0xc00081cc04, 0x9})
+	/usr/local/go/src/net/cgo_unix.go:220 +0x67 fp=0xc000827f80 sp=0xc000827f10 pc=0x42bb827
+net.cgoLookupIP·dwrap·22()
+	/usr/local/go/src/net/cgo_unix.go:230 +0x72 fp=0xc000827fe0 sp=0xc000827f80 pc=0x42bbed2
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1 fp=0xc000827fe8 sp=0xc000827fe0 pc=0x406e821
+created by net.cgoLookupIP
+	/usr/local/go/src/net/cgo_unix.go:230 +0x1ba
+
+goroutine 1 [chan receive]:
+testing.tRunner.func1()
+	/usr/local/go/src/testing/testing.go:1225 +0x635
+testing.tRunner(0xc000702340, 0xc0009afb18)
+	/usr/local/go/src/testing/testing.go:1265 +0x269
+testing.runTests(0xc000392380, {0x5eb2c40, 0x50, 0x50}, {0x5ec4260, 0xc0009afbd0, 0x5ec3420})
+	/usr/local/go/src/testing/testing.go:1596 +0x7cb
+testing.(*M).Run(0xc000392380)
+	/usr/local/go/src/testing/testing.go:1504 +0x9d2
+github.com/ChainSafe/gossamer/dot/network.TestMain(0x5102a20)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:118 +0x34
+main.main()
+	_testmain.go:205 +0x265
+
+goroutine 19 [select]:
+github.com/ipfs/go-log/writer.(*MirrorWriter).logRoutine(0xc000247530)
+	/Users/eclesiojunior/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:71 +0x197
+created by github.com/ipfs/go-log/writer.NewMirrorWriter
+	/Users/eclesiojunior/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:36 +0x185
+
+goroutine 20 [select]:
+go.opencensus.io/stats/view.(*worker).start(0xc00023a100)
+	/Users/eclesiojunior/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:276 +0x185
+created by go.opencensus.io/stats/view.init.0
+	/Users/eclesiojunior/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:34 +0xf9
+
+goroutine 5 [runnable]:
+github.com/libp2p/go-cidranger/net.Network.LeastCommonBitPosition({{0xc0023a8b90, 0x4, 0x4}, 0x2a}, {{0xc000019390, 0x4, 0x4}, 0x20})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/net/ip.go:243 +0x1ae
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc00080bec0, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc000809b40}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:253 +0x47b
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc00001af60, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc000019090}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0002c81e0, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc000131af0}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0001c2240, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc0001c1250}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc00018c120, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc000077190}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc00001d200, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc000076790}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0003092c0, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc00003cc10}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc00001c180, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc000019c90}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc00008cf60, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc00003def0}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0001d3080, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc0001d6710}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0000175c0, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc000015f50}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0003086c0, {{0xc0023a8b90, 0x406ff59, 0x4071517}, 0xc00003c410}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc000308300, {{0xc0023a8b90, 0x4a8ff01, 0x4071545}, 0xc00003c190}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc000308240, {{0xc0023a8b90, 0x10, 0xc0023a8b70}, 0x10}, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x57c
+github.com/libp2p/go-cidranger.(*prefixTrie).Insert(0xc000308240, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:95 +0x13e
+github.com/libp2p/go-cidranger.(*versionedRanger).Insert(0x50788e0, {0x5518520, 0xc0006fed80})
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/version.go:29 +0x10f
+github.com/libp2p/go-libp2p-asn-util.newAsnStore()
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:61 +0x22f
+github.com/libp2p/go-libp2p-asn-util.newIndirectAsnStore.func1()
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:89 +0x9d
+created by github.com/libp2p/go-libp2p-asn-util.newIndirectAsnStore
+	/Users/eclesiojunior/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:87 +0x119
+
+goroutine 55 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 24 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0007024e0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockAnnounce(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/block_announce_test.go:21 +0x4b
+testing.tRunner(0xc0007024e0, 0x53b4a98)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 25 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000313040)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecodeBlockAnnounce(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/block_announce_test.go:57 +0x4b
+testing.tRunner(0xc000313040, 0x53b4a48)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 26 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000313380)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockAnnounceHandshake(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/block_announce_test.go:97 +0x48
+testing.tRunner(0xc000313380, 0x53b4a88)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 27 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000313a00)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecodeBlockAnnounceHandshake(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/block_announce_test.go:113 +0x4b
+testing.tRunner(0xc000313a00, 0x53b4a40)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 28 [runnable]:
+encoding/binary.intDataSize({0x4fd2ac0, 0x5e1bce0})
+	/usr/local/go/src/encoding/binary/binary.go:700 +0x39e
+encoding/binary.Write({0x55180c0, 0xc000997bc0}, {0x5541cb0, 0x6916988}, {0x4fd2ac0, 0x5e1bce0})
+	/usr/local/go/src/encoding/binary/binary.go:273 +0x85
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).encodeFixedWidthInt(0xc001681398, {0x4fd2ac0, 0xc0023a43dd})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:255 +0xf2
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).marshal(0xc000997bc0, {0x4fd2ac0, 0xc0023a43dd})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:39 +0x7cf
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).encodeArray(0x5082060, {0x5082060, 0xc0023a43c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:185 +0x209
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).marshal(0xc000997bc0, {0x5082060, 0xc0023a43c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:78 +0xb05
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).encodeStruct(0xc000997bc0, {0x50e6d00, 0xc0023a43c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:287 +0x145
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).marshal(0xc000997bc0, {0x50e6d00, 0xc0023a43c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:76 +0xbaf
+github.com/ChainSafe/gossamer/pkg/scale.Marshal({0x50e6d00, 0xc0023a43c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:19 +0xf3
+github.com/ChainSafe/gossamer/dot/types.(*Header).Hash(0xc0023a4300)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/types/header.go:102 +0xea
+github.com/ChainSafe/gossamer/dot/network.testBlockResponseMessage()
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/test_helpers.go:99 +0x38f
+github.com/ChainSafe/gossamer/dot/network.NewMockSyncer()
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/test_helpers.go:68 +0x3d0
+github.com/ChainSafe/gossamer/dot/network.createTestService(0xc000313d40, 0xc0000cbc20)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:96 +0x65e
+github.com/ChainSafe/gossamer/dot/network.TestHandleBlockAnnounceMessage(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/block_announce_test.go:140 +0x1a5
+testing.tRunner(0xc000313d40, 0x53b4b20)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 29 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0003824e0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestValidateBlockAnnounceHandshake(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/block_announce_test.go:154 +0x48
+testing.tRunner(0xc0003824e0, 0x53b4c20)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 30 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000382820)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestBuildIdentity(0xc000382820)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/config_test.go:19 +0x4b
+testing.tRunner(0xc000382820, 0x53b4a08)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 31 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000382b60)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestBuild(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/config_test.go:62 +0x45
+testing.tRunner(0xc000382b60, 0x53b4a10)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 32 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000382ea0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestMinPeers(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/connmgr_test.go:20 +0x4b
+testing.tRunner(0xc000382ea0, 0x53b4b80)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 33 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0003831e0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestMaxPeers(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/connmgr_test.go:60 +0x4b
+testing.tRunner(0xc0003831e0, 0x53b4b58)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 54 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 67 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000383860)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestPersistentPeers(0xc000383860)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/connmgr_test.go:135 +0xe5
+testing.tRunner(0xc000383860, 0x53b4ba0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 68 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000383ba0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestRemovePeer(0xc000383ba0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/connmgr_test.go:174 +0xe5
+testing.tRunner(0xc000383ba0, 0x53b4bb8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 69 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000702680)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestSetReservedPeer(0xc000702680)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/connmgr_test.go:215 +0xe5
+testing.tRunner(0xc000702680, 0x53b4be0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 70 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0007029c0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestKadDHT(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/discovery_test.go:77 +0xd3
+testing.tRunner(0xc0007029c0, 0x53b4b48)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 71 [runnable]:
+reflect.Value.Index({0x5082060, 0xc0008f78c0, 0x91}, 0x6)
+	/usr/local/go/src/reflect/value.go:1273 +0x48f
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).encodeArray(0x5082060, {0x5082060, 0xc0008f78c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:185 +0x1ef
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).marshal(0xc0008d1800, {0x5082060, 0xc0008f78c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:78 +0xb05
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).encodeStruct(0xc0008d1800, {0x50e6d00, 0xc0008f78c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:287 +0x145
+github.com/ChainSafe/gossamer/pkg/scale.(*encodeState).marshal(0xc0008d1800, {0x50e6d00, 0xc0008f78c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:76 +0xbaf
+github.com/ChainSafe/gossamer/pkg/scale.Marshal({0x50e6d00, 0xc0008f78c0})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/pkg/scale/encode.go:19 +0xf3
+github.com/ChainSafe/gossamer/dot/types.(*Header).Hash(0xc0008f7800)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/types/header.go:102 +0xea
+github.com/ChainSafe/gossamer/dot/network.testBlockResponseMessage()
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/test_helpers.go:99 +0x38f
+github.com/ChainSafe/gossamer/dot/network.NewMockSyncer()
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/test_helpers.go:68 +0x3d0
+github.com/ChainSafe/gossamer/dot/network.createTestService(0xc000702d00, 0xc0003ce480)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:96 +0x65e
+github.com/ChainSafe/gossamer/dot/network.TestBeginDiscovery(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/discovery_test.go:114 +0x1c5
+testing.tRunner(0xc000702d00, 0x53b49d8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 72 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000703040)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestBeginDiscovery_ThreeNodes(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/discovery_test.go:143 +0x4b
+testing.tRunner(0xc000703040, 0x53b49d0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 73 [select]:
+github.com/chyeh/pubip.Get()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:168 +0x21d
+github.com/ChainSafe/gossamer/dot/network.newHost({0x5533198, 0xc0006feac0}, 0xc000262120)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host.go:77 +0x352
+github.com/ChainSafe/gossamer/dot/network.NewService(0xc000262120)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service.go:130 +0x3bf
+github.com/ChainSafe/gossamer/dot/network.createTestService(0xc000703380, 0xc000262120)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:101 +0x6ce
+github.com/ChainSafe/gossamer/dot/network.TestGossip(0xc000703380)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/gossip_test.go:33 +0x2a5
+testing.tRunner(0xc000703380, 0x53b4b18)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 74 [runnable]:
+github.com/chyeh/pubip.Get()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x55d
+github.com/ChainSafe/gossamer/dot/network.newHost({0x5533198, 0xc000728640}, 0xc0003ce000)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host.go:77 +0x352
+github.com/ChainSafe/gossamer/dot/network.NewService(0xc0003ce000)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service.go:130 +0x3bf
+github.com/ChainSafe/gossamer/dot/network.createTestService(0xc0007036c0, 0xc0003ce000)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:101 +0x6ce
+github.com/ChainSafe/gossamer/dot/network.TestExternalAddrs(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:30 +0x1b0
+testing.tRunner(0xc0007036c0, 0x53b4b08)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 75 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000703a00)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestExternalAddrsPublicIP(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:46 +0x4b
+testing.tRunner(0xc000703a00, 0x53b4b00)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 76 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000703d40)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestConnect(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:80 +0x4b
+testing.tRunner(0xc000703d40, 0x53b4a18)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 77 [runnable]:
+golang.org/x/crypto/blake2b.newDigest(0x20, {0x0, 0x0, 0x0})
+	/Users/eclesiojunior/go/pkg/mod/golang.org/x/crypto@v0.0.0-20210813211128-0a44fdfbc16e/blake2b/blake2b.go:108 +0x76
+golang.org/x/crypto/blake2b.New256(...)
+	/Users/eclesiojunior/go/pkg/mod/golang.org/x/crypto@v0.0.0-20210813211128-0a44fdfbc16e/blake2b/blake2b.go:89
+github.com/ChainSafe/gossamer/lib/common.Blake2bHash({0xc000368a20, 0x63, 0x81})
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/lib/common/hasher.go:32 +0x65
+github.com/ChainSafe/gossamer/dot/types.(*Header).Hash(0xc000378180)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/types/header.go:107 +0xff
+github.com/ChainSafe/gossamer/dot/network.testBlockResponseMessage()
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/test_helpers.go:99 +0x38f
+github.com/ChainSafe/gossamer/dot/network.NewMockSyncer()
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/test_helpers.go:68 +0x3d0
+github.com/ChainSafe/gossamer/dot/network.createTestService(0xc0006a4820, 0xc0000cbe60)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:96 +0x65e
+github.com/ChainSafe/gossamer/dot/network.TestBootstrap(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:135 +0x1c5
+testing.tRunner(0xc0006a4820, 0x53b49f0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 78 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0006a4b60)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestSend(0xc0006a4b60)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:167 +0x4b
+testing.tRunner(0xc0006a4b60, 0x53b4bc0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 79 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0006a4ea0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestExistingStream(0xc0006a4ea0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:217 +0x4b
+testing.tRunner(0xc0006a4ea0, 0x53b4af8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 80 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0006a51e0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestStreamCloseMetadataCleanup(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:283 +0x4b
+testing.tRunner(0xc0006a51e0, 0x53b4bf8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 81 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0006a5520)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.Test_PeerSupportsProtocol(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:360 +0x4b
+testing.tRunner(0xc0006a5520, 0x53b4c48)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 82 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0006a5860)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.Test_AddReservedPeers(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:426 +0x48
+testing.tRunner(0xc0006a5860, 0x53b4c28)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 83 [runnable]:
+github.com/chyeh/pubip.Get()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x55d
+github.com/ChainSafe/gossamer/dot/network.newHost({0x5533198, 0xc0009f05c0}, 0xc0006c0000)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host.go:77 +0x352
+github.com/ChainSafe/gossamer/dot/network.NewService(0xc0006c0000)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service.go:130 +0x3bf
+github.com/ChainSafe/gossamer/dot/network.createTestService(0xc0006a5ba0, 0xc0006c0000)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:101 +0x6ce
+github.com/ChainSafe/gossamer/dot/network.Test_RemoveReservedPeers(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:470 +0x1c5
+testing.tRunner(0xc0006a5ba0, 0x53b4c50)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 84 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00027e4e0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestStreamCloseEOF(0xc00027e4e0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:507 +0x4b
+testing.tRunner(0xc00027e4e0, 0x53b4bf0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 85 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00027e820)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestPeerConnect(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:560 +0x4b
+testing.tRunner(0xc00027e820, 0x53b4b88)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 86 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00027f860)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestBannedPeer(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:601 +0x4b
+testing.tRunner(0xc00027f860, 0x53b49c8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 87 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00027fba0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestPeerReputation(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host_test.go:658 +0x4b
+testing.tRunner(0xc00027fba0, 0x53b4b90)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 88 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000001520)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeLightRequest(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/light_test.go:19 +0x4b
+testing.tRunner(0xc000001520, 0x53b4ad8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 89 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000001860)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeLightResponse(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/light_test.go:34 +0x4b
+testing.tRunner(0xc000001860, 0x53b4ae0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 90 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000001ba0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecodeLightMessage(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/light_test.go:52 +0x4b
+testing.tRunner(0xc000001ba0, 0x53b4a58)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 91 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000102b60)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestHandleLightMessage_Response(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/light_test.go:90 +0x4b
+testing.tRunner(0xc000102b60, 0x53b4b30)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 92 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000102ea0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestMDNS(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/mdns_test.go:19 +0x48
+testing.tRunner(0xc000102ea0, 0x53b4b50)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 93 [sleep]:
+time.Sleep(0x1dcd6500)
+	/usr/local/go/src/runtime/time.go:193 +0x12e
+github.com/ChainSafe/gossamer/dot/network.TestMessageCache(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_cache_test.go:45 +0x345
+testing.tRunner(0xc000103380, 0x53b4b78)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 94 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000103860)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestMessageCacheError(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_cache_test.go:57 +0x45
+testing.tRunner(0xc000103860, 0x53b4b70)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 95 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000103ba0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockRequestMessage(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:21 +0x4b
+testing.tRunner(0xc000103ba0, 0x53b4ab8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 96 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043c000)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockRequestMessage_BlockHash(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:48 +0x4b
+testing.tRunner(0xc00043c000, 0x53b4aa0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 97 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043c340)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockRequestMessage_BlockNumber(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:72 +0x48
+testing.tRunner(0xc00043c340, 0x53b4aa8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 98 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043c680)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestBlockRequestString(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:95 +0x48
+testing.tRunner(0xc00043c680, 0x53b49e8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 99 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043c9c0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockRequestMessage_NoOptionals(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:116 +0x48
+testing.tRunner(0xc00043c9c0, 0x53b4ab0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 100 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043cd00)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockResponseMessage_Empty(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:138 +0x48
+testing.tRunner(0xc00043cd00, 0x53b4ac0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 101 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043d040)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockResponseMessage_WithBody(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:170 +0x4b
+testing.tRunner(0xc00043d040, 0x53b4ad0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 102 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043d380)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockResponseMessage_WithAll(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:221 +0x4b
+testing.tRunner(0xc00043d380, 0x53b4ac8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 103 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043d6c0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeBlockAnnounceMessage(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:284 +0x4b
+testing.tRunner(0xc00043d6c0, 0x53b4a90)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 104 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043da00)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecode_BlockAnnounceMessage(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:308 +0x4b
+testing.tRunner(0xc00043da00, 0x53b4a80)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 105 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00043dd40)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeTransactionMessageSingleExtrinsic(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:343 +0x48
+testing.tRunner(0xc00043dd40, 0x53b4ae8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 106 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0004461a0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestEncodeTransactionMessageTwoExtrinsics(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:364 +0x48
+testing.tRunner(0xc0004461a0, 0x53b4af0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 107 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0004464e0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecodeTransactionMessageOneExtrinsic(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:380 +0x48
+testing.tRunner(0xc0004464e0, 0x53b4a70)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 108 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000446820)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecodeTransactionMessageTwoExtrinsics(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:397 +0x48
+testing.tRunner(0xc000446820, 0x53b4a78)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 109 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000446b60)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecodeConsensusMessage(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/message_test.go:415 +0x48
+testing.tRunner(0xc000446b60, 0x53b4a50)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 110 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000446ea0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestCreateDecoder_BlockAnnounce(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/notifications_test.go:25 +0x4b
+testing.tRunner(0xc000446ea0, 0x53b4a20)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 111 [runnable]:
+github.com/chyeh/pubip.Get()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x55d
+github.com/ChainSafe/gossamer/dot/network.newHost({0x5533198, 0xc001735740}, 0xc0003ce120)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/host.go:77 +0x352
+github.com/ChainSafe/gossamer/dot/network.NewService(0xc0003ce120)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service.go:130 +0x3bf
+github.com/ChainSafe/gossamer/dot/network.createTestService(0xc0004471e0, 0xc0003ce120)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:101 +0x6ce
+github.com/ChainSafe/gossamer/dot/network.TestCreateNotificationsMessageHandler_BlockAnnounce(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/notifications_test.go:100 +0x1c5
+testing.tRunner(0xc0004471e0, 0x53b4a30)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 112 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000447520)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/notifications_test.go:152 +0x4b
+testing.tRunner(0xc000447520, 0x53b4a28)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 113 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000447860)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.Test_HandshakeTimeout(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/notifications_test.go:231 +0x4b
+testing.tRunner(0xc000447860, 0x53b4c40)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 114 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000447ba0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestCreateNotificationsMessageHandler_HandleTransaction(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/notifications_test.go:313 +0x4b
+testing.tRunner(0xc000447ba0, 0x53b4a38)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 115 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000452000)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestBlockAnnounceHandshakeSize(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/notifications_test.go:423 +0x48
+testing.tRunner(0xc000452000, 0x53b49e0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 116 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000452340)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.Test_sizedBufferPool(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/pool_test.go:36 +0x48
+testing.tRunner(0xc000452340, 0x53b4c60)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 117 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000452680)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.Test_sizedBufferPool_race(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/pool_test.go:69 +0x4b
+testing.tRunner(0xc000452680, 0x53b4c58)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 118 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0004529c0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestStartService(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:130 +0x2f
+testing.tRunner(0xc0004529c0, 0x53b4be8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 119 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000452d00)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestBroadcastMessages(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:138 +0x4b
+testing.tRunner(0xc000452d00, 0x53b4a00)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 120 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000453040)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestBroadcastDuplicateMessage(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:185 +0x4b
+testing.tRunner(0xc000453040, 0x53b49f8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 121 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000453380)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestService_NodeRoles(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:259 +0x48
+testing.tRunner(0xc000453380, 0x53b4bd8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 122 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc0004536c0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestService_Health(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:273 +0x48
+testing.tRunner(0xc0004536c0, 0x53b4bd0)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 123 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000453a00)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestPersistPeerStore(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:298 +0x4b
+testing.tRunner(0xc000453a00, 0x53b4b98)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 124 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc000453d40)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestHandleConn(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:324 +0x4b
+testing.tRunner(0xc000453d40, 0x53b4b28)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 125 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00045c1a0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestSerivceIsMajorSyncMetrics(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service_test.go:354 +0x4b
+testing.tRunner(0xc00045c1a0, 0x53b4bc8)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 126 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00045c4e0)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestStreamManager(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/stream_manager_test.go:67 +0x48
+testing.tRunner(0xc00045c4e0, 0x53b4c08)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 128 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00045cb60)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecodeSyncMessage(0xc00045cb60)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/sync_test.go:14 +0x48
+testing.tRunner(0xc00045cb60, 0x53b4a60)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 129 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00045cd00)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestDecodeTransactionHandshake(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/transaction_test.go:19 +0x31
+testing.tRunner(0xc00045cd00, 0x53b4a68)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 130 [chan receive]:
+testing.(*testContext).waitParallel(0xc0003380a0)
+	/usr/local/go/src/testing/testing.go:1364 +0x126
+testing.(*T).Parallel(0xc00045d040)
+	/usr/local/go/src/testing/testing.go:1105 +0x4b9
+github.com/ChainSafe/gossamer/dot/network.TestHandleTransactionMessage(0x0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/transaction_test.go:32 +0x48
+testing.tRunner(0xc00045d040, 0x53b4b38)
+	/usr/local/go/src/testing/testing.go:1259 +0x230
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x727
+
+goroutine 136 [runnable]:
+net/url.getScheme({0x5254021, 0x1b})
+	/usr/local/go/src/net/url/url.go:431 +0x1b7
+net/url.parse({0x5254021, 0x1b}, 0x0)
+	/usr/local/go/src/net/url/url.go:528 +0x21b
+net/url.Parse({0x5254021, 0x0})
+	/usr/local/go/src/net/url/url.go:478 +0x65
+net/http.NewRequestWithContext({0x55331d0, 0xc000130018}, {0x51581c9, 0x3}, {0x5254021, 0x1b}, {0x0, 0x0})
+	/usr/local/go/src/net/http/request.go:868 +0x11e
+net/http.NewRequest(...)
+	/usr/local/go/src/net/http/request.go:830
+github.com/chyeh/pubip.GetIPBy({0x5254021, 0x1b})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:44 +0x15a
+github.com/chyeh/pubip.worker({0x5254021, 0x1b}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 146 [runnable]:
+sync.(*Once).doSlow(0xc000236048, 0xc0012072c8)
+	/usr/local/go/src/sync/once.go:68 +0x128
+sync.(*Once).Do(0xc000236048, 0x5)
+	/usr/local/go/src/sync/once.go:59 +0x47
+net/http.(*http2Transport).connPool(...)
+	/usr/local/go/src/net/http/h2_bundle.go:6821
+net/http.(*http2Transport).RoundTripOpt(0xc000236000, 0xc0009ae000, {0x61})
+	/usr/local/go/src/net/http/h2_bundle.go:7078 +0x5a5
+net/http.(*http2Transport).RoundTrip(...)
+	/usr/local/go/src/net/http/h2_bundle.go:7046
+net/http.http2noDialH2RoundTripper.RoundTrip({0x5ead980}, 0xc0009ae000)
+	/usr/local/go/src/net/http/h2_bundle.go:9303 +0x3d
+net/http.(*Transport).roundTrip(0x5ead980, 0xc0009ae000)
+	/usr/local/go/src/net/http/transport.go:539 +0x638
+net/http.(*Transport).RoundTrip(0xc0009ae000, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc0009ae000, {0x5519140, 0x5ead980}, {0xc00045c820, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000996750, 0xc0009ae000, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000996750, 0xc0009ae000)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x524b361, 0x15})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x524b361, 0x15}, 0xc00038b7d0, 0x415f1e8)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 147 [runnable]:
+net/url.parse({0x5254021, 0x1b}, 0x0)
+	/usr/local/go/src/net/url/url.go:519 +0x185
+net/url.Parse({0x5254021, 0x0})
+	/usr/local/go/src/net/url/url.go:478 +0x65
+net/http.NewRequestWithContext({0x55331d0, 0xc000130018}, {0x51581c9, 0x3}, {0x5254021, 0x1b}, {0x0, 0x0})
+	/usr/local/go/src/net/http/request.go:868 +0x11e
+net/http.NewRequest(...)
+	/usr/local/go/src/net/http/request.go:830
+github.com/chyeh/pubip.GetIPBy({0x5254021, 0x1b})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:44 +0x15a
+github.com/chyeh/pubip.worker({0x5254021, 0x1b}, 0x6800000000, 0x3400000068)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 148 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc0006bce80, {{}, 0x0, {0x524770e, 0x4}, {0xc0007ba884, 0xc}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc0007aa100)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc0007aa100, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc0007aa100, {0x5519140, 0x5ead980}, {0xc00045d6c0, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000996870, 0xc0007aa100, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000996870, 0xc0007aa100)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x524770e, 0x13})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x524770e, 0x13}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 149 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc0006fedc0, {{}, 0x0, {0x524eacf, 0x4}, {0xc0023a8ba3, 0xd}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc0009ae200)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc0009ae200, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc0009ae200, {0x5519140, 0x5ead980}, {0xc00045d860, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000996840, 0xc0009ae200, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000996840, 0xc0009ae200)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x524eacf, 0x17})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x524eacf, 0x17}, 0xc00022aa80, 0x4071545)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 150 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc0006bd000, {{}, 0x0, {0x52493c3, 0x4}, {0xc0007ba8c0, 0x10}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc0007aa300)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc0007aa300, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc0007aa300, {0x5519140, 0x5ead980}, {0xc00045da00, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000996900, 0xc0007aa300, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000996900, 0xc0007aa300)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x52493c3, 0x14})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x52493c3, 0x14}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 151 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc0006bcec0, {{}, 0x0, {0x524b337, 0x4}, {0xc0007ba892, 0xe}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc0007aa200)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc0007aa200, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc0007aa200, {0x5519140, 0x5ead980}, {0xc00045dba0, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc0009968a0, 0xc0007aa200, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc0009968a0, 0xc0007aa200)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x524b337, 0x15})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x524b337, 0x15}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 152 [runnable]:
+net/http.(*Transport).getConn(0x5ead980, 0xc00035a580, {{}, 0x0, {0x51be1fc, 0x4}, {0xc00240ec45, 0xb}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc000372100)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc000372100, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc000372100, {0x5519140, 0x5ead980}, {0xc00045dd40, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc0009968d0, 0xc000372100, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc0009968d0, 0xc000372100)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x51be1fc, 0xf})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x51be1fc, 0xf}, 0x0, 0xc00027d3a0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 153 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc0007286c0, {{}, 0x0, {0x525577d, 0x4}, {0xc000796240, 0x18}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc001256000)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc001256000, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc001256000, {0x5519140, 0x5ead980}, {0xc0009ce340, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000996720, 0xc001256000, {0x0, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000996720, 0xc001256000)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x525577d, 0x1c})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x525577d, 0x1c}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 162 [semacquire]:
+sync.runtime_SemacquireMutex(0xc0008c90b8, 0x9c, 0x3)
+	/usr/local/go/src/runtime/sema.go:71 +0x25
+sync.(*Mutex).lockSlow(0xc00023604c)
+	/usr/local/go/src/sync/mutex.go:138 +0x21d
+sync.(*Mutex).Lock(0xc00023604c)
+	/usr/local/go/src/sync/mutex.go:81 +0x65
+sync.(*Once).doSlow(0xc000236048, 0xc0008c92c8)
+	/usr/local/go/src/sync/once.go:64 +0x65
+sync.(*Once).Do(0xc000236048, 0x5)
+	/usr/local/go/src/sync/once.go:59 +0x47
+net/http.(*http2Transport).connPool(...)
+	/usr/local/go/src/net/http/h2_bundle.go:6821
+net/http.(*http2Transport).RoundTripOpt(0xc000236000, 0xc000294200, {0x61})
+	/usr/local/go/src/net/http/h2_bundle.go:7078 +0x5a5
+net/http.(*http2Transport).RoundTrip(...)
+	/usr/local/go/src/net/http/h2_bundle.go:7046
+net/http.http2noDialH2RoundTripper.RoundTrip({0x5ead980}, 0xc000294200)
+	/usr/local/go/src/net/http/h2_bundle.go:9303 +0x3d
+net/http.(*Transport).roundTrip(0x5ead980, 0xc000294200)
+	/usr/local/go/src/net/http/transport.go:539 +0x638
+net/http.(*Transport).RoundTrip(0xc000294200, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc000294200, {0x5519140, 0x5ead980}, {0xc000313860, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc0007e9b30, 0xc000294200, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc0007e9b30, 0xc000294200)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x524b361, 0x15})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x524b361, 0x15}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 178 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc0008158c0, {{}, 0x0, {0x525b25a, 0x4}, {0xc00078dac0, 0x1c}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc000742100)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc000742100, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc000742100, {0x5519140, 0x5ead980}, {0xc00081e000, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc0008137d0, 0xc000742100, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc0008137d0, 0xc000742100)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x525b25a, 0x20})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x525b25a, 0x20}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 194 [select]:
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0xc0006b7d10)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/ristretto@v0.0.3-0.20200630154024-f66de99634de/policy.go:96 +0x16d
+created by github.com/dgraph-io/ristretto.newDefaultPolicy
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/ristretto@v0.0.3-0.20200630154024-f66de99634de/policy.go:80 +0x2d1
+
+goroutine 8 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc001248240}, {0x51584a5, 0x5ec4260}, {0xc000796240, 0x15})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc001248240}, {0x51584a5, 0x3}, {0xc000796240, 0x18})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc001248240}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc000796240, 0x18}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc000796240, 0x18})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc000796240, 0x18})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x525577d, 0x4}, {0xc000796240, 0x18}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x0, 0xc00029db80)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 179 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc000815940, {{}, 0x0, {0x5255799, 0x4}, {0xc00072a180, 0x18}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc000742200)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc000742200, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc000742200, {0x5519140, 0x5ead980}, {0xc00081e1a0, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc0008138c0, 0xc000742200, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc0008138c0, 0xc000742200)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x5255799, 0x1c})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x5255799, 0x1c}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 180 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc000815980, {{}, 0x0, {0x51e584a, 0x4}, {0xc00081cbe3, 0xd}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc000742300)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc000742300, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc000742300, {0x5519140, 0x5ead980}, {0xc00081e340, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000813980, 0xc000742300, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000813980, 0xc000742300)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x51e584a, 0x11})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x51e584a, 0x11}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 181 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc000815a40, {{}, 0x0, {0x524b34c, 0x4}, {0xc00072a198, 0x11}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc000742400)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc000742400, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc000742400, {0x5519140, 0x5ead980}, {0xc00081e4e0, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000813aa0, 0xc000742400, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000813aa0, 0xc000742400)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x524b34c, 0x15})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x524b34c, 0x15}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 182 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc000815b00, {{}, 0x0, {0x51cc2de, 0x4}, {0xc00081cc04, 0xc}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc000742500)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc000742500, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc000742500, {0x5519140, 0x5ead980}, {0xc00081e680, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000813bf0, 0xc000742500, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000813bf0, 0xc000742500)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x51cc2de, 0x10})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x51cc2de, 0x10}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 183 [runnable]:
+net/url.getScheme({0x52557b5, 0x1c})
+	/usr/local/go/src/net/url/url.go:431 +0x1b7
+net/url.parse({0x52557b5, 0x1c}, 0x0)
+	/usr/local/go/src/net/url/url.go:528 +0x21b
+net/url.Parse({0x52557b5, 0x0})
+	/usr/local/go/src/net/url/url.go:478 +0x65
+net/http.NewRequestWithContext({0x55331d0, 0xc000130018}, {0x51581c9, 0x3}, {0x52557b5, 0x1c}, {0x0, 0x0})
+	/usr/local/go/src/net/http/request.go:868 +0x11e
+net/http.NewRequest(...)
+	/usr/local/go/src/net/http/request.go:830
+github.com/chyeh/pubip.GetIPBy({0x52557b5, 0x1c})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:44 +0x15a
+github.com/chyeh/pubip.worker({0x52557b5, 0x1c}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 137 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc00168c5c0, {{}, 0x0, {0x524770e, 0x4}, {0xc000917fa4, 0xc}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc00090c100)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc00090c100, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc00090c100, {0x5519140, 0x5ead980}, {0xc000920000, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc0002d37d0, 0xc00090c100, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc0002d37d0, 0xc00090c100)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x524770e, 0x13})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x524770e, 0x13}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 38 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 154 [select]:
+net/http.(*Transport).getConn(0x5ead980, 0xc0006feb00, {{}, 0x0, {0x524eacf, 0x4}, {0xc0023a8693, 0xd}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc0009ae100)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc0009ae100, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc0009ae100, {0x5519140, 0x5ead980}, {0xc0009ce4e0, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000997c20, 0xc0009ae100, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000997c20, 0xc0009ae100)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x524eacf, 0x17})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x524eacf, 0x17}, 0x0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 155 [runnable]:
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0023a8693, 0xd})
+	/usr/local/go/src/net/dial.go:406 +0x653
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0023a8693, 0xd})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x524eacf, 0x4}, {0xc0023a8693, 0xd}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x17, 0xc00099e370)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 9 [runnable]:
+net/http.(*Transport).getConn(0x5ead980, 0xc000728840, {{}, 0x0, {0x52493c3, 0x4}, {0xc0012462d0, 0x10}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1372 +0xa45
+net/http.(*Transport).roundTrip(0x5ead980, 0xc001256100)
+	/usr/local/go/src/net/http/transport.go:581 +0xcdf
+net/http.(*Transport).RoundTrip(0xc001256100, 0x5519140)
+	/usr/local/go/src/net/http/roundtrip.go:18 +0x37
+net/http.send(0xc001256100, {0x5519140, 0x5ead980}, {0xc00125a1a0, 0x40522a0, 0x0})
+	/usr/local/go/src/net/http/client.go:252 +0x93f
+net/http.(*Client).send(0xc000717950, 0xc001256100, {0x43b968e, 0x14, 0x0})
+	/usr/local/go/src/net/http/client.go:176 +0x158
+net/http.(*Client).do(0xc000717950, 0xc001256100)
+	/usr/local/go/src/net/http/client.go:725 +0x1087
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:593
+github.com/chyeh/pubip.GetIPBy({0x52493c3, 0x14})
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:50 +0x225
+github.com/chyeh/pubip.worker({0x52493c3, 0x14}, 0xc001261fd0, 0x46039a8)
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:130 +0x5a
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 10 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc001248720}, {0x51584a5, 0xc000049b30}, {0xc0012462d0, 0xd})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc001248720}, {0x51584a5, 0x3}, {0xc0012462d0, 0x10})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc001248720}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc0012462d0, 0x10}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0012462d0, 0x10})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0012462d0, 0x10})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x52493c3, 0x4}, {0xc0012462d0, 0x10}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x14, 0xc00029dc30)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 39 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 184 [runnable]:
+sync.(*WaitGroup).Add(0x6916b88, 0x1)
+	/usr/local/go/src/sync/waitgroup.go:80 +0x1c5
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc00081b680}, {0x51584a5, 0xc0023b0f68}, {0xc00078dac0, 0x19})
+	/usr/local/go/src/net/lookup.go:293 +0x585
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc00081b680}, {0x51584a5, 0x3}, {0xc00078dac0, 0x1c})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc00081b680}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc00078dac0, 0x1c}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc00078dac0, 0x1c})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc00078dac0, 0x1c})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x525b25a, 0x4}, {0xc00078dac0, 0x1c}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x20, 0xc000731b80)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 138 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc00092c180}, {0x51584a5, 0xc0008c70d8}, {0xc000917fa4, 0x9})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc00092c180}, {0x51584a5, 0x3}, {0xc000917fa4, 0xc})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc00092c180}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc000917fa4, 0xc}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc000917fa4, 0xc})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc000917fa4, 0xc})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x524770e, 0x4}, {0xc000917fa4, 0xc}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x13, 0xc000348580)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 195 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc0007be660}, {0x51584a5, 0xc00005b930}, {0xc0007ba884, 0x9})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc0007be660}, {0x51584a5, 0x3}, {0xc0007ba884, 0xc})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc0007be660}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc0007ba884, 0xc}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0007ba884, 0xc})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0007ba884, 0xc})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x524770e, 0x4}, {0xc0007ba884, 0xc}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x0, 0xc00079a790)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 196 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc0007be420}, {0x51584a5, 0xc00248ef68}, {0xc0007ba892, 0xb})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc0007be420}, {0x51584a5, 0x3}, {0xc0007ba892, 0xe})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc0007be420}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc0007ba892, 0xe}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0007ba892, 0xe})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0007ba892, 0xe})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x524b337, 0x4}, {0xc0007ba892, 0xe}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x0, 0xc00079a840)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 185 [runnable]:
+net/http.(*Transport).queueForDial·dwrap·107()
+	/usr/local/go/src/net/http/transport.go:1415
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 156 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc0009a8d80}, {0x51584a5, 0xc0000544b0}, {0xc0023a8ba3, 0xa})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc0009a8d80}, {0x51584a5, 0x3}, {0xc0023a8ba3, 0xd})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc0009a8d80}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc0023a8ba3, 0xd}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0023a8ba3, 0xd})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0023a8ba3, 0xd})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x524eacf, 0x4}, {0xc0023a8ba3, 0xd}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x17, 0xc00099e420)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 40 [runnable]:
+net/http.(*Transport).queueForDial·dwrap·107()
+	/usr/local/go/src/net/http/transport.go:1415
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 186 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc00081ba40}, {0x51584a5, 0xc0000563d0}, {0xc00081cbe3, 0xa})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc00081ba40}, {0x51584a5, 0x3}, {0xc00081cbe3, 0xd})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc00081ba40}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc00081cbe3, 0xd}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc00081cbe3, 0xd})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc00081cbe3, 0xd})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x51e584a, 0x4}, {0xc00081cbe3, 0xd}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x11, 0xc000731ce0)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 197 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc0007be9c0}, {0x51584a5, 0xc00005b6b0}, {0xc0007ba8c0, 0xd})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc0007be9c0}, {0x51584a5, 0x3}, {0xc0007ba8c0, 0x10})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc0007be9c0}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc0007ba8c0, 0x10}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0007ba8c0, 0x10})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc0007ba8c0, 0x10})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x52493c3, 0x4}, {0xc0007ba8c0, 0x10}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x0, 0xc00079a8f0)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 187 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc00081bda0}, {0x51584a5, 0xc000056170}, {0xc00072a198, 0xe})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc00081bda0}, {0x51584a5, 0x3}, {0xc00072a198, 0x11})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc00081bda0}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc00072a198, 0x11}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc00072a198, 0x11})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc00072a198, 0x11})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x524b34c, 0x4}, {0xc00072a198, 0x11}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x15, 0xc000731d90)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 139 [select]:
+net.cgoLookupIP({0x5533198, 0xc00168c600}, {0x51584a5, 0x9}, {0xc000917fa4, 0x0})
+	/usr/local/go/src/net/cgo_unix.go:231 +0x289
+net.(*Resolver).lookupIP(0x5ec1da0, {0x5533198, 0xc00168c600}, {0x51584a5, 0x3}, {0xc000917fa4, 0x9})
+	/usr/local/go/src/net/lookup_unix.go:97 +0x113
+net.glob..func1({0x5533198, 0xc00168c600}, 0xc0012188d0, {0x51584a5, 0x3}, {0xc000917fa4, 0x9})
+	/usr/local/go/src/net/hook.go:23 +0x89
+net.(*Resolver).lookupIPAddr.func1()
+	/usr/local/go/src/net/lookup.go:296 +0x133
+internal/singleflight.(*Group).doCall(0x5ec1db0, 0xc0002dac30, {0xc000917fb3, 0xd}, 0xc00168c640)
+	/usr/local/go/src/internal/singleflight/singleflight.go:95 +0x68
+created by internal/singleflight.(*Group).DoChan
+	/usr/local/go/src/internal/singleflight/singleflight.go:88 +0x59b
+
+goroutine 198 [select]:
+net.cgoLookupIP({0x5533198, 0xc0006bd040}, {0x51584a5, 0xd}, {0xc0007ba8c0, 0x0})
+	/usr/local/go/src/net/cgo_unix.go:231 +0x289
+net.(*Resolver).lookupIP(0x5ec1da0, {0x5533198, 0xc0006bd040}, {0x51584a5, 0x3}, {0xc0007ba8c0, 0xd})
+	/usr/local/go/src/net/lookup_unix.go:97 +0x113
+net.glob..func1({0x5533198, 0xc0006bd040}, 0xc00027d060, {0x51584a5, 0x3}, {0xc0007ba8c0, 0xd})
+	/usr/local/go/src/net/hook.go:23 +0x89
+net.(*Resolver).lookupIPAddr.func1()
+	/usr/local/go/src/net/lookup.go:296 +0x133
+internal/singleflight.(*Group).doCall(0x5ec1db0, 0xc000032f00, {0xc00003e420, 0x11}, 0xc0006bd080)
+	/usr/local/go/src/internal/singleflight/singleflight.go:95 +0x68
+created by internal/singleflight.(*Group).DoChan
+	/usr/local/go/src/internal/singleflight/singleflight.go:88 +0x59b
+
+goroutine 157 [runnable]:
+context.(*cancelCtx).Done(0xc0006fee00)
+	/usr/local/go/src/context/context.go:358 +0x1f8
+net.cgoLookupIP({0x5533198, 0xc0006fee00}, {0x51584a5, 0xa}, {0xc0023a8ba3, 0x0})
+	/usr/local/go/src/net/cgo_unix.go:234 +0x202
+net.(*Resolver).lookupIP(0x5ec1da0, {0x5533198, 0xc0006fee00}, {0x51584a5, 0x3}, {0xc0023a8ba3, 0xa})
+	/usr/local/go/src/net/lookup_unix.go:97 +0x113
+net.glob..func1({0x5533198, 0xc0006fee00}, 0xc0023a6100, {0x51584a5, 0x3}, {0xc0023a8ba3, 0xa})
+	/usr/local/go/src/net/hook.go:23 +0x89
+net.(*Resolver).lookupIPAddr.func1()
+	/usr/local/go/src/net/lookup.go:296 +0x133
+internal/singleflight.(*Group).doCall(0x5ec1db0, 0xc000989630, {0xc0023a8bb2, 0xe}, 0xc0006fee40)
+	/usr/local/go/src/internal/singleflight/singleflight.go:95 +0x68
+created by internal/singleflight.(*Group).DoChan
+	/usr/local/go/src/internal/singleflight/singleflight.go:88 +0x59b
+
+goroutine 188 [select]:
+net.cgoLookupIP({0x5533198, 0xc000815a80}, {0x51584a5, 0xe}, {0xc00072a198, 0x0})
+	/usr/local/go/src/net/cgo_unix.go:231 +0x289
+net.(*Resolver).lookupIP(0x5ec1da0, {0x5533198, 0xc000815a80}, {0x51584a5, 0x3}, {0xc00072a198, 0xe})
+	/usr/local/go/src/net/lookup_unix.go:97 +0x113
+net.glob..func1({0x5533198, 0xc000815a80}, 0xc0009c11c0, {0x51584a5, 0x3}, {0xc00072a198, 0xe})
+	/usr/local/go/src/net/hook.go:23 +0x89
+net.(*Resolver).lookupIPAddr.func1()
+	/usr/local/go/src/net/lookup.go:296 +0x133
+internal/singleflight.(*Group).doCall(0x5ec1db0, 0xc0008005f0, {0xc00072a1b0, 0x12}, 0xc000815ac0)
+	/usr/local/go/src/internal/singleflight/singleflight.go:95 +0x68
+created by internal/singleflight.(*Group).DoChan
+	/usr/local/go/src/internal/singleflight/singleflight.go:88 +0x59b
+
+goroutine 11 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 12 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 13 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 14 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 140 [select]:
+net.cgoLookupIP({0x5533198, 0xc0006bcf00}, {0x51584a5, 0xb}, {0xc0007ba892, 0x0})
+	/usr/local/go/src/net/cgo_unix.go:231 +0x289
+net.(*Resolver).lookupIP(0x5ec1da0, {0x5533198, 0xc0006bcf00}, {0x51584a5, 0x3}, {0xc0007ba892, 0xb})
+	/usr/local/go/src/net/lookup_unix.go:97 +0x113
+net.glob..func1({0x5533198, 0xc0006bcf00}, 0xc00027cf80, {0x51584a5, 0x3}, {0xc0007ba892, 0xb})
+	/usr/local/go/src/net/hook.go:23 +0x89
+net.(*Resolver).lookupIPAddr.func1()
+	/usr/local/go/src/net/lookup.go:296 +0x133
+internal/singleflight.(*Group).doCall(0x5ec1db0, 0xc0002dac80, {0xc0007ba8a1, 0xf}, 0xc0006bcf40)
+	/usr/local/go/src/internal/singleflight/singleflight.go:95 +0x68
+created by internal/singleflight.(*Group).DoChan
+	/usr/local/go/src/internal/singleflight/singleflight.go:88 +0x59b
+
+goroutine 158 [runnable]:
+sync.runtime_SemacquireMutex(0x4071517, 0x47, 0xc000303a80)
+	/usr/local/go/src/runtime/sema.go:71 +0x25
+sync.(*Mutex).lockSlow(0x6916b7c)
+	/usr/local/go/src/sync/mutex.go:138 +0x21d
+sync.(*Mutex).Lock(0x6916b7c)
+	/usr/local/go/src/sync/mutex.go:81 +0x65
+sync.(*Once).doSlow(0x6916b78, 0x53b72b8)
+	/usr/local/go/src/sync/once.go:64 +0x65
+sync.(*Once).Do(0x6916b78, 0x53b72b8)
+	/usr/local/go/src/sync/once.go:59 +0x47
+net.systemConf(...)
+	/usr/local/go/src/net/conf.go:43
+net.(*Resolver).lookupIP(0x5ec1da0, {0x5533198, 0xc0006fee80}, {0x51584a5, 0x3}, {0xc000796240, 0x15})
+	/usr/local/go/src/net/lookup_unix.go:95 +0xa9
+net.glob..func1({0x5533198, 0xc0006fee80}, 0xc0023a6120, {0x51584a5, 0x3}, {0xc000796240, 0x15})
+	/usr/local/go/src/net/hook.go:23 +0x89
+net.(*Resolver).lookupIPAddr.func1()
+	/usr/local/go/src/net/lookup.go:296 +0x133
+internal/singleflight.(*Group).doCall(0x5ec1db0, 0xc000989680, {0xc000987120, 0x19}, 0xc0006feec0)
+	/usr/local/go/src/internal/singleflight/singleflight.go:95 +0x68
+created by internal/singleflight.(*Group).DoChan
+	/usr/local/go/src/internal/singleflight/singleflight.go:88 +0x59b
+
+goroutine 15 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 189 [select]:
+net.(*Resolver).lookupIPAddr(0x5ec1da0, {0x5533208, 0xc0008381e0}, {0x51584a5, 0xc0008310d8}, {0xc00081cc04, 0x9})
+	/usr/local/go/src/net/lookup.go:302 +0x81c
+net.(*Resolver).internetAddrList(0x5533208, {0x5533208, 0xc0008381e0}, {0x51584a5, 0x3}, {0xc00081cc04, 0xc})
+	/usr/local/go/src/net/ipsock.go:288 +0x7c6
+net.(*Resolver).resolveAddrList(0x6916988, {0x5533208, 0xc0008381e0}, {0x515a26d, 0x4}, {0x51584a5, 0x3}, {0xc00081cc04, 0xc}, {0x0, ...})
+	/usr/local/go/src/net/dial.go:221 +0x556
+net.(*Dialer).DialContext(0xc00012faa0, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc00081cc04, 0xc})
+	/usr/local/go/src/net/dial.go:406 +0x6e5
+net/http.(*Transport).dial(0x5ead980, {0x55331d0, 0xc000130018}, {0x51584a5, 0x3}, {0xc00081cc04, 0xc})
+	/usr/local/go/src/net/http/transport.go:1166 +0x26a
+net/http.(*Transport).dialConn(0x5ead980, {0x55331d0, 0xc000130018}, {{}, 0x0, {0x51cc2de, 0x4}, {0xc00081cc04, 0xc}, 0x0})
+	/usr/local/go/src/net/http/transport.go:1604 +0xd58
+net/http.(*Transport).dialConnFor(0x10, 0xc000731e40)
+	/usr/local/go/src/net/http/transport.go:1446 +0x13b
+created by net/http.(*Transport).queueForDial
+	/usr/local/go/src/net/http/transport.go:1415 +0x175
+
+goroutine 190 [select]:
+net.cgoLookupIP({0x5533198, 0xc000815b40}, {0x51584a5, 0x9}, {0xc00081cc04, 0x30afffff})
+	/usr/local/go/src/net/cgo_unix.go:231 +0x289
+net.(*Resolver).lookupIP(0x5ec1da0, {0x5533198, 0xc000815b40}, {0x51584a5, 0x3}, {0xc00081cc04, 0x9})
+	/usr/local/go/src/net/lookup_unix.go:97 +0x113
+net.glob..func1({0x5533198, 0xc000815b40}, 0xc0009c1230, {0x51584a5, 0x3}, {0xc00081cc04, 0x9})
+	/usr/local/go/src/net/hook.go:23 +0x89
+net.(*Resolver).lookupIPAddr.func1()
+	/usr/local/go/src/net/lookup.go:296 +0x133
+internal/singleflight.(*Group).doCall(0x5ec1db0, 0xc000800690, {0xc00081cc13, 0xd}, 0xc000815b80)
+	/usr/local/go/src/internal/singleflight/singleflight.go:95 +0x68
+created by internal/singleflight.(*Group).DoChan
+	/usr/local/go/src/internal/singleflight/singleflight.go:88 +0x59b
+
+goroutine 159 [select]:
+github.com/dgraph-io/ristretto.(*Cache).processItems(0xc0009a9260)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/ristretto@v0.0.3-0.20200630154024-f66de99634de/cache.go:311 +0x176
+created by github.com/dgraph-io/ristretto.NewCache
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/ristretto@v0.0.3-0.20200630154024-f66de99634de/cache.go:162 +0x85a
+
+goroutine 199 [runnable]:
+net.cgoLookupIP·dwrap·22()
+	/usr/local/go/src/net/cgo_unix.go:230
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by net.cgoLookupIP
+	/usr/local/go/src/net/cgo_unix.go:230 +0x1ba
+
+goroutine 200 [runnable]:
+net.cgoLookupIP·dwrap·22()
+	/usr/local/go/src/net/cgo_unix.go:230
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by net.cgoLookupIP
+	/usr/local/go/src/net/cgo_unix.go:230 +0x1ba
+
+goroutine 141 [syscall]:
+net._C2func_getaddrinfo(0xc000917fc6, 0x0, 0xc0002d3a40, 0xc000798058)
+	_cgo_gotypes.go:97 +0x8b
+net.cgoLookupIPCNAME.func1({0xc000917fc6, 0xa, 0xc000917fa4}, 0xc0002d37d0, 0x5ec1da0)
+	/usr/local/go/src/net/cgo_unix.go:163 +0xb2
+net.cgoLookupIPCNAME({0x51584a5, 0x3}, {0xc000917fa4, 0xc000130018})
+	/usr/local/go/src/net/cgo_unix.go:163 +0x26e
+net.cgoIPLookup(0x5ec1db0, {0x51584a5, 0x3}, {0xc000917fa4, 0x9})
+	/usr/local/go/src/net/cgo_unix.go:220 +0x67
+created by net.cgoLookupIP
+	/usr/local/go/src/net/cgo_unix.go:230 +0x1ba
+
+goroutine 201 [runnable]:
+net.cgoLookupIP·dwrap·22()
+	/usr/local/go/src/net/cgo_unix.go:230
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by net.cgoLookupIP
+	/usr/local/go/src/net/cgo_unix.go:230 +0x1ba
+
+goroutine 142 [runnable]:
+net.cgoLookupIP·dwrap·22()
+	/usr/local/go/src/net/cgo_unix.go:230
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by net.cgoLookupIP
+	/usr/local/go/src/net/cgo_unix.go:230 +0x1ba
+
+goroutine 143 [select]:
+net.cgoLookupIP({0x5533198, 0xc0008159c0}, {0x51584a5, 0xa}, {0xc00081cbe3, 0x0})
+	/usr/local/go/src/net/cgo_unix.go:231 +0x289
+net.(*Resolver).lookupIP(0x5ec1da0, {0x5533198, 0xc0008159c0}, {0x51584a5, 0x3}, {0xc00081cbe3, 0xa})
+	/usr/local/go/src/net/lookup_unix.go:97 +0x113
+net.glob..func1({0x5533198, 0xc0008159c0}, 0xc0009c1150, {0x51584a5, 0x3}, {0xc00081cbe3, 0xa})
+	/usr/local/go/src/net/hook.go:23 +0x89
+net.(*Resolver).lookupIPAddr.func1()
+	/usr/local/go/src/net/lookup.go:296 +0x133
+internal/singleflight.(*Group).doCall(0x5ec1db0, 0xc0002dacd0, {0xc00081cbf2, 0xe}, 0xc000815a00)
+	/usr/local/go/src/internal/singleflight/singleflight.go:95 +0x68
+created by internal/singleflight.(*Group).DoChan
+	/usr/local/go/src/internal/singleflight/singleflight.go:88 +0x59b
+
+goroutine 144 [runnable]:
+net.cgoLookupIP·dwrap·22()
+	/usr/local/go/src/net/cgo_unix.go:230
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by net.cgoLookupIP
+	/usr/local/go/src/net/cgo_unix.go:230 +0x1ba
+
+goroutine 56 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 57 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 58 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 59 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+goroutine 60 [runnable]:
+github.com/chyeh/pubip.Get·dwrap·2()
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1
+created by github.com/chyeh/pubip.Get
+	/Users/eclesiojunior/go/pkg/mod/github.com/chyeh/pubip@v0.0.0-20170203095919-b7e679cf541c/pubip.go:165 +0x66b
+
+rax    0x8
+rbx    0x80
+rcx    0x0
+rdx    0x1
+rdi    0x8
+rsi    0x1
+rbp    0x20b2e1ea0
+rsp    0x20b2e1e58
+r8     0x600002c00000
+r9     0x80
+r10    0x0
+r11    0x7ff81d8b3870
+r12    0x0
+r13    0x0
+r14    0x1
+r15    0x8
+rip    0x7ff81d9e3dfe
+rflags 0x216
+cs     0x2b
+fs     0x0
+gs     0x0
+FAIL	github.com/ChainSafe/gossamer/dot/network	1.833s
+FAIL

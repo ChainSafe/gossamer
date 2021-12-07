@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/chyeh/pubip"
 	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
@@ -25,6 +25,8 @@ import (
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	ma "github.com/multiformats/go-multiaddr"
 )
+
+var publicIP string = ""
 
 var privateCIDRs = []string{
 	"10.0.0.0/8",
@@ -39,6 +41,15 @@ const (
 	peerSetSlotAllocTime = time.Second * 2
 	connectTimeout       = time.Second * 5
 )
+
+// func init() {
+// 	ip, err := pubip.Get()
+// 	if err != nil {
+// 		logger.Errorf("failed to get public IP error: %v", err)
+// 	}
+
+// 	publicIP = ip.String()
+// }
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
@@ -74,12 +85,9 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 			return nil, err
 		}
 	} else {
-		ip, err := pubip.Get()
-		if err != nil {
-			logger.Errorf("failed to get public IP error: %v", err)
-		} else {
-			logger.Debugf("got public IP", "IP", ip)
-			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		if strings.TrimSpace(publicIP) != "" {
+			logger.Debugf("got public IP", "IP", publicIP)
+			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", publicIP, cfg.Port))
 			if err != nil {
 				return nil, err
 			}
