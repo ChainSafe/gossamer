@@ -33,7 +33,7 @@ type mdns struct {
 // newMDNS creates a new mDNS instance from the host
 func newMDNS(host *host) *mdns {
 	return &mdns{
-		logger: log.New(log.AddContext("module", "mdns")),
+		logger: log.NewFromGlobal(log.AddContext("module", "mdns")),
 		host:   host,
 	}
 }
