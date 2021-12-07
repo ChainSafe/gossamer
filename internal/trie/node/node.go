@@ -6,15 +6,15 @@ package node
 // Node is a node in the trie and can be a leaf or a branch.
 type Node interface {
 	Encode(buffer Buffer) (err error) // TODO change to io.Writer
-	EncodeAndHash() ([]byte, []byte, error)
-	ScaleEncodeHash() (b []byte, err error)
+	EncodeAndHash() (encoding []byte, hash []byte, err error)
+	ScaleEncodeHash() (encoding []byte, err error)
 	IsDirty() bool
 	SetDirty(dirty bool)
 	SetKey(key []byte)
 	String() string
-	SetEncodingAndHash([]byte, []byte)
-	GetHash() []byte
-	GetGeneration() uint64
-	SetGeneration(uint64)
+	SetEncodingAndHash(encoding []byte, hash []byte)
+	GetHash() (hash []byte)
+	GetGeneration() (generation uint64)
+	SetGeneration(generation uint64)
 	Copy() Node
 }

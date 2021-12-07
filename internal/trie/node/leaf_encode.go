@@ -130,7 +130,7 @@ func (l *Leaf) Encode(buffer Buffer) (err error) {
 // ScaleEncodeHash hashes the node (blake2b sum on encoded value)
 // and then SCALE encodes it. This is used to encode children
 // nodes of branches.
-func (l *Leaf) ScaleEncodeHash() (b []byte, err error) {
+func (l *Leaf) ScaleEncodeHash() (encoding []byte, err error) {
 	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer pools.DigestBuffers.Put(buffer)

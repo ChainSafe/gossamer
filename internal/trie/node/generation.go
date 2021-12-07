@@ -9,7 +9,7 @@ func (b *Branch) SetGeneration(generation uint64) {
 }
 
 // GetGeneration returns the generation of the branch.
-func (b *Branch) GetGeneration() uint64 {
+func (b *Branch) GetGeneration() (generation uint64) {
 	return b.Generation
 }
 
@@ -19,6 +19,6 @@ func (l *Leaf) SetGeneration(generation uint64) {
 }
 
 // GetGeneration returns the generation of the leaf.
-func (l *Leaf) GetGeneration() uint64 {
+func (l *Leaf) GetGeneration() (generation uint64) {
 	return l.Generation
 }
