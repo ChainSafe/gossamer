@@ -21,7 +21,7 @@ var EmptyHash, _ = NewEmptyTrie().Hash()
 // Use NewTrie to create a trie that sits on top of a database.
 type Trie struct {
 	generation  uint64
-	root        node.Node
+	root        Node
 	childTries  map[common.Hash]*Trie // Used to store the child tries.
 	deletedKeys []common.Hash
 }
@@ -32,7 +32,7 @@ func NewEmptyTrie() *Trie {
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root node.Node) *Trie {
+func NewTrie(root Node) *Trie {
 	return &Trie{
 		root:        root,
 		childTries:  make(map[common.Hash]*Trie),
@@ -62,7 +62,7 @@ func (t *Trie) Snapshot() *Trie {
 	return newTrie
 }
 
-func (t *Trie) maybeUpdateGeneration(n node.Node) node.Node {
+func (t *Trie) maybeUpdateGeneration(n Node) Node {
 	if n == nil {
 		return nil
 	}
@@ -101,7 +101,7 @@ func (t *Trie) DeepCopy() (*Trie, error) {
 }
 
 // RootNode returns the root of the trie
-func (t *Trie) RootNode() node.Node {
+func (t *Trie) RootNode() Node {
 	return t.root
 }
 
@@ -146,7 +146,7 @@ func (t *Trie) Entries() map[string][]byte {
 	return t.entries(t.root, nil, make(map[string][]byte))
 }
 
-func (t *Trie) entries(current node.Node, prefix []byte, kv map[string][]byte) map[string][]byte {
+func (t *Trie) entries(current Node, prefix []byte, kv map[string][]byte) map[string][]byte {
 	switch c := current.(type) {
 	case *node.Branch:
 		if c.Value != nil {
@@ -175,7 +175,7 @@ func (t *Trie) NextKey(key []byte) []byte {
 	return codec.NibblesToKeyLE(next)
 }
 
-func (t *Trie) nextKey(curr node.Node, prefix, key []byte) []byte {
+func (t *Trie) nextKey(curr Node, prefix, key []byte) []byte {
 	switch c := curr.(type) {
 	case *node.Branch:
 		fullKey := append(prefix, c.Key...)
@@ -262,7 +262,7 @@ func (t *Trie) tryPut(key, value []byte) {
 }
 
 // insert attempts to insert a key with value into the trie
-func (t *Trie) insert(parent node.Node, key []byte, value node.Node) node.Node {
+func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 	switch p := t.maybeUpdateGeneration(parent).(type) {
 	case *node.Branch:
 		n := t.updateBranch(p, key, value)
@@ -330,7 +330,7 @@ func (t *Trie) insert(parent node.Node, key []byte, value node.Node) node.Node {
 // updateBranch attempts to add the value node to a branch
 // inserts the value node as the branch's child at the index that's
 // the first nibble of the key
-func (t *Trie) updateBranch(p *node.Branch, key []byte, value node.Node) (n node.Node) {
+func (t *Trie) updateBranch(p *node.Branch, key []byte, value Node) (n Node) {
 	length := lenCommonPrefix(key, p.Key)
 
 	// whole parent key matches
@@ -412,7 +412,7 @@ func (t *Trie) GetKeysWithPrefix(prefix []byte) [][]byte {
 	return t.getKeysWithPrefix(t.root, []byte{}, p, [][]byte{})
 }
 
-func (t *Trie) getKeysWithPrefix(parent node.Node, prefix, key []byte, keys [][]byte) [][]byte {
+func (t *Trie) getKeysWithPrefix(parent Node, prefix, key []byte, keys [][]byte) [][]byte {
 	switch p := parent.(type) {
 	case *node.Branch:
 		length := lenCommonPrefix(p.Key, key)
@@ -443,7 +443,7 @@ func (t *Trie) getKeysWithPrefix(parent node.Node, prefix, key []byte, keys [][]
 
 // addAllKeys appends all keys that are descendants of the parent node to a slice of keys
 // it uses the prefix to determine the entire key
-func (t *Trie) addAllKeys(parent node.Node, prefix []byte, keys [][]byte) [][]byte {
+func (t *Trie) addAllKeys(parent Node, prefix []byte, keys [][]byte) [][]byte {
 	switch p := parent.(type) {
 	case *node.Branch:
 		if p.Value != nil {
@@ -477,7 +477,7 @@ func (t *Trie) tryGet(key []byte) *node.Leaf {
 	return t.retrieve(t.root, k)
 }
 
-func (t *Trie) retrieve(parent node.Node, key []byte) *node.Leaf {
+func (t *Trie) retrieve(parent Node, key []byte) *node.Leaf {
 	var (
 		value *node.Leaf
 	)
@@ -526,7 +526,7 @@ func (t *Trie) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
 
 // clearPrefixLimit deletes the keys having the prefix till limit reached and returns updated trie root node,
 // true if any node in the trie got updated, and next bool returns true if there is no keys left with prefix.
-func (t *Trie) clearPrefixLimit(cn node.Node, prefix []byte, limit *uint32) (node.Node, bool, bool) {
+func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bool, bool) {
 	curr := t.maybeUpdateGeneration(cn)
 
 	switch c := curr.(type) {
@@ -584,7 +584,7 @@ func (t *Trie) clearPrefixLimit(cn node.Node, prefix []byte, limit *uint32) (nod
 	return nil, false, true
 }
 
-func (t *Trie) deleteNodes(cn node.Node, prefix []byte, limit *uint32) (node.Node, bool) {
+func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (Node, bool) {
 	curr := t.maybeUpdateGeneration(cn)
 
 	switch c := curr.(type) {
@@ -650,7 +650,7 @@ func (t *Trie) ClearPrefix(prefix []byte) {
 	t.root, _ = t.clearPrefix(t.root, p)
 }
 
-func (t *Trie) clearPrefix(cn node.Node, prefix []byte) (node.Node, bool) {
+func (t *Trie) clearPrefix(cn Node, prefix []byte) (Node, bool) {
 	curr := t.maybeUpdateGeneration(cn)
 	switch c := curr.(type) {
 	case *node.Branch:
@@ -706,7 +706,7 @@ func (t *Trie) Delete(key []byte) {
 	t.root, _ = t.delete(t.root, k)
 }
 
-func (t *Trie) delete(parent node.Node, key []byte) (node.Node, bool) {
+func (t *Trie) delete(parent Node, key []byte) (Node, bool) {
 	// Store the current node and return it, if the trie is not updated.
 	switch p := t.maybeUpdateGeneration(parent).(type) {
 	case *node.Branch:
@@ -746,8 +746,8 @@ func (t *Trie) delete(parent node.Node, key []byte) (node.Node, bool) {
 // handleDeletion is called when a value is deleted from a branch
 // if the updated branch only has 1 child, it should be combined with that child
 // if the updated branch only has a value, it should be turned into a leaf
-func handleDeletion(p *node.Branch, key []byte) node.Node {
-	var n node.Node = p
+func handleDeletion(p *node.Branch, key []byte) Node {
+	var n Node = p
 	length := lenCommonPrefix(p.Key, key)
 	bitmap := p.ChildrenBitmap()
 

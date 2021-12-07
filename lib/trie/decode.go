@@ -18,7 +18,7 @@ var (
 	ErrUnknownNodeType = errors.New("unknown node type")
 )
 
-func decodeNode(reader io.Reader) (n node.Node, err error) {
+func decodeNode(reader io.Reader) (n Node, err error) {
 	buffer := pools.SingleByteBuffers.Get().(*bytes.Buffer)
 	defer pools.SingleByteBuffers.Put(buffer)
 	oneByteBuf := buffer.Bytes()

@@ -33,7 +33,7 @@ func (t *Trie) Store(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) store(db chaindb.Batch, curr node.Node) error {
+func (t *Trie) store(db chaindb.Batch, curr Node) error {
 	if curr == nil {
 		return nil
 	}
@@ -74,7 +74,7 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 		return ErrEmptyProof
 	}
 
-	mappedNodes := make(map[string]node.Node, len(proof))
+	mappedNodes := make(map[string]Node, len(proof))
 
 	// map all the proofs hash -> decoded node
 	// and takes the loop to indentify the root node
@@ -105,7 +105,7 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 
 // loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting by the root
-func (t *Trie) loadProof(proof map[string]node.Node, curr node.Node) {
+func (t *Trie) loadProof(proof map[string]Node, curr Node) {
 	c, ok := curr.(*node.Branch)
 	if !ok {
 		return
@@ -150,7 +150,7 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 	return t.load(db, t.root)
 }
 
-func (t *Trie) load(db chaindb.Database, curr node.Node) error {
+func (t *Trie) load(db chaindb.Database, curr Node) error {
 	if c, ok := curr.(*node.Branch); ok {
 		for i, child := range c.Children {
 			if child == nil {
@@ -183,7 +183,7 @@ func (t *Trie) load(db chaindb.Database, curr node.Node) error {
 }
 
 // GetNodeHashes return hash of each key of the trie.
-func (t *Trie) GetNodeHashes(curr node.Node, keys map[common.Hash]struct{}) error {
+func (t *Trie) GetNodeHashes(curr Node, keys map[common.Hash]struct{}) error {
 	if c, ok := curr.(*node.Branch); ok {
 		for _, child := range c.Children {
 			if child == nil {
@@ -251,7 +251,7 @@ func GetFromDB(db chaindb.Database, root common.Hash, key []byte) ([]byte, error
 	return getFromDB(db, rootNode, k)
 }
 
-func getFromDB(db chaindb.Database, parent node.Node, key []byte) ([]byte, error) {
+func getFromDB(db chaindb.Database, parent Node, key []byte) ([]byte, error) {
 	var value []byte
 
 	switch p := parent.(type) {
@@ -310,7 +310,7 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirty(db chaindb.Batch, curr node.Node) error {
+func (t *Trie) writeDirty(db chaindb.Batch, curr Node) error {
 	if curr == nil || !curr.IsDirty() {
 		return nil
 	}
@@ -358,7 +358,7 @@ func (t *Trie) GetInsertedNodeHashes() ([]common.Hash, error) {
 	return t.getInsertedNodeHashes(t.root)
 }
 
-func (t *Trie) getInsertedNodeHashes(curr node.Node) ([]common.Hash, error) {
+func (t *Trie) getInsertedNodeHashes(curr Node) ([]common.Hash, error) {
 	var nodeHashes []common.Hash
 	if curr == nil || !curr.IsDirty() {
 		return nil, nil

@@ -3,7 +3,7 @@
 
 package node
 
-// Node is node in the trie and can be a leaf or a branch.
+// Node is a node in the trie and can be a leaf or a branch.
 type Node interface {
 	Encode(buffer Buffer) (err error) // TODO change to io.Writer
 	EncodeAndHash() ([]byte, []byte, error)

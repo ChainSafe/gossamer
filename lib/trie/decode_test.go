@@ -25,7 +25,7 @@ func Test_decodeNode(t *testing.T) {
 
 	testCases := map[string]struct {
 		reader     io.Reader
-		n          node.Node
+		n          Node
 		errWrapped error
 		errMessage string
 	}{
