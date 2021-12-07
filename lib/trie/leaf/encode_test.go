@@ -65,21 +65,13 @@ func Test_Leaf_Encode(t *testing.T) {
 			leaf: &Leaf{
 				Key: make([]byte, 63+(1<<16)),
 			},
-			wrappedErr: encode.ErrPartialKeyTooBig,
-			errMessage: "cannot encode header: partial key length cannot be larger than or equal to 2^16: 65536",
-		},
-		"buffer write error for encoded header": {
-			leaf: &Leaf{
-				Key: []byte{1, 2, 3},
-			},
 			writes: []writeCall{
 				{
-					written: []byte{67},
-					err:     errTest,
+					written: []byte{127},
 				},
 			},
-			wrappedErr: errTest,
-			errMessage: "cannot write encoded header to buffer: test error",
+			wrappedErr: encode.ErrPartialKeyTooBig,
+			errMessage: "cannot encode header: partial key length cannot be larger than or equal to 2^16: 65536",
 		},
 		"buffer write error for encoded key": {
 			leaf: &Leaf{

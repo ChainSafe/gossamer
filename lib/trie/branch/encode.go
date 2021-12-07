@@ -86,14 +86,9 @@ func (b *Branch) Encode(buffer encode.Buffer) (err error) {
 		return nil
 	}
 
-	encodedHeader, err := b.encodeHeader()
+	err = b.encodeHeader(buffer)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
-	}
-
-	_, err = buffer.Write(encodedHeader)
-	if err != nil {
-		return fmt.Errorf("cannot write encoded header to buffer: %w", err)
 	}
 
 	keyLE := encode.NibblesToKeyLE(b.Key)

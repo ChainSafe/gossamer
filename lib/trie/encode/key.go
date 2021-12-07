@@ -6,6 +6,7 @@ package encode
 import (
 	"errors"
 	"fmt"
+	"io"
 )
 
 const maxPartialKeySize = ^uint16(0)
@@ -13,24 +14,31 @@ const maxPartialKeySize = ^uint16(0)
 var ErrPartialKeyTooBig = errors.New("partial key length cannot be larger than or equal to 2^16")
 
 // KeyLength encodes the public key length.
-func KeyLength(keyLength int) (encoding []byte, err error) {
+func KeyLength(keyLength int, writer io.Writer) (err error) {
 	keyLength -= 63
 
 	if keyLength >= int(maxPartialKeySize) {
-		return nil, fmt.Errorf("%w: %d",
+		return fmt.Errorf("%w: %d",
 			ErrPartialKeyTooBig, keyLength)
 	}
 
 	for i := uint16(0); i < maxPartialKeySize; i++ {
 		if keyLength < 255 {
-			encoding = append(encoding, byte(keyLength))
+			_, err = writer.Write([]byte{byte(keyLength)})
+			if err != nil {
+				return err
+			}
 			break
 		}
-		encoding = append(encoding, byte(255))
+		_, err = writer.Write([]byte{255})
+		if err != nil {
+			return err
+		}
+
 		keyLength -= 255
 	}
 
-	return encoding, nil
+	return nil
 }
 
 // NibblesToKeyLE converts a slice of nibbles with length k into a

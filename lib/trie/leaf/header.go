@@ -3,24 +3,32 @@
 
 package leaf
 
-import "github.com/ChainSafe/gossamer/lib/trie/encode"
+import (
+	"io"
+
+	"github.com/ChainSafe/gossamer/lib/trie/encode"
+)
 
 // encodeHeader creates the encoded header for the leaf.
-func (l *Leaf) encodeHeader() (encoding []byte, err error) {
+func (l *Leaf) encodeHeader(writer io.Writer) (err error) {
 	var header byte = 1 << 6
-	var encodedPublicKeyLength []byte
 
-	if len(l.Key) >= 63 {
-		header = header | 0x3f
-		encodedPublicKeyLength, err = encode.KeyLength(len(l.Key))
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	if len(l.Key) < 63 {
 		header = header | byte(len(l.Key))
+		_, err = writer.Write([]byte{header})
+		return err
 	}
 
-	encoding = append([]byte{header}, encodedPublicKeyLength...)
+	header = header | 0x3f
+	_, err = writer.Write([]byte{header})
+	if err != nil {
+		return err
+	}
 
-	return encoding, nil
+	err = encode.KeyLength(len(l.Key), writer)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

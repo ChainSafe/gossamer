@@ -3,10 +3,14 @@
 
 package branch
 
-import "github.com/ChainSafe/gossamer/lib/trie/encode"
+import (
+	"io"
+
+	"github.com/ChainSafe/gossamer/lib/trie/encode"
+)
 
 // encodeHeader creates the encoded header for the branch.
-func (b *Branch) encodeHeader() (encoding []byte, err error) {
+func (b *Branch) encodeHeader(writer io.Writer) (err error) {
 	var header byte
 	if b.Value == nil {
 		header = 2 << 6
@@ -14,19 +18,24 @@ func (b *Branch) encodeHeader() (encoding []byte, err error) {
 		header = 3 << 6
 	}
 
-	var encodedPublicKeyLength []byte
 	if len(b.Key) >= 63 {
 		header = header | 0x3f
-		encodedPublicKeyLength, err = encode.KeyLength(len(b.Key))
+		_, err = writer.Write([]byte{header})
 		if err != nil {
-			return nil, err
+			return err
+		}
+
+		err = encode.KeyLength(len(b.Key), writer)
+		if err != nil {
+			return err
 		}
 	} else {
 		header = header | byte(len(b.Key))
+		_, err = writer.Write([]byte{header})
+		if err != nil {
+			return err
+		}
 	}
 
-	encoding = make([]byte, 0, len(encodedPublicKeyLength)+1)
-	encoding = append(encoding, header)
-	encoding = append(encoding, encodedPublicKeyLength...)
-	return encoding, nil
+	return nil
 }

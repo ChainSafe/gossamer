@@ -61,22 +61,13 @@ func Test_Branch_Encode(t *testing.T) {
 			branch: &Branch{
 				Key: make([]byte, 63+(1<<16)),
 			},
-			wrappedErr: encode.ErrPartialKeyTooBig,
-			errMessage: "cannot encode header: partial key length cannot be larger than or equal to 2^16: 65536",
-		},
-		"buffer write error for encoded header": {
-			branch: &Branch{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
-			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
-					err:     errTest,
+					written: []byte{191},
 				},
 			},
-			wrappedErr: errTest,
-			errMessage: "cannot write encoded header to buffer: test error",
+			wrappedErr: encode.ErrPartialKeyTooBig,
+			errMessage: "cannot encode header: partial key length cannot be larger than or equal to 2^16: 65536",
 		},
 		"buffer write error for encoded key": {
 			branch: &Branch{

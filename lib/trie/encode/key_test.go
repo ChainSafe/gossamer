@@ -4,59 +4,90 @@
 package encode
 
 import (
+	"bytes"
+	"errors"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+type writeCall struct {
+	written []byte
+	n       int
+	err     error
+}
+
+var errTest = errors.New("test error")
+
+//go:generate mockgen -destination=writer_mock_test.go -package $GOPACKAGE io Writer
 
 func Test_KeyLength(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		partialKeyLength int
-		encoding         []byte
-		err              error
+		keyLength  int
+		writes     []writeCall
+		errWrapped error
+		errMessage string
 	}{
 		"length equal to maximum": {
-			partialKeyLength: int(maxPartialKeySize) + 63,
-			err:              ErrPartialKeyTooBig,
+			keyLength:  int(maxPartialKeySize) + 63,
+			errWrapped: ErrPartialKeyTooBig,
+			errMessage: "partial key length cannot be " +
+				"larger than or equal to 2^16: 65535",
 		},
 		"zero length": {
-			encoding: []byte{0xc1},
+			writes: []writeCall{
+				{
+					written: []byte{0xc1},
+				},
+			},
 		},
 		"one length": {
-			partialKeyLength: 1,
-			encoding:         []byte{0xc2},
+			keyLength: 1,
+			writes: []writeCall{
+				{
+					written: []byte{0xc2},
+				},
+			},
 		},
-		"length at maximum allowed": {
-			partialKeyLength: int(maxPartialKeySize) + 62,
-			encoding: []byte{
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe},
+		"error at single byte write": {
+			keyLength: 1,
+			writes: []writeCall{
+				{
+					written: []byte{0xc2},
+					err:     errTest,
+				},
+			},
+			errWrapped: errTest,
+			errMessage: errTest.Error(),
+		},
+		"error at first byte write": {
+			keyLength: 255 + 100 + 63,
+			writes: []writeCall{
+				{
+					written: []byte{255},
+					err:     errTest,
+				},
+			},
+			errWrapped: errTest,
+			errMessage: errTest.Error(),
+		},
+		"error at last byte write": {
+			keyLength: 255 + 100 + 63,
+			writes: []writeCall{
+				{
+					written: []byte{255},
+				},
+				{
+					written: []byte{100},
+					err:     errTest,
+				},
+			},
+			errWrapped: errTest,
+			errMessage: errTest.Error(),
 		},
 	}
 
@@ -64,13 +95,55 @@ func Test_KeyLength(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-			encoding, err := KeyLength(testCase.partialKeyLength)
+			writer := NewMockWriter(ctrl)
+			var previousCall *gomock.Call
+			for _, write := range testCase.writes {
+				call := writer.EXPECT().
+					Write(write.written).
+					Return(write.n, write.err)
 
-			assert.ErrorIs(t, err, testCase.err)
-			assert.Equal(t, testCase.encoding, encoding)
+				if write.err != nil {
+					break
+				} else if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			err := KeyLength(testCase.keyLength, writer)
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
 		})
 	}
+
+	t.Run("length at maximum", func(t *testing.T) {
+		t.Parallel()
+
+		// Note: this test case cannot run with the
+		// mock writer since it's too slow, so we use
+		// an actual buffer.
+
+		const keyLength = int(maxPartialKeySize) + 62
+		const expectedEncodingLength = 257
+		expectedBytes := make([]byte, expectedEncodingLength)
+		for i := 0; i < len(expectedBytes)-1; i++ {
+			expectedBytes[i] = 255
+		}
+		expectedBytes[len(expectedBytes)-1] = 254
+
+		buffer := bytes.NewBuffer(nil)
+		buffer.Grow(expectedEncodingLength)
+
+		err := KeyLength(keyLength, buffer)
+
+		require.NoError(t, err)
+		assert.Equal(t, expectedBytes, buffer.Bytes())
+	})
 }
 
 func Test_NibblesToKeyLE(t *testing.T) {
