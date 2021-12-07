@@ -20,9 +20,9 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie/codec"
-	"github.com/ChainSafe/gossamer/lib/trie/node"
 )
 
 type commonPrefixTest struct {

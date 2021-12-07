@@ -8,7 +8,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

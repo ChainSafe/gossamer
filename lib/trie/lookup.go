@@ -6,7 +6,7 @@ package trie
 import (
 	"bytes"
 
-	"github.com/ChainSafe/gossamer/lib/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/trie/record"
 )
 
