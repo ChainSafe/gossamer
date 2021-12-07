@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie/decode"
-	"github.com/ChainSafe/gossamer/lib/trie/leaf"
+	"github.com/ChainSafe/gossamer/lib/trie/codec"
+	"github.com/ChainSafe/gossamer/lib/trie/node"
 )
 
 type commonPrefixTest struct {
@@ -70,7 +70,7 @@ func TestNewEmptyTrie(t *testing.T) {
 }
 
 func TestNewTrie(t *testing.T) {
-	trie := NewTrie(&leaf.Leaf{Key: []byte{0}, Value: []byte{17}})
+	trie := NewTrie(&node.Leaf{Key: []byte{0}, Value: []byte{17}})
 	if trie == nil {
 		t.Error("did not initialise trie")
 	}
@@ -875,7 +875,7 @@ func TestClearPrefix(t *testing.T) {
 		require.Equal(t, dcTrieHash, ssTrieHash)
 
 		ssTrie.ClearPrefix(prefix)
-		prefixNibbles := decode.KeyLEToNibbles(prefix)
+		prefixNibbles := codec.KeyLEToNibbles(prefix)
 		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
 		}
@@ -883,7 +883,7 @@ func TestClearPrefix(t *testing.T) {
 		for _, test := range tests {
 			res := ssTrie.Get(test.key)
 
-			keyNibbles := decode.KeyLEToNibbles(test.key)
+			keyNibbles := codec.KeyLEToNibbles(test.key)
 			length := lenCommonPrefix(keyNibbles, prefixNibbles)
 			if length == len(prefixNibbles) {
 				require.Nil(t, res)
@@ -944,8 +944,8 @@ func TestClearPrefix_Small(t *testing.T) {
 	}
 
 	ssTrie.ClearPrefix([]byte("noo"))
-	require.Equal(t, ssTrie.root, &leaf.Leaf{
-		Key:   decode.KeyLEToNibbles([]byte("other")),
+	require.Equal(t, ssTrie.root, &node.Leaf{
+		Key:   codec.KeyLEToNibbles([]byte("other")),
 		Value: []byte("other"),
 		Dirty: true,
 	})
@@ -1293,7 +1293,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 	}
 
 	testFn := func(testCase []Test, prefix []byte) {
-		prefixNibbles := decode.KeyLEToNibbles(prefix)
+		prefixNibbles := codec.KeyLEToNibbles(prefix)
 		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
 		}
@@ -1312,7 +1312,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 			for _, test := range testCase {
 				val := trieClearPrefix.Get(test.key)
 
-				keyNibbles := decode.KeyLEToNibbles(test.key)
+				keyNibbles := codec.KeyLEToNibbles(test.key)
 				length := lenCommonPrefix(keyNibbles, prefixNibbles)
 
 				if length == len(prefixNibbles) {
@@ -1401,7 +1401,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 
 	for _, testCase := range cases {
 		for _, prefix := range prefixes {
-			prefixNibbles := decode.KeyLEToNibbles(prefix)
+			prefixNibbles := codec.KeyLEToNibbles(prefix)
 			if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 				prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
 			}
@@ -1441,7 +1441,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				for _, test := range testCase {
 					val := ssTrie.Get(test.key)
 
-					keyNibbles := decode.KeyLEToNibbles(test.key)
+					keyNibbles := codec.KeyLEToNibbles(test.key)
 					length := lenCommonPrefix(keyNibbles, prefixNibbles)
 
 					if length == len(prefixNibbles) {

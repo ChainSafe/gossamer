@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ChainSafe/gossamer/lib/trie/branch"
-	"github.com/ChainSafe/gossamer/lib/trie/leaf"
 	"github.com/ChainSafe/gossamer/lib/trie/node"
 	"github.com/ChainSafe/gossamer/lib/trie/pools"
 )
@@ -33,13 +31,13 @@ func decodeNode(reader io.Reader) (n node.Node, err error) {
 	nodeType := header >> 6
 	switch nodeType {
 	case node.LeafType:
-		n, err = leaf.Decode(reader, header)
+		n, err = node.DecodeLeaf(reader, header)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
 	case node.BranchType, node.BranchWithValueType:
-		n, err = branch.Decode(reader, header)
+		n, err = node.DecodeBranch(reader, header)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
 		}

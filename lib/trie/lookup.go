@@ -6,7 +6,6 @@ package trie
 import (
 	"bytes"
 
-	"github.com/ChainSafe/gossamer/lib/trie/branch"
 	"github.com/ChainSafe/gossamer/lib/trie/node"
 	"github.com/ChainSafe/gossamer/lib/trie/record"
 )
@@ -30,7 +29,7 @@ func find(parent node.Node, key []byte, recorder recorder) error {
 
 	recorder.Record(hash, enc)
 
-	b, ok := parent.(*branch.Branch)
+	b, ok := parent.(*node.Branch)
 	if !ok {
 		return nil
 	}

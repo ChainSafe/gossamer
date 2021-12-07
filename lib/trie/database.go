@@ -9,9 +9,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie/branch"
-	"github.com/ChainSafe/gossamer/lib/trie/decode"
-	"github.com/ChainSafe/gossamer/lib/trie/leaf"
+	"github.com/ChainSafe/gossamer/lib/trie/codec"
 	"github.com/ChainSafe/gossamer/lib/trie/node"
 
 	"github.com/ChainSafe/chaindb"
@@ -50,7 +48,7 @@ func (t *Trie) store(db chaindb.Batch, curr node.Node) error {
 		return err
 	}
 
-	if c, ok := curr.(*branch.Branch); ok {
+	if c, ok := curr.(*node.Branch); ok {
 		for _, child := range c.Children {
 			if child == nil {
 				continue
@@ -108,7 +106,7 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 // loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting by the root
 func (t *Trie) loadProof(proof map[string]node.Node, curr node.Node) {
-	c, ok := curr.(*branch.Branch)
+	c, ok := curr.(*node.Branch)
 	if !ok {
 		return
 	}
@@ -153,7 +151,7 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 }
 
 func (t *Trie) load(db chaindb.Database, curr node.Node) error {
-	if c, ok := curr.(*branch.Branch); ok {
+	if c, ok := curr.(*node.Branch); ok {
 		for i, child := range c.Children {
 			if child == nil {
 				continue
@@ -186,7 +184,7 @@ func (t *Trie) load(db chaindb.Database, curr node.Node) error {
 
 // GetNodeHashes return hash of each key of the trie.
 func (t *Trie) GetNodeHashes(curr node.Node, keys map[common.Hash]struct{}) error {
-	if c, ok := curr.(*branch.Branch); ok {
+	if c, ok := curr.(*node.Branch); ok {
 		for _, child := range c.Children {
 			if child == nil {
 				continue
@@ -238,7 +236,7 @@ func GetFromDB(db chaindb.Database, root common.Hash, key []byte) ([]byte, error
 		return nil, nil
 	}
 
-	k := decode.KeyLEToNibbles(key)
+	k := codec.KeyLEToNibbles(key)
 
 	enc, err := db.Get(root[:])
 	if err != nil {
@@ -257,7 +255,7 @@ func getFromDB(db chaindb.Database, parent node.Node, key []byte) ([]byte, error
 	var value []byte
 
 	switch p := parent.(type) {
-	case *branch.Branch:
+	case *node.Branch:
 		length := lenCommonPrefix(p.Key, key)
 
 		// found the value at this node
@@ -275,7 +273,7 @@ func getFromDB(db chaindb.Database, parent node.Node, key []byte) ([]byte, error
 		}
 
 		// load child with potential value
-		enc, err := db.Get(p.Children[key[length]].(*leaf.Leaf).Hash)
+		enc, err := db.Get(p.Children[key[length]].(*node.Leaf).Hash)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find node in database: %w", err)
 		}
@@ -289,7 +287,7 @@ func getFromDB(db chaindb.Database, parent node.Node, key []byte) ([]byte, error
 		if err != nil {
 			return nil, err
 		}
-	case *leaf.Leaf:
+	case *node.Leaf:
 		if bytes.Equal(p.Key, key) {
 			return p.Value, nil
 		}
@@ -337,7 +335,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node.Node) error {
 		return err
 	}
 
-	if c, ok := curr.(*branch.Branch); ok {
+	if c, ok := curr.(*node.Branch); ok {
 		for _, child := range c.Children {
 			if child == nil {
 				continue
@@ -383,7 +381,7 @@ func (t *Trie) getInsertedNodeHashes(curr node.Node) ([]common.Hash, error) {
 	nodeHash := common.BytesToHash(hash)
 	nodeHashes = append(nodeHashes, nodeHash)
 
-	if c, ok := curr.(*branch.Branch); ok {
+	if c, ok := curr.(*node.Branch); ok {
 		for _, child := range c.Children {
 			if child == nil {
 				continue

@@ -8,8 +8,6 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie/branch"
-	"github.com/ChainSafe/gossamer/lib/trie/leaf"
 	"github.com/ChainSafe/gossamer/lib/trie/node"
 	"github.com/ChainSafe/gossamer/lib/trie/pools"
 
@@ -29,7 +27,7 @@ func (t *Trie) String() string {
 
 func (t *Trie) string(tree gotree.Tree, curr node.Node, idx int) {
 	switch c := curr.(type) {
-	case *branch.Branch:
+	case *node.Branch:
 		buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
 		buffer.Reset()
 
@@ -51,7 +49,7 @@ func (t *Trie) string(tree gotree.Tree, curr node.Node, idx int) {
 				t.string(sub, child, i)
 			}
 		}
-	case *leaf.Leaf:
+	case *node.Leaf:
 		buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
 		buffer.Reset()
 

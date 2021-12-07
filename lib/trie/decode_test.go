@@ -8,9 +8,6 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/trie/branch"
-	"github.com/ChainSafe/gossamer/lib/trie/decode"
-	"github.com/ChainSafe/gossamer/lib/trie/leaf"
 	"github.com/ChainSafe/gossamer/lib/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
@@ -47,7 +44,7 @@ func Test_decodeNode(t *testing.T) {
 				65, // node type 1 and key length 1
 				// missing key data byte
 			}),
-			errWrapped: decode.ErrReadKeyData,
+			errWrapped: node.ErrReadKeyData,
 			errMessage: "cannot decode leaf: cannot decode key: cannot read key data: EOF",
 		},
 		"leaf success": {
@@ -60,7 +57,7 @@ func Test_decodeNode(t *testing.T) {
 					scaleEncodeBytes(t, 1, 2, 3)...,
 				),
 			),
-			n: &leaf.Leaf{
+			n: &node.Leaf{
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3},
 				Dirty: true,
@@ -71,7 +68,7 @@ func Test_decodeNode(t *testing.T) {
 				129, // node type 2 and key length 1
 				// missing key data byte
 			}),
-			errWrapped: decode.ErrReadKeyData,
+			errWrapped: node.ErrReadKeyData,
 			errMessage: "cannot decode branch: cannot decode key: cannot read key data: EOF",
 		},
 		"branch success": {
@@ -82,7 +79,7 @@ func Test_decodeNode(t *testing.T) {
 					0, 0, // no children bitmap
 				},
 			),
-			n: &branch.Branch{
+			n: &node.Branch{
 				Key:   []byte{9},
 				Dirty: true,
 			},
