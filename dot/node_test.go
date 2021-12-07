@@ -7,9 +7,17 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/digest"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	gsync "github.com/ChainSafe/gossamer/dot/sync"
+	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
@@ -154,22 +162,7 @@ func TestNewNodeC(t *testing.T) {
 
 func TestNewNodeMock(t *testing.T) {
 	ctrl := gomock.NewController(t)
-
-	m := NewMocknewNodeIface(ctrl)
-	m.EXPECT().nodeInitialised(gomock.Any()).Return(true).AnyTimes()
-	m.EXPECT().createStateService(gomock.Any()).Return(&state.Service{}, nil).AnyTimes()
-	m.EXPECT().createRuntimeStorage(gomock.Any()).AnyTimes()
-	m.EXPECT().loadRuntime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	m.EXPECT().createBlockVerifier(gomock.Any()).AnyTimes()
-	m.EXPECT().createDigestHandler(gomock.Any()).AnyTimes()
-	m.EXPECT().createCoreService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	m.EXPECT().createGRANDPAService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	m.EXPECT().newSyncService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any()).AnyTimes()
-	m.EXPECT().createBABEService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	m.EXPECT().createSystemService(gomock.Any(), gomock.Any()).AnyTimes()
-	m.EXPECT().initialiseTelemetry(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	m.EXPECT().createNetworkService(gomock.Any(), gomock.Any()).AnyTimes()
+	defer ctrl.Finish()
 
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -194,7 +187,10 @@ func TestNewNodeMock(t *testing.T) {
 					Global:  GlobalConfig{BasePath: cfg.Global.BasePath},
 					Init:    InitConfig{Genesis: genFile.Name()},
 					Account: AccountConfig{Key: "alice"},
-					Core:    CoreConfig{WasmInterpreter: wasmer.Name},
+					Core: CoreConfig{
+						Roles:           types.FullNodeRole,
+						WasmInterpreter: wasmer.Name,
+					},
 				},
 			},
 		},
@@ -203,6 +199,29 @@ func TestNewNodeMock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ks, err := InitKeystore(tt.args.cfg)
 			assert.NoError(t, err)
+			m := NewMocknewNodeIface(ctrl)
+			m.EXPECT().nodeInitialised(tt.args.cfg.Global.BasePath).Return(true)
+			m.EXPECT().createStateService(tt.args.cfg).Return(&state.Service{}, nil)
+			m.EXPECT().createRuntimeStorage(&state.Service{}).Return(&runtime.NodeStorage{}, nil)
+			m.EXPECT().loadRuntime(tt.args.cfg, &runtime.NodeStorage{}, &state.Service{}, ks, &network.Service{}).Return(nil)
+			m.EXPECT().createBlockVerifier(&state.Service{}).Return(&babe.VerificationManager{}, nil)
+			m.EXPECT().createDigestHandler(&state.Service{}).Return(&digest.Handler{}, nil)
+			m.EXPECT().createCoreService(tt.args.cfg, ks, &state.Service{}, &network.Service{},
+				&digest.Handler{}).Return(&core.Service{}, nil)
+			m.EXPECT().createGRANDPAService(tt.args.cfg, &state.Service{}, &digest.Handler{}, ks.Gran,
+				&network.Service{}).Return(&grandpa.Service{}, nil)
+			m.EXPECT().newSyncService(tt.args.cfg, &state.Service{}, &grandpa.Service{}, &babe.VerificationManager{},
+				&core.Service{}, &network.Service{}).Return(&gsync.Service{}, nil)
+			m.EXPECT().createBABEService(tt.args.cfg, &state.Service{}, ks.Babe,
+				&core.Service{}).Return(&babe.Service{}, nil)
+			m.EXPECT().createSystemService(&tt.args.cfg.System, &state.Service{}).Return(&system.Service{}, nil)
+			netA := &network.Service{}
+			netA.SetTransactionHandler(&core.Service{})
+			netA.SetSyncer(&gsync.Service{})
+			m.EXPECT().initialiseTelemetry(tt.args.cfg, &state.Service{}, netA,
+				&system.Service{})
+			m.EXPECT().createNetworkService(tt.args.cfg, &state.Service{}).Return(&network.Service{}, nil)
+
 			got, err := newNode(tt.args.cfg, ks, m)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
