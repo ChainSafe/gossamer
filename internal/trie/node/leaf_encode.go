@@ -9,9 +9,9 @@ import (
 	"hash"
 	"io"
 
+	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie/codec"
-	"github.com/ChainSafe/gossamer/lib/trie/pools"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie/pools"
 
 	"github.com/disiqueira/gotree"
 )

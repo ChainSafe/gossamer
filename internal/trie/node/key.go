@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/trie/codec"
-	"github.com/ChainSafe/gossamer/lib/trie/pools"
 )
 
 // SetKey sets the key to the branch.

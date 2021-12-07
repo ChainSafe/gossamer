@@ -10,7 +10,7 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/lib/trie/pools"
+	"github.com/ChainSafe/gossamer/internal/trie/pools"
 )
 
 var (
