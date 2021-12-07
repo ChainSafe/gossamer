@@ -211,7 +211,7 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	if err != nil {
 		logger.Warnf("failed to load global node name from base path %s: %s", basepath, err)
 	}
-	return
+	return nodename, err
 }
 
 // NewNode to create node
