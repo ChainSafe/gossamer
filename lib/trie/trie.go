@@ -7,10 +7,10 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie/codec"
 )
 
 // EmptyHash is the empty trie hash.

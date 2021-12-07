@@ -10,9 +10,9 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/record"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie/codec"
 )
 
 var (
