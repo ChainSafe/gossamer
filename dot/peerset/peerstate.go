@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -108,6 +109,8 @@ type PeersState struct {
 	// configuration of each set. The size of this Info is never modified.
 	// since, single Info can also manage the flow.
 	sets []Info
+
+	mu *sync.Mutex
 }
 
 func (ps *PeersState) getNode(p peer.ID) (*node, error) {
@@ -139,6 +142,7 @@ func NewPeerState(cfgs []*config) (*PeersState, error) {
 	peerState := &PeersState{
 		nodes: make(map[peer.ID]*node),
 		sets:  infoSet,
+		mu:    new(sync.Mutex),
 	}
 
 	return peerState, nil
@@ -205,6 +209,21 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 	}
 
 	return peerIDs
+}
+
+func (ps *PeersState) addReputation(pid peer.ID, change ReputationChange) (Reputation, error) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	n, err := ps.getNode(pid)
+	if err != nil {
+		return 0, err
+	}
+
+	rep := n.addReputation(change.Value)
+	ps.nodes[pid] = n
+
+	return rep, nil
 }
 
 // highestNotConnectedPeer returns the peer with the highest Reputation and that we are not connected to.

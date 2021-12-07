@@ -230,6 +230,7 @@ func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 	// TODO: currently we only have one set, change this once we have more (#1886).
 	cfgSet := cfg.Set[0]
 	now := time.Now()
+
 	ps := &PeerSet{
 		peerState:              peerState,
 		reservedNode:           make(map[peer.ID]struct{}),
@@ -321,13 +322,11 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	}
 
 	for _, pid := range peers {
-		n, err := ps.peerState.getNode(pid)
+		rep, err := ps.peerState.addReputation(pid, change)
 		if err != nil {
 			return err
 		}
 
-		rep := n.addReputation(change.Value)
-		ps.peerState.nodes[pid] = n
 		if rep >= BannedThresholdValue {
 			return nil
 		}
