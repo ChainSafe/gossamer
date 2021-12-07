@@ -176,17 +176,17 @@ func Test_DecodeLeaf(t *testing.T) {
 		},
 		"value decoding error": {
 			reader: bytes.NewBuffer([]byte{
-				9, // key data
-				// missing value data
+				9,        // key data
+				255, 255, // bad value data
 			}),
 			header:     65, // node type 1 and key length 1
 			errWrapped: ErrDecodeValue,
-			errMessage: "cannot decode value: EOF",
+			errMessage: "cannot decode value: could not decode invalid integer",
 		},
 		"zero value": {
 			reader: bytes.NewBuffer([]byte{
 				9, // key data
-				0, // missing value data
+				// missing value data
 			}),
 			header: 65, // node type 1 and key length 1
 			leaf: &Leaf{

@@ -30,17 +30,17 @@ func Test_decodeNode(t *testing.T) {
 		errMessage string
 	}{
 		"no data": {
-			reader:     bytes.NewBuffer(nil),
+			reader:     bytes.NewReader(nil),
 			errWrapped: ErrReadHeaderByte,
 			errMessage: "cannot read header byte: EOF",
 		},
 		"unknown node type": {
-			reader:     bytes.NewBuffer([]byte{0}),
+			reader:     bytes.NewReader([]byte{0}),
 			errWrapped: ErrUnknownNodeType,
 			errMessage: "unknown node type: 0",
 		},
 		"leaf decoding error": {
-			reader: bytes.NewBuffer([]byte{
+			reader: bytes.NewReader([]byte{
 				65, // node type 1 and key length 1
 				// missing key data byte
 			}),
@@ -48,7 +48,7 @@ func Test_decodeNode(t *testing.T) {
 			errMessage: "cannot decode leaf: cannot decode key: cannot read key data: EOF",
 		},
 		"leaf success": {
-			reader: bytes.NewBuffer(
+			reader: bytes.NewReader(
 				append(
 					[]byte{
 						65, // node type 1 and key length 1
@@ -64,7 +64,7 @@ func Test_decodeNode(t *testing.T) {
 			},
 		},
 		"branch decoding error": {
-			reader: bytes.NewBuffer([]byte{
+			reader: bytes.NewReader([]byte{
 				129, // node type 2 and key length 1
 				// missing key data byte
 			}),
@@ -72,7 +72,7 @@ func Test_decodeNode(t *testing.T) {
 			errMessage: "cannot decode branch: cannot decode key: cannot read key data: EOF",
 		},
 		"branch success": {
-			reader: bytes.NewBuffer(
+			reader: bytes.NewReader(
 				[]byte{
 					129,  // node type 2 and key length 1
 					9,    // key data

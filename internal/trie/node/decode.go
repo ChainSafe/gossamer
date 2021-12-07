@@ -79,32 +79,32 @@ func DecodeBranch(reader io.Reader, header byte) (branch *Branch, err error) {
 }
 
 // DecodeLeaf reads and decodes from a reader with the encoding specified in lib/trie/node/encode_doc.go.
-func DecodeLeaf(r io.Reader, header byte) (leaf *Leaf, err error) {
+func DecodeLeaf(reader io.Reader, header byte) (leaf *Leaf, err error) {
 	nodeType := header >> 6
 	if nodeType != 1 {
 		return nil, fmt.Errorf("%w: %d", ErrNodeTypeIsNotALeaf, nodeType)
 	}
 
-	leaf = new(Leaf)
+	leaf = &Leaf{
+		Dirty: true,
+	}
 
 	keyLen := header & 0x3f
-	leaf.Key, err = decodeKey(r, keyLen)
+	leaf.Key, err = decodeKey(reader, keyLen)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
 	}
 
-	sd := scale.NewDecoder(r)
+	sd := scale.NewDecoder(reader)
 	var value []byte
 	err = sd.Decode(&value)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeValue, err)
 	}
 
 	if len(value) > 0 {
 		leaf.Value = value
 	}
-
-	leaf.Dirty = true
 
 	return leaf, nil
 }
