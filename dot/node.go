@@ -199,9 +199,9 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	}
 
 	defer func() {
-		e := db.Close()
-		if e != nil {
-			logger.Errorf("failed to close database: %s", e)
+		closeErr := db.Close()
+		if closeErr != nil {
+			logger.Errorf("failed to close database: %s", closeErr)
 			return
 		}
 	}()
