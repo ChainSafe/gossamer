@@ -40,7 +40,7 @@ func (s *Service) receiveMessages(ctx context.Context) {
 
 			switch vm.Message.Stage {
 			case prevote, primaryProposal:
-				err := telemetry.GetInstance().SendMessage(
+				err := telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrevoteTM(
 						vm.Message.Hash,
 						fmt.Sprint(vm.Message.Number),
@@ -51,7 +51,7 @@ func (s *Service) receiveMessages(ctx context.Context) {
 					logger.Debugf("problem sending afg.received_prevote telemetry message: %s", err)
 				}
 			case precommit:
-				err := telemetry.GetInstance().SendMessage(
+				err := telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrecommitTM(
 						vm.Message.Hash,
 						fmt.Sprint(vm.Message.Number),

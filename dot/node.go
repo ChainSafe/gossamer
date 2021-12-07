@@ -318,12 +318,9 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, err
 	}
 
-	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
-
 	var telemetryEndpoints []*genesis.TelemetryEndpoint
 	if len(cfg.Global.TelemetryURLs) == 0 {
 		telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
-
 	} else {
 		telemetryURLs := cfg.Global.TelemetryURLs
 		for i := range telemetryURLs {
@@ -331,20 +328,26 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		}
 	}
 
-	telemetry.GetInstance().AddConnections(telemetryEndpoints)
-	genesisHash := stateSrvc.Block.GenesisHash()
-	err = telemetry.GetInstance().SendMessage(telemetry.NewSystemConnectedTM(
-		cfg.Core.GrandpaAuthority,
-		sysSrvc.ChainName(),
-		&genesisHash,
-		sysSrvc.SystemName(),
-		cfg.Global.Name,
-		networkSrvc.NetworkState().PeerID,
-		strconv.FormatInt(time.Now().UnixNano(), 10),
-		sysSrvc.SystemVersion()))
-	if err != nil {
-		logger.Debugf("problem sending system.connected telemetry message: %s", err)
+	if !cfg.Global.NoTelemetry {
+		telemetry.BootstrapMailer(context.Background(), telemetryEndpoints)
+
+		genesisHash := stateSrvc.Block.GenesisHash()
+		connectedMsg := telemetry.NewSystemConnectedTM(
+			cfg.Core.GrandpaAuthority,
+			sysSrvc.ChainName(),
+			&genesisHash,
+			sysSrvc.SystemName(),
+			cfg.Global.Name,
+			networkSrvc.NetworkState().PeerID,
+			strconv.FormatInt(time.Now().UnixNano(), 10),
+			sysSrvc.SystemVersion())
+
+		err := telemetry.SendMessage(connectedMsg)
+		if err != nil {
+			logger.Debugf("problem sending system.connected telemetry message: %s", err)
+		}
 	}
+
 	return node, nil
 }
 

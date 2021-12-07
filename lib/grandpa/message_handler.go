@@ -99,7 +99,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 		containsPrecommitsSignedBy[i] = authData.AuthorityID.String()
 	}
 
-	err := telemetry.GetInstance().SendMessage(
+	err := telemetry.SendMessage(
 		telemetry.NewAfgReceivedCommitTM(
 			msg.Vote.Hash,
 			fmt.Sprint(msg.Vote.Number),

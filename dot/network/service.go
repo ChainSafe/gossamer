@@ -393,7 +393,7 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
+			err := telemetry.SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
 			if err != nil {
 				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
@@ -415,7 +415,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		finalizedHash := finalised.Hash()
 
-		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
+		err = telemetry.SendMessage(telemetry.NewBlockIntervalTM(
 			&bestHash,
 			best.Number,
 			&finalizedHash,

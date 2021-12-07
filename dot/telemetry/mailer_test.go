@@ -5,6 +5,7 @@ package telemetry
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"math/big"
@@ -37,7 +38,8 @@ func TestMain(m *testing.M) {
 		Endpoint:  "ws://127.0.0.1:8001/",
 		Verbosity: 0,
 	}
-	GetInstance().AddConnections(append(testEndpoints, testEndpoint1))
+
+	BootstrapMailer(context.TODO(), append(testEndpoints, testEndpoint1))
 
 	// Start all tests
 	code := m.Run()
@@ -108,7 +110,8 @@ func TestHandler_SendMulti(t *testing.T) {
 	for _, message := range messages {
 		wg.Add(1)
 		go func(msg Message) {
-			GetInstance().SendMessage(msg)
+			//GetInstance().SendMessage(msg)
+			SendMessage(msg)
 			wg.Done()
 		}(message)
 	}
@@ -145,7 +148,9 @@ func TestListenerConcurrency(t *testing.T) {
 	for i := 0; i < qty; i++ {
 		go func() {
 			bestHash := common.Hash{}
-			GetInstance().SendMessage(NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync"))
+			//GetInstance().SendMessage(NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync"))
+			msg := NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync")
+			SendMessage(msg)
 
 			wg.Done()
 		}()
@@ -158,39 +163,6 @@ func TestListenerConcurrency(t *testing.T) {
 			break
 		}
 	}
-}
-
-func TestDisableInstance(t *testing.T) {
-	const qty = 1000
-	var wg sync.WaitGroup
-	wg.Add(qty)
-
-	resultCh = make(chan []byte)
-	for i := 0; i < qty; i++ {
-		if i == qty/2 {
-			GetInstance().Initialise(false)
-		}
-		go func() {
-			bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
-			GetInstance().SendMessage(NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync"))
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-	counter := 0
-	tk := time.NewTicker(time.Second * 2)
-main:
-	for {
-		select {
-		case <-tk.C:
-			break main
-		case <-resultCh:
-			counter++
-		}
-	}
-	tk.Stop()
-
-	require.LessOrEqual(t, counter, qty/2)
 }
 
 // TestInfiniteListener starts loop that print out data received on websocket ws://localhost:8001/

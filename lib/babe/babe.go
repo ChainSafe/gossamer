@@ -539,7 +539,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		"built block with parent hash %s, header %s and body %s",
 		parent.Hash(), block.Header.String(), block.Body)
 
-	err = telemetry.GetInstance().SendMessage(
+	err = telemetry.SendMessage(
 		telemetry.NewPreparedBlockForProposingTM(
 			block.Header.Hash(),
 			block.Header.Number.String(),

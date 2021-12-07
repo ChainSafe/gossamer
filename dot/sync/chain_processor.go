@@ -247,7 +247,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	logger.Debugf("🔗 imported block number %s with hash %s", block.Header.Number, block.Header.Hash())
 
 	blockHash := block.Header.Hash()
-	err = telemetry.GetInstance().SendMessage(telemetry.NewBlockImportTM(
+	err = telemetry.SendMessage(telemetry.NewBlockImportTM(
 		&blockHash,
 		block.Header.Number,
 		"NetworkInitialSync"))
