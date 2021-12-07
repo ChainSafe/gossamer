@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate mockgen -destination=buffer_mock_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/trie/encode Buffer
-
 func Test_Branch_Encode(t *testing.T) {
 	t.Parallel()
 
@@ -419,8 +417,6 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		})
 	}
 }
-
-//go:generate mockgen -destination=writer_mock_test.go -package $GOPACKAGE io Writer
 
 func Test_encodeChild(t *testing.T) {
 	t.Parallel()
