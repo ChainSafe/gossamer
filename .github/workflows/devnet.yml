@@ -63,9 +63,9 @@ jobs:
 
       - name: Scale down existing Bob and Charlie
         id: scale-down
-        working-directory: ./devnet
+        working-directory: ./devnet/cmd/scale-down-ecs-service
         run: |
-          go run cmd/scale-down-ecs-service/main.go -c gssmr-ecs -s="gssmr-ecs-(Charlie|Bob)Service-.+$"
+          go run . -c gssmr-ecs -s="gssmr-ecs-(Charlie|Bob)Service-.+$"
       
       - name: docker compose up
         id: docker-compose-up
