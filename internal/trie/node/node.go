@@ -14,6 +14,7 @@ type Node interface {
 	String() string
 	SetEncodingAndHash(encoding []byte, hash []byte)
 	GetHash() (hash []byte)
+	GetValue() (value []byte)
 	GetGeneration() (generation uint64)
 	SetGeneration(generation uint64)
 	Copy() Node
