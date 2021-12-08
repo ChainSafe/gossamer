@@ -13,6 +13,20 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 )
 
+// GetKey returns the key of the branch.
+// Note it does not copy the byte slice so modifying the returned
+// byte slice will modify the byte slice of the branch.
+func (b *Branch) GetKey() (value []byte) {
+	return b.Key
+}
+
+// GetKey returns the key of the leaf.
+// Note it does not copy the byte slice so modifying the returned
+// byte slice will modify the byte slice of the leaf.
+func (l *Leaf) GetKey() (value []byte) {
+	return l.Key
+}
+
 // SetKey sets the key to the branch.
 // Note it does not copy it so modifying the passed key
 // will modify the key stored in the branch.
