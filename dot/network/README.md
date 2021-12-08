@@ -1,6 +1,6 @@
 # Gossamer `network` Package
 
-This package emulates the [peer-to-peer networking capabilities](https://crates.parity.io/sc_network/index.html)
+This package implements the [peer-to-peer networking capabilities](https://crates.parity.io/sc_network/index.html)
 provided by the [Substrate](https://docs.substrate.io/) framework for blockchain development, which implies that it is
 built on the extensible [`libp2p` networking stack](https://docs.libp2p.io/introduction/what-is-libp2p/). `libp2p`
 provides implementations of a number of battle-tested peer-to-peer (P2P) networking protocols (e.g. [Noise](#noise) for
