@@ -5,6 +5,7 @@ package dot
 
 import (
 	"errors"
+	"github.com/golang/mock/gomock"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -292,6 +293,9 @@ func Test_createDigestHandler(t *testing.T) {
 }
 
 func Test_createGRANDPAService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	cfg := NewTestConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
@@ -301,26 +305,27 @@ func Test_createGRANDPAService(t *testing.T) {
 	cfg.Core.Roles = types.AuthorityRole
 	cfg.Init.Genesis = genFile.Name()
 
-	ni := nodeInterface{}
-	err := ni.initNode(cfg)
-	require.NoError(t, err)
+	//ni := nodeInterface{}
+	//err := ni.initNode(cfg)
+	//require.NoError(t, err)
 
-	stateSrvc, err := ni.createStateService(cfg)
-	require.NoError(t, err)
+	//stateSrvc, err := ni.createStateService(cfg)
+	//require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
 
-	ns, err := ni.createRuntimeStorage(stateSrvc)
-	require.NoError(t, err)
 
-	err = ni.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
-	require.NoError(t, err)
+	//ns, err := ni.createRuntimeStorage(stateSrvc)
+	//require.NoError(t, err)
 
-	dh, err := ni.createDigestHandler(stateSrvc)
-	require.NoError(t, err)
+	//err = ni.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
+	//require.NoError(t, err)
+
+	//dh, err := ni.createDigestHandler(stateSrvc)
+	//require.NoError(t, err)
 
 	type args struct {
 		cfg *Config
@@ -339,8 +344,8 @@ func Test_createGRANDPAService(t *testing.T) {
 			name: "invalid key type test",
 			args: args{
 				cfg: cfg,
-				st:  stateSrvc,
-				dh:  dh,
+				//st:  stateSrvc,
+				//dh:  dh,
 				ks:  ks.Babe,
 			},
 			err: errors.New("invalid keystore type"),
@@ -349,8 +354,8 @@ func Test_createGRANDPAService(t *testing.T) {
 			name: "working example",
 			args: args{
 				cfg: cfg,
-				st:  stateSrvc,
-				dh:  dh,
+				//st:  stateSrvc,
+				//dh:  dh,
 				ks:  ks.Gran,
 			},
 			want: &grandpa.Service{},
@@ -358,7 +363,10 @@ func Test_createGRANDPAService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ni.createGRANDPAService(tt.args.cfg, tt.args.st, tt.args.dh, tt.args.ks, tt.args.net)
+			mockNodeIface := NewMocknewNodeIface(ctrl)
+			mockNodeIface.EXPECT().createGRANDPAService(tt.args.cfg, nil, nil, tt.args.ks,
+				nil).Return(&grandpa.Service{}, nil)
+			got, err := mockNodeIface.createGRANDPAService(tt.args.cfg, tt.args.st, tt.args.dh, tt.args.ks, tt.args.net)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -632,10 +640,6 @@ func Test_createStateService(t *testing.T) {
 
 	ni := nodeInterface{}
 	err := ni.initNode(cfg)
-	//networkSrvc, err := createNetworkService(cfg, stateSrvc)
-	//require.NoError(t, err)
-	//
-	//gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	require.NoError(t, err)
 
 	cfg2 := NewTestConfig(t)
