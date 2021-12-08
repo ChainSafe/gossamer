@@ -23,8 +23,8 @@ project), Rust, Javascript, C++, and more. In addition to the standard library o
 implementation, there is a rich ecosystem of P2P networking packages that work with the pluggable architecture of
 `libp2p`. In some cases, Gossamer uses the `libp2p` networking primitives to implement custom protocols for
 blockchain-specific use cases. What follows is an exploration into three concepts that underpin P2P networks:
-[identity & key management](#identities--key-management),
-[peer discovery & management](#peer-discovery--management), and [stream multiplexing](#stream-multiplexing).
+[identity & key management](#identities--key-management), [peer discovery & management](#peer-discovery--management),
+and [stream multiplexing](#stream-multiplexing).
 
 ### Identity & Key Management
 
