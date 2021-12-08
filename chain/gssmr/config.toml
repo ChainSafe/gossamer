@@ -32,6 +32,7 @@ nobootstrap = false
 nomdns = false
 discovery-interval = 10
 min-peers = 1
+max-peers = 50
 
 [rpc]
 enabled = false

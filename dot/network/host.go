@@ -98,12 +98,16 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
+	// We have tried to set maxInPeers and maxOutPeers such that number of peer
+	// connections remain between min peers and max peers
 	const reservedOnly = false
 	peerCfgSet := peerset.NewConfigSet(
 		uint32(cfg.MaxPeers-cfg.MinPeers),
-		uint32(cfg.MinPeers),
+		uint32(cfg.MaxPeers/2),
 		reservedOnly,
-		peerSetSlotAllocTime)
+		peerSetSlotAllocTime,
+	)
+
 	// create connection manager
 	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 	if err != nil {

@@ -10,19 +10,26 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"math/big"
+	"os"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestStateModule_GetRuntimeVersion_Integration(t *testing.T) {
+const (
+	RandomHash     = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
+	ErrKeyNotFound = "Key not found"
+)
+
+func TestStateModule_GetRuntimeVersion(t *testing.T) {
 	// expected results based on responses from prior tests
 	expected := StateRuntimeVersionResponse{
 		SpecName:         "node",
@@ -88,7 +95,7 @@ func TestStateModule_GetRuntimeVersion_Integration(t *testing.T) {
 
 }
 
-func TestStateModule_GetPairs_Integration(t *testing.T) {
+func TestStateModule_GetPairs(t *testing.T) {
 	sm, hash, _ := setupStateModule(t)
 
 	randomHash, err := common.HexToHash(RandomHash)
@@ -103,8 +110,9 @@ func TestStateModule_GetPairs_Integration(t *testing.T) {
 		{params: []string{""}, expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
 		{params: []string{":key1"}, expected: []interface{}{[]string{":key1", "value1"}}},
 		{params: []string{"0x00", hash.String()}, expected: nil},
-		{params: []string{"", hash.String()},
-			expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
+		{params: []string{"", hash.String()}, expected: []interface{}{
+			[]string{":key1", "value1"},
+			[]string{":key2", "value2"}}},
 		{params: []string{":key1", hash.String()}, expected: []interface{}{[]string{":key1", "value1"}}},
 		{params: []string{"", randomHash.String()}, errMsg: "Key not found"},
 	}
@@ -157,7 +165,7 @@ func TestStateModule_GetPairs_Integration(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetStorage_Integration(t *testing.T) {
+func TestStateModule_GetStorage(t *testing.T) {
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
@@ -207,7 +215,7 @@ func TestStateModule_GetStorage_Integration(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetStorageHash_Integration(t *testing.T) {
+func TestStateModule_GetStorageHash(t *testing.T) {
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
@@ -259,7 +267,7 @@ func TestStateModule_GetStorageHash_Integration(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetStorageSize_Integration(t *testing.T) {
+func TestStateModule_GetStorageSize(t *testing.T) {
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
@@ -304,7 +312,7 @@ func TestStateModule_GetStorageSize_Integration(t *testing.T) {
 	}
 }
 
-func TestStateModule_QueryStorage_Integration(t *testing.T) {
+func TestStateModule_QueryStorage(t *testing.T) {
 	t.Run("When starting block is empty", func(t *testing.T) {
 		module := new(StateModule)
 		req := new(StateStorageQueryRangeRequest)
@@ -316,9 +324,8 @@ func TestStateModule_QueryStorage_Integration(t *testing.T) {
 
 	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
 		coreapimock := new(mocks.CoreAPI)
-		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"),
-			mock.AnythingOfType("common.Hash")).Return(nil, errors.New("problem while querying"))
-
+		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).
+		Return(nil, errors.New("problem while querying"))
 		module := new(StateModule)
 		module.coreAPI = coreapimock
 
@@ -341,8 +348,8 @@ func TestStateModule_QueryStorage_Integration(t *testing.T) {
 			}),
 		}
 		coreapimock := new(mocks.CoreAPI)
-		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"),
-			mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
+		coreapimock.On("QueryStorage",
+		mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
 
 		module := new(StateModule)
 		module.coreAPI = coreapimock
@@ -356,27 +363,23 @@ func TestStateModule_QueryStorage_Integration(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, res, 1)
 
-		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"),
-			mock.AnythingOfType("common.Hash"), "0x90", "0x80")
+		coreapimock.AssertCalled(t, "QueryStorage",
+			mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80")
 	})
 }
 
-func TestStateModule_GetMetadata_Integration(t *testing.T) {
+func TestStateModule_GetMetadata(t *testing.T) {
 	t.Skip() // TODO: update expected_metadata (#1026)
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
-	expectedMetadata, err := ioutil.ReadFile("./test_data/expected_metadata")
+	expectedMetadata, err := os.ReadFile("./test_data/expected_metadata")
 	require.NoError(t, err)
 
 	testCases := []struct {
 		params string
-		errMsg string
-	}{
-		{params: ""},
 		{params: hash.String()},
-		{params: randomHash.String(), errMsg: ErrKeyNotFound},
 	}
 
 	for _, test := range testCases {
@@ -403,7 +406,7 @@ func TestStateModule_GetMetadata_Integration(t *testing.T) {
 	}
 }
 
-func TestStateModule_GetKeysPaged_Integration(t *testing.T) {
+func TestStateModule_GetKeysPaged(t *testing.T) {
 	sm, _, stateRootHash := setupStateModule(t)
 
 	testCases := []struct {
@@ -464,7 +467,7 @@ func TestStateModule_GetKeysPaged_Integration(t *testing.T) {
 	}
 }
 
-func TestGetReadProof_WhenCoreAPIReturnsError_Integration(t *testing.T) {
+func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
 	coreAPIMock := new(mocks.CoreAPI)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
@@ -480,7 +483,7 @@ func TestGetReadProof_WhenCoreAPIReturnsError_Integration(t *testing.T) {
 	require.Error(t, err, "mocked error")
 }
 
-func TestGetReadProof_WhenReturnsProof_Integration(t *testing.T) {
+func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 	expectedBlock := common.BytesToHash([]byte("random hash"))
 	mockedProof := [][]byte{[]byte("proof-1"), []byte("proof-2")}
 
@@ -507,4 +510,45 @@ func TestGetReadProof_WhenReturnsProof_Integration(t *testing.T) {
 	}
 
 	require.Equal(t, res.Proof, expectedProof)
+}
+
+func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
+	// setup service
+	net := newNetworkService(t)
+	chain := newTestStateService(t)
+	// init storage with test data
+	ts, err := chain.Storage.TrieState(nil)
+	require.NoError(t, err)
+
+	ts.Set([]byte(`:key2`), []byte(`value2`))
+	ts.Set([]byte(`:key1`), []byte(`value1`))
+	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+
+	sr1, err := ts.Root()
+	require.NoError(t, err)
+	err = chain.Storage.StoreTrie(ts, nil)
+	require.NoError(t, err)
+
+	b := &types.Block{
+		Header: types.Header{
+			ParentHash: chain.Block.BestBlockHash(),
+			Number:     big.NewInt(3),
+			StateRoot:  sr1,
+		},
+		Body: *types.NewBody([]types.Extrinsic{[]byte{}}),
+	}
+
+	err = chain.Block.AddBlock(b)
+	require.NoError(t, err)
+
+	rt, err := chain.Block.GetRuntime(&b.Header.ParentHash)
+	require.NoError(t, err)
+
+	chain.Block.StoreRuntime(b.Header.Hash(), rt)
+
+	hash, err := chain.Block.GetHashByNumber(big.NewInt(3))
+	require.NoError(t, err)
+
+	core := newCoreService(t, chain)
+	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }

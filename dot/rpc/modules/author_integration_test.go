@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"testing"
 
@@ -57,17 +58,11 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 	state2test.Transaction = state.NewTransactionState()
 
 	auth := setupAuhtorModule2Test(t, &integrationTestController{stateSrv: state2test})
-
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
 
 	require.NoError(t, err)
 	require.Equal(t, PendingExtrinsicsResponse([]string{}), *res)
-
-	vtx := &transaction.ValidTransaction{
-		Extrinsic: types.NewExtrinsic([]byte{0x01, 0x02}),
-		Validity:  new(transaction.Validity),
-	}
 
 	_, err = state2test.Transaction.Push(vtx)
 	require.NoError(t, err)
@@ -397,7 +392,6 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
 	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
 
-	const sr25519Seed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
 	const sr25519Pubk = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
 
 	insertSessionKeys := []struct {
