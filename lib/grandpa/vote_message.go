@@ -65,7 +65,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 				logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
 			}
 
-			v, err := s.validateMessage(msg.from, vm)
+			v, err := s.validateVoteMessage(msg.from, vm)
 			if err != nil {
 				logger.Debugf("failed to validate vote message %v: %s", vm, err)
 				continue
@@ -122,9 +122,9 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 	return pc, vm, nil
 }
 
-// validateMessage validates a VoteMessage and adds it to the current votes
+// validateVoteMessage validates a VoteMessage and adds it to the current votes
 // it returns the resulting vote if validated, error otherwise
-func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
+func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	// make sure round does not increment while VoteMessage is being validated
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
@@ -153,12 +153,13 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 		return nil, err
 	}
 
-	// check that setIDs match
+	// TODO: Change in set ID means possible change in voters (authorities). That
+	// would make me think that I could avoid the message in this case. Is that so?
+	// It seems the vote is considered invalid if set ID do not match.
 	if m.SetID != s.state.setID {
 		return nil, ErrSetIDMismatch
 	}
 
-	// This is where round mismatch is being checked
 	// check that vote is for current round
 	if m.Round != s.state.round {
 		if m.Round < s.state.round {
@@ -230,6 +231,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 
 	equivocated := s.checkForEquivocation(voter, just, m.Message.Stage)
 	if equivocated {
+		// A vote is considered invalid if it is equivocatory
 		return nil, ErrEquivocation
 	}
 

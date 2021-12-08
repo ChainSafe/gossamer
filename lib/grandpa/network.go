@@ -154,10 +154,8 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 
 	switch m.(type) {
 	case *NeighbourMessage:
-		// TODO: why don't we do anything?
 		return false, nil
 	case *CatchUpResponse:
-		// TODO: why don't we do anything?
 		return false, nil
 	}
 

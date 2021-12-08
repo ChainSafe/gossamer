@@ -25,8 +25,6 @@ type tracker struct {
 	in             chan *types.Block // receive imported block from BlockState
 	stopped        chan struct{}
 	// round is used as key
-	catchUpRequestMessages map[uint64]*CatchUpRequest
-	// round is used as key
 	catchUpResponseMessages map[uint64]*CatchUpResponse
 }
 
@@ -72,13 +70,6 @@ func (t *tracker) addCommit(cm *CommitMessage) {
 	t.mapLock.Lock()
 	defer t.mapLock.Unlock()
 	t.commitMessages[cm.Vote.Hash] = cm
-}
-
-func (t *tracker) addCatchUpRequest(cr *CatchUpRequest) {
-	t.mapLock.Lock()
-	defer t.mapLock.Unlock()
-
-	t.catchUpRequestMessages[cr.Round] = cr
 }
 
 func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) {

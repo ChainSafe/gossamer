@@ -57,16 +57,15 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		// if it errors.
 		return nil, h.handleNeighbourMessage(msg)
 	case *CatchUpRequest:
-		notificationsMessage, err := h.handleCatchUpRequest(msg)
-		if err != nil {
-			// TODO: If I can directly access tracker, why are we using in channel for
-			// networkVoteMessage
-			h.grandpa.tracker.addCatchUpRequest(msg)
-		}
-		return notificationsMessage, err
+		// CatchUpRequest seems like something that can be dropped, if we fail
+		// to process it
+		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
 		err := h.handleCatchUpResponse(msg)
+		// TODO: Retry for which errors
 		if err != nil {
+			// TODO: If I can directly access tracker, why are we using `in` channel for
+			// networkVoteMessage
 			h.grandpa.tracker.addCatchUpResponse(msg)
 		}
 		return nil, err

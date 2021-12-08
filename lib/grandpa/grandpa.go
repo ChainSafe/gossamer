@@ -552,7 +552,6 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
-	// this for loop might be the place where messages are getting rebroadcasted
 	for {
 		if s.paused.Load().(bool) {
 			return
