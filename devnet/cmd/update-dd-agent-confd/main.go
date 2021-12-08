@@ -4,10 +4,9 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"log"
-
-	_ "embed"
 
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/yaml.v2"
