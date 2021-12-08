@@ -5,11 +5,11 @@ provided by the [Substrate](https://docs.substrate.io/) framework for blockchain
 built on the extensible [`libp2p` networking stack](https://docs.libp2p.io/introduction/what-is-libp2p/). `libp2p`
 provides implementations of a number of battle-tested peer-to-peer (P2P) networking protocols (e.g. [Noise](#noise) for
 [key exchange](#identities--key-management), and [Yamux](#yamux) for [stream multiplexing](#stream-multiplexing)), and
-also makes it possible to implement the blockchain-specific protocols defined by Substrate (e.g. authoring and
-finalising blocks, and maintaining the [transaction pool](https://docs.substrate.io/v3/concepts/tx-pool/)). The purpose
-of this document is to provide the information that is needed to understand the P2P networking capabilities that are
-implemented by Gossamer - this includes an introduction to P2P networks and `libp2p`, as well as detailed descriptions
-of the Gossamer P2P networking protocols.
+also makes it possible to implement the blockchain-specific protocols defined by Substrate (e.g. [syncing](#sync) and
+[finalising](#GRANDPA) blocks, and maintaining the [transaction pool](#transactions)). The purpose of this document is
+to provide the information that is needed to understand the P2P networking capabilities that are implemented by
+Gossamer - this includes an introduction to P2P networks and `libp2p`, as well as detailed descriptions of the Gossamer
+P2P networking protocols.
 
 ## Peer-to-Peer Networking & `libp2p`
 
@@ -96,9 +96,9 @@ participants in a peer-to-peer network can use to establish message-passing chan
 
 #### Yamux
 
-[Yamux (Yet another Multiplexer)](https://github.com/hashicorp/yamux) is a Golang library for stream-oriented
-multiplexing that is maintained by [HashiCorp](https://www.hashicorp.com/) - it implements a well defined
-[specification](https://github.com/hashicorp/yamux/blob/master/spec.md). Gossamer uses
+[Yamux (Yet another Multiplexer)](https://github.com/hashicorp/yamux) is a Golang library for
+[stream-oriented multiplexing](#stream-multiplexing) that is maintained by [HashiCorp](https://www.hashicorp.com/) - it
+implements a well defined [specification](https://github.com/hashicorp/yamux/blob/master/spec.md). Gossamer uses
 [the official `libp2p` adapter](https://github.com/libp2p/go-libp2p-yamux) for Yamux.
 
 #### Kademlia
@@ -149,7 +149,8 @@ the [BABE pre-runtime digest](https://crates.parity.io/sp_consensus_babe/digests
 
 [Finality](https://wiki.polkadot.network/docs/learn-consensus#finality-gadget-grandpa) protocols ("gadgets") such as
 GRANDPA are often described in terms of "games" that are played by the participants in a network. In GRANDPA, this game
-relates to voting on the blocks that inform the canonical chain
+relates to voting on the blocks that inform the canonical chain. This notification protocol is used by peers to cast
+votes for participation in the GRANDPA game.
 
 ##### Request/Response Protocols
 
@@ -169,7 +170,8 @@ that ships with Substrate.
 
 Light clients, like [Substrate Connect](https://paritytech.github.io/substrate-connect/), increase the decentralization
 of blockchain networks by allowing users to interact with the network _directly_ through client applications, as opposed
-to using a client application to send a request to a node in the network. This protocol allows light clients to request
-information about the state of the network. The `Request` and `Response` messages for this protocol are defined in
+to using a client application to send a request to an intermediary node in the network. This protocol allows light
+clients to request information about the state of the network. The `Request` and `Response` messages for this protocol
+are defined in
 [the `light.v1.proto`](https://github.com/paritytech/substrate/blob/master/client/network/src/schema/light.v1.proto)
 that ships with Substrate.
