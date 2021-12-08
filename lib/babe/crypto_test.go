@@ -5,14 +5,14 @@ package babe
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestCalculateThreshold(t *testing.T) {
-	//exp1, err := scale.NewUint128(big.NewInt(0))
-	//assert.NoError(t, err)
 	type args struct {
 		C1       uint64
 		C2       uint64
@@ -31,7 +31,7 @@ func TestCalculateThreshold(t *testing.T) {
 				C2: 2,
 				numAuths: 3,
 			},
-			exp: &scale.Uint128{Upper:0x34d00ad6148e1800, Lower:0x0},
+			exp: &scale.Uint128{Upper: 0x34d00ad6148e1800, Lower: 0x0},
 		},
 		{
 			name: "0 value input",
@@ -60,20 +60,64 @@ func TestCalculateThreshold(t *testing.T) {
 			},
 			exp: scale.MaxUint128,
 		},
-		// TODO Maybe come test this (might not be worth it/possible)
-		//{
-		//	name: "threshold to long",
-		//	args: args{
-		//		C1: (^uint64(0)) - 1090,
-		//		C2: ^uint64(0),
-		//		numAuths: 1,
-		//	},
-		//	expErr: errors.New("threshold must be under or equal to 16 bytes"),
-		//},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := CalculateThreshold(tt.args.C1, tt.args.C2, tt.args.numAuths)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
+func Test_checkPrimaryThreshold(t *testing.T) {
+	keyring, _ := keystore.NewSr25519Keyring()
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	type args struct {
+		randomness Randomness
+		slot       uint64
+		epoch      uint64
+		output     [sr25519.VRFOutputLength]byte
+		threshold  *scale.Uint128
+		pub        *sr25519.PublicKey
+	}
+	tests := []struct {
+		name    string
+		args    args
+		exp    bool
+		expErr error
+	}{
+		{
+			name: "happy path true",
+			args: args{
+				randomness: Randomness{},
+				slot: uint64(0),
+				epoch: uint64(0),
+				output: [32]byte{},
+				threshold: scale.MaxUint128,
+				pub: aliceKeypair.Public().(*sr25519.PublicKey),
+			},
+			exp: true,
+		},
+		{
+			name: "happy path false",
+			args: args{
+				randomness: Randomness{},
+				slot: uint64(0),
+				epoch: uint64(0),
+				output: [32]byte{},
+				threshold: &scale.Uint128{},
+				pub: aliceKeypair.Public().(*sr25519.PublicKey),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := checkPrimaryThreshold(tt.args.randomness, tt.args.slot, tt.args.epoch, tt.args.output, tt.args.threshold, tt.args.pub)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
