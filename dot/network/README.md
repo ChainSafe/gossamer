@@ -32,20 +32,20 @@ Many peer-to-peer networks, including those built with Gossamer, use
 [public-key cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) (also known as asymmetric cryptography)
 to allow network participants to securely identify themselves and interact with one another. The term "asymmetric"
 refers to the fact that in a public-key cryptography system, each participant's identity is associated with a set of two
-keys, each of which serve a distinct ("asymmetric") purpose. One of the keys in an asymmetric key pair is public, this
-is the key that the participant uses to identify themselves; the other key is private and is used by the network
-participant to "sign" messages in order to cryptographically prove that the message originated from the private key's
-owner. It may be constructive to think about a public key as a username and private key as a password, such as for a
-banking or social media website. Participants in P2P networks that use asymmetric cryptography must protect their
-private keys, as well as maintain indices of the public keys that belong to the other participants in the network.
-Gossamer provides a [keystore](../../lib/keystore) for securely storing private keys. There are a number of Gossamer
-processes that manage the public keys of network peers - some of these, such as
-[peer discovery and management](#peer-discovery--management), are described in this document, but there are other
-packages (most notably [`peerset`](../peerset)) that also interact with the public keys of network peers. One of the
-most critical details in a network that uses asymmetric cryptography is the
-[key distribution](https://en.wikipedia.org/wiki/Key_distribution) mechanism, which is the process that the nodes in the
-network use to securely exchange public keys - `libp2p` supports [Noise](#noise), a key distribution framework that is
-based on [Diffie-Hellman key exchange](https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange).
+keys, each of which serve a distinct ("asymmetric") purpose. One of the keys in an asymmetric key pair is private and is
+used by the network participant to "sign" messages in order to cryptographically prove that the message originated from
+the private key's owner; the other key is public, this is the key that the participant uses to identify themselves - it
+is distributed to network peers to allow for the decryption of messages signed by the corresponding public key. It may
+be constructive to think about a public key as a username and private key as a password, such as for a banking or social
+media website. Participants in P2P networks that use asymmetric cryptography must protect their private keys, as well as
+maintain indices of the public keys that belong to the other participants in the network. Gossamer provides a
+[keystore](../../lib/keystore) for securely storing private keys. There are a number of Gossamer processes that manage
+the public keys of network peers - some of these, such as [peer discovery and management](#peer-discovery--management),
+are described in this document, but there are other packages (most notably [`peerset`](../peerset)) that also interact
+with the public keys of network peers. One of the most critical details in a network that uses asymmetric cryptography
+is the [key distribution](https://en.wikipedia.org/wiki/Key_distribution) mechanism, which is the process that the nodes
+in the network use to securely exchange public keys - `libp2p` supports [Noise](#noise), a key distribution framework
+that is based on [Diffie-Hellman key exchange](https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange).
 
 ### Peer Discovery & Management
 
