@@ -57,6 +57,12 @@ jobs:
           docker build -f=devnet/bob.Dockerfile . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg key=charlie --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Scale down existing Bob and Charlie
+        id: scale-down
+        working-directory: ./devnet/gssmr-ecs
+        run: |
+          go run cmd/scale-down-ecs-service/main.go -c gssmr-ecs -s="gssmr-ecs-(Charlie|Bob)Service-.+$"
       
       - name: docker compose up
         id: docker-compose-up
