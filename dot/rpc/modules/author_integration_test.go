@@ -433,7 +433,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
 			expect: true,
 		},
-		"uknown public keys in the right order, should return false": {
+		"unknown public keys in the right order, should return false": {
 			pubSessionKeys: "0x740550da19ef14023ea3e903545a6700160a55be2e4b733b577c91b053e38b8d" + // gran
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // babe
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // imon
@@ -463,8 +463,9 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
-			var req HasSessionKeyRequest
-			req.PublicKeys = tt.pubSessionKeys
+			req := HasSessionKeyRequest{
+				PublicKeys: tt.pubSessionKeys
+			}
 
 			var res HasSessionKeyResponse
 
@@ -472,11 +473,10 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 
 			if tt.waitErr != nil {
 				require.EqualError(t, tt.waitErr, err.Error())
-				require.False(t, bool(res))
-				return
+			} else {
+				require.NoError(t, err)
 			}
 
-			require.NoError(t, err)
 			require.Equal(t, tt.expect, bool(res))
 		})
 	}

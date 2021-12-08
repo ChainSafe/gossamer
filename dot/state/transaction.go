@@ -59,8 +59,8 @@ func (s *TransactionState) PendingInPool() []*transaction.ValidTransaction {
 	return s.pool.Transactions()
 }
 
-// InPool returs true if a extrinsic is already in the pool, false otherwise
-func (s *TransactionState) InPool(ext types.Extrinsic) bool {
+// IsInPool returs true if a extrinsic is already in the pool, false otherwise
+func (s *TransactionState) IsInPool(ext types.Extrinsic) bool {
 	hash := ext.Hash()
 	vdt := s.pool.Get(hash)
 
