@@ -39,13 +39,14 @@ is distributed to network peers to allow for the decryption of messages signed b
 be constructive to think about a public key as a username and private key as a password, such as for a banking or social
 media website. Participants in P2P networks that use asymmetric cryptography must protect their private keys, as well as
 maintain indices of the public keys that belong to the other participants in the network. Gossamer provides a
-[keystore](../../lib/keystore) for securely storing private keys. There are a number of Gossamer processes that manage
-the public keys of network peers - some of these, such as [peer discovery and management](#peer-discovery--management),
-are described in this document, but there are other packages (most notably [`peerset`](../peerset)) that also interact
-with the public keys of network peers. One of the most critical details in a network that uses asymmetric cryptography
-is the [key distribution](https://en.wikipedia.org/wiki/Key_distribution) mechanism, which is the process that the nodes
-in the network use to securely exchange public keys - `libp2p` supports [Noise](#noise), a key distribution framework
-that is based on [Diffie-Hellman key exchange](https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange).
+[keystore](../../lib/keystore) for securely storing one's private keys. There are a number of Gossamer processes that
+manage the public keys of network peers - some of these, such as
+[peer discovery and management](#peer-discovery--management), are described in this document, but there are other
+packages (most notably [`peerset`](../peerset)) that also interact with the public keys of network peers. One of the
+most critical details in a network that uses asymmetric cryptography is the
+[key distribution](https://en.wikipedia.org/wiki/Key_distribution) mechanism, which is the process that the nodes in the
+network use to securely exchange public keys - `libp2p` supports [Noise](#noise), a key distribution framework that is
+based on [Diffie-Hellman key exchange](https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange).
 
 ### Peer Discovery & Management
 
