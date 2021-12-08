@@ -1,31 +1,32 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package runtime
+package crypto
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
-// Signature ...
-type Signature struct {
-	PubKey    []byte
-	Sign      []byte
-	Msg       []byte
-	KeyTypeID crypto.KeyType
+var ErrSignatureVerificationFailed = errors.New("failed to verify signature")
+
+// SigVerifyFunc verifies a signature given a public key and a message
+type SigVerifyFunc func(pubkey, sig, msg []byte) (err error)
+
+// SignatureInfo ...
+type SignatureInfo struct {
+	PubKey     []byte
+	Sign       []byte
+	Msg        []byte
+	VerifyFunc SigVerifyFunc
 }
 
 // SignatureVerifier ...
 type SignatureVerifier struct {
-	batch   []*Signature
+	batch   []*SignatureInfo
 	init    bool // Indicates whether the batch processing is started.
 	invalid bool // Set to true if any signature verification fails.
 	logger  log.LeveledLogger
@@ -41,7 +42,7 @@ type SignatureVerifier struct {
 // Signatures can be added to the batch using Add().
 func NewSignatureVerifier(logger log.LeveledLogger) *SignatureVerifier {
 	return &SignatureVerifier{
-		batch:   make([]*Signature, 0),
+		batch:   make([]*SignatureInfo, 0),
 		init:    false,
 		invalid: false,
 		logger:  logger,
@@ -66,11 +67,11 @@ func (sv *SignatureVerifier) Start() {
 			case <-sv.closeCh:
 				return
 			default:
-				sign := sv.Remove()
-				if sign == nil {
+				signature := sv.Remove()
+				if signature == nil {
 					continue
 				}
-				err := sign.verify()
+				err := signature.VerifyFunc(signature.PubKey, signature.Sign, signature.Msg)
 				if err != nil {
 					sv.logger.Errorf("[ext_crypto_start_batch_verify_version_1]: %s", err)
 					sv.Invalid()
@@ -103,7 +104,7 @@ func (sv *SignatureVerifier) Invalid() {
 }
 
 // Add ...
-func (sv *SignatureVerifier) Add(s *Signature) {
+func (sv *SignatureVerifier) Add(s *SignatureInfo) {
 	if sv.IsInvalid() {
 		return
 	}
@@ -114,7 +115,7 @@ func (sv *SignatureVerifier) Add(s *Signature) {
 }
 
 // Remove returns the first signature from the batch. Returns nil if batch is empty.
-func (sv *SignatureVerifier) Remove() *Signature {
+func (sv *SignatureVerifier) Remove() *SignatureInfo {
 	sv.Lock()
 	defer sv.Unlock()
 	if len(sv.batch) == 0 {
@@ -130,7 +131,7 @@ func (sv *SignatureVerifier) Reset() {
 	sv.Lock()
 	defer sv.Unlock()
 	sv.init = false
-	sv.batch = make([]*Signature, 0)
+	sv.batch = make([]*SignatureInfo, 0)
 	sv.invalid = false
 	sv.closeCh = make(chan struct{})
 }
@@ -152,33 +153,4 @@ func (sv *SignatureVerifier) Finish() bool {
 	isInvalid := sv.IsInvalid()
 	sv.Reset()
 	return !isInvalid
-}
-
-func (sig *Signature) verify() error {
-	switch sig.KeyTypeID {
-	case crypto.Ed25519Type:
-		pubKey, err := ed25519.NewPublicKey(sig.PubKey)
-		if err != nil {
-			return fmt.Errorf("failed to fetch ed25519 public key: %s", err)
-		}
-		ok, err := pubKey.Verify(sig.Msg, sig.Sign)
-		if err != nil || !ok {
-			return fmt.Errorf("failed to verify ed25519 signature: %s", err)
-		}
-	case crypto.Sr25519Type:
-		pubKey, err := sr25519.NewPublicKey(sig.PubKey)
-		if err != nil {
-			return fmt.Errorf("failed to fetch sr25519 public key: %s", err)
-		}
-		ok, err := pubKey.Verify(sig.Msg, sig.Sign)
-		if err != nil || !ok {
-			return fmt.Errorf("failed to verify sr25519 signature: %s", err)
-		}
-	case crypto.Secp256k1Type:
-		ok := secp256k1.VerifySignature(sig.PubKey, sig.Msg, sig.Sign)
-		if !ok {
-			return fmt.Errorf("failed to verify secp256k1 signature")
-		}
-	}
-	return nil
 }
