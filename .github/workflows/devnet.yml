@@ -60,7 +60,7 @@ jobs:
 
       - name: Scale down existing Bob and Charlie
         id: scale-down
-        working-directory: ./devnet/gssmr-ecs
+        working-directory: ./devnet
         run: |
           go run cmd/scale-down-ecs-service/main.go -c gssmr-ecs -s="gssmr-ecs-(Charlie|Bob)Service-.+$"
       
