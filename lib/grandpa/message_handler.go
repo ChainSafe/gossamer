@@ -53,11 +53,23 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case *CommitMessage:
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourMessage:
+		// It seems like we can afford to not retry handling neighbour message
+		// if it errors.
 		return nil, h.handleNeighbourMessage(msg)
 	case *CatchUpRequest:
-		return h.handleCatchUpRequest(msg)
+		notificationsMessage, err := h.handleCatchUpRequest(msg)
+		if err != nil {
+			// TODO: If I can directly access tracker, why are we using in channel for
+			// networkVoteMessage
+			h.grandpa.tracker.addCatchUpRequest(msg)
+		}
+		return notificationsMessage, err
 	case *CatchUpResponse:
-		return nil, h.handleCatchUpResponse(msg)
+		err := h.handleCatchUpResponse(msg)
+		if err != nil {
+			h.grandpa.tracker.addCatchUpResponse(msg)
+		}
+		return nil, err
 	default:
 		return nil, ErrInvalidMessageType
 	}

@@ -22,8 +22,8 @@ type networkVoteMessage struct {
 	msg  *VoteMessage
 }
 
-// receiveMessages receives messages from the in channel until the specified condition is met
-func (s *Service) receiveMessages(ctx context.Context) {
+// receiveVoteMessages receives messages from the in channel until the specified condition is met
+func (s *Service) receiveVoteMessages(ctx context.Context) {
 	for {
 		select {
 		case msg, ok := <-s.in:
@@ -158,6 +158,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 		return nil, ErrSetIDMismatch
 	}
 
+	// This is where round mismatch is being checked
 	// check that vote is for current round
 	if m.Round != s.state.round {
 		if m.Round < s.state.round {

@@ -483,7 +483,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	logger.Debug("receiving pre-vote messages...")
-	go s.receiveMessages(ctx)
+	go s.receiveVoteMessages(ctx)
 	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
@@ -507,6 +507,8 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
+	// <-roundComplete will receive the default value of channel's type when it gets
+	// closed, so we don't need to explicitly send a value.
 	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
@@ -550,6 +552,7 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
+	// this for loop might be the place where messages are getting rebroadcasted
 	for {
 		if s.paused.Load().(bool) {
 			return

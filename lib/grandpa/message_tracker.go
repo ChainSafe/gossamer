@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
-// tracker keeps track of messages that have been received that have failed to
+// tracker keeps track of messages that have been received, but have failed to
 // validate with ErrBlockDoesNotExist. These messages may be needed again in the
 // case that we are slightly out of sync with the rest of the network.
 type tracker struct {
@@ -24,18 +24,20 @@ type tracker struct {
 	mapLock        sync.Mutex
 	in             chan *types.Block // receive imported block from BlockState
 	stopped        chan struct{}
+	// round is used as key
+	catchUpRequestMessages map[uint64]*CatchUpRequest
+	// round is used as key
+	catchUpResponseMessages map[uint64]*CatchUpResponse
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) *tracker {
-	in := bs.GetImportedBlockNotifierChannel()
-
 	return &tracker{
 		blockState:     bs,
 		handler:        handler,
 		voteMessages:   make(map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage),
 		commitMessages: make(map[common.Hash]*CommitMessage),
 		mapLock:        sync.Mutex{},
-		in:             in,
+		in:             bs.GetImportedBlockNotifierChannel(),
 		stopped:        make(chan struct{}),
 	}
 }
@@ -72,6 +74,20 @@ func (t *tracker) addCommit(cm *CommitMessage) {
 	t.commitMessages[cm.Vote.Hash] = cm
 }
 
+func (t *tracker) addCatchUpRequest(cr *CatchUpRequest) {
+	t.mapLock.Lock()
+	defer t.mapLock.Unlock()
+
+	t.catchUpRequestMessages[cr.Round] = cr
+}
+
+func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) {
+	t.mapLock.Lock()
+	defer t.mapLock.Unlock()
+
+	t.catchUpResponseMessages[cr.Round] = cr
+}
+
 func (t *tracker) handleBlocks() {
 	for {
 		select {
@@ -94,6 +110,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 	h := b.Header.Hash()
 	if vms, has := t.voteMessages[h]; has {
 		for _, v := range vms {
+			// handleMessage would never error for vote message
 			_, err := t.handler.handleMessage(v.from, v.msg)
 			if err != nil {
 				logger.Warnf("failed to handle vote message %v: %s", v, err)
