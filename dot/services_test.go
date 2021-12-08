@@ -5,7 +5,6 @@ package dot
 
 import (
 	"errors"
-	"github.com/golang/mock/gomock"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -19,14 +18,15 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
-
 	"github.com/ChainSafe/gossamer/internal/pprof"
+	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -305,27 +305,10 @@ func Test_createGRANDPAService(t *testing.T) {
 	cfg.Core.Roles = types.AuthorityRole
 	cfg.Init.Genesis = genFile.Name()
 
-	//ni := nodeInterface{}
-	//err := ni.initNode(cfg)
-	//require.NoError(t, err)
-
-	//stateSrvc, err := ni.createStateService(cfg)
-	//require.NoError(t, err)
-
 	ks := keystore.NewGlobalKeystore()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
-
-
-	//ns, err := ni.createRuntimeStorage(stateSrvc)
-	//require.NoError(t, err)
-
-	//err = ni.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
-	//require.NoError(t, err)
-
-	//dh, err := ni.createDigestHandler(stateSrvc)
-	//require.NoError(t, err)
 
 	type args struct {
 		cfg *Config
@@ -344,8 +327,6 @@ func Test_createGRANDPAService(t *testing.T) {
 			name: "invalid key type test",
 			args: args{
 				cfg: cfg,
-				//st:  stateSrvc,
-				//dh:  dh,
 				ks:  ks.Babe,
 			},
 			err: errors.New("invalid keystore type"),
@@ -354,8 +335,6 @@ func Test_createGRANDPAService(t *testing.T) {
 			name: "working example",
 			args: args{
 				cfg: cfg,
-				//st:  stateSrvc,
-				//dh:  dh,
 				ks:  ks.Gran,
 			},
 			want: &grandpa.Service{},
@@ -365,7 +344,13 @@ func Test_createGRANDPAService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockNodeIface := NewMocknewNodeIface(ctrl)
 			mockNodeIface.EXPECT().createGRANDPAService(tt.args.cfg, nil, nil, tt.args.ks,
-				nil).Return(&grandpa.Service{}, nil)
+				nil).DoAndReturn(func(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore,
+				net *network.Service) (*grandpa.Service, error) {
+				if ks.Name() != "gran" || ks.Type() != crypto.Ed25519Type {
+					return nil, ErrInvalidKeystoreType
+				}
+				return &grandpa.Service{}, nil
+			})
 			got, err := mockNodeIface.createGRANDPAService(tt.args.cfg, tt.args.st, tt.args.dh, tt.args.ks, tt.args.net)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
