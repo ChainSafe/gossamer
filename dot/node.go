@@ -120,7 +120,7 @@ func (nodeInterface) nodeInitialised(basepath string) bool {
 	return true
 }
 
-// InitNode init Node
+// InitNode initialise the node with given Config
 func InitNode(cfg *Config) error {
 	nodeI := nodeInterface{}
 	return nodeI.initNode(cfg)
