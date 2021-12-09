@@ -329,7 +329,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 
 	if !cfg.Global.NoTelemetry {
-		telemetry.BootstrapMailer(context.Background(), telemetryEndpoints)
+		telemetryLogger := logger.New(log.AddContext("pkg", "telemetry"))
+		telemetry.BootstrapMailer(context.Background(), telemetryEndpoints, telemetryLogger)
 
 		genesisHash := stateSrvc.Block.GenesisHash()
 		connectedMsg := telemetry.NewSystemConnectedTM(

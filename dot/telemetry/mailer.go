@@ -30,21 +30,21 @@ type mailer struct {
 	logger       log.LeveledLogger
 }
 
-func newMailer() *mailer {
+func newMailer(logger log.LeveledLogger) *mailer {
 	return &mailer{
 		messageQueue: messageQueue,
-		logger:       log.NewFromGlobal(log.AddContext("pkg", "telemetry")),
+		logger:       logger,
 	}
 }
 
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
-func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint) {
+func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) {
 	const (
 		maxRetries = 5
 		retryDelay = time.Second * 15
 	)
 
-	mlr := newMailer()
+	mlr := newMailer(logger)
 
 	for _, v := range conns {
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
