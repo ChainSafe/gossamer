@@ -56,7 +56,7 @@ The Docker Compose file.  Specifies the IP addresses of all the nodes.
 
 ## ECS Fargate Deployment
 
-The `docker-compose.yml` file within `devnet/gssmr-ecs` folder uses Docker Compose ECS plugin to deploy and update an existing AWS ECS Cluster using the Fargate launch type running a Gossamer devnet with 3 services corresponding to the 3 keys used `alice`, `bob`, and `charlie`.  
+The [`docker-compose.yml`](gssmr-ecs/docker-compose.yml) file within `devnet/gssmr-ecs` folder uses Docker Compose ECS plugin to deploy and update an existing AWS ECS Cluster using the Fargate launch type running a Gossamer devnet with 3 services corresponding to the 3 keys used `alice`, `bob`, and `charlie`.  
 
 ### Deployment
 
