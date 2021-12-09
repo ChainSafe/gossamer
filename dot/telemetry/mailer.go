@@ -89,12 +89,17 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 // SendMessage sends Message to connected telemetry listeners throught messageReceiver
 func SendMessage(msg Message) error {
 	const messageTimeout = time.Second
-	t := time.NewTimer(messageTimeout)
-	defer t.Stop()
+
+	timer := time.NewTimer(messageTimeout)
+	defer timer.Stop()
 
 	select {
 	case messageQueue <- msg:
-	case <-t.C:
+		if !timer.Stop() {
+			<-timer.C
+		}
+
+	case <-timer.C:
 		return ErrTimoutMessageSending
 	}
 	return nil
