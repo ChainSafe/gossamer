@@ -44,13 +44,13 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 		retryDelay = time.Second * 15
 	)
 
-	mlr := newMailer(logger)
+	mailer := newMailer(logger)
 
 	for _, v := range conns {
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
-				mlr.logger.Debugf("issue adding telemetry connection: %s", err)
+				mailer.logger.Debugf("issue adding telemetry connection: %s", err)
 
 				timer := time.NewTimer(retryDelay)
 
@@ -58,14 +58,14 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 				case <-timer.C:
 					continue
 				case <-ctx.Done():
-					mlr.logger.Debugf("bootstrap telemetry issue: %w", ctx.Err())
+					mailer.logger.Debugf("bootstrap telemetry issue: %w", ctx.Err())
 
 					timer.Stop()
 					return
 				}
 			}
 
-			mlr.connections = append(mlr.connections, &telemetryConnection{
+			mailer.connections = append(mailer.connections, &telemetryConnection{
 				wsconn:    c,
 				verbosity: v.Verbosity,
 			})
@@ -73,7 +73,7 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 		}
 	}
 
-	go mlr.asyncShipment(ctx)
+	go mailer.asyncShipment(ctx)
 }
 
 // SendMessage sends Message to connected telemetry listeners throught messageReceiver
