@@ -15,12 +15,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const (
-	defaultMessageTimeout = time.Second
-	defaultMaxRetries     = 5
-	defaultRetryDelay     = time.Second * 15
-)
-
 var messageReceiver chan Message = make(chan Message, 256)
 
 type telemetryConnection struct {
@@ -45,14 +39,19 @@ func newMailer() *mailer {
 
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
 func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint) {
+	const (
+		maxRetries = 5
+		retryDelay = time.Second * 15
+	)
+
 	mlr := newMailer()
 
 	for _, v := range conns {
-		for connAttempts := 0; connAttempts < defaultMaxRetries; connAttempts++ {
+		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
 				mlr.log.Debugf("issue adding telemetry connection: %s", err)
-				time.Sleep(defaultRetryDelay)
+				time.Sleep(retryDelay)
 				continue
 			}
 
@@ -69,7 +68,8 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint) {
 
 // SendMessage sends Message to connected telemetry listeners throught messageReceiver
 func SendMessage(msg Message) error {
-	t := time.NewTimer(defaultMessageTimeout)
+	const messageTimeout = time.Second
+	t := time.NewTimer(messageTimeout)
 	defer t.Stop()
 
 	select {
