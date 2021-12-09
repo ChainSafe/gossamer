@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var messageReceiver chan Message = make(chan Message, 256)
+var messageQueue chan Message = make(chan Message, 256)
 
 type telemetryConnection struct {
 	wsconn    *websocket.Conn
@@ -25,15 +25,15 @@ type telemetryConnection struct {
 
 // Handler struct for holding telemetry related things
 type mailer struct {
-	msg         chan Message
-	connections []*telemetryConnection
-	log         log.LeveledLogger
+	messageQueue chan Message
+	connections  []*telemetryConnection
+	log          log.LeveledLogger
 }
 
 func newMailer() *mailer {
 	return &mailer{
-		msg: messageReceiver,
-		log: log.NewFromGlobal(log.AddContext("pkg", "telemetry")),
+		messageQueue: messageQueue,
+		log:          log.NewFromGlobal(log.AddContext("pkg", "telemetry")),
 	}
 }
 
@@ -73,7 +73,7 @@ func SendMessage(msg Message) error {
 	defer t.Stop()
 
 	select {
-	case messageReceiver <- msg:
+	case messageQueue <- msg:
 	case <-t.C:
 		return errors.New("timeout sending message")
 	}
@@ -85,7 +85,7 @@ func (m *mailer) asyncShipment(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case msg, ok := <-m.msg:
+		case msg, ok := <-m.messageQueue:
 			if !ok {
 				return
 			}
