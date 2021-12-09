@@ -329,7 +329,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 
 	if !cfg.Global.NoTelemetry {
-		telemetryLogger := logger.New(log.AddContext("pkg", "telemetry"))
+		telemetryLogger := log.NewFromGlobal(log.AddContext("pkg", "telemetry"))
 
 		err := telemetry.BootstrapMailer(context.Background(), telemetryEndpoints, telemetryLogger)
 		if err != nil {
