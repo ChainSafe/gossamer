@@ -33,7 +33,9 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           DD_API_KEY: ${{ secrets.DD_API_KEY }}
         run: |
-          docker build -f=devnet/alice.Dockerfile . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
+          docker build -f=devnet/alice.Dockerfile . --progress=plain \
+          -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
+          --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
@@ -45,7 +47,9 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           DD_API_KEY: ${{ secrets.DD_API_KEY }}
         run: |
-          docker build -f=devnet/bob.Dockerfile . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg key=bob --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
+          docker build -f=devnet/bob.Dockerfile . --progress=plain \
+          -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
+          --build-arg key=bob --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
@@ -57,7 +61,9 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           DD_API_KEY: ${{ secrets.DD_API_KEY }}
         run: |
-          docker build -f=devnet/bob.Dockerfile . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg key=charlie --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
+          docker build -f=devnet/bob.Dockerfile . --progress=plain \
+          -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
+          --build-arg key=charlie --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
