@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"os"
@@ -39,7 +40,7 @@ func TestMain(m *testing.M) {
 		Verbosity: 0,
 	}
 
-	logger := log.New(log.SetLevel(log.DoNotChange))
+	logger := log.New(log.SetWriter(io.Discard))
 	_ = BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), logger)
 
 	// Start all tests

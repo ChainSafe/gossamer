@@ -21,12 +21,6 @@ var (
 )
 var messageQueue chan Message = make(chan Message, 256)
 
-type telemetryMessage struct {
-	Message
-	MessageType string    `json:"msg"`
-	Timestamp   time.Time `json:"ts"`
-}
-
 type telemetryConnection struct {
 	wsconn    *websocket.Conn
 	verbosity int
@@ -97,7 +91,6 @@ func SendMessage(msg Message) error {
 	const messageTimeout = time.Second
 
 	timer := time.NewTimer(messageTimeout)
-	defer timer.Stop()
 
 	select {
 	case messageQueue <- msg:
@@ -128,9 +121,8 @@ func (m *mailer) asyncShipment(ctx context.Context) {
 
 func (m *mailer) shipTelemetryMessage(msg Message) {
 	msgBytes, err := msgToJSON(msg)
-
 	if err != nil {
-		m.logger.Debugf("issue decoding telemetry message: %s", err)
+		m.logger.Debugf("issue encoding telemetry message: %s", err)
 		return
 	}
 
