@@ -37,8 +37,6 @@ func NewTestBasePath(t *testing.T, name string) string {
 	t.Helper()
 
 	basepathTmp := path.Join(t.TempDir(), t.Name(), name)
-	// create the subdirectories all the subdirectories
-	// os.MkdirAll is equivalent to mkdir -p /dir/subdir1/subdir2
 	err := os.MkdirAll(basepathTmp, os.ModePerm)
 
 	require.NoError(t, err)
