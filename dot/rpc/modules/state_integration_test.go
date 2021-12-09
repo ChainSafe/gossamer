@@ -325,7 +325,8 @@ func TestStateModule_QueryStorage(t *testing.T) {
 	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
 		coreapimock := new(mocks.CoreAPI)
 		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).
-		Return(nil, errors.New("problem while querying"))
+			Return(nil, errors.New("problem while querying"))
+
 		module := new(StateModule)
 		module.coreAPI = coreapimock
 
@@ -349,7 +350,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		}
 		coreapimock := new(mocks.CoreAPI)
 		coreapimock.On("QueryStorage",
-		mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
+			mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
 
 		module := new(StateModule)
 		module.coreAPI = coreapimock
@@ -379,7 +380,11 @@ func TestStateModule_GetMetadata(t *testing.T) {
 
 	testCases := []struct {
 		params string
+		errMsg string
+	}{
+		{params: ""},
 		{params: hash.String()},
+		{params: randomHash.String(), errMsg: ErrKeyNotFound},
 	}
 
 	for _, test := range testCases {

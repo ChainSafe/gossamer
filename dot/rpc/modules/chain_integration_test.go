@@ -340,12 +340,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 }
 
 func newTestStateService(t *testing.T) *state.Service {
-<<<<<<< HEAD
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
-=======
 	testDatadirPath := t.TempDir()
->>>>>>> development
 
 	config := state.Config{
 		Path:     testDatadirPath,
