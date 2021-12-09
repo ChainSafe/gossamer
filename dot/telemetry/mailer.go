@@ -22,9 +22,9 @@ var (
 var messageQueue chan Message = make(chan Message, 256)
 
 type telemetryMessage struct {
+	Message
 	MessageType string    `json:"msg"`
 	Timestamp   time.Time `json:"ts"`
-	Message
 }
 
 type telemetryConnection struct {
@@ -127,13 +127,7 @@ func (m *mailer) asyncShipment(ctx context.Context) {
 }
 
 func (m *mailer) shipTelemetryMessage(msg Message) {
-	telemetryMsg := telemetryMessage{
-		msg.messageType(),
-		time.Now(),
-		msg,
-	}
-
-	msgBytes, err := json.Marshal(telemetryMsg)
+	msgBytes, err := msgToJSON(msg)
 
 	if err != nil {
 		m.logger.Debugf("issue decoding telemetry message: %s", err)
@@ -149,4 +143,26 @@ func (m *mailer) shipTelemetryMessage(msg Message) {
 			m.logger.Debugf("issue while sending telemetry message: %s", err)
 		}
 	}
+}
+
+func msgToJSON(message Message) ([]byte, error) {
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+
+	messageMap := make(map[string]interface{})
+	err = json.Unmarshal(messageBytes, &messageMap)
+	if err != nil {
+		return nil, err
+	}
+
+	messageMap["ts"] = time.Now()
+	messageMap["msg"] = message.messageType()
+
+	fullRes, err := json.Marshal(messageMap)
+	if err != nil {
+		return nil, err
+	}
+	return fullRes, nil
 }

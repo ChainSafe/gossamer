@@ -7,10 +7,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"math/big"
-	"net"
 	"net/http"
+	"os"
 	"sort"
 	"sync"
 	"testing"
@@ -23,74 +22,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func availablePort(t *testing.T) int {
-	t.Helper()
+var upgrader = websocket.Upgrader{}
+var resultCh chan []byte
 
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	require.NoError(t, err)
+func TestMain(m *testing.M) {
+	// start server to listen for websocket connections
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	http.HandleFunc("/", listen)
+	go http.ListenAndServe("127.0.0.1:8001", nil)
 
-	l, err := net.ListenTCP("tcp", addr)
-	require.NoError(t, err)
-	defer l.Close()
-
-	return l.Addr().(*net.TCPAddr).Port
-}
-
-func setupMockedListner(t *testing.T, upgrader *websocket.Upgrader, resCh chan<- []byte, logger log.LeveledLogger) func(w http.ResponseWriter, r *http.Request) {
-	t.Helper()
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := upgrader.Upgrade(w, r, nil)
-		require.NoError(t, err)
-
-		defer c.Close()
-
-		for {
-			_, msg, err := c.ReadMessage()
-			require.NoError(t, err)
-
-			resCh <- msg
-		}
-	}
-}
-
-func setupTestMockedWebsocket(t *testing.T, addr string, resCh chan<- []byte, logger *log.Logger) {
-	t.Helper()
-
-	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool { return true },
-	}
-
-	http.HandleFunc("/", setupMockedListner(t, &upgrader, resCh, logger))
-	go http.ListenAndServe(addr, nil)
-}
-
-func bootstrapMailer2Test(t *testing.T) <-chan []byte {
-	t.Helper()
-
-	addr := fmt.Sprintf("localhost:%d", availablePort(t))
-
-	logger := log.New(log.SetWriter(io.Discard))
-
-	resultCh := make(chan []byte)
-	setupTestMockedWebsocket(t, addr, resultCh, logger)
-
+	time.Sleep(time.Millisecond)
 	// instantiate telemetry to connect to websocket (test) server
 	var testEndpoints []*genesis.TelemetryEndpoint
 	var testEndpoint1 = &genesis.TelemetryEndpoint{
-		Endpoint:  fmt.Sprintf("ws://%s/", addr),
+		Endpoint:  "ws://127.0.0.1:8001/",
 		Verbosity: 0,
 	}
 
-	err := BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), logger)
-	require.NoError(t, err)
+	logger := log.New(log.SetLevel(log.DoNotChange))
+	_ = BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), logger)
 
-	return resultCh
+	// Start all tests
+	code := m.Run()
+	os.Exit(code)
 }
 
 func TestHandler_SendMulti(t *testing.T) {
-	t.Parallel()
-
 	expected := [][]byte{
 		[]byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`), //nolint:lll
 		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`),                                                                                                      //nolint:lll
@@ -148,7 +105,7 @@ func TestHandler_SendMulti(t *testing.T) {
 			"1"),
 	}
 
-	resultCh := bootstrapMailer2Test(t)
+	resultCh = make(chan []byte)
 
 	var wg sync.WaitGroup
 	for _, message := range messages {
@@ -183,8 +140,6 @@ func TestHandler_SendMulti(t *testing.T) {
 }
 
 func TestListenerConcurrency(t *testing.T) {
-	t.Parallel()
-
 	const qty = 10
 
 	readyWait := new(sync.WaitGroup)
@@ -203,7 +158,7 @@ func TestListenerConcurrency(t *testing.T) {
 
 	defer cancel()
 
-	resultCh := bootstrapMailer2Test(t)
+	resultCh = make(chan []byte)
 
 	doneWait := new(sync.WaitGroup)
 	for i := 0; i < qty; i++ {
@@ -242,10 +197,26 @@ func TestListenerConcurrency(t *testing.T) {
 //  this can be useful to see what data is sent to telemetry server
 func TestInfiniteListener(t *testing.T) {
 	t.Skip()
-	t.Parallel()
-
-	resultCh := bootstrapMailer2Test(t)
+	resultCh = make(chan []byte)
 	for data := range resultCh {
 		fmt.Printf("Data %s\n", data)
+	}
+}
+
+func listen(w http.ResponseWriter, r *http.Request) {
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Printf("Error %v\n", err)
+	}
+
+	defer c.Close()
+
+	for {
+		_, msg, err := c.ReadMessage()
+		if err != nil {
+			fmt.Printf("Error %v\n", err)
+		}
+
+		resultCh <- msg
 	}
 }
