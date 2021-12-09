@@ -51,8 +51,18 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
 				mlr.logger.Debugf("issue adding telemetry connection: %s", err)
-				time.Sleep(retryDelay)
-				continue
+
+				timer := time.NewTimer(retryDelay)
+
+				select {
+				case <-timer.C:
+					continue
+				case <-ctx.Done():
+					mlr.logger.Debugf("bootstrap telemetry issue: %w", ctx.Err())
+
+					timer.Stop()
+					return
+				}
 			}
 
 			mlr.connections = append(mlr.connections, &telemetryConnection{
