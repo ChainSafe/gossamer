@@ -47,7 +47,7 @@ func main() {
 		select {
 		case err := <-done:
 			if err != nil {
-				log.Panic(err)
+				log.Fatal(err)
 			}
 			// happy path
 			return
