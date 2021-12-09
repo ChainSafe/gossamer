@@ -43,14 +43,12 @@ func newMailer(logger log.LeveledLogger) *mailer {
 
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
 func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) error {
-	const (
-		maxRetries = 5
-		retryDelay = time.Second * 15
-	)
+	const retryDelay = time.Second * 15
 
 	mailer := newMailer(logger)
 
 	for _, v := range conns {
+		const maxRetries = 5
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
 			conn, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
@@ -64,8 +62,10 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 					continue
 				case <-ctx.Done():
 					mailer.logger.Debugf("bootstrap telemetry issue: %w", ctx.Err())
+					if !timer.Stop() {
+						<-timer.C
+					}
 
-					timer.Stop()
 					return ctx.Err()
 				}
 			}
