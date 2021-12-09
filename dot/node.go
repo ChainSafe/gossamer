@@ -333,7 +333,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 
 		err := telemetry.BootstrapMailer(context.Background(), telemetryEndpoints, telemetryLogger)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot bootstrap mailer: %w", err)
 		}
 
 		genesisHash := stateSrvc.Block.GenesisHash()
