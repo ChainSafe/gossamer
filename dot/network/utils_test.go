@@ -13,6 +13,8 @@ import (
 )
 
 func availablePort(t *testing.T) uint16 {
+	t.Helper()
+
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	require.NoError(t, err)
 

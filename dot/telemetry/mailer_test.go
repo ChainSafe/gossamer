@@ -7,9 +7,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"math/big"
+	"net"
 	"net/http"
-	"os"
 	"sort"
 	"sync"
 	"testing"
@@ -22,32 +23,74 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var upgrader = websocket.Upgrader{}
-var resultCh chan []byte
+func availablePort(t *testing.T) int {
+	t.Helper()
 
-func TestMain(m *testing.M) {
-	// start server to listen for websocket connections
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	http.HandleFunc("/", listen)
-	go http.ListenAndServe("127.0.0.1:8001", nil)
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	require.NoError(t, err)
 
-	time.Sleep(time.Millisecond)
+	l, err := net.ListenTCP("tcp", addr)
+	require.NoError(t, err)
+	defer l.Close()
+
+	return l.Addr().(*net.TCPAddr).Port
+}
+
+func setupMockedListner(t *testing.T, upgrader *websocket.Upgrader, resCh chan<- []byte, logger log.LeveledLogger) func(w http.ResponseWriter, r *http.Request) {
+	t.Helper()
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := upgrader.Upgrade(w, r, nil)
+		require.NoError(t, err)
+
+		defer c.Close()
+
+		for {
+			_, msg, err := c.ReadMessage()
+			require.NoError(t, err)
+
+			resCh <- msg
+		}
+	}
+}
+
+func setupTestMockedWebsocket(t *testing.T, addr string, resCh chan<- []byte, logger *log.Logger) {
+	t.Helper()
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+
+	http.HandleFunc("/", setupMockedListner(t, &upgrader, resCh, logger))
+	go http.ListenAndServe(addr, nil)
+}
+
+func bootstrapMailer2Test(t *testing.T) <-chan []byte {
+	t.Helper()
+
+	addr := fmt.Sprintf("localhost:%d", availablePort(t))
+
+	logger := log.New(log.SetWriter(io.Discard))
+
+	resultCh := make(chan []byte)
+	setupTestMockedWebsocket(t, addr, resultCh, logger)
+
 	// instantiate telemetry to connect to websocket (test) server
 	var testEndpoints []*genesis.TelemetryEndpoint
 	var testEndpoint1 = &genesis.TelemetryEndpoint{
-		Endpoint:  "ws://127.0.0.1:8001/",
+		Endpoint:  fmt.Sprintf("ws://%s/", addr),
 		Verbosity: 0,
 	}
 
-	logger := log.New(log.SetLevel(log.DoNotChange))
-	_ = BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), logger)
+	err := BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), logger)
+	require.NoError(t, err)
 
-	// Start all tests
-	code := m.Run()
-	os.Exit(code)
+	return resultCh
 }
 
 func TestHandler_SendMulti(t *testing.T) {
+	t.Parallel()
+
 	expected := [][]byte{
 		[]byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`), //nolint:lll
 		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`),                                                                                                      //nolint:lll
@@ -105,7 +148,7 @@ func TestHandler_SendMulti(t *testing.T) {
 			"1"),
 	}
 
-	resultCh = make(chan []byte)
+	resultCh := bootstrapMailer2Test(t)
 
 	var wg sync.WaitGroup
 	for _, message := range messages {
@@ -140,24 +183,55 @@ func TestHandler_SendMulti(t *testing.T) {
 }
 
 func TestListenerConcurrency(t *testing.T) {
-	const qty = 1000
-	var wg sync.WaitGroup
-	wg.Add(qty)
+	t.Parallel()
 
-	resultCh = make(chan []byte)
+	const qty = 10
+
+	readyWait := new(sync.WaitGroup)
+	readyWait.Add(qty)
+
+	timerStartedCh := make(chan struct{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		const timeout = 50 * time.Millisecond
+		readyWait.Wait()
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		close(timerStartedCh)
+	}()
+
+	defer cancel()
+
+	resultCh := bootstrapMailer2Test(t)
+
+	doneWait := new(sync.WaitGroup)
 	for i := 0; i < qty; i++ {
-		go func() {
-			bestHash := common.Hash{}
-			msg := NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync")
-			SendMessage(msg)
+		doneWait.Add(1)
 
-			wg.Done()
-		}()
+		go func(idx int) {
+			defer doneWait.Done()
+
+			readyWait.Done()
+			readyWait.Wait()
+
+			<-timerStartedCh
+
+			for ctx.Err() == nil {
+				bestHash := common.Hash{}
+				msg := NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync")
+				err := SendMessage(msg)
+				require.NoError(t, err)
+			}
+		}(i)
 	}
-	wg.Wait()
+
+	doneWait.Wait()
+
 	counter := 0
 	for range resultCh {
 		counter++
+
 		if counter == qty {
 			break
 		}
@@ -168,26 +242,10 @@ func TestListenerConcurrency(t *testing.T) {
 //  this can be useful to see what data is sent to telemetry server
 func TestInfiniteListener(t *testing.T) {
 	t.Skip()
-	resultCh = make(chan []byte)
+	t.Parallel()
+
+	resultCh := bootstrapMailer2Test(t)
 	for data := range resultCh {
 		fmt.Printf("Data %s\n", data)
-	}
-}
-
-func listen(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Printf("Error %v\n", err)
-	}
-
-	defer c.Close()
-	for {
-		_, msg, err := c.ReadMessage()
-		if err != nil {
-			fmt.Printf("read err %v", err)
-			break
-		}
-
-		resultCh <- msg
 	}
 }
