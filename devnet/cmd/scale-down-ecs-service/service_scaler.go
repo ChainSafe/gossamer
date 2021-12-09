@@ -48,11 +48,10 @@ func (ss serviceScaler) findServiceArns(ctx context.Context, serviceRegex string
 				serviceArns = append(serviceArns, arn)
 			}
 		}
-		if lso.NextToken != nil {
-			lsi.NextToken = lso.NextToken
-		} else {
+		if lso.NextToken == nil {
 			break
 		}
+		lsi.NextToken = lso.NextToken
 	}
 
 	if len(serviceArns) == 0 {
@@ -61,7 +60,7 @@ func (ss serviceScaler) findServiceArns(ctx context.Context, serviceRegex string
 	return
 }
 
-func (ss serviceScaler) updateServices(ctx context.Context, serviceArns []*string) (err error) {
+func (ss serviceScaler) drainServices(ctx context.Context, serviceArns []*string) (err error) {
 	for _, serviceArn := range serviceArns {
 		_, err = ss.ecs.UpdateServiceWithContext(ctx, &ecs.UpdateServiceInput{
 			Cluster:      &ss.cluster,
@@ -77,6 +76,7 @@ func (ss serviceScaler) updateServices(ctx context.Context, serviceArns []*strin
 
 func (ss serviceScaler) waitForRunningCount(ctx context.Context, serviceArns []*string) (err error) {
 	ticker := time.NewTicker(ss.tickerDuration)
+	defer ticker.Stop()
 main:
 	for {
 		select {
@@ -99,7 +99,7 @@ main:
 				break main
 			}
 		case <-ctx.Done():
-			err = fmt.Errorf("aborting waiting, received done from context")
+			err = fmt.Errorf("aborting waiting: %w", ctx.Err())
 			break main
 		}
 	}
@@ -112,11 +112,10 @@ func (ss serviceScaler) scaleServices(ctx context.Context, servicesRegex string)
 		return
 	}
 
-	err = ss.updateServices(ctx, serviceArns)
+	err = ss.drainServices(ctx, serviceArns)
 	if err != nil {
 		return
 	}
 
-	err = ss.waitForRunningCount(ctx, serviceArns)
-	return
+	return ss.waitForRunningCount(ctx, serviceArns)
 }

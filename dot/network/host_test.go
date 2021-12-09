@@ -38,8 +38,7 @@ func TestExternalAddrs(t *testing.T) {
 }
 
 func mustNewMultiAddr(s string) (a ma.Multiaddr) {
-	var err error
-	a, err = ma.NewMultiaddr(s)
+	a, err := ma.NewMultiaddr(s)
 	if err != nil {
 		panic(err)
 	}

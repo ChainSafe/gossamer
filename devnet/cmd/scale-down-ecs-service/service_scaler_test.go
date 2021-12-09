@@ -134,7 +134,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 	}
 }
 
-func Test_serviceScaler_updateServices(t *testing.T) {
+func Test_serviceScaler_drainServices(t *testing.T) {
 	mockECS := mocks.ECSAPI{}
 	mockECS.
 		On("UpdateServiceWithContext", mock.Anything, &ecs.UpdateServiceInput{
@@ -205,8 +205,8 @@ func Test_serviceScaler_updateServices(t *testing.T) {
 				cluster:        tt.fields.cluster,
 				ecs:            tt.fields.ecs,
 			}
-			if err := ss.updateServices(tt.args.ctx, tt.args.serviceArns); (err != nil) != tt.wantErr {
-				t.Errorf("serviceScaler.updateServices() error = %v, wantErr %v", err, tt.wantErr)
+			if err := ss.drainServices(tt.args.ctx, tt.args.serviceArns); (err != nil) != tt.wantErr {
+				t.Errorf("serviceScaler.drainServices() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

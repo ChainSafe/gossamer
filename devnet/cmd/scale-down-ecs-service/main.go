@@ -40,8 +40,7 @@ func main() {
 	done := make(chan error)
 	go func() {
 		ss := newServiceScaler(opts.RequestInterval, opts.Cluster, ecs.New(sess))
-		err := ss.scaleServices(ctx, opts.ServicesRegex)
-		done <- err
+		done <- ss.scaleServices(ctx, opts.ServicesRegex)
 	}()
 
 	for {
