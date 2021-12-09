@@ -190,6 +190,9 @@ func Test_createCoreService(t *testing.T) {
 	stateSrvc, err := ni.createStateService(cfg)
 	require.NoError(t, err)
 
+	networkSrvc, err := ni.createNetworkService(cfg, stateSrvc)
+	require.NoError(t, err)
+
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
@@ -222,6 +225,7 @@ func Test_createCoreService(t *testing.T) {
 				cfg: cfg,
 				ks:  ks,
 				st:  stateSrvc,
+				net: networkSrvc,
 			},
 			want: &core.Service{},
 		},
@@ -534,7 +538,7 @@ func Test_createRuntime(t *testing.T) {
 				st:   stateSrvc,
 				code: []byte(`fake code`),
 			},
-			err: errors.New("failed to create runtime executor: Failed to instantiate the module:\n compile error" +
+			err: errors.New("failed to create runtime executor: Failed to instantiate the module:\n    compile error" +
 				": Validation error \"Bad magic number\""),
 		},
 		{

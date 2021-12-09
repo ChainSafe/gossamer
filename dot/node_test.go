@@ -5,6 +5,7 @@ package dot
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -91,7 +92,7 @@ func TestLoadGlobalNodeName(t *testing.T) {
 		},
 		{
 			name: "wrong basepath test",
-			args: args{basepath: "test_data"},
+			args: args{basepath: "wrong_path"},
 			err:  errors.New("Key not found"),
 		},
 	}
@@ -100,6 +101,8 @@ func TestLoadGlobalNodeName(t *testing.T) {
 			gotNodename, err := LoadGlobalNodeName(tt.args.basepath)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
+				err := os.RemoveAll(tt.args.basepath)
+				require.NoError(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
