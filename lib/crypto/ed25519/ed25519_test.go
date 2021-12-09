@@ -4,11 +4,13 @@
 package ed25519
 
 import (
-	ed25519 "crypto/ed25519"
+	"crypto/ed25519"
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 
 	bip39 "github.com/cosmos/go-bip39"
 	"github.com/stretchr/testify/require"
@@ -98,4 +100,63 @@ func TestNewKeypairFromMnenomic_Again(t *testing.T) {
 
 	expectedPubkey := common.MustHexToBytes("0xf56d9231e7b7badd3f1e10ad15ef8aa08b70839723d0a2d10d7329f0ea2b8c61")
 	require.Equal(t, expectedPubkey, kp.Public().Encode())
+}
+
+func TestVerifySignature(t *testing.T) {
+	t.Parallel()
+	keypair, err := GenerateKeypair()
+	require.NoError(t, err)
+
+	publicKey := keypair.public.Encode()
+
+	message := []byte("Hello world!")
+
+	signature, err := keypair.Sign(message)
+	require.NoError(t, err)
+
+	testCase := map[string]struct {
+		publicKey, signature, message []byte
+		err                           error
+	}{
+		"success": {
+			publicKey: publicKey,
+			signature: signature,
+			message:   message,
+		},
+		"bad public key input": {
+			publicKey: []byte{},
+			signature: signature,
+			message:   message,
+			err:       fmt.Errorf("ed25519: cannot create public key: input is not 32 bytes"),
+		},
+		"invalid signature length": {
+			publicKey: publicKey,
+			signature: []byte{},
+			message:   message,
+			err:       fmt.Errorf("ed25519: invalid signature length"),
+		},
+		"verification failed": {
+			publicKey: publicKey,
+			signature: signature,
+			message:   []byte("a225e8c75da7da319af6335e7642d473"),
+			err: fmt.Errorf("ed25519: %w: for message 0x%x, signature 0x%x and public key 0x%x",
+				crypto.ErrSignatureVerificationFailed, []byte("a225e8c75da7da319af6335e7642d473"), signature, publicKey),
+		},
+	}
+
+	for name, value := range testCase {
+		testCase := value
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			err := VerifySignature(testCase.publicKey, testCase.signature, testCase.message)
+
+			if testCase.err != nil {
+				require.EqualError(t, err, testCase.err.Error())
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+
 }
