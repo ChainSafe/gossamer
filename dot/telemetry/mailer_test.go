@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
@@ -39,7 +39,8 @@ func TestMain(m *testing.M) {
 		Verbosity: 0,
 	}
 
-	BootstrapMailer(context.TODO(), append(testEndpoints, testEndpoint1))
+	logger := log.New(log.SetLevel(log.DoNotChange))
+	_ = BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), logger)
 
 	// Start all tests
 	code := m.Run()
@@ -178,13 +179,14 @@ func TestInfiniteListener(t *testing.T) {
 func listen(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Error %v\n", err)
+		fmt.Printf("Error %v\n", err)
 	}
+
 	defer c.Close()
 	for {
 		_, msg, err := c.ReadMessage()
 		if err != nil {
-			log.Printf("read err %v", err)
+			fmt.Printf("read err %v", err)
 			break
 		}
 
