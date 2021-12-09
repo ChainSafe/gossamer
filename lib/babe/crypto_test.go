@@ -19,16 +19,16 @@ func TestCalculateThreshold(t *testing.T) {
 		numAuths int
 	}
 	tests := []struct {
-		name    string
-		args    args
+		name   string
+		args   args
 		exp    *scale.Uint128
-		expErr  error
+		expErr error
 	}{
 		{
 			name: "happy path",
 			args: args{
-				C1: 1,
-				C2: 2,
+				C1:       1,
+				C2:       2,
 				numAuths: 3,
 			},
 			exp: &scale.Uint128{Upper: 0x34d00ad6148e1800, Lower: 0x0},
@@ -36,8 +36,8 @@ func TestCalculateThreshold(t *testing.T) {
 		{
 			name: "0 value input",
 			args: args{
-				C1: 0,
-				C2: 0,
+				C1:       0,
+				C2:       0,
 				numAuths: 0,
 			},
 			expErr: errors.New("invalid input: C1 and C2 cannot be 0"),
@@ -45,8 +45,8 @@ func TestCalculateThreshold(t *testing.T) {
 		{
 			name: "C1 > C2",
 			args: args{
-				C1: 5,
-				C2: 2,
+				C1:       5,
+				C2:       2,
 				numAuths: 0,
 			},
 			expErr: errors.New("invalid C1/C2: greater than 1"),
@@ -54,8 +54,8 @@ func TestCalculateThreshold(t *testing.T) {
 		{
 			name: "max threshold",
 			args: args{
-				C1: 2147483647,
-				C2: 2147483647,
+				C1:       2147483647,
+				C2:       2147483647,
 				numAuths: 3,
 			},
 			exp: scale.MaxUint128,
@@ -86,8 +86,8 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 		pub        *sr25519.PublicKey
 	}
 	tests := []struct {
-		name    string
-		args    args
+		name   string
+		args   args
 		exp    bool
 		expErr error
 	}{
@@ -95,11 +95,11 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 			name: "happy path true",
 			args: args{
 				randomness: Randomness{},
-				slot: uint64(0),
-				epoch: uint64(0),
-				output: [32]byte{},
-				threshold: scale.MaxUint128,
-				pub: aliceKeypair.Public().(*sr25519.PublicKey),
+				slot:       uint64(0),
+				epoch:      uint64(0),
+				output:     [32]byte{},
+				threshold:  scale.MaxUint128,
+				pub:        aliceKeypair.Public().(*sr25519.PublicKey),
 			},
 			exp: true,
 		},
@@ -107,11 +107,11 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 			name: "happy path false",
 			args: args{
 				randomness: Randomness{},
-				slot: uint64(0),
-				epoch: uint64(0),
-				output: [32]byte{},
-				threshold: &scale.Uint128{},
-				pub: aliceKeypair.Public().(*sr25519.PublicKey),
+				slot:       uint64(0),
+				epoch:      uint64(0),
+				output:     [32]byte{},
+				threshold:  &scale.Uint128{},
+				pub:        aliceKeypair.Public().(*sr25519.PublicKey),
 			},
 		},
 	}
@@ -124,6 +124,61 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
+func Test_claimPrimarySlot(t *testing.T) {
+	keyring, _ := keystore.NewSr25519Keyring()
+	type args struct {
+		randomness Randomness
+		slot       uint64
+		epoch      uint64
+		threshold  *scale.Uint128
+		keypair    *sr25519.Keypair
+	}
+	tests := []struct {
+		name   string
+		args   args
+		exp    *VrfOutputAndProof
+		expErr error
+	}{
+		{
+			name: "authority not authorized",
+			args: args{
+				randomness: Randomness{},
+				slot:       uint64(1),
+				epoch:      uint64(2),
+				threshold:  &scale.Uint128{},
+				keypair:    keyring.Alice().(*sr25519.Keypair),
+			},
+		},
+		{
+			name: "authority authorized",
+			args: args{
+				randomness: Randomness{},
+				slot:       uint64(1),
+				epoch:      uint64(2),
+				threshold:  scale.MaxUint128,
+				keypair:    keyring.Alice().(*sr25519.Keypair),
+			},
+			exp: &VrfOutputAndProof{
+				output: [32]uint8{0x80, 0xf0, 0x8a, 0x7d, 0xa1, 0x71, 0x77, 0xdc, 0x7, 0x7f, 0x6, 0xd5, 0xc1, 0x5d, 0x90,
+					0x4f, 0x64, 0x21, 0xb6, 0x1d, 0x1c, 0xa8, 0x55, 0x3a, 0x97, 0x1a, 0xbb, 0xf3, 0x35, 0x12, 0x25, 0x18},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := claimPrimarySlot(tt.args.randomness, tt.args.slot, tt.args.epoch, tt.args.threshold, tt.args.keypair)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			if tt.exp != nil && res != nil {
+				assert.Equal(t, tt.exp.output, res.output)
+			}
 		})
 	}
 }
