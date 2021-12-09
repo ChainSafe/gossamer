@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	ErrInsufficientConnections = errors.New("not able to connect to any telemetry endpoints")
+	// ErrInsufficientConnections occurs when BootstrapMailer is not able to connect to any endpoint
+	ErrInsufficientConnections = errors.New("insufficient connections")
 	ErrTimoutMessageSending    = errors.New("timeout sending telemetry message")
 )
 var messageQueue chan Message = make(chan Message, 256)
