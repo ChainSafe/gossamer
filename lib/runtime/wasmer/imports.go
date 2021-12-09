@@ -384,11 +384,11 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pubKey.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Ed25519Type,
+		signature := crypto.SignatureInfo{
+			PubKey:     pubKey.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1
@@ -475,11 +475,11 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 	}
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pub.Encode(),
-			Sign:      signature,
-			Msg:       hash[:],
-			KeyTypeID: crypto.Secp256k1Type,
+		signature := crypto.SignatureInfo{
+			PubKey:     pub.Encode(),
+			Sign:       signature,
+			Msg:        hash[:],
+			VerifyFunc: secp256k1.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return C.int32_t(1)
@@ -701,11 +701,11 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pub.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Sr25519Type,
+		signature := crypto.SignatureInfo{
+			PubKey:     pub.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1
@@ -743,11 +743,11 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pub.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Sr25519Type,
+		signature := crypto.SignatureInfo{
+			PubKey:     pub.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1
