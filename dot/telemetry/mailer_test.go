@@ -111,7 +111,6 @@ func TestHandler_SendMulti(t *testing.T) {
 	for _, message := range messages {
 		wg.Add(1)
 		go func(msg Message) {
-			//GetInstance().SendMessage(msg)
 			SendMessage(msg)
 			wg.Done()
 		}(message)
@@ -149,7 +148,6 @@ func TestListenerConcurrency(t *testing.T) {
 	for i := 0; i < qty; i++ {
 		go func() {
 			bestHash := common.Hash{}
-			//GetInstance().SendMessage(NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync"))
 			msg := NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync")
 			SendMessage(msg)
 
