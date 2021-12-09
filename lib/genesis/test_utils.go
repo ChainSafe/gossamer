@@ -5,6 +5,7 @@ package genesis
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -97,12 +98,12 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 
 	bz, err := json.Marshal(tGen)
 	if err != nil {
-		return "", nil
+		return "", fmt.Errorf("cannot marshal test genesis: %w", err)
 	}
 	// Write to temp file
 	_, err = file.Write(bz)
 	if err != nil {
-		return "", nil
+		return "", fmt.Errorf("cannot write JSON test genesis: %w", err)
 	}
 
 	return file.Name(), nil

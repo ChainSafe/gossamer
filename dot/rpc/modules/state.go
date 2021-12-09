@@ -422,8 +422,9 @@ func (sm *StateModule) QueryStorage(
 			changes = append(changes, []string{key, value})
 		}
 
+		blochHash := block
 		response = append(response, StorageChangeSetResponse{
-			Block:   &block,
+			Block:   &blochHash,
 			Changes: changes,
 		})
 	}
