@@ -31,7 +31,89 @@ func concatByteSlices(slices [][]byte) (concatenated []byte) {
 	return concatenated
 }
 
-func Test_DecodeBranch(t *testing.T) {
+func Test_Decode(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		reader     io.Reader
+		n          Node
+		errWrapped error
+		errMessage string
+	}{
+		"no data": {
+			reader:     bytes.NewReader(nil),
+			errWrapped: ErrReadHeaderByte,
+			errMessage: "cannot read header byte: EOF",
+		},
+		"unknown node type": {
+			reader:     bytes.NewReader([]byte{0}),
+			errWrapped: ErrUnknownNodeType,
+			errMessage: "unknown node type: 0",
+		},
+		"leaf decoding error": {
+			reader: bytes.NewReader([]byte{
+				65, // node type 1 and key length 1
+				// missing key data byte
+			}),
+			errWrapped: ErrReadKeyData,
+			errMessage: "cannot decode leaf: cannot decode key: cannot read key data: EOF",
+		},
+		"leaf success": {
+			reader: bytes.NewReader(
+				append(
+					[]byte{
+						65, // node type 1 and key length 1
+						9,  // key data
+					},
+					scaleEncodeBytes(t, 1, 2, 3)...,
+				),
+			),
+			n: &Leaf{
+				Key:   []byte{9},
+				Value: []byte{1, 2, 3},
+				Dirty: true,
+			},
+		},
+		"branch decoding error": {
+			reader: bytes.NewReader([]byte{
+				129, // node type 2 and key length 1
+				// missing key data byte
+			}),
+			errWrapped: ErrReadKeyData,
+			errMessage: "cannot decode branch: cannot decode key: cannot read key data: EOF",
+		},
+		"branch success": {
+			reader: bytes.NewReader(
+				[]byte{
+					129,  // node type 2 and key length 1
+					9,    // key data
+					0, 0, // no children bitmap
+				},
+			),
+			n: &Branch{
+				Key:   []byte{9},
+				Dirty: true,
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			n, err := Decode(testCase.reader)
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if err != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+			assert.Equal(t, testCase.n, n)
+		})
+	}
+}
+
+func Test_decodeBranch(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -139,7 +221,7 @@ func Test_DecodeBranch(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			branch, err := DecodeBranch(testCase.reader, testCase.header)
+			branch, err := decodeBranch(testCase.reader, testCase.header)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {
@@ -150,7 +232,7 @@ func Test_DecodeBranch(t *testing.T) {
 	}
 }
 
-func Test_DecodeLeaf(t *testing.T) {
+func Test_decodeLeaf(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -215,7 +297,7 @@ func Test_DecodeLeaf(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			leaf, err := DecodeLeaf(testCase.reader, testCase.header)
+			leaf, err := decodeLeaf(testCase.reader, testCase.header)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {

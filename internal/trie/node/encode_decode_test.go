@@ -80,7 +80,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			require.NoError(t, err)
 			header := oneBuffer[0]
 
-			resultBranch, err := DecodeBranch(buffer, header)
+			resultBranch, err := decodeBranch(buffer, header)
 			require.NoError(t, err)
 
 			assert.Equal(t, testCase.branchDecoded, resultBranch)

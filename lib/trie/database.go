@@ -79,7 +79,7 @@ func (t *Trie) LoadFromProof(proof [][]byte, root []byte) error {
 	// map all the proofs hash -> decoded node
 	// and takes the loop to indentify the root node
 	for _, rawNode := range proof {
-		decNode, err := decodeNode(bytes.NewReader(rawNode))
+		decNode, err := node.Decode(bytes.NewReader(rawNode))
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 		return fmt.Errorf("failed to find root key=%s: %w", root, err)
 	}
 
-	t.root, err = decodeNode(bytes.NewReader(enc))
+	t.root, err = node.Decode(bytes.NewReader(enc))
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (t *Trie) load(db chaindb.Database, curr Node) error {
 				return fmt.Errorf("failed to find node key=%x index=%d: %w", hash, i, err)
 			}
 
-			child, err = decodeNode(bytes.NewReader(enc))
+			child, err = node.Decode(bytes.NewReader(enc))
 			if err != nil {
 				return err
 			}
@@ -243,7 +243,7 @@ func GetFromDB(db chaindb.Database, root common.Hash, key []byte) ([]byte, error
 		return nil, fmt.Errorf("failed to find root key=%s: %w", root, err)
 	}
 
-	rootNode, err := decodeNode(bytes.NewReader(enc))
+	rootNode, err := node.Decode(bytes.NewReader(enc))
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func getFromDB(db chaindb.Database, parent Node, key []byte) ([]byte, error) {
 			return nil, fmt.Errorf("failed to find node in database: %w", err)
 		}
 
-		child, err := decodeNode(bytes.NewReader(enc))
+		child, err := node.Decode(bytes.NewReader(enc))
 		if err != nil {
 			return nil, err
 		}
