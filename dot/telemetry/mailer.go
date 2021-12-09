@@ -115,28 +115,30 @@ func (m *mailer) asyncShipment(ctx context.Context) {
 				return
 			}
 
-			go func(msg Message) {
-				msgBytes, err := m.msgToJSON(msg)
-				if err != nil {
-					m.logger.Debugf("issue decoding telemetry message: %s", err)
-					return
-				}
-
-				for _, conn := range m.connections {
-					conn.Lock()
-					defer conn.Unlock()
-
-					err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
-					if err != nil {
-						m.logger.Debugf("issue while sending telemetry message: %s", err)
-					}
-				}
-			}(msg)
+			go m.shipTelemetryMessage(msg)
 		}
 	}
 }
 
-func (h *mailer) msgToJSON(message Message) ([]byte, error) {
+func (m *mailer) shipTelemetryMessage(msg Message) {
+	msgBytes, err := msgToJSON(msg)
+	if err != nil {
+		m.logger.Debugf("issue decoding telemetry message: %s", err)
+		return
+	}
+
+	for _, conn := range m.connections {
+		conn.Lock()
+		defer conn.Unlock()
+
+		err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
+		if err != nil {
+			m.logger.Debugf("issue while sending telemetry message: %s", err)
+		}
+	}
+}
+
+func msgToJSON(message Message) ([]byte, error) {
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
 		return nil, err
