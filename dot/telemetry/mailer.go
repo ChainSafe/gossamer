@@ -50,7 +50,8 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
-				mailer.logger.Debugf("issue adding telemetry connection: %s", err)
+				mailer.logger.Debugf("cannot dial telemetry endpoint %s (try %d of %d): %s",
+					v.Endpoint, connAttempts+1, maxRetries, err)
 
 				timer := time.NewTimer(retryDelay)
 
