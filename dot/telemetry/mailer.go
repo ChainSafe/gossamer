@@ -27,13 +27,13 @@ type telemetryConnection struct {
 type mailer struct {
 	messageQueue chan Message
 	connections  []*telemetryConnection
-	log          log.LeveledLogger
+	logger       log.LeveledLogger
 }
 
 func newMailer() *mailer {
 	return &mailer{
 		messageQueue: messageQueue,
-		log:          log.NewFromGlobal(log.AddContext("pkg", "telemetry")),
+		logger:       log.NewFromGlobal(log.AddContext("pkg", "telemetry")),
 	}
 }
 
@@ -50,7 +50,7 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint) {
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
 			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
-				mlr.log.Debugf("issue adding telemetry connection: %s", err)
+				mlr.logger.Debugf("issue adding telemetry connection: %s", err)
 				time.Sleep(retryDelay)
 				continue
 			}
@@ -93,7 +93,7 @@ func (m *mailer) asyncShipment(ctx context.Context) {
 			go func(msg Message) {
 				msgBytes, err := m.msgToJSON(msg)
 				if err != nil {
-					m.log.Debugf("issue decoding telemetry message: %s", err)
+					m.logger.Debugf("issue decoding telemetry message: %s", err)
 					return
 				}
 
@@ -103,7 +103,7 @@ func (m *mailer) asyncShipment(ctx context.Context) {
 
 					err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 					if err != nil {
-						m.log.Debugf("issue while sending telemetry message: %s", err)
+						m.logger.Debugf("issue while sending telemetry message: %s", err)
 					}
 				}
 			}(msg)
