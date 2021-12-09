@@ -1,4 +1,13 @@
-on: [pull_request]
+on:
+  pull_request:
+    paths:
+      - .github/workflows/checks.yml
+      - .github/PULL_REQUEST/pull_request.go
+      - .golangci.yml
+      - "**/*.go"
+      - go.mod
+      - go.sum
+
 name: checks
 env:
   GO111MODULE: on
