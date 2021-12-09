@@ -15,6 +15,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var (
+	ErrInsufficientConnections = errors.New("not able to connect to any telemetry endpoints")
+	ErrTimoutMessageSending    = errors.New("timeout sending telemetry message")
+)
 var messageQueue chan Message = make(chan Message, 256)
 
 type telemetryConnection struct {
@@ -38,7 +42,7 @@ func newMailer(logger log.LeveledLogger) *mailer {
 }
 
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
-func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) {
+func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) error {
 	const (
 		maxRetries = 5
 		retryDelay = time.Second * 15
@@ -48,7 +52,7 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 
 	for _, v := range conns {
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
-			c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
+			conn, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
 				mailer.logger.Debugf("cannot dial telemetry endpoint %s (try %d of %d): %s",
 					v.Endpoint, connAttempts+1, maxRetries, err)
@@ -62,19 +66,24 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 					mailer.logger.Debugf("bootstrap telemetry issue: %w", ctx.Err())
 
 					timer.Stop()
-					return
+					return ctx.Err()
 				}
 			}
 
 			mailer.connections = append(mailer.connections, &telemetryConnection{
-				wsconn:    c,
+				wsconn:    conn,
 				verbosity: v.Verbosity,
 			})
 			break
 		}
 	}
 
+	if len(mailer.connections) == 0 {
+		return ErrInsufficientConnections
+	}
+
 	go mailer.asyncShipment(ctx)
+	return nil
 }
 
 // SendMessage sends Message to connected telemetry listeners throught messageReceiver
@@ -86,7 +95,7 @@ func SendMessage(msg Message) error {
 	select {
 	case messageQueue <- msg:
 	case <-t.C:
-		return errors.New("timeout sending message")
+		return ErrTimoutMessageSending
 	}
 	return nil
 }

@@ -330,7 +330,11 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 
 	if !cfg.Global.NoTelemetry {
 		telemetryLogger := logger.New(log.AddContext("pkg", "telemetry"))
-		telemetry.BootstrapMailer(context.Background(), telemetryEndpoints, telemetryLogger)
+
+		err := telemetry.BootstrapMailer(context.Background(), telemetryEndpoints, telemetryLogger)
+		if err != nil {
+			return nil, err
+		}
 
 		genesisHash := stateSrvc.Block.GenesisHash()
 		connectedMsg := telemetry.NewSystemConnectedTM(
@@ -343,7 +347,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 			strconv.FormatInt(time.Now().UnixNano(), 10),
 			sysSrvc.SystemVersion())
 
-		err := telemetry.SendMessage(connectedMsg)
+		err = telemetry.SendMessage(connectedMsg)
 		if err != nil {
 			logger.Debugf("problem sending system.connected telemetry message: %s", err)
 		}
