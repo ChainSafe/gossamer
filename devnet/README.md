@@ -69,6 +69,7 @@ docker context create ecs gssmr-ecs --from-env
 docker context use gssmr-ecs
 docker compose up
 ```
+
 ### Prometheus to Datadog
 
 Prometheus metrics are automatically piped to Datadog.  All metrics from the ECS devnet are prefixed with `gossamer.ecs.devnet`.  
