@@ -70,7 +70,14 @@ common physical transport medium. Gossamer uses [Yamux](#yamux) for stream multi
 
 ## Gossamer Network Protocols
 
-### `libp2p`-Integrated Protocols
+The types of network protocols that Gossamer uses can be separated into "core"
+[peer-to-peer protocols](#peer-to-peer-protocols), which are often maintained alongside `libp2p`, and
+[blockchain network protocols](#blockchain-network-protocols), which
+[Substrate](https://crates.parity.io/sc_network/index.html) implements on top of the `libp2p` stack.
+
+### Peer-to-Peer Protocols
+
+These are the "core" peer-to-peer network protocols that are used by Gossamer.
 
 #### `ping`
 
@@ -87,13 +94,12 @@ about each other, most notably their public keys and known network addresses; li
 
 #### Noise
 
-As described above, [Noise](http://noiseprotocol.org/) provides `libp2p` with its
-[key distribution](#identity--key-management) capabilities. The Noise protocol is
-[well documented](http://cryptowiki.net/index.php?title=Noise_Protocol_Framework) and the Go implementation is
-maintained [under the official](https://github.com/libp2p/go-libp2p-noise) `libp2p` GitHub organization. Noise defines a
-number of [variables](http://cryptowiki.net/index.php?title=Noise_Protocol_Framework#Noise_Variables) and
-[handshake patterns](http://cryptowiki.net/index.php?title=Noise_Protocol_Framework#Handshake_patterns) that
-participants in a peer-to-peer network can use to establish message-passing channels with one another.
+[Noise](http://noiseprotocol.org/) provides `libp2p` with its [key distribution](#identity--key-management)
+capabilities. The Noise protocol is [well documented](https://github.com/libp2p/specs/blob/master/noise/README.md) and
+the Go implementation is maintained [under the official](https://github.com/libp2p/go-libp2p-noise) `libp2p` GitHub
+organization. Noise defines a
+[handshake](https://github.com/libp2p/specs/blob/master/noise/README.md#the-noise-handshake) that participants in a
+peer-to-peer network can use to establish message-passing channels with one another.
 
 #### Yamux
 
@@ -120,7 +126,7 @@ Kademlia as a protocol - in particular, these three properties are:
 
 Gossamer uses [the official `libp2p` implementation of Kademlia for Go](https://github.com/libp2p/go-libp2p-kad-dht).
 
-### Blockchain-Specific Protocols
+### Blockchain Network Protocols
 
 The `libp2p` stack is used to implement the blockchain-specific protocols that are used to participate in
 "Substrate-like" networks - these protocols are divided into two types, [notification](#notification-protocols) and
