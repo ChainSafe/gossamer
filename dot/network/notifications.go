@@ -154,12 +154,12 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 // createNotificationsMessageHandler returns a function that is called by the handler of *inbound* streams.
 func (s *Service) createNotificationsMessageHandler(
 	info *notificationsProtocol,
-	messageHandler NotificationsMessageHandler,
+	notificationsMessageHandler NotificationsMessageHandler,
 	batchHandler NotificationsMessageBatchHandler,
 ) messageHandler {
 
 	return func(stream libp2pnetwork.Stream, m Message) error {
-		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
+		if m == nil || info == nil || info.handshakeValidator == nil || notificationsMessageHandler == nil {
 			return nil
 		}
 
@@ -204,7 +204,6 @@ func (s *Service) createNotificationsMessageHandler(
 				info.inboundHandshakeData.Store(peer, hsData)
 
 				// once validated, send back a handshake
-				// TODO: getHandshake creates a new handshake struct. Rename?
 				resp, err := info.getHandshake()
 				if err != nil {
 					logger.Warnf("failed to get handshake using protocol %s: %s", info.protocolID, err)
@@ -235,7 +234,7 @@ func (s *Service) createNotificationsMessageHandler(
 			return nil
 		}
 
-		propagate, err := messageHandler(peer, msg)
+		propagate, err := notificationsMessageHandler(peer, msg)
 		if err != nil {
 			return err
 		}
