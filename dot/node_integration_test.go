@@ -38,7 +38,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,7 +116,7 @@ func TestNewNode(t *testing.T) {
 
 	cfg.Core.Roles = types.FullNodeRole
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	bp := node.Services.Get(&babe.Service{})
@@ -150,7 +149,7 @@ func TestNewNode_Authority(t *testing.T) {
 
 	cfg.Core.Roles = types.AuthorityRole
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	bp := node.Services.Get(&babe.Service{})
@@ -183,7 +182,7 @@ func TestStartNode(t *testing.T) {
 
 	cfg.Core.Roles = types.FullNodeRole
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	go func() {
@@ -212,8 +211,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	config := state.Config{
-		Path:     cfg.Global.BasePath,
-		LogLevel: log.LvlInfo,
+		Path: cfg.Global.BasePath,
 	}
 	stateSrvc := state.NewService(config)
 
@@ -223,7 +221,8 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash,
+		big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
@@ -254,7 +253,8 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	stateRoot := genesisHeader.StateRoot
-	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0),
+		types.NewDigest())
 	require.NoError(t, err)
 	require.Equal(t, expectedHeader.Hash(), genesisHeader.Hash())
 }
@@ -285,7 +285,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	ks.Gran.Insert(ed25519Keyring.Alice())
 	sr25519Keyring, _ := keystore.NewSr25519Keyring()
 	ks.Babe.Insert(sr25519Keyring.Alice())
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
@@ -343,7 +343,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	node, err := NewNode(cfg, ks, nil)
+	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
 	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
@@ -373,13 +373,9 @@ func TestInitNode_LoadBalances(t *testing.T) {
 
 func TestNode_StopFunc(t *testing.T) {
 	testvar := "before"
-	stopFunc := func() {
-		testvar = "after"
-	}
 
 	node := &Node{
 		Services: &services.ServiceRegistry{},
-		StopFunc: stopFunc,
 		wg:       sync.WaitGroup{},
 	}
 	node.wg.Add(1)
