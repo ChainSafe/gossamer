@@ -3,8 +3,7 @@ on:
   push:
     branches:
       - devnet
-      - tim/ecs_devnet
-
+      
 jobs:
   update:
     runs-on: ubuntu-latest
