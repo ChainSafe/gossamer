@@ -26,7 +26,9 @@ RUN cp devnet/alice.node.key ~/.gossamer/gssmr/node.key
 
 ARG METRICS_NAMESPACE=gossamer.local.devnet
 
-RUN go run devnet/cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+WORKDIR /gossamer/devnet
+
+RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 
 ENTRYPOINT service datadog-agent start && gossamer --key=alice --babe-lead --publish-metrics --rpc --rpc-external=true --pubdns=alice
 
