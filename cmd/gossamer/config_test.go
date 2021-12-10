@@ -543,6 +543,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            false,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 				PublicDNS:         "alice",
 			},
 		},
