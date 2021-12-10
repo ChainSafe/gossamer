@@ -127,7 +127,7 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
 	_, fullpath, _, _ := runtime.Caller(0)
 	rootDir := path.Dir(path.Dir(path.Dir(fullpath))) // same as ../../..
-	genesisPath := path.Join(rootDir, "chain/gssmr/genesis.json")
+	genesisPath := path.Join(rootDir, "chain/dev/genesis.json")
 
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
