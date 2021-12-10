@@ -117,10 +117,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 			return err
 		}
 
-		err = tr.GetNodeHashes(tr.RootNode(), keys)
-		if err != nil {
-			return err
-		}
+		tr.GetNodeHashes(tr.RootNode(), keys)
 
 		// get parent header of current block
 		header, err = p.blockState.GetHeader(header.ParentHash)
