@@ -157,7 +157,6 @@ func (s *Service) createNotificationsMessageHandler(
 	notificationsMessageHandler NotificationsMessageHandler,
 	batchHandler NotificationsMessageBatchHandler,
 ) messageHandler {
-
 	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || notificationsMessageHandler == nil {
 			return nil
