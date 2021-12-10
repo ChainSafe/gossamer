@@ -6,7 +6,10 @@ package babe
 import (
 	"errors"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
+	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -125,6 +128,98 @@ func Test_getAuthorityIndex(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := getAuthorityIndex(tt.args.header)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
+func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockBlockState := mocks.NewMockBlockState(ctrl)
+
+	//Generate keys
+	kp, err := sr25519.GenerateKeypair()
+	assert.NoError(t, err)
+
+	auth := types.NewAuthority(kp.Public(), uint64(1))
+	vi := &verifierInfo{
+		authorities:    []types.Authority{*auth},
+		randomness:     Randomness{},
+		threshold:      &scale.Uint128{},
+		secondarySlots: false,
+	}
+
+	vi1 := &verifierInfo{
+		authorities:    []types.Authority{*auth},
+		randomness:     Randomness{},
+		threshold:      scale.MaxUint128,
+		secondarySlots: false,
+	}
+
+	v, err := newVerifier(mockBlockState, 1, vi)
+	assert.NoError(t, err)
+
+	v1, err := newVerifier(mockBlockState, 1, vi1)
+	assert.NoError(t, err)
+	
+	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
+	assert.NoError(t, err)
+
+	type args struct {
+		authorityIndex uint32
+		slot           uint64
+		vrfOutput      [sr25519.VRFOutputLength]byte
+		vrfProof       [sr25519.VRFProofLength]byte
+	}
+	tests := []struct {
+		name    string
+		verifier  verifier
+		args    args
+		exp    bool
+		expErr error
+	}{
+		{
+			name: "Over threshold",
+			verifier: *v,
+			args: args{
+				authorityIndex: 0,
+				slot: uint64(1),
+				vrfOutput: [32]byte{},
+				vrfProof: [64]byte{},
+			},
+			expErr: ErrVRFOutputOverThreshold,
+		},
+		{
+			name: "VRF not verified",
+			verifier: *v1,
+			args: args{
+				authorityIndex: 0,
+				slot: uint64(1),
+				vrfOutput: [32]byte{},
+				vrfProof: [64]byte{},
+			},
+		},
+		{
+			name: "VRF verified",
+			verifier: *v1,
+			args: args{
+				authorityIndex: 0,
+				slot: uint64(1),
+				vrfOutput: output,
+				vrfProof: proof,
+			},
+			exp: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := &tt.verifier
+			res, err := b.verifyPrimarySlotWinner(tt.args.authorityIndex, tt.args.slot, tt.args.vrfOutput, tt.args.vrfProof)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
