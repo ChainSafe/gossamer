@@ -77,7 +77,6 @@ func (ss serviceScaler) drainServices(ctx context.Context, serviceArns []*string
 func (ss serviceScaler) waitForRunningCount(ctx context.Context, serviceArns []*string) (err error) {
 	ticker := time.NewTicker(ss.tickerDuration)
 	defer ticker.Stop()
-main:
 	for {
 		select {
 		case <-ticker.C:
@@ -87,7 +86,7 @@ main:
 				Services: serviceArns,
 			})
 			if err != nil {
-				break main
+				return err
 			}
 			scaledDown := make(map[string]bool)
 			for _, service := range dso.Services {
@@ -96,11 +95,11 @@ main:
 				}
 			}
 			if len(scaledDown) == len(serviceArns) {
-				break main
+				return err
 			}
 		case <-ctx.Done():
 			err = fmt.Errorf("aborting waiting: %w", ctx.Err())
-			break main
+			return err
 		}
 	}
 	return
