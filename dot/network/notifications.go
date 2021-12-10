@@ -289,18 +289,14 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 		}
 
-		// TODO: ensure grandpa stores *all* previously received votes and discards them
-		// only when they are for already finalised rounds; currently this causes issues
-		// because a vote might be received slightly too early, causing a round mismatch err,
-		// causing grandpa to discard the vote. (#1855)
-		// added means message was already sent.
-		// for consensus messages we are happy to send them again, but not for other messages
-		// TODO: Is it bad behaviour to send consensus message multiple times?
-		// TODO: What to do if vote does not reach because of network related issue?
+		// if we could not add message in cache, message was already present in the
+		// cache and was sent.
 		if !added {
 			return
 		}
 	}
+
+	// TODO: Add message to cache after we successfully wrote it to stream?
 
 	// we've completed the handshake with the peer, send message directly
 	logger.Tracef("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
