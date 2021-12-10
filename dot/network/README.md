@@ -1,9 +1,9 @@
 # Gossamer `network` Package
 
 This package implements the [peer-to-peer networking capabilities](https://crates.parity.io/sc_network/index.html)
-provided by the [Substrate](https://docs.substrate.io/) framework for blockchain development. It is
-built on the extensible [`libp2p` networking stack](https://docs.libp2p.io/introduction/what-is-libp2p/). `libp2p`
-provides implementations of a number of battle-tested peer-to-peer (P2P) networking protocols (e.g. [Noise](#noise) for
+provided by the [Substrate](https://docs.substrate.io/) framework for blockchain development. It is built on the
+extensible [`libp2p` networking stack](https://docs.libp2p.io/introduction/what-is-libp2p/). `libp2p` provides
+implementations of a number of battle-tested peer-to-peer (P2P) networking protocols (e.g. [Noise](#noise) for
 [key exchange](#identities--key-management), and [Yamux](#yamux) for [stream multiplexing](#stream-multiplexing)), and
 also makes it possible to implement the blockchain-specific protocols defined by Substrate (e.g. [syncing](#sync) and
 [finalising](#GRANDPA) blocks, and maintaining the [transaction pool](#transactions)). The purpose of this document is
@@ -35,10 +35,10 @@ refers to the fact that in a public-key cryptography system, each participant's 
 keys, each of which serve a distinct ("asymmetric") purpose. One of the keys in an asymmetric key pair is private and is
 used by the network participant to "sign" messages in order to cryptographically prove that the message originated from
 the private key's owner; the other key is public, this is the key that the participant uses to identify themselves - it
-is distributed to network peers to allow for the verification of messages signed by the corresponding private key. It may
-be constructive to think about a public key as a username and private key as a password, such as for a banking or social
-media website. Participants in P2P networks that use asymmetric cryptography must protect their private keys, as well as
-keep track of the public keys that belong to the other participants in the network. Gossamer provides a
+is distributed to network peers to allow for the verification of messages signed by the corresponding private key. It
+may be constructive to think about a public key as a username and private key as a password, such as for a banking or
+social media website. Participants in P2P networks that use asymmetric cryptography must protect their private keys, as
+well as keep track of the public keys that belong to the other participants in the network. Gossamer provides a
 [keystore](../../lib/keystore) for securely storing one's private keys. There are a number of Gossamer processes that
 manage the public keys of network peers - some of these, such as
 [peer discovery and management](#peer-discovery--management), are described in this document, but there are other
@@ -142,16 +142,16 @@ have been locally received and validated. Transactions are used to access the
 
 ###### Block Announces
 
-The block announce protocol is used to notify network peers of the creation of a new block. The message for this protocol
-contains a [block header](https://docs.substrate.io/v3/getting-started/glossary/#header) and associated data, such as
-the [BABE pre-runtime digest](https://crates.parity.io/sp_consensus_babe/digests/enum.PreDigest.html).
+The block announce protocol is used to notify network peers of the creation of a new block. The message for this
+protocol contains a [block header](https://docs.substrate.io/v3/getting-started/glossary/#header) and associated data,
+such as the [BABE pre-runtime digest](https://crates.parity.io/sp_consensus_babe/digests/enum.PreDigest.html).
 
 ###### GRANDPA
 
 [Finality](https://wiki.polkadot.network/docs/learn-consensus#finality-gadget-grandpa) protocols ("gadgets") such as
 GRANDPA are often described in terms of "games" that are played by the participants in a network. In GRANDPA, this game
-relates to voting on what blocks should be part of the canonical chain. This notification protocol is used by peers to cast
-votes for participation in the GRANDPA game.
+relates to voting on what blocks should be part of the canonical chain. This notification protocol is used by peers to
+cast votes for participation in the GRANDPA game.
 
 ##### Request/Response Protocols
 
