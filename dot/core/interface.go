@@ -69,7 +69,7 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 	RemoveExtrinsicFromPool(ext types.Extrinsic)
 	PendingInPool() []*transaction.ValidTransaction
-	IsInPool(ext types.Extrinsic) bool
+	Exists(ext types.Extrinsic) bool
 }
 
 //go:generate mockgen -destination=./mocks/network_mock.go -package mocks . Network

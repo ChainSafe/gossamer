@@ -497,7 +497,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
-	if s.transactionState.IsInPool(ext) {
+	if s.transactionState.Exists(ext) {
 		return nil
 	}
 
