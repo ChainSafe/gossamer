@@ -105,7 +105,7 @@ func TestBlockRequestString(t *testing.T) {
 	}
 
 	var blockRequestStringRegex = regexp.MustCompile(
-		`^\ABlockRequestMessage RequestedData=[0-9]* StartingBlock={[\[0-9(\s?)]+\]} EndBlockHash=0x[0-9]+ Direction=[0-9]* Max=[0-9]*\z$`)
+		`^\ABlockRequestMessage RequestedData=[0-9]* StartingBlock={[\[0-9(\s?)]+\]} EndBlockHash=0x[0-9]+ Direction=[0-9]* Max=[0-9]*\z$`) //nolint:lll
 
 	fmt.Println(bm.String())
 	match := blockRequestStringRegex.MatchString(bm.String())
@@ -276,9 +276,8 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 	 *	StateRoot:  Hash: 0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0
 	 *	ExtrinsicsRoot: Hash: 0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314
 	 *	Digest: []byte
-
-	 * nolint:lll
-	 *                                  mtparenthash                                                      bnstateroot                                                       extrinsicsroot                                                di
+	 *
+	 * mtparenthash bnstateroot extrinsicsroot di
 	 */
 
 	t.Parallel()

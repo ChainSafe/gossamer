@@ -165,7 +165,7 @@ func TestListenerConcurrency(t *testing.T) {
 	for i := 0; i < qty; i++ {
 		doneWait.Add(1)
 
-		go func(idx int) {
+		go func() {
 			defer doneWait.Done()
 
 			readyWait.Done()
@@ -179,7 +179,7 @@ func TestListenerConcurrency(t *testing.T) {
 				err := SendMessage(msg)
 				require.NoError(t, err)
 			}
-		}(i)
+		}()
 	}
 
 	doneWait.Wait()

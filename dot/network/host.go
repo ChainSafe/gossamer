@@ -26,7 +26,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-var publicIP string = ""
+var publicIP string
 
 var privateCIDRs = []string{
 	"10.0.0.0/8",
