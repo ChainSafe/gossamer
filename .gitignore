@@ -15,6 +15,7 @@
 *.key
 !test-key.key
 !test-key-password.key
+!devnet/alice.node.key
 *.wasm
 
 test_data

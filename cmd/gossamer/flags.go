@@ -223,6 +223,11 @@ var (
 		Name:  "pubip",
 		Usage: "Overrides public IP address used for peer to peer networking",
 	}
+	// PublicDNSFlag uses the supplied DNS for broadcasting
+	PublicDNSFlag = cli.StringFlag{
+		Name:  "pubdns",
+		Usage: "Overrides public DNS used for peer to peer networking",
+	}
 )
 
 // RPC service configuration flags
@@ -414,6 +419,7 @@ var (
 		NoBootstrapFlag,
 		NoMDNSFlag,
 		PublicIPFlag,
+		PublicDNSFlag,
 
 		// rpc flags
 		RPCEnabledFlag,
