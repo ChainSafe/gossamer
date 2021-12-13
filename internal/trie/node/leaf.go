@@ -20,7 +20,7 @@ type Leaf struct {
 	// from the node stored in the database.
 	dirty      bool
 	hashDigest []byte
-	Encoding   []byte
+	encoding   []byte
 	encodingMu sync.RWMutex
 	// generation is incremented on every trie Snapshot() call.
 	// Nodes that are part of the trie are then gradually updated

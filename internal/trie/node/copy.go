@@ -14,7 +14,7 @@ func (b *Branch) Copy() Node {
 		Value:      nil,
 		dirty:      b.dirty,
 		hashDigest: make([]byte, len(b.hashDigest)),
-		Encoding:   make([]byte, len(b.Encoding)),
+		encoding:   make([]byte, len(b.encoding)),
 		generation: b.generation,
 	}
 	copy(cpy.Key, b.Key)
@@ -26,7 +26,7 @@ func (b *Branch) Copy() Node {
 	}
 
 	copy(cpy.hashDigest, b.hashDigest)
-	copy(cpy.Encoding, b.Encoding)
+	copy(cpy.encoding, b.encoding)
 	return cpy
 }
 
@@ -43,12 +43,12 @@ func (l *Leaf) Copy() Node {
 		Value:      make([]byte, len(l.Value)),
 		dirty:      l.dirty,
 		hashDigest: make([]byte, len(l.hashDigest)),
-		Encoding:   make([]byte, len(l.Encoding)),
+		encoding:   make([]byte, len(l.encoding)),
 		generation: l.generation,
 	}
 	copy(cpy.Key, l.Key)
 	copy(cpy.Value, l.Value)
 	copy(cpy.hashDigest, l.hashDigest)
-	copy(cpy.Encoding, l.Encoding)
+	copy(cpy.encoding, l.encoding)
 	return cpy
 }

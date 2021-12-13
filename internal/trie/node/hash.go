@@ -13,7 +13,7 @@ import (
 // SetEncodingAndHash sets the encoding and hash slices
 // given to the branch. Note it does not copy them, so beware.
 func (b *Branch) SetEncodingAndHash(enc, hash []byte) {
-	b.Encoding = enc
+	b.encoding = enc
 	b.hashDigest = hash
 }
 
@@ -30,8 +30,8 @@ func (b *Branch) GetHash() []byte {
 // If the encoding is less than 32 bytes, the hash returned
 // is the encoding and not the hash of the encoding.
 func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
-	if !b.dirty && b.Encoding != nil && b.hashDigest != nil {
-		return b.Encoding, b.hashDigest, nil
+	if !b.dirty && b.encoding != nil && b.hashDigest != nil {
+		return b.encoding, b.hashDigest, nil
 	}
 
 	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
@@ -45,9 +45,9 @@ func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 
 	bufferBytes := buffer.Bytes()
 
-	b.Encoding = make([]byte, len(bufferBytes))
-	copy(b.Encoding, bufferBytes)
-	encoding = b.Encoding // no need to copy
+	b.encoding = make([]byte, len(bufferBytes))
+	copy(b.encoding, bufferBytes)
+	encoding = b.encoding // no need to copy
 
 	if buffer.Len() < 32 {
 		b.hashDigest = make([]byte, len(bufferBytes))

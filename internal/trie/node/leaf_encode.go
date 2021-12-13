@@ -19,7 +19,7 @@ import (
 // given to the branch. Note it does not copy them, so beware.
 func (l *Leaf) SetEncodingAndHash(enc, hash []byte) {
 	l.encodingMu.Lock()
-	l.Encoding = enc
+	l.encoding = enc
 	l.encodingMu.Unlock()
 	l.hashDigest = hash
 }
@@ -38,9 +38,9 @@ func (l *Leaf) GetHash() []byte {
 // is the encoding and not the hash of the encoding.
 func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	l.encodingMu.RLock()
-	if !l.IsDirty() && l.Encoding != nil && l.hashDigest != nil {
+	if !l.IsDirty() && l.encoding != nil && l.hashDigest != nil {
 		l.encodingMu.RUnlock()
-		return l.Encoding, l.hashDigest, nil
+		return l.encoding, l.hashDigest, nil
 	}
 	l.encodingMu.RUnlock()
 
@@ -58,10 +58,10 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	l.encodingMu.Lock()
 	// TODO remove this copying since it defeats the purpose of `buffer`
 	// and the sync.Pool.
-	l.Encoding = make([]byte, len(bufferBytes))
-	copy(l.Encoding, bufferBytes)
+	l.encoding = make([]byte, len(bufferBytes))
+	copy(l.encoding, bufferBytes)
 	l.encodingMu.Unlock()
-	encoding = l.Encoding // no need to copy
+	encoding = l.encoding // no need to copy
 
 	if len(bufferBytes) < 32 {
 		l.hashDigest = make([]byte, len(bufferBytes))
@@ -87,8 +87,8 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 // NodeHeader | Extra partial key length | Partial Key | Value
 func (l *Leaf) Encode(buffer Buffer) (err error) {
 	l.encodingMu.RLock()
-	if !l.dirty && l.Encoding != nil {
-		_, err = buffer.Write(l.Encoding)
+	if !l.dirty && l.encoding != nil {
+		_, err = buffer.Write(l.encoding)
 		l.encodingMu.RUnlock()
 		if err != nil {
 			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
@@ -122,8 +122,8 @@ func (l *Leaf) Encode(buffer Buffer) (err error) {
 	// and the sync.Pool.
 	l.encodingMu.Lock()
 	defer l.encodingMu.Unlock()
-	l.Encoding = make([]byte, buffer.Len())
-	copy(l.Encoding, buffer.Bytes())
+	l.encoding = make([]byte, buffer.Len())
+	copy(l.encoding, buffer.Bytes())
 	return nil
 }
 

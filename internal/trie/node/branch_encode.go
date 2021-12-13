@@ -76,8 +76,8 @@ func (b *Branch) hash(digestBuffer io.Writer) (err error) {
 // Encode encodes a branch with the encoding specified at the top of this package
 // to the buffer given.
 func (b *Branch) Encode(buffer Buffer) (err error) {
-	if !b.dirty && b.Encoding != nil {
-		_, err = buffer.Write(b.Encoding)
+	if !b.dirty && b.encoding != nil {
+		_, err = buffer.Write(b.encoding)
 		if err != nil {
 			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
 		}
