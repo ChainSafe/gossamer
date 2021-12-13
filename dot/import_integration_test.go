@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -61,11 +62,11 @@ func setupHeaderFile(t *testing.T) string {
 
 func TestNewTrieFromPairs(t *testing.T) {
 	fp := setupStateFile(t)
-	tr, err := newTrieFromPairs(fp)
+	trie, err := newTrieFromPairs(fp)
 	require.NoError(t, err)
 
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
-	require.Equal(t, expectedRoot, tr.MustHash())
+	require.Equal(t, expectedRoot, trie.MustHash())
 }
 
 func TestNewHeaderFromFile(t *testing.T) {
@@ -95,8 +96,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 }
 
 func TestImportState(t *testing.T) {
-	basepath, err := ioutil.TempDir("", "gossamer-test-*")
-	require.NoError(t, err)
+	basepath := os.TempDir()
 
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -109,7 +109,7 @@ func TestImportState(t *testing.T) {
 	cfg.Init.Genesis = genFile.Name()
 
 	cfg.Global.BasePath = basepath
-	err = InitNode(cfg)
+	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
