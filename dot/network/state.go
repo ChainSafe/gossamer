@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-//go:generate mockery --name BlockState --structname MockBlockState --case underscore --inpackage
+//go:generate mockgen -destination=mock_block_state.go -package $GOPACKAGE . BlockState
 
 // BlockState interface for block state methods
 type BlockState interface {
@@ -26,6 +26,7 @@ type BlockState interface {
 }
 
 //go:generate mockery --name Syncer --structname MockSyncer --case underscore --inpackage
+//go:generate mockgen -destination=mock_syncer.go -package $GOPACKAGE . Syncer
 
 // Syncer is implemented by the syncing service
 type Syncer interface {

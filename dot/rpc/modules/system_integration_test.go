@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcutil/base58"
+	"github.com/golang/mock/gomock"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -61,8 +62,9 @@ var (
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
+	ctrl := gomock.NewController(t)
 	cfg := &network.Config{
-		BlockState:         network.NewMockBlockState(nil),
+		BlockState:         network.NewMockBlockState(ctrl),
 		BasePath:           testDir,
 		Syncer:             network.NewMockSyncer(),
 		TransactionHandler: network.NewMockTransactionHandler(),

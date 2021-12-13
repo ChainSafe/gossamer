@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -72,7 +73,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = NewMockBlockState(nil)
+		ctrl := gomock.NewController(t)
+		cfg.BlockState = NewMockBlockState(ctrl)
 	}
 
 	if cfg.TransactionHandler == nil {
