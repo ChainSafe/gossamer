@@ -1,21 +1,8 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 //go:build integration
 // +build integration
-
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
 package dot
 
@@ -38,7 +25,7 @@ func TestBuildFromGenesis(t *testing.T) {
 	require.NoError(t, err)
 	bs, err := BuildFromGenesis(file, 0)
 
-	expectedChainType := "TESTCHAINTYPE"
+	const expectedChainType = "TESTCHAINTYPE"
 	expectedProperties := map[string]interface{}{
 		"ss58Format":    0.0,
 		"tokenDecimals": 0.0,
@@ -129,11 +116,10 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 		require.NoError(t, err)
 		defer file.Close()
 
-		genesisBytes, err := ioutil.ReadAll(file)
-		require.NoError(t, err)
-
 		gen := new(genesis.Genesis)
-		err = json.Unmarshal(genesisBytes, gen)
+
+		decoder := json.NewDecoder(file)
+		err = decoder.Decode(gen)
 		require.NoError(t, err)
 
 		require.Equal(t, expected.ChainType, gen.ChainType)
