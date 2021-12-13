@@ -10,7 +10,7 @@ func (b *Branch) ChildrenBitmap() (bitmap uint16) {
 		if b.Children[i] == nil {
 			continue
 		}
-		bitmap = bitmap | 1<<i
+		bitmap |= 1 << i
 	}
 	return bitmap
 }
