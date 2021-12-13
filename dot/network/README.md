@@ -113,10 +113,11 @@ implements a well defined [specification](https://github.com/hashicorp/yamux/blo
 [Kademlia](https://en.wikipedia.org/wiki/Kademlia) is a battle-tested
 [distributed hash table (DHT)](https://en.wikipedia.org/wiki/Distributed_hash_table) that defines methods for managing a
 dynamic list of peers that is constantly updated in order to make a P2P network more resilient and resistant to attacks.
-Kademlia calculates a logical "distance" between any two nodes in the network by applying the xor operation to the IDs
-of those two peers. Although this "distance" is not correlated to the physical distance between the peers, it adheres to
-three properties that are [crucial to the analysis](https://en.wikipedia.org/wiki/Kademlia#Academic_significance) of
-Kademlia as a protocol - in particular, these three properties are:
+Network peers use the DHT to advertise their presence, and also to discover each other by "walking" the DHT. Kademlia
+calculates a logical "distance" between any two nodes in the network by applying the xor operation to the IDs of those
+two peers. Although this "distance" is not correlated to the physical distance between the peers, it adheres to three
+properties that are [crucial to the analysis](https://en.wikipedia.org/wiki/Kademlia#Academic_significance) of Kademlia
+as a protocol - in particular, these three properties are:
 
 - the "distance" between a peer and itself is zero
 - the "distance" between two peers is the same regardless of the order in which the peers are considered (it is
@@ -136,9 +137,9 @@ with the specific protocols for each type.
 ##### Notification Protocols
 
 [Notification protocols](https://crates.parity.io/sc_network/index.html#notifications-protocols) allow peers to
-unidirectionally "push" information to other peers in the network. Although the peer receiving the information must
-explicitly accept a handshake in order to open a stream for a notification protocol, this stream does not allow the
-receiver to "push" information to the sender.
+unidirectionally "push" information to other peers in the network. When a notification stream is open, the peers
+exchange a handshake, after which the incoming side of the stream is closed for writing & the outgoing side of the
+stream is closed for reading. Notification streams may be left open indefinitely.
 
 ###### Transactions
 
@@ -163,7 +164,9 @@ cast votes for participation in the GRANDPA game.
 
 [These protocols](https://crates.parity.io/sc_network/index.html#request-response-protocols) allow peers to request
 specific information from one another. The requesting peer sends a protocol-specific message that describes the request
-and the peer to which the request was sent replies with a message.
+and the peer to which the request was sent replies with a message. When a peer opens a request/response stream by
+requesting data from another peer, they may _only_ request data on that stream & the other peer may _only_ respond to
+requests on that stream.
 
 ###### Sync
 
