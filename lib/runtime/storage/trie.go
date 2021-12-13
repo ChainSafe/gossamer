@@ -282,8 +282,9 @@ func (s *TrieState) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{},
 	return s.t.GetInsertedNodeHashes()
 }
 
-// GetDeletedNodeHashes returns the hash of nodes that are deleted from state trie since last block produced
-func (s *TrieState) GetDeletedNodeHashes() []common.Hash {
+// GetDeletedNodeHashes returns the hash of nodes that were deleted
+// from the state trie since the last block produced.
+func (s *TrieState) GetDeletedNodeHashes() (hashesSet map[common.Hash]struct{}) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.t.GetDeletedNodeHash()

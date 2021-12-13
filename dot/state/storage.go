@@ -112,8 +112,8 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
 		}
 
-		delKeys := ts.GetDeletedNodeHashes()
-		err = s.pruner.StoreJournalRecord(delKeys, insertedNodeHashes, header.Hash(), header.Number.Int64())
+		deletedNodeHashes := ts.GetDeletedNodeHashes()
+		err = s.pruner.StoreJournalRecord(deletedNodeHashes, insertedNodeHashes, header.Hash(), header.Number.Int64())
 		if err != nil {
 			return err
 		}
