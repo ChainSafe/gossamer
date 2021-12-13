@@ -19,13 +19,16 @@ import (
 func TestMinPeers(t *testing.T) {
 	t.Parallel()
 
+	firstPort, firstRelease := availablePort(t)
+	defer firstRelease()
+
 	const min = 1
 
 	nodes := make([]*Service, 2)
 	for i := range nodes {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        availablePort(t),
+			Port:        firstPort,
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -36,9 +39,12 @@ func TestMinPeers(t *testing.T) {
 	addrs := nodes[0].host.multiaddrs()[0]
 	addrs1 := nodes[1].host.multiaddrs()[0]
 
+	secondPort, secondRelease := availablePort(t)
+	defer secondRelease()
+
 	configB := &Config{
 		BasePath:  utils.NewTestBasePath(t, "nodeB"),
-		Port:      availablePort(t),
+		Port:      secondPort,
 		Bootnodes: []string{addrs.String(), addrs1.String()},
 		NoMDNS:    true,
 		MinPeers:  min,
@@ -59,13 +65,16 @@ func TestMinPeers(t *testing.T) {
 func TestMaxPeers(t *testing.T) {
 	t.Parallel()
 
+	port, release := availablePort(t)
+	defer release()
+
 	const max = 3
 	nodes := make([]*Service, max+2)
 
 	for i := range nodes {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        availablePort(t),
+			Port:        port,
 			NoBootstrap: true,
 			NoMDNS:      true,
 			MaxPeers:    max,
@@ -134,18 +143,24 @@ func TestPersistentPeers(t *testing.T) {
 
 	t.Parallel()
 
+	firstPort, firstRelease := availablePort(t)
+	defer firstRelease()
+
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node-a"),
-		Port:        availablePort(t),
+		Port:        firstPort,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 	nodeA := createTestService(t, configA)
 	addrs := nodeA.host.multiaddrs()
 
+	secondPort, secondRelease := availablePort(t)
+	defer secondRelease()
+
 	configB := &Config{
 		BasePath:        utils.NewTestBasePath(t, "node-b"),
-		Port:            availablePort(t),
+		Port:            secondPort,
 		NoMDNS:          true,
 		PersistentPeers: []string{addrs[0].String()},
 	}
@@ -173,10 +188,13 @@ func TestRemovePeer(t *testing.T) {
 
 	t.Parallel()
 
+	firstPort, firstRelease := availablePort(t)
+	defer firstRelease()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        availablePort(t),
+		Port:        firstPort,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -186,10 +204,13 @@ func TestRemovePeer(t *testing.T) {
 
 	addrA := nodeA.host.multiaddrs()[0]
 
+	secondPort, secondRelease := availablePort(t)
+	defer secondRelease()
+
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:  basePathB,
-		Port:      availablePort(t),
+		Port:      secondPort,
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
 	}
@@ -216,9 +237,12 @@ func TestSetReservedPeer(t *testing.T) {
 
 	nodes := make([]*Service, 3)
 	for i := range nodes {
+		port, release := availablePort(t)
+		defer release()
+
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        availablePort(t),
+			Port:        port,
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -230,10 +254,13 @@ func TestSetReservedPeer(t *testing.T) {
 	addrB := nodes[1].host.multiaddrs()[0]
 	addrC := nodes[2].host.addrInfo()
 
+	node3Port, release := availablePort(t)
+	defer release()
+
 	basePathD := utils.NewTestBasePath(t, "node3")
 	config := &Config{
 		BasePath:        basePathD,
-		Port:            availablePort(t),
+		Port:            node3Port,
 		NoMDNS:          true,
 		PersistentPeers: []string{addrA.String(), addrB.String()},
 	}

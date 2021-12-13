@@ -66,7 +66,7 @@ func newNetworkService(t *testing.T) *network.Service {
 	cfg := &network.Config{
 		BlockState:         network.NewMockBlockState(ctrl),
 		BasePath:           testDir,
-		Syncer:             network.NewMockSyncer(),
+		Syncer:             network.NewMockSyncer(ctrl),
 		TransactionHandler: network.NewMockTransactionHandler(),
 		SlotDuration:       time.Second,
 	}

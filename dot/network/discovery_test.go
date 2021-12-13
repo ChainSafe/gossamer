@@ -22,9 +22,12 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 
 	var discs []*discovery
 	for i := 0; i < num; i++ {
+		port, release := availablePort(t)
+		defer release()
+
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        availablePort(t),
+			Port:        port,
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -104,9 +107,12 @@ func TestKadDHT(t *testing.T) {
 func TestBeginDiscovery(t *testing.T) {
 	t.Parallel()
 
+	firstPort, firstRelease := availablePort(t)
+	defer firstRelease()
+
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        availablePort(t),
+		Port:        firstPort,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -114,9 +120,12 @@ func TestBeginDiscovery(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
+	secondPort, secondRelease := availablePort(t)
+	defer secondRelease()
+
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        availablePort(t),
+		Port:        secondPort,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -142,9 +151,12 @@ func TestBeginDiscovery(t *testing.T) {
 func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	t.Parallel()
 
+	firstPort, firstRelease := availablePort(t)
+	defer firstRelease()
+
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        availablePort(t),
+		Port:        firstPort,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -152,9 +164,12 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
+	secondPort, secondRelease := availablePort(t)
+	defer secondRelease()
+
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        availablePort(t),
+		Port:        secondPort,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -162,9 +177,12 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
+	thirdPort, thirdRelease := availablePort(t)
+	defer thirdRelease()
+
 	configC := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeC"),
-		Port:        availablePort(t),
+		Port:        thirdPort,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

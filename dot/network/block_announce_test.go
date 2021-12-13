@@ -130,9 +130,12 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 	t.Parallel()
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
+	p, release := availablePort(t)
+	defer release()
+
 	config := &Config{
 		BasePath:    basePath,
-		Port:        availablePort(t),
+		Port:        p,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -153,9 +156,12 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	t.Parallel()
 
+	p, release := availablePort(t)
+	defer release()
+
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        availablePort(t),
+		Port:        p,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
