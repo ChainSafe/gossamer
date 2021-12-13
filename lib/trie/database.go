@@ -191,7 +191,7 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 
 		err = t.load(db, decodedNode)
 		if err != nil {
-			return fmt.Errorf("cannot load child with hash 0x%x: %w", hash, err)
+			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
 		}
 	}
 
@@ -275,9 +275,6 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 // slice will modify the value of the node in the trie.
 func getFromDB(db chaindb.Database, n Node, key []byte) (
 	value []byte, err error) {
-	// if parent == nil {
-	// 	return nil, nil
-	// }
 	leaf, ok := n.(*node.Leaf)
 	if ok {
 		if bytes.Equal(leaf.Key, key) {
