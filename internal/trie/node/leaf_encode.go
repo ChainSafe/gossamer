@@ -137,12 +137,12 @@ func (l *Leaf) ScaleEncodeHash() (encoding []byte, err error) {
 
 	err = l.hash(buffer)
 	if err != nil {
-		return nil, fmt.Errorf("cannot hash node: %w", err)
+		return nil, fmt.Errorf("cannot hash leaf: %w", err)
 	}
 
 	scEncChild, err := scale.Marshal(buffer.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("cannot scale encode hashed node: %w", err)
+		return nil, fmt.Errorf("cannot scale encode hashed leaf: %w", err)
 	}
 	return scEncChild, nil
 }

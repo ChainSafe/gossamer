@@ -25,12 +25,12 @@ func (b *Branch) ScaleEncodeHash() (encoding []byte, err error) {
 
 	err = b.hash(buffer)
 	if err != nil {
-		return nil, fmt.Errorf("cannot hash node: %w", err)
+		return nil, fmt.Errorf("cannot hash branch: %w", err)
 	}
 
 	encoding, err = scale.Marshal(buffer.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("cannot scale encode hashed node: %w", err)
+		return nil, fmt.Errorf("cannot scale encode hashed branch: %w", err)
 	}
 
 	return encoding, nil
@@ -113,7 +113,7 @@ func (b *Branch) Encode(buffer Buffer) (err error) {
 		}
 	}
 
-	const parallel = false // TODO
+	const parallel = false // TODO Done in pull request #2081
 	if parallel {
 		err = encodeChildrenInParallel(b.Children, buffer)
 	} else {
