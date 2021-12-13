@@ -78,8 +78,8 @@ func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
 	someBytes := []byte("Testing some bytes")
 	err = WriteGenesisSpecFile(someBytes, f.Name())
 
-	require.Error(t, err,
-		fmt.Sprintf("file %s already exists, rename to avoid overwritten", f.Name()))
+	require.EqualError(t, err,
+		fmt.Sprintf("file %s already exists, rename to avoid overwriting", f.Name()))
 }
 
 func TestWriteGenesisSpecFile(t *testing.T) {
