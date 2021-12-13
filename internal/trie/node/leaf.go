@@ -22,12 +22,22 @@ type Leaf struct {
 	Hash       []byte
 	Encoding   []byte
 	encodingMu sync.RWMutex
-	// Generation is incremented on every trie Snapshot() call.
+	// generation is incremented on every trie Snapshot() call.
 	// Nodes that are part of the trie are then gradually updated
 	// to have a matching generation number as well, if they are
 	// still relevant.
-	Generation uint64
+	generation uint64
 	sync.RWMutex
+}
+
+// NewLeaf creates a new leaf using the arguments given.
+func NewLeaf(key, value []byte, dirty bool, generation uint64) *Leaf {
+	return &Leaf{
+		Key:        key,
+		Value:      value,
+		Dirty:      dirty,
+		generation: generation,
+	}
 }
 
 func (l *Leaf) String() string {

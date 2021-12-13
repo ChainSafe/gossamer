@@ -258,7 +258,7 @@ func (t *Trie) Put(key, value []byte) {
 func (t *Trie) tryPut(key, value []byte) {
 	k := codec.KeyLEToNibbles(key)
 
-	t.root = t.insert(t.root, k, &node.Leaf{Key: nil, Value: value, Dirty: true, Generation: t.generation})
+	t.root = t.insert(t.root, k, node.NewLeaf(nil, value, true, t.generation))
 }
 
 // insert attempts to insert a key with value into the trie
@@ -288,7 +288,9 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 		length := lenCommonPrefix(key, p.Key)
 
 		// need to convert this leaf into a branch
-		br := &node.Branch{Key: key[:length], Dirty: true, Generation: t.generation}
+		var newBranchValue []byte
+		const newBranchDirty = true
+		br := node.NewBranch(key[:length], newBranchValue, newBranchDirty, t.generation)
 		parentKey := p.Key
 
 		// value goes at this branch
@@ -367,7 +369,9 @@ func (t *Trie) updateBranch(p *node.Branch, key []byte, value Node) (n Node) {
 
 	// we need to branch out at the point where the keys diverge
 	// update partial keys, new branch has key up to matching length
-	br := &node.Branch{Key: key[:length], Dirty: true, Generation: t.generation}
+	var newBranchValue []byte
+	const newBranchDirty = true
+	br := node.NewBranch(key[:length], newBranchValue, newBranchDirty, t.generation)
 
 	parentIndex := p.Key[length]
 	br.Children[parentIndex] = t.insert(nil, p.Key[length+1:], p)

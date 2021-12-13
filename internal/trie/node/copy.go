@@ -15,7 +15,7 @@ func (b *Branch) Copy() Node {
 		Dirty:      b.Dirty,
 		Hash:       make([]byte, len(b.Hash)),
 		Encoding:   make([]byte, len(b.Encoding)),
-		Generation: b.Generation,
+		generation: b.generation,
 	}
 	copy(cpy.Key, b.Key)
 
@@ -44,7 +44,7 @@ func (l *Leaf) Copy() Node {
 		Dirty:      l.Dirty,
 		Hash:       make([]byte, len(l.Hash)),
 		Encoding:   make([]byte, len(l.Encoding)),
-		Generation: l.Generation,
+		generation: l.generation,
 	}
 	copy(cpy.Key, l.Key)
 	copy(cpy.Value, l.Value)

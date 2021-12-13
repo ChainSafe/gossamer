@@ -36,9 +36,10 @@ func (t *Trie) string(tree gotree.Tree, curr Node, idx int) {
 
 		var bstr string
 		if len(c.Encoding) > 1024 {
-			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.Encoding), c.Generation)
+			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d",
+				idx, c, common.MustBlake2bHash(c.Encoding), c.GetGeneration())
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.Encoding, c.Generation)
+			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.Encoding, c.GetGeneration())
 		}
 
 		pools.EncodingBuffers.Put(buffer)
@@ -61,9 +62,10 @@ func (t *Trie) string(tree gotree.Tree, curr Node, idx int) {
 
 		var bstr string
 		if len(c.Encoding) > 1024 {
-			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.Encoding), c.Generation)
+			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d",
+				idx, c.String(), common.MustBlake2bHash(c.Encoding), c.GetGeneration())
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.Encoding, c.Generation)
+			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.Encoding, c.GetGeneration())
 		}
 
 		pools.EncodingBuffers.Put(buffer)
