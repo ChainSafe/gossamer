@@ -50,14 +50,16 @@ type Config struct {
 
 // Pruner is implemented by FullNode and ArchiveNode.
 type Pruner interface {
-	StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error
+	StoreJournalRecord(deleted []common.Hash, insertedHashesSet map[common.Hash]struct{},
+		blockHash common.Hash, blockNum int64) error
 }
 
 // ArchiveNode is a no-op since we don't prune nodes in archive mode.
 type ArchiveNode struct{}
 
 // StoreJournalRecord for archive node doesn't do anything.
-func (a *ArchiveNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error {
+func (a *ArchiveNode) StoreJournalRecord(_ []common.Hash, _ map[common.Hash]struct{},
+	_ common.Hash, _ int64) error {
 	return nil
 }
 
@@ -86,7 +88,7 @@ type journalRecord struct {
 	// blockHash of the block corresponding to journal record
 	blockHash common.Hash
 	// Hash of keys that are inserted into state trie of the block
-	insertedKeys []common.Hash
+	insertedHashesSet map[common.Hash]struct{}
 	// Hash of keys that are deleted from state trie of the block
 	deletedKeys []common.Hash
 }
@@ -96,11 +98,12 @@ type journalKey struct {
 	blockHash common.Hash
 }
 
-func newJournalRecord(hash common.Hash, insertedKeys, deletedKeys []common.Hash) *journalRecord {
+func newJournalRecord(hash common.Hash, insertedHashesSet map[common.Hash]struct{},
+	deletedKeys []common.Hash) *journalRecord {
 	return &journalRecord{
-		blockHash:    hash,
-		insertedKeys: insertedKeys,
-		deletedKeys:  deletedKeys,
+		blockHash:         hash,
+		insertedHashesSet: insertedHashesSet,
+		deletedKeys:       deletedKeys,
 	}
 }
 
@@ -136,8 +139,9 @@ func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Level
 }
 
 // StoreJournalRecord stores journal record into DB and add deathRow into deathList
-func (p *FullNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error {
-	jr := newJournalRecord(blockHash, inserted, deleted)
+func (p *FullNode) StoreJournalRecord(deleted []common.Hash, insertedHashesSet map[common.Hash]struct{},
+	blockHash common.Hash, blockNum int64) error {
+	jr := newJournalRecord(blockHash, insertedHashesSet, deleted)
 
 	key := &journalKey{blockNum, blockHash}
 	err := p.storeJournal(key, jr)
@@ -163,7 +167,7 @@ func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
 		return
 	}
 
-	p.processInsertedKeys(jr.insertedKeys, jr.blockHash)
+	p.processInsertedKeys(jr.insertedHashesSet, jr.blockHash)
 
 	// add deleted keys from journal to death index
 	for _, k := range jr.deletedKeys {
@@ -190,8 +194,8 @@ func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
 }
 
 // Remove re-inserted keys
-func (p *FullNode) processInsertedKeys(insKeys []common.Hash, blockHash common.Hash) {
-	for _, k := range insKeys {
+func (p *FullNode) processInsertedKeys(insertedHashesSet map[common.Hash]struct{}, blockHash common.Hash) {
+	for k := range insertedHashesSet {
 		num, ok := p.deathIndex[k]
 		if !ok {
 			continue

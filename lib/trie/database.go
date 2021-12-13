@@ -400,23 +400,17 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 	return nil
 }
 
-// GetInsertedNodeHashes returns the hashes of all nodes that were
-// inserted in the state trie since the last snapshot.
+// GetInsertedNodeHashes returns a set of hashes with all
+// the hashes of all nodes that were inserted in the state trie
+// since the last snapshot.
 // We need to compute the hash values of each newly inserted node.
-// Note the order of hashes returned does not matter.
-func (t *Trie) GetInsertedNodeHashes() (hashes []common.Hash, err error) {
-	hashesSet := make(map[common.Hash]struct{})
+func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err error) {
+	hashesSet = make(map[common.Hash]struct{})
 	err = t.getInsertedNodeHashes(t.root, hashesSet)
 	if err != nil {
 		return nil, err
 	}
-
-	hashes = make([]common.Hash, 0, len(hashesSet))
-	for hash := range hashesSet {
-		hashes = append(hashes, hash)
-	}
-
-	return hashes, nil
+	return hashesSet, nil
 }
 
 func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (err error) {
