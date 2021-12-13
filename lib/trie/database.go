@@ -273,7 +273,7 @@ func getFromDB(db chaindb.Database, parent Node, key []byte) ([]byte, error) {
 		}
 
 		// load child with potential value
-		enc, err := db.Get(p.Children[key[length]].(*node.Leaf).Hash)
+		enc, err := db.Get(p.Children[key[length]].GetHash())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find node in database: %w", err)
 		}

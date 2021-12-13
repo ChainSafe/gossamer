@@ -19,7 +19,7 @@ type Leaf struct {
 	// Dirty is true when the branch differs
 	// from the node stored in the database.
 	dirty      bool
-	Hash       []byte
+	hashDigest []byte
 	Encoding   []byte
 	encodingMu sync.RWMutex
 	// generation is incremented on every trie Snapshot() call.

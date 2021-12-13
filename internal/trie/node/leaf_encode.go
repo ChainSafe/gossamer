@@ -21,7 +21,7 @@ func (l *Leaf) SetEncodingAndHash(enc, hash []byte) {
 	l.encodingMu.Lock()
 	l.Encoding = enc
 	l.encodingMu.Unlock()
-	l.Hash = hash
+	l.hashDigest = hash
 }
 
 // GetHash returns the hash of the leaf.
@@ -29,7 +29,7 @@ func (l *Leaf) SetEncodingAndHash(enc, hash []byte) {
 // the returned hash will modify the hash
 // of the branch.
 func (l *Leaf) GetHash() []byte {
-	return l.Hash
+	return l.hashDigest
 }
 
 // EncodeAndHash returns the encoding of the leaf and
@@ -38,9 +38,9 @@ func (l *Leaf) GetHash() []byte {
 // is the encoding and not the hash of the encoding.
 func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	l.encodingMu.RLock()
-	if !l.IsDirty() && l.Encoding != nil && l.Hash != nil {
+	if !l.IsDirty() && l.Encoding != nil && l.hashDigest != nil {
 		l.encodingMu.RUnlock()
-		return l.Encoding, l.Hash, nil
+		return l.Encoding, l.hashDigest, nil
 	}
 	l.encodingMu.RUnlock()
 
@@ -64,9 +64,9 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	encoding = l.Encoding // no need to copy
 
 	if len(bufferBytes) < 32 {
-		l.Hash = make([]byte, len(bufferBytes))
-		copy(l.Hash, bufferBytes)
-		hash = l.Hash // no need to copy
+		l.hashDigest = make([]byte, len(bufferBytes))
+		copy(l.hashDigest, bufferBytes)
+		hash = l.hashDigest // no need to copy
 		return encoding, hash, nil
 	}
 
@@ -76,8 +76,8 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 		return nil, nil, err
 	}
 
-	l.Hash = hashArray[:]
-	hash = l.Hash // no need to copy
+	l.hashDigest = hashArray[:]
+	hash = l.hashDigest // no need to copy
 
 	return encoding, hash, nil
 }

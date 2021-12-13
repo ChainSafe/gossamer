@@ -19,9 +19,9 @@ type Branch struct {
 	Value    []byte
 	// dirty is true when the branch differs
 	// from the node stored in the database.
-	dirty    bool
-	Hash     []byte
-	Encoding []byte
+	dirty      bool
+	hashDigest []byte
+	Encoding   []byte
 	// generation is incremented on every trie Snapshot() call.
 	// Nodes that are part of the trie are then gradually updated
 	// to have a matching generation number as well, if they are
