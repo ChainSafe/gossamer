@@ -14,12 +14,18 @@ var _ Node = (*Branch)(nil)
 
 // Branch is a branch in the trie.
 type Branch struct {
-	Key        []byte // partial key
-	Children   [16]Node
-	Value      []byte
-	Dirty      bool
-	Hash       []byte
-	Encoding   []byte
+	Key      []byte // partial key
+	Children [16]Node
+	Value    []byte
+	// Dirty is true when the branch differs
+	// from the node stored in the database.
+	Dirty    bool
+	Hash     []byte
+	Encoding []byte
+	// Generation is incremented on every trie Snapshot() call.
+	// Nodes that are part of the trie are then gradually updated
+	// to have a matching generation number as well, if they are
+	// still relevant.
 	Generation uint64
 	sync.RWMutex
 }

@@ -14,12 +14,18 @@ var _ Node = (*Leaf)(nil)
 
 // Leaf is a leaf in the trie.
 type Leaf struct {
-	Key        []byte // partial key
-	Value      []byte
+	Key   []byte // partial key
+	Value []byte
+	// Dirty is true when the branch differs
+	// from the node stored in the database.
 	Dirty      bool
 	Hash       []byte
 	Encoding   []byte
 	encodingMu sync.RWMutex
+	// Generation is incremented on every trie Snapshot() call.
+	// Nodes that are part of the trie are then gradually updated
+	// to have a matching generation number as well, if they are
+	// still relevant.
 	Generation uint64
 	sync.RWMutex
 }
