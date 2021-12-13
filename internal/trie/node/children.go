@@ -7,9 +7,10 @@ package node
 // of the children in the branch.
 func (b *Branch) ChildrenBitmap() (bitmap uint16) {
 	for i := uint(0); i < 16; i++ {
-		if b.Children[i] != nil {
-			bitmap = bitmap | 1<<i
+		if b.Children[i] == nil {
+			continue
 		}
+		bitmap = bitmap | 1<<i
 	}
 	return bitmap
 }

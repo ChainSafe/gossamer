@@ -10,18 +10,19 @@ package codec
 // [ 0000 in[0] | in[1] in[2] | ... | in[k-2] in[k-1] ]
 // Otherwise, the result is
 // [ in[0] in[1] | ... | in[k-2] in[k-1] ]
-func NibblesToKeyLE(nibbles []byte) (keyLE []byte) {
+func NibblesToKeyLE(nibbles []byte) []byte {
 	if len(nibbles)%2 == 0 {
-		keyLE = make([]byte, len(nibbles)/2)
+		keyLE := make([]byte, len(nibbles)/2)
 		for i := 0; i < len(nibbles); i += 2 {
 			keyLE[i/2] = (nibbles[i] << 4 & 0xf0) | (nibbles[i+1] & 0xf)
 		}
-	} else {
-		keyLE = make([]byte, len(nibbles)/2+1)
-		keyLE[0] = nibbles[0]
-		for i := 2; i < len(nibbles); i += 2 {
-			keyLE[i/2] = (nibbles[i-1] << 4 & 0xf0) | (nibbles[i] & 0xf)
-		}
+		return keyLE
+	}
+
+	keyLE := make([]byte, len(nibbles)/2+1)
+	keyLE[0] = nibbles[0]
+	for i := 2; i < len(nibbles); i += 2 {
+		keyLE[i/2] = (nibbles[i-1] << 4 & 0xf0) | (nibbles[i] & 0xf)
 	}
 
 	return keyLE

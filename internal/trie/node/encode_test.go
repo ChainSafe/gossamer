@@ -7,7 +7,7 @@ import "errors"
 
 type writeCall struct {
 	written []byte
-	n       int
+	n       int // number of bytes
 	err     error
 }
 
