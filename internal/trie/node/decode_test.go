@@ -71,7 +71,7 @@ func Test_Decode(t *testing.T) {
 			n: &Leaf{
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3},
-				Dirty: true,
+				dirty: true,
 			},
 		},
 		"branch decoding error": {
@@ -92,7 +92,7 @@ func Test_Decode(t *testing.T) {
 			),
 			n: &Branch{
 				Key:   []byte{9},
-				Dirty: true,
+				dirty: true,
 			},
 		},
 	}
@@ -176,7 +176,7 @@ func Test_decodeBranch(t *testing.T) {
 						Hash: []byte{1, 2, 3, 4, 5},
 					},
 				},
-				Dirty: true,
+				dirty: true,
 			},
 		},
 		"value decoding error for node type 3": {
@@ -211,7 +211,7 @@ func Test_decodeBranch(t *testing.T) {
 						Hash: []byte{1, 2, 3, 4, 5},
 					},
 				},
-				Dirty: true,
+				dirty: true,
 			},
 		},
 	}
@@ -273,7 +273,7 @@ func Test_decodeLeaf(t *testing.T) {
 			header: 65, // node type 1 and key length 1
 			leaf: &Leaf{
 				Key:   []byte{9},
-				Dirty: true,
+				dirty: true,
 			},
 		},
 		"success": {
@@ -287,7 +287,7 @@ func Test_decodeLeaf(t *testing.T) {
 			leaf: &Leaf{
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3, 4, 5},
-				Dirty: true,
+				dirty: true,
 			},
 		},
 	}

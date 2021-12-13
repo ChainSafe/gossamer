@@ -12,7 +12,7 @@ func (b *Branch) Copy() Node {
 		Key:        make([]byte, len(b.Key)),
 		Children:   b.Children, // copy interface pointers
 		Value:      nil,
-		Dirty:      b.Dirty,
+		dirty:      b.dirty,
 		Hash:       make([]byte, len(b.Hash)),
 		Encoding:   make([]byte, len(b.Encoding)),
 		generation: b.generation,
@@ -41,7 +41,7 @@ func (l *Leaf) Copy() Node {
 	cpy := &Leaf{
 		Key:        make([]byte, len(l.Key)),
 		Value:      make([]byte, len(l.Value)),
-		Dirty:      l.Dirty,
+		dirty:      l.dirty,
 		Hash:       make([]byte, len(l.Hash)),
 		Encoding:   make([]byte, len(l.Encoding)),
 		generation: l.generation,

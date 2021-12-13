@@ -280,7 +280,7 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 		if p.Value != nil && bytes.Equal(p.Key, key) {
 			if !bytes.Equal(value.(*node.Leaf).Value, p.Value) {
 				p.Value = value.(*node.Leaf).Value
-				p.Dirty = true
+				p.SetDirty(true)
 			}
 			return p
 		}
@@ -492,7 +492,7 @@ func (t *Trie) retrieve(parent Node, key []byte) *node.Leaf {
 
 		// found the value at this node
 		if bytes.Equal(p.Key, key) || len(key) == 0 {
-			return &node.Leaf{Key: p.Key, Value: p.Value, Dirty: false}
+			return node.NewLeaf(p.Key, p.Value, false, 0)
 		}
 
 		// did not find value
@@ -757,7 +757,7 @@ func handleDeletion(p *node.Branch, key []byte) Node {
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.Value != nil {
-		n = &node.Leaf{Key: key[:length], Value: p.Value, Dirty: true}
+		n = node.NewBranch(key[:length], p.Value, true, 0)
 	} else if p.NumChildren() == 1 && p.Value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
 		// find index of child

@@ -87,7 +87,7 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 // NodeHeader | Extra partial key length | Partial Key | Value
 func (l *Leaf) Encode(buffer Buffer) (err error) {
 	l.encodingMu.RLock()
-	if !l.Dirty && l.Encoding != nil {
+	if !l.dirty && l.Encoding != nil {
 		_, err = buffer.Write(l.Encoding)
 		l.encodingMu.RUnlock()
 		if err != nil {

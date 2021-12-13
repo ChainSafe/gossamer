@@ -944,11 +944,14 @@ func TestClearPrefix_Small(t *testing.T) {
 	}
 
 	ssTrie.ClearPrefix([]byte("noo"))
-	require.Equal(t, ssTrie.root, &node.Leaf{
+
+	expectedRoot := &node.Leaf{
 		Key:   codec.KeyLEToNibbles([]byte("other")),
 		Value: []byte("other"),
-		Dirty: true,
-	})
+	}
+	expectedRoot.SetDirty(true)
+
+	require.Equal(t, expectedRoot, ssTrie.root)
 
 	// Get the updated root hash of all tries.
 	tHash, err = trie.Hash()

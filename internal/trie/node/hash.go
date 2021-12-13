@@ -30,7 +30,7 @@ func (b *Branch) GetHash() []byte {
 // If the encoding is less than 32 bytes, the hash returned
 // is the encoding and not the hash of the encoding.
 func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
-	if !b.Dirty && b.Encoding != nil && b.Hash != nil {
+	if !b.dirty && b.Encoding != nil && b.Hash != nil {
 		return b.Encoding, b.Hash, nil
 	}
 
