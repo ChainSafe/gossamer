@@ -15,9 +15,9 @@ const (
 func (b *Branch) encodeHeader(writer io.Writer) (err error) {
 	var header byte
 	if b.Value == nil {
-		header = 2 << 6
+		header = byte(BranchType) << 6
 	} else {
-		header = 3 << 6
+		header = byte(BranchWithValueType) << 6
 	}
 
 	if len(b.Key) >= keyLenOffset {
@@ -44,7 +44,7 @@ func (b *Branch) encodeHeader(writer io.Writer) (err error) {
 
 // encodeHeader creates the encoded header for the leaf.
 func (l *Leaf) encodeHeader(writer io.Writer) (err error) {
-	var header byte = 1 << 6
+	header := byte(LeafType) << 6
 
 	if len(l.Key) < 63 {
 		header |= byte(len(l.Key))

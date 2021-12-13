@@ -50,7 +50,9 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return err
 	}
 
-	if branch, ok := n.(*node.Branch); ok {
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+		branch := n.(*node.Branch)
 		for _, child := range branch.Children {
 			if child == nil {
 				continue
@@ -111,10 +113,13 @@ func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
 // loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting at the root
 func (t *Trie) loadProof(proofHashToNode map[string]Node, n Node) {
-	branch, ok := n.(*node.Branch)
-	if !ok {
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default:
 		return
 	}
+
+	branch := n.(*node.Branch)
 
 	for i, child := range branch.Children {
 		if child == nil {
@@ -161,10 +166,13 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 }
 
 func (t *Trie) load(db chaindb.Database, n Node) error {
-	branch, ok := n.(*node.Branch)
-	if !ok {
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default: // not a branch
 		return nil
 	}
+
+	branch := n.(*node.Branch)
 
 	for i, child := range branch.Children {
 		if child == nil {
@@ -199,10 +207,13 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 // PopulateNodeHashes writes hashes of each children of the node given
 // as keys to the map hashesSet.
 func (t *Trie) PopulateNodeHashes(n Node, hashesSet map[common.Hash]struct{}) {
-	branch, ok := n.(*node.Branch)
-	if !ok {
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default:
 		return
 	}
+
+	branch := n.(*node.Branch)
 
 	for _, child := range branch.Children {
 		if child == nil {
@@ -363,12 +374,15 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 			hash, err)
 	}
 
-	branch, ok := n.(*node.Branch)
-	if !ok {
-		// the node is a leaf
-		n.SetDirty(false)
+	n.SetDirty(false)
+
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default: // not a branch
 		return nil
 	}
+
+	branch := n.(*node.Branch)
 
 	for _, child := range branch.Children {
 		if child == nil {
@@ -381,8 +395,6 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 			return err
 		}
 	}
-
-	branch.SetDirty(false)
 
 	return nil
 }
@@ -420,11 +432,13 @@ func (t *Trie) getInsertedNodeHashes(n Node) (hashes []common.Hash, err error) {
 
 	hashes = append(hashes, common.BytesToHash(hash))
 
-	branch, ok := n.(*node.Branch)
-	if !ok {
-		// node is a leaf
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default: // not a branch
 		return hashes, nil
 	}
+
+	branch := n.(*node.Branch)
 
 	for _, child := range branch.Children {
 		if child == nil {
