@@ -32,14 +32,14 @@ func (t *Trie) string(tree gotree.Tree, curr Node, idx int) {
 		buffer.Reset()
 
 		_ = c.Encode(buffer)
-		c.Encoding = buffer.Bytes()
+		encoding := buffer.Bytes()
 
 		var bstr string
-		if len(c.Encoding) > 1024 {
+		if len(encoding) > 1024 {
 			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d",
-				idx, c, common.MustBlake2bHash(c.Encoding), c.GetGeneration())
+				idx, c, common.MustBlake2bHash(encoding), c.GetGeneration())
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.Encoding, c.GetGeneration())
+			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), encoding, c.GetGeneration())
 		}
 
 		pools.EncodingBuffers.Put(buffer)
@@ -56,16 +56,14 @@ func (t *Trie) string(tree gotree.Tree, curr Node, idx int) {
 
 		_ = c.Encode(buffer)
 
-		// TODO lock or use methods on leaf to set the encoding bytes.
-		// Right now this is only used for debugging so no need to lock
-		c.Encoding = buffer.Bytes()
+		encoding := buffer.Bytes()
 
 		var bstr string
-		if len(c.Encoding) > 1024 {
+		if len(encoding) > 1024 {
 			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d",
-				idx, c.String(), common.MustBlake2bHash(c.Encoding), c.GetGeneration())
+				idx, c.String(), common.MustBlake2bHash(encoding), c.GetGeneration())
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.Encoding, c.GetGeneration())
+			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), encoding, c.GetGeneration())
 		}
 
 		pools.EncodingBuffers.Put(buffer)
