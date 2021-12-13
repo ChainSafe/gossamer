@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// availablePort2Test2Test automatically release the port after test ends
 func availablePort2Test(t *testing.T) uint16 {
 	t.Helper()
 
