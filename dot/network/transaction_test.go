@@ -6,12 +6,12 @@ package network
 import (
 	"testing"
 
+	gomock "github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,29 +31,28 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 func TestHandleTransactionMessage(t *testing.T) {
 	t.Parallel()
 
+	ctrl := gomock.NewController(t)
+
+	expectedMsgArg := &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+
+	th := NewMockTransactionHandler(ctrl)
+	th.EXPECT().
+		HandleTransactionMessage(gomock.Any(), expectedMsgArg).
+		Return(true, nil).AnyTimes()
+	th.EXPECT().TransactionsCount().Return(0).AnyTimes()
+
 	basePath := utils.NewTestBasePath(t, "nodeA")
-	mockhandler := &MockTransactionHandler{}
-	mockhandler.On("HandleTransactionMessage",
-		mock.AnythingOfType("peer.ID"),
-		mock.AnythingOfType("*network.TransactionMessage")).
-		Return(true, nil)
-	mockhandler.On("TransactionsCount").Return(0)
 
 	config := &Config{
 		BasePath:           basePath,
 		Port:               availablePort2Test(t),
 		NoBootstrap:        true,
 		NoMDNS:             true,
-		TransactionHandler: mockhandler,
+		TransactionHandler: th,
 	}
 
 	s := createTestService(t, config)
-
-	msg := &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
-	}
-
-	s.handleTransactionMessage(peer.ID(""), msg)
-	mockhandler.AssertCalled(t, "HandleTransactionMessage",
-		mock.AnythingOfType("peer.ID"), msg)
+	s.handleTransactionMessage(peer.ID(""), expectedMsgArg)
 }

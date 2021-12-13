@@ -9,8 +9,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -18,17 +16,6 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
-
-// NewMockTransactionHandler create and return a network TransactionHandler interface
-func NewMockTransactionHandler() *MockTransactionHandler {
-	mocktxhandler := new(MockTransactionHandler)
-	mocktxhandler.On("HandleTransactionMessage",
-		mock.AnythingOfType("peer.ID"),
-		mock.AnythingOfType("*network.TransactionMessage")).
-		Return(true, nil)
-	mocktxhandler.On("TransactionsCount").Return(0)
-	return mocktxhandler
-}
 
 type testStreamHandler struct {
 	messages map[peer.ID][]Message

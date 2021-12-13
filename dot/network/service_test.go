@@ -13,7 +13,6 @@ import (
 	"time"
 
 	gomock "github.com/golang/mock/gomock"
-	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -130,13 +129,13 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.TransactionHandler == nil {
-		mocktxhandler := &MockTransactionHandler{}
-		mocktxhandler.On("HandleTransactionMessage",
-			mock.AnythingOfType("peer.ID"),
-			mock.AnythingOfType("*network.TransactionMessage")).
-			Return(true, nil)
-		mocktxhandler.On("TransactionsCount").Return(0)
-		cfg.TransactionHandler = mocktxhandler
+		th := NewMockTransactionHandler(ctrl)
+		th.EXPECT().
+			HandleTransactionMessage(gomock.Any(), gomock.Any()).
+			Return(true, nil).AnyTimes()
+
+		th.EXPECT().TransactionsCount().Return(0).AnyTimes()
+		cfg.TransactionHandler = th
 	}
 
 	cfg.SlotDuration = time.Second

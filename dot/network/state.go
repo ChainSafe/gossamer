@@ -25,7 +25,6 @@ type BlockState interface {
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 
-//go:generate mockery --name Syncer --structname MockSyncer --case underscore --inpackage
 //go:generate mockgen -destination=mock_syncer.go -package $GOPACKAGE . Syncer
 
 // Syncer is implemented by the syncing service
@@ -43,7 +42,7 @@ type Syncer interface {
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 }
 
-//go:generate mockery --name TransactionHandler --structname MockTransactionHandler --case underscore --inpackage
+//go:generate mockgen -destination=mock_transaction_handler.go -package $GOPACKAGE . TransactionHandler
 
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {

@@ -24,10 +24,8 @@ func availablePort2Test(t *testing.T) uint16 {
 
 	port := uint16(l.Addr().(*net.TCPAddr).Port)
 
-	t.Cleanup(func() {
-		err := l.Close()
-		require.NoError(t, err, "failed to release port: %d", port)
-	})
+	err = l.Close()
+	require.NoError(t, err, "failed to release port: %d", port)
 
 	return port
 }
