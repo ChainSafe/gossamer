@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func availablePort2Test(t *testing.T) uint16 {
+func availablePort(t *testing.T) uint16 {
 	t.Helper()
 
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")

@@ -28,7 +28,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	config := &Config{
 		BasePath:    basePath,
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -92,7 +92,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	config := &Config{
 		BasePath:    basePath,
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -101,7 +101,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -153,7 +153,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -172,7 +172,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -233,7 +233,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -244,7 +244,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -316,7 +316,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
 		BasePath:    basePath,
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		batchSize:   batchSize,
@@ -326,7 +326,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        availablePort2Test(t),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
