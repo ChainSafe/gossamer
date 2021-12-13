@@ -132,7 +132,7 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 
 	config := &Config{
 		BasePath:    basePath,
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -155,7 +155,7 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

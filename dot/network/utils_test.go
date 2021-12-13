@@ -12,7 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func availablePort(t *testing.T) uint16 {
+// availablePort2Test2Test automatically release the port after test ends
+func availablePort2Test(t *testing.T) uint16 {
 	t.Helper()
 
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
@@ -20,31 +21,15 @@ func availablePort(t *testing.T) uint16 {
 
 	l, err := net.ListenTCP("tcp", addr)
 	require.NoError(t, err)
-	defer l.Close()
 
-	port := l.Addr().(*net.TCPAddr).Port
-	return uint16(port)
-}
+	port := uint16(l.Addr().(*net.TCPAddr).Port)
 
-const portsAmount = 7100
+	t.Cleanup(func() {
+		err := l.Close()
+		require.NoError(t, err, "failed to release port: %d", port)
+	})
 
-type portsQueue chan int
-
-func (p portsQueue) get() int {
-	return <-p
-}
-
-func (p portsQueue) put(port int) {
-	p <- port
-}
-
-var availablePorts portsQueue
-
-func init() {
-	availablePorts = make(portsQueue, portsAmount)
-	for port := 7001; port <= portsAmount; port++ {
-		availablePorts <- port
-	}
+	return port
 }
 
 // list of IPFS peers, for testing only

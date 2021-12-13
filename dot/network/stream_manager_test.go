@@ -32,8 +32,8 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 	smA := newStreamManager(ctx)
 	smB := newStreamManager(ctx)
 
-	portA := availablePorts.get()
-	portB := availablePorts.get()
+	portA := availablePort2Test(t)
+	portB := availablePort2Test(t)
 
 	addrA, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", portA))
 	require.NoError(t, err)

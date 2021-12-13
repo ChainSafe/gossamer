@@ -19,30 +19,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const blockRequestSize uint32 = 128
-
-// NewMockSyncer create and return a network Syncer interface mock
-func NewMockSyncer() *MockSyncer {
-	mocksyncer := new(MockSyncer)
-	mocksyncer.
-		On("HandleBlockAnnounceHandshake",
-			mock.AnythingOfType("peer.ID"),
-			mock.AnythingOfType("*network.BlockAnnounceHandshake")).
-		Return(nil, nil)
-	mocksyncer.
-		On("HandleBlockAnnounce",
-			mock.AnythingOfType("peer.ID"),
-			mock.AnythingOfType("*network.BlockAnnounceMessage")).
-		Return(nil, nil)
-	mocksyncer.
-		On("CreateBlockResponse",
-			mock.AnythingOfType("*network.BlockRequestMessage")).
-		Return(testBlockResponseMessage(), nil)
-	mocksyncer.
-		On("IsSynced").Return(false)
-	return mocksyncer
-}
-
 // NewMockTransactionHandler create and return a network TransactionHandler interface
 func NewMockTransactionHandler() *MockTransactionHandler {
 	mocktxhandler := new(MockTransactionHandler)
@@ -52,32 +28,6 @@ func NewMockTransactionHandler() *MockTransactionHandler {
 		Return(true, nil)
 	mocktxhandler.On("TransactionsCount").Return(0)
 	return mocktxhandler
-}
-
-func testBlockResponseMessage() *BlockResponseMessage {
-	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
-	}
-
-	for i := 0; i < int(blockRequestSize); i++ {
-		testHeader := &types.Header{
-			Number: big.NewInt(int64(77 + i)),
-			Digest: types.NewDigest(),
-		}
-
-		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
-
-		msg.BlockData = append(msg.BlockData, &types.BlockData{
-			Hash:          testHeader.Hash(),
-			Header:        testHeader,
-			Body:          body,
-			MessageQueue:  nil,
-			Receipt:       nil,
-			Justification: nil,
-		})
-	}
-
-	return msg
 }
 
 type testStreamHandler struct {

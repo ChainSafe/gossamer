@@ -12,11 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
+	gomock "github.com/golang/mock/gomock"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
@@ -40,7 +41,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        availablePort(t),
+			Port:        availablePort2Test(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -55,16 +56,46 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	return srvcs
 }
 
+func createTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
+	t.Helper()
+
+	msg := &BlockResponseMessage{
+		BlockData: []*types.BlockData{},
+	}
+
+	const blockRequestSize uint32 = 128
+	for i := 0; i < int(blockRequestSize); i++ {
+		testHeader := &types.Header{
+			Number: big.NewInt(int64(77 + i)),
+			Digest: types.NewDigest(),
+		}
+
+		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
+
+		msg.BlockData = append(msg.BlockData, &types.BlockData{
+			Hash:          testHeader.Hash(),
+			Header:        testHeader,
+			Body:          body,
+			MessageQueue:  nil,
+			Receipt:       nil,
+			Justification: nil,
+		})
+	}
+
+	return msg
+}
+
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	t.Helper()
+	ctrl := gomock.NewController(t)
 
 	if cfg == nil {
 		basePath := utils.NewTestBasePath(t, "node")
 
 		cfg = &Config{
 			BasePath:     basePath,
-			Port:         availablePort(t),
+			Port:         availablePort2Test(t),
 			NoBootstrap:  true,
 			NoMDNS:       true,
 			LogLvl:       4,
@@ -73,8 +104,29 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.BlockState == nil {
-		ctrl := gomock.NewController(t)
-		cfg.BlockState = NewMockBlockState(ctrl)
+		parentHash := common.MustHexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+		stateRoot := common.MustHexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
+		extrinsicsRoot := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+
+		header := &types.Header{
+			ParentHash:     parentHash,
+			Number:         big.NewInt(1),
+			StateRoot:      stateRoot,
+			ExtrinsicsRoot: extrinsicsRoot,
+			Digest:         types.NewDigest(),
+		}
+
+		blockstate := NewMockBlockState(ctrl)
+
+		blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
+		blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
+		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
+		blockstate.EXPECT().BestBlockNumber().Return(big.NewInt(1), nil).AnyTimes()
+
+		blockstate.EXPECT().HasBlockBody(gomock.Any()).Return(false, nil).AnyTimes()
+		blockstate.EXPECT().GetHashByNumber(gomock.Any()).Return(common.Hash{}, nil).AnyTimes()
+
+		cfg.BlockState = blockstate
 	}
 
 	if cfg.TransactionHandler == nil {
@@ -95,7 +147,21 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = NewMockSyncer()
+		syncer := NewMockSyncer(ctrl)
+		syncer.EXPECT().
+			HandleBlockAnnounceHandshake(gomock.Any(), gomock.Any()).
+			Return(nil).AnyTimes()
+
+		syncer.EXPECT().
+			HandleBlockAnnounce(gomock.Any(), gomock.Any()).
+			Return(nil).AnyTimes()
+
+		syncer.EXPECT().
+			CreateBlockResponse(gomock.Any()).
+			Return(createTestBlockResponseMessage(t), nil).AnyTimes()
+
+		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
+		cfg.Syncer = syncer
 	}
 
 	cfg.noPreAllocate = true
@@ -109,8 +175,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		srvc.Stop()
-		availablePorts.put(int(cfg.Port))
+		err := srvc.Stop()
+		require.NoError(t, err)
 	})
 	return srvc
 }
@@ -142,7 +208,7 @@ func TestBroadcastMessages(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -153,7 +219,7 @@ func TestBroadcastMessages(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -191,7 +257,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -202,7 +268,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -264,6 +330,7 @@ func TestService_NodeRoles(t *testing.T) {
 	cfg := &Config{
 		BasePath: basePath,
 		Roles:    1,
+		Port:     availablePort2Test(t),
 	}
 	svc := createTestService(t, cfg)
 
@@ -273,25 +340,26 @@ func TestService_NodeRoles(t *testing.T) {
 
 func TestService_Health(t *testing.T) {
 	t.Parallel()
+	ctrl := gomock.NewController(t)
 
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
 		BasePath:    basePath,
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
-	mocksyncer := &MockSyncer{}
-	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
+
+	syncer := NewMockSyncer(ctrl)
 
 	s := createTestService(t, config)
-	s.syncer = mocksyncer
+	s.syncer = syncer
 
-	mocksyncer.On("IsSynced").Return(false).Once()
+	syncer.EXPECT().IsSynced().Return(false)
 	h := s.Health()
 	require.Equal(t, true, h.IsSyncing)
 
-	mocksyncer.On("IsSynced").Return(true).Once()
+	syncer.EXPECT().IsSynced().Return(true)
 	h = s.Health()
 	require.Equal(t, false, h.IsSyncing)
 }
@@ -327,7 +395,7 @@ func TestHandleConn(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -336,7 +404,7 @@ func TestHandleConn(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        availablePort(t),
+		Port:        availablePort2Test(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -355,18 +423,19 @@ func TestHandleConn(t *testing.T) {
 func TestSerivceIsMajorSyncMetrics(t *testing.T) {
 	t.Parallel()
 
-	mocksyncer := new(MockSyncer)
+	ctrl := gomock.NewController(t)
+	mocksyncer := NewMockSyncer(ctrl)
 
 	node := &Service{
 		syncer: mocksyncer,
 	}
 
-	mocksyncer.On("IsSynced").Return(false).Once()
+	mocksyncer.EXPECT().IsSynced().Return(false)
 	m := node.CollectGauge()
 
 	require.Equal(t, int64(1), m[gssmrIsMajorSyncMetric])
 
-	mocksyncer.On("IsSynced").Return(true).Once()
+	mocksyncer.EXPECT().IsSynced().Return(true)
 	m = node.CollectGauge()
 
 	require.Equal(t, int64(0), m[gssmrIsMajorSyncMetric])
