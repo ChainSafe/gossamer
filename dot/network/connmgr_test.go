@@ -216,7 +216,6 @@ func TestSetReservedPeer(t *testing.T) {
 
 	nodes := make([]*Service, 3)
 	for i := range nodes {
-
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
 			Port:        availablePort(t),
