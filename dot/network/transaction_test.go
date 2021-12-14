@@ -37,11 +37,11 @@ func TestHandleTransactionMessage(t *testing.T) {
 		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
 	}
 
-	th := NewMockTransactionHandler(ctrl)
-	th.EXPECT().
+	transactionHandler := NewMockTransactionHandler(ctrl)
+	transactionHandler.EXPECT().
 		HandleTransactionMessage(gomock.Any(), expectedMsgArg).
 		Return(true, nil).AnyTimes()
-	th.EXPECT().TransactionsCount().Return(0).AnyTimes()
+	transactionHandler.EXPECT().TransactionsCount().Return(0).AnyTimes()
 
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
@@ -50,7 +50,7 @@ func TestHandleTransactionMessage(t *testing.T) {
 		Port:               availablePort(t),
 		NoBootstrap:        true,
 		NoMDNS:             true,
-		TransactionHandler: th,
+		TransactionHandler: transactionHandler,
 	}
 
 	s := createTestService(t, config)
