@@ -112,6 +112,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpcport", node.RPCPort,
 		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
+		"--no-telemetry",
 		"--log", "info"}
 
 	if node.BABELead {
