@@ -7,7 +7,7 @@ package node
 type Type byte
 
 const (
-	_ = iota
+	_ Type = iota
 	// LeafType type is 1
 	LeafType
 	// BranchType type is 2
