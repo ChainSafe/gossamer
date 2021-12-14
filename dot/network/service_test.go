@@ -13,6 +13,7 @@ import (
 	"time"
 
 	gomock "github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -122,7 +123,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
 		blockstate.EXPECT().BestBlockNumber().Return(big.NewInt(1), nil).AnyTimes()
 
-		blockstate.EXPECT().HasBlockBody(gomock.Any()).Return(false, nil).AnyTimes()
+		blockstate.EXPECT().HasBlockBody(
+			gomock.AssignableToTypeOf(common.Hash([32]byte{}))).Return(false, nil).AnyTimes()
 		blockstate.EXPECT().GetHashByNumber(gomock.Any()).Return(common.Hash{}, nil).AnyTimes()
 
 		cfg.BlockState = blockstate
@@ -131,7 +133,9 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg.TransactionHandler == nil {
 		th := NewMockTransactionHandler(ctrl)
 		th.EXPECT().
-			HandleTransactionMessage(gomock.Any(), gomock.Any()).
+			HandleTransactionMessage(
+				gomock.AssignableToTypeOf(peer.ID("")),
+				gomock.Any()).
 			Return(true, nil).AnyTimes()
 
 		th.EXPECT().TransactionsCount().Return(0).AnyTimes()
@@ -148,11 +152,13 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg.Syncer == nil {
 		syncer := NewMockSyncer(ctrl)
 		syncer.EXPECT().
-			HandleBlockAnnounceHandshake(gomock.Any(), gomock.Any()).
+			HandleBlockAnnounceHandshake(
+				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
 			Return(nil).AnyTimes()
 
 		syncer.EXPECT().
-			HandleBlockAnnounce(gomock.Any(), gomock.Any()).
+			HandleBlockAnnounce(
+				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
 			Return(nil).AnyTimes()
 
 		syncer.EXPECT().
