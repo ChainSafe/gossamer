@@ -81,7 +81,7 @@ func encodeKeyLength(keyLength int, writer io.Writer) (err error) {
 func decodeKey(reader io.Reader, keyLength byte) (b []byte, err error) {
 	publicKeyLength := int(keyLength)
 
-	if keyLength == 0x3f {
+	if keyLength == keyLenOffset {
 		// partial key longer than 63, read next bytes for rest of pk len
 		buffer := pools.SingleByteBuffers.Get().(*bytes.Buffer)
 		defer pools.SingleByteBuffers.Put(buffer)

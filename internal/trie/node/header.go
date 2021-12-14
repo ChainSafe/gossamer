@@ -7,6 +7,10 @@ import (
 	"io"
 )
 
+const (
+	keyLenOffset = 0x3f
+)
+
 // encodeHeader creates the encoded header for the branch.
 func (b *Branch) encodeHeader(writer io.Writer) (err error) {
 	var header byte
@@ -16,8 +20,8 @@ func (b *Branch) encodeHeader(writer io.Writer) (err error) {
 		header = 3 << 6
 	}
 
-	if len(b.Key) >= 63 {
-		header = header | 0x3f
+	if len(b.Key) >= keyLenOffset {
+		header = header | keyLenOffset
 		_, err = writer.Write([]byte{header})
 		if err != nil {
 			return err
@@ -43,12 +47,12 @@ func (l *Leaf) encodeHeader(writer io.Writer) (err error) {
 	var header byte = 1 << 6
 
 	if len(l.Key) < 63 {
-		header = header | byte(len(l.Key))
+		header |= byte(len(l.Key))
 		_, err = writer.Write([]byte{header})
 		return err
 	}
 
-	header = header | 0x3f
+	header |= keyLenOffset
 	_, err = writer.Write([]byte{header})
 	if err != nil {
 		return err

@@ -68,7 +68,7 @@ func decodeBranch(reader io.Reader, header byte) (branch *Branch, err error) {
 
 	branch = new(Branch)
 
-	keyLen := header & 0x3f
+	keyLen := header & keyLenOffset
 	branch.Key, err = decodeKey(reader, keyLen)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
@@ -124,7 +124,7 @@ func decodeLeaf(reader io.Reader, header byte) (leaf *Leaf, err error) {
 		dirty: true,
 	}
 
-	keyLen := header & 0x3f
+	keyLen := header & keyLenOffset
 	leaf.Key, err = decodeKey(reader, keyLen)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
