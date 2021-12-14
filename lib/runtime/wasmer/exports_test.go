@@ -295,7 +295,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 		StateRoot: genTrie.MustHash(),
 	}
 
-	extHex := runtime.CreateTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
+	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
 		0, "System.remark", []byte{0xab, 0xcd})
 
 	extBytes := common.MustHexToBytes(extHex)
@@ -537,7 +537,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	extHex := runtime.CreateTestExtrinsic(t, instance, parentHash, parentHash,
+	extHex := runtime.NewTestExtrinsic(t, instance, parentHash, parentHash,
 		0, "System.remark", []byte{0xab, 0xcd})
 
 	extBytes := common.MustHexToBytes(extHex)

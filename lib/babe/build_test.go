@@ -124,7 +124,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	ext := runtime.CreateTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
 	block, slot := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)}, 1, testEpochIndex)
 
 	// create pre-digest
@@ -221,7 +221,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	extHex := runtime.CreateTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	extHex := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
 	extBytes := common.MustHexToBytes(extHex)
 	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, extBytes...))
 	require.NoError(t, err)

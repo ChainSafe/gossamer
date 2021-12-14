@@ -89,7 +89,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	blockHash := intCtrl.stateSrv.Block.BestBlockHash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
-	extHex := runtime.CreateTestExtrinsic(t,
+	extHex := runtime.NewTestExtrinsic(t,
 		intCtrl.runtime, genesisHash, blockHash, 0, "System.remark", []byte{0xab, 0xcd})
 
 	extBytes := common.MustHexToBytes(extHex)
@@ -139,7 +139,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	genesisHash := intCtrl.genesisHeader.Hash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
-	extHex := runtime.CreateTestExtrinsic(t,
+	extHex := runtime.NewTestExtrinsic(t,
 		intCtrl.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
 
 	ctrl := gomock.NewController(t)
@@ -188,7 +188,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	genesisHash := intCtrl.genesisHeader.Hash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
-	extHex := runtime.CreateTestExtrinsic(t,
+	extHex := runtime.NewTestExtrinsic(t,
 		intCtrl.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
 	extBytes := common.MustHexToBytes(extHex)
 

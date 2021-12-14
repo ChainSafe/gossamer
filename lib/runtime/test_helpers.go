@@ -170,8 +170,8 @@ func RemoveFiles(files []string) error {
 	return nil
 }
 
-// CreateTestExtrinsic builds a new extrinsic using centrifuge pkg
-func CreateTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash, nonce uint64, call string, args ...interface{}) string { //nolint
+// NewTestExtrinsic builds a new extrinsic using centrifuge pkg
+func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash, nonce uint64, call string, args ...interface{}) string { //nolint
 	t.Helper()
 
 	rawMeta, err := rt.Metadata()
