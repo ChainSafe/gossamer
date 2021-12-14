@@ -52,7 +52,7 @@ func Test_Decode(t *testing.T) {
 		},
 		"leaf decoding error": {
 			reader: bytes.NewReader([]byte{
-				65, // node type 1 and key length 1
+				65, // node type 1 (leaf) and key length 1
 				// missing key data byte
 			}),
 			errWrapped: ErrReadKeyData,
@@ -62,7 +62,7 @@ func Test_Decode(t *testing.T) {
 			reader: bytes.NewReader(
 				append(
 					[]byte{
-						65, // node type 1 and key length 1
+						65, // node type 1 (leaf) and key length 1
 						9,  // key data
 					},
 					scaleEncodeBytes(t, 1, 2, 3)...,
@@ -76,7 +76,7 @@ func Test_Decode(t *testing.T) {
 		},
 		"branch decoding error": {
 			reader: bytes.NewReader([]byte{
-				129, // node type 2 and key length 1
+				129, // node type 2 (branch without value) and key length 1
 				// missing key data byte
 			}),
 			errWrapped: ErrReadKeyData,
@@ -85,7 +85,7 @@ func Test_Decode(t *testing.T) {
 		"branch success": {
 			reader: bytes.NewReader(
 				[]byte{
-					129,  // node type 2 and key length 1
+					129,  // node type 2 (branch without value) and key length 1
 					9,    // key data
 					0, 0, // no children bitmap
 				},
@@ -133,7 +133,7 @@ func Test_decodeBranch(t *testing.T) {
 			reader: bytes.NewBuffer([]byte{
 				// missing key data byte
 			}),
-			header:     129, // node type 2 and key length 1
+			header:     129, // node type 2 (branch without value) and key length 1
 			errWrapped: ErrReadKeyData,
 			errMessage: "cannot decode key: cannot read key data: EOF",
 		},
@@ -142,7 +142,7 @@ func Test_decodeBranch(t *testing.T) {
 				9, // key data
 				// missing children bitmap 2 bytes
 			}),
-			header:     129, // node type 2 and key length 1
+			header:     129, // node type 2 (branch without value) and key length 1
 			errWrapped: ErrReadChildrenBitmap,
 			errMessage: "cannot read children bitmap: EOF",
 		},
@@ -152,7 +152,7 @@ func Test_decodeBranch(t *testing.T) {
 				0, 4, // children bitmap
 				// missing children scale encoded data
 			}),
-			header:     129, // node type 2 and key length 1
+			header:     129, // node type 2 (branch without value) and key length 1
 			errWrapped: ErrDecodeChildHash,
 			errMessage: "cannot decode child hash: at index 10: EOF",
 		},
@@ -166,7 +166,7 @@ func Test_decodeBranch(t *testing.T) {
 					scaleEncodeBytes(t, 1, 2, 3, 4, 5), // child hash
 				}),
 			),
-			header: 129, // node type 2 and key length 1
+			header: 129, // node type 2 (branch without value) and key length 1
 			branch: &Branch{
 				Key: []byte{9},
 				Children: [16]Node{
@@ -187,7 +187,7 @@ func Test_decodeBranch(t *testing.T) {
 					// missing encoded branch value
 				}),
 			),
-			header:     193, // node type 3 and key length 1
+			header:     193, // node type 3 (branch with value) and key length 1
 			errWrapped: ErrDecodeValue,
 			errMessage: "cannot decode value: EOF",
 		},
@@ -200,7 +200,7 @@ func Test_decodeBranch(t *testing.T) {
 					scaleEncodeBytes(t, 1, 2, 3, 4, 5), // child hash
 				}),
 			),
-			header: 193, // node type 3 and key length 1
+			header: 193, // node type 3 (branch with value) and key length 1
 			branch: &Branch{
 				Key:   []byte{9},
 				Value: []byte{7, 8, 9},
@@ -252,7 +252,7 @@ func Test_decodeLeaf(t *testing.T) {
 			reader: bytes.NewBuffer([]byte{
 				// missing key data byte
 			}),
-			header:     65, // node type 1 and key length 1
+			header:     65, // node type 1 (leaf) and key length 1
 			errWrapped: ErrReadKeyData,
 			errMessage: "cannot decode key: cannot read key data: EOF",
 		},
@@ -261,7 +261,7 @@ func Test_decodeLeaf(t *testing.T) {
 				9,        // key data
 				255, 255, // bad value data
 			}),
-			header:     65, // node type 1 and key length 1
+			header:     65, // node type 1 (leaf) and key length 1
 			errWrapped: ErrDecodeValue,
 			errMessage: "cannot decode value: could not decode invalid integer",
 		},
@@ -270,7 +270,7 @@ func Test_decodeLeaf(t *testing.T) {
 				9, // key data
 				// missing value data
 			}),
-			header: 65, // node type 1 and key length 1
+			header: 65, // node type 1 (leaf) and key length 1
 			leaf: &Leaf{
 				Key:   []byte{9},
 				dirty: true,
@@ -283,7 +283,7 @@ func Test_decodeLeaf(t *testing.T) {
 					scaleEncodeBytes(t, 1, 2, 3, 4, 5), // value data
 				}),
 			),
-			header: 65, // node type 1 and key length 1
+			header: 65, // node type 1 (leaf) and key length 1
 			leaf: &Leaf{
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3, 4, 5},
