@@ -63,8 +63,8 @@ func createTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 		BlockData: []*types.BlockData{},
 	}
 
-	const blockRequestSize uint32 = 128
-	for i := 0; i < int(blockRequestSize); i++ {
+	const blockRequestSize = 128
+	for i := 0; i < blockRequestSize; i++ {
 		testHeader := &types.Header{
 			Number: big.NewInt(int64(77 + i)),
 			Digest: types.NewDigest(),
@@ -73,12 +73,9 @@ func createTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
 
 		msg.BlockData = append(msg.BlockData, &types.BlockData{
-			Hash:          testHeader.Hash(),
-			Header:        testHeader,
-			Body:          body,
-			MessageQueue:  nil,
-			Receipt:       nil,
-			Justification: nil,
+			Hash:   testHeader.Hash(),
+			Header: testHeader,
+			Body:   body,
 		})
 	}
 
