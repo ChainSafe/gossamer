@@ -56,7 +56,7 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 	state2test.UseMemDB()
 	state2test.Transaction = state.NewTransactionState()
 
-	auth := setupAuhtorModule2Test(t, &integrationTestController{stateSrv: state2test})
+	auth := newAuthorModule(t, &integrationTestController{stateSrv: state2test})
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
 
@@ -100,7 +100,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	intCtrl.network = net2test
 
 	// setup auth module
-	auth := setupAuhtorModule2Test(t, intCtrl)
+	auth := newAuthorModule(t, intCtrl)
 
 	ext := Extrinsic{extHex}
 
@@ -149,7 +149,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	intCtrl.network = net2test
 
 	// setup auth module
-	auth := setupAuhtorModule2Test(t, intCtrl)
+	auth := newAuthorModule(t, intCtrl)
 
 	ext := Extrinsic{extHex}
 
@@ -168,7 +168,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	// setup service
 	// setup auth module
 	intctrl := setupStateAndRuntime(t, tmppath)
-	auth := setupAuhtorModule2Test(t, intctrl)
+	auth := newAuthorModule(t, intctrl)
 
 	// create and submit extrinsic
 	ext := Extrinsic{fmt.Sprintf("%x", "1")}
@@ -205,7 +205,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	intCtrl.network = net2test
 
 	// setup auth module
-	auth := setupAuhtorModule2Test(t, intCtrl)
+	auth := newAuthorModule(t, intCtrl)
 
 	// create and submit extrinsic
 	ext := Extrinsic{extHex}
@@ -237,7 +237,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 	intctrl := setupStateAndRuntime(t, tmppath)
 	intctrl.keystore = keystore.NewGlobalKeystore()
 
-	auth := setupAuhtorModule2Test(t, intctrl)
+	auth := newAuthorModule(t, intctrl)
 
 	const seed = "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
 
@@ -330,7 +330,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 
 	intctrl.keystore = ks
 
-	auth := setupAuhtorModule2Test(t, intctrl)
+	auth := newAuthorModule(t, intctrl)
 
 	testcases := map[string]struct {
 		pub, keytype string
@@ -391,7 +391,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	intCtrl.stateSrv.Transaction = state.NewTransactionState()
 	intCtrl.keystore = keystore.NewGlobalKeystore()
 
-	auth := setupAuhtorModule2Test(t, intCtrl)
+	auth := newAuthorModule(t, intCtrl)
 
 	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
 	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
@@ -597,7 +597,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string) *integrationT
 	}
 }
 
-func setupAuhtorModule2Test(t *testing.T, intCtrl *integrationTestController) *AuthorModule {
+func newAuthorModule(t *testing.T, intCtrl *integrationTestController) *AuthorModule {
 	t.Helper()
 
 	cfg := &core.Config{
