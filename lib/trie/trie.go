@@ -757,7 +757,7 @@ func handleDeletion(p *node.Branch, key []byte) Node {
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.Value != nil {
-		n = node.NewBranch(key[:length], p.Value, true, 0)
+		n = node.NewLeaf(key[:length], p.Value, true, 0)
 	} else if p.NumChildren() == 1 && p.Value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
 		// find index of child
