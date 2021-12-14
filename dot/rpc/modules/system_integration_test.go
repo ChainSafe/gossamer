@@ -64,11 +64,9 @@ func newNetworkService(t *testing.T) *network.Service {
 
 	ctrl := gomock.NewController(t)
 	cfg := &network.Config{
-		BlockState:         network.NewMockBlockState(ctrl),
-		BasePath:           testDir,
-		Syncer:             network.NewMockSyncer(ctrl),
-		TransactionHandler: network.NewMockTransactionHandler(ctrl),
-		SlotDuration:       time.Second,
+		BlockState:   network.NewMockBlockState(ctrl),
+		BasePath:     testDir,
+		SlotDuration: time.Second,
 	}
 
 	srv, err := network.NewService(cfg)
