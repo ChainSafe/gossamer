@@ -22,7 +22,6 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 
 	var discs []*discovery
 	for i := 0; i < num; i++ {
-
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
 			Port:        availablePort(t),
