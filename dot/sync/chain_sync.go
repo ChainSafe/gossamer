@@ -60,13 +60,13 @@ type peerState struct {
 // and stored pending work (ie. pending blocks set)
 // workHandler should be implemented by `bootstrapSync` and `tipSync`
 type workHandler interface {
-	// handleNewPeerState optionally returns a new worker based on a peerState.
-	// returned worker may be nil, in which case we do nothing
+	// handleNewPeerState returns a new worker based on a peerState.
+	// The worker may be nil in which case we do nothing.
 	handleNewPeerState(*peerState) (*worker, error)
 
 	// handleWorkerResult handles the result of a worker, which may be
-	// nil or error. optionally returns a new worker to be dispatched.
-	handleWorkerResult(*worker) (*worker, error)
+	// nil or error. It optionally returns a new worker to be dispatched.
+	handleWorkerResult(w *worker) (workerToRetry *worker, err error)
 
 	// hasCurrentWorker is called before a worker is to be dispatched to
 	// check whether it is a duplicate. this function returns whether there is
@@ -435,9 +435,7 @@ func (cs *chainSync) sync() {
 			if err != nil {
 				logger.Errorf("failed to handle worker result: %s", err)
 				continue
-			}
-
-			if worker == nil {
+			} else if worker == nil {
 				continue
 			}
 
@@ -564,13 +562,10 @@ func (cs *chainSync) handleWork(ps *peerState) error {
 	worker, err := cs.handler.handleNewPeerState(ps)
 	if err != nil {
 		return err
+	} else if worker != nil {
+		cs.tryDispatchWorker(worker)
 	}
 
-	if worker == nil {
-		return nil
-	}
-
-	cs.tryDispatchWorker(worker)
 	return nil
 }
 
@@ -711,7 +706,17 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
 		block := pendingBlocks.getBlock(bd.Hash)
+		if block == nil {
+			logger.Criticalf("block with unknown header is ready: hash=%s", bd.Hash)
+			return
+		}
+
 		bd.Header = block.header
+	}
+
+	if bd.Header == nil {
+		logger.Criticalf("new ready block number (unknown) with hash %s", bd.Hash)
+		return
 	}
 
 	logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)

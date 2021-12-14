@@ -43,10 +43,15 @@ func TestMinPeers(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	require.Equal(t, min, nodeB.host.peerCount())
+	require.GreaterOrEqual(t, nodeB.host.peerCount(), len(nodes))
 
-	nodeB.host.cm.peerSetHandler.DisconnectPeer(0, nodes[0].host.id())
-	require.GreaterOrEqual(t, min, nodeB.host.peerCount())
+	// check that peer count is at least greater than minimum number of peers,
+	// even after trying to disconnect from all peers
+	for _, node := range nodes {
+		nodeB.host.cm.peerSetHandler.DisconnectPeer(0, node.host.id())
+	}
+
+	require.GreaterOrEqual(t, nodeB.host.peerCount(), min)
 }
 
 func TestMaxPeers(t *testing.T) {

@@ -121,7 +121,9 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 		return nil, err
 	}
 
-	logger.Infof("loaded package log configuration: %v", cfg.Log)
+	// TODO: log this better.
+	// See https://github.com/ChainSafe/gossamer/issues/1945
+	logger.Infof("loaded package log configuration: %#v", cfg.Log)
 
 	// set global configuration values
 	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
@@ -676,6 +678,11 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	// check --pubip flag and update node configuration
 	if pubip := ctx.GlobalString(PublicIPFlag.Name); pubip != "" {
 		cfg.PublicIP = pubip
+	}
+
+	// check --pubdns flag and update node configuration
+	if pubdns := ctx.GlobalString(PublicDNSFlag.Name); pubdns != "" {
+		cfg.PublicDNS = pubdns
 	}
 
 	if len(cfg.PersistentPeers) == 0 {

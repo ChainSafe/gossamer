@@ -4,55 +4,142 @@
 package modules
 
 import (
-	"reflect"
+	"errors"
+	"net/http"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/stretchr/testify/require"
 
-	rpcmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
-var kr, _ = keystore.NewEd25519Keyring()
+func TestGrandpaModule_ProveFinality(t *testing.T) {
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	testHashSlice := []common.Hash{testHash, testHash, testHash}
 
-func TestGrandpaProveFinality(t *testing.T) {
-	testStateService := newTestStateService(t)
+	mockBlockFinalityAPI := new(mocks.BlockFinalityAPI)
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
+	mockBlockAPI.On("HasJustification", testHash).Return(true, nil)
+	mockBlockAPI.On("GetJustification", testHash).Return([]byte("test"), nil)
 
-	state.AddBlocksToState(t, testStateService.Block, 3, false)
-	bestBlock, err := testStateService.Block.BestBlock()
+	mockBlockAPIHasJustErr := new(mocks.BlockAPI)
+	mockBlockAPIHasJustErr.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
+	mockBlockAPIHasJustErr.On("HasJustification", testHash).Return(false, nil)
 
-	if err != nil {
-		t.Errorf("Fail: bestblock failed")
+	mockBlockAPIGetJustErr := new(mocks.BlockAPI)
+	mockBlockAPIGetJustErr.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
+	mockBlockAPIGetJustErr.On("HasJustification", testHash).Return(true, nil)
+	mockBlockAPIGetJustErr.On("GetJustification", testHash).Return(nil, errors.New("GetJustification error"))
+
+	mockBlockAPISubChainErr := new(mocks.BlockAPI)
+	mockBlockAPISubChainErr.On("SubChain", testHash, testHash).Return(nil, errors.New("SubChain error"))
+
+	grandpaModule := NewGrandpaModule(mockBlockAPISubChainErr, mockBlockFinalityAPI)
+	type fields struct {
+		blockAPI         BlockAPI
+		blockFinalityAPI BlockFinalityAPI
 	}
-
-	gmSvc := NewGrandpaModule(testStateService.Block, nil)
-
-	testStateService.Block.SetJustification(bestBlock.Header.ParentHash, make([]byte, 10))
-	testStateService.Block.SetJustification(bestBlock.Header.Hash(), make([]byte, 11))
-
-	var expectedResponse ProveFinalityResponse
-	expectedResponse = append(expectedResponse, make([]byte, 10), make([]byte, 11))
-
-	res := new(ProveFinalityResponse)
-	err = gmSvc.ProveFinality(nil, &ProveFinalityRequest{
-		blockHashStart: bestBlock.Header.ParentHash,
-		blockHashEnd:   bestBlock.Header.Hash(),
-	}, res)
-
-	if err != nil {
-		t.Fatal(err)
+	type args struct {
+		r   *http.Request
+		req *ProveFinalityRequest
 	}
-
-	if !reflect.DeepEqual(*res, expectedResponse) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", res, &expectedResponse)
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    ProveFinalityResponse
+	}{
+		{
+			name: "SubChain Err",
+			fields: fields{
+				grandpaModule.blockAPI,
+				grandpaModule.blockFinalityAPI,
+			},
+			args: args{
+				req: &ProveFinalityRequest{
+					blockHashStart: testHash,
+					blockHashEnd:   testHash,
+					authorityID:    uint64(21),
+				},
+			},
+			expErr: errors.New("SubChain error"),
+		},
+		{
+			name: "OK Case",
+			fields: fields{
+				mockBlockAPI,
+				mockBlockFinalityAPI,
+			},
+			args: args{
+				req: &ProveFinalityRequest{
+					blockHashStart: testHash,
+					blockHashEnd:   testHash,
+					authorityID:    uint64(21),
+				},
+			},
+			exp: ProveFinalityResponse{
+				[]uint8{0x74, 0x65, 0x73, 0x74},
+				[]uint8{0x74, 0x65, 0x73, 0x74},
+				[]uint8{0x74, 0x65, 0x73, 0x74}},
+		},
+		{
+			name: "HasJustification Error",
+			fields: fields{
+				mockBlockAPIHasJustErr,
+				mockBlockFinalityAPI,
+			},
+			args: args{
+				req: &ProveFinalityRequest{
+					blockHashStart: testHash,
+					blockHashEnd:   testHash,
+					authorityID:    uint64(21),
+				},
+			},
+			exp: ProveFinalityResponse(nil),
+		},
+		{
+			name: "GetJustification Error",
+			fields: fields{
+				mockBlockAPIGetJustErr,
+				mockBlockFinalityAPI,
+			},
+			args: args{
+				req: &ProveFinalityRequest{
+					blockHashStart: testHash,
+					blockHashEnd:   testHash,
+					authorityID:    uint64(21),
+				},
+			},
+			exp: ProveFinalityResponse(nil),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gm := &GrandpaModule{
+				blockAPI:         tt.fields.blockAPI,
+				blockFinalityAPI: tt.fields.blockFinalityAPI,
+			}
+			res := ProveFinalityResponse(nil)
+			err := gm.ProveFinality(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
 	}
 }
 
-func TestRoundState(t *testing.T) {
+func TestGrandpaModule_RoundState(t *testing.T) {
+	var kr, _ = keystore.NewEd25519Keyring()
 	var voters grandpa.Voters
 
 	for _, k := range kr.Keys {
@@ -62,50 +149,93 @@ func TestRoundState(t *testing.T) {
 		})
 	}
 
-	grandpamock := new(rpcmocks.BlockFinalityAPI)
-	grandpamock.On("GetVoters").Return(voters)
-	grandpamock.On("GetSetID").Return(uint64(0))
-	grandpamock.On("GetRound").Return(uint64(2))
-
-	grandpamock.On("PreVotes").Return([]ed25519.PublicKeyBytes{
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockFinalityAPI := new(mocks.BlockFinalityAPI)
+	mockBlockFinalityAPI.On("GetVoters").Return(voters)
+	mockBlockFinalityAPI.On("GetSetID").Return(uint64(0))
+	mockBlockFinalityAPI.On("GetRound").Return(uint64(2))
+	mockBlockFinalityAPI.On("PreVotes").Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Dave().Public().(*ed25519.PublicKey).AsBytes(),
 	})
-
-	grandpamock.On("PreCommits").Return([]ed25519.PublicKeyBytes{
+	mockBlockFinalityAPI.On("PreCommits").Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 	})
 
-	mod := NewGrandpaModule(nil, grandpamock)
-
-	res := new(RoundStateResponse)
-	err := mod.RoundState(nil, nil, res)
-
-	require.NoError(t, err)
-
-	// newTestVoters has actually 9 keys with weight of 1
-	require.Equal(t, uint32(9), res.Best.TotalWeight)
-	require.Equal(t, uint32(6), res.Best.ThresholdWeight)
-
-	expectedMissingPrevotes := []string{
-		string(kr.Eve().Public().Address()),
-		string(kr.Ferdie().Public().Address()),
-		string(kr.George().Public().Address()),
-		string(kr.Heather().Public().Address()),
-		string(kr.Ian().Public().Address()),
+	type fields struct {
+		blockAPI         BlockAPI
+		blockFinalityAPI BlockFinalityAPI
 	}
-
-	expectedMissingPrecommits := append([]string{
-		string(kr.Charlie().Public().Address()),
-		string(kr.Dave().Public().Address()),
-	}, expectedMissingPrevotes...)
-
-	require.Equal(t, expectedMissingPrevotes, res.Best.Prevotes.Missing)
-	require.Equal(t, expectedMissingPrecommits, res.Best.Precommits.Missing)
-
-	require.Equal(t, uint32(4), res.Best.Prevotes.CurrentWeight)
-	require.Equal(t, uint32(2), res.Best.Precommits.CurrentWeight)
+	type args struct {
+		r   *http.Request
+		req *EmptyRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+		exp    RoundStateResponse
+	}{
+		{
+			name: "GetJustification Error",
+			fields: fields{
+				mockBlockAPI,
+				mockBlockFinalityAPI,
+			},
+			args: args{
+				req: &EmptyRequest{},
+			},
+			exp: RoundStateResponse{
+				SetID: 0x0,
+				Best: RoundState{
+					Round:           0x2,
+					TotalWeight:     0x9,
+					ThresholdWeight: 0x6,
+					Prevotes: Votes{
+						CurrentWeight: 0x4,
+						Missing: []string{
+							"5G64P3LJTK28dDVGNSzSHp4mfZyKqdzxgeZ1cULRoxMdt8m1",
+							"5D7QrtMByWQpi8EtqkH1sPDBCVZvoH6G1vY5mknQiCC3ZVQM",
+							"5FdsD3mYg5gzh1Uj4FxyeHqMTpaAVd3gDNmcuKypBzRGGMQH",
+							"5DqDws3YxzL8r741gw33jdbohzAESRR9qGCGg6GAZ3Qw5fYX",
+							"5FYrfAUUzuahCL2swxoPXc846dKrWuD2nwzrKc1oEfWBS6RL",
+						},
+					},
+					Precommits: Votes{
+						CurrentWeight: 0x2,
+						Missing: []string{
+							"5DYo8CvjQcBQFdehVhansDiZCPebpgqvNC8PQPi6K9cL9giT",
+							"5EtkA16QN4DED9vrxb4LnmytCFBhm6qJ5pw6FkoaiRtsPeuG",
+							"5G64P3LJTK28dDVGNSzSHp4mfZyKqdzxgeZ1cULRoxMdt8m1",
+							"5D7QrtMByWQpi8EtqkH1sPDBCVZvoH6G1vY5mknQiCC3ZVQM",
+							"5FdsD3mYg5gzh1Uj4FxyeHqMTpaAVd3gDNmcuKypBzRGGMQH",
+							"5DqDws3YxzL8r741gw33jdbohzAESRR9qGCGg6GAZ3Qw5fYX",
+							"5FYrfAUUzuahCL2swxoPXc846dKrWuD2nwzrKc1oEfWBS6RL",
+						},
+					},
+				},
+				Background: []RoundState{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gm := &GrandpaModule{
+				blockAPI:         tt.fields.blockAPI,
+				blockFinalityAPI: tt.fields.blockFinalityAPI,
+			}
+			res := RoundStateResponse{}
+			err := gm.RoundState(tt.args.r, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }

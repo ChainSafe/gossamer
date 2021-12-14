@@ -115,9 +115,9 @@ func (*TestRuntimeNetwork) NetworkState() common.NetworkState {
 	}
 }
 
-func generateEd25519Signatures(t *testing.T, n int) []*Signature {
+func generateEd25519Signatures(t *testing.T, n int) []*crypto.SignatureInfo {
 	t.Helper()
-	signs := make([]*Signature, n)
+	signs := make([]*crypto.SignatureInfo, n)
 	for i := 0; i < n; i++ {
 		msg := []byte("Hello")
 		key, err := ed25519.GenerateKeypair()
@@ -126,11 +126,11 @@ func generateEd25519Signatures(t *testing.T, n int) []*Signature {
 		sign, err := key.Private().Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &Signature{
-			PubKey:    key.Public().Encode(),
-			Sign:      sign,
-			Msg:       msg,
-			KeyTypeID: crypto.Ed25519Type,
+		signs[i] = &crypto.SignatureInfo{
+			PubKey:     key.Public().Encode(),
+			Sign:       sign,
+			Msg:        msg,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 	}
 	return signs

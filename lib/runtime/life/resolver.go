@@ -429,7 +429,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		if err != nil {
 			logger.Tracef("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting at key 0x%x", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
-			return nil
+			return nil //nolint:nilerr
 		}
 
 		lengthBytes, err := scale.Marshal(currLength)
@@ -935,11 +935,11 @@ func ext_crypto_ed25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pubKey.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Ed25519Type,
+		signature := crypto.SignatureInfo{
+			PubKey:     pubKey.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1
@@ -1124,11 +1124,11 @@ func ext_crypto_sr25519_verify_version_1(vm *exec.VirtualMachine) int64 {
 		pub.Hex(), message, signature)
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pub.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Sr25519Type,
+		signature := crypto.SignatureInfo{
+			PubKey:     pub.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
 		return 1

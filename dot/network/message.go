@@ -8,12 +8,13 @@ import (
 	"errors"
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
+
 	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"google.golang.org/protobuf/proto"
 )
 
 // Message types for notifications protocol messages. Used internally to map message to protocol.
@@ -305,8 +306,7 @@ func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 
 func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 	bd := &types.BlockData{
-		Hash:   common.BytesToHash(pbd.Hash),
-		Header: types.NewEmptyHeader(),
+		Hash: common.BytesToHash(pbd.Hash),
 	}
 
 	if pbd.Header != nil {

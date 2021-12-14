@@ -33,7 +33,7 @@ func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}
 
 	if ps.number.Cmp(head.Number) <= 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	return &worker{
@@ -45,7 +45,9 @@ func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}, nil
 }
 
-func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
+//nolint:nilnil
+func (s *bootstrapSyncer) handleWorkerResult(res *worker) (
+	workerToRetry *worker, err error) {
 	// if there is an error, potentially retry the worker
 	if res.err == nil {
 		return nil, nil

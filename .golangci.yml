@@ -27,7 +27,6 @@ run:
   skip-files:
     - .*mock_.*\.go
     - .*mocks\/.*\.go
-    - author_integration_test\.go # TODO remove once fixed
 
 # all available settings of specific linters
 linters-settings:
@@ -83,6 +82,7 @@ linters:
     - bodyclose
     - depguard
     - errcheck
+    - exportloopref
     - goconst
     - gocyclo
     - gofmt
@@ -97,6 +97,8 @@ linters:
     - megacheck
     - megacheck
     - misspell
+    - nilerr
+    - nilnil
     - nolintlint
     - revive
     - staticcheck
@@ -174,7 +176,7 @@ issues:
       linters:
         - lll
 
-    - text: 'G204: Subprocess launched with variable'
+    - text: "G204: Subprocess launched with variable"
       linters:
         - gosec
 
