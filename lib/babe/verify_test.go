@@ -429,10 +429,9 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 /*
 TODO for this test:
-- equivocate cases
-- think about why we dont handle errors
 - fix naming
 - Can I clean this test up? Helper funcs?
+- think about why we dont handle errors
  */
 func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -446,104 +445,105 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
-	//BabePrimaryPreDigest case
+	// Create a VRF output and proof
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
 
-	// Setup test headers
+	// Create authority
+	authority := types.NewAuthority(kp.Public(), uint64(1))
 
-	//Primary
-	babeDigest := types.NewBabeDigest()
-	err = babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	// Primary Test Header
+	babeTestDigest := types.NewBabeDigest()
+	err = babeTestDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
 	assert.NoError(t, err)
 
-	bdEnc, err := scale.Marshal(babeDigest)
+	encTestDigest, err := scale.Marshal(babeTestDigest)
 	require.NoError(t, err)
 
-	digestPrimary := types.NewDigest()
-	err = digestPrimary.Add(types.PreRuntimeDigest{
+	testDigestPrimary := types.NewDigest()
+	err = testDigestPrimary.Add(types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              bdEnc,
+		Data:              encTestDigest,
 	})
 	assert.NoError(t, err)
-	headerPrimary := types.NewEmptyHeader()
-	headerPrimary.Digest = digestPrimary
+	testHeaderPrimary := types.NewEmptyHeader()
+	testHeaderPrimary.Digest = testDigestPrimary
 
-	// Secondary plain
-	parDigestTest := types.BabeSecondaryPlainPreDigest{
+	// Secondary Plain test header
+	testParentDigest := types.BabeSecondaryPlainPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 	}
-	prdParTest, err := parDigestTest.ToPreRuntimeDigest()
+	testParentPrd, err := testParentDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 
-	parHeaderTest := types.NewEmptyHeader()
-	err = parHeaderTest.Digest.Add(*prdParTest)
+	testParentHeader := types.NewEmptyHeader()
+	err = testParentHeader.Digest.Add(*testParentPrd)
 	assert.NoError(t, err)
 
-	encParTest, err := scale.Marshal(*parHeaderTest)
+	encParentHeader, err := scale.Marshal(*testParentHeader)
 	assert.NoError(t, err)
 
-	parentHashTest, err := common.Blake2bHash(encParTest)
+	testParentHash, err := common.Blake2bHash(encParentHeader)
 	assert.NoError(t, err)
 
-	digestSecPlain := types.BabeSecondaryPlainPreDigest{
+	testSecondaryDigest := types.BabeSecondaryPlainPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 	}
 
-	secPrd, err := digestSecPlain.ToPreRuntimeDigest()
+	testSecondaryPrd, err := testSecondaryDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
-	headerSecPlain := types.NewEmptyHeader()
-	err = headerSecPlain.Digest.Add(*secPrd)
+	testSecPlainHeader := types.NewEmptyHeader()
+	err = testSecPlainHeader.Digest.Add(*testSecondaryPrd)
 	assert.NoError(t, err)
-	headerSecPlain.ParentHash = parentHashTest
+	testSecPlainHeader.ParentHash = testParentHash
 
-	// Secondary Vrf
-	headerb := types.NewEmptyHeader()
-	secVRFDigestb := types.BabeSecondaryVRFPreDigest{
-		AuthorityIndex: 1,
-		SlotNumber:     uint64(1),
-		VrfOutput:      output,
-		VrfProof:       proof,
-	}
-
-	digestSecondaryVRFb := types.NewBabeDigest()
-	err = digestSecondaryVRFb.Set(secVRFDigestb)
-	assert.NoError(t, err)
-
-	bdEnc2b, err := scale.Marshal(digestSecondaryVRFb)
-	require.NoError(t, err)
-
-	prdb := types.NewBABEPreRuntimeDigest(bdEnc2b)
-	err = headerb.Digest.Add(*prdb)
-	assert.NoError(t, err)
-
-	encParTest2, err := scale.Marshal(*headerb)
-	assert.NoError(t, err)
-
-	parentHashTest2, err := common.Blake2bHash(encParTest2)
-	assert.NoError(t, err)
-
-	secVRFDigestc := types.BabeSecondaryVRFPreDigest{
+	// Secondary Vrf Test header
+	testParentVrfHeader := types.NewEmptyHeader()
+	testParentVrfDigest := types.BabeSecondaryVRFPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 		VrfOutput:      output,
 		VrfProof:       proof,
 	}
 
-	digestSecondaryVRFc := types.NewBabeDigest()
-	err = digestSecondaryVRFc.Set(secVRFDigestc)
+	testParentBabeDigest := types.NewBabeDigest()
+	err = testParentBabeDigest.Set(testParentVrfDigest)
 	assert.NoError(t, err)
 
-	headerSecVrf := types.NewEmptyHeader()
-	bdEncb, err := scale.Marshal(digestSecondaryVRFc)
+	encParentVrfDigest, err := scale.Marshal(testParentBabeDigest)
 	require.NoError(t, err)
 
-	prdc := types.NewBABEPreRuntimeDigest(bdEncb)
-	err = headerSecVrf.Digest.Add(*prdc)
+	testBabePrd := types.NewBABEPreRuntimeDigest(encParentVrfDigest)
+	err = testParentVrfHeader.Digest.Add(*testBabePrd)
 	assert.NoError(t, err)
-	headerSecPlain.ParentHash = parentHashTest2
+
+	encParentVrfHeader, err := scale.Marshal(*testParentVrfHeader)
+	assert.NoError(t, err)
+
+	testVrfParentHash, err := common.Blake2bHash(encParentVrfHeader)
+	assert.NoError(t, err)
+
+	testSecondaryVrfDigest := types.BabeSecondaryVRFPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     uint64(1),
+		VrfOutput:      output,
+		VrfProof:       proof,
+	}
+
+	testBabeVrfDigest := types.NewBabeDigest()
+	err = testBabeVrfDigest.Set(testSecondaryVrfDigest)
+	assert.NoError(t, err)
+
+	testSecVrfHeader := types.NewEmptyHeader()
+	encVrfHeader, err := scale.Marshal(testBabeVrfDigest)
+	require.NoError(t, err)
+
+	testBabeVrfPrd := types.NewBABEPreRuntimeDigest(encVrfHeader)
+	err = testSecVrfHeader.Digest.Add(*testBabeVrfPrd)
+	assert.NoError(t, err)
+	testSecVrfHeader.ParentHash = testVrfParentHash
 
 	h := common.MustHexToHash("0x01")
 	h1 := []common.Hash{h}
@@ -572,7 +572,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockStateEquiv1.
 		EXPECT().
 		GetHeader(h).
-		Return(headerPrimary, nil)
+		Return(testHeaderPrimary, nil)
 
 	mockBlockStateEquiv2.
 		EXPECT().
@@ -581,7 +581,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockStateEquiv2.
 		EXPECT().
 		GetHeader(h).
-		Return(headerSecPlain, nil)
+		Return(testSecPlainHeader, nil)
 	mockBlockStateEquiv3.
 		EXPECT().
 		GetAllBlocksAtDepth(gomock.Any()).
@@ -589,7 +589,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockStateEquiv3.
 		EXPECT().
 		GetHeader(h).
-		Return(headerSecVrf, nil)
+		Return(testSecVrfHeader, nil)
 
 
 	// First element not preruntime digest
@@ -605,7 +605,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	// Last element not seal
+	// Case 1: Last element not seal
 	header1 := types.NewEmptyHeader()
 	err = header1.Digest.Add(types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -618,7 +618,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	//Fail to verify preruntime digest
+	// Case 2: Fail to verify preruntime digest
 	header2 := types.NewEmptyHeader()
 	err = header2.Digest.Add(types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -631,17 +631,17 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	// Invalid Seal Length
+	// Case 3: Invalid Seal Length
 	header3 := types.NewEmptyHeader()
-	secDigest0 := types.BabePrimaryPreDigest{
+	babePrimaryDigest := types.BabePrimaryPreDigest{
 		AuthorityIndex: 0,
 		SlotNumber:     uint64(1),
 		VRFOutput:      output,
 		VRFProof:       proof,
 	}
-	prd, err := secDigest0.ToPreRuntimeDigest()
+	babePrd, err := babePrimaryDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
-	err = header3.Digest.Add(*prd)
+	err = header3.Digest.Add(*babePrd)
 	assert.NoError(t, err)
 	err = header3.Digest.Add(types.SealDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -649,28 +649,28 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	auth := types.NewAuthority(kp.Public(), uint64(1))
-	vi := &verifierInfo{
-		authorities:    []types.Authority{*auth, *auth},
+	// TODO maybe create a helper for creating a verifier
+	info := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
 		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: false,
 	}
 
-	v, err := newVerifier(mockBlockState, 1, vi)
+	babeVerifier, err := newVerifier(mockBlockState, 1, info)
 	assert.NoError(t, err)
 
-	// Invalid signature - BabePrimaryPreDigest
+	// Case 4: Invalid signature - BabePrimaryPreDigest
 	header4 := types.NewEmptyHeader()
-	secDigest1 := types.BabePrimaryPreDigest{
+	babePrimaryDigest2 := types.BabePrimaryPreDigest{
 		AuthorityIndex: 0,
 		SlotNumber:     uint64(1),
 		VRFOutput:      output,
 		VRFProof:       proof,
 	}
-	prd2, err := secDigest1.ToPreRuntimeDigest()
+	babePrd2, err := babePrimaryDigest2.ToPreRuntimeDigest()
 	assert.NoError(t, err)
-	err = header4.Digest.Add(*prd2)
+	err = header4.Digest.Add(*babePrd2)
 	assert.NoError(t, err)
 
 	sig, err := kp.Sign([]byte{1})
@@ -681,237 +681,231 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	auth2 := types.NewAuthority(kp.Public(), uint64(1))
-	vi2 := &verifierInfo{
-		authorities:    []types.Authority{*auth2, *auth2},
+	info2 := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
 		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: false,
 	}
 
-	v2, err := newVerifier(mockBlockState, 1, vi2)
+	babeVerifier2, err := newVerifier(mockBlockState, 1, info2)
 	assert.NoError(t, err)
 
-	// Invalid signature - BabeSecondaryPlainPreDigest
-	header6 := types.NewEmptyHeader()
-	priDigest1 := types.BabeSecondaryPlainPreDigest{
+	// Case 5: Invalid signature - BabeSecondaryPlainPreDigest
+	header5 := types.NewEmptyHeader()
+	babeSecondaryPlainDigest := types.BabeSecondaryPlainPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 	}
 
-	prd6, err := priDigest1.ToPreRuntimeDigest()
+	babeSecPlainPrd, err := babeSecondaryPlainDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
-	err = header6.Digest.Add(*prd6)
+	err = header5.Digest.Add(*babeSecPlainPrd)
 	assert.NoError(t, err)
 
-	sig6, err := kp.Sign([]byte{1})
+	sig2, err := kp.Sign([]byte{1})
 	assert.NoError(t, err)
-	err = header6.Digest.Add(types.SealDigest{
+	err = header5.Digest.Add(types.SealDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig6,
+		Data:              sig2,
 	})
 	assert.NoError(t, err)
 
-	auth6 := types.NewAuthority(kp.Public(), uint64(1))
-	vi6 := &verifierInfo{
-		authorities:    []types.Authority{*auth6, *auth6},
+	info3 := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
 		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
 
-	v6, err := newVerifier(mockBlockState, 1, vi6)
+	babeVerifier3, err := newVerifier(mockBlockState, 1, info3)
 	assert.NoError(t, err)
 
-	// Invalid signature - BabeSecondaryVrfPreDigest
-	header7 := types.NewEmptyHeader()
-	secVRFDigest := types.BabeSecondaryVRFPreDigest{
+	// Case 6: Invalid signature - BabeSecondaryVrfPreDigest
+	header6 := types.NewEmptyHeader()
+	babeSecondaryVrfPreDigest := types.BabeSecondaryVRFPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 		VrfOutput:      output,
 		VrfProof:       proof,
 	}
 
-	digestSecondaryVRF := types.NewBabeDigest()
-	err = digestSecondaryVRF.Set(secVRFDigest)
+	babeSecondaryVrfDigest := types.NewBabeDigest()
+	err = babeSecondaryVrfDigest.Set(babeSecondaryVrfPreDigest)
 	assert.NoError(t, err)
 
-	bdEnc2, err := scale.Marshal(digestSecondaryVRF)
+	encSecVrfDigest, err := scale.Marshal(babeSecondaryVrfDigest)
 	require.NoError(t, err)
 
-	prd7 := types.NewBABEPreRuntimeDigest(bdEnc2)
-	err = header7.Digest.Add(*prd7)
+	babeSecVrfPrd := types.NewBABEPreRuntimeDigest(encSecVrfDigest)
+	err = header6.Digest.Add(*babeSecVrfPrd)
 	assert.NoError(t, err)
 
-	sig7, err := kp.Sign([]byte{1})
+	sig3, err := kp.Sign([]byte{1})
 	assert.NoError(t, err)
-	err = header7.Digest.Add(types.SealDigest{
+	err = header6.Digest.Add(types.SealDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig7,
+		Data:              sig3,
 	})
 	assert.NoError(t, err)
 
-	auth7 := types.NewAuthority(kp.Public(), uint64(1))
-	vi7 := &verifierInfo{
-		authorities:    []types.Authority{*auth7, *auth7},
+	info4 := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
 		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
 
-	v7, err := newVerifier(mockBlockState, 1, vi7)
+	babeVerifier4, err := newVerifier(mockBlockState, 1, info4)
 	assert.NoError(t, err)
 
-	//GetAuthorityIndex Err
-	parDigest := types.BabePrimaryPreDigest{
+	// Case 7: GetAuthorityIndex Err
+	babeParentPrimaryPreDigest := types.BabePrimaryPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 		VRFOutput:      output,
 		VRFProof:       proof,
 	}
-	prdPar, err := parDigest.ToPreRuntimeDigest()
+	babeParentPrd, err := babeParentPrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 
-	parHeader := types.NewEmptyHeader()
-	err = parHeader.Digest.Add(*prdPar)
+	babeParentHeader := types.NewEmptyHeader()
+	err = babeParentHeader.Digest.Add(*babeParentPrd)
 	assert.NoError(t, err)
 
-	encPar, err := scale.Marshal(*parHeader)
+	encParentHeader2, err := scale.Marshal(*babeParentHeader)
 	assert.NoError(t, err)
 
-	parentHash, err := common.Blake2bHash(encPar)
+	parentHash, err := common.Blake2bHash(encParentHeader2)
 	assert.NoError(t, err)
 
-	header5 := types.NewEmptyHeader()
-	header5.ParentHash = parentHash
-	secDigest2 := types.BabePrimaryPreDigest{
+	header7 := types.NewEmptyHeader()
+	header7.ParentHash = parentHash
+	babePrimaryPreDigest := types.BabePrimaryPreDigest{
 		AuthorityIndex: 0,
 		SlotNumber:     uint64(1),
 		VRFOutput:      output,
 		VRFProof:       proof,
 	}
-	prd3, err := secDigest2.ToPreRuntimeDigest()
+	babePrd3, err := babePrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
-	err = header5.Digest.Add(*prd3)
+	err = header7.Digest.Add(*babePrd3)
 	assert.NoError(t, err)
 
-	encHeader, err := scale.Marshal(*header5)
+	encHeader, err := scale.Marshal(*header7)
 	assert.NoError(t, err)
 
 	hash, err := common.Blake2bHash(encHeader)
 	assert.NoError(t, err)
 
-	sig2, err := kp.Sign(hash[:])
+	sig4, err := kp.Sign(hash[:])
 	assert.NoError(t, err)
 
 	seal := types.SealDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig2,
+		Data:              sig4,
 	}
-	err = header5.Digest.Add(seal)
+	err = header7.Digest.Add(seal)
 	assert.NoError(t, err)
 
-	auth3 := types.NewAuthority(kp.Public(), uint64(1))
-	vi3 := &verifierInfo{
-		authorities:    []types.Authority{*auth3, *auth3},
+	info5 := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
 		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: false,
 	}
 
-	v3, err := newVerifier(mockBlockState, 1, vi3)
+	babeVerifier5, err := newVerifier(mockBlockState, 1, info5)
 	assert.NoError(t, err)
 
-	//// Get header error
-	v4, err := newVerifier(mockBlockStateErr, 1, vi3)
+	//// Case 8: Get header error
+	babeVerifier6, err := newVerifier(mockBlockStateErr, 1, info5)
 	assert.NoError(t, err)
 
-	// Equivocate case
-	v5, err := newVerifier(mockBlockStateEquiv1, 1, vi3)
+	// Case 9: Equivocate case primary
+	babeVerifier7, err := newVerifier(mockBlockStateEquiv1, 1, info5)
 	assert.NoError(t, err)
 
-	// Equivocate case secondary
-	header9 := types.NewEmptyHeader()
-	priDigest9 := types.BabeSecondaryPlainPreDigest{
+	// Case 10: Equivocate case secondary
+	header8 := types.NewEmptyHeader()
+	babeSecPlainDigest := types.BabeSecondaryPlainPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 	}
 
-	prd9, err := priDigest9.ToPreRuntimeDigest()
+	babeSecPlainPrd2, err := babeSecPlainDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
-	err = header9.Digest.Add(*prd9)
-	assert.NoError(t, err)
-
-	encHeader9, err := scale.Marshal(*header9)
+	err = header8.Digest.Add(*babeSecPlainPrd2)
 	assert.NoError(t, err)
 
-	hash9, err := common.Blake2bHash(encHeader9)
+	encHeader2, err := scale.Marshal(*header8)
 	assert.NoError(t, err)
 
-	sig9, err := kp.Sign(hash9[:])
+	hash2, err := common.Blake2bHash(encHeader2)
 	assert.NoError(t, err)
 
-	seal9 := types.SealDigest{
+	sig5, err := kp.Sign(hash2[:])
+	assert.NoError(t, err)
+
+	seal2 := types.SealDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig9,
+		Data:              sig5,
 	}
-	err = header9.Digest.Add(seal9)
+	err = header8.Digest.Add(seal2)
 	assert.NoError(t, err)
 
-	auth9 := types.NewAuthority(kp.Public(), uint64(1))
-	vi9 := &verifierInfo{
-		authorities:    []types.Authority{*auth9, *auth9},
+	info6 := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
 		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
 
-	v9, err := newVerifier(mockBlockStateEquiv2, 1, vi9)
+	babeVerifier8, err := newVerifier(mockBlockStateEquiv2, 1, info6)
 	assert.NoError(t, err)
 
-	// TODO add equivocation case for secondary VRF
-	header10 := types.NewEmptyHeader()
-	secVRFDigest1 := types.BabeSecondaryVRFPreDigest{
+	// Case 11: equivocation case for secondary VRF
+	header9 := types.NewEmptyHeader()
+	babeSecVrfDigest := types.BabeSecondaryVRFPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 		VrfOutput:      output,
 		VrfProof:       proof,
 	}
 
-	digestSecondaryVRF1 := types.NewBabeDigest()
-	err = digestSecondaryVRF1.Set(secVRFDigest1)
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(babeSecVrfDigest)
 	assert.NoError(t, err)
 
-	bdEnc2a, err := scale.Marshal(digestSecondaryVRF1)
+	encVrfDigest, err := scale.Marshal(babeDigest)
 	require.NoError(t, err)
 
-	prd10 := types.NewBABEPreRuntimeDigest(bdEnc2a)
-	err = header10.Digest.Add(*prd10)
+	babeSecVrfPrd2 := types.NewBABEPreRuntimeDigest(encVrfDigest)
+	err = header9.Digest.Add(*babeSecVrfPrd2)
 	assert.NoError(t, err)
 
-	encHeader10, err := scale.Marshal(*header10)
+	encHeader3, err := scale.Marshal(*header9)
 	assert.NoError(t, err)
 
-	hash10, err := common.Blake2bHash(encHeader10)
+	hash3, err := common.Blake2bHash(encHeader3)
 	assert.NoError(t, err)
 
-	sig10, err := kp.Sign(hash10[:])
+	sig6, err := kp.Sign(hash3[:])
 	assert.NoError(t, err)
-	err = header10.Digest.Add(types.SealDigest{
+	err = header9.Digest.Add(types.SealDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig10,
+		Data:              sig6,
 	})
 	assert.NoError(t, err)
 
-	auth10 := types.NewAuthority(kp.Public(), uint64(1))
-	vi10 := &verifierInfo{
-		authorities:    []types.Authority{*auth10, *auth10},
+	info7 := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
 		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
 
-	v10, err := newVerifier(mockBlockStateEquiv3, 1, vi10)
+	babeVerifier9, err := newVerifier(mockBlockStateEquiv3, 1, info7)
 	assert.NoError(t, err)
 
 	type args struct {
@@ -949,54 +943,54 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 		},
 		{
 			name:     "invalid seal length",
-			verifier: *v,
+			verifier: *babeVerifier,
 			args:     args{header3},
 			expErr:   errors.New("invalid signature length"),
 		},
 		{
 			name:     "invalid seal signature - primary",
-			verifier: *v2,
+			verifier: *babeVerifier2,
 			args:     args{header4},
 			expErr:   ErrBadSignature,
 		},
 		{
 			name:     "invalid seal signature - secondary plain",
-			verifier: *v6,
-			args:     args{header6},
+			verifier: *babeVerifier3,
+			args:     args{header5},
 			expErr:   ErrBadSignature,
 		},
 		{
 			name:     "invalid seal signature - secondary vrf",
-			verifier: *v7,
-			args:     args{header7},
+			verifier: *babeVerifier4,
+			args:     args{header6},
 			expErr:   ErrBadSignature,
 		},
 		{
 			name:     "valid digest items, getAuthorityIndex error",
-			verifier: *v3,
-			args:     args{header5},
+			verifier: *babeVerifier5,
+			args:     args{header7},
 		},
 		{
 			name:     "get header err",
-			verifier: *v4,
-			args:     args{header5},
+			verifier: *babeVerifier6,
+			args:     args{header7},
 		},
 		{
 			name:     "equivocate - primary",
-			verifier: *v5,
-			args:     args{header5},
+			verifier: *babeVerifier7,
+			args:     args{header7},
 			expErr:   ErrProducerEquivocated,
 		},
 		{
 			name:     "equivocate - secondary plain",
-			verifier: *v9,
-			args:     args{header9},
+			verifier: *babeVerifier8,
+			args:     args{header8},
 			expErr:   ErrProducerEquivocated,
 		},
 		{
 			name:     "equivocate - secondary vrf",
-			verifier: *v10,
-			args:     args{header10},
+			verifier: *babeVerifier9,
+			args:     args{header9},
 			expErr:   ErrProducerEquivocated,
 		},
 	}
