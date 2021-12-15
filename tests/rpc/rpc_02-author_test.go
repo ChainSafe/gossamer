@@ -38,7 +38,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	time.Sleep(30 * time.Second) // wait for server to start and block 1 to be produced
 
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[0].RPCPort))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%d", nodes[0].RPCPort))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()

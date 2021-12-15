@@ -29,8 +29,7 @@ var maxRetries = 24
 
 var (
 	// KeyList is the list of built-in keys
-	KeyList  = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
-	basePort = 7000
+	KeyList = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
 
 	// BaseRPCPort is the starting RPC port for test nodes
 	BaseRPCPort = 8540
@@ -132,7 +131,6 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 
 // StartGossamer starts given node
 func StartGossamer(t *testing.T, node *Node, websocket bool) error {
-
 	var key string
 	var params = []string{
 		"--port", fmt.Sprint(node.Port),
@@ -179,6 +177,10 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	t.Cleanup(func() {
+		availablePorts.put(node.Port)
+		availablePorts.put(node.RPCPort)
+		availablePorts.put(node.WSPort)
+
 		time.Sleep(time.Second) // wait for goroutine to finish writing
 		err = outfile.Close()
 		assert.NoError(t, err)
