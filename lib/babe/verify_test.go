@@ -465,7 +465,7 @@ func encodeAndHashHeader(t *testing.T, header *types.Header) (common.Hash, error
 	return common.Blake2bHash(encHeader)
 }
 
-func newTestVerifier(t *testing.T, kp *sr25519.Keypair, blockState BlockState, threshold *scale.Uint128, secSlots bool) (*verifier, error){
+func newTestVerifier(t *testing.T, kp *sr25519.Keypair, blockState BlockState, threshold *scale.Uint128, secSlots bool) (*verifier, error) {
 	t.Helper()
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
@@ -481,7 +481,7 @@ func newTestVerifier(t *testing.T, kp *sr25519.Keypair, blockState BlockState, t
 TODO for this test:
 - Can I clean this test up? Helper funcs?
 - think about why we dont handle errors
- */
+*/
 func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := mocks.NewMockBlockState(ctrl)
@@ -564,49 +564,20 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	h := common.MustHexToHash("0x01")
 	h1 := []common.Hash{h}
-	mockBlockState.
-		EXPECT().
-		GetAllBlocksAtDepth(gomock.Any()).
-		Return(h1)
-	mockBlockState.
-		EXPECT().
-		GetHeader(h).
-		Return(types.NewEmptyHeader(), nil)
 
-	mockBlockStateErr.
-		EXPECT().
-		GetAllBlocksAtDepth(gomock.Any()).
-		Return(h1)
-	mockBlockStateErr.
-		EXPECT().
-		GetHeader(h).
-		Return(nil, errors.New("get header error"))
+	mockBlockState.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
+	mockBlockState.EXPECT().GetHeader(h).Return(types.NewEmptyHeader(), nil)
 
-	mockBlockStateEquiv1.
-		EXPECT().
-		GetAllBlocksAtDepth(gomock.Any()).
-		Return(h1)
-	mockBlockStateEquiv1.
-		EXPECT().
-		GetHeader(h).
-		Return(testHeaderPrimary, nil)
+	mockBlockStateErr.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
+	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
 
-	mockBlockStateEquiv2.
-		EXPECT().
-		GetAllBlocksAtDepth(gomock.Any()).
-		Return(h1)
-	mockBlockStateEquiv2.
-		EXPECT().
-		GetHeader(h).
-		Return(testSecPlainHeader, nil)
-	mockBlockStateEquiv3.
-		EXPECT().
-		GetAllBlocksAtDepth(gomock.Any()).
-		Return(h1)
-	mockBlockStateEquiv3.
-		EXPECT().
-		GetHeader(h).
-		Return(testSecVrfHeader, nil)
+	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
+	mockBlockStateEquiv1.EXPECT().GetHeader(h).Return(testHeaderPrimary, nil)
+
+	mockBlockStateEquiv2.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
+	mockBlockStateEquiv2.EXPECT().GetHeader(h).Return(testSecPlainHeader, nil)
+	mockBlockStateEquiv3.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
+	mockBlockStateEquiv3.EXPECT().GetHeader(h).Return(testSecVrfHeader, nil)
 
 	// Case 0: First element not preruntime digest
 	header0 := createNewTestHeader(t, testInvalidSeal, testInvalidSeal)
