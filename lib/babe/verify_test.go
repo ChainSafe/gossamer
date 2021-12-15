@@ -844,3 +844,109 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 		})
 	}
 }
+
+func TestVerificationManager_getVerifierInfo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockBlockState := mocks.NewMockBlockState(ctrl)
+	mockEpochStateGetErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateHasErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateThresholdErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateOk := mocks.NewMockEpochState(ctrl)
+
+	mockEpochStateGetErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(nil, errors.New("cant get ConfigData"))
+
+	//Get Config Data Error
+	mockEpochStateHasErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
+		Return(&types.EpochData{
+			Authorities: Authorities{},
+			Randomness: Randomness{},
+	}, nil)
+	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errors.New("no ConfigData"))
+
+	//Threshold Error
+	mockEpochStateThresholdErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
+		Return(&types.EpochData{
+			Authorities: Authorities{},
+			Randomness: Randomness{},
+		}, nil)
+	mockEpochStateThresholdErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
+	mockEpochStateThresholdErr.EXPECT().GetConfigData(gomock.Eq(uint64(0))).
+		Return(&types.ConfigData{
+		C1:             3,
+		C2:             1,
+		SecondarySlots: 0,
+	}, nil)
+
+	// Ok
+	mockEpochStateOk.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
+		Return(&types.EpochData{
+			Authorities: Authorities{},
+			Randomness: Randomness{},
+		}, nil)
+	mockEpochStateOk.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
+	mockEpochStateOk.EXPECT().GetConfigData(gomock.Eq(uint64(0))).
+		Return(&types.ConfigData{
+			C1:             1,
+			C2:             3,
+			SecondarySlots: 0,
+		}, nil)
+
+	vm0, err := NewVerificationManager(mockBlockState, mockEpochStateGetErr)
+	assert.NoError(t, err)
+	vm1, err := NewVerificationManager(mockBlockState, mockEpochStateHasErr)
+	assert.NoError(t, err)
+	vm2, err := NewVerificationManager(mockBlockState, mockEpochStateThresholdErr)
+	assert.NoError(t, err)
+	vm3, err := NewVerificationManager(mockBlockState, mockEpochStateOk)
+	assert.NoError(t, err)
+
+	tests := []struct {
+		name    string
+		vm      VerificationManager
+		epoch   uint64
+		exp     *verifierInfo
+		expErr  error
+	}{
+		{
+			name: "getEpochData error",
+			vm: *vm0,
+			epoch: 0,
+			expErr: errors.New("failed to get epoch data for epoch 0: cant get ConfigData"),
+		},
+		{
+			name: "getConfigData error",
+			vm: *vm1,
+			epoch: 0,
+			expErr: errors.New("failed to get config data: no ConfigData"),
+		},
+		{
+			name: "calculate threshold error",
+			vm: *vm2,
+			epoch: 0,
+			expErr: errors.New("failed to calculate threshold: invalid C1/C2: greater than 1"),
+		},
+		{
+			name: "happy path",
+			vm: *vm3,
+			epoch: 0,
+			exp: &verifierInfo{
+				authorities:    Authorities{},
+				randomness:     Randomness{},
+				threshold:      scale.MaxUint128,
+				secondarySlots: false,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &tt.vm
+			res, err := v.getVerifierInfo(tt.epoch)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}

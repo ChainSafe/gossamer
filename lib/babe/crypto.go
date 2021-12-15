@@ -113,6 +113,7 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
 	thresholdBig := new(big.Int).Div(numer, denom)
+	fmt.Println(thresholdBig.String())
 
 	// special case where threshold is maximum
 	if thresholdBig.Cmp(shift) == 0 {
