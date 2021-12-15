@@ -178,6 +178,8 @@ func newMockChainSync(ctrl *gomock.Controller) ChainSync {
 
 	mock.EXPECT().setBlockAnnounce(peer.ID("1"), header).Return(nil).AnyTimes()
 	mock.EXPECT().setPeerHead(peer.ID("1"), common.Hash{}, big.NewInt(0)).Return(nil).AnyTimes()
+	mock.EXPECT().syncState().Return(bootstrap)
+
 	return mock
 }
 
@@ -227,26 +229,28 @@ func TestService_HandleBlockAnnounceHandshake(t *testing.T) {
 }
 
 func TestService_IsSynced(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	type fields struct {
-		blockState     BlockState
-		chainSync      ChainSync
-		chainProcessor ChainProcessor
-		network        Network
+		chainSync ChainSync
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			fields: fields{
+				chainSync: newMockChainSync(ctrl),
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{
-				blockState:     tt.fields.blockState,
-				chainSync:      tt.fields.chainSync,
-				chainProcessor: tt.fields.chainProcessor,
-				network:        tt.fields.network,
+				chainSync: tt.fields.chainSync,
 			}
 			if got := s.IsSynced(); got != tt.want {
 				t.Errorf("IsSynced() = %v, want %v", got, tt.want)
