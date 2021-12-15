@@ -859,29 +859,29 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	mockEpochStateHasErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
 		Return(&types.EpochData{
 			Authorities: Authorities{},
-			Randomness: Randomness{},
-	}, nil)
+			Randomness:  Randomness{},
+		}, nil)
 	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errors.New("no ConfigData"))
 
 	//Threshold Error
 	mockEpochStateThresholdErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
 		Return(&types.EpochData{
 			Authorities: Authorities{},
-			Randomness: Randomness{},
+			Randomness:  Randomness{},
 		}, nil)
 	mockEpochStateThresholdErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
 	mockEpochStateThresholdErr.EXPECT().GetConfigData(gomock.Eq(uint64(0))).
 		Return(&types.ConfigData{
-		C1:             3,
-		C2:             1,
-		SecondarySlots: 0,
-	}, nil)
+			C1:             3,
+			C2:             1,
+			SecondarySlots: 0,
+		}, nil)
 
 	// Ok
 	mockEpochStateOk.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
 		Return(&types.EpochData{
 			Authorities: Authorities{},
-			Randomness: Randomness{},
+			Randomness:  Randomness{},
 		}, nil)
 	mockEpochStateOk.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
 	mockEpochStateOk.EXPECT().GetConfigData(gomock.Eq(uint64(0))).
@@ -901,33 +901,33 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	assert.NoError(t, err)
 
 	tests := []struct {
-		name    string
-		vm      VerificationManager
-		epoch   uint64
-		exp     *verifierInfo
-		expErr  error
+		name   string
+		vm     VerificationManager
+		epoch  uint64
+		exp    *verifierInfo
+		expErr error
 	}{
 		{
-			name: "getEpochData error",
-			vm: *vm0,
-			epoch: 0,
+			name:   "getEpochData error",
+			vm:     *vm0,
+			epoch:  0,
 			expErr: errors.New("failed to get epoch data for epoch 0: cant get ConfigData"),
 		},
 		{
-			name: "getConfigData error",
-			vm: *vm1,
-			epoch: 0,
+			name:   "getConfigData error",
+			vm:     *vm1,
+			epoch:  0,
 			expErr: errors.New("failed to get config data: no ConfigData"),
 		},
 		{
-			name: "calculate threshold error",
-			vm: *vm2,
-			epoch: 0,
+			name:   "calculate threshold error",
+			vm:     *vm2,
+			epoch:  0,
 			expErr: errors.New("failed to calculate threshold: invalid C1/C2: greater than 1"),
 		},
 		{
-			name: "happy path",
-			vm: *vm3,
+			name:  "happy path",
+			vm:    *vm3,
 			epoch: 0,
 			exp: &verifierInfo{
 				authorities:    Authorities{},
