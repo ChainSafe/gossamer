@@ -1,4 +1,17 @@
-on: [pull_request]
+on:
+  pull_request:
+    paths:
+      - .github/workflows/docker-stable.yml
+      - "**/*.go"
+      - "chain/**"
+      - "cmd/**"
+      - "dot/**"
+      - "internal/**"
+      - "lib/**"
+      - "pkg/**"
+      - scripts/integration-test-all.sh
+      - go.mod
+      - go.sum
 name: docker-stable
 env:
   GO111MODULE: on

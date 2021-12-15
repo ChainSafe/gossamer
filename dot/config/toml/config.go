@@ -61,6 +61,7 @@ type NetworkConfig struct {
 	PersistentPeers   []string `toml:"persistent-peers,omitempty"`
 	DiscoveryInterval int      `toml:"discovery-interval,omitempty"`
 	PublicIP          string   `toml:"public-ip,omitempty"`
+	PublicDNS         string   `toml:"public-dns,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

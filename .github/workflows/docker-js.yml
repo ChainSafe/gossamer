@@ -1,4 +1,17 @@
-on: [pull_request]
+on:
+  pull_request:
+    paths:
+      - .github/workflows/docker-js.yml
+      - "**/*.go"
+      - "chain/**"
+      - "cmd/**"
+      - "dot/**"
+      - "internal/**"
+      - "lib/**"
+      - "pkg/**"
+      - "tests/polkadotjs_test/**"
+      - go.mod
+      - go.sum
 name: docker-js
 env:
   GO111MODULE: on
