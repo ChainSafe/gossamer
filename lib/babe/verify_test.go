@@ -440,7 +440,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockStateErr := mocks.NewMockBlockState(ctrl)
 	mockBlockStateEquiv1 := mocks.NewMockBlockState(ctrl)
 	mockBlockStateEquiv2 := mocks.NewMockBlockState(ctrl)
-	//mockBlockStateEquiv3 := mocks.NewMockBlockState(ctrl)
+	mockBlockStateEquiv3 := mocks.NewMockBlockState(ctrl)
 
 	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
@@ -471,7 +471,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	// Secondary plain
 	parDigestTest := types.BabeSecondaryPlainPreDigest{
-		AuthorityIndex: 0,
+		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 	}
 	prdParTest, err := parDigestTest.ToPreRuntimeDigest()
@@ -488,7 +488,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	assert.NoError(t, err)
 
 	digestSecPlain := types.BabeSecondaryPlainPreDigest{
-		AuthorityIndex: 0,
+		AuthorityIndex: 1,
 		SlotNumber:     uint64(1),
 	}
 
@@ -498,6 +498,52 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	err = headerSecPlain.Digest.Add(*secPrd)
 	assert.NoError(t, err)
 	headerSecPlain.ParentHash = parentHashTest
+
+	// Secondary Vrf
+	headerb := types.NewEmptyHeader()
+	secVRFDigestb := types.BabeSecondaryVRFPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     uint64(1),
+		VrfOutput:      output,
+		VrfProof:       proof,
+	}
+
+	digestSecondaryVRFb := types.NewBabeDigest()
+	err = digestSecondaryVRFb.Set(secVRFDigestb)
+	assert.NoError(t, err)
+
+	bdEnc2b, err := scale.Marshal(digestSecondaryVRFb)
+	require.NoError(t, err)
+
+	prdb := types.NewBABEPreRuntimeDigest(bdEnc2b)
+	err = headerb.Digest.Add(*prdb)
+	assert.NoError(t, err)
+
+	encParTest2, err := scale.Marshal(*headerb)
+	assert.NoError(t, err)
+
+	parentHashTest2, err := common.Blake2bHash(encParTest2)
+	assert.NoError(t, err)
+
+	secVRFDigestc := types.BabeSecondaryVRFPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     uint64(1),
+		VrfOutput:      output,
+		VrfProof:       proof,
+	}
+
+	digestSecondaryVRFc := types.NewBabeDigest()
+	err = digestSecondaryVRFc.Set(secVRFDigestc)
+	assert.NoError(t, err)
+
+	headerSecVrf := types.NewEmptyHeader()
+	bdEncb, err := scale.Marshal(digestSecondaryVRFc)
+	require.NoError(t, err)
+
+	prdc := types.NewBABEPreRuntimeDigest(bdEncb)
+	err = headerSecVrf.Digest.Add(*prdc)
+	assert.NoError(t, err)
+	headerSecPlain.ParentHash = parentHashTest2
 
 	h := common.MustHexToHash("0x01")
 	h1 := []common.Hash{h}
@@ -536,6 +582,14 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 		EXPECT().
 		GetHeader(h).
 		Return(headerSecPlain, nil)
+	mockBlockStateEquiv3.
+		EXPECT().
+		GetAllBlocksAtDepth(gomock.Any()).
+		Return(h1)
+	mockBlockStateEquiv3.
+		EXPECT().
+		GetHeader(h).
+		Return(headerSecVrf, nil)
 
 
 	// First element not preruntime digest
@@ -776,9 +830,88 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	v5, err := newVerifier(mockBlockStateEquiv1, 1, vi3)
 	assert.NoError(t, err)
 
+	// Equivocate case secondary
+	header9 := types.NewEmptyHeader()
+	priDigest9 := types.BabeSecondaryPlainPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     uint64(1),
+	}
 
-	// TODO, This is using primary, need to change to not use vi3 and use secondary
-	v8, err := newVerifier(mockBlockStateEquiv2, 1, vi3)
+	prd9, err := priDigest9.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+	err = header9.Digest.Add(*prd9)
+	assert.NoError(t, err)
+
+	encHeader9, err := scale.Marshal(*header9)
+	assert.NoError(t, err)
+
+	hash9, err := common.Blake2bHash(encHeader9)
+	assert.NoError(t, err)
+
+	sig9, err := kp.Sign(hash9[:])
+	assert.NoError(t, err)
+
+	seal9 := types.SealDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              sig9,
+	}
+	err = header9.Digest.Add(seal9)
+	assert.NoError(t, err)
+
+	auth9 := types.NewAuthority(kp.Public(), uint64(1))
+	vi9 := &verifierInfo{
+		authorities:    []types.Authority{*auth9, *auth9},
+		randomness:     Randomness{},
+		threshold:      scale.MaxUint128,
+		secondarySlots: true,
+	}
+
+	v9, err := newVerifier(mockBlockStateEquiv2, 1, vi9)
+	assert.NoError(t, err)
+
+	// TODO add equivocation case for secondary VRF
+	header10 := types.NewEmptyHeader()
+	secVRFDigest1 := types.BabeSecondaryVRFPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     uint64(1),
+		VrfOutput:      output,
+		VrfProof:       proof,
+	}
+
+	digestSecondaryVRF1 := types.NewBabeDigest()
+	err = digestSecondaryVRF1.Set(secVRFDigest1)
+	assert.NoError(t, err)
+
+	bdEnc2a, err := scale.Marshal(digestSecondaryVRF1)
+	require.NoError(t, err)
+
+	prd10 := types.NewBABEPreRuntimeDigest(bdEnc2a)
+	err = header10.Digest.Add(*prd10)
+	assert.NoError(t, err)
+
+	encHeader10, err := scale.Marshal(*header10)
+	assert.NoError(t, err)
+
+	hash10, err := common.Blake2bHash(encHeader10)
+	assert.NoError(t, err)
+
+	sig10, err := kp.Sign(hash10[:])
+	assert.NoError(t, err)
+	err = header10.Digest.Add(types.SealDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              sig10,
+	})
+	assert.NoError(t, err)
+
+	auth10 := types.NewAuthority(kp.Public(), uint64(1))
+	vi10 := &verifierInfo{
+		authorities:    []types.Authority{*auth10, *auth10},
+		randomness:     Randomness{},
+		threshold:      scale.MaxUint128,
+		secondarySlots: true,
+	}
+
+	v10, err := newVerifier(mockBlockStateEquiv3, 1, vi10)
 	assert.NoError(t, err)
 
 	type args struct {
@@ -856,8 +989,14 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 		},
 		{
 			name:     "equivocate - secondary plain",
-			verifier: *v8,
-			args:     args{header5},
+			verifier: *v9,
+			args:     args{header9},
+			expErr:   ErrProducerEquivocated,
+		},
+		{
+			name:     "equivocate - secondary vrf",
+			verifier: *v10,
+			args:     args{header10},
 			expErr:   ErrProducerEquivocated,
 		},
 	}

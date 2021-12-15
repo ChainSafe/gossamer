@@ -358,13 +358,10 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		var existingBlockProducerIndex uint32
 		switch d := babePreDigest.(type) {
 		case types.BabePrimaryPreDigest:
-			fmt.Println("here1")
 			existingBlockProducerIndex = d.AuthorityIndex
 		case types.BabeSecondaryVRFPreDigest:
-			fmt.Println("here2")
 			existingBlockProducerIndex = d.AuthorityIndex
 		case types.BabeSecondaryPlainPreDigest:
-			fmt.Println("here3")
 			existingBlockProducerIndex = d.AuthorityIndex
 		}
 
