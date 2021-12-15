@@ -5,7 +5,6 @@ package sync
 
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -126,14 +125,10 @@ func newMockBlockState(ctrl *gomock.Controller) BlockState {
 }
 
 func TestService_HandleBlockAnnounce(t *testing.T) {
-
-	blockState := mocks.BlockState{}
+	ctrl := gomock.NewController(t)
 
 	type fields struct {
-		blockState     BlockState
-		chainSync      ChainSync
-		chainProcessor ChainProcessor
-		network        Network
+		chainSync ChainSync
 	}
 	type args struct {
 		from peer.ID
@@ -148,13 +143,10 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		{
 			name: "test",
 			fields: fields{
-				blockState:     &blockState,
-				chainSync:      nil,
-				chainProcessor: nil,
-				network:        nil,
+				chainSync: newMockChainSync(ctrl),
 			},
 			args: args{
-				from: "1",
+				from: peer.ID("1"),
 				msg: &network.BlockAnnounceMessage{
 					ParentHash:     common.Hash{},
 					Number:         big.NewInt(1),
@@ -170,16 +162,23 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{
-				blockState:     tt.fields.blockState,
-				chainSync:      tt.fields.chainSync,
-				chainProcessor: tt.fields.chainProcessor,
-				network:        tt.fields.network,
+				chainSync: tt.fields.chainSync,
 			}
 			if err := s.HandleBlockAnnounce(tt.args.from, tt.args.msg); (err != nil) != tt.wantErr {
 				t.Errorf("HandleBlockAnnounce() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
+}
+
+func newMockChainSync(ctrl *gomock.Controller) ChainSync {
+	mock := NewMockChainSync(ctrl)
+	header, _ := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(1),
+		scale.VaryingDataTypeSlice{})
+
+	mock.EXPECT().setBlockAnnounce(peer.ID("1"), header).Return(nil).AnyTimes()
+
+	return mock
 }
 
 func TestService_HandleBlockAnnounceHandshake(t *testing.T) {
