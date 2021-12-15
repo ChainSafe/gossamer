@@ -283,7 +283,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	seal, ok := sealItem.Value().(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("first digest item is not pre-digest")
+		return fmt.Errorf("last digest item is not seal")
 	}
 
 	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
@@ -358,10 +358,13 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		var existingBlockProducerIndex uint32
 		switch d := babePreDigest.(type) {
 		case types.BabePrimaryPreDigest:
+			fmt.Println("here1")
 			existingBlockProducerIndex = d.AuthorityIndex
 		case types.BabeSecondaryVRFPreDigest:
+			fmt.Println("here2")
 			existingBlockProducerIndex = d.AuthorityIndex
 		case types.BabeSecondaryPlainPreDigest:
+			fmt.Println("here3")
 			existingBlockProducerIndex = d.AuthorityIndex
 		}
 
