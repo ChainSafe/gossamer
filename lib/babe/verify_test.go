@@ -13,7 +13,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"testing"
 )
 
@@ -660,7 +659,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeVerifier7, err := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
 	assert.NoError(t, err)
 
-	// Case 10: Equivocate case secondary
+	// Case 10: Equivocate case secondary plain
 	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header8 := createNewTestHeader(t, *babeSecPlainPrd2)
@@ -674,7 +673,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeVerifier8, err := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 	assert.NoError(t, err)
 
-	// Case 11: equivocation case for secondary VRF
+	// Case 11: equivocation case secondary VRF
 	encVrfDigest, err := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	header9 := createNewTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
@@ -694,96 +693,154 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	tests := []struct {
 		name     string
 		verifier verifier
-		args     args
+		header   *types.Header
 		expErr   error
 	}{
 		{
 			name:     "missing digest",
 			verifier: verifier{},
-			args:     args{types.NewEmptyHeader()},
+			header:   types.NewEmptyHeader(),
 			expErr:   errors.New("block header is missing digest items"),
 		},
 		{
 			name:     "first digest invalid",
 			verifier: verifier{},
-			args:     args{header0},
+			header:   header0,
 			expErr:   errors.New("first digest item is not pre-digest"),
 		},
 		{
 			name:     "last digest invalid",
 			verifier: verifier{},
-			args:     args{header1},
+			header:   header1,
 			expErr:   errors.New("last digest item is not seal"),
 		},
 		{
 			name:     "invalid preruntime digest data",
 			verifier: verifier{},
-			args:     args{header2},
+			header:   header2,
 			expErr:   errors.New("failed to verify pre-runtime digest: EOF, field: 0"),
 		},
 		{
 			name:     "invalid seal length",
 			verifier: *babeVerifier,
-			args:     args{header3},
+			header:   header3,
 			expErr:   errors.New("invalid signature length"),
 		},
 		{
 			name:     "invalid seal signature - primary",
 			verifier: *babeVerifier2,
-			args:     args{header4},
+			header:   header4,
 			expErr:   ErrBadSignature,
 		},
 		{
 			name:     "invalid seal signature - secondary plain",
 			verifier: *babeVerifier3,
-			args:     args{header5},
+			header:   header5,
 			expErr:   ErrBadSignature,
 		},
 		{
 			name:     "invalid seal signature - secondary vrf",
 			verifier: *babeVerifier4,
-			args:     args{header6},
+			header:   header6,
 			expErr:   ErrBadSignature,
 		},
 		{
 			name:     "valid digest items, getAuthorityIndex error",
 			verifier: *babeVerifier5,
-			args:     args{header7},
+			header:   header7,
 		},
 		{
 			name:     "get header err",
 			verifier: *babeVerifier6,
-			args:     args{header7},
+			header:   header7,
 		},
 		{
 			name:     "equivocate - primary",
 			verifier: *babeVerifier7,
-			args:     args{header7},
+			header:   header7,
 			expErr:   ErrProducerEquivocated,
 		},
 		{
 			name:     "equivocate - secondary plain",
 			verifier: *babeVerifier8,
-			args:     args{header8},
+			header:   header8,
 			expErr:   ErrProducerEquivocated,
 		},
 		{
 			name:     "equivocate - secondary vrf",
 			verifier: *babeVerifier9,
-			args:     args{header9},
+			header:   header9,
 			expErr:   ErrProducerEquivocated,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &tt.verifier
-			err := b.verifyAuthorshipRight(tt.args.header)
+			err := b.verifyAuthorshipRight(tt.header)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
 
+		})
+	}
+}
+
+func TestVerificationManager_getConfigData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockBlockState := mocks.NewMockBlockState(ctrl)
+	mockEpochStateEmpty := mocks.NewMockEpochState(ctrl)
+	mockEpochStateHasErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateGetErr := mocks.NewMockEpochState(ctrl)
+
+	mockEpochStateEmpty.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, nil)
+	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errors.New("no ConfigData"))
+	mockEpochStateGetErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
+	mockEpochStateGetErr.EXPECT().GetConfigData(gomock.Eq(uint64(0))).Return(nil, errors.New("cant get ConfigData"))
+
+	vm0, err := NewVerificationManager(mockBlockState, mockEpochStateEmpty)
+	assert.NoError(t, err)
+	vm1, err := NewVerificationManager(mockBlockState, mockEpochStateHasErr)
+	assert.NoError(t, err)
+	vm2, err := NewVerificationManager(mockBlockState, mockEpochStateGetErr)
+	assert.NoError(t, err)
+	tests := []struct {
+		name   string
+		vm     VerificationManager
+		epoch  uint64
+		exp    *types.ConfigData
+		expErr error
+	}{
+		{
+			name:   "cant find ConfigData",
+			vm:     *vm0,
+			epoch:  0,
+			expErr: errors.New("cannot find ConfigData for epoch"),
+		},
+		{
+			name:   "hasConfigData error",
+			vm:     *vm1,
+			epoch:  0,
+			expErr: errors.New("no ConfigData"),
+		},
+		{
+			name:   "getConfigData error",
+			vm:     *vm2,
+			epoch:  0,
+			expErr: errors.New("cant get ConfigData"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &tt.vm
+			res, err := v.getConfigData(tt.epoch)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
 		})
 	}
 }
