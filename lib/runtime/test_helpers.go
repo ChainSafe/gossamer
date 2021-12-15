@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -67,11 +65,11 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 
 // GetAbsolutePath returns the completePath for a given targetDir
 func GetAbsolutePath(targetDir string) string {
-	// uses always the same directory, rather than be relative to the caller's path
-	_, fullPath, _, _ := runtime.Caller(0)
-	fullPath = filepath.Dir(fullPath)
-
-	return path.Join(fullPath, targetDir)
+	dir, err := os.Getwd()
+	if err != nil {
+		panic("failed to get current working directory")
+	}
+	return path.Join(dir, targetDir)
 }
 
 // GetRuntimeBlob checks if the test wasm @testRuntimeFilePath exists and if not, it fetches it from @testRuntimeURL

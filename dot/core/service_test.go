@@ -38,6 +38,10 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	for _, p := range wasmFilePaths {
+		fmt.Println(p)
+	}
+
 	// Start all tests
 	code := m.Run()
 
