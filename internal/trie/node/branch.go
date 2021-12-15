@@ -23,9 +23,9 @@ type Branch struct {
 	hashDigest []byte
 	encoding   []byte
 	// generation is incremented on every trie Snapshot() call.
-	// Nodes that are part of the trie are then gradually updated
-	// to have a matching generation number as well, if they are
-	// still relevant.
+	// Each node also contain a certain generation number,
+	// which is updated to match the trie generation once they are
+	// inserted, moved or iterated over.
 	generation uint64
 	sync.RWMutex
 }
