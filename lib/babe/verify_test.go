@@ -427,6 +427,19 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 	}
 }
 
+func newTestVerifier(t *testing.T, kp *sr25519.Keypair, blockState BlockState, threshold *scale.Uint128, secSlots bool) (*verifier, error){
+	t.Helper()
+
+	authority := types.NewAuthority(kp.Public(), uint64(1))
+	info := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
+		randomness:     Randomness{},
+		threshold:      threshold,
+		secondarySlots: secSlots,
+	}
+	return newVerifier(blockState, 1, info)
+}
+
 /*
 TODO for this test:
 - fix naming
@@ -449,8 +462,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
 
-	// Create authority
-	authority := types.NewAuthority(kp.Public(), uint64(1))
 
 	// Primary Test Header
 	babeTestDigest := types.NewBabeDigest()
@@ -649,15 +660,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	// TODO maybe create a helper for creating a verifier
-	info := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: false,
-	}
-
-	babeVerifier, err := newVerifier(mockBlockState, 1, info)
+	babeVerifier, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 	assert.NoError(t, err)
 
 	// Case 4: Invalid signature - BabePrimaryPreDigest
@@ -681,14 +684,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	info2 := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: false,
-	}
-
-	babeVerifier2, err := newVerifier(mockBlockState, 1, info2)
+	babeVerifier2, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 	assert.NoError(t, err)
 
 	// Case 5: Invalid signature - BabeSecondaryPlainPreDigest
@@ -711,14 +707,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	info3 := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: true,
-	}
-
-	babeVerifier3, err := newVerifier(mockBlockState, 1, info3)
+	babeVerifier3, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
 	assert.NoError(t, err)
 
 	// Case 6: Invalid signature - BabeSecondaryVrfPreDigest
@@ -749,14 +738,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	info4 := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: true,
-	}
-
-	babeVerifier4, err := newVerifier(mockBlockState, 1, info4)
+	babeVerifier4, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
 	assert.NoError(t, err)
 
 	// Case 7: GetAuthorityIndex Err
@@ -808,22 +790,15 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	err = header7.Digest.Add(seal)
 	assert.NoError(t, err)
 
-	info5 := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: false,
-	}
-
-	babeVerifier5, err := newVerifier(mockBlockState, 1, info5)
+	babeVerifier5, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 	assert.NoError(t, err)
 
 	//// Case 8: Get header error
-	babeVerifier6, err := newVerifier(mockBlockStateErr, 1, info5)
+	babeVerifier6, err := newTestVerifier(t, kp, mockBlockStateErr, scale.MaxUint128, false)
 	assert.NoError(t, err)
 
 	// Case 9: Equivocate case primary
-	babeVerifier7, err := newVerifier(mockBlockStateEquiv1, 1, info5)
+	babeVerifier7, err := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
 	assert.NoError(t, err)
 
 	// Case 10: Equivocate case secondary
@@ -854,14 +829,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	err = header8.Digest.Add(seal2)
 	assert.NoError(t, err)
 
-	info6 := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: true,
-	}
-
-	babeVerifier8, err := newVerifier(mockBlockStateEquiv2, 1, info6)
+	babeVerifier8, err := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 	assert.NoError(t, err)
 
 	// Case 11: equivocation case for secondary VRF
@@ -898,14 +866,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	info7 := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: true,
-	}
-
-	babeVerifier9, err := newVerifier(mockBlockStateEquiv3, 1, info7)
+	babeVerifier9, err := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
 	assert.NoError(t, err)
 
 	type args struct {
