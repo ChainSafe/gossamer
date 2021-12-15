@@ -14,10 +14,11 @@ const (
 // encodeHeader creates the encoded header for the branch.
 func (b *Branch) encodeHeader(writer io.Writer) (err error) {
 	var header byte
+	const nodeHeaderShift = 6
 	if b.Value == nil {
-		header = byte(BranchType) << 6
+		header = byte(BranchType) << nodeHeaderShift
 	} else {
-		header = byte(BranchWithValueType) << 6
+		header = byte(BranchWithValueType) << nodeHeaderShift
 	}
 
 	if len(b.Key) >= keyLenOffset {
@@ -44,7 +45,8 @@ func (b *Branch) encodeHeader(writer io.Writer) (err error) {
 
 // encodeHeader creates the encoded header for the leaf.
 func (l *Leaf) encodeHeader(writer io.Writer) (err error) {
-	header := byte(LeafType) << 6
+	const nodeHeaderShift = 6
+	header := byte(LeafType) << nodeHeaderShift
 
 	if len(l.Key) < 63 {
 		header |= byte(len(l.Key))
