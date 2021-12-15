@@ -4,71 +4,104 @@
 package sync
 
 import (
-	"errors"
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
 )
 
 func TestNewService(t *testing.T) {
-	cfg := &Config{}
-	testDatadirPath := t.TempDir()
-
-	cfg.Network = newMockNetwork()
+	ctrl := gomock.NewController(t)
 
 	type args struct {
 		cfg *Config
 	}
-	scfg := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
-	}
-	stateSrvc := state.NewService(scfg)
-	stateSrvc.UseMemDB()
-
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
-	require.NoError(t, err)
-
-	err = stateSrvc.Start()
-	require.NoError(t, err)
-
-	cfg.BlockState = stateSrvc.Block
-
-	cfg.StorageState = stateSrvc.Storage
-
-	cfg.TransactionState = stateSrvc.Transaction
-
-	cfg.BabeVerifier = newMockBabeVerifier()
-
-	cfg.FinalityGadget = newMockFinalityGadget()
-
-	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-
 	tests := []struct {
-		name    string
-		args    args
-		want    *Service
-		err error
+		name string
+		args args
+		want *Service
+		err  error
 	}{
 		{
-			name:    "empty config",
-			args:    args{cfg: &Config{}},
-			err: errors.New("cannot have nil Network"),
+			name: "nil Network",
+			args: args{cfg: &Config{}},
+			err:  errNilNetwork,
 		},
 		{
-			name:    "working example",
-			args:    args{cfg: cfg},
-			want:    &Service{},
+			name: "nil BlockState",
+			args: args{cfg: &Config{
+				Network: NewMockNetwork(ctrl),
+			}},
+			err: errNilBlockState,
+		},
+		{
+			name: "nil StorageState",
+			args: args{cfg: &Config{
+				Network:    NewMockNetwork(ctrl),
+				BlockState: NewMockBlockState(ctrl),
+			}},
+			err: errNilStorageState,
+		},
+		{
+			name: "nil FinalityGadget",
+			args: args{cfg: &Config{
+				Network:      NewMockNetwork(ctrl),
+				BlockState:   NewMockBlockState(ctrl),
+				StorageState: NewMockStorageState(ctrl),
+			}},
+			err: errNilFinalityGadget,
+		},
+		{
+			name: "nil TransactionState",
+			args: args{cfg: &Config{
+				Network:        NewMockNetwork(ctrl),
+				BlockState:     NewMockBlockState(ctrl),
+				StorageState:   NewMockStorageState(ctrl),
+				FinalityGadget: NewMockFinalityGadget(ctrl),
+			}},
+			err: errNilTransactionState,
+		},
+		{
+			name: "nil Verifier",
+			args: args{cfg: &Config{
+				Network:          NewMockNetwork(ctrl),
+				BlockState:       NewMockBlockState(ctrl),
+				StorageState:     NewMockStorageState(ctrl),
+				FinalityGadget:   NewMockFinalityGadget(ctrl),
+				TransactionState: NewMockTransactionState(ctrl),
+			}},
+			err: errNilVerifier,
+		},
+		{
+			name: "nil BlockImportHandler",
+			args: args{cfg: &Config{
+				Network:          NewMockNetwork(ctrl),
+				BlockState:       NewMockBlockState(ctrl),
+				StorageState:     NewMockStorageState(ctrl),
+				FinalityGadget:   NewMockFinalityGadget(ctrl),
+				TransactionState: NewMockTransactionState(ctrl),
+				BabeVerifier:     NewMockBabeVerifier(ctrl),
+			}},
+			err: errNilBlockImportHandler,
+		},
+		{
+			name: "working example",
+			args: args{cfg: &Config{
+				Network:            NewMockNetwork(ctrl),
+				BlockState:         newMockBlockState(ctrl),
+				StorageState:       NewMockStorageState(ctrl),
+				FinalityGadget:     NewMockFinalityGadget(ctrl),
+				TransactionState:   NewMockTransactionState(ctrl),
+				BabeVerifier:       NewMockBabeVerifier(ctrl),
+				BlockImportHandler: NewMockBlockImportHandler(ctrl),
+			}},
+			want: &Service{},
 		},
 	}
 	for _, tt := range tests {
@@ -79,14 +112,17 @@ func TestNewService(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-
 			if tt.want != nil {
 				assert.NotNil(t, got)
-			} else {
-				assert.Nil(t, got)
 			}
 		})
 	}
+}
+
+func newMockBlockState(ctrl *gomock.Controller) BlockState {
+	mock := NewMockBlockState(ctrl)
+	mock.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	return mock
 }
 
 func TestService_HandleBlockAnnounce(t *testing.T) {
@@ -110,16 +146,16 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "test",
-			fields:  fields{
+			name: "test",
+			fields: fields{
 				blockState:     &blockState,
 				chainSync:      nil,
 				chainProcessor: nil,
 				network:        nil,
 			},
-			args:    args{
+			args: args{
 				from: "1",
-				msg:  &network.BlockAnnounceMessage{
+				msg: &network.BlockAnnounceMessage{
 					ParentHash:     common.Hash{},
 					Number:         big.NewInt(1),
 					StateRoot:      common.Hash{},

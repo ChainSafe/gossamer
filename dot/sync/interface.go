@@ -15,7 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-//go:generate mockery --name BlockState --structname BlockState --case underscore --keeptree
+//go:generate mockgen -destination=mock_interface_test.go -package=$GOPACKAGE . BlockState,StorageState,CodeSubstitutedState,TransactionState,BabeVerifier,FinalityGadget,BlockImportHandler,Network
 
 // BlockState is the interface for the block state
 type BlockState interface {
@@ -66,28 +66,20 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 }
 
-//go:generate mockery --name BabeVerifier --structname BabeVerifier --case underscore --keeptree
-
 // BabeVerifier deals with BABE block verification
 type BabeVerifier interface {
 	VerifyBlock(header *types.Header) error
 }
-
-//go:generate mockery --name FinalityGadget --structname FinalityGadget --case underscore --keeptree
 
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
 	VerifyBlockJustification(common.Hash, []byte) error
 }
 
-//go:generate mockery --name BlockImportHandler --structname BlockImportHandler --case underscore --keeptree
-
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
 	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }
-
-//go:generate mockery --name Network --structname Network --case underscore --keeptree
 
 // Network is the interface for the network
 type Network interface {
