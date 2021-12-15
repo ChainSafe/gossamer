@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -13,7 +14,7 @@ import (
 
 // GetPeers calls the endpoint system_peers
 func GetPeers(t *testing.T, node *Node) []common.PeerInfo {
-	respBody, err := PostRPC("system_peers", NewEndpoint(node.RPCPort), "[]")
+	respBody, err := PostRPC("system_peers", NewEndpoint(fmt.Sprint(node.RPCPort)), "[]")
 	require.NoError(t, err)
 
 	resp := new(modules.SystemPeersResponse)

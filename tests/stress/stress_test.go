@@ -369,7 +369,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	}()
 
 	// send tx to non-authority node
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[idx].RPCPort))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%d", nodes[idx].RPCPort))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
@@ -498,7 +498,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	}()
 
 	// send tx to non-authority node
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%s", nodes[idx].WSPort))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%d", nodes[idx].WSPort))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()

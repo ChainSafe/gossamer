@@ -64,15 +64,37 @@ var (
 	ConfigNotAuthority = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
+const portsAmount = 7100
+
+type portsQueue chan int
+
+func (p portsQueue) get() int {
+	return <-p
+}
+
+func (p portsQueue) put(port int) {
+	p <- port
+}
+
+var availablePorts portsQueue
+
+func init() {
+	availablePorts = make(portsQueue, portsAmount)
+	for port := 7001; port <= portsAmount; port++ {
+		availablePorts <- port
+	}
+}
+
 // Node represents a gossamer process
 type Node struct {
 	Process  *exec.Cmd
 	Key      string
-	RPCPort  string
+	RPCPort  int
+	Port     int
 	Idx      int
 	basePath string
 	config   string
-	WSPort   string
+	WSPort   int
 	BABELead bool
 }
 
@@ -93,10 +115,16 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	}
 
 	Logger.Infof("initialised gossamer node %d!", idx)
+
+	port := availablePorts.get()
+	rpcport := availablePorts.get()
+	wsport := availablePorts.get()
+
 	return &Node{
 		Idx:      idx,
-		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
-		WSPort:   strconv.Itoa(BaseWSPort + idx),
+		RPCPort:  rpcport,
+		WSPort:   wsport,
+		Port:     port,
 		basePath: basePath,
 		config:   config,
 	}, nil
@@ -104,12 +132,14 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 
 // StartGossamer starts given node
 func StartGossamer(t *testing.T, node *Node, websocket bool) error {
+
 	var key string
-	var params = []string{"--port", strconv.Itoa(basePort + node.Idx),
+	var params = []string{
+		"--port", fmt.Sprint(node.Port),
 		"--config", node.config,
 		"--basepath", node.basePath,
 		"--rpchost", HOSTNAME,
-		"--rpcport", node.RPCPort,
+		"--rpcport", fmt.Sprint(node.RPCPort),
 		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
 		"--log", "info"}
@@ -128,7 +158,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 
 	if websocket {
 		params = append(params, "--ws",
-			"--wsport", node.WSPort)
+			"--wsport", fmt.Sprint(node.WSPort))
 	}
 	node.Process = exec.Command(gossamerCMD, params...)
 
@@ -193,7 +223,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	var started bool
 	for i := 0; i < maxRetries; i++ {
 		time.Sleep(time.Second * 5)
-		if err = CheckNodeStarted(t, "http://"+HOSTNAME+":"+node.RPCPort); err == nil {
+		if err = CheckNodeStarted(t, "http://"+HOSTNAME+":"+fmt.Sprint(node.RPCPort)); err == nil {
 			started = true
 			break
 		}
