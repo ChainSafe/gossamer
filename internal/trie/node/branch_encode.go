@@ -46,7 +46,7 @@ func (b *Branch) hash(digestBuffer io.Writer) (err error) {
 		return fmt.Errorf("cannot encode leaf: %w", err)
 	}
 
-	// if length of encoded leaf is less than 32 bytes, do not hash
+	// if length of encoded branch is less than 32 bytes, do not hash
 	if encodingBuffer.Len() < 32 {
 		_, err = digestBuffer.Write(encodingBuffer.Bytes())
 		if err != nil {
