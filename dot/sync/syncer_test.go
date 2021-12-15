@@ -141,7 +141,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test",
+			name: "working example",
 			fields: fields{
 				chainSync: newMockChainSync(ctrl),
 			},
@@ -177,16 +177,15 @@ func newMockChainSync(ctrl *gomock.Controller) ChainSync {
 		scale.VaryingDataTypeSlice{})
 
 	mock.EXPECT().setBlockAnnounce(peer.ID("1"), header).Return(nil).AnyTimes()
-
+	mock.EXPECT().setPeerHead(peer.ID("1"), common.Hash{}, big.NewInt(0)).Return(nil).AnyTimes()
 	return mock
 }
 
 func TestService_HandleBlockAnnounceHandshake(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	type fields struct {
-		blockState     BlockState
-		chainSync      ChainSync
-		chainProcessor ChainProcessor
-		network        Network
+		chainSync ChainSync
 	}
 	type args struct {
 		from peer.ID
@@ -198,15 +197,27 @@ func TestService_HandleBlockAnnounceHandshake(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			fields: fields{
+				chainSync: newMockChainSync(ctrl),
+			},
+			args: args{
+				from: peer.ID("1"),
+				msg: &network.BlockAnnounceHandshake{
+					Roles:           0,
+					BestBlockNumber: 0,
+					BestBlockHash:   common.Hash{},
+					GenesisHash:     common.Hash{},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{
-				blockState:     tt.fields.blockState,
-				chainSync:      tt.fields.chainSync,
-				chainProcessor: tt.fields.chainProcessor,
-				network:        tt.fields.network,
+				chainSync: tt.fields.chainSync,
 			}
 			if err := s.HandleBlockAnnounceHandshake(tt.args.from, tt.args.msg); (err != nil) != tt.wantErr {
 				t.Errorf("HandleBlockAnnounceHandshake() error = %v, wantErr %v", err, tt.wantErr)
