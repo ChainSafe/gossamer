@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/disiqueira/gotree"
@@ -18,54 +20,53 @@ func (t *Trie) String() string {
 		return "empty"
 	}
 
-	tree := gotree.New(fmt.Sprintf("Trie root=0x%x", t.root.getHash()))
+	tree := gotree.New(fmt.Sprintf("Trie root=0x%x", t.root.GetHash()))
 	t.string(tree, t.root, 0)
 	return fmt.Sprintf("\n%s", tree.Print())
 }
 
-func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
+func (t *Trie) string(tree gotree.Tree, curr Node, idx int) {
 	switch c := curr.(type) {
-	case *branch:
-		buffer := encodingBufferPool.Get().(*bytes.Buffer)
+	case *node.Branch:
+		buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
 		buffer.Reset()
 
-		const parallel = false
-		_ = encodeBranch(c, buffer, parallel)
-		c.encoding = buffer.Bytes()
+		_ = c.Encode(buffer)
+		encoding := buffer.Bytes()
 
 		var bstr string
-		if len(c.encoding) > 1024 {
-			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.encoding), c.generation)
+		if len(encoding) > 1024 {
+			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d",
+				idx, c, common.MustBlake2bHash(encoding), c.GetGeneration())
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.encoding, c.generation)
+			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), encoding, c.GetGeneration())
 		}
 
-		encodingBufferPool.Put(buffer)
+		pools.EncodingBuffers.Put(buffer)
 
 		sub := tree.Add(bstr)
-		for i, child := range c.children {
+		for i, child := range c.Children {
 			if child != nil {
 				t.string(sub, child, i)
 			}
 		}
-	case *leaf:
-		buffer := encodingBufferPool.Get().(*bytes.Buffer)
+	case *node.Leaf:
+		buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
 		buffer.Reset()
 
-		_ = encodeLeaf(c, buffer)
+		_ = c.Encode(buffer)
 
-		c.encodingMu.Lock()
-		defer c.encodingMu.Unlock()
-		c.encoding = buffer.Bytes()
+		encoding := buffer.Bytes()
 
 		var bstr string
-		if len(c.encoding) > 1024 {
-			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.encoding), c.generation)
+		if len(encoding) > 1024 {
+			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d",
+				idx, c.String(), common.MustBlake2bHash(encoding), c.GetGeneration())
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), c.encoding, c.generation)
+			bstr = fmt.Sprintf("idx=%d %s encode=%x gen=%d", idx, c.String(), encoding, c.GetGeneration())
 		}
 
-		encodingBufferPool.Put(buffer)
+		pools.EncodingBuffers.Put(buffer)
 
 		tree.Add(bstr)
 	default:
