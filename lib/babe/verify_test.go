@@ -13,6 +13,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"math/big"
 	"testing"
 )
 
@@ -687,9 +688,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeVerifier9, err := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
 	assert.NoError(t, err)
 
-	type args struct {
-		header *types.Header
-	}
 	tests := []struct {
 		name     string
 		verifier verifier
@@ -947,6 +945,90 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
+func TestVerificationManager_VerifyBlock(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockBlockState0 := mocks.NewMockBlockState(ctrl)
+	mockBlockState1 := mocks.NewMockBlockState(ctrl)
+	mockBlockState2 := mocks.NewMockBlockState(ctrl)
+
+	mockEpochState0 := mocks.NewMockEpochState(ctrl)
+	mockEpochState1 := mocks.NewMockEpochState(ctrl)
+
+	//Generate keys
+	kp, err := sr25519.GenerateKeypair()
+	assert.NoError(t, err)
+
+	// Create a VRF output and proof
+	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
+	assert.NoError(t, err)
+
+	mockBlockState0.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).
+		Return(false, errors.New("failed to check finalization"))
+	mockBlockState1.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
+
+	mockBlockState2.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
+	mockEpochState1.EXPECT().SetFirstSlot(gomock.Eq(uint64(1))).Return(errors.New("set first slot error"))
+
+
+	block1Header := types.NewEmptyHeader()
+	block1Header.Number = big.NewInt(1)
+
+	testBabeSecondaryVRFPreDigest := types.BabeSecondaryVRFPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     uint64(1),
+		VrfOutput:      output,
+		VrfProof:       proof,
+	}
+	encVrfDigest, err := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
+	assert.NoError(t, err)
+	block1Header2:= createNewTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
+	block1Header2.Number = big.NewInt(1)
+
+
+	vm0, err := NewVerificationManager(mockBlockState0, mockEpochState0)
+	assert.NoError(t, err)
+	vm1, err := NewVerificationManager(mockBlockState1, mockEpochState0)
+	assert.NoError(t, err)
+	vm2, err := NewVerificationManager(mockBlockState2, mockEpochState1)
+	assert.NoError(t, err)
+	tests := []struct {
+		name   string
+		vm     VerificationManager
+		header *types.Header
+		expErr error
+	}{
+		{
+			name: "fail to check block 1 finalization",
+			vm: *vm0,
+			header: block1Header,
+			expErr: errors.New("failed to check if block 1 is finalised: failed to check finalization"),
+		},
+		{
+			name: "get slot from header error",
+			vm: *vm1,
+			header: block1Header,
+			expErr: errors.New("failed to get slot from block 1: chain head missing digest"),
+		},
+		{
+			name: "set first slot error",
+			vm: *vm2,
+			header: block1Header2,
+			expErr: errors.New("failed to set current epoch after receiving block 1: set first slot error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &tt.vm
+			err := v.VerifyBlock(tt.header)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

@@ -139,6 +139,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	// special case for block 1 - the network doesn't necessarily start in epoch 1.
 	// if this happens, the database will be missing info for epochs before the first block.
 	if header.Number.Cmp(big.NewInt(1)) == 0 {
+
 		block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
 		if err != nil {
 			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
