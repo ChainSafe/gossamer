@@ -950,14 +950,6 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockBlockState0 := mocks.NewMockBlockState(ctrl)
-	mockBlockState1 := mocks.NewMockBlockState(ctrl)
-	mockBlockState2 := mocks.NewMockBlockState(ctrl)
-
-	mockEpochState0 := mocks.NewMockEpochState(ctrl)
-	mockEpochState1 := mocks.NewMockEpochState(ctrl)
-
 	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
@@ -966,14 +958,50 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
 
-	mockBlockState0.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).
+	testBlockHeaderEmpty := types.NewEmptyHeader()
+	testBlockHeaderEmpty.Number = big.NewInt(2)
+
+	ctrl := gomock.NewController(t)
+	mockBlockStateEmpty := mocks.NewMockBlockState(ctrl)
+	mockBlockStateCheckFinErr := mocks.NewMockBlockState(ctrl)
+	mockBlockStateNotFinal := mocks.NewMockBlockState(ctrl)
+	mockBlockStateNotFinal2 := mocks.NewMockBlockState(ctrl)
+
+	mockEpochStateEmpty := mocks.NewMockEpochState(ctrl)
+	mockEpochStateSetSlotErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateGetEpochErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateSkipVerifyErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateSkipVerifyTrue := mocks.NewMockEpochState(ctrl)
+	mockEpochStateGetVerifierInfoErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateNilBlockStateErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateVerifyAuthorshipErr := mocks.NewMockEpochState(ctrl)
+
+	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).
 		Return(false, errors.New("failed to check finalization"))
-	mockBlockState1.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
 
-	mockBlockState2.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
-	mockEpochState1.EXPECT().SetFirstSlot(gomock.Eq(uint64(1))).Return(errors.New("set first slot error"))
+	mockBlockStateNotFinal.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
 
+	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
+	mockEpochStateSetSlotErr.EXPECT().SetFirstSlot(gomock.Eq(uint64(1))).Return(errors.New("set first slot error"))
 
+	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(0), errors.New("get epoch error"))
+
+	mockEpochStateSkipVerifyErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
+	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errors.New("get epochData error"))
+	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(false, errors.New("skipVerify error"))
+
+	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
+	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errors.New("get epochData error"))
+	mockEpochStateSkipVerifyTrue.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(true, nil)
+
+	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
+	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errors.New("get epochData error"))
+	mockEpochStateGetVerifierInfoErr.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(false, nil)
+
+	mockEpochStateNilBlockStateErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
+	mockEpochStateVerifyAuthorshipErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
+
+	// Block number 1
 	block1Header := types.NewEmptyHeader()
 	block1Header.Number = big.NewInt(1)
 
@@ -988,13 +1016,42 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	block1Header2:= createNewTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
 	block1Header2.Number = big.NewInt(1)
 
+	// verifierInfo
+	authority := types.NewAuthority(kp.Public(), uint64(1))
+	info := &verifierInfo{
+		authorities:    []types.Authority{*authority, *authority},
+		randomness:     Randomness{},
+		threshold:      scale.MaxUint128,
+		secondarySlots: true,
+	}
 
-	vm0, err := NewVerificationManager(mockBlockState0, mockEpochState0)
+
+	vm0, err := NewVerificationManager(mockBlockStateCheckFinErr, mockEpochStateEmpty)
 	assert.NoError(t, err)
-	vm1, err := NewVerificationManager(mockBlockState1, mockEpochState0)
+	vm1, err := NewVerificationManager(mockBlockStateNotFinal, mockEpochStateEmpty)
 	assert.NoError(t, err)
-	vm2, err := NewVerificationManager(mockBlockState2, mockEpochState1)
+	vm2, err := NewVerificationManager(mockBlockStateNotFinal2, mockEpochStateSetSlotErr)
 	assert.NoError(t, err)
+	vm3, err := NewVerificationManager(mockBlockStateNotFinal2, mockEpochStateGetEpochErr)
+	assert.NoError(t, err)
+	vm4, err := NewVerificationManager(mockBlockStateEmpty, mockEpochStateSkipVerifyErr)
+	assert.NoError(t, err)
+	vm5, err := NewVerificationManager(mockBlockStateEmpty, mockEpochStateSkipVerifyTrue)
+	assert.NoError(t, err)
+	vm6, err := NewVerificationManager(mockBlockStateEmpty, mockEpochStateGetVerifierInfoErr)
+	assert.NoError(t, err)
+	vm7 := &VerificationManager{
+		epochState: mockEpochStateNilBlockStateErr,
+		blockState: nil,
+		epochInfo:  make(map[uint64]*verifierInfo),
+		onDisabled: make(map[uint64]map[uint32][]*onDisabledInfo),
+	}
+	vm8, err := NewVerificationManager(mockBlockStateEmpty, mockEpochStateVerifyAuthorshipErr)
+	assert.NoError(t, err)
+
+	vm7.epochInfo[1] = info
+	vm8.epochInfo[1] = info
+
 	tests := []struct {
 		name   string
 		vm     VerificationManager
@@ -1018,6 +1075,41 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 			vm: *vm2,
 			header: block1Header2,
 			expErr: errors.New("failed to set current epoch after receiving block 1: set first slot error"),
+		},
+		{
+			name: "get epoch error",
+			vm: *vm3,
+			header: testBlockHeaderEmpty,
+			expErr: errors.New("failed to get epoch for block header: get epoch error"),
+		},
+		{
+			name: "skip verify err",
+			vm: *vm4,
+			header: testBlockHeaderEmpty,
+			expErr: errors.New("failed to check if verification can be skipped: skipVerify error"),
+		},
+		{
+			name: "skip verify true",
+			vm: *vm5,
+			header: testBlockHeaderEmpty,
+		},
+		{
+			name: "get verifierInfo err",
+			vm: *vm6,
+			header: testBlockHeaderEmpty,
+			expErr: errors.New("failed to get verifier info for block 2: failed to get epoch data for epoch 1: get epochData error"),
+		},
+		{
+			name: "nil blockState error",
+			vm: *vm7,
+			header: testBlockHeaderEmpty,
+			expErr: errors.New("failed to create new BABE verifier: cannot have nil BlockState"),
+		},
+		{
+			name: "verify block authorship err",
+			vm: *vm8,
+			header: testBlockHeaderEmpty,
+			expErr: errors.New("block header is missing digest items"),
 		},
 	}
 	for _, tt := range tests {

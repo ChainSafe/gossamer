@@ -175,7 +175,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 			// thus missing the epoch data for previous epochs.
 			skip, err2 := v.epochState.SkipVerify(header)
 			if err2 != nil {
-				return fmt.Errorf("failed to check if verification can be skipped: %w", err)
+				return fmt.Errorf("failed to check if verification can be skipped: %w", err2)
 			}
 
 			if skip {
@@ -184,7 +184,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 			return fmt.Errorf("failed to get verifier info for block %d: %w", header.Number, err)
 		}
-
+		
 		v.epochInfo[epoch] = info
 	}
 
