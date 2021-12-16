@@ -78,10 +78,10 @@ func encodeKeyLength(keyLength int, writer io.Writer) (err error) {
 }
 
 // decodeKey decodes a key from a reader.
-func decodeKey(reader io.Reader, keyLength byte) (b []byte, err error) {
-	publicKeyLength := int(keyLength)
+func decodeKey(reader io.Reader, keyLengthByte byte) (b []byte, err error) {
+	keyLength := int(keyLengthByte)
 
-	if keyLength == keyLenOffset {
+	if keyLengthByte == keyLenOffset {
 		// partial key longer than 63, read next bytes for rest of pk len
 		buffer := pools.SingleByteBuffers.Get().(*bytes.Buffer)
 		defer pools.SingleByteBuffers.Put(buffer)
@@ -93,24 +93,24 @@ func decodeKey(reader io.Reader, keyLength byte) (b []byte, err error) {
 			}
 			nextKeyLen := oneByteBuf[0]
 
-			publicKeyLength += int(nextKeyLen)
+			keyLength += int(nextKeyLen)
 
 			if nextKeyLen < 0xff {
 				break
 			}
 
-			if publicKeyLength >= int(maxPartialKeySize) {
+			if keyLength >= int(maxPartialKeySize) {
 				return nil, fmt.Errorf("%w: %d",
-					ErrPartialKeyTooBig, publicKeyLength)
+					ErrPartialKeyTooBig, keyLength)
 			}
 		}
 	}
 
-	if publicKeyLength == 0 {
+	if keyLength == 0 {
 		return []byte{}, nil
 	}
 
-	key := make([]byte, publicKeyLength/2+publicKeyLength%2)
+	key := make([]byte, keyLength/2+keyLength%2)
 	n, err := reader.Read(key)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrReadKeyData, err)
@@ -119,5 +119,5 @@ func decodeKey(reader io.Reader, keyLength byte) (b []byte, err error) {
 			ErrReadKeyData, n, len(key))
 	}
 
-	return codec.KeyLEToNibbles(key)[publicKeyLength%2:], nil
+	return codec.KeyLEToNibbles(key)[keyLength%2:], nil
 }
