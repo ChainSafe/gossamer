@@ -282,21 +282,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	if s.host.messageCache != nil {
-		added, err := s.host.messageCache.put(peer, msg)
-		if err != nil {
-			logger.Errorf("failed to add message to cache for peer %s: %s", peer, err)
-			return
-		}
-
-		// if we could not add message in cache, message was already present in the
-		// cache and was sent.
-		if !added {
-			return
-		}
+	if (s.host.messageCache != nil) && (s.host.messageCache.exists(peer, msg)) {
+		// message has already been sent
+		return
 	}
-
-	// TODO: Add message to cache after we successfully wrote it to stream?
 
 	// we've completed the handshake with the peer, send message directly
 	logger.Tracef("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
@@ -308,6 +297,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			closeOutboundStream(info, peer, stream)
 		}
 		return
+	} else if s.host.messageCache != nil {
+		if _, err := s.host.messageCache.put(peer, msg); err != nil {
+			logger.Errorf("failed to add message to cache for peer %s: %s", peer, err)
+			return
+		}
 	}
 
 	logger.Tracef("successfully sent message on protocol %s to peer %s: message=", info.protocolID, peer, msg)

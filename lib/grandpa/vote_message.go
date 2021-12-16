@@ -153,9 +153,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	// TODO: Change in set ID means possible change in voters (authorities). That
-	// would make me think that I could avoid the message in this case. Is that so?
-	// It seems the vote is considered invalid if set ID do not match.
+	// vote is considered invalid if set ID do not match.
 	if m.SetID != s.state.setID {
 		return nil, ErrSetIDMismatch
 	}
