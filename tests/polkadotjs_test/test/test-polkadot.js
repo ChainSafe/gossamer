@@ -11,7 +11,7 @@ describe('Testing polkadot.js/api calls:', function () {
     let done = false;
 
     before (async function () {
-        const wsProvider = new WsProvider('ws://127.0.0.1:8546');
+        const wsProvider = new WsProvider(process.env.WSHOST);
         ApiPromise.create({provider: wsProvider}).then( async (a) => {
             api = a;
 

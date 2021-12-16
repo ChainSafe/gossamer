@@ -30,13 +30,23 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.NoError(t, err)
 
-	command := "npx mocha ./test --timeout 30000"
+	node := nodes[0]
+
+	const command = "npx mocha ./test --timeout 30000"
+
+	err = os.Setenv("WSHOST", fmt.Sprintf("ws://127.0.0.1:%d", node.WSPort))
+	require.NoError(t, err)
+
+	defer os.Unsetenv("WSHOST")
+
 	parts := strings.Fields(command)
 	data, err := exec.Command(parts[0], parts[1:]...).Output()
-	assert.NoError(t, err, string(data))
 
+	fmt.Println(len(data))
 	//uncomment this to see log results from javascript tests
-	//fmt.Printf("%s\n", data)
+	fmt.Printf("%s\n", data)
+
+	assert.NoError(t, err, string(data))
 
 	t.Log("going to tear down gossamer...")
 	errList := utils.TearDown(t, nodes)
