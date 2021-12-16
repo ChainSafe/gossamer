@@ -7,17 +7,13 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	currentPort = strconv.Itoa(utils.BaseRPCPort)
-	rpcSuite    = "rpc"
-)
+const rpcSuite = "rpc"
 
 func TestMain(m *testing.M) {
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start RPC suite test")
