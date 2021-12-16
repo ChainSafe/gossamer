@@ -32,6 +32,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second) // give server a second to start
+	node := nodes[0]
 
 	blockHash, err := utils.GetBlockHash(t, nodes[0], "")
 	require.NoError(t, err)
@@ -118,7 +119,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			_ = getResponse(t, test)
+			_ = getResponse(t, test, node.RPCPort)
 		})
 	}
 

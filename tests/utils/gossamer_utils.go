@@ -63,7 +63,7 @@ var (
 	ConfigNotAuthority = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
-const portsAmount = 7100
+const portsEnd = 8000
 
 type portsQueue chan int
 
@@ -78,8 +78,8 @@ func (p portsQueue) put(port int) {
 var availablePorts portsQueue
 
 func init() {
-	availablePorts = make(portsQueue, portsAmount)
-	for port := 7001; port <= portsAmount; port++ {
+	availablePorts = make(portsQueue, portsEnd)
+	for port := 7001; port <= portsEnd; port++ {
 		availablePorts <- port
 	}
 }
@@ -115,15 +115,12 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 
 	Logger.Infof("initialised gossamer node %d!", idx)
 
-	port := availablePorts.get()
-	rpcport := availablePorts.get()
-	wsport := availablePorts.get()
-
+	// portRange avoid port conflicts with other functions that uses the InitGossamer
 	return &Node{
 		Idx:      idx,
-		RPCPort:  rpcport,
-		WSPort:   wsport,
-		Port:     port,
+		Port:     availablePorts.get(),
+		RPCPort:  availablePorts.get(),
+		WSPort:   availablePorts.get(),
 		basePath: basePath,
 		config:   config,
 	}, nil
@@ -177,15 +174,15 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	t.Cleanup(func() {
-		availablePorts.put(node.Port)
-		availablePorts.put(node.RPCPort)
-		availablePorts.put(node.WSPort)
-
 		time.Sleep(time.Second) // wait for goroutine to finish writing
 		err = outfile.Close()
 		assert.NoError(t, err)
 		err = errfile.Close()
 		assert.NoError(t, err)
+
+		availablePorts.put(node.Port)
+		availablePorts.put(node.RPCPort)
+		availablePorts.put(node.WSPort)
 	})
 
 	stdoutPipe, err := node.Process.StdoutPipe()
@@ -232,7 +229,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	if started {
-		Logger.Infof("node started with key %s and cmd.Process.Pid %d", key, node.Process.Process.Pid)
+		Logger.Infof("node started with key %s and cmd.Process.Pid %d with PORT %d, RPCPort %d and WSPort %d", key, node.Process.Process.Pid, node.Port, node.RPCPort, node.WSPort)
 	} else {
 		Logger.Criticalf("node didn't start: %s", err)
 		errFileContents, _ := os.ReadFile(errfile.Name())

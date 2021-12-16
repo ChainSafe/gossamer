@@ -38,13 +38,13 @@ type testCase struct {
 	skip        bool
 }
 
-func getResponse(t *testing.T, test *testCase) interface{} {
+func getResponse(t *testing.T, test *testCase, rpcPort int) interface{} {
 	if test.skip {
 		t.Skip("RPC endpoint not yet implemented")
 		return nil
 	}
 
-	respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(currentPort), test.params)
+	respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(fmt.Sprint(rpcPort)), test.params)
 	require.Nil(t, err)
 
 	target := reflect.New(reflect.TypeOf(test.expected)).Interface()

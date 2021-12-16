@@ -45,7 +45,6 @@ func TestSystemRPC(t *testing.T) {
 			description: "test system_health",
 			method:      "system_health",
 			expected: modules.SystemHealthResponse{
-
 				Peers:           2,
 				IsSyncing:       true,
 				ShouldHavePeers: true,
@@ -95,12 +94,13 @@ func TestSystemRPC(t *testing.T) {
 
 	//use only first server for tests
 	require.Nil(t, err)
+	node := nodes[2]
 
 	time.Sleep(time.Second) // give server a second to start
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			target := getResponse(t, test)
+			target := getResponse(t, test, node.RPCPort)
 
 			switch v := target.(type) {
 			case *modules.SystemHealthResponse:
