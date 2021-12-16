@@ -188,7 +188,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	require.Equal(t, 2, syncMapLen(storage.tries))
 }
 
-func TestTries(t *testing.T) {
+func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	// initialise database using data directory
 	basepath := "/tmp/gossamer-test-db"
 	db, err := libutils.SetupDatabase(basepath, false)
