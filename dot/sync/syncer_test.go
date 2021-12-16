@@ -178,7 +178,17 @@ func newMockChainSync(ctrl *gomock.Controller) ChainSync {
 
 	mock.EXPECT().setBlockAnnounce(peer.ID("1"), header).Return(nil).AnyTimes()
 	mock.EXPECT().setPeerHead(peer.ID("1"), common.Hash{}, big.NewInt(0)).Return(nil).AnyTimes()
-	mock.EXPECT().syncState().Return(bootstrap)
+	mock.EXPECT().syncState().Return(bootstrap).AnyTimes()
+	mock.EXPECT().start().AnyTimes()
+	mock.EXPECT().stop().AnyTimes()
+
+	return mock
+}
+
+func newMockChainProcessor(ctrl *gomock.Controller) ChainProcessor {
+	mock := NewMockChainProcessor(ctrl)
+
+	mock.EXPECT().stop().AnyTimes()
 
 	return mock
 }
@@ -260,26 +270,31 @@ func TestService_IsSynced(t *testing.T) {
 }
 
 func TestService_Start(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	type fields struct {
-		blockState     BlockState
 		chainSync      ChainSync
 		chainProcessor ChainProcessor
-		network        Network
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			fields: fields{
+				chainSync:      newMockChainSync(ctrl),
+				chainProcessor: NewMockChainProcessor(ctrl),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{
-				blockState:     tt.fields.blockState,
 				chainSync:      tt.fields.chainSync,
 				chainProcessor: tt.fields.chainProcessor,
-				network:        tt.fields.network,
 			}
 			if err := s.Start(); (err != nil) != tt.wantErr {
 				t.Errorf("Start() error = %v, wantErr %v", err, tt.wantErr)
@@ -289,26 +304,31 @@ func TestService_Start(t *testing.T) {
 }
 
 func TestService_Stop(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	type fields struct {
-		blockState     BlockState
 		chainSync      ChainSync
 		chainProcessor ChainProcessor
-		network        Network
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			fields: fields{
+				chainSync:      newMockChainSync(ctrl),
+				chainProcessor: newMockChainProcessor(ctrl),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{
-				blockState:     tt.fields.blockState,
 				chainSync:      tt.fields.chainSync,
 				chainProcessor: tt.fields.chainProcessor,
-				network:        tt.fields.network,
 			}
 			if err := s.Stop(); (err != nil) != tt.wantErr {
 				t.Errorf("Stop() error = %v, wantErr %v", err, tt.wantErr)
@@ -322,13 +342,31 @@ func Test_reverseBlockData(t *testing.T) {
 		data []*types.BlockData
 	}
 	tests := []struct {
-		name string
-		args args
+		name     string
+		args     args
+		expected args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "working example",
+			args: args{data: []*types.BlockData{
+				{
+					Hash: common.MustHexToHash("0x01"),
+				},
+				{
+					Hash: common.MustHexToHash("0x02"),
+				}}},
+			expected: args{data: []*types.BlockData{{
+				Hash: common.MustHexToHash("0x02"),
+			}, {
+				Hash: common.MustHexToHash("0x01"),
+			}},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			reverseBlockData(tt.args.data)
+			assert.Equal(t, tt.expected.data, tt.args.data)
 		})
 	}
 }
