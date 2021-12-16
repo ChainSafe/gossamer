@@ -229,7 +229,9 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	if started {
-		Logger.Infof("node started with key %s and cmd.Process.Pid %d with PORT %d, RPCPort %d and WSPort %d", key, node.Process.Process.Pid, node.Port, node.RPCPort, node.WSPort)
+		Logger.Infof("node started with key %s and cmd.Process.Pid %d "+
+			"with PORT %d, RPCPort %d and WSPort %d", key, node.Process.Process.Pid,
+			node.Port, node.RPCPort, node.WSPort)
 	} else {
 		Logger.Criticalf("node didn't start: %s", err)
 		errFileContents, _ := os.ReadFile(errfile.Name())
