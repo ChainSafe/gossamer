@@ -9,15 +9,16 @@ func (b *Branch) Copy() Node {
 	defer b.RUnlock()
 
 	cpy := &Branch{
-		Key:        make([]byte, len(b.Key)),
 		Children:   b.Children, // copy interface pointers
-		Value:      nil,
 		dirty:      b.dirty,
-		hashDigest: make([]byte, len(b.hashDigest)),
-		encoding:   make([]byte, len(b.encoding)),
 		generation: b.generation,
 	}
 	copy(cpy.Key, b.Key)
+
+	if b.Key != nil {
+		cpy.Key = make([]byte, len(b.Key))
+		copy(cpy.Key, b.Key)
+	}
 
 	// nil and []byte{} are encoded differently, watch out!
 	if b.Value != nil {
@@ -25,8 +26,16 @@ func (b *Branch) Copy() Node {
 		copy(cpy.Value, b.Value)
 	}
 
-	copy(cpy.hashDigest, b.hashDigest)
-	copy(cpy.encoding, b.encoding)
+	if b.hashDigest != nil {
+		cpy.hashDigest = make([]byte, len(b.hashDigest))
+		copy(cpy.hashDigest, b.hashDigest)
+	}
+
+	if b.encoding != nil {
+		cpy.encoding = make([]byte, len(b.encoding))
+		copy(cpy.encoding, b.encoding)
+	}
+
 	return cpy
 }
 
@@ -39,16 +48,30 @@ func (l *Leaf) Copy() Node {
 	defer l.encodingMu.RUnlock()
 
 	cpy := &Leaf{
-		Key:        make([]byte, len(l.Key)),
-		Value:      make([]byte, len(l.Value)),
 		dirty:      l.dirty,
-		hashDigest: make([]byte, len(l.hashDigest)),
-		encoding:   make([]byte, len(l.encoding)),
 		generation: l.generation,
 	}
-	copy(cpy.Key, l.Key)
-	copy(cpy.Value, l.Value)
-	copy(cpy.hashDigest, l.hashDigest)
-	copy(cpy.encoding, l.encoding)
+
+	if l.Key != nil {
+		cpy.Key = make([]byte, len(l.Key))
+		copy(cpy.Key, l.Key)
+	}
+
+	// nil and []byte{} are encoded differently, watch out!
+	if l.Value != nil {
+		cpy.Value = make([]byte, len(l.Value))
+		copy(cpy.Value, l.Value)
+	}
+
+	if l.hashDigest != nil {
+		cpy.hashDigest = make([]byte, len(l.hashDigest))
+		copy(cpy.hashDigest, l.hashDigest)
+	}
+
+	if l.encoding != nil {
+		cpy.encoding = make([]byte, len(l.encoding))
+		copy(cpy.encoding, l.encoding)
+	}
+
 	return cpy
 }
