@@ -24,19 +24,10 @@ var ErrEmptyProof = errors.New("proof slice empty")
 // Generally, this will only be used for the genesis trie.
 func (t *Trie) Store(db chaindb.Database) error {
 	for _, v := range t.childTries {
-		if v == nil {
-			// there was a child trie with this hash earlier, but
-			// it has changed since then. When storing child trie at
-			// a new hash, we store at the previous hash.
-			// TODO: delete the hash entry instead of setting it to nil?
-			continue
-		}
 		if err := v.Store(db); err != nil {
 			return err
 		}
 	}
-
-	fmt.Println("stored all child tries successfully")
 
 	batch := db.NewBatch()
 	err := t.store(batch, t.root)
@@ -194,19 +185,17 @@ func (t *Trie) load(db chaindb.Database, curr Node) error {
 		}
 	}
 
-	l, ok := curr.(*node.Leaf)
-	if ok {
-		// see if there is a child trie with this hash
+	for _, key := range t.GetKeysWithPrefix([]byte(ChildStorageKeyPrefix)) {
 		childTrie := NewEmptyTrie()
-		err := childTrie.Load(db, common.NewHash(l.Value))
+		value := t.Get(key)
+		err := childTrie.Load(db, common.NewHash(value))
 		if err != nil {
 			// TODO: Avoid only when state.ErrTrieDoesNotExist
 		} else {
-			if err = t.PutChild(l.Value, childTrie); err != nil {
+			if err = t.PutChild(value, childTrie); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	return nil
@@ -378,15 +367,9 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr Node) error {
 		}
 	}
 
-	l, ok := curr.(*node.Leaf)
-	if ok {
-		// see if there is a child trie with this hash
-		childTrieHash := common.NewHash(l.Value)
-		childTrie, childTrieexists := t.childTries[childTrieHash]
-		if childTrieexists {
-			if err := childTrie.writeDirty(db, childTrie.root); err != nil {
-				return err
-			}
+	for _, childTrie := range t.childTries {
+		if err := childTrie.writeDirty(db, childTrie.root); err != nil {
+			return err
 		}
 	}
 

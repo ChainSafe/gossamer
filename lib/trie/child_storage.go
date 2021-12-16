@@ -12,7 +12,7 @@ import (
 // ChildStorageKeyPrefix is the prefix for all child storage keys
 var ChildStorageKeyPrefix = []byte(":child_storage:default:")
 
-const ErrChildTrieDoesNotExists = "child trie does not exist at key"
+const ErrChildTrieDoesNotExist = "child trie does not exist at key"
 
 // PutChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
@@ -34,7 +34,7 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	key := append(ChildStorageKeyPrefix, keyToChild...)
 	childHash := t.Get(key)
 	if childHash == nil {
-		return nil, fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExists, ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	hash := [32]byte{}
@@ -60,7 +60,7 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) (*common.Hash, error)
 		return nil, err
 	}
 
-	t.childTries[origChildHash] = nil
+	delete(t.childTries, origChildHash)
 	t.childTries[childHash] = child
 
 	return &childHash, t.PutChild(keyToChild, child)
@@ -75,7 +75,7 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 	}
 
 	if child == nil {
-		return nil, fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExists, ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	val := child.Get(key)
@@ -95,7 +95,7 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return err
 	}
 	if child == nil {
-		return fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExists, ChildStorageKeyPrefix, keyToChild)
+		return fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 	child.Delete(key)
 	return nil
