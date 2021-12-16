@@ -4,6 +4,7 @@
 package state
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -11,8 +12,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -182,4 +186,58 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	require.Equal(t, 2, syncMapLen(storage.tries))
+}
+
+func TestTries(t *testing.T) {
+	// initialise database using data directory
+	basepath := "/tmp/gossamer-test-db"
+	db, err := libutils.SetupDatabase(basepath, false)
+	require.NoError(t, err)
+
+	_, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+
+	bs, err := NewBlockStateFromGenesis(db, genHeader)
+	require.NoError(t, err)
+
+	testChildTrie := trie.NewEmptyTrie()
+	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
+
+	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
+	require.NoError(t, err)
+
+	storage, err := NewStorageState(db, bs, genTrie, pruner.Config{})
+	require.NoError(t, err)
+
+	ts, err := runtime.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	header, err := types.NewHeader(bs.GenesisHash(), ts.MustRoot(),
+		common.Hash{}, big.NewInt(1), types.NewDigest())
+	require.NoError(t, err)
+
+	err = storage.StoreTrie(ts, header)
+	require.NoError(t, err)
+	time.Sleep(time.Millisecond * 1000)
+
+	root, err := genTrie.Hash()
+	require.NoError(t, err)
+
+	_, err = storage.GetStorageChild(&root, []byte("keyToChild"))
+	require.NoError(t, err)
+
+	// Clear trie from cache and fetch data from disk.
+	storage.tries.Delete(root)
+	time.Sleep(time.Millisecond * 100)
+
+	// Should these databases really be different?
+	fmt.Println(storage.db == db)
+
+	_, err = storage.GetStorageChild(&root, []byte("keyToChild"))
+	require.NoError(t, err)
+
+	value, err := storage.GetStorageFromChild(&root, []byte("keyToChild"), []byte("keyInsidechild"))
+	require.NoError(t, err)
+
+	require.Equal(t, []byte("voila"), value)
+
 }

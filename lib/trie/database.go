@@ -21,6 +21,21 @@ var ErrEmptyProof = errors.New("proof slice empty")
 // and the value is the encoded node.
 // Generally, this will only be used for the genesis trie.
 func (t *Trie) Store(db chaindb.Database) error {
+	for _, v := range t.childTries {
+		if v == nil {
+			// there was a child trie with this hash earlier, but
+			// it has changed since then. When storing child trie at
+			// a new hash, we store at the previous hash.
+			// TODO: delete the hash entry instead of setting it to nil?
+			continue
+		}
+		if err := v.Store(db); err != nil {
+			return err
+		}
+	}
+
+	fmt.Println("stored all child tries successfully")
+
 	batch := db.NewBatch()
 	err := t.store(batch, t.root)
 	if err != nil {
@@ -175,6 +190,21 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 				return err
 			}
 		}
+	}
+
+	l, ok := curr.(*leaf)
+	if ok {
+		// see if there is a child trie with this hash
+		childTrie := NewEmptyTrie()
+		err := childTrie.Load(db, common.NewHash(l.value))
+		if err != nil {
+			// TODO: Avoid only when state.ErrTrieDoesNotExist
+		} else {
+			if err = t.PutChild(l.value, childTrie); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -341,6 +371,18 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 
 			err = t.writeDirty(db, child)
 			if err != nil {
+				return err
+			}
+		}
+	}
+
+	l, ok := curr.(*leaf)
+	if ok {
+		// see if there is a child trie with this hash
+		childTrieHash := common.NewHash(l.value)
+		childTrie, childTrieexists := t.childTries[childTrieHash]
+		if childTrieexists {
+			if err := childTrie.writeDirty(db, childTrie.root); err != nil {
 				return err
 			}
 		}

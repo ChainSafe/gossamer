@@ -152,7 +152,8 @@ func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
 func (s *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.PutIntoChild(keyToChild, key, value)
+	_, err := s.t.PutIntoChild(keyToChild, key, value)
+	return err
 }
 
 // GetChild returns the child trie at the given key

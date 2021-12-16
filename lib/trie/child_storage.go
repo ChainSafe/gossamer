@@ -12,6 +12,8 @@ import (
 // ChildStorageKeyPrefix is the prefix for all child storage keys
 var ChildStorageKeyPrefix = []byte(":child_storage:default:")
 
+const ErrChildTrieDoesNotExists = "child trie does not exist at key"
+
 // PutChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 	childHash, err := child.Hash()
@@ -32,7 +34,7 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	key := append(ChildStorageKeyPrefix, keyToChild...)
 	childHash := t.Get(key)
 	if childHash == nil {
-		return nil, fmt.Errorf("child trie does not exist at key %s%s", ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExists, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	hash := [32]byte{}
@@ -41,27 +43,27 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 }
 
 // PutIntoChild puts a key-value pair into the child trie located in the main trie at key :child_storage:[keyToChild]
-func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
+func (t *Trie) PutIntoChild(keyToChild, key, value []byte) (*common.Hash, error) {
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	origChildHash, err := child.Hash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	child.Put(key, value)
 	childHash, err := child.Hash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	t.childTries[origChildHash] = nil
 	t.childTries[childHash] = child
 
-	return t.PutChild(keyToChild, child)
+	return &childHash, t.PutChild(keyToChild, child)
 }
 
 // GetFromChild retrieves a key-value pair from the child trie located
@@ -73,7 +75,7 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 	}
 
 	if child == nil {
-		return nil, fmt.Errorf("child trie does not exist at key %s%s", ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExists, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	val := child.Get(key)
@@ -93,7 +95,7 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return err
 	}
 	if child == nil {
-		return fmt.Errorf("child trie does not exist at key %s%s", ChildStorageKeyPrefix, keyToChild)
+		return fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExists, ChildStorageKeyPrefix, keyToChild)
 	}
 	child.Delete(key)
 	return nil
