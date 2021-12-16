@@ -11,6 +11,134 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_Branch_ScaleEncodeHash(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		branch     *Branch
+		encoding   []byte
+		wrappedErr error
+		errMessage string
+	}{
+		"empty branch": {
+			branch:   &Branch{},
+			encoding: []byte{0xc, 0x80, 0x0, 0x0},
+		},
+		"non empty branch": {
+			branch: &Branch{
+				Key:   []byte{1, 2},
+				Value: []byte{3, 4},
+				Children: [16]Node{
+					nil, nil, &Leaf{Key: []byte{9}},
+				},
+			},
+			encoding: []byte{0x2c, 0xc2, 0x12, 0x4, 0x0, 0x8, 0x3, 0x4, 0xc, 0x41, 0x9, 0x0},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			encoding, err := testCase.branch.ScaleEncodeHash()
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, testCase.encoding, encoding)
+		})
+	}
+}
+
+func Test_Branch_hash(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		branch     *Branch
+		write      writeCall
+		errWrapped error
+		errMessage string
+	}{
+		"empty branch": {
+			branch: &Branch{},
+			write: writeCall{
+				written: []byte{128, 0, 0},
+			},
+		},
+		"less than 32 bytes encoding": {
+			branch: &Branch{
+				Key: []byte{1, 2},
+			},
+			write: writeCall{
+				written: []byte{130, 18, 0, 0},
+			},
+		},
+		"less than 32 bytes encoding write error": {
+			branch: &Branch{
+				Key: []byte{1, 2},
+			},
+			write: writeCall{
+				written: []byte{130, 18, 0, 0},
+				err:     errTest,
+			},
+			errWrapped: errTest,
+			errMessage: "cannot write encoded branch to buffer: test error",
+		},
+		"more than 32 bytes encoding": {
+			branch: &Branch{
+				Key: repeatBytes(100, 1),
+			},
+			write: writeCall{
+				written: []byte{
+					70, 102, 188, 24, 31, 68, 86, 114,
+					95, 156, 225, 138, 175, 254, 176, 251,
+					81, 84, 193, 40, 11, 234, 142, 233,
+					69, 250, 158, 86, 72, 228, 66, 46},
+			},
+		},
+		"more than 32 bytes encoding write error": {
+			branch: &Branch{
+				Key: repeatBytes(100, 1),
+			},
+			write: writeCall{
+				written: []byte{
+					70, 102, 188, 24, 31, 68, 86, 114,
+					95, 156, 225, 138, 175, 254, 176, 251,
+					81, 84, 193, 40, 11, 234, 142, 233,
+					69, 250, 158, 86, 72, 228, 66, 46},
+				err: errTest,
+			},
+			errWrapped: errTest,
+			errMessage: "cannot write hash sum of branch to buffer: test error",
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			digestBuffer := NewMockWriter(ctrl)
+			digestBuffer.EXPECT().Write(testCase.write.written).
+				Return(testCase.write.n, testCase.write.err)
+
+			err := testCase.branch.hash(digestBuffer)
+
+			if testCase.errWrapped != nil {
+				assert.ErrorIs(t, err, testCase.errWrapped)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func Test_Branch_Encode(t *testing.T) {
 	t.Parallel()
 

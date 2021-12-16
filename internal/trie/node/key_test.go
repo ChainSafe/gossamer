@@ -5,13 +5,53 @@ package node
 
 import (
 	"bytes"
-	"io"
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_Branch_GetKey(t *testing.T) {
+	t.Parallel()
+
+	branch := &Branch{
+		Key: []byte{2},
+	}
+	key := branch.GetKey()
+	assert.Equal(t, []byte{2}, key)
+}
+
+func Test_Leaf_GetKey(t *testing.T) {
+	t.Parallel()
+
+	leaf := &Leaf{
+		Key: []byte{2},
+	}
+	key := leaf.GetKey()
+	assert.Equal(t, []byte{2}, key)
+}
+
+func Test_Branch_SetKey(t *testing.T) {
+	t.Parallel()
+
+	branch := &Branch{
+		Key: []byte{2},
+	}
+	branch.SetKey([]byte{3})
+	assert.Equal(t, &Branch{Key: []byte{3}}, branch)
+}
+
+func Test_Leaf_SetKey(t *testing.T) {
+	t.Parallel()
+
+	leaf := &Leaf{
+		Key: []byte{2},
+	}
+	leaf.SetKey([]byte{3})
+	assert.Equal(t, &Leaf{Key: []byte{3}}, leaf)
+}
 
 func repeatBytes(n int, b byte) (slice []byte) {
 	slice = make([]byte, n)
@@ -144,11 +184,60 @@ func Test_encodeKeyLength(t *testing.T) {
 	})
 }
 
+//go:generate mockgen -destination=reader_mock_test.go -package $GOPACKAGE io Reader
+
+type readCall struct {
+	buffArgCap int
+	read       []byte
+	n          int // number of bytes read
+	err        error
+}
+
+func repeatReadCalls(rc readCall, length int) (readCalls []readCall) {
+	readCalls = make([]readCall, length)
+	for i := range readCalls {
+		readCalls[i] = readCall{
+			buffArgCap: rc.buffArgCap,
+			n:          rc.n,
+			err:        rc.err,
+		}
+		if rc.read != nil {
+			readCalls[i].read = make([]byte, len(rc.read))
+			copy(readCalls[i].read, rc.read)
+		}
+	}
+	return readCalls
+}
+
+var _ gomock.Matcher = (*byteSliceCapMatcher)(nil)
+
+type byteSliceCapMatcher struct {
+	capacity int
+}
+
+func (b *byteSliceCapMatcher) Matches(x interface{}) bool {
+	slice, ok := x.([]byte)
+	if !ok {
+		return false
+	}
+	return cap(slice) == b.capacity
+}
+
+func (b *byteSliceCapMatcher) String() string {
+	return fmt.Sprintf("capacity of slice is not the expected capacity %d", b.capacity)
+}
+
+func newByteSliceCapMatcher(capacity int) *byteSliceCapMatcher {
+	return &byteSliceCapMatcher{
+		capacity: capacity,
+	}
+}
+
 func Test_decodeKey(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		reader     io.Reader
+		reads      []readCall
 		keyLength  byte
 		b          []byte
 		errWrapped error
@@ -158,42 +247,54 @@ func Test_decodeKey(t *testing.T) {
 			b: []byte{},
 		},
 		"short key length": {
-			reader:    bytes.NewBuffer([]byte{1, 2, 3}),
+			reads: []readCall{
+				{buffArgCap: 3, read: []byte{1, 2, 3}, n: 3},
+			},
 			keyLength: 5,
 			b:         []byte{0x1, 0x0, 0x2, 0x0, 0x3},
 		},
 		"key read error": {
-			reader:     bytes.NewBuffer(nil),
+			reads: []readCall{
+				{buffArgCap: 3, err: errTest},
+			},
 			keyLength:  5,
 			errWrapped: ErrReadKeyData,
-			errMessage: "cannot read key data: EOF",
+			errMessage: "cannot read key data: test error",
+		},
+
+		"key read bytes count mismatch": {
+			reads: []readCall{
+				{buffArgCap: 3, n: 2},
+			},
+			keyLength:  5,
+			errWrapped: ErrReadKeyData,
+			errMessage: "cannot read key data: read 2 bytes instead of 3",
 		},
 		"long key length": {
-			reader: bytes.NewBuffer(
-				append(
-					[]byte{
-						6, // key length
-					},
-					repeatBytes(64, 7)..., // key data
-				)),
+			reads: []readCall{
+				{buffArgCap: 1, read: []byte{6}, n: 1},            // key length
+				{buffArgCap: 35, read: repeatBytes(35, 7), n: 35}, // key data
+			},
 			keyLength: 0x3f,
 			b: []byte{
-				0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0,
-				0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0,
-				0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0,
-				0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0,
-				0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0,
-				0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0,
-				0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7},
+				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
+				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
+				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
+				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
+				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
+				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
+				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7},
 		},
 		"key length read error": {
-			reader:     bytes.NewBuffer(nil),
+			reads: []readCall{
+				{buffArgCap: 1, err: errTest},
+			},
 			keyLength:  0x3f,
 			errWrapped: ErrReadKeyLength,
-			errMessage: "cannot read key length: EOF",
+			errMessage: "cannot read key length: test error",
 		},
 		"key length too big": {
-			reader:     bytes.NewBuffer(repeatBytes(257, 0xff)),
+			reads:      repeatReadCalls(readCall{buffArgCap: 1, read: []byte{0xff}, n: 1}, 257),
 			keyLength:  0x3f,
 			errWrapped: ErrPartialKeyTooBig,
 			errMessage: "partial key length cannot be larger than or equal to 2^16: 65598",
@@ -204,8 +305,24 @@ func Test_decodeKey(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-			b, err := decodeKey(testCase.reader, testCase.keyLength)
+			reader := NewMockReader(ctrl)
+			var previousCall *gomock.Call
+			for _, readCall := range testCase.reads {
+				byteSliceCapMatcher := newByteSliceCapMatcher(readCall.buffArgCap)
+				call := reader.EXPECT().Read(byteSliceCapMatcher).
+					DoAndReturn(func(b []byte) (n int, err error) {
+						copy(b, readCall.read)
+						return readCall.n, readCall.err
+					})
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			b, err := decodeKey(reader, testCase.keyLength)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {

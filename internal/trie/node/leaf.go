@@ -42,7 +42,7 @@ func NewLeaf(key, value []byte, dirty bool, generation uint64) *Leaf {
 
 func (l *Leaf) String() string {
 	if len(l.Value) > 1024 {
-		return fmt.Sprintf("leaf key=%x value (hashed)=%x dirty=%v", l.Key, common.MustBlake2bHash(l.Value), l.dirty)
+		return fmt.Sprintf("leaf key=0x%x value (hashed)=0x%x dirty=%t", l.Key, common.MustBlake2bHash(l.Value), l.dirty)
 	}
-	return fmt.Sprintf("leaf key=%x value=%v dirty=%v", l.Key, l.Value, l.dirty)
+	return fmt.Sprintf("leaf key=0x%x value=0x%x dirty=%t", l.Key, l.Value, l.dirty)
 }

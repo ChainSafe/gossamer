@@ -42,9 +42,9 @@ func NewBranch(key, value []byte, dirty bool, generation uint64) *Branch {
 
 func (b *Branch) String() string {
 	if len(b.Value) > 1024 {
-		return fmt.Sprintf("key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v",
+		return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value (hashed)=0x%x dirty=%t",
 			b.Key, b.ChildrenBitmap(), common.MustBlake2bHash(b.Value), b.dirty)
 	}
-	return fmt.Sprintf("key=%x childrenBitmap=%16b value=%v dirty=%v",
+	return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value=0x%x dirty=%t",
 		b.Key, b.ChildrenBitmap(), b.Value, b.dirty)
 }
