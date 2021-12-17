@@ -19,7 +19,6 @@ import (
 	"testing"
 )
 
-
 func createNewTestHeader(t *testing.T, digest ...scale.VaryingDataTypeValue) *types.Header {
 	header := types.NewEmptyHeader()
 	for _, d := range digest {
