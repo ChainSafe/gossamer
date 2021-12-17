@@ -4,6 +4,7 @@
 package types
 
 import (
+	"errors"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -53,8 +54,10 @@ func (r *Result) Decode(reader io.Reader) (*Result, error) {
 
 	for {
 		b, err := common.ReadByte(reader)
-		if err != nil {
+		if errors.Is(err, io.EOF) {
 			break
+		} else if err != nil {
+			return nil, err
 		}
 
 		r.data = append(r.data, b)

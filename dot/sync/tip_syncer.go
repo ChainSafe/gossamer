@@ -35,7 +35,7 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}
 
 	if ps.number.Cmp(fin.Number) <= 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	return &worker{
@@ -47,7 +47,9 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}, nil
 }
 
-func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
+//nolint:nilnil
+func (s *tipSyncer) handleWorkerResult(res *worker) (
+	workerToRetry *worker, err error) {
 	if res.err == nil {
 		return nil, nil
 	}

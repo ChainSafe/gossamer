@@ -152,11 +152,13 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 // createNotificationsMessageHandler returns a function that is called by the handler of *inbound* streams.
-func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
-	messageHandler NotificationsMessageHandler,
-	batchHandler NotificationsMessageBatchHandler) messageHandler {
+func (s *Service) createNotificationsMessageHandler(
+	info *notificationsProtocol,
+	notificationsMessageHandler NotificationsMessageHandler,
+	batchHandler NotificationsMessageBatchHandler,
+) messageHandler {
 	return func(stream libp2pnetwork.Stream, m Message) error {
-		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
+		if m == nil || info == nil || info.handshakeValidator == nil || notificationsMessageHandler == nil {
 			return nil
 		}
 
@@ -214,6 +216,10 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				}
 
 				logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
+
+				if err := stream.CloseWrite(); err != nil {
+					logger.Tracef("failed to close stream for writing: %s", err)
+				}
 			}
 
 			return nil
@@ -227,7 +233,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return nil
 		}
 
-		propagate, err := messageHandler(peer, msg)
+		propagate, err := notificationsMessageHandler(peer, msg)
 		if err != nil {
 			return err
 		}
@@ -371,6 +377,10 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 
 		resp = hsResponse.hs
 		hsData.received = true
+	}
+
+	if err := stream.CloseRead(); err != nil {
+		logger.Tracef("failed to close stream for reading: %s", err)
 	}
 
 	if err = info.handshakeValidator(peer, resp); err != nil {
