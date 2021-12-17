@@ -191,10 +191,12 @@ func (t *Trie) load(db chaindb.Database, curr Node) error {
 		err := childTrie.Load(db, common.NewHash(value))
 		if err != nil {
 			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
-		} else {
-			if err = t.PutChild(value, childTrie); err != nil {
-				return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w", childTrie.root.GetHash(), err)
-			}
+		}
+
+		err = t.PutChild(value, childTrie)
+		if err != nil {
+			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
+				childTrie.root.GetHash(), err)
 		}
 	}
 

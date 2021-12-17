@@ -41,7 +41,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 
 	testKey := []byte("child_key")
 	testValue := []byte("child_value")
-	_, err = parentTrie.PutIntoChild(childKey, testKey, testValue)
+	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 
 	testKey = []byte("child_key_again")
 	testValue = []byte("child_value_again")
-	_, err = parentTrie.PutIntoChild(childKey, testKey, testValue)
+	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
 	if err != nil {
 		t.Fatal(err)
 	}

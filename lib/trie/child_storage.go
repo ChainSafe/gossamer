@@ -4,6 +4,7 @@
 package trie
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -12,7 +13,7 @@ import (
 // ChildStorageKeyPrefix is the prefix for all child storage keys
 var ChildStorageKeyPrefix = []byte(":child_storage:default:")
 
-const ErrChildTrieDoesNotExist = "child trie does not exist at key"
+var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 
 // PutChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
@@ -34,7 +35,7 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	key := append(ChildStorageKeyPrefix, keyToChild...)
 	childHash := t.Get(key)
 	if childHash == nil {
-		return nil, fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%w: at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	hash := [32]byte{}
@@ -75,7 +76,7 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 	}
 
 	if child == nil {
-		return nil, fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%w: at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	val := child.Get(key)
@@ -95,7 +96,7 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return err
 	}
 	if child == nil {
-		return fmt.Errorf("%s %s%s", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+		return fmt.Errorf("%w: at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 	child.Delete(key)
 	return nil
