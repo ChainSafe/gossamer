@@ -170,12 +170,9 @@ func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
 	p.processInsertedKeys(jr.insertedHashesSet, jr.blockHash)
 
 	// add deleted keys from journal to death index
+	deletedKeys := make(map[common.Hash]int64, len(jr.deletedHashesSet))
 	for k := range jr.deletedHashesSet {
 		p.deathIndex[k] = blockNum
-	}
-
-	deletedKeys := make(map[common.Hash]int64)
-	for k := range jr.deletedHashesSet {
 		deletedKeys[k] = blockNum
 	}
 
