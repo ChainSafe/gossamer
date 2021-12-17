@@ -163,3 +163,4 @@ func TestIncrementEpoch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), epoch)
 }
+
