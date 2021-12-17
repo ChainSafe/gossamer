@@ -5,10 +5,12 @@ package babe
 
 import (
 	"errors"
+
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
+
 	"testing"
 )
 
@@ -117,7 +119,8 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := checkPrimaryThreshold(tt.args.randomness, tt.args.slot, tt.args.epoch, tt.args.output, tt.args.threshold, tt.args.pub)
+			res, err := checkPrimaryThreshold(tt.args.randomness, tt.args.slot, tt.args.epoch,
+				tt.args.output, tt.args.threshold, tt.args.pub)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {

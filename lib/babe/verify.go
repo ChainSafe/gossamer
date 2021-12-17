@@ -184,7 +184,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 			return fmt.Errorf("failed to get verifier info for block %d: %w", header.Number, err)
 		}
-		
+
 		v.epochInfo[epoch] = info
 	}
 

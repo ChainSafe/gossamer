@@ -31,18 +31,6 @@ func TestRunLottery_False(t *testing.T) {
 	require.Nil(t, outAndProof)
 }
 
-func TestCalculateThreshold(t *testing.T) {
-	// C = 1
-	var C1 uint64 = 1
-	var C2 uint64 = 1
-
-	expected := maxThreshold
-
-	threshold, err := CalculateThreshold(C1, C2, 3)
-	require.NoError(t, err)
-	require.Equal(t, expected, threshold)
-}
-
 func TestCalculateThreshold_Failing(t *testing.T) {
 	var C1 uint64 = 5
 	var C2 uint64 = 4
