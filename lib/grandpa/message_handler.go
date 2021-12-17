@@ -53,19 +53,17 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case *CommitMessage:
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourMessage:
-		// It seems like we can afford to not retry handling neighbour message
-		// if it errors.
+		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg)
 	case *CatchUpRequest:
-		// CatchUpRequest seems like something that can be dropped, if we fail
-		// to process it
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
 		err := h.handleCatchUpResponse(msg)
-		// TODO: Retry for which errors
-		if err != nil {
-			// TODO: If I can directly access tracker, why are we using `in` channel for
-			// networkVoteMessage
+		if err == blocktree.ErrNodeNotFound {
+			// TODO: we are adding these messages to reprocess them again, but we
+			// haven't added code to reprocess them. Do that.
+			// Also, revisit if we need to add these message in synchronous manner
+			// or not. If not, change catchUpResponseMessages to a normal map.  #1531
 			h.grandpa.tracker.addCatchUpResponse(msg)
 		}
 		return nil, err
