@@ -1164,7 +1164,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 
 	mockEpochStateOk3.EXPECT().GetEpochForBlock(gomock.Eq(testHeader)).Return(uint64(2), nil)
 	mockBlockStateOk.EXPECT().IsDescendantOf(gomock.Any(), gomock.Any()).Return(false, nil)
-	
+
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
 		authorities:    []types.Authority{*authority, *authority},
