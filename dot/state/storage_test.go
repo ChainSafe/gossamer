@@ -233,5 +233,4 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)
-
 }
