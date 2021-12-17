@@ -4,7 +4,6 @@
 package state
 
 import (
-	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -226,10 +225,6 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	// Clear trie from cache and fetch data from disk.
 	storage.tries.Delete(root)
-	time.Sleep(time.Millisecond * 100)
-
-	// Should these databases really be different?
-	fmt.Println(storage.db == db)
 
 	_, err = storage.GetStorageChild(&root, []byte("keyToChild"))
 	require.NoError(t, err)
