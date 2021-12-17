@@ -35,7 +35,7 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	key := append(ChildStorageKeyPrefix, keyToChild...)
 	childHash := t.Get(key)
 	if childHash == nil {
-		return nil, fmt.Errorf("%w: at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	hash := [32]byte{}
@@ -76,7 +76,7 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 	}
 
 	if child == nil {
-		return nil, fmt.Errorf("%w: at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	val := child.Get(key)
@@ -96,7 +96,7 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return err
 	}
 	if child == nil {
-		return fmt.Errorf("%w: at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+		return fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 	child.Delete(key)
 	return nil
