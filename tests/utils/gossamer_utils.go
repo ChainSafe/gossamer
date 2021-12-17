@@ -265,7 +265,9 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 
 // CheckNodeStarted check if gossamer node is started
 func CheckNodeStarted(t *testing.T, gossamerHost string) error {
-	method := "system_health"
+	t.Helper()
+
+	const method = "system_health"
 
 	respBody, err := PostRPC(method, gossamerHost, "{}")
 	if err != nil {
@@ -459,7 +461,7 @@ func generateDefaultConfig() *ctoml.Config {
 			SyncLvl: "info",
 		},
 		Init: ctoml.InitConfig{
-			Genesis: "./chain/gssmr/genesis.json",
+			Genesis: "../../chain/gssmr/genesis.json",
 		},
 		Account: ctoml.AccountConfig{
 			Key:    "",

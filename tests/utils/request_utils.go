@@ -23,21 +23,20 @@ import (
 
 // PostRPC utils for sending payload to endpoint and getting []byte back
 func PostRPC(method, host, params string) ([]byte, error) {
-	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":` + params + `,"id":1}`)
-	buf := &bytes.Buffer{}
-	_, err := buf.Write(data)
-	if err != nil {
-		return nil, err
-	}
+	requestBody := fmt.Sprintf(
+		`{"jsonrpc":"2.0","method":"%s","params":%s,"id":1}`,
+		method, params,
+	)
 
-	r, err := http.NewRequest("POST", host, buf)
+	fmt.Println(requestBody)
+	r, err := http.NewRequest("POST", host, bytes.NewBuffer([]byte(requestBody)))
 	if err != nil {
 		return nil, err
 	}
 	r.Header.Set("Content-Type", ContentTypeJSON)
 	r.Header.Set("Accept", ContentTypeJSON)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	r = r.WithContext(ctx)
 
