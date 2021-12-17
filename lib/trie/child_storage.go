@@ -43,27 +43,27 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 }
 
 // PutIntoChild puts a key-value pair into the child trie located in the main trie at key :child_storage:[keyToChild]
-func (t *Trie) PutIntoChild(keyToChild, key, value []byte) (*common.Hash, error) {
+func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	origChildHash, err := child.Hash()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	child.Put(key, value)
 	childHash, err := child.Hash()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	delete(t.childTries, origChildHash)
 	t.childTries[childHash] = child
 
-	return &childHash, t.PutChild(keyToChild, child)
+	return t.PutChild(keyToChild, child)
 }
 
 // GetFromChild retrieves a key-value pair from the child trie located

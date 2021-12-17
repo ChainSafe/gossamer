@@ -25,7 +25,7 @@ var ErrEmptyProof = errors.New("proof slice empty")
 func (t *Trie) Store(db chaindb.Database) error {
 	for _, v := range t.childTries {
 		if err := v.Store(db); err != nil {
-			return err
+			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.GetHash(), err)
 		}
 	}
 
@@ -185,15 +185,15 @@ func (t *Trie) load(db chaindb.Database, curr Node) error {
 		}
 	}
 
-	for _, key := range t.GetKeysWithPrefix([]byte(ChildStorageKeyPrefix)) {
+	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
 		err := childTrie.Load(db, common.NewHash(value))
 		if err != nil {
-			// TODO: Avoid only when state.ErrTrieDoesNotExist
+			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
 		} else {
 			if err = t.PutChild(value, childTrie); err != nil {
-				return err
+				return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w", childTrie.root.GetHash(), err)
 			}
 		}
 	}
@@ -369,7 +369,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr Node) error {
 
 	for _, childTrie := range t.childTries {
 		if err := childTrie.writeDirty(db, childTrie.root); err != nil {
-			return err
+			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.GetHash(), err)
 		}
 	}
 

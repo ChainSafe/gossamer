@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	libutils "github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -190,13 +190,13 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	// initialise database using data directory
-	basepath := "/tmp/gossamer-test-db"
-	db, err := libutils.SetupDatabase(basepath, false)
+	basepath := t.TempDir()
+	db, err := utils.SetupDatabase(basepath, false)
 	require.NoError(t, err)
 
 	_, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
-	bs, err := NewBlockStateFromGenesis(db, genHeader)
+	blockState, err := NewBlockStateFromGenesis(db, genHeader)
 	require.NoError(t, err)
 
 	testChildTrie := trie.NewEmptyTrie()
@@ -205,19 +205,18 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
-	storage, err := NewStorageState(db, bs, genTrie, pruner.Config{})
+	storage, err := NewStorageState(db, blockState, genTrie, pruner.Config{})
 	require.NoError(t, err)
 
 	ts, err := runtime.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(bs.GenesisHash(), ts.MustRoot(),
+	header, err := types.NewHeader(blockState.GenesisHash(), ts.MustRoot(),
 		common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	err = storage.StoreTrie(ts, header)
 	require.NoError(t, err)
-	time.Sleep(time.Millisecond * 1000)
 
 	root, err := genTrie.Hash()
 	require.NoError(t, err)
