@@ -255,7 +255,7 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 
 	encodedRootNode, err := db.Get(rootHash[:])
 	if err != nil {
-		return nil, fmt.Errorf("cannot find root hash key 0x%x: %w", rootHash, err)
+		return nil, fmt.Errorf("cannot find root hash key %s: %w", rootHash, err)
 	}
 
 	reader := bytes.NewReader(encodedRootNode)
