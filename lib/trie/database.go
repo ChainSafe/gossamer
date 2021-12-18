@@ -15,8 +15,10 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-// ErrEmptyProof indicates the proof slice is empty
-var ErrEmptyProof = errors.New("proof slice empty")
+var (
+	ErrEmptyProof = errors.New("proof slice empty")
+	ErrDecodeNode = errors.New("cannot decode node")
+)
 
 // Store stores each trie node in the database,
 // where the key is the hash of the encoded node
@@ -67,10 +69,6 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 
 	return nil
 }
-
-var (
-	ErrDecodeNode = errors.New("cannot decode node")
-)
 
 // loadFromProof create a partial trie based on the proof slice, as it only contains nodes that are in the proof afaik.
 func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
