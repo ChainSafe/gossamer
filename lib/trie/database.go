@@ -196,9 +196,9 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 	return nil
 }
 
-// GetNodeHashes writes hashes of each children of the node given
+// PopulateNodeHashes writes hashes of each children of the node given
 // as keys to the map hashesSet.
-func (t *Trie) GetNodeHashes(n Node, hashesSet map[common.Hash]struct{}) {
+func (t *Trie) PopulateNodeHashes(n Node, hashesSet map[common.Hash]struct{}) {
 	branch, ok := n.(*node.Branch)
 	if !ok {
 		return
@@ -212,7 +212,7 @@ func (t *Trie) GetNodeHashes(n Node, hashesSet map[common.Hash]struct{}) {
 		hash := common.BytesToHash(child.GetHash())
 		hashesSet[hash] = struct{}{}
 
-		t.GetNodeHashes(child, hashesSet)
+		t.PopulateNodeHashes(child, hashesSet)
 	}
 }
 
