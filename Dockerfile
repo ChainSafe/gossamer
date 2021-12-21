@@ -1,5 +1,5 @@
 ARG DEBIAN_VERSION=bullseye-slim
-ARG GO_VERSION=1.17-buster
+ARG GO_VERSION=1.18beta1-buster
 
 FROM golang:${GO_VERSION} AS builder
 

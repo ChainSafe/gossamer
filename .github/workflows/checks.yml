@@ -32,7 +32,9 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: "1.17.x"
+          stable: false
+          go-version: 1.18.0-beta1
+
       - uses: actions/checkout@v2
 
       - name: Run go vet
@@ -45,7 +47,9 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: "1.17.x"
+          stable: false
+          go-version: 1.18.0-beta1
+
       - uses: actions/checkout@v2
       - name: Checks PR has title and body description
         run: |

@@ -1,7 +1,7 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-FROM golang:1.17
+FROM golang:1.18beta1
 
 ARG DD_API_KEY=somekey
 ENV DD_API_KEY=${DD_API_KEY}
@@ -12,7 +12,7 @@ WORKDIR /gossamer
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . . 
+COPY . .
 
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 

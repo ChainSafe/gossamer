@@ -20,9 +20,6 @@ env:
 jobs:
   publish-code-coverage:
     timeout-minutes: 60
-    strategy:
-      matrix:
-        go-version: [1.17.x]
     runs-on: ubuntu-latest
     steps:
       - id: go-cache-paths
@@ -31,7 +28,9 @@ jobs:
           echo "::set-output name=go-mod::$(go env GOMODCACHE)"
       - uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go-version }}
+          stable: false
+          go-version: 1.18.0-beta1
+
       - uses: actions/checkout@v2
 
       # cache go build cache

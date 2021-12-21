@@ -8,7 +8,7 @@ permalink: /getting-started/installation
 
 ## Prerequisites
 
-Install <a target="_blank" rel="noopener noreferrer" href="https://golang.org/">Go</a> version `>=1.17`
+Install [Go](https://go.dev/doc/install) version [`>=1.18beta1`](https://go.dev/dl/#go1.18beta1)
 
 ## Installation
 
