@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/require"
@@ -85,10 +86,19 @@ func (*testNetwork) RegisterNotificationsProtocol(
 
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
+//go:generate mockgen -destination=telemetry_mock_test.go -package $GOPACKAGE . Telemetry
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 	*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
 
 	cfg := &Config{
 		BlockState:    st.Block,
@@ -100,6 +110,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 		Authority:     true,
 		Network:       net,
 		Interval:      time.Second,
+		Telemetry:     telemetryMock,
 	}
 
 	gs, err := NewService(cfg)

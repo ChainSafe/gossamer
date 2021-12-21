@@ -74,6 +74,8 @@ type Service struct {
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
 	neighbourMessage *NeighbourMessage // cached neighbour message
+
+	telemetry Telemetry
 }
 
 // Config represents a GRANDPA service configuration
@@ -87,6 +89,7 @@ type Config struct {
 	Keypair       *ed25519.Keypair
 	Authority     bool
 	Interval      time.Duration
+	Telemetry     Telemetry
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -166,13 +169,14 @@ func NewService(cfg *Config) (*Service, error) {
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
+		telemetry:          cfg.Telemetry,
 	}
 
 	if err := s.registerProtocol(); err != nil {
 		return nil, err
 	}
 
-	s.messageHandler = NewMessageHandler(s, s.blockState)
+	s.messageHandler = NewMessageHandler(s, s.blockState, cfg.Telemetry)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.paused.Store(false)
 	return s, nil
@@ -283,7 +287,7 @@ func (s *Service) sendTelemetryAuthoritySet() {
 		return
 	}
 
-	err = telemetry.SendMessage(
+	err = s.telemetry.SendMessage(
 		telemetry.NewAfgAuthoritySetTM(
 			authorityID,
 			fmt.Sprint(s.state.setID),
@@ -640,7 +644,7 @@ func (s *Service) attemptToFinalize() error {
 		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
 
-		err = telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpToTM(
+		err = s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpToTM(
 			s.head.Hash(),
 			s.head.Number.String(),
 		))

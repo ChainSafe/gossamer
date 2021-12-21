@@ -41,7 +41,8 @@ func TestMain(m *testing.M) {
 	}
 
 	logger := log.New(log.SetWriter(io.Discard))
-	_ = BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), logger)
+	const telemetryEnabled = true
+	BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), telemetryEnabled, logger)
 
 	// Start all tests
 	code := m.Run()

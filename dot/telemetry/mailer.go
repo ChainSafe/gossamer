@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -29,24 +30,30 @@ type telemetryConnection struct {
 }
 
 // Handler struct for holding telemetry related things
-type mailer struct {
+type Mailer struct {
 	messageQueue chan Message
 	connections  []*telemetryConnection
 	logger       log.LeveledLogger
+	enabled      bool
 }
 
-func newMailer(logger log.LeveledLogger) *mailer {
-	return &mailer{
+func newMailer(enabled bool, logger log.LeveledLogger) *Mailer {
+	return &Mailer{
+		enabled:      enabled,
 		messageQueue: messageQueue,
 		logger:       logger,
 	}
 }
 
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
-func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) error {
+func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, enabled bool, logger log.LeveledLogger) (
+	mailer *Mailer, err error) {
 	const retryDelay = time.Second * 15
 
-	mailer := newMailer(logger)
+	mailer = newMailer(enabled, logger)
+	if !enabled {
+		return mailer, nil
+	}
 
 	for _, v := range conns {
 		const maxRetries = 5
@@ -67,7 +74,7 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 						<-timer.C
 					}
 
-					return ctx.Err()
+					return nil, ctx.Err()
 				}
 			}
 
@@ -80,11 +87,11 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 	}
 
 	if len(mailer.connections) == 0 {
-		return ErrInsufficientConnections
+		return nil, ErrInsufficientConnections
 	}
 
 	go mailer.asyncShipment(ctx)
-	return nil
+	return mailer, nil
 }
 
 // SendMessage sends Message to connected telemetry listeners through messageReceiver
@@ -105,7 +112,25 @@ func SendMessage(msg Message) error {
 	return nil
 }
 
-func (m *mailer) asyncShipment(ctx context.Context) {
+func (m *Mailer) SendMessage(msg Message) error {
+	const messageTimeout = time.Second
+
+	timer := time.NewTimer(messageTimeout)
+
+	select {
+	case m.messageQueue <- msg:
+		fmt.Printf("inner <<<<<<<<\n%s\n", msg.messageType())
+		if !timer.Stop() {
+			<-timer.C
+		}
+
+	case <-timer.C:
+		return ErrTimoutMessageSending
+	}
+	return nil
+}
+
+func (m *Mailer) asyncShipment(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -115,12 +140,14 @@ func (m *mailer) asyncShipment(ctx context.Context) {
 				return
 			}
 
-			go m.shipTelemetryMessage(msg)
+			if m.enabled {
+				go m.shipTelemetryMessage(msg)
+			}
 		}
 	}
 }
 
-func (m *mailer) shipTelemetryMessage(msg Message) {
+func (m *Mailer) shipTelemetryMessage(msg Message) {
 	msgBytes, err := msgToJSON(msg)
 	if err != nil {
 		m.logger.Debugf("issue encoding telemetry message: %s", err)

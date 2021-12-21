@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/golang/mock/gomock"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
@@ -53,7 +54,15 @@ func TestHandleNetworkMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.state.voters = gs.state.voters[:1]
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	gs.messageHandler = h
 
 	propagate, err := gs.handleNetworkMessage(peer.ID(""), cm)

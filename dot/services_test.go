@@ -273,7 +273,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	networkSrvc, err := createNetworkService(cfg, stateSrvc)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
+	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }

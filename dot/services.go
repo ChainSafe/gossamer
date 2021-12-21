@@ -351,7 +351,7 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 
 // createGRANDPAService creates a new GRANDPA service
 func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
-	ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+	ks keystore.Keystore, net *network.Service, telemetryMailer grandpa.Telemetry) (*grandpa.Service, error) {
 	rt, err := st.Block.GetRuntime(nil)
 	if err != nil {
 		return nil, err
@@ -382,6 +382,7 @@ func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
 		Authority:     cfg.Core.GrandpaAuthority,
 		Network:       net,
 		Interval:      cfg.Core.GrandpaInterval,
+		Telemetry:     telemetryMailer,
 	}
 
 	if cfg.Core.GrandpaAuthority {

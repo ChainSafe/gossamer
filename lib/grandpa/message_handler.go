@@ -25,13 +25,15 @@ import (
 type MessageHandler struct {
 	grandpa    *Service
 	blockState BlockState
+	telemetry  Telemetry
 }
 
 // NewMessageHandler returns a new MessageHandler
-func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler {
+func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer Telemetry) *MessageHandler {
 	return &MessageHandler{
 		grandpa:    grandpa,
 		blockState: blockState,
+		telemetry:  telemetryMailer,
 	}
 }
 
@@ -99,7 +101,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 		containsPrecommitsSignedBy[i] = authData.AuthorityID.String()
 	}
 
-	err := telemetry.SendMessage(
+	err := h.telemetry.SendMessage(
 		telemetry.NewAfgReceivedCommitTM(
 			msg.Vote.Hash,
 			fmt.Sprint(msg.Vote.Number),

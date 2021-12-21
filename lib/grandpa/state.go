@@ -10,9 +10,14 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+type Telemetry interface {
+	SendMessage(msg telemetry.Message) error
+}
 
 // BlockState is the interface required by GRANDPA into the block state
 type BlockState interface {

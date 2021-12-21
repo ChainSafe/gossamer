@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -172,6 +173,7 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
+
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
@@ -245,7 +247,23 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
+	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create system service: %s", err)
+	}
+	nodeSrvcs = append(nodeSrvcs, sysSrvc)
+
+	gd, err := stateSrvc.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
+	telemetryMailer, err := setupTelemetry(cfg, stateSrvc, networkSrvc, sysSrvc, gd)
+	if err != nil {
+		return nil, err
+	}
+
+	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
@@ -267,12 +285,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, bp)
-
-	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create system service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.isRPCEnabled() || cfg.RPC.isWSEnabled(); enabled {
@@ -313,14 +325,15 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		metrics.PublishMetrics(address)
 	}
 
-	gd, err := stateSrvc.Base.LoadGenesisData()
-	if err != nil {
-		return nil, err
-	}
+	return node, nil
+}
+
+func setupTelemetry(cfg *Config, stateSrvc *state.Service, networkSrvc *network.Service,
+	sysSrvc *system.Service, genesisData *genesis.Data) (*telemetry.Mailer, error) {
 
 	var telemetryEndpoints []*genesis.TelemetryEndpoint
 	if len(cfg.Global.TelemetryURLs) == 0 {
-		telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
+		telemetryEndpoints = append(telemetryEndpoints, genesisData.TelemetryEndpoints...)
 	} else {
 		telemetryURLs := cfg.Global.TelemetryURLs
 		for i := range telemetryURLs {
@@ -328,32 +341,35 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		}
 	}
 
-	if !cfg.Global.NoTelemetry {
-		telemetryLogger := log.NewFromGlobal(log.AddContext("pkg", "telemetry"))
+	var (
+		telemetryMailer *telemetry.Mailer
+		err             error
+	)
 
-		err := telemetry.BootstrapMailer(context.Background(), telemetryEndpoints, telemetryLogger)
-		if err != nil {
-			return nil, fmt.Errorf("cannot bootstrap mailer: %w", err)
-		}
+	telemetryLogger := log.NewFromGlobal(log.AddContext("pkg", "telemetry"))
+	telemetryMailer, err = telemetry.BootstrapMailer(context.Background(), telemetryEndpoints, !cfg.Global.NoTelemetry, telemetryLogger)
 
-		genesisHash := stateSrvc.Block.GenesisHash()
-		connectedMsg := telemetry.NewSystemConnectedTM(
-			cfg.Core.GrandpaAuthority,
-			sysSrvc.ChainName(),
-			&genesisHash,
-			sysSrvc.SystemName(),
-			cfg.Global.Name,
-			networkSrvc.NetworkState().PeerID,
-			strconv.FormatInt(time.Now().UnixNano(), 10),
-			sysSrvc.SystemVersion())
-
-		err = telemetry.SendMessage(connectedMsg)
-		if err != nil {
-			logger.Debugf("problem sending system.connected telemetry message: %s", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("cannot bootstrap mailer: %w", err)
 	}
 
-	return node, nil
+	genesisHash := stateSrvc.Block.GenesisHash()
+	connectedMsg := telemetry.NewSystemConnectedTM(
+		cfg.Core.GrandpaAuthority,
+		sysSrvc.ChainName(),
+		&genesisHash,
+		sysSrvc.SystemName(),
+		cfg.Global.Name,
+		networkSrvc.NetworkState().PeerID,
+		strconv.FormatInt(time.Now().UnixNano(), 10),
+		sysSrvc.SystemVersion())
+
+	err = telemetryMailer.SendMessage(connectedMsg)
+	if err != nil {
+		logger.Debugf("problem sending system.connected telemetry message: %s", err)
+	}
+
+	return telemetryMailer, nil
 }
 
 // stores the global node name to reuse
