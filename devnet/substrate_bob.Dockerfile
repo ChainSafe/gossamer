@@ -1,7 +1,8 @@
 # Copyright 2022 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 ARG POLKADOT_VERSION=v0.9.10
-FROM golang:1.17 as openmetrics
+
+FROM golang:1.18 as openmetrics
 
 ARG METRICS_NAMESPACE=substrate.local.devnet
 

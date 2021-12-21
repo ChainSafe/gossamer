@@ -187,4 +187,4 @@ require (
 	gotest.tools/v3 v3.0.3 // indirect
 )
 
-go 1.17
+go 1.18
