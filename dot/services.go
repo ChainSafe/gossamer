@@ -248,7 +248,8 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer network.Telemetry) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service,
+	telemetryMailer network.Telemetry) (*network.Service, error) {
 	logger.Debugf(
 		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,

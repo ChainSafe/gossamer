@@ -349,7 +349,8 @@ func setupTelemetry(cfg *Config, stateSrvc *state.Service, networkSrvc *network.
 	)
 
 	telemetryLogger := log.NewFromGlobal(log.AddContext("pkg", "telemetry"))
-	telemetryMailer, err = telemetry.BootstrapMailer(context.Background(), telemetryEndpoints, !cfg.Global.NoTelemetry, telemetryLogger)
+	telemetryMailer, err = telemetry.BootstrapMailer(context.Background(),
+		telemetryEndpoints, !cfg.Global.NoTelemetry, telemetryLogger)
 
 	if err != nil {
 		return nil, fmt.Errorf("cannot bootstrap mailer: %w", err)
