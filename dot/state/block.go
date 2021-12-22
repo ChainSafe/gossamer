@@ -98,7 +98,8 @@ func NewBlockState(db chaindb.Database, telemetry Telemetry) (*BlockState, error
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
+func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header,
+	telemetryMailer Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
@@ -110,6 +111,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),
+		telemetry:                  telemetryMailer,
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {

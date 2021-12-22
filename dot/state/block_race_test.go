@@ -11,12 +11,17 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	gomock "github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConcurrencySetHeader(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	threads := runtime.NumCPU()
 	dbs := make([]chaindb.Database, threads)
 	for i := 0; i < threads; i++ {
@@ -29,7 +34,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 		go func(index int) {
 			defer pend.Done()
 
-			bs, err := NewBlockStateFromGenesis(dbs[index], testGenesisHeader)
+			bs, err := NewBlockStateFromGenesis(dbs[index], testGenesisHeader, telemetryMock)
 			require.NoError(t, err)
 
 			header := &types.Header{

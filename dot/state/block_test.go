@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	gomock "github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
@@ -25,12 +26,16 @@ var testGenesisHeader = &types.Header{
 }
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	db := NewInMemoryDB(t)
 	if header == nil {
 		header = testGenesisHeader
 	}
 
-	bs, err := NewBlockStateFromGenesis(db, header)
+	bs, err := NewBlockStateFromGenesis(db, header, telemetryMock)
 	require.NoError(t, err)
 	return bs
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 
@@ -50,6 +51,10 @@ func NewMockDigestHandler() *mocks.DigestHandler {
 }
 
 func newTestState(t *testing.T) *state.Service {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
+
 	testDatadirPath := t.TempDir()
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)
@@ -58,7 +63,7 @@ func newTestState(t *testing.T) *state.Service {
 	t.Cleanup(func() { db.Close() })
 
 	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
-	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
+	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
