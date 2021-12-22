@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	gomock "github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/chaindb"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
@@ -396,13 +397,21 @@ func TestStateServiceMetrics(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	config := Config{
 		Path:     testDir,
 		LogLevel: log.Info,
 	}
 	ethmetrics.Enabled = true
 	serv := NewService(config)
-	serv.Transaction = NewTransactionState()
+	serv.Transaction = NewTransactionState(telemetryMock)
 	serv.Block = newTestBlockState(t, testGenesisHeader)
 
 	m := metrics.NewCollector(context.Background())

@@ -22,14 +22,17 @@ type TransactionState struct {
 	// hex string of the extrinsic it is supposed to notify about.
 	notifierChannels map[chan transaction.Status]string
 	notifierLock     sync.RWMutex
+
+	telemetry Telemetry
 }
 
 // NewTransactionState returns a new TransactionState
-func NewTransactionState() *TransactionState {
+func NewTransactionState(telemetry Telemetry) *TransactionState {
 	return &TransactionState{
 		queue:            transaction.NewPriorityQueue(),
 		pool:             transaction.NewPool(),
 		notifierChannels: make(map[chan transaction.Status]string),
+		telemetry:        telemetry,
 	}
 }
 
@@ -76,7 +79,7 @@ func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Ha
 
 	hash := s.pool.Insert(vt)
 
-	if err := telemetry.SendMessage(
+	if err := s.telemetry.SendMessage(
 		telemetry.NewTxpoolImportTM(uint(s.queue.Len()), uint(s.pool.Len())),
 	); err != nil {
 		logger.Debugf("problem sending txpool.import telemetry message, error: %s", err)

@@ -126,7 +126,7 @@ func TestCreateSyncService(t *testing.T) {
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	_, err = newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{})
+	_, err = newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{}, nil)
 	require.NoError(t, err)
 }
 
@@ -148,7 +148,7 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, networkSrvc)
 }
@@ -233,7 +233,7 @@ func TestCreateBABEService(t *testing.T) {
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	bs, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
+	bs, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }
@@ -270,7 +270,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
 	require.NoError(t, err)
 
 	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, nil)

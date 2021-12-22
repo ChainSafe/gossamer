@@ -9,12 +9,18 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+// Telemetry is the interface related to telemetry package
+type Telemetry interface {
+	SendMessage(msg telemetry.Message) error
+}
 
 //go:generate mockery --name BlockState --structname BlockState --case underscore --keeptree
 

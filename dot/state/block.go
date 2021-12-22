@@ -61,10 +61,12 @@ type BlockState struct {
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
 	pruneKeyCh chan *types.Header
+
+	telemetry Telemetry
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, telemetry Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
@@ -74,6 +76,7 @@ func NewBlockState(db chaindb.Database) (*BlockState, error) {
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		telemetry:                  telemetry,
 	}
 
 	gh, err := bs.db.Get(headerHashKey(0))

@@ -171,7 +171,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		return fmt.Errorf("failed to get finalised header, hash: %s, error: %s", hash, err)
 	}
 
-	err = telemetry.SendMessage(
+	err = bs.telemetry.SendMessage(
 		telemetry.NewNotifyFinalizedTM(
 			header.Hash(),
 			header.Number.String(),

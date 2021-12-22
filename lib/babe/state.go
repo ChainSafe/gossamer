@@ -8,12 +8,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
+
+// Telemetry is the interface related to telemetry package
+type Telemetry interface {
+	SendMessage(msg telemetry.Message) error
+}
 
 // BlockState interface for block state methods
 type BlockState interface {

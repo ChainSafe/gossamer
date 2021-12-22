@@ -206,10 +206,28 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
 
+	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create system service: %s", err)
+	}
+	nodeSrvcs = append(nodeSrvcs, sysSrvc)
+
+	gd, err := stateSrvc.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
+	telemetryMailer, err := setupTelemetry(cfg, stateSrvc, networkSrvc, sysSrvc, gd)
+	if err != nil {
+		return nil, err
+	}
+
+	stateSrvc.Telemetry = telemetryMailer
+
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {
 		// create network service and append network service to node services
-		networkSrvc, err = createNetworkService(cfg, stateSrvc)
+		networkSrvc, err = createNetworkService(cfg, stateSrvc, telemetryMailer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create network service: %s", err)
 		}
@@ -247,29 +265,13 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create system service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, sysSrvc)
-
-	gd, err := stateSrvc.Base.LoadGenesisData()
-	if err != nil {
-		return nil, err
-	}
-
-	telemetryMailer, err := setupTelemetry(cfg, stateSrvc, networkSrvc, sysSrvc, gd)
-	if err != nil {
-		return nil, err
-	}
-
 	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 
-	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc)
+	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +282,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 	nodeSrvcs = append(nodeSrvcs, syncer)
 
-	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
+	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}

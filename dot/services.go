@@ -159,7 +159,8 @@ func asAuthority(authority bool) string {
 	return ""
 }
 
-func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service) (*babe.Service, error) {
+func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore,
+	cs *core.Service, telemetryMailer babe.Telemetry) (*babe.Service, error) {
 	logger.Info("creating BABE service" +
 		asAuthority(cfg.Core.BabeAuthority) + "...")
 
@@ -183,6 +184,7 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 		Authority:          cfg.Core.BabeAuthority,
 		IsDev:              cfg.Global.ID == "dev",
 		Lead:               cfg.Core.BABELead,
+		Telemetry:          telemetryMailer,
 	}
 
 	if cfg.Core.BabeAuthority {
@@ -246,7 +248,7 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer network.Telemetry) (*network.Service, error) {
 	logger.Debugf(
 		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
@@ -275,6 +277,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
 		SlotDuration:      slotDuration,
 		PublicIP:          cfg.Network.PublicIP,
+		Telemetry:         telemetryMailer,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -402,7 +405,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 }
 
 func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
-	verifier *babe.VerificationManager, cs *core.Service, net *network.Service) (
+	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer sync.Telemetry) (
 	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {
@@ -421,6 +424,7 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
 		MinPeers:           cfg.Network.MinPeers,
 		MaxPeers:           cfg.Network.MaxPeers,
 		SlotDuration:       slotDuration,
+		Telemetry:          telemetryMailer,
 	}
 
 	return sync.NewService(syncCfg)

@@ -323,7 +323,16 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	txQueue := state.NewTransactionState()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	txQueue := state.NewTransactionState(telemetryMock)
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil)
 }
 

@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -379,7 +380,15 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 		},
 	}
 
-	ts := state.NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	ts := state.NewTransactionState(telemetryMock)
 	hashes := make([]common.Hash, len(txs))
 
 	for i, tx := range txs {
@@ -424,7 +433,15 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		},
 	}
 
-	ts := state.NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	ts := state.NewTransactionState(telemetryMock)
 	hashes := make([]common.Hash, len(txs))
 
 	for i, tx := range txs {

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -27,6 +28,11 @@ const (
 var logger = log.NewFromGlobal(
 	log.AddContext("pkg", "state"),
 )
+
+// Telemetry is the interface related to telemetry package
+type Telemetry interface {
+	SendMessage(msg telemetry.Message) error
+}
 
 // Service is the struct that holds storage, block and network states
 type Service struct {
@@ -48,6 +54,8 @@ type Service struct {
 
 	// Below are for state trie online pruner
 	PrunerCfg pruner.Config
+
+	Telemetry Telemetry
 }
 
 // Config is the default configuration used by state service.
@@ -112,7 +120,7 @@ func (s *Service) Start() error {
 	var err error
 
 	// create block state
-	s.Block, err = NewBlockState(db)
+	s.Block, err = NewBlockState(db, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -144,7 +152,7 @@ func (s *Service) Start() error {
 	}
 
 	// create transaction queue
-	s.Transaction = NewTransactionState()
+	s.Transaction = NewTransactionState(s.Telemetry)
 
 	// create epoch state
 	s.Epoch, err = NewEpochState(db, s.Block)

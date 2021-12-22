@@ -9,9 +9,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+// Telemetry is the interface related to telemetry package
+type Telemetry interface {
+	SendMessage(msg telemetry.Message) error
+}
 
 //go:generate mockgen -destination=mock_block_state.go -package $GOPACKAGE . BlockState
 

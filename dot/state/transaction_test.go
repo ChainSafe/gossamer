@@ -12,12 +12,24 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	gomock "github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
 
+//go:generate mockgen -destination=../rpc/modules/telemetry_mock_test.go -package modules . Telemetry
+//go:generate mockgen -destination=../core/telemetry_mock_test.go -package core . Telemetry
+//go:generate mockgen -destination=telemetry_mock_test.go -package $GOPACKAGE . Telemetry
 func TestTransactionState_Pending(t *testing.T) {
-	ts := NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	ts := NewTransactionState(telemetryMock)
 
 	txs := []*transaction.ValidTransaction{
 		{
@@ -67,7 +79,15 @@ func TestTransactionState_Pending(t *testing.T) {
 }
 
 func TestTransactionState_NotifierChannels(t *testing.T) {
-	ts := NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	ts := NewTransactionState(telemetryMock)
 
 	ext := types.Extrinsic{}
 	notifierChannel := ts.GetStatusNotifierChannel(ext)

@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// Telemetry is the interface related to telemetry package
 type Telemetry interface {
 	SendMessage(msg telemetry.Message) error
 }

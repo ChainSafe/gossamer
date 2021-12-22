@@ -6,12 +6,12 @@ package telemetry
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"math/big"
 	"net/http"
-	"os"
+	"net/http/httptest"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -23,33 +23,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var upgrader = websocket.Upgrader{}
-var resultCh chan []byte
+func bootstrapMailer2Test(t *testing.T, resultCh chan []byte) (mailer *Mailer) {
+	t.Helper()
 
-func TestMain(m *testing.M) {
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+
 	// start server to listen for websocket connections
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	http.HandleFunc("/", listen)
-	go http.ListenAndServe("127.0.0.1:8001", nil)
+	listen := pipeRequestToChannel(t, upgrader, resultCh)
 
-	time.Sleep(time.Millisecond)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", listen)
+
+	srv := httptest.NewServer(mux)
+	t.Cleanup(func() {
+		srv.Close()
+	})
+
+	wsAddr := strings.Replace(srv.URL, "http", "ws", -1)
+
 	// instantiate telemetry to connect to websocket (test) server
 	var testEndpoints []*genesis.TelemetryEndpoint
 	var testEndpoint1 = &genesis.TelemetryEndpoint{
-		Endpoint:  "ws://127.0.0.1:8001/",
+		Endpoint:  wsAddr,
 		Verbosity: 0,
 	}
 
 	logger := log.New(log.SetWriter(io.Discard))
 	const telemetryEnabled = true
-	BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), telemetryEnabled, logger)
 
-	// Start all tests
-	code := m.Run()
-	os.Exit(code)
+	mailer, err := BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), telemetryEnabled, logger)
+	require.NoError(t, err)
+
+	return mailer
 }
 
 func TestHandler_SendMulti(t *testing.T) {
+	t.Parallel()
+
 	expected := [][]byte{
 		[]byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`), //nolint:lll
 		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`),                                                                                                      //nolint:lll
@@ -107,13 +119,14 @@ func TestHandler_SendMulti(t *testing.T) {
 			"1"),
 	}
 
-	resultCh = make(chan []byte)
+	resultCh := make(chan []byte)
+	mailer := bootstrapMailer2Test(t, resultCh)
 
 	var wg sync.WaitGroup
 	for _, message := range messages {
 		wg.Add(1)
 		go func(msg Message) {
-			SendMessage(msg)
+			mailer.SendMessage(msg)
 			wg.Done()
 		}(message)
 	}
@@ -142,6 +155,8 @@ func TestHandler_SendMulti(t *testing.T) {
 }
 
 func TestListenerConcurrency(t *testing.T) {
+	t.Parallel()
+
 	const qty = 10
 
 	readyWait := new(sync.WaitGroup)
@@ -160,7 +175,8 @@ func TestListenerConcurrency(t *testing.T) {
 
 	defer cancel()
 
-	resultCh = make(chan []byte)
+	resultCh := make(chan []byte)
+	mailer := bootstrapMailer2Test(t, resultCh)
 
 	doneWait := new(sync.WaitGroup)
 	for i := 0; i < qty; i++ {
@@ -177,7 +193,7 @@ func TestListenerConcurrency(t *testing.T) {
 			for ctx.Err() == nil {
 				bestHash := common.Hash{}
 				msg := NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync")
-				err := SendMessage(msg)
+				err := mailer.SendMessage(msg)
 				require.NoError(t, err)
 			}
 		}()
@@ -195,30 +211,19 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 }
 
-// TestInfiniteListener starts loop that print out data received on websocket ws://localhost:8001/
-//  this can be useful to see what data is sent to telemetry server
-func TestInfiniteListener(t *testing.T) {
-	t.Skip()
-	resultCh = make(chan []byte)
-	for data := range resultCh {
-		fmt.Printf("Data %s\n", data)
-	}
-}
+func pipeRequestToChannel(t *testing.T, wsUpgrader websocket.Upgrader, ch chan<- []byte) http.HandlerFunc {
+	t.Helper()
 
-func listen(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Printf("Error %v\n", err)
-	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := wsUpgrader.Upgrade(w, r, nil)
+		require.NoError(t, err)
 
-	defer c.Close()
+		defer c.Close()
 
-	for {
-		_, msg, err := c.ReadMessage()
-		if err != nil {
-			fmt.Printf("Error %v\n", err)
+		for {
+			_, msg, err := c.ReadMessage()
+			require.NoError(t, err)
+			ch <- msg
 		}
-
-		resultCh <- msg
 	}
 }

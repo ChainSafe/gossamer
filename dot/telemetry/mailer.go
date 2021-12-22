@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -29,7 +28,7 @@ type telemetryConnection struct {
 	sync.Mutex
 }
 
-// Handler struct for holding telemetry related things
+// Mailer holds telemetry related attributes
 type Mailer struct {
 	messageQueue chan Message
 	connections  []*telemetryConnection
@@ -95,7 +94,7 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 }
 
 // SendMessage sends Message to connected telemetry listeners through messageReceiver
-func SendMessage(msg Message) error {
+func SendMessagee(msg Message) error {
 	const messageTimeout = time.Second
 
 	timer := time.NewTimer(messageTimeout)
@@ -112,6 +111,7 @@ func SendMessage(msg Message) error {
 	return nil
 }
 
+// SendMessage sends Message to connected telemetry listeners through messageReceiver
 func (m *Mailer) SendMessage(msg Message) error {
 	const messageTimeout = time.Second
 
@@ -119,7 +119,6 @@ func (m *Mailer) SendMessage(msg Message) error {
 
 	select {
 	case m.messageQueue <- msg:
-		fmt.Printf("inner <<<<<<<<\n%s\n", msg.messageType())
 		if !timer.Stop() {
 			<-timer.C
 		}

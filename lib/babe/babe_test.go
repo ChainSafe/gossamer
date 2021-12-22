@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	gomock "github.com/golang/mock/gomock"
 
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -90,7 +91,15 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	if cfg.TransactionState == nil {
-		cfg.TransactionState = state.NewTransactionState()
+		ctrl := gomock.NewController(t)
+		telemetryMock := NewMockTelemetry(ctrl)
+
+		telemetryMock.
+			EXPECT().
+			SendMessage(gomock.Any()).
+			AnyTimes()
+
+		cfg.TransactionState = state.NewTransactionState(telemetryMock)
 	}
 
 	testDatadirPath := t.TempDir()

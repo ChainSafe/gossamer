@@ -89,6 +89,8 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
+
+	telemetry Telemetry
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -163,6 +165,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
+		telemetry:              cfg.Telemetry,
 	}
 
 	return network, err
@@ -393,7 +396,7 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			err := telemetry.SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
+			err := s.telemetry.SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
 			if err != nil {
 				logger.Debugf("problem sending system.interval telemetry message: %s", err)
 			}
@@ -415,7 +418,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		finalizedHash := finalised.Hash()
 
-		err = telemetry.SendMessage(telemetry.NewBlockIntervalTM(
+		err = s.telemetry.SendMessage(telemetry.NewBlockIntervalTM(
 			&bestHash,
 			best.Number,
 			&finalizedHash,
