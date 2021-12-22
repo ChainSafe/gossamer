@@ -4,12 +4,14 @@
 package dot
 
 import (
+	"context"
 	"math/big"
 	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -194,11 +196,17 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
+	telemetryNotEnabled, err := telemetry.
+		BootstrapMailer(context.Background(), nil, false, nil)
+
+	require.NoError(t, err)
+
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(config)
+	stateSrvc.Telemetry = telemetryNotEnabled
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)

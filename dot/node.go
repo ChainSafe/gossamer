@@ -84,19 +84,13 @@ func InitNode(cfg *Config) error {
 		},
 	}
 
+	telemetryMailer, err := setupTelemetry(cfg, nil)
+	if err != nil {
+		return err
+	}
+
 	// create new state service
 	stateSrvc := state.NewService(config)
-
-	gd, err := stateSrvc.Base.LoadGenesisData()
-	if err != nil {
-		return err
-	}
-
-	telemetryMailer, err := setupTelemetry(cfg, stateSrvc, gd)
-	if err != nil {
-		return err
-	}
-
 	stateSrvc.Telemetry = telemetryMailer
 
 	// initialise state service with genesis data, block, and trie
@@ -228,7 +222,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, err
 	}
 
-	telemetryMailer, err := setupTelemetry(cfg, stateSrvc, gd)
+	telemetryMailer, err := setupTelemetry(cfg, gd)
 	if err != nil {
 		return nil, err
 	}
@@ -357,9 +351,9 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	return node, nil
 }
 
-func setupTelemetry(cfg *Config, stateSrvc *state.Service, genesisData *genesis.Data) (*telemetry.Mailer, error) {
+func setupTelemetry(cfg *Config, genesisData *genesis.Data) (*telemetry.Mailer, error) {
 	var telemetryEndpoints []*genesis.TelemetryEndpoint
-	if len(cfg.Global.TelemetryURLs) == 0 {
+	if len(cfg.Global.TelemetryURLs) == 0 && genesisData != nil {
 		telemetryEndpoints = append(telemetryEndpoints, genesisData.TelemetryEndpoints...)
 	} else {
 		telemetryURLs := cfg.Global.TelemetryURLs

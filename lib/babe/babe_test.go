@@ -178,6 +178,10 @@ func TestMain(m *testing.M) {
 }
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	testDatadirPath := t.TempDir()
 
 	config := state.Config{
@@ -185,6 +189,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 		LogLevel: log.Info,
 	}
 	dbSrv := state.NewService(config)
+	dbSrv.Telemetry = telemetryMock
 	dbSrv.UseMemDB()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
