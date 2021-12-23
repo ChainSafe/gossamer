@@ -178,7 +178,6 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
-
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
@@ -215,6 +214,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create system service: %s", err)
 	}
+
 	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
 	gd, err := stateSrvc.Base.LoadGenesisData()
@@ -227,22 +227,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, err
 	}
 
-	genesisHash := stateSrvc.Block.GenesisHash()
-	connectedMsg := telemetry.NewSystemConnectedTM(
-		cfg.Core.GrandpaAuthority,
-		sysSrvc.ChainName(),
-		&genesisHash,
-		sysSrvc.SystemName(),
-		cfg.Global.Name,
-		networkSrvc.NetworkState().PeerID,
-		strconv.FormatInt(time.Now().UnixNano(), 10),
-		sysSrvc.SystemVersion())
-
-	err = telemetryMailer.SendMessage(connectedMsg)
-	if err != nil {
-		logger.Debugf("problem sending system.connected telemetry message: %s", err)
-	}
-
 	stateSrvc.Telemetry = telemetryMailer
 
 	// check if network service is enabled
@@ -253,6 +237,23 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 			return nil, fmt.Errorf("failed to create network service: %s", err)
 		}
 		nodeSrvcs = append(nodeSrvcs, networkSrvc)
+
+		//sent NewSystemConnectedTM only if networkServiceEnabled
+		genesisHash := stateSrvc.Block.GenesisHash()
+		connectedMsg := telemetry.NewSystemConnectedTM(
+			cfg.Core.GrandpaAuthority,
+			sysSrvc.ChainName(),
+			&genesisHash,
+			sysSrvc.SystemName(),
+			cfg.Global.Name,
+			networkSrvc.NetworkState().PeerID,
+			strconv.FormatInt(time.Now().UnixNano(), 10),
+			sysSrvc.SystemVersion())
+
+		err = telemetryMailer.SendMessage(connectedMsg)
+		if err != nil {
+			logger.Debugf("problem sending system.connected telemetry message: %s", err)
+		}
 	} else {
 		// do not create or append network service if network service is not enabled
 		logger.Debugf("network service disabled, roles are %d", cfg.Core.Roles)
