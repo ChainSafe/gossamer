@@ -15,10 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var (
-	// ErrInsufficientConnections occurs when BootstrapMailer is not able to connect to any endpoint
-	ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
-)
+var ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
 var messageQueue chan Message = make(chan Message, 256)
 
 type telemetryConnection struct {
