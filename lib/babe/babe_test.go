@@ -90,15 +90,17 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.AuthData = []types.Authority{auth}
 	}
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	cfg.Telemetry = telemetryMock
+
 	if cfg.TransactionState == nil {
-		ctrl := gomock.NewController(t)
-		telemetryMock := NewMockTelemetry(ctrl)
-
-		telemetryMock.
-			EXPECT().
-			SendMessage(gomock.Any()).
-			AnyTimes()
-
 		cfg.TransactionState = state.NewTransactionState(telemetryMock)
 	}
 
@@ -113,6 +115,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		}
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
+
+		dbSrv.Telemetry = telemetryMock
 
 		err = dbSrv.Initialise(gen, genHeader, genTrie)
 		require.NoError(t, err)
