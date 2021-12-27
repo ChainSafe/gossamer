@@ -17,8 +17,7 @@ import (
 
 var (
 	// ErrInsufficientConnections occurs when BootstrapMailer is not able to connect to any endpoint
-	ErrInsufficientConnections = errors.New("insufficient connections")
-	ErrTimoutMessageSending    = errors.New("timeout sending telemetry message")
+	ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
 )
 var messageQueue chan Message = make(chan Message, 256)
 
@@ -83,10 +82,6 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 			})
 			break
 		}
-	}
-
-	if len(mailer.connections) == 0 {
-		return nil, ErrInsufficientConnections
 	}
 
 	go mailer.asyncShipment(ctx)
