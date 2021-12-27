@@ -11,7 +11,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
-	github.com/docker/docker v1.13.1
+	github.com/docker/docker v20.10.12+incompatible
 	github.com/ethereum/go-ethereum v1.10.12
 	github.com/fatih/color v1.13.0
 	github.com/go-playground/validator/v10 v10.9.0
@@ -180,6 +180,7 @@ require (
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gotest.tools/v3 v3.0.3 // indirect
 )
 
 go 1.17
