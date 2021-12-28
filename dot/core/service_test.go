@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -381,12 +382,8 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	ts := state.NewTransactionState(telemetryMock)
 	hashes := make([]common.Hash, len(txs))
@@ -434,12 +431,8 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	ts := state.NewTransactionState(telemetryMock)
 	hashes := make([]common.Hash, len(txs))

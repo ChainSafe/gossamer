@@ -13,6 +13,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
@@ -91,12 +92,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	cfg.Telemetry = telemetryMock
 
@@ -110,13 +107,12 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	var dbSrv *state.Service
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
 		config := state.Config{
-			Path:     testDatadirPath,
-			LogLevel: log.Info,
+			Path:      testDatadirPath,
+			LogLevel:  log.Info,
+			Telemetry: telemetryMock,
 		}
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
-
-		dbSrv.Telemetry = telemetryMock
 
 		err = dbSrv.Initialise(gen, genHeader, genTrie)
 		require.NoError(t, err)
@@ -183,17 +179,17 @@ func TestMain(m *testing.M) {
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	testDatadirPath := t.TempDir()
 
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	dbSrv := state.NewService(config)
-	dbSrv.Telemetry = telemetryMock
 	dbSrv.UseMemDB()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)

@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -52,8 +53,7 @@ func TestMain(m *testing.M) {
 
 func TestAuthorModule_Pending(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).
@@ -95,8 +95,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Skip()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).
@@ -140,8 +139,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Skip()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).
@@ -163,8 +161,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).
@@ -187,8 +184,7 @@ func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 	t.Skip()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).

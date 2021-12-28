@@ -14,6 +14,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -52,7 +53,7 @@ func NewMockDigestHandler() *mocks.DigestHandler {
 
 func newTestState(t *testing.T) *state.Service {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	testDatadirPath := t.TempDir()
@@ -79,8 +80,9 @@ func newTestState(t *testing.T) *state.Service {
 	require.NoError(t, err)
 
 	return &state.Service{
-		Block:   block,
-		Grandpa: grandpa,
+		Block:     block,
+		Grandpa:   grandpa,
+		Telemetry: telemetryMock,
 	}
 }
 

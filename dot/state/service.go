@@ -29,11 +29,6 @@ var logger = log.NewFromGlobal(
 	log.AddContext("pkg", "state"),
 )
 
-// Telemetry is the interface related to telemetry package
-type Telemetry interface {
-	SendMessage(msg telemetry.Message) error
-}
-
 // Service is the struct that holds storage, block and network states
 type Service struct {
 	dbPath      string
@@ -55,7 +50,7 @@ type Service struct {
 	// Below are for state trie online pruner
 	PrunerCfg pruner.Config
 
-	Telemetry Telemetry
+	Telemetry telemetry.Telemetry
 }
 
 // Config is the default configuration used by state service.
@@ -63,6 +58,7 @@ type Config struct {
 	Path      string
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
+	Telemetry telemetry.Telemetry
 }
 
 // NewService create a new instance of Service
@@ -78,6 +74,7 @@ func NewService(config Config) *Service {
 		Block:     nil,
 		closeCh:   make(chan interface{}),
 		PrunerCfg: config.PrunerCfg,
+		Telemetry: config.Telemetry,
 	}
 }
 

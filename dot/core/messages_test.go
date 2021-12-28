@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -126,12 +127,8 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks.Acco.Insert(kp)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	cfg := &Config{
 		Keystore:         ks,

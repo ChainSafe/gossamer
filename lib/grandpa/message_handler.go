@@ -25,11 +25,11 @@ import (
 type MessageHandler struct {
 	grandpa    *Service
 	blockState BlockState
-	telemetry  Telemetry
+	telemetry  telemetry.Telemetry
 }
 
 // NewMessageHandler returns a new MessageHandler
-func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer Telemetry) *MessageHandler {
+func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer telemetry.Telemetry) *MessageHandler {
 	return &MessageHandler{
 		grandpa:    grandpa,
 		blockState: blockState,

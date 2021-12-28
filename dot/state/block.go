@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -62,11 +63,11 @@ type BlockState struct {
 
 	pruneKeyCh chan *types.Header
 
-	telemetry Telemetry
+	telemetry telemetry.Telemetry
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, telemetry Telemetry) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, telemetry telemetry.Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
@@ -99,7 +100,7 @@ func NewBlockState(db chaindb.Database, telemetry Telemetry) (*BlockState, error
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header,
-	telemetryMailer Telemetry) (*BlockState, error) {
+	telemetryMailer telemetry.Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),

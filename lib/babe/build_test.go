@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -146,12 +147,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 //go:generate mockgen -destination=telemetry_mock_test.go -package $GOPACKAGE . Telemetry
 func TestBuildBlock_ok(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
@@ -204,12 +201,8 @@ func TestBuildBlock_ok(t *testing.T) {
 
 func TestApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
@@ -303,12 +296,8 @@ func TestApplyExtrinsic(t *testing.T) {
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
@@ -390,12 +379,8 @@ func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),

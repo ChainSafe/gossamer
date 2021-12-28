@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -17,17 +18,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate mockgen -destination=../rpc/modules/telemetry_mock_test.go -package modules . Telemetry
-//go:generate mockgen -destination=../core/telemetry_mock_test.go -package core . Telemetry
-//go:generate mockgen -destination=telemetry_mock_test.go -package $GOPACKAGE . Telemetry
 func TestTransactionState_Pending(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	ts := NewTransactionState(telemetryMock)
 
@@ -80,12 +74,8 @@ func TestTransactionState_Pending(t *testing.T) {
 
 func TestTransactionState_NotifierChannels(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	ts := NewTransactionState(telemetryMock)
 

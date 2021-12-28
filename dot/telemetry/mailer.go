@@ -15,6 +15,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+//go:generate mockgen -destination=telemetry_mock.go -package $GOPACKAGE . Telemetry
+type Telemetry interface {
+	SendMessage(msg Message) error
+}
+
 var ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
 var messageQueue chan Message = make(chan Message, 256)
 

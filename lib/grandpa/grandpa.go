@@ -75,7 +75,7 @@ type Service struct {
 	finalisedCh      chan *types.FinalisationInfo
 	neighbourMessage *NeighbourMessage // cached neighbour message
 
-	telemetry Telemetry
+	telemetry telemetry.Telemetry
 }
 
 // Config represents a GRANDPA service configuration
@@ -89,7 +89,7 @@ type Config struct {
 	Keypair       *ed25519.Keypair
 	Authority     bool
 	Interval      time.Duration
-	Telemetry     Telemetry
+	Telemetry     telemetry.Telemetry
 }
 
 // NewService returns a new GRANDPA Service instance.

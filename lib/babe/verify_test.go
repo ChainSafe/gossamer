@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -24,15 +25,15 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	dbSrv := state.NewService(config)
-	dbSrv.Telemetry = telemetryMock
 	dbSrv.UseMemDB()
 
 	if genCfg == nil {

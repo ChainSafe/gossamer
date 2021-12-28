@@ -75,6 +75,11 @@ func InitNode(cfg *Config) error {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}
 
+	telemetryMailer, err := setupTelemetry(cfg, nil)
+	if err != nil {
+		return err
+	}
+
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Global.LogLvl,
@@ -82,16 +87,11 @@ func InitNode(cfg *Config) error {
 			Mode:           cfg.Global.Pruning,
 			RetainedBlocks: cfg.Global.RetainBlocks,
 		},
-	}
-
-	telemetryMailer, err := setupTelemetry(cfg, nil)
-	if err != nil {
-		return err
+		Telemetry: telemetryMailer,
 	}
 
 	// create new state service
 	stateSrvc := state.NewService(config)
-	stateSrvc.Telemetry = telemetryMailer
 
 	// initialise state service with genesis data, block, and trie
 	err = stateSrvc.Initialise(gen, header, t)

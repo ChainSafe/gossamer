@@ -38,6 +38,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -325,7 +326,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	core := newCoreService(t, chain)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
 
 	telemetryMock.
 		EXPECT().
@@ -368,7 +369,10 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		CodeSubstitutedState: srvc.Base,
 	}
 
-	return core.NewTestService(t, cfg)
+	s, err := core.NewService(cfg)
+	require.NoError(t, err)
+
+	return s
 }
 
 func TestSyncState(t *testing.T) {

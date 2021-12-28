@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe"
@@ -38,7 +39,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 
 func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	db := state.NewInMemoryDB(t)

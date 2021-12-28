@@ -55,7 +55,7 @@ type Service struct {
 	sync.RWMutex
 	pause chan struct{}
 
-	telemetry Telemetry
+	telemetry telemetry.Telemetry
 }
 
 // ServiceConfig represents a BABE configuration
@@ -72,7 +72,7 @@ type ServiceConfig struct {
 	IsDev              bool
 	Authority          bool
 	Lead               bool
-	Telemetry          Telemetry
+	Telemetry          telemetry.Telemetry
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime

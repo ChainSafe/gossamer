@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	gomock "github.com/golang/mock/gomock"
@@ -19,8 +20,8 @@ import (
 
 func TestConcurrencySetHeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	threads := runtime.NumCPU()
 	dbs := make([]chaindb.Database, threads)

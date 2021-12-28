@@ -90,7 +90,7 @@ type Service struct {
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
 
-	telemetry Telemetry
+	telemetry telemetry.Telemetry
 }
 
 // NewService creates a new network service from the configuration and message channels

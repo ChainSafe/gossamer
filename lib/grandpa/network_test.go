@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/golang/mock/gomock"
 
@@ -55,7 +56,8 @@ func TestHandleNetworkMessage(t *testing.T) {
 	gs.state.voters = gs.state.voters[:1]
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	telemetryMock.
 		EXPECT().
