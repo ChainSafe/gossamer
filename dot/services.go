@@ -59,23 +59,23 @@ func createStateService(cfg *Config) (*state.Service, error) {
 }
 
 // createStateService creates the state service and initialise state database
-func startStateService(cfg *Config, stateSrvc *state.Service) (*state.Service, error) {
+func startStateService(cfg *Config, stateSrvc *state.Service) error {
 	logger.Debug("starting state service...")
 
 	// start state service (initialise state database)
 	err := stateSrvc.Start()
 	if err != nil {
-		return nil, fmt.Errorf("failed to start state service: %s", err)
+		return fmt.Errorf("failed to start state service: %s", err)
 	}
 
 	if cfg.State.Rewind != 0 {
 		err = stateSrvc.Rewind(int64(cfg.State.Rewind))
 		if err != nil {
-			return nil, fmt.Errorf("failed to rewind state: %w", err)
+			return fmt.Errorf("failed to rewind state: %w", err)
 		}
 	}
 
-	return stateSrvc, nil
+	return nil
 }
 
 func createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {

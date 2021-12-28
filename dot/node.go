@@ -221,7 +221,10 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 
 	stateSrvc.SetTelemetry(telemetryMailer)
-	startStateService(cfg, stateSrvc)
+	err = startStateService(cfg, stateSrvc)
+	if err != nil {
+		return nil, err
+	}
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	if err != nil {

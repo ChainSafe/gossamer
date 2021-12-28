@@ -4,12 +4,14 @@
 package dot
 
 import (
+	"context"
 	"flag"
 	"net/url"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
@@ -35,7 +37,17 @@ func TestCreateStateService(t *testing.T) {
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
+	telemetryNotEnabled, err := telemetry.
+		BootstrapMailer(context.Background(), nil, false, nil)
+	require.NoError(t, err)
+
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	stateSrvc.SetTelemetry(telemetryNotEnabled)
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
+
 	require.Nil(t, err)
 	require.NotNil(t, stateSrvc)
 }
