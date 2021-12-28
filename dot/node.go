@@ -210,13 +210,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
 
-	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create system service: %s", err)
-	}
-
-	nodeSrvcs = append(nodeSrvcs, sysSrvc)
-
 	gd, err := stateSrvc.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err
@@ -227,7 +220,15 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, err
 	}
 
-	stateSrvc.Telemetry = telemetryMailer
+	stateSrvc.SetTelemetry(telemetryMailer)
+	startStateService(cfg, stateSrvc)
+
+	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create system service: %s", err)
+	}
+
+	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {

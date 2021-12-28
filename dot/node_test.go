@@ -202,11 +202,11 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	config := state.Config{
-		Path:     cfg.Global.BasePath,
-		LogLevel: log.Info,
+		Path:      cfg.Global.BasePath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryNotEnabled,
 	}
 	stateSrvc := state.NewService(config)
-	stateSrvc.Telemetry = telemetryNotEnabled
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)

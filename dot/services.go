@@ -40,9 +40,6 @@ func newInMemoryDB(path string) (chaindb.Database, error) {
 	return utils.SetupDatabase(filepath.Join(path, "local_storage"), true)
 }
 
-// State Service
-
-// createStateService creates the state service and initialise state database
 func createStateService(cfg *Config) (*state.Service, error) {
 	logger.Debug("creating state service...")
 
@@ -52,6 +49,18 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	}
 
 	stateSrvc := state.NewService(config)
+
+	err := stateSrvc.SetupBase()
+	if err != nil {
+		return nil, err
+	}
+
+	return stateSrvc, nil
+}
+
+// createStateService creates the state service and initialise state database
+func startStateService(cfg *Config, stateSrvc *state.Service) (*state.Service, error) {
+	logger.Debug("starting state service...")
 
 	// start state service (initialise state database)
 	err := stateSrvc.Start()

@@ -90,6 +90,35 @@ func (s *Service) DB() chaindb.Database {
 	return s.db
 }
 
+// SetTelemetry add a telemetry impl to state.Service.Telemetry field
+func (s *Service) SetTelemetry(t telemetry.Telemetry) {
+	s.Telemetry = t
+}
+
+// SetupBase intitializes state.Base property with
+// the instance of a chain.NewBadger database
+func (s *Service) SetupBase() error {
+	if s.isMemDB {
+		return nil
+	}
+
+	basepath, err := filepath.Abs(s.dbPath)
+	if err != nil {
+		return err
+	}
+
+	// initialise database
+	db, err := utils.SetupDatabase(basepath, false)
+	if err != nil {
+		return err
+	}
+
+	s.db = db
+	s.Base = NewBaseState(db)
+
+	return nil
+}
+
 // Start initialises the Storage database and the Block database.
 func (s *Service) Start() error {
 	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
@@ -97,23 +126,6 @@ func (s *Service) Start() error {
 	}
 
 	db := s.db
-
-	if !s.isMemDB {
-		basepath, err := filepath.Abs(s.dbPath)
-		if err != nil {
-			return err
-		}
-
-		// initialise database
-		db, err = utils.SetupDatabase(basepath, false)
-		if err != nil {
-			return err
-		}
-
-		s.db = db
-		s.Base = NewBaseState(db)
-	}
-
 	var err error
 
 	// create block state
