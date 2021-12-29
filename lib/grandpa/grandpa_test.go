@@ -102,6 +102,10 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
@@ -111,6 +115,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 		Authority:     true,
 		Network:       net,
 		Interval:      time.Second,
+		Telemetry:     telemetryMock,
 	}
 
 	gs, err := NewService(cfg)
