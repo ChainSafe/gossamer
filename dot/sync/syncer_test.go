@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -63,13 +65,20 @@ func newMockNetwork() *mocks.Network {
 
 func newTestSyncer(t *testing.T) *Service {
 	wasmer.DefaultTestLogLvl = 3
+	ctrl := gomock.NewController(t)
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	cfg := &Config{}
+	cfg := &Config{
+		Telemetry: telemetryMock,
+	}
+
 	testDatadirPath := t.TempDir()
 
 	scfg := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()

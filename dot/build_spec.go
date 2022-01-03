@@ -4,12 +4,14 @@
 package dot
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -94,9 +96,15 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen.Genesis.Raw = make(map[string]map[string]string)
 	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
+	// ignore the error value because there is no telemetry endpoint to connect
+	// error might happen only if there's some problem while connecting
+	disabledTelemetry, _ := telemetry.BootstrapMailer(
+		context.Background(), nil, false, nil)
+
 	config := state.Config{
-		Path:     path,
-		LogLevel: log.Info,
+		Path:      path,
+		LogLevel:  log.Info,
+		Telemetry: disabledTelemetry,
 	}
 	stateSrvc := state.NewService(config)
 

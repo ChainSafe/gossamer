@@ -1,0 +1,1550 @@
+=== RUN   TestBuildFromGenesis
+--- PASS: TestBuildFromGenesis (0.00s)
+=== RUN   TestBuildFromGenesis_WhenGenesisDoesNotExists
+--- PASS: TestBuildFromGenesis_WhenGenesisDoesNotExists (0.00s)
+=== RUN   TestWriteGenesisSpecFileWhenFileAlreadyExists
+--- PASS: TestWriteGenesisSpecFileWhenFileAlreadyExists (0.00s)
+=== RUN   TestWriteGenesisSpecFile
+2022-01-03T11:31:42-04:00 INFO 🕸️ initialising node with name Gossamer, id gssmr, base path test_data/TestWriteGenesisSpecFile and genesis ../chain/gssmr/genesis.json...	pkg=dot
+2022-01-03T11:31:47-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:31:47-04:00 INFO node initialised with name Gossamer, id gssmr, base path test_data/TestWriteGenesisSpecFile, genesis ../chain/gssmr/genesis.json, block 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=dot
+--- PASS: TestWriteGenesisSpecFile (5.25s)
+=== RUN   TestBuildFromDB
+2022-01-03T11:31:47-04:00 INFO 🕸️ initialising node with name Gossamer, id gssmr, base path test_data/TestBuildFromDB and genesis ../chain/gssmr/genesis.json...	pkg=dot
+2022-01-03T11:31:52-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:31:52-04:00 INFO node initialised with name Gossamer, id gssmr, base path test_data/TestBuildFromDB, genesis ../chain/gssmr/genesis.json, block 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=dot
+SIGABRT: abort
+PC=0x7ff817cf7112 m=3 sigcode=0
+
+goroutine 29 [running]:
+runtime: unknown pc 0x7ff817cf7112
+stack: frame={sp:0xc000089ee8, fp:0x0} stack=[0xc0010b6000,0xc0010ba000)
+
+runtime: unknown pc 0x7ff817cf7112
+stack: frame={sp:0xc000089ee8, fp:0x0} stack=[0xc0010b6000,0xc0010ba000)
+
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x35a
+
+goroutine 1 [chan receive]:
+testing.(*T).Run(0xc000103040, {0x4db4309, 0xaea013fe1164}, 0x4ff4dc0)
+	/usr/local/go/src/testing/testing.go:1307 +0x375
+testing.runTests.func1(0xc0005bbf80)
+	/usr/local/go/src/testing/testing.go:1598 +0x6e
+testing.tRunner(0xc000103040, 0xc00013dd18)
+	/usr/local/go/src/testing/testing.go:1259 +0x102
+testing.runTests(0xc000256180, {0x5ebf200, 0x23, 0x23}, {0x408872d, 0x4db1670, 0x5ece280})
+	/usr/local/go/src/testing/testing.go:1596 +0x43f
+testing.(*M).Run(0xc000256180)
+	/usr/local/go/src/testing/testing.go:1504 +0x51d
+main.main()
+	_testmain.go:111 +0x14b
+
+goroutine 19 [select]:
+github.com/ipfs/go-log/writer.(*MirrorWriter).logRoutine(0xc000338a80)
+	/Users/eclesiojunior/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:71 +0x110
+created by github.com/ipfs/go-log/writer.NewMirrorWriter
+	/Users/eclesiojunior/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:36 +0xcf
+
+goroutine 8 [select]:
+go.opencensus.io/stats/view.(*worker).start(0xc000256000)
+	/Users/eclesiojunior/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:276 +0xb9
+created by go.opencensus.io/stats/view.init.0
+	/Users/eclesiojunior/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:34 +0x92
+
+rax    0x0
+rbx    0x20a7cb000
+rcx    0x0
+rdx    0x0
+rdi    0x1503
+rsi    0x6
+rbp    0xc000089f10
+rsp    0xc000089ee8
+r8     0x0
+r9     0x4b0
+r10    0x0
+r11    0x0
+r12    0x1503
+r13    0x0
+r14    0x6
+r15    0x16
+rip    0x7ff817cf7112
+rflags 0x246
+cs     0x2b
+fs     0x0
+gs     0x0
+FAIL	github.com/ChainSafe/gossamer/dot	12.298s
+?   	github.com/ChainSafe/gossamer/dot/config/toml	[no test files]
+=== RUN   TestService_HandleBlockProduced
+2022-01-03T11:31:52-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:31:52-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestService_HandleBlockProduced (7.44s)
+=== RUN   TestService_HandleTransactionMessage
+=== PAUSE TestService_HandleTransactionMessage
+=== RUN   TestStartService
+2022-01-03T11:31:58-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:31:58-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestStartService (8.48s)
+=== RUN   TestAnnounceBlock
+2022-01-03T11:32:05-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:05-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestAnnounceBlock (5.68s)
+=== RUN   TestService_InsertKey
+2022-01-03T11:32:11-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:11-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+=== RUN   TestService_InsertKey/Test_that_insertKey_fails_when_keystore_type_is_invalid_
+=== PAUSE TestService_InsertKey/Test_that_insertKey_fails_when_keystore_type_is_invalid_
+=== RUN   TestService_InsertKey/Test_that_insertKey_fails_when_keystore_type_is_valid_but_inappropriate
+=== PAUSE TestService_InsertKey/Test_that_insertKey_fails_when_keystore_type_is_valid_but_inappropriate
+=== RUN   TestService_InsertKey/Test_that_insertKey_succeeds_when_keystore_type_is_valid_and_appropriate_
+=== PAUSE TestService_InsertKey/Test_that_insertKey_succeeds_when_keystore_type_is_valid_and_appropriate_
+=== CONT  TestService_InsertKey/Test_that_insertKey_fails_when_keystore_type_is_invalid_
+=== CONT  TestService_InsertKey/Test_that_insertKey_fails_when_keystore_type_is_valid_but_inappropriate
+=== CONT  TestService_InsertKey/Test_that_insertKey_succeeds_when_keystore_type_is_valid_and_appropriate_
+--- PASS: TestService_InsertKey (4.22s)
+    --- PASS: TestService_InsertKey/Test_that_insertKey_fails_when_keystore_type_is_invalid_ (0.00s)
+    --- PASS: TestService_InsertKey/Test_that_insertKey_fails_when_keystore_type_is_valid_but_inappropriate (0.00s)
+    --- PASS: TestService_InsertKey/Test_that_insertKey_succeeds_when_keystore_type_is_valid_and_appropriate_ (0.00s)
+=== RUN   TestService_HasKey
+2022-01-03T11:32:15-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:15-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestService_HasKey (3.71s)
+=== RUN   TestService_HasKey_UnknownType
+2022-01-03T11:32:19-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:19-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestService_HasKey_UnknownType (4.98s)
+=== RUN   TestHandleChainReorg_NoReorg
+2022-01-03T11:32:24-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:24-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestHandleChainReorg_NoReorg (4.55s)
+=== RUN   TestHandleChainReorg_WithReorg_Trans
+    service_test.go:216: 
+--- SKIP: TestHandleChainReorg_WithReorg_Trans (0.00s)
+=== RUN   TestHandleChainReorg_WithReorg_NoTransactions
+2022-01-03T11:32:28-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:28-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestHandleChainReorg_WithReorg_NoTransactions (3.64s)
+=== RUN   TestHandleChainReorg_WithReorg_Transactions
+    service_test.go:296: 
+--- SKIP: TestHandleChainReorg_WithReorg_Transactions (0.00s)
+=== RUN   TestMaintainTransactionPool_EmptyBlock
+    transaction.go:82: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc0015a09a0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/transaction.go:82 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/core/service_test.go:386 has already been called the max number of times
+--- FAIL: TestMaintainTransactionPool_EmptyBlock (0.00s)
+=== RUN   TestMaintainTransactionPool_BlockWithExtrinsics
+    transaction.go:82: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc0015a0b10]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/transaction.go:82 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/core/service_test.go:435 has already been called the max number of times
+--- FAIL: TestMaintainTransactionPool_BlockWithExtrinsics (0.00s)
+=== RUN   TestService_GetRuntimeVersion
+2022-01-03T11:32:31-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:31-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestService_GetRuntimeVersion (3.25s)
+=== RUN   TestService_HandleSubmittedExtrinsic
+2022-01-03T11:32:35-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:35-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+    transaction.go:82: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc000f8e690]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/transaction.go:82 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/core/helpers_test.go:59 has already been called the max number of times
+--- FAIL: TestService_HandleSubmittedExtrinsic (3.37s)
+=== RUN   TestService_GetMetadata
+2022-01-03T11:32:38-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:38-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestService_GetMetadata (3.15s)
+=== RUN   TestService_HandleRuntimeChanges
+2022-01-03T11:32:41-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:41-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:42-04:00 INFO 🔄 detected runtime code change, upgrading with block 0x620314d8e2491db673510aa82a08431e7c6b0ed6bc35ef5a59b8ead28c429137 from previous code hash 0x90f3a01cc27b4b0131d0af431c473cd148f59e45f62fc32d1a1c6a46080408b4 to new code hash 0xcc0602f88507f7ee48fa5eac3224c177c7385f30e7f11b313cd4bf9b182861a5...	pkg=state
+--- PASS: TestService_HandleRuntimeChanges (4.71s)
+=== RUN   TestService_HandleCodeSubstitutes
+2022-01-03T11:32:46-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:46-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:47-04:00 INFO 🔄 detected runtime code substitution, upgrading for block 0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29...	pkg=core
+--- PASS: TestService_HandleCodeSubstitutes (4.30s)
+=== RUN   TestService_HandleRuntimeChangesAfterCodeSubstitutes
+2022-01-03T11:32:50-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:50-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:52-04:00 INFO 🔄 detected runtime code change, upgrading with block 0x125367ae33b3cb1b084125e5ef9f21953b6a0828456aaf932b55496f37b5a9f7 from previous code hash 0x90f3a01cc27b4b0131d0af431c473cd148f59e45f62fc32d1a1c6a46080408b4 to new code hash 0x66987cfb729c3b586669191c3831a239bc0ffbf5491cec468f48160861600eb3...	pkg=state
+--- PASS: TestService_HandleRuntimeChangesAfterCodeSubstitutes (4.54s)
+=== RUN   TestTryQueryStore_WhenThereIsDataToRetrieve
+2022-01-03T11:32:55-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:55-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestTryQueryStore_WhenThereIsDataToRetrieve (3.15s)
+=== RUN   TestTryQueryStore_WhenDoesNotHaveDataToRetrieve
+2022-01-03T11:32:58-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:58-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestTryQueryStore_WhenDoesNotHaveDataToRetrieve (3.25s)
+=== RUN   TestTryQueryState_WhenDoesNotHaveStateRoot
+2022-01-03T11:33:01-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:33:01-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestTryQueryState_WhenDoesNotHaveStateRoot (3.20s)
+=== RUN   TestQueryStorate_WhenBlocksHasData
+2022-01-03T11:33:04-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:33:04-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestQueryStorate_WhenBlocksHasData (3.26s)
+=== RUN   TestDecodeSessionKeys
+--- PASS: TestDecodeSessionKeys (0.00s)
+=== RUN   TestDecodeSessionKeys_WhenGetRuntimeReturnError
+--- PASS: TestDecodeSessionKeys_WhenGetRuntimeReturnError (0.00s)
+=== RUN   TestGetReadProofAt
+=== RUN   TestGetReadProofAt/When_Has_Block_Is_Empty
+=== RUN   TestGetReadProofAt/When_GetStateRoot_fails
+=== RUN   TestGetReadProofAt/When_GenerateTrieProof_fails
+--- PASS: TestGetReadProofAt (0.00s)
+    --- PASS: TestGetReadProofAt/When_Has_Block_Is_Empty (0.00s)
+    --- PASS: TestGetReadProofAt/When_GetStateRoot_fails (0.00s)
+    --- PASS: TestGetReadProofAt/When_GenerateTrieProof_fails (0.00s)
+=== CONT  TestService_HandleTransactionMessage
+2022-01-03T11:33:08-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:33:08-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:33:10-04:00 CRIT [ext_logging_log_version_1] target=runtime message=panicked at 'Bad input data provided to validate_transaction: Codec error', /home/elizabeth/substrate/bin/node/runtime/src/lib.rs:1099:1	ext_logging_log_version_1	pkg=runtime module=go-wasmer
+--- PASS: TestService_HandleTransactionMessage (4.16s)
+FAIL
+FAIL	github.com/ChainSafe/gossamer/dot/core	90.415s
+?   	github.com/ChainSafe/gossamer/dot/core/mocks	[no test files]
+=== RUN   TestHandler_GrandpaScheduledChange
+SIGABRT: abort
+PC=0x7ff817cf7112 m=8 sigcode=0
+
+goroutine 26 [running]:
+runtime: unknown pc 0x7ff817cf7112
+stack: frame={sp:0xc000345ee8, fp:0x0} stack=[0xc000aea000,0xc000aee000)
+
+runtime: unknown pc 0x7ff817cf7112
+stack: frame={sp:0xc000345ee8, fp:0x0} stack=[0xc000aea000,0xc000aee000)
+
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x35a
+
+goroutine 1 [chan receive]:
+testing.(*T).Run(0xc000103d40, {0x4ab4c4f, 0xae9fcdb1c5cb}, 0x4c05d10)
+	/usr/local/go/src/testing/testing.go:1307 +0x375
+testing.runTests.func1(0xc000be29c0)
+	/usr/local/go/src/testing/testing.go:1598 +0x6e
+testing.tRunner(0xc000103d40, 0xc000b27d18)
+	/usr/local/go/src/testing/testing.go:1259 +0x102
+testing.runTests(0xc0002a6300, {0x5480ba0, 0x8, 0x8}, {0x40893ed, 0x4a15440, 0x5490280})
+	/usr/local/go/src/testing/testing.go:1596 +0x43f
+testing.(*M).Run(0xc0002a6300)
+	/usr/local/go/src/testing/testing.go:1504 +0x51d
+main.main()
+	_testmain.go:57 +0x14b
+
+goroutine 19 [select]:
+github.com/ipfs/go-log/writer.(*MirrorWriter).logRoutine(0xc0002e5920)
+	/Users/eclesiojunior/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:71 +0x110
+created by github.com/ipfs/go-log/writer.NewMirrorWriter
+	/Users/eclesiojunior/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:36 +0xcf
+
+goroutine 20 [select]:
+go.opencensus.io/stats/view.(*worker).start(0xc0002a6200)
+	/Users/eclesiojunior/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:276 +0xb9
+created by go.opencensus.io/stats/view.init.0
+	/Users/eclesiojunior/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:34 +0x92
+
+goroutine 101 [select]:
+github.com/dgraph-io/badger/v2.(*DB).doWrites(0xc001a3c000, 0xc0003341a0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:859 +0x215
+created by github.com/dgraph-io/badger/v2.(*DB).unblockWrite
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1547 +0xf4
+
+goroutine 37 [select]:
+github.com/dgraph-io/badger/v2/y.(*WaterMark).process(0xc004fe0600, 0xc0001de360)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/y/watermark.go:212 +0x285
+created by github.com/dgraph-io/badger/v2/y.(*WaterMark).Init
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/y/watermark.go:70 +0xaf
+
+goroutine 38 [select]:
+github.com/dgraph-io/badger/v2/y.(*WaterMark).process(0xc004fe0630, 0xc0001de360)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/y/watermark.go:212 +0x285
+created by github.com/dgraph-io/badger/v2/y.(*WaterMark).Init
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/y/watermark.go:70 +0xaf
+
+goroutine 39 [select]:
+github.com/dgraph-io/badger/v2.(*DB).updateSize(0xc001a3c000, 0xc0001de860)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1197 +0x145
+created by github.com/dgraph-io/badger/v2.Open
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:357 +0x10a9
+
+goroutine 99 [select]:
+github.com/dgraph-io/badger/v2.(*levelsController).runCompactor(0xc000be6230, 0x1, 0xc0003340c0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/levels.go:390 +0x212
+created by github.com/dgraph-io/badger/v2.(*levelsController).startCompact
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/levels.go:371 +0x55
+
+goroutine 98 [select]:
+github.com/dgraph-io/badger/v2.(*levelsController).runCompactor(0xc000be6230, 0x0, 0xc0003340c0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/levels.go:390 +0x212
+created by github.com/dgraph-io/badger/v2.(*levelsController).startCompact
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/levels.go:371 +0x55
+
+goroutine 100 [chan receive]:
+github.com/dgraph-io/badger/v2.(*DB).flushMemtable(0xc001a3c000, 0xc0001de360)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1104 +0xb0
+github.com/dgraph-io/badger/v2.(*DB).startMemoryFlush.func1()
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1457 +0x25
+created by github.com/dgraph-io/badger/v2.(*DB).startMemoryFlush
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1456 +0x129
+
+goroutine 86 [select]:
+github.com/dgraph-io/badger/v2.(*valueLog).flushDiscardStats(0xc001a3c1d0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/value.go:1955 +0x15b
+created by github.com/dgraph-io/badger/v2.(*valueLog).open
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/value.go:1114 +0xa5
+
+goroutine 88 [chan receive]:
+github.com/dgraph-io/badger/v2.(*valueLog).waitOnGC(0xc001a3c1d0, 0xc000001a00)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/value.go:1858 +0x6f
+created by github.com/dgraph-io/badger/v2.Open
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:412 +0x18cf
+
+goroutine 89 [select]:
+github.com/dgraph-io/badger/v2.(*publisher).listenForUpdates(0xc004fe06c0, 0xc0001deee0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/publisher.go:67 +0x13f
+created by github.com/dgraph-io/badger/v2.Open
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:416 +0x19e8
+
+rax    0x0
+rbx    0x209f22000
+rcx    0x0
+rdx    0x0
+rdi    0x2403
+rsi    0x6
+rbp    0xc000345f10
+rsp    0xc000345ee8
+r8     0x0
+r9     0x4b0
+r10    0x0
+r11    0xb
+r12    0x2403
+r13    0x1
+r14    0x6
+r15    0x16
+rip    0x7ff817cf7112
+rflags 0x246
+cs     0x2b
+fs     0x0
+gs     0x0
+FAIL	github.com/ChainSafe/gossamer/dot/digest	5.173s
+?   	github.com/ChainSafe/gossamer/dot/metrics	[no test files]
+=== RUN   TestEncodeBlockAnnounce
+=== PAUSE TestEncodeBlockAnnounce
+=== RUN   TestDecodeBlockAnnounce
+=== PAUSE TestDecodeBlockAnnounce
+=== RUN   TestEncodeBlockAnnounceHandshake
+=== PAUSE TestEncodeBlockAnnounceHandshake
+=== RUN   TestDecodeBlockAnnounceHandshake
+=== PAUSE TestDecodeBlockAnnounceHandshake
+=== RUN   TestHandleBlockAnnounceMessage
+=== PAUSE TestHandleBlockAnnounceMessage
+=== RUN   TestValidateBlockAnnounceHandshake
+=== PAUSE TestValidateBlockAnnounceHandshake
+=== RUN   TestBuildIdentity
+=== PAUSE TestBuildIdentity
+=== RUN   TestBuild
+=== PAUSE TestBuild
+=== RUN   TestMinPeers
+=== PAUSE TestMinPeers
+=== RUN   TestMaxPeers
+=== PAUSE TestMaxPeers
+=== RUN   TestProtectUnprotectPeer
+=== PAUSE TestProtectUnprotectPeer
+=== RUN   TestPersistentPeers
+=== PAUSE TestPersistentPeers
+=== RUN   TestRemovePeer
+=== PAUSE TestRemovePeer
+=== RUN   TestSetReservedPeer
+=== PAUSE TestSetReservedPeer
+=== RUN   TestKadDHT
+=== PAUSE TestKadDHT
+=== RUN   TestBeginDiscovery
+=== PAUSE TestBeginDiscovery
+=== RUN   TestBeginDiscovery_ThreeNodes
+=== PAUSE TestBeginDiscovery_ThreeNodes
+=== RUN   TestGossip
+=== PAUSE TestGossip
+=== RUN   TestExternalAddrs
+=== PAUSE TestExternalAddrs
+=== RUN   TestExternalAddrsPublicIP
+=== PAUSE TestExternalAddrsPublicIP
+=== RUN   TestConnect
+=== PAUSE TestConnect
+=== RUN   TestBootstrap
+=== PAUSE TestBootstrap
+=== RUN   TestSend
+=== PAUSE TestSend
+=== RUN   TestExistingStream
+=== PAUSE TestExistingStream
+=== RUN   TestStreamCloseMetadataCleanup
+=== PAUSE TestStreamCloseMetadataCleanup
+=== RUN   Test_PeerSupportsProtocol
+=== PAUSE Test_PeerSupportsProtocol
+=== RUN   Test_AddReservedPeers
+=== PAUSE Test_AddReservedPeers
+=== RUN   Test_RemoveReservedPeers
+=== PAUSE Test_RemoveReservedPeers
+=== RUN   TestStreamCloseEOF
+=== PAUSE TestStreamCloseEOF
+=== RUN   TestPeerConnect
+=== PAUSE TestPeerConnect
+=== RUN   TestBannedPeer
+=== PAUSE TestBannedPeer
+=== RUN   TestPeerReputation
+=== PAUSE TestPeerReputation
+=== RUN   TestEncodeLightRequest
+=== PAUSE TestEncodeLightRequest
+=== RUN   TestEncodeLightResponse
+=== PAUSE TestEncodeLightResponse
+=== RUN   TestDecodeLightMessage
+=== PAUSE TestDecodeLightMessage
+=== RUN   TestHandleLightMessage_Response
+=== PAUSE TestHandleLightMessage_Response
+=== RUN   TestMDNS
+=== PAUSE TestMDNS
+=== RUN   TestMessageCache
+=== PAUSE TestMessageCache
+=== RUN   TestMessageCacheError
+=== PAUSE TestMessageCacheError
+=== RUN   TestEncodeBlockRequestMessage
+=== PAUSE TestEncodeBlockRequestMessage
+=== RUN   TestEncodeBlockRequestMessage_BlockHash
+=== PAUSE TestEncodeBlockRequestMessage_BlockHash
+=== RUN   TestEncodeBlockRequestMessage_BlockNumber
+=== PAUSE TestEncodeBlockRequestMessage_BlockNumber
+=== RUN   TestBlockRequestString
+=== PAUSE TestBlockRequestString
+=== RUN   TestEncodeBlockRequestMessage_NoOptionals
+=== PAUSE TestEncodeBlockRequestMessage_NoOptionals
+=== RUN   TestEncodeBlockResponseMessage_Empty
+=== PAUSE TestEncodeBlockResponseMessage_Empty
+=== RUN   TestEncodeBlockResponseMessage_WithBody
+=== PAUSE TestEncodeBlockResponseMessage_WithBody
+=== RUN   TestEncodeBlockResponseMessage_WithAll
+=== PAUSE TestEncodeBlockResponseMessage_WithAll
+=== RUN   TestEncodeBlockAnnounceMessage
+=== PAUSE TestEncodeBlockAnnounceMessage
+=== RUN   TestDecode_BlockAnnounceMessage
+=== PAUSE TestDecode_BlockAnnounceMessage
+=== RUN   TestEncodeTransactionMessageSingleExtrinsic
+=== PAUSE TestEncodeTransactionMessageSingleExtrinsic
+=== RUN   TestEncodeTransactionMessageTwoExtrinsics
+=== PAUSE TestEncodeTransactionMessageTwoExtrinsics
+=== RUN   TestDecodeTransactionMessageOneExtrinsic
+=== PAUSE TestDecodeTransactionMessageOneExtrinsic
+=== RUN   TestDecodeTransactionMessageTwoExtrinsics
+=== PAUSE TestDecodeTransactionMessageTwoExtrinsics
+=== RUN   TestDecodeConsensusMessage
+=== PAUSE TestDecodeConsensusMessage
+=== RUN   TestCreateDecoder_BlockAnnounce
+=== PAUSE TestCreateDecoder_BlockAnnounce
+=== RUN   TestCreateNotificationsMessageHandler_BlockAnnounce
+=== PAUSE TestCreateNotificationsMessageHandler_BlockAnnounce
+=== RUN   TestCreateNotificationsMessageHandler_BlockAnnounceHandshake
+=== PAUSE TestCreateNotificationsMessageHandler_BlockAnnounceHandshake
+=== RUN   Test_HandshakeTimeout
+=== PAUSE Test_HandshakeTimeout
+=== RUN   TestCreateNotificationsMessageHandler_HandleTransaction
+=== PAUSE TestCreateNotificationsMessageHandler_HandleTransaction
+=== RUN   TestBlockAnnounceHandshakeSize
+=== PAUSE TestBlockAnnounceHandshakeSize
+=== RUN   Test_sizedBufferPool
+=== PAUSE Test_sizedBufferPool
+=== RUN   Test_sizedBufferPool_race
+=== PAUSE Test_sizedBufferPool_race
+=== RUN   TestStartService
+=== PAUSE TestStartService
+=== RUN   TestBroadcastMessages
+=== PAUSE TestBroadcastMessages
+=== RUN   TestBroadcastDuplicateMessage
+=== PAUSE TestBroadcastDuplicateMessage
+=== RUN   TestService_NodeRoles
+=== PAUSE TestService_NodeRoles
+=== RUN   TestService_Health
+=== PAUSE TestService_Health
+=== RUN   TestPersistPeerStore
+=== PAUSE TestPersistPeerStore
+=== RUN   TestHandleConn
+=== PAUSE TestHandleConn
+=== RUN   TestSerivceIsMajorSyncMetrics
+=== PAUSE TestSerivceIsMajorSyncMetrics
+=== RUN   TestStreamManager
+=== PAUSE TestStreamManager
+=== RUN   TestStreamManager_KeepStream
+    stream_manager_test.go:91: 
+--- SKIP: TestStreamManager_KeepStream (0.00s)
+=== RUN   TestDecodeSyncMessage
+=== PAUSE TestDecodeSyncMessage
+=== RUN   TestDecodeTransactionHandshake
+=== PAUSE TestDecodeTransactionHandshake
+=== RUN   TestHandleTransactionMessage
+=== PAUSE TestHandleTransactionMessage
+=== RUN   TestStringToAddrInfo
+--- PASS: TestStringToAddrInfo (0.00s)
+=== RUN   TestStringsToAddrInfos
+--- PASS: TestStringsToAddrInfos (0.00s)
+=== RUN   TestGenerateKey
+--- PASS: TestGenerateKey (0.00s)
+=== RUN   TestReadLEB128ToUint64
+--- PASS: TestReadLEB128ToUint64 (0.00s)
+=== RUN   TestInvalidLeb128
+--- PASS: TestInvalidLeb128 (0.00s)
+=== CONT  TestEncodeBlockAnnounce
+=== CONT  TestMessageCache
+=== CONT  TestCreateNotificationsMessageHandler_BlockAnnounceHandshake
+=== CONT  TestEncodeBlockAnnounceMessage
+=== CONT  TestBlockRequestString
+BlockRequestMessage RequestedData=1 StartingBlock={[220 209 52 103 1 202 131 150 73 110 82 170 39 133 177 116 141 235 109 176 149 81 183 33 89 220 179 224 137 145 2 91]} EndBlockHash=0x0000000000000000000000000000000000000000000000000000000000000000 Direction=1 Max=0
+--- PASS: TestBlockRequestString (0.00s)
+=== CONT  TestEncodeBlockRequestMessage_BlockNumber
+=== CONT  TestEncodeBlockResponseMessage_WithBody
+=== CONT  TestEncodeBlockResponseMessage_WithAll
+=== CONT  TestEncodeBlockRequestMessage_BlockHash
+--- PASS: TestEncodeBlockAnnounceMessage (0.00s)
+=== CONT  TestExternalAddrsPublicIP
+--- PASS: TestEncodeBlockAnnounce (0.01s)
+=== CONT  TestMDNS
+--- PASS: TestEncodeBlockRequestMessage_BlockNumber (0.01s)
+=== CONT  TestHandleLightMessage_Response
+--- PASS: TestEncodeBlockResponseMessage_WithBody (0.01s)
+=== CONT  TestDecodeLightMessage
+--- PASS: TestEncodeBlockResponseMessage_WithAll (0.01s)
+=== CONT  TestEncodeLightResponse
+--- PASS: TestDecodeLightMessage (0.00s)
+=== CONT  TestEncodeLightRequest
+--- PASS: TestEncodeBlockRequestMessage_BlockHash (0.01s)
+=== CONT  TestPeerReputation
+--- PASS: TestEncodeLightRequest (0.00s)
+=== CONT  TestBannedPeer
+--- PASS: TestEncodeLightResponse (0.01s)
+=== CONT  TestPeerConnect
+2022-01-03T11:31:41-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestCreateNotificationsMessageHandler_BlockAnnounceHandshake2690063841/001/TestCreateNotificationsMessageHandler_BlockAnnounceHandshake/nodeA/node.key	pkg=network
+2022-01-03T11:31:41-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestPeerConnect1654413703/001/TestPeerConnect/nodeA/node.key	pkg=network
+2022-01-03T11:31:41-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestExternalAddrsPublicIP2193773423/001/TestExternalAddrsPublicIP/node/node.key	pkg=network
+2022-01-03T11:31:41-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestMDNS1581404314/001/TestMDNS/nodeA/node.key	pkg=network
+2022-01-03T11:31:41-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestHandleLightMessage_Response2572938690/001/TestHandleLightMessage_Response/nodeA/node.key	pkg=network
+2022-01-03T11:31:41-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestBannedPeer1736506344/001/TestBannedPeer/nodeA/node.key	pkg=network
+2022-01-03T11:31:41-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestPeerReputation2410136128/001/TestPeerReputation/nodeA/node.key	pkg=network
+2022-01-03T11:31:41-04:00 DBUG using config PublicIP: 10.0.5.2	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/62761/p2p/12D3KooWKtUNbxTuSPP42usu2M3xZ7VLpXvr9t1sGppSLKUH4eUZ	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/62763/p2p/12D3KooWB3MLMYdijDvdULoLecQobe7RXeAd5TUjjkj3UQNydkxU	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/62762/p2p/12D3KooWRVbwvXbc6LvvpATN8qADUadDoQjEiM1nq6oYtUsuUndx	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/62760/p2p/12D3KooWDs6ixu6QUEpkC8uBnd2zHU2jTU7hqZwf5QLJpqHiom3k	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/62764/p2p/12D3KooWHkeaNWcyHx5KXFsR7iZkhNRtyck26hHp1fY25xRTRPjv	pkg=network
+2022-01-03T11:31:42-04:00 INFO Started listening on /ip4/10.0.5.2/tcp/62764/p2p/12D3KooWHkeaNWcyHx5KXFsR7iZkhNRtyck26hHp1fY25xRTRPjv	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/62759/p2p/12D3KooWHE1GR6igtJpFc41HXWx4hJnfgR3fp7sMuxAxQ1KHZMH2	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-03T11:31:42-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/62758/p2p/12D3KooWHKYcYnEuwXiGJvE5fnKC53WKcHj11WdQGSVxupBDoQPZ	pkg=network
+2022-01-03T11:31:42-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x18 pc=0x4937e29]
+
+goroutine 536 [running]:
+github.com/ChainSafe/gossamer/dot/network.(*Service).sentBlockIntervalTelemetry(0xc0002ea800)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service.go:421 +0x209
+created by github.com/ChainSafe/gossamer/dot/network.(*Service).Start
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service.go:286 +0xa4f
+FAIL	github.com/ChainSafe/gossamer/dot/network	2.340s
+?   	github.com/ChainSafe/gossamer/dot/network/proto	[no test files]
+=== RUN   TestPeerSetBanned
+=== PAUSE TestPeerSetBanned
+=== RUN   TestAddReservedPeers
+=== PAUSE TestAddReservedPeers
+=== RUN   TestPeerSetIncoming
+=== PAUSE TestPeerSetIncoming
+=== RUN   TestPeerSetDiscovered
+=== PAUSE TestPeerSetDiscovered
+=== RUN   TestReAllocAfterBanned
+=== PAUSE TestReAllocAfterBanned
+=== RUN   TestRemovePeer
+=== PAUSE TestRemovePeer
+=== RUN   TestSetReservePeer
+=== PAUSE TestSetReservePeer
+=== RUN   TestFullSlotIn
+=== PAUSE TestFullSlotIn
+=== RUN   TestNoSlotNodeDoesntOccupySlot
+=== PAUSE TestNoSlotNodeDoesntOccupySlot
+=== RUN   TestDisconnectingFreeSlot
+=== PAUSE TestDisconnectingFreeSlot
+=== RUN   TestDisconnectNoSlotDoesntPanic
+=== PAUSE TestDisconnectNoSlotDoesntPanic
+=== RUN   TestHighestNotConnectedPeer
+=== PAUSE TestHighestNotConnectedPeer
+=== RUN   TestSortedPeers
+=== PAUSE TestSortedPeers
+=== CONT  TestPeerSetBanned
+=== CONT  TestSortedPeers
+--- PASS: TestSortedPeers (0.00s)
+=== CONT  TestHighestNotConnectedPeer
+--- PASS: TestHighestNotConnectedPeer (0.00s)
+=== CONT  TestDisconnectNoSlotDoesntPanic
+--- PASS: TestDisconnectNoSlotDoesntPanic (0.00s)
+=== CONT  TestDisconnectingFreeSlot
+=== CONT  TestRemovePeer
+--- PASS: TestDisconnectingFreeSlot (0.00s)
+=== CONT  TestReAllocAfterBanned
+=== CONT  TestPeerSetDiscovered
+=== CONT  TestPeerSetIncoming
+=== CONT  TestAddReservedPeers
+=== CONT  TestFullSlotIn
+--- PASS: TestFullSlotIn (0.00s)
+=== CONT  TestNoSlotNodeDoesntOccupySlot
+--- PASS: TestNoSlotNodeDoesntOccupySlot (0.00s)
+=== CONT  TestSetReservePeer
+2022-01-03T11:31:38-04:00 CRIT highest rated peer is below bannedThresholdValue	pkg=peerset
+2022-01-03T11:31:38-04:00 CRIT highest rated peer is below bannedThresholdValue	pkg=peerset
+--- PASS: TestPeerSetIncoming (0.11s)
+--- PASS: TestRemovePeer (0.30s)
+--- PASS: TestAddReservedPeers (0.30s)
+--- PASS: TestPeerSetDiscovered (0.31s)
+--- PASS: TestSetReservePeer (0.30s)
+--- PASS: TestPeerSetBanned (1.41s)
+--- PASS: TestReAllocAfterBanned (2.00s)
+PASS
+ok  	github.com/ChainSafe/gossamer/dot/peerset	2.966s
+=== RUN   TestAliasesMethodReplace
+--- PASS: TestAliasesMethodReplace (0.00s)
+=== RUN   TestRegisterModules
+--- PASS: TestRegisterModules (0.00s)
+=== RUN   TestNewHTTPServer
+2022-01-03T11:31:47-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:31:47-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestNewHTTPServer (8.78s)
+=== RUN   TestUnsafeRPCProtection
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_system_addReservedPeer_should_not_be_reachable
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_system_removeReservedPeer_should_not_be_reachable
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_author_submitExtrinsic_should_not_be_reachable
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_author_removeExtrinsic_should_not_be_reachable
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_author_insertKey_should_not_be_reachable
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_author_rotateKeys_should_not_be_reachable
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_state_getPairs_should_not_be_reachable
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_state_getKeysPaged_should_not_be_reachable
+=== RUN   TestUnsafeRPCProtection/Unsafe_method_state_queryStorage_should_not_be_reachable
+--- PASS: TestUnsafeRPCProtection (1.01s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_system_addReservedPeer_should_not_be_reachable (0.00s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_system_removeReservedPeer_should_not_be_reachable (0.00s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_author_submitExtrinsic_should_not_be_reachable (0.00s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_author_removeExtrinsic_should_not_be_reachable (0.00s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_author_insertKey_should_not_be_reachable (0.00s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_author_rotateKeys_should_not_be_reachable (0.00s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_state_getPairs_should_not_be_reachable (0.00s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_state_getKeysPaged_should_not_be_reachable (0.00s)
+    --- PASS: TestUnsafeRPCProtection/Unsafe_method_state_queryStorage_should_not_be_reachable (0.00s)
+=== RUN   TestRPCUnsafeExpose
+--- PASS: TestRPCUnsafeExpose (1.00s)
+=== RUN   TestUnsafeRPCJustToLocalhost
+--- PASS: TestUnsafeRPCJustToLocalhost (1.00s)
+=== RUN   TestRPCExternalEnable_UnsafeExternalNotEnabled
+--- PASS: TestRPCExternalEnable_UnsafeExternalNotEnabled (1.00s)
+=== RUN   TestNewService
+--- PASS: TestNewService (0.00s)
+=== RUN   TestService_Methods
+--- PASS: TestService_Methods (0.00s)
+=== RUN   TestJson2ReadRequest
+=== RUN   TestJson2ReadRequest/"mockService_readArray"
+=== RUN   TestJson2ReadRequest/"mockService_readArray"#01
+--- PASS: TestJson2ReadRequest (0.00s)
+    --- PASS: TestJson2ReadRequest/"mockService_readArray" (0.00s)
+    --- PASS: TestJson2ReadRequest/"mockService_readArray"#01 (0.00s)
+=== RUN   TestHTTPServer_ServeHTTP
+2022-01-03T11:32:00-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:00-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022/01/03 11:32:05 connecting to ws://localhost:8546/
+2022-01-03T11:32:05-04:00 CRIT [ext_logging_log_version_1] target=runtime message=panicked at 'Bad input data provided to validate_transaction: Codec error', /home/elizabeth/substrate/bin/node/runtime/src/lib.rs:1099:1	ext_logging_log_version_1	pkg=runtime module=go-wasmer
+2022-01-03T11:32:05-04:00 WARN failed to create listener (method=author_submitAndWatchExtrinsic): Failed to call the `TaggedTransactionQueue_validate_transaction` exported function.	pkg=rpc/subscription
+--- PASS: TestHTTPServer_ServeHTTP (9.82s)
+PASS
+ok  	github.com/ChainSafe/gossamer/dot/rpc	24.757s
+?   	github.com/ChainSafe/gossamer/dot/rpc/json2	[no test files]
+=== RUN   TestNewMockStorageAPI
+--- PASS: TestNewMockStorageAPI (0.00s)
+=== RUN   TestNewMockBlockAPI
+--- PASS: TestNewMockBlockAPI (0.00s)
+=== RUN   TestNewMockCoreAPI
+--- PASS: TestNewMockCoreAPI (0.00s)
+=== RUN   TestNewMockVersion
+--- PASS: TestNewMockVersion (0.00s)
+=== RUN   TestAuthorModule_HasSessionKeys
+=== RUN   TestAuthorModule_HasSessionKeys/Empty_Request
+=== RUN   TestAuthorModule_HasSessionKeys/decodeSessionKeys_err
+=== RUN   TestAuthorModule_HasSessionKeys/happy_path
+=== RUN   TestAuthorModule_HasSessionKeys/doesnt_have_key
+=== RUN   TestAuthorModule_HasSessionKeys/Empty_decodedKeys
+--- PASS: TestAuthorModule_HasSessionKeys (0.00s)
+    --- PASS: TestAuthorModule_HasSessionKeys/Empty_Request (0.00s)
+    --- PASS: TestAuthorModule_HasSessionKeys/decodeSessionKeys_err (0.00s)
+    --- PASS: TestAuthorModule_HasSessionKeys/happy_path (0.00s)
+    --- PASS: TestAuthorModule_HasSessionKeys/doesnt_have_key (0.00s)
+    --- PASS: TestAuthorModule_HasSessionKeys/Empty_decodedKeys (0.00s)
+=== RUN   TestAuthorModule_SubmitExtrinsic
+=== RUN   TestAuthorModule_SubmitExtrinsic/HexToBytes_error
+=== RUN   TestAuthorModule_SubmitExtrinsic/HandleSubmittedExtrinsic_error
+=== RUN   TestAuthorModule_SubmitExtrinsic/happy_path
+--- PASS: TestAuthorModule_SubmitExtrinsic (0.00s)
+    --- PASS: TestAuthorModule_SubmitExtrinsic/HexToBytes_error (0.00s)
+    --- PASS: TestAuthorModule_SubmitExtrinsic/HandleSubmittedExtrinsic_error (0.00s)
+    --- PASS: TestAuthorModule_SubmitExtrinsic/happy_path (0.00s)
+=== RUN   TestAuthorModule_PendingExtrinsics
+=== RUN   TestAuthorModule_PendingExtrinsics/no_pending
+=== RUN   TestAuthorModule_PendingExtrinsics/two_pending
+--- PASS: TestAuthorModule_PendingExtrinsics (0.00s)
+    --- PASS: TestAuthorModule_PendingExtrinsics/no_pending (0.00s)
+    --- PASS: TestAuthorModule_PendingExtrinsics/two_pending (0.00s)
+=== RUN   TestAuthorModule_InsertKey
+=== RUN   TestAuthorModule_InsertKey/happy_path
+=== RUN   TestAuthorModule_InsertKey/happy_path,_gran_keytype
+=== RUN   TestAuthorModule_InsertKey/invalid_key
+=== RUN   TestAuthorModule_InsertKey/unknown_key
+--- PASS: TestAuthorModule_InsertKey (0.00s)
+    --- PASS: TestAuthorModule_InsertKey/happy_path (0.00s)
+    --- PASS: TestAuthorModule_InsertKey/happy_path,_gran_keytype (0.00s)
+    --- PASS: TestAuthorModule_InsertKey/invalid_key (0.00s)
+    --- PASS: TestAuthorModule_InsertKey/unknown_key (0.00s)
+=== RUN   TestAuthorModule_HasKey
+=== RUN   TestAuthorModule_HasKey/HasKey_true
+=== RUN   TestAuthorModule_HasKey/HasKey_false
+=== RUN   TestAuthorModule_HasKey/HasKey_error
+--- PASS: TestAuthorModule_HasKey (0.00s)
+    --- PASS: TestAuthorModule_HasKey/HasKey_true (0.00s)
+    --- PASS: TestAuthorModule_HasKey/HasKey_false (0.00s)
+    --- PASS: TestAuthorModule_HasKey/HasKey_error (0.00s)
+=== RUN   TestChainModule_GetBlock
+=== RUN   TestChainModule_GetBlock/GetBlock_OK
+=== RUN   TestChainModule_GetBlock/GetBlockByHash_Err
+=== RUN   TestChainModule_GetBlock/GetBlock_with_body_OK
+--- PASS: TestChainModule_GetBlock (0.00s)
+    --- PASS: TestChainModule_GetBlock/GetBlock_OK (0.00s)
+    --- PASS: TestChainModule_GetBlock/GetBlockByHash_Err (0.00s)
+    --- PASS: TestChainModule_GetBlock/GetBlock_with_body_OK (0.00s)
+=== RUN   TestChainModule_GetBlockHash
+=== RUN   TestChainModule_GetBlockHash/GetBlockHash_nil_req_OK
+=== RUN   TestChainModule_GetBlockHash/GetBlockHash_string_req_OK
+=== RUN   TestChainModule_GetBlockHash/GetBlockHash_float_req_OK
+=== RUN   TestChainModule_GetBlockHash/GetBlockHash_unknown_request_number
+=== RUN   TestChainModule_GetBlockHash/GetBlockHash_string_slice_req_err
+=== RUN   TestChainModule_GetBlockHash/GetBlockHash_string_req_Err
+--- PASS: TestChainModule_GetBlockHash (0.00s)
+    --- PASS: TestChainModule_GetBlockHash/GetBlockHash_nil_req_OK (0.00s)
+    --- PASS: TestChainModule_GetBlockHash/GetBlockHash_string_req_OK (0.00s)
+    --- PASS: TestChainModule_GetBlockHash/GetBlockHash_float_req_OK (0.00s)
+    --- PASS: TestChainModule_GetBlockHash/GetBlockHash_unknown_request_number (0.00s)
+    --- PASS: TestChainModule_GetBlockHash/GetBlockHash_string_slice_req_err (0.00s)
+    --- PASS: TestChainModule_GetBlockHash/GetBlockHash_string_req_Err (0.00s)
+=== RUN   TestChainModule_GetFinalizedHead
+=== RUN   TestChainModule_GetFinalizedHead/happy_path
+=== RUN   TestChainModule_GetFinalizedHead/error_case
+--- PASS: TestChainModule_GetFinalizedHead (0.00s)
+    --- PASS: TestChainModule_GetFinalizedHead/happy_path (0.00s)
+    --- PASS: TestChainModule_GetFinalizedHead/error_case (0.00s)
+=== RUN   TestChainModule_GetFinalizedHeadByRound
+=== RUN   TestChainModule_GetFinalizedHeadByRound/GetFinalisedHash_OK
+=== RUN   TestChainModule_GetFinalizedHeadByRound/GetFinalisedHash_ERR
+--- PASS: TestChainModule_GetFinalizedHeadByRound (0.00s)
+    --- PASS: TestChainModule_GetFinalizedHeadByRound/GetFinalisedHash_OK (0.00s)
+    --- PASS: TestChainModule_GetFinalizedHeadByRound/GetFinalisedHash_ERR (0.00s)
+=== RUN   TestChainModule_GetHeader
+=== RUN   TestChainModule_GetHeader/GetHeader_OK
+=== RUN   TestChainModule_GetHeader/GetHeader_ERR
+--- PASS: TestChainModule_GetHeader (0.00s)
+    --- PASS: TestChainModule_GetHeader/GetHeader_OK (0.00s)
+    --- PASS: TestChainModule_GetHeader/GetHeader_ERR (0.00s)
+=== RUN   TestChainModule_ErrSubscriptionTransport
+--- PASS: TestChainModule_ErrSubscriptionTransport (0.00s)
+=== RUN   TestHeaderToJSON
+=== RUN   TestHeaderToJSON/empty
+=== RUN   TestHeaderToJSON/not_empty
+--- PASS: TestHeaderToJSON (0.00s)
+    --- PASS: TestHeaderToJSON/empty (0.00s)
+    --- PASS: TestHeaderToJSON/not_empty (0.00s)
+=== RUN   TestChildStateModule_GetKeys
+=== RUN   TestChildStateModule_GetKeys/Get_Keys_Nil_Hash
+=== RUN   TestChildStateModule_GetKeys/Get_Keys_with_Hash
+=== RUN   TestChildStateModule_GetKeys/GetStorageChild_error
+=== RUN   TestChildStateModule_GetKeys/GetStateRootFromBlock_error
+--- PASS: TestChildStateModule_GetKeys (0.15s)
+    --- PASS: TestChildStateModule_GetKeys/Get_Keys_Nil_Hash (0.00s)
+    --- PASS: TestChildStateModule_GetKeys/Get_Keys_with_Hash (0.00s)
+    --- PASS: TestChildStateModule_GetKeys/GetStorageChild_error (0.00s)
+    --- PASS: TestChildStateModule_GetKeys/GetStateRootFromBlock_error (0.00s)
+=== RUN   TestChildStateModule_GetStorageSize
+=== RUN   TestChildStateModule_GetStorageSize/Get_Keys_Nil_Hash
+=== RUN   TestChildStateModule_GetStorageSize/Get_Keys_with_Hash
+=== RUN   TestChildStateModule_GetStorageSize/GetStorageChild_error
+=== RUN   TestChildStateModule_GetStorageSize/GetStateRootFromBlock_error
+--- PASS: TestChildStateModule_GetStorageSize (0.13s)
+    --- PASS: TestChildStateModule_GetStorageSize/Get_Keys_Nil_Hash (0.00s)
+    --- PASS: TestChildStateModule_GetStorageSize/Get_Keys_with_Hash (0.00s)
+    --- PASS: TestChildStateModule_GetStorageSize/GetStorageChild_error (0.00s)
+    --- PASS: TestChildStateModule_GetStorageSize/GetStateRootFromBlock_error (0.00s)
+=== RUN   TestChildStateModule_GetStorageHash
+=== RUN   TestChildStateModule_GetStorageHash/Get_Keys_Nil_Hash
+=== RUN   TestChildStateModule_GetStorageHash/Get_Keys_with_Hash
+=== RUN   TestChildStateModule_GetStorageHash/GetStorageChild_error
+=== RUN   TestChildStateModule_GetStorageHash/GetStateRootFromBlock_error
+--- PASS: TestChildStateModule_GetStorageHash (0.11s)
+    --- PASS: TestChildStateModule_GetStorageHash/Get_Keys_Nil_Hash (0.00s)
+    --- PASS: TestChildStateModule_GetStorageHash/Get_Keys_with_Hash (0.00s)
+    --- PASS: TestChildStateModule_GetStorageHash/GetStorageChild_error (0.00s)
+    --- PASS: TestChildStateModule_GetStorageHash/GetStateRootFromBlock_error (0.00s)
+=== RUN   TestChildStateModule_GetStorage
+=== RUN   TestChildStateModule_GetStorage/Get_Keys_Nil_Hash
+=== RUN   TestChildStateModule_GetStorage/Get_Keys_with_Hash
+=== RUN   TestChildStateModule_GetStorage/GetStorageChild_error
+=== RUN   TestChildStateModule_GetStorage/GetStateRootFromBlock_error
+--- PASS: TestChildStateModule_GetStorage (0.08s)
+    --- PASS: TestChildStateModule_GetStorage/Get_Keys_Nil_Hash (0.00s)
+    --- PASS: TestChildStateModule_GetStorage/Get_Keys_with_Hash (0.00s)
+    --- PASS: TestChildStateModule_GetStorage/GetStorageChild_error (0.00s)
+    --- PASS: TestChildStateModule_GetStorage/GetStateRootFromBlock_error (0.00s)
+=== RUN   Test_uint64ToHex
+=== RUN   Test_uint64ToHex/uint64ToHex_one
+=== RUN   Test_uint64ToHex/uint64ToHex_zero
+=== RUN   Test_uint64ToHex/uint64ToHex_max
+--- PASS: Test_uint64ToHex (0.00s)
+    --- PASS: Test_uint64ToHex/uint64ToHex_one (0.00s)
+    --- PASS: Test_uint64ToHex/uint64ToHex_zero (0.00s)
+    --- PASS: Test_uint64ToHex/uint64ToHex_max (0.00s)
+=== RUN   TestDevModule_EpochLength
+=== RUN   TestDevModule_EpochLength/EpochLength_OK
+--- PASS: TestDevModule_EpochLength (0.00s)
+    --- PASS: TestDevModule_EpochLength/EpochLength_OK (0.00s)
+=== RUN   TestDevModule_SlotDuration
+=== RUN   TestDevModule_SlotDuration/SlotDuration_OK
+--- PASS: TestDevModule_SlotDuration (0.00s)
+    --- PASS: TestDevModule_SlotDuration/SlotDuration_OK (0.00s)
+=== RUN   TestDevModule_Control
+=== RUN   TestDevModule_Control/Not_a_BlockProducer
+=== RUN   TestDevModule_Control/Babe_Stop_Error
+=== RUN   TestDevModule_Control/Babe_Stop_OK
+=== RUN   TestDevModule_Control/Babe_Start_Error
+=== RUN   TestDevModule_Control/Babe_Start_OK
+=== RUN   TestDevModule_Control/Network_Stop_Error
+=== RUN   TestDevModule_Control/Network_Stop_OK
+=== RUN   TestDevModule_Control/Network_Start_Error
+=== RUN   TestDevModule_Control/Network_Start_OK
+--- PASS: TestDevModule_Control (0.00s)
+    --- PASS: TestDevModule_Control/Not_a_BlockProducer (0.00s)
+    --- PASS: TestDevModule_Control/Babe_Stop_Error (0.00s)
+    --- PASS: TestDevModule_Control/Babe_Stop_OK (0.00s)
+    --- PASS: TestDevModule_Control/Babe_Start_Error (0.00s)
+    --- PASS: TestDevModule_Control/Babe_Start_OK (0.00s)
+    --- PASS: TestDevModule_Control/Network_Stop_Error (0.00s)
+    --- PASS: TestDevModule_Control/Network_Stop_OK (0.00s)
+    --- PASS: TestDevModule_Control/Network_Start_Error (0.00s)
+    --- PASS: TestDevModule_Control/Network_Start_OK (0.00s)
+=== RUN   TestGrandpaModule_ProveFinality
+=== RUN   TestGrandpaModule_ProveFinality/SubChain_Err
+=== RUN   TestGrandpaModule_ProveFinality/OK_Case
+=== RUN   TestGrandpaModule_ProveFinality/HasJustification_Error
+=== RUN   TestGrandpaModule_ProveFinality/GetJustification_Error
+--- PASS: TestGrandpaModule_ProveFinality (0.00s)
+    --- PASS: TestGrandpaModule_ProveFinality/SubChain_Err (0.00s)
+    --- PASS: TestGrandpaModule_ProveFinality/OK_Case (0.00s)
+    --- PASS: TestGrandpaModule_ProveFinality/HasJustification_Error (0.00s)
+    --- PASS: TestGrandpaModule_ProveFinality/GetJustification_Error (0.00s)
+=== RUN   TestGrandpaModule_RoundState
+=== RUN   TestGrandpaModule_RoundState/GetJustification_Error
+--- PASS: TestGrandpaModule_RoundState (0.00s)
+    --- PASS: TestGrandpaModule_RoundState/GetJustification_Error (0.00s)
+=== RUN   TestOffchainModule_LocalStorageGet
+=== RUN   TestOffchainModule_LocalStorageGet/GetPersistent_error
+=== RUN   TestOffchainModule_LocalStorageGet/Invalid_Storage_Kind
+=== RUN   TestOffchainModule_LocalStorageGet/GetLocal_OK
+=== RUN   TestOffchainModule_LocalStorageGet/Invalid_key
+--- PASS: TestOffchainModule_LocalStorageGet (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageGet/GetPersistent_error (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageGet/Invalid_Storage_Kind (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageGet/GetLocal_OK (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageGet/Invalid_key (0.00s)
+=== RUN   TestOffchainModule_LocalStorageSet
+=== RUN   TestOffchainModule_LocalStorageSet/setLocal_OK
+=== RUN   TestOffchainModule_LocalStorageSet/Invalid_Key
+=== RUN   TestOffchainModule_LocalStorageSet/Invalid_Value
+=== RUN   TestOffchainModule_LocalStorageSet/setPersistentError
+=== RUN   TestOffchainModule_LocalStorageSet/Invalid_Kind
+--- PASS: TestOffchainModule_LocalStorageSet (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageSet/setLocal_OK (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageSet/Invalid_Key (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageSet/Invalid_Value (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageSet/setPersistentError (0.00s)
+    --- PASS: TestOffchainModule_LocalStorageSet/Invalid_Kind (0.00s)
+=== RUN   TestPaymentModule_QueryInfo
+=== RUN   TestPaymentModule_QueryInfo/Nil_Query_Info
+=== RUN   TestPaymentModule_QueryInfo/Not_Nil_Query_Info
+=== RUN   TestPaymentModule_QueryInfo/Nil_Hash
+=== RUN   TestPaymentModule_QueryInfo/Invalid_Ext
+=== RUN   TestPaymentModule_QueryInfo/PaymentQueryInfo_error
+=== RUN   TestPaymentModule_QueryInfo/GetRuntime_error
+--- PASS: TestPaymentModule_QueryInfo (0.00s)
+    --- PASS: TestPaymentModule_QueryInfo/Nil_Query_Info (0.00s)
+    --- PASS: TestPaymentModule_QueryInfo/Not_Nil_Query_Info (0.00s)
+    --- PASS: TestPaymentModule_QueryInfo/Nil_Hash (0.00s)
+    --- PASS: TestPaymentModule_QueryInfo/Invalid_Ext (0.00s)
+    --- PASS: TestPaymentModule_QueryInfo/PaymentQueryInfo_error (0.00s)
+    --- PASS: TestPaymentModule_QueryInfo/GetRuntime_error (0.00s)
+=== RUN   TestStateModuleGetPairs
+=== RUN   TestStateModuleGetPairs/GetStateRootFromBlock_Error
+=== RUN   TestStateModuleGetPairs/Nil_Prefix_OK
+=== RUN   TestStateModuleGetPairs/Nil_Prefix_Err
+=== RUN   TestStateModuleGetPairs/OK_Case
+=== RUN   TestStateModuleGetPairs/GetKeysWithPrefix_Error
+=== RUN   TestStateModuleGetPairs/GetStorage_Error
+=== RUN   TestStateModuleGetPairs/GetKeysWithPrefix_Empty
+--- PASS: TestStateModuleGetPairs (0.00s)
+    --- PASS: TestStateModuleGetPairs/GetStateRootFromBlock_Error (0.00s)
+    --- PASS: TestStateModuleGetPairs/Nil_Prefix_OK (0.00s)
+    --- PASS: TestStateModuleGetPairs/Nil_Prefix_Err (0.00s)
+    --- PASS: TestStateModuleGetPairs/OK_Case (0.00s)
+    --- PASS: TestStateModuleGetPairs/GetKeysWithPrefix_Error (0.00s)
+    --- PASS: TestStateModuleGetPairs/GetStorage_Error (0.00s)
+    --- PASS: TestStateModuleGetPairs/GetKeysWithPrefix_Empty (0.00s)
+=== RUN   TestStateModuleGetKeysPaged
+=== RUN   TestStateModuleGetKeysPaged/OK
+=== RUN   TestStateModuleGetKeysPaged/ResCount_break
+=== RUN   TestStateModuleGetKeysPaged/GetKeysWithPrefix_Error
+=== RUN   TestStateModuleGetKeysPaged/Request_Prefix_Error
+--- PASS: TestStateModuleGetKeysPaged (0.00s)
+    --- PASS: TestStateModuleGetKeysPaged/OK (0.00s)
+    --- PASS: TestStateModuleGetKeysPaged/ResCount_break (0.00s)
+    --- PASS: TestStateModuleGetKeysPaged/GetKeysWithPrefix_Error (0.00s)
+    --- PASS: TestStateModuleGetKeysPaged/Request_Prefix_Error (0.00s)
+=== RUN   TestCall
+--- PASS: TestCall (0.00s)
+=== RUN   TestStateModuleGetMetadata
+=== RUN   TestStateModuleGetMetadata/OK_Case
+=== RUN   TestStateModuleGetMetadata/GetMetadata_Error
+--- PASS: TestStateModuleGetMetadata (0.00s)
+    --- PASS: TestStateModuleGetMetadata/OK_Case (0.00s)
+    --- PASS: TestStateModuleGetMetadata/GetMetadata_Error (0.00s)
+=== RUN   TestStateModuleGetReadProof
+=== RUN   TestStateModuleGetReadProof/OK_Case
+=== RUN   TestStateModuleGetReadProof/GetReadProofAt_Error
+=== RUN   TestStateModuleGetReadProof/InvalidKeys_Error
+--- PASS: TestStateModuleGetReadProof (0.00s)
+    --- PASS: TestStateModuleGetReadProof/OK_Case (0.00s)
+    --- PASS: TestStateModuleGetReadProof/GetReadProofAt_Error (0.00s)
+    --- PASS: TestStateModuleGetReadProof/InvalidKeys_Error (0.00s)
+=== RUN   TestStateModuleGetRuntimeVersion
+=== RUN   TestStateModuleGetRuntimeVersion/OK_Case
+=== RUN   TestStateModuleGetRuntimeVersion/GetRuntimeVersion_Error
+--- PASS: TestStateModuleGetRuntimeVersion (0.00s)
+    --- PASS: TestStateModuleGetRuntimeVersion/OK_Case (0.00s)
+    --- PASS: TestStateModuleGetRuntimeVersion/GetRuntimeVersion_Error (0.00s)
+=== RUN   TestStateModuleGetStorage
+=== RUN   TestStateModuleGetStorage/bHash_Not_Nil_OK
+=== RUN   TestStateModuleGetStorage/bHash_Nil_OK
+=== RUN   TestStateModuleGetStorage/bHash_Not_Nil_Err
+=== RUN   TestStateModuleGetStorage/bHash_Nil_Err
+--- PASS: TestStateModuleGetStorage (0.00s)
+    --- PASS: TestStateModuleGetStorage/bHash_Not_Nil_OK (0.00s)
+    --- PASS: TestStateModuleGetStorage/bHash_Nil_OK (0.00s)
+    --- PASS: TestStateModuleGetStorage/bHash_Not_Nil_Err (0.00s)
+    --- PASS: TestStateModuleGetStorage/bHash_Nil_Err (0.00s)
+=== RUN   TestStateModuleGetStorageHash
+=== RUN   TestStateModuleGetStorageHash/bHash_Not_Nil_OK
+=== RUN   TestStateModuleGetStorageHash/bHash_Nil_OK
+=== RUN   TestStateModuleGetStorageHash/bHash_Not_Nil_Err
+=== RUN   TestStateModuleGetStorageHash/bHash_Nil_Err
+--- PASS: TestStateModuleGetStorageHash (0.00s)
+    --- PASS: TestStateModuleGetStorageHash/bHash_Not_Nil_OK (0.00s)
+    --- PASS: TestStateModuleGetStorageHash/bHash_Nil_OK (0.00s)
+    --- PASS: TestStateModuleGetStorageHash/bHash_Not_Nil_Err (0.00s)
+    --- PASS: TestStateModuleGetStorageHash/bHash_Nil_Err (0.00s)
+=== RUN   TestStateModuleGetStorageSize
+=== RUN   TestStateModuleGetStorageSize/bHash_Not_Nil_OK
+=== RUN   TestStateModuleGetStorageSize/bHash_Nil_OK
+=== RUN   TestStateModuleGetStorageSize/bHash_Not_Nil_Err
+=== RUN   TestStateModuleGetStorageSize/bHash_Nil_Err
+--- PASS: TestStateModuleGetStorageSize (0.00s)
+    --- PASS: TestStateModuleGetStorageSize/bHash_Not_Nil_OK (0.00s)
+    --- PASS: TestStateModuleGetStorageSize/bHash_Nil_OK (0.00s)
+    --- PASS: TestStateModuleGetStorageSize/bHash_Not_Nil_Err (0.00s)
+    --- PASS: TestStateModuleGetStorageSize/bHash_Nil_Err (0.00s)
+=== RUN   TestStateModuleQueryStorage
+=== RUN   TestStateModuleQueryStorage/OK_Case
+=== RUN   TestStateModuleQueryStorage/QueryStorage_Error
+=== RUN   TestStateModuleQueryStorage/Empty_Start_Block_Error
+--- PASS: TestStateModuleQueryStorage (0.00s)
+    --- PASS: TestStateModuleQueryStorage/OK_Case (0.00s)
+    --- PASS: TestStateModuleQueryStorage/QueryStorage_Error (0.00s)
+    --- PASS: TestStateModuleQueryStorage/Empty_Start_Block_Error (0.00s)
+=== RUN   TestSyncStateModule_GenSyncSpec
+=== RUN   TestSyncStateModule_GenSyncSpec/GenSyncSpec_OK
+=== RUN   TestSyncStateModule_GenSyncSpec/GenSyncSpec_Err
+--- PASS: TestSyncStateModule_GenSyncSpec (0.00s)
+    --- PASS: TestSyncStateModule_GenSyncSpec/GenSyncSpec_OK (0.00s)
+    --- PASS: TestSyncStateModule_GenSyncSpec/GenSyncSpec_Err (0.00s)
+=== RUN   TestNewStateSync
+=== RUN   TestNewStateSync/OK_Case
+=== RUN   TestNewStateSync/Err_Case
+--- PASS: TestNewStateSync (0.00s)
+    --- PASS: TestNewStateSync/OK_Case (0.00s)
+    --- PASS: TestNewStateSync/Err_Case (0.00s)
+=== RUN   Test_syncState_GenSyncSpec
+=== RUN   Test_syncState_GenSyncSpec/GenSyncSpec_False
+=== RUN   Test_syncState_GenSyncSpec/GenSyncSpec_True
+--- PASS: Test_syncState_GenSyncSpec (0.00s)
+    --- PASS: Test_syncState_GenSyncSpec/GenSyncSpec_False (0.00s)
+    --- PASS: Test_syncState_GenSyncSpec/GenSyncSpec_True (0.00s)
+=== RUN   TestSystemModule_ChainTest
+--- PASS: TestSystemModule_ChainTest (0.00s)
+=== RUN   TestSystemModule_NameTest
+--- PASS: TestSystemModule_NameTest (0.00s)
+=== RUN   TestSystemModule_ChainTypeTest
+--- PASS: TestSystemModule_ChainTypeTest (0.00s)
+=== RUN   TestSystemModule_PropertiesTest
+--- PASS: TestSystemModule_PropertiesTest (0.00s)
+=== RUN   TestSystemModule_SystemVersionTest
+--- PASS: TestSystemModule_SystemVersionTest (0.00s)
+=== RUN   TestSystemModule_HealthTest
+--- PASS: TestSystemModule_HealthTest (0.00s)
+=== RUN   TestSystemModule_NetworkStateTest
+--- PASS: TestSystemModule_NetworkStateTest (0.00s)
+=== RUN   TestSystemModule_PeersTest
+--- PASS: TestSystemModule_PeersTest (0.00s)
+=== RUN   TestSystemModule_NodeRolesTest
+=== RUN   TestSystemModule_NodeRolesTest/Full
+=== RUN   TestSystemModule_NodeRolesTest/LightClient
+=== RUN   TestSystemModule_NodeRolesTest/Authority
+=== RUN   TestSystemModule_NodeRolesTest/UnknownRole
+--- PASS: TestSystemModule_NodeRolesTest (0.00s)
+    --- PASS: TestSystemModule_NodeRolesTest/Full (0.00s)
+    --- PASS: TestSystemModule_NodeRolesTest/LightClient (0.00s)
+    --- PASS: TestSystemModule_NodeRolesTest/Authority (0.00s)
+    --- PASS: TestSystemModule_NodeRolesTest/UnknownRole (0.00s)
+=== RUN   TestSystemModule_AccountNextIndex
+=== RUN   TestSystemModule_AccountNextIndex/Nil_Request
+=== RUN   TestSystemModule_AccountNextIndex/Found
+=== RUN   TestSystemModule_AccountNextIndex/Not_found
+=== RUN   TestSystemModule_AccountNextIndex/GetMetadata_Err
+=== RUN   TestSystemModule_AccountNextIndex/Magic_Number_Mismatch
+=== RUN   TestSystemModule_AccountNextIndex/GetStorage_Err
+--- PASS: TestSystemModule_AccountNextIndex (0.07s)
+    --- PASS: TestSystemModule_AccountNextIndex/Nil_Request (0.00s)
+    --- PASS: TestSystemModule_AccountNextIndex/Found (0.00s)
+    --- PASS: TestSystemModule_AccountNextIndex/Not_found (0.02s)
+    --- PASS: TestSystemModule_AccountNextIndex/GetMetadata_Err (0.00s)
+    --- PASS: TestSystemModule_AccountNextIndex/Magic_Number_Mismatch (0.00s)
+    --- PASS: TestSystemModule_AccountNextIndex/GetStorage_Err (0.04s)
+=== RUN   TestSystemModule_SyncState
+=== RUN   TestSystemModule_SyncState/OK
+=== RUN   TestSystemModule_SyncState/Err
+--- PASS: TestSystemModule_SyncState (0.00s)
+    --- PASS: TestSystemModule_SyncState/OK (0.00s)
+    --- PASS: TestSystemModule_SyncState/Err (0.00s)
+=== RUN   TestSystemModule_LocalListenAddresses
+=== RUN   TestSystemModule_LocalListenAddresses/OK
+=== RUN   TestSystemModule_LocalListenAddresses/Empty_multiaddress_list
+--- PASS: TestSystemModule_LocalListenAddresses (0.00s)
+    --- PASS: TestSystemModule_LocalListenAddresses/OK (0.00s)
+    --- PASS: TestSystemModule_LocalListenAddresses/Empty_multiaddress_list (0.00s)
+=== RUN   TestSystemModule_LocalPeerId
+=== RUN   TestSystemModule_LocalPeerId/OK
+=== RUN   TestSystemModule_LocalPeerId/Empty_peerId
+--- PASS: TestSystemModule_LocalPeerId (0.00s)
+    --- PASS: TestSystemModule_LocalPeerId/OK (0.00s)
+    --- PASS: TestSystemModule_LocalPeerId/Empty_peerId (0.00s)
+=== RUN   TestSystemModule_AddReservedPeer
+=== RUN   TestSystemModule_AddReservedPeer/OK
+=== RUN   TestSystemModule_AddReservedPeer/AddReservedPeer_Error
+=== RUN   TestSystemModule_AddReservedPeer/Empty_StringRequest_Error
+--- PASS: TestSystemModule_AddReservedPeer (0.00s)
+    --- PASS: TestSystemModule_AddReservedPeer/OK (0.00s)
+    --- PASS: TestSystemModule_AddReservedPeer/AddReservedPeer_Error (0.00s)
+    --- PASS: TestSystemModule_AddReservedPeer/Empty_StringRequest_Error (0.00s)
+=== RUN   TestSystemModule_RemoveReservedPeer
+=== RUN   TestSystemModule_RemoveReservedPeer/OK
+=== RUN   TestSystemModule_RemoveReservedPeer/RemoveReservedPeer_Error
+=== RUN   TestSystemModule_RemoveReservedPeer/Empty_StringRequest_Error
+--- PASS: TestSystemModule_RemoveReservedPeer (0.00s)
+    --- PASS: TestSystemModule_RemoveReservedPeer/OK (0.00s)
+    --- PASS: TestSystemModule_RemoveReservedPeer/RemoveReservedPeer_Error (0.00s)
+    --- PASS: TestSystemModule_RemoveReservedPeer/Empty_StringRequest_Error (0.00s)
+PASS
+ok  	github.com/ChainSafe/gossamer/dot/rpc/modules	1.852s
+?   	github.com/ChainSafe/gossamer/dot/rpc/modules/mocks	[no test files]
+?   	github.com/ChainSafe/gossamer/dot/rpc/modules/test_data	[no test files]
+=== RUN   TestStorageObserver_Update
+--- PASS: TestStorageObserver_Update (0.12s)
+=== RUN   TestBlockListener_Listen
+--- PASS: TestBlockListener_Listen (2.02s)
+=== RUN   TestBlockFinalizedListener_Listen
+--- PASS: TestBlockFinalizedListener_Listen (2.01s)
+=== RUN   TestExtrinsicSubmitListener_Listen
+--- PASS: TestExtrinsicSubmitListener_Listen (4.02s)
+=== RUN   TestGrandpaJustification_Listen
+=== RUN   TestGrandpaJustification_Listen/When_justification_doesnt_returns_error
+--- PASS: TestGrandpaJustification_Listen (3.00s)
+    --- PASS: TestGrandpaJustification_Listen/When_justification_doesnt_returns_error (3.00s)
+=== RUN   TestRuntimeChannelListener_Listen
+--- PASS: TestRuntimeChannelListener_Listen (8.54s)
+=== RUN   TestWSConn_HandleComm
+2022-01-03T11:32:05-04:00 WARN failed to get unsubscriber (method=state_unsubscribeStorage): invalid params format type	pkg=rpc/subscription
+2022-01-03T11:32:05-04:00 WARN failed to get unsubscriber (method=state_unsubscribeStorage): invalid params format type	pkg=rpc/subscription
+2022-01-03T11:32:05-04:00 WARN failed to get unsubscriber (method=state_unsubscribeStorage): subscriber id 6: could not find listener	pkg=rpc/subscription
+2022-01-03T11:32:05-04:00 WARN failed to get unsubscriber (method=state_unsubscribeStorage): subscriber id 6: could not find listener	pkg=rpc/subscription
+--- PASS: TestWSConn_HandleComm (4.01s)
+=== RUN   TestSubscribeAllHeads
+--- PASS: TestSubscribeAllHeads (3.52s)
+PASS
+ok  	github.com/ChainSafe/gossamer/dot/rpc/subscription	29.510s
+=== RUN   TestTrie_StoreAndLoadFromDB
+--- PASS: TestTrie_StoreAndLoadFromDB (0.21s)
+=== RUN   TestStoreAndLoadGenesisData
+--- PASS: TestStoreAndLoadGenesisData (0.19s)
+=== RUN   TestLoadStoreEpochLength
+--- PASS: TestLoadStoreEpochLength (0.24s)
+=== RUN   TestLoadAndStoreSlotDuration
+--- PASS: TestLoadAndStoreSlotDuration (0.17s)
+=== RUN   TestGetSet_ReceiptMessageQueue_Justification
+--- PASS: TestGetSet_ReceiptMessageQueue_Justification (0.26s)
+=== RUN   TestHighestRoundAndSetID
+--- PASS: TestHighestRoundAndSetID (0.21s)
+=== RUN   TestBlockState_SetFinalisedHash
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00027fc20]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_test.go:32 has already been called the max number of times
+--- FAIL: TestBlockState_SetFinalisedHash (0.20s)
+=== RUN   TestSetFinalisedHash_setFirstSlotOnFinalisation
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00724f3b0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_test.go:32 has already been called the max number of times
+--- FAIL: TestSetFinalisedHash_setFirstSlotOnFinalisation (0.17s)
+=== RUN   TestImportChannel
+--- PASS: TestImportChannel (0.15s)
+=== RUN   TestFreeImportedBlockNotifierChannel
+--- PASS: TestFreeImportedBlockNotifierChannel (0.17s)
+=== RUN   TestFinalizedChannel
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00724f7a0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_test.go:32 has already been called the max number of times
+--- FAIL: TestFinalizedChannel (0.23s)
+=== RUN   TestImportChannel_Multi
+--- PASS: TestImportChannel_Multi (0.23s)
+=== RUN   TestFinalizedChannel_Multi
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00599c930]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_test.go:32 has already been called the max number of times
+--- FAIL: TestFinalizedChannel_Multi (0.18s)
+=== RUN   TestService_RegisterUnRegisterRuntimeUpdatedChannel
+--- PASS: TestService_RegisterUnRegisterRuntimeUpdatedChannel (0.18s)
+=== RUN   TestService_RegisterUnRegisterConcurrentCalls
+--- PASS: TestService_RegisterUnRegisterConcurrentCalls (0.18s)
+=== RUN   TestConcurrencySetHeader
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00707e4e0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_race_test.go:24 has already been called the max number of times
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc0000cac60]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_race_test.go:24 has already been called the max number of times
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00724ee40]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_race_test.go:24 has already been called the max number of times
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00027f260]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_race_test.go:24 has already been called the max number of times
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc000594b70]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_race_test.go:24 has already been called the max number of times
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc007215020]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_race_test.go:24 has already been called the max number of times
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00599c960]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_race_test.go:24 has already been called the max number of times
+--- FAIL: TestConcurrencySetHeader (2.06s)
+=== RUN   TestSetAndGetHeader
+--- PASS: TestSetAndGetHeader (0.18s)
+=== RUN   TestHasHeader
+--- PASS: TestHasHeader (0.17s)
+=== RUN   TestGetBlockByNumber
+--- PASS: TestGetBlockByNumber (0.17s)
+=== RUN   TestAddBlock
+--- PASS: TestAddBlock (0.17s)
+=== RUN   TestGetSlotForBlock
+--- PASS: TestGetSlotForBlock (0.19s)
+=== RUN   TestIsBlockOnCurrentChain
+--- PASS: TestIsBlockOnCurrentChain (0.19s)
+=== RUN   TestAddBlock_BlockNumberToHash
+--- PASS: TestAddBlock_BlockNumberToHash (0.17s)
+=== RUN   TestFinalization_DeleteBlock
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00044ddd0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_test.go:32 has already been called the max number of times
+--- FAIL: TestFinalization_DeleteBlock (0.19s)
+=== RUN   TestGetHashByNumber
+--- PASS: TestGetHashByNumber (0.19s)
+=== RUN   TestAddBlock_WithReOrg
+    block_test.go:346: 
+--- SKIP: TestAddBlock_WithReOrg (0.00s)
+=== RUN   TestAddBlockToBlockTree
+--- PASS: TestAddBlockToBlockTree (0.17s)
+=== RUN   TestNumberIsFinalised
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00707f980]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_test.go:32 has already been called the max number of times
+--- FAIL: TestNumberIsFinalised (0.19s)
+=== RUN   TestNewEpochStateFromGenesis
+--- PASS: TestNewEpochStateFromGenesis (0.34s)
+=== RUN   TestEpochState_CurrentEpoch
+--- PASS: TestEpochState_CurrentEpoch (0.48s)
+=== RUN   TestEpochState_EpochData
+--- PASS: TestEpochState_EpochData (0.36s)
+=== RUN   TestEpochState_GetStartSlotForEpoch
+--- PASS: TestEpochState_GetStartSlotForEpoch (0.48s)
+=== RUN   TestEpochState_ConfigData
+--- PASS: TestEpochState_ConfigData (0.53s)
+=== RUN   TestEpochState_GetEpochForBlock
+--- PASS: TestEpochState_GetEpochForBlock (0.35s)
+=== RUN   TestEpochState_SetAndGetSlotDuration
+--- PASS: TestEpochState_SetAndGetSlotDuration (0.38s)
+=== RUN   TestEpochState_GetEpochFromTime
+--- PASS: TestEpochState_GetEpochFromTime (0.51s)
+=== RUN   TestNewGrandpaStateFromGenesis
+--- PASS: TestNewGrandpaStateFromGenesis (0.18s)
+=== RUN   TestGrandpaState_SetNextChange
+--- PASS: TestGrandpaState_SetNextChange (0.19s)
+=== RUN   TestGrandpaState_IncrementSetID
+--- PASS: TestGrandpaState_IncrementSetID (0.22s)
+=== RUN   TestGrandpaState_GetSetIDByBlockNumber
+--- PASS: TestGrandpaState_GetSetIDByBlockNumber (0.24s)
+=== RUN   TestGrandpaState_LatestRound
+--- PASS: TestGrandpaState_LatestRound (0.36s)
+=== RUN   TestService_Start
+2022-01-03T11:32:00-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+    service_test.go:71: 
+        	Error Trace:	service_test.go:71
+        	Error:      	Received unexpected error:
+        	            	failed to create block state: cannot get block 0: DB Closed
+        	Test:       	TestService_Start
+--- FAIL: TestService_Start (5.18s)
+=== RUN   TestService_Initialise
+2022-01-03T11:32:05-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc0000ca4b0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/service_test.go:34 has already been called the max number of times
+--- FAIL: TestService_Initialise (6.81s)
+=== RUN   TestMemDB_Start
+2022-01-03T11:32:09-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:09-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestMemDB_Start (2.19s)
+=== RUN   TestService_BlockTree
+2022-01-03T11:32:12-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+    service_test.go:137: 
+        	Error Trace:	service_test.go:137
+        	Error:      	Received unexpected error:
+        	            	failed to create block state: cannot get block 0: DB Closed
+        	Test:       	TestService_BlockTree
+--- FAIL: TestService_BlockTree (2.79s)
+=== RUN   TestService_StorageTriePruning
+2022-01-03T11:32:14-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:14-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestService_StorageTriePruning (4.47s)
+=== RUN   TestService_PruneStorage
+2022-01-03T11:32:19-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:19-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc0070cc2a0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/service_test.go:222 has already been called the max number of times
+--- FAIL: TestService_PruneStorage (2.67s)
+=== RUN   TestService_Rewind
+2022-01-03T11:32:22-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:22-04:00 INFO created state service with head 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819, highest number 0 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+    block_finalisation.go:174: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc00044d7a0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/block_finalisation.go:174 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/service_test.go:308 has already been called the max number of times
+--- FAIL: TestService_Rewind (2.43s)
+=== RUN   TestService_Import
+2022-01-03T11:32:24-04:00 INFO block state hash genesis hash: 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+2022-01-03T11:32:25-04:00 INFO importing storage trie from base path test_data/TestService_Import with root 0x1a099c3d3a0817af96272cb0469744047aaeb75b876ae572cf91fce690c78591...	pkg=state
+2022-01-03T11:32:25-04:00 INFO finished state import	pkg=state
+2022-01-03T11:32:25-04:00 INFO created state service with head 0x5410ed9c69e51d1beb3e34d21ed0abae7f8afe9c53c3a964ae5ccb6026741eac, highest number 77 and genesis hash 0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819	pkg=state
+--- PASS: TestService_Import (3.02s)
+=== RUN   TestStateServiceMetrics
+    controller.go:137: missing call(s) to *telemetry.MockTelemetry.SendMessage(is anything) /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/service_test.go:439
+    controller.go:137: aborting test due to missing call(s)
+--- FAIL: TestStateServiceMetrics (22.28s)
+=== RUN   TestStorageState_RegisterStorageObserver
+    storage_notify_test.go:51: 
+        	Error Trace:	storage_notify_test.go:51
+        	Error:      	Not equal: 
+        	            	expected: 1
+        	            	actual  : 0
+        	Test:       	TestStorageState_RegisterStorageObserver
+        	Messages:   	Expected number of calls (1) does not match the actual number of calls (0).
+    storage_notify_test.go:52: 
+        	Error Trace:	storage_notify_test.go:52
+        	Error:      	Should have called with given arguments
+        	Test:       	TestStorageState_RegisterStorageObserver
+        	Messages:   	Expected "Update" to have been called with:
+        	            	[[{Key: 0x6d61636b636f6d, Value: 0x77757a2068657265}]]
+        	            	but actual calls were:
+        	            	        []
+        	            	[]
+--- FAIL: TestStorageState_RegisterStorageObserver (0.41s)
+=== RUN   TestStorageState_RegisterStorageObserver_Multi
+--- PASS: TestStorageState_RegisterStorageObserver_Multi (0.50s)
+=== RUN   TestStorageState_RegisterStorageObserver_Multi_Filter
+    storage_notify_test.go:107: 
+--- SKIP: TestStorageState_RegisterStorageObserver_Multi_Filter (0.00s)
+=== RUN   Test_Example
+a-key is now set to a-value
+2022/01/03 11:32:49 stopping subscription
+2022/01/03 11:32:49 waiting for subscription to close
+2022/01/03 11:32:49 subscription closed
+--- PASS: Test_Example (1.23s)
+=== RUN   TestStorage_StoreAndLoadTrie
+--- PASS: TestStorage_StoreAndLoadTrie (0.50s)
+=== RUN   TestStorage_GetStorageByBlockHash
+--- PASS: TestStorage_GetStorageByBlockHash (0.41s)
+=== RUN   TestStorage_TrieState
+--- PASS: TestStorage_TrieState (0.55s)
+=== RUN   TestStorage_LoadFromDB
+--- PASS: TestStorage_LoadFromDB (0.54s)
+=== RUN   TestStorage_StoreTrie_Syncing
+--- PASS: TestStorage_StoreTrie_Syncing (0.49s)
+=== RUN   TestStorage_StoreTrie_NotSyncing
+--- PASS: TestStorage_StoreTrie_NotSyncing (0.37s)
+=== RUN   TestTransactionState_Pending
+    transaction.go:82: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc007238ac0]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/transaction.go:82 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/transaction_test.go:24 has already been called the max number of times
+--- FAIL: TestTransactionState_Pending (0.00s)
+=== RUN   TestTransactionState_NotifierChannels
+    transaction.go:82: Unexpected call to *telemetry.MockTelemetry.SendMessage([0xc007238b60]) at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/transaction.go:82 because: 
+        expected call at /Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/state/transaction_test.go:78 has already been called the max number of times
+--- FAIL: TestTransactionState_NotifierChannels (0.00s)
+FAIL
+FAIL	github.com/ChainSafe/gossamer/dot/state	69.550s
+?   	github.com/ChainSafe/gossamer/dot/state/pruner	[no test files]
+=== RUN   TestBootstrapSyncer_handleWork
+--- PASS: TestBootstrapSyncer_handleWork (0.00s)
+=== RUN   TestBootstrapSyncer_handleWorkerResult
+--- PASS: TestBootstrapSyncer_handleWorkerResult (0.00s)
+=== RUN   TestBootstrapSyncer_handleWorkerResult_errUnknownParent
+--- PASS: TestBootstrapSyncer_handleWorkerResult_errUnknownParent (0.00s)
+=== RUN   TestChainProcessor_HandleBlockResponse_ValidChain
+SIGABRT: abort
+PC=0x7ff817cf7112 m=11 sigcode=0
+
+goroutine 70 [running]:
+runtime: unknown pc 0x7ff817cf7112
+stack: frame={sp:0xc00058bee8, fp:0x0} stack=[0xc00132e000,0xc001332000)
+
+runtime: unknown pc 0x7ff817cf7112
+stack: frame={sp:0xc00058bee8, fp:0x0} stack=[0xc00132e000,0xc001332000)
+
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1306 +0x35a
+
+goroutine 1 [chan receive]:
+testing.(*T).Run(0xc00033e340, {0x4b53c3c, 0xaea1653665cc}, 0x4c95468)
+	/usr/local/go/src/testing/testing.go:1307 +0x375
+testing.runTests.func1(0xc00042a060)
+	/usr/local/go/src/testing/testing.go:1598 +0x6e
+testing.tRunner(0xc00033e340, 0xc000249c60)
+	/usr/local/go/src/testing/testing.go:1259 +0x102
+testing.runTests(0xc0002a6700, {0x556b000, 0x28, 0x28}, {0x5b, 0xc000249d50, 0x5578740})
+	/usr/local/go/src/testing/testing.go:1596 +0x43f
+testing.(*M).Run(0xc0002a6700)
+	/usr/local/go/src/testing/testing.go:1504 +0x51d
+github.com/ChainSafe/gossamer/dot/sync.TestMain(0xc0000001a0)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/sync/syncer_test.go:38 +0x8f
+main.main()
+	_testmain.go:123 +0x165
+
+goroutine 19 [select]:
+github.com/ipfs/go-log/writer.(*MirrorWriter).logRoutine(0xc0002ad920)
+	/Users/eclesiojunior/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:71 +0x110
+created by github.com/ipfs/go-log/writer.NewMirrorWriter
+	/Users/eclesiojunior/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:36 +0xcf
+
+goroutine 20 [select]:
+go.opencensus.io/stats/view.(*worker).start(0xc0002a6200)
+	/Users/eclesiojunior/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:276 +0xb9
+created by go.opencensus.io/stats/view.init.0
+	/Users/eclesiojunior/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:34 +0x92
+
+goroutine 92 [select]:
+github.com/dgraph-io/badger/v2.(*DB).doWrites(0xc00133b400, 0xc0005185e0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:859 +0x215
+created by github.com/dgraph-io/badger/v2.(*DB).unblockWrite
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1547 +0xf4
+
+goroutine 23 [select]:
+github.com/dgraph-io/badger/v2/y.(*WaterMark).process(0xc00042a720, 0xc0005183e0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/y/watermark.go:212 +0x285
+created by github.com/dgraph-io/badger/v2/y.(*WaterMark).Init
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/y/watermark.go:70 +0xaf
+
+goroutine 38 [chan receive]:
+github.com/dgraph-io/badger/v2.(*valueLog).waitOnGC(0xc00133b5d0, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/value.go:1858 +0x6f
+created by github.com/dgraph-io/badger/v2.Open
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:412 +0x18cf
+
+goroutine 90 [select]:
+github.com/dgraph-io/badger/v2.(*levelsController).runCompactor(0xc00052e000, 0x1, 0xc000518560)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/levels.go:390 +0x212
+created by github.com/dgraph-io/badger/v2.(*levelsController).startCompact
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/levels.go:371 +0x55
+
+goroutine 91 [chan receive]:
+github.com/dgraph-io/badger/v2.(*DB).flushMemtable(0xc00133b400, 0x0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1104 +0xb0
+github.com/dgraph-io/badger/v2.(*DB).startMemoryFlush.func1()
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1457 +0x25
+created by github.com/dgraph-io/badger/v2.(*DB).startMemoryFlush
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1456 +0x129
+
+goroutine 24 [select]:
+github.com/dgraph-io/badger/v2/y.(*WaterMark).process(0xc00042a750, 0xc0005183e0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/y/watermark.go:212 +0x285
+created by github.com/dgraph-io/badger/v2/y.(*WaterMark).Init
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/y/watermark.go:70 +0xaf
+
+goroutine 25 [select]:
+github.com/dgraph-io/badger/v2.(*DB).updateSize(0xc00133b400, 0xc000518520)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:1197 +0x145
+created by github.com/dgraph-io/badger/v2.Open
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:357 +0x10a9
+
+goroutine 89 [select]:
+github.com/dgraph-io/badger/v2.(*levelsController).runCompactor(0xc00052e000, 0x0, 0xc000518560)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/levels.go:390 +0x212
+created by github.com/dgraph-io/badger/v2.(*levelsController).startCompact
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/levels.go:371 +0x55
+
+goroutine 102 [select]:
+github.com/dgraph-io/badger/v2.(*valueLog).flushDiscardStats(0xc00133b5d0)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/value.go:1955 +0x15b
+created by github.com/dgraph-io/badger/v2.(*valueLog).open
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/value.go:1114 +0xa5
+
+goroutine 39 [select]:
+github.com/dgraph-io/badger/v2.(*publisher).listenForUpdates(0xc00042a7e0, 0xc00037e080)
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/publisher.go:67 +0x13f
+created by github.com/dgraph-io/badger/v2.Open
+	/Users/eclesiojunior/go/pkg/mod/github.com/dgraph-io/badger/v2@v2.2007.4/db.go:416 +0x19e8
+
+rax    0x0
+rbx    0x20a010000
+rcx    0x0
+rdx    0x0
+rdi    0x2403
+rsi    0x6
+rbp    0xc00058bf10
+rsp    0xc00058bee8
+r8     0x0
+r9     0x4b0
+r10    0x0
+r11    0xb
+r12    0x2403
+r13    0x1
+r14    0x6
+r15    0x16
+rip    0x7ff817cf7112
+rflags 0x246
+cs     0x2b
+fs     0x0
+gs     0x0
+FAIL	github.com/ChainSafe/gossamer/dot/sync	6.496s
+?   	github.com/ChainSafe/gossamer/dot/sync/mocks	[no test files]
+=== RUN   TestService_ChainName
+--- PASS: TestService_ChainName (0.00s)
+=== RUN   TestService_SystemName
+--- PASS: TestService_SystemName (0.00s)
+=== RUN   TestService_SystemVersion
+--- PASS: TestService_SystemVersion (0.00s)
+=== RUN   TestService_Properties
+--- PASS: TestService_Properties (0.00s)
+=== RUN   TestService_Start
+--- PASS: TestService_Start (0.00s)
+=== RUN   TestService_Stop
+--- PASS: TestService_Stop (0.00s)
+PASS
+ok  	github.com/ChainSafe/gossamer/dot/system	1.147s
+=== RUN   TestHandler_SendMulti
+=== PAUSE TestHandler_SendMulti
+=== RUN   TestListenerConcurrency
+=== PAUSE TestListenerConcurrency
+=== CONT  TestHandler_SendMulti
+=== CONT  TestListenerConcurrency
+=== CONT  TestHandler_SendMulti
+    mailer_test.go:153: 
+        	Error Trace:	mailer_test.go:153
+        	Error:      	"{\"best\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"height\":2,\"msg\":\"block.import\",\"origin\":\"NetworkInitialSync\",\"ts\":\"2022-01-03T11:31:46.08511-04:00\"}" does not contain "{\"authorities\":\"json-stringified-ids-of-authorities\",\"authority_id\":\"authority_id\",\"authority_set_id\":\"authority_set_id\",\"msg\":\"afg.authority_set\",\"ts"
+        	Test:       	TestHandler_SendMulti
+--- FAIL: TestHandler_SendMulti (0.03s)
+--- PASS: TestListenerConcurrency (0.07s)
+FAIL
+FAIL	github.com/ChainSafe/gossamer/dot/telemetry	1.345s
+=== RUN   TestBabePrimaryPreDigest_EncodeAndDecode
+--- PASS: TestBabePrimaryPreDigest_EncodeAndDecode (0.00s)
+=== RUN   TestBabeSecondaryPlainPreDigest_EncodeAndDecode
+--- PASS: TestBabeSecondaryPlainPreDigest_EncodeAndDecode (0.00s)
+=== RUN   TestBabeSecondaryVRFPreDigest_EncodeAndDecode
+--- PASS: TestBabeSecondaryVRFPreDigest_EncodeAndDecode (0.00s)
+=== RUN   TestBABEAuthorityRaw
+--- PASS: TestBABEAuthorityRaw (0.00s)
+=== RUN   TestBABEAuthority
+--- PASS: TestBABEAuthority (0.00s)
+=== RUN   TestBABEAuthorities_ToRaw
+--- PASS: TestBABEAuthorities_ToRaw (0.00s)
+=== RUN   TestEpochData
+--- PASS: TestEpochData (0.00s)
+=== RUN   TestNumber
+--- PASS: TestNumber (0.00s)
+=== RUN   TestBlockDataEncodeAndDecodeEmpty
+--- PASS: TestBlockDataEncodeAndDecodeEmpty (0.00s)
+=== RUN   TestBlockDataEncodeAndDecodeHeader
+--- PASS: TestBlockDataEncodeAndDecodeHeader (0.00s)
+=== RUN   TestBlockDataEncodeAndDecodeBody
+--- PASS: TestBlockDataEncodeAndDecodeBody (0.00s)
+=== RUN   TestBlockDataEncodeAndDecodeAll
+--- PASS: TestBlockDataEncodeAndDecodeAll (0.00s)
+=== RUN   TestEmptyBlock
+--- PASS: TestEmptyBlock (0.00s)
+=== RUN   TestEncodeAndDecodeBlock
+--- PASS: TestEncodeAndDecodeBlock (0.00s)
+=== RUN   TestDeepCopyBlock
+--- PASS: TestDeepCopyBlock (0.00s)
+=== RUN   TestMustEncodeBlock
+=== RUN   TestMustEncodeBlock/correct
+=== RUN   TestMustEncodeBlock/correct2
+--- PASS: TestMustEncodeBlock (0.00s)
+    --- PASS: TestMustEncodeBlock/correct (0.00s)
+    --- PASS: TestMustEncodeBlock/correct2 (0.00s)
+=== RUN   TestBodyToSCALEEncodedBody
+--- PASS: TestBodyToSCALEEncodedBody (0.00s)
+=== RUN   TestHasExtrinsics
+--- PASS: TestHasExtrinsics (0.00s)
+=== RUN   TestBodyFromEncodedBytes
+--- PASS: TestBodyFromEncodedBytes (0.00s)
+=== RUN   TestBodyFromExtrinsicStrings
+[0x010203 0x07080900 0x0a0b]
+--- PASS: TestBodyFromExtrinsicStrings (0.00s)
+=== RUN   TestBabeEncodeAndDecode
+--- PASS: TestBabeEncodeAndDecode (0.00s)
+=== RUN   TestEncode
+--- PASS: TestEncode (0.00s)
+=== RUN   TestDecodeSingleDigest
+--- PASS: TestDecodeSingleDigest (0.00s)
+=== RUN   TestDecodeDigest
+--- PASS: TestDecodeDigest (0.00s)
+=== RUN   TestChangesTrieRootDigest
+--- PASS: TestChangesTrieRootDigest (0.00s)
+=== RUN   TestPreRuntimeDigest
+--- PASS: TestPreRuntimeDigest (0.00s)
+=== RUN   TestConsensusDigest
+--- PASS: TestConsensusDigest (0.00s)
+=== RUN   TestSealDigest
+--- PASS: TestSealDigest (0.00s)
+=== RUN   TestEncodeGrandpaVote
+--- PASS: TestEncodeGrandpaVote (0.00s)
+=== RUN   TestEncodeSignedVote
+--- PASS: TestEncodeSignedVote (0.00s)
+=== RUN   TestGrandpaAuthoritiesRawToAuthorities
+--- PASS: TestGrandpaAuthoritiesRawToAuthorities (0.00s)
+=== RUN   TestEmptyHeader
+--- PASS: TestEmptyHeader (0.00s)
+=== RUN   TestEncodeAndDecodeHeader
+--- PASS: TestEncodeAndDecodeHeader (0.00s)
+=== RUN   TestHeaderDeepCopy
+--- PASS: TestHeaderDeepCopy (0.00s)
+PASS
+ok  	github.com/ChainSafe/gossamer/dot/types	1.027s
+FAIL
