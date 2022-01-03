@@ -5,16 +5,16 @@
 package mocks
 
 import (
-	big "math/big"
-	reflect "reflect"
-	time "time"
+	"math/big"
+	"reflect"
+	"time"
 
-	types "github.com/ChainSafe/gossamer/dot/types"
-	common "github.com/ChainSafe/gossamer/lib/common"
-	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	transaction "github.com/ChainSafe/gossamer/lib/transaction"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 )
 
 // MockBlockState is a mock of BlockState interface.
