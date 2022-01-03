@@ -99,8 +99,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 
 	telemetryMock.
 		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
+		SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &Config{
 		BlockState:    st.Block,
