@@ -1,5 +1,67 @@
 coverage:
   range: "60...80"
+  status:
+    gossamer:
+      default:
+        target: 60%
+        # Only require global coverage to be 60%
+        # to allow room for refactors
+      90pc:
+        target: 90%
+        paths:
+          - "internal"
+          - "internal/log"
+          - "internal/pprof"
+          - "internal/trie"
+      80pc:
+        target: 80%
+        paths:
+          - "dot/rpc"
+          - "dot/system"
+          - "dot/telemetry"
+          - "internal/httpserver"
+          - "lib/services"
+      70pc:
+        target: 70%
+        paths:
+          - "pkg"
+          - "pkg/scale"
+          - "lib/runtime/offchain"
+          - "lib/transaction"
+          - "lib/trie"
+      60pc:
+        target: 60%
+        paths:
+          - "dot"
+          - "dot/core"
+          - "dot/digest"
+          - "dot/network"
+          - "dot/peerset"
+          - "dot/sync"
+          - "lib/runtime/life"
+          - "lib/grandpa"
+          - "lib/blocktree"
+      50pc:
+        target: 50%
+        paths:
+          - "cmd"
+          - "cmd/gossamer"
+          - "lib"
+          - "lib/crypto"
+          - "lib/runtime"
+          - "lib/runtime/wasmer"
+          - "lib/runtime/storage"
+          - "lib/babe"
+      33pc:
+        target: 33%
+        paths:
+          - "dot/state"
+          - "dot/types"
+          - "lib/common"
+          - "lib/utils"
+          - "lib/genesis"
+          - "lib/keystore"
+          - "lib/genesis"
 
 comment:
   layout: diff
