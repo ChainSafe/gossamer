@@ -73,6 +73,9 @@ func TestCreateCoreService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
+
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()

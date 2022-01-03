@@ -16,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -164,6 +165,12 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
 		cfg.Syncer = syncer
+	}
+
+	if cfg.Telemetry == nil {
+		telemetryMock := telemetry.NewMockTelemetry(ctrl)
+		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+		cfg.Telemetry = telemetryMock
 	}
 
 	cfg.noPreAllocate = true

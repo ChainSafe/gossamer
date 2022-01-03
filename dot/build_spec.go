@@ -118,26 +118,20 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(">")
-
 	// set genesis fields data
 	ent, err := stateSrvc.Storage.Entries(nil)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(">")
 	err = genesis.BuildFromMap(ent, tmpGen)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(">")
 	// set genesisData
 	gd, err := stateSrvc.DB().Get(common.GenesisDataKey)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(">")
 	gData := &genesis.Data{}
 	err = json.Unmarshal(gd, gData)
 	if err != nil {
