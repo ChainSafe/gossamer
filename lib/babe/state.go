@@ -77,6 +77,8 @@ type EpochState interface {
 	GetEpochFromTime(time.Time) (uint64, error)
 }
 
+//go:generate mockgen -source=./lib/babe/state.go -destination=./lib/babe/mock_state_test.go
+
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
 	HandleDigests(*types.Header)
