@@ -1,5 +1,5 @@
 coverage:
-  range: "50...90"
+  range: "60...80"
 
 ignore:
   - "docs/**/*"
