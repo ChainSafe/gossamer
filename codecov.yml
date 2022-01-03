@@ -1,6 +1,11 @@
 coverage:
   range: "60...80"
 
+comment:
+  layout: diff
+  behavior: once
+  require_changes: true
+
 ignore:
   - "docs/**/*"
   - "tests/**/*"
