@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -19,8 +18,6 @@ import (
 func TestFixFlagOrder(t *testing.T) {
 	testCfg, testConfig := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard

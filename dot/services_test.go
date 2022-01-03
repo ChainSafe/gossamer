@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -29,8 +28,6 @@ func TestCreateStateService(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -59,8 +56,6 @@ func TestCreateCoreService(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -98,8 +93,6 @@ func TestCreateBlockVerifier(t *testing.T) {
 	genFile := newTestGenesisFile(t, cfg)
 	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
@@ -121,8 +114,6 @@ func TestCreateSyncService(t *testing.T) {
 
 	genFile := newTestGenesisFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -159,8 +150,6 @@ func TestCreateNetworkService(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
@@ -184,8 +173,6 @@ func TestCreateRPCService(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -233,8 +220,6 @@ func TestCreateBABEService(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Init.Genesis = genFile.Name()
 
@@ -274,8 +259,6 @@ func TestCreateGrandpaService(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.AuthorityRole
 	cfg.Init.Genesis = genFile.Name()
@@ -344,8 +327,6 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false

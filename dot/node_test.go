@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -32,8 +31,6 @@ func TestInitNode(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -48,8 +45,6 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	genFile := newTestGenesisFile(t, cfg)
 	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
@@ -63,8 +58,6 @@ func TestNodeInitialized(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -85,8 +78,6 @@ func TestNewNode(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -116,8 +107,6 @@ func TestNewNode_Authority(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -150,8 +139,6 @@ func TestStartNode(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 	cfg.Core.GrandpaAuthority = false
@@ -189,8 +176,6 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	genPath := NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genPath
 	cfg.Core.GrandpaAuthority = false
@@ -272,8 +257,6 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	genPath := NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
@@ -334,8 +317,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	genPath := NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
@@ -385,8 +366,6 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 
 	genPath := NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false

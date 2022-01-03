@@ -42,7 +42,7 @@ func newTestGenesis(t *testing.T) *genesis.Genesis {
 
 // NewTestGenesisRawFile returns a test genesis file using "gssmr" raw data
 func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
-	dir := utils.NewTestDir(t)
+	dir := t.TempDir()
 
 	file, err := os.CreateTemp(dir, "genesis-")
 	require.Nil(t, err)
@@ -71,7 +71,7 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
 
 // newTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
 func newTestGenesisFile(t *testing.T, cfg *Config) *os.File {
-	dir := utils.NewTestDir(t)
+	dir := t.TempDir()
 
 	file, err := os.CreateTemp(dir, "genesis-")
 	require.Nil(t, err)
@@ -101,7 +101,7 @@ func newTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 // NewTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
 func NewTestGenesisAndRuntime(t *testing.T) string {
-	dir := utils.NewTestDir(t)
+	dir := t.TempDir()
 
 	_ = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
@@ -133,7 +133,7 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 
 // NewTestConfig returns a new test configuration using the provided basepath
 func NewTestConfig(t *testing.T) *Config {
-	dir := utils.NewTestDir(t)
+	dir := t.TempDir()
 
 	cfg := &Config{
 		Global: GlobalConfig{

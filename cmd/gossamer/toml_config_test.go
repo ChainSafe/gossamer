@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -26,8 +25,6 @@ func TestLoadConfig(t *testing.T) {
 	genFile := dot.NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Init.Genesis = genFile.Name()
 
 	err := dot.InitNode(cfg)
@@ -43,10 +40,8 @@ func TestLoadConfigGssmr(t *testing.T) {
 	cfg := dot.GssmrConfig()
 	require.NotNil(t, cfg)
 
-	cfg.Global.BasePath = utils.NewTestDir(t)
+	cfg.Global.BasePath = t.TempDir()
 	cfg.Init.Genesis = GssmrGenesisPath
-
-	defer utils.RemoveTestDir(t)
 
 	err := dot.InitNode(cfg)
 	require.Nil(t, err)
@@ -60,10 +55,8 @@ func TestLoadConfigKusama(t *testing.T) {
 	cfg := dot.KusamaConfig()
 	require.NotNil(t, cfg)
 
-	cfg.Global.BasePath = utils.NewTestDir(t)
+	cfg.Global.BasePath = t.TempDir()
 	cfg.Init.Genesis = KusamaGenesisPath
-
-	defer utils.RemoveTestDir(t)
 
 	err := dot.InitNode(cfg)
 	require.Nil(t, err)

@@ -10,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -128,10 +127,9 @@ func TestDecodeBlockAnnounceHandshake(t *testing.T) {
 
 func TestHandleBlockAnnounceMessage(t *testing.T) {
 	t.Parallel()
-	basePath := utils.NewTestBasePath(t, "nodeA")
 
 	config := &Config{
-		BasePath:    basePath,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -154,7 +152,7 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	t.Parallel()
 
 	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,

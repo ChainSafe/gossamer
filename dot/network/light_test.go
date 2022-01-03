@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
@@ -90,7 +89,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	t.Parallel()
 
 	config := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -98,7 +97,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	s := createTestService(t, config)
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,

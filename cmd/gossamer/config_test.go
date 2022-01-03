@@ -80,8 +80,6 @@ func TestInitConfigFromFlags(t *testing.T) {
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
-	defer utils.RemoveTestDir(t)
-
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
 
@@ -118,8 +116,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -277,8 +273,6 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
-	defer utils.RemoveTestDir(t)
-
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
 
@@ -331,8 +325,6 @@ func TestAccountConfigFromFlags(t *testing.T) {
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
-	defer utils.RemoveTestDir(t)
-
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
 
@@ -379,8 +371,6 @@ func TestCoreConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -434,8 +424,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -572,8 +560,6 @@ func TestRPCConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -783,8 +769,6 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
-	defer utils.RemoveTestDir(t)
-
 	ctx, err := newTestContext(
 		t.Name(),
 		[]string{"config", "genesis", "name"},
@@ -839,8 +823,6 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 
-	defer utils.RemoveTestDir(t)
-
 	ctx, err := newTestContext(
 		t.Name(),
 		[]string{"config", "genesis", "name"},
@@ -890,8 +872,6 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 func TestUpdateConfigFromGenesisData(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
-
-	defer utils.RemoveTestDir(t)
 
 	ctx, err := newTestContext(
 		t.Name(),
@@ -975,8 +955,6 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	genPath := dot.NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
@@ -1025,8 +1003,6 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 	cfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, cfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	// call another command and test the name
 	testApp := cli.NewApp()

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,10 +17,8 @@ var TestMDNSTimeout = time.Second
 func TestMDNS(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
-
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 	}
@@ -29,10 +26,8 @@ func TestMDNS(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 	}

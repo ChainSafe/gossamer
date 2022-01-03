@@ -13,7 +13,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 	terminal "golang.org/x/term"
@@ -68,7 +67,7 @@ func confirmMessage(msg string) bool {
 
 // newTestConfig returns a new test configuration using the provided basepath
 func newTestConfig(t *testing.T) *dot.Config {
-	dir := utils.NewTestDir(t)
+	dir := t.TempDir()
 
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{

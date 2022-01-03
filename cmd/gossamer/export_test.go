@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -19,11 +18,9 @@ import (
 
 // TestExportCommand test "gossamer export --config"
 func TestExportCommand(t *testing.T) {
-	testDir := utils.NewTestDir(t)
+	testDir := t.TempDir()
 	testCfg, testConfigFile := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard

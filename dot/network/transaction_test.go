@@ -11,7 +11,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -45,10 +44,8 @@ func TestHandleTransactionMessage(t *testing.T) {
 
 	transactionHandler.EXPECT().TransactionsCount().Return(0)
 
-	basePath := utils.NewTestBasePath(t, "nodeA")
-
 	config := &Config{
-		BasePath:           basePath,
+		BasePath:           t.TempDir(),
 		Port:               availablePort(t),
 		NoBootstrap:        true,
 		NoMDNS:             true,

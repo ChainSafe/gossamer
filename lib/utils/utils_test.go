@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +32,7 @@ func TestExpandDir(t *testing.T) {
 	require.NotEqual(t, testDirA, expandedDirA)
 	require.Equal(t, strings.Contains(expandedDirA, homeDir), true)
 
-	testDirB := NewTestBasePath(t, "test")
+	testDirB := t.TempDir()
 
 	expandedDirB := ExpandDir(testDirB)
 
@@ -41,7 +42,7 @@ func TestExpandDir(t *testing.T) {
 
 // TestBasePath tests the BasePath method
 func TestBasePath(t *testing.T) {
-	testDir := NewTestBasePath(t, "test")
+	testDir := t.TempDir()
 
 	homeDir := HomeDir()
 	basePath := BasePath(testDir)
@@ -52,11 +53,10 @@ func TestBasePath(t *testing.T) {
 
 // TestKeystoreDir tests the KeystoreDir method
 func TestKeystoreDir(t *testing.T) {
-	testDir := NewTestBasePath(t, "test")
-	const shouldContains = "/test/keystore"
+	testDir := t.TempDir()
 
 	keystoreDir, err := KeystoreDir(testDir)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	require.Contains(t, keystoreDir, shouldContains)
+	assert.Equal(t, testDir+"/keystore", keystoreDir)
 }

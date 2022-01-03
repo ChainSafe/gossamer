@@ -9,21 +9,18 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
 // TestNewConfig tests the NewTestConfig method
 func TestNewConfig(t *testing.T) {
 	cfg := NewTestConfig(t)
-	defer utils.RemoveTestDir(t)
 	require.NotNil(t, cfg)
 }
 
 // TestNewConfigAndFile tests the NewTestConfigWithFile method
 func TestNewConfigAndFile(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	defer utils.RemoveTestDir(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 }
@@ -35,8 +32,6 @@ func TestNewTestGenesis(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 }

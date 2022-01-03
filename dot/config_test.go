@@ -6,8 +6,6 @@ package dot
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,8 +16,6 @@ func TestExportConfig(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Init.Genesis = genFile.Name()
 
