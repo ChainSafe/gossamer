@@ -59,11 +59,8 @@ var (
 )
 
 func newNetworkService(t *testing.T) *network.Service {
-	testDir := path.Join(os.TempDir(), "test_data")
-
 	cfg := &network.Config{
-		BlockState:   nil,
-		BasePath:     testDir,
+		BasePath:     t.TempDir(),
 		SlotDuration: time.Second,
 	}
 

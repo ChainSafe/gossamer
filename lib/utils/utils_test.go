@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestPathExists tests the NewTestDir method
+// TestPathExists tests the PathExists method
 func TestPathExists(t *testing.T) {
 	require.Equal(t, PathExists("../utils"), true)
 	require.Equal(t, PathExists("../utilzzz"), false)
