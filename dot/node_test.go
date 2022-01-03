@@ -43,7 +43,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisFile(t, cfg)
+	genFile := newTestGenesisFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
@@ -224,7 +224,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	gendata, err := stateSrvc.Base.LoadGenesisData()
 	require.NoError(t, err)
 
-	testGenesis := NewTestGenesis(t)
+	testGenesis := newTestGenesis(t)
 
 	expected := &genesis.Data{
 		Name:       testGenesis.Name,

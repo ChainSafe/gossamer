@@ -15,7 +15,7 @@ import (
 )
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	tt := trie.NewEmptyTrie()
 
 	rt := trie.GenerateRandomTests(t, 1000)
@@ -43,7 +43,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 }
 
 func TestStoreAndLoadGenesisData(t *testing.T) {
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	base := NewBaseState(db)
 
 	bootnodes := common.StringArrayToBytes([]string{
@@ -67,7 +67,7 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 }
 
 func TestLoadStoreEpochLength(t *testing.T) {
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	base := NewBaseState(db)
 
 	length := uint64(2222)
@@ -80,7 +80,7 @@ func TestLoadStoreEpochLength(t *testing.T) {
 }
 
 func TestLoadAndStoreSlotDuration(t *testing.T) {
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	base := NewBaseState(db)
 
 	d := uint64(3000)

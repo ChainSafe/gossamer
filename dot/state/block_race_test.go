@@ -20,7 +20,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 	threads := runtime.NumCPU()
 	dbs := make([]chaindb.Database, threads)
 	for i := 0; i < threads; i++ {
-		dbs[i] = NewInMemoryDB(t)
+		dbs[i] = newInMemoryDB(t)
 	}
 
 	pend := new(sync.WaitGroup)

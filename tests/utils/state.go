@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// GetStorage calls the endpoint state_getStorage
-func GetStorage(t *testing.T, node *Node, key []byte) []byte {
+// getStorage calls the endpoint state_getStorage
+func getStorage(t *testing.T, node *Node, key []byte) []byte {
 	respBody, err := PostRPC(StateGetStorage, NewEndpoint(node.RPCPort), "[\""+common.BytesToHex(key)+"\"]")
 	require.NoError(t, err)
 
