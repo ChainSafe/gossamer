@@ -42,7 +42,7 @@ func TestCalculateThreshold(t *testing.T) {
 				C2:       0,
 				numAuths: 0,
 			},
-			expErr: errors.New("invalid input: C1 and C2 cannot be 0"),
+			expErr: ErrThresholdBothZero,
 		},
 		{
 			name: "C1 > C2",
