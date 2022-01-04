@@ -31,12 +31,7 @@ func newTestTipSyncer(t *testing.T) *tipSyncer {
 
 	readyBlocks := newBlockQueue(maxResponseSize)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
-	cs := &chainSync{
-		blockState:    bs,
-		readyBlocks:   readyBlocks,
-		pendingBlocks: pendingBlocks,
-	}
-	return newTipSyncer(bs, pendingBlocks, readyBlocks, cs.handleReadyBlock)
+	return newTipSyncer(bs, pendingBlocks, readyBlocks, nil)
 }
 
 func TestTipSyncer_handleNewPeerState(t *testing.T) {
@@ -178,10 +173,8 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
-			pendingBlock: s.pendingBlocks.getBlock(common.Hash{0xb}),
 		},
 	}
-
 	w, err = s.handleTick()
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
@@ -208,7 +201,6 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 			targetNumber: uintPtr(header.Number),
 			direction:    network.Ascending,
 			requestData:  network.RequestedDataBody + network.RequestedDataJustification,
-			pendingBlock: s.pendingBlocks.getBlock(header.Hash()),
 		},
 	}
 	w, err := s.handleTick()
@@ -216,7 +208,6 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 	require.Equal(t, expected, w)
 	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
 }
-
 func TestTipSyncer_handleTick_case3(t *testing.T) {
 	s := newTestTipSyncer(t)
 
@@ -261,7 +252,6 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
-			pendingBlock: s.pendingBlocks.getBlock(header.Hash()),
 		},
 	}
 
