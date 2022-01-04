@@ -18,7 +18,6 @@
 !devnet/alice.node.key
 *.wasm
 
-test_data
 tmp
 
 tests/utils/config*
