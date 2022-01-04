@@ -372,7 +372,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	var err error
 	babeService := createTestService(t, cfg)
 
-	babeService.epochData.authorities = []types.Authority{
+	babeService.epochData.authorities = []types.Authority{ 
 		{Key: nil, Weight: 1},
 	}
 
