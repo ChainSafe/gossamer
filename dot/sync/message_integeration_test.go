@@ -32,7 +32,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 				ParentHash: previousHash,
 				Number:     previousNum + i,
 				StateRoot:  trie.EmptyHash,
-				Digest:     digest,
+				Digest:     types.NewDigest(),
 			},
 			Body: types.Body{},
 		}
@@ -367,7 +367,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 	branches := map[uint]int{
 		8: 1,
 	}
-	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), 16, branches)
+	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), 16, branches, 1)
 
 	// base case
 	ancestor, err := s.blockState.GetHashByNumber(1)
@@ -432,7 +432,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 
 	// expected is non-canonical block 16
 	for _, leaf := range leaves {
-		is, err := s.blockState.IsDescendantOf(ancestor, leaf)
+		is, err := s.blockState.IsDescendantOf(ancestor, leaf) //nolint
 		require.NoError(t, err)
 		if is {
 			expected = leaf

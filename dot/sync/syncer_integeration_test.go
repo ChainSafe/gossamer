@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -57,29 +56,19 @@ func newMockBabeVerifier() *mocks.BabeVerifier {
 
 func newMockNetwork() *mocks.Network {
 	m := new(mocks.Network)
-	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
-		mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
+	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 	return m
 }
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-
 func newTestSyncer(t *testing.T) *Service {
 	wasmer.DefaultTestLogLvl = 3
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	cfg := &Config{
-		Telemetry: telemetryMock,
-	}
-
+	cfg := &Config{}
 	testDatadirPath := t.TempDir()
 
 	scfg := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:     testDatadirPath,
+		LogLevel: log.Info,
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
@@ -100,7 +89,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	// initialise runtime
-	genState, err := rtstorage.NewTrieState(genTrie)
+	genState, err := rtstorage.NewTrieState(genTrie) //nolint
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
@@ -124,24 +113,22 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 
 	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On(
-		"HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
-		Return(func(block *types.Block, ts *rtstorage.TrieState) error {
-			// store updates state trie nodes in database
-			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
-				logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
-				return err
-			}
+	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
+		// store updates state trie nodes in database
+		if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
+			logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
+			return err
+		}
 
-			// store block in database
-			err = stateSrvc.Block.AddBlock(block)
-			require.NoError(t, err)
+		// store block in database
+		err = stateSrvc.Block.AddBlock(block)
+		require.NoError(t, err)
 
-			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
-			logger.Debugf("imported block %s and stored state trie with root %s",
-				block.Header.Hash(), ts.MustRoot())
-			return nil
-		})
+		stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
+		logger.Debugf("imported block %s and stored state trie with root %s",
+			block.Header.Hash(), ts.MustRoot())
+		return nil
+	})
 
 	cfg.TransactionState = stateSrvc.Transaction
 	cfg.BabeVerifier = newMockBabeVerifier()

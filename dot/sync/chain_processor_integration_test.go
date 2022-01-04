@@ -206,7 +206,7 @@ func TestChainProcessor_HandleJustification(t *testing.T) {
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
 	digest := types.NewDigest()
-	err = digest.Add(*d)
+	err = digest.Add(d)
 	require.NoError(t, err)
 
 	header := &types.Header{
