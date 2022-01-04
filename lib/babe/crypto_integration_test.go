@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
- 
+
 func TestRunLottery(t *testing.T) {
 	babeService := createTestService(t, nil)
 
