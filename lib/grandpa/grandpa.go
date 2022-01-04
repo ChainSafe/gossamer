@@ -507,8 +507,9 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
-	// <-roundComplete will receive the default value of channel's type when it gets
-	// closed, so we don't need to explicitly send a value.
+	// roundComplete is a signal channel which is closed when the round completes
+	// (will receive the default value of channel's type), so we don't need to
+	// explicitly send a value.
 	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
