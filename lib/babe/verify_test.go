@@ -5,18 +5,16 @@ package babe
 
 import (
 	"errors"
+	"math/big"
+	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"math/big"
-	"testing"
 )
 
 func createNewTestHeader(t *testing.T, digest ...scale.VaryingDataTypeValue) *types.Header {
@@ -195,7 +193,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 
 func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockBlockState := mocks.NewMockBlockState(ctrl)
+	mockBlockState := NewMockBlockState(ctrl)
 
 	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
@@ -287,7 +285,7 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 
 func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockBlockState := mocks.NewMockBlockState(ctrl)
+	mockBlockState := NewMockBlockState(ctrl)
 
 	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
@@ -482,11 +480,11 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockBlockState := mocks.NewMockBlockState(ctrl)
-	mockBlockStateErr := mocks.NewMockBlockState(ctrl)
-	mockBlockStateEquiv1 := mocks.NewMockBlockState(ctrl)
-	mockBlockStateEquiv2 := mocks.NewMockBlockState(ctrl)
-	mockBlockStateEquiv3 := mocks.NewMockBlockState(ctrl)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockStateErr := NewMockBlockState(ctrl)
+	mockBlockStateEquiv1 := NewMockBlockState(ctrl)
+	mockBlockStateEquiv2 := NewMockBlockState(ctrl)
+	mockBlockStateEquiv3 := NewMockBlockState(ctrl)
 
 	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
@@ -785,10 +783,10 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 func TestVerificationManager_getConfigData(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockBlockState := mocks.NewMockBlockState(ctrl)
-	mockEpochStateEmpty := mocks.NewMockEpochState(ctrl)
-	mockEpochStateHasErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateGetErr := mocks.NewMockEpochState(ctrl)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockEpochStateEmpty := NewMockEpochState(ctrl)
+	mockEpochStateHasErr := NewMockEpochState(ctrl)
+	mockEpochStateGetErr := NewMockEpochState(ctrl)
 
 	mockEpochStateEmpty.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, nil)
 	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errors.New("no ConfigData"))
@@ -843,11 +841,11 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 
 func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockBlockState := mocks.NewMockBlockState(ctrl)
-	mockEpochStateGetErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateHasErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateThresholdErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateOk := mocks.NewMockEpochState(ctrl)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockEpochStateGetErr := NewMockEpochState(ctrl)
+	mockEpochStateHasErr := NewMockEpochState(ctrl)
+	mockEpochStateThresholdErr := NewMockEpochState(ctrl)
+	mockEpochStateOk := NewMockEpochState(ctrl)
 
 	mockEpochStateGetErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(nil, errors.New("cant get ConfigData"))
 
@@ -957,19 +955,19 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	testBlockHeaderEmpty.Number = big.NewInt(2)
 
 	ctrl := gomock.NewController(t)
-	mockBlockStateEmpty := mocks.NewMockBlockState(ctrl)
-	mockBlockStateCheckFinErr := mocks.NewMockBlockState(ctrl)
-	mockBlockStateNotFinal := mocks.NewMockBlockState(ctrl)
-	mockBlockStateNotFinal2 := mocks.NewMockBlockState(ctrl)
+	mockBlockStateEmpty := NewMockBlockState(ctrl)
+	mockBlockStateCheckFinErr := NewMockBlockState(ctrl)
+	mockBlockStateNotFinal := NewMockBlockState(ctrl)
+	mockBlockStateNotFinal2 := NewMockBlockState(ctrl)
 
-	mockEpochStateEmpty := mocks.NewMockEpochState(ctrl)
-	mockEpochStateSetSlotErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateGetEpochErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateSkipVerifyErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateSkipVerifyTrue := mocks.NewMockEpochState(ctrl)
-	mockEpochStateGetVerifierInfoErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateNilBlockStateErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateVerifyAuthorshipErr := mocks.NewMockEpochState(ctrl)
+	mockEpochStateEmpty := NewMockEpochState(ctrl)
+	mockEpochStateSetSlotErr := NewMockEpochState(ctrl)
+	mockEpochStateGetEpochErr := NewMockEpochState(ctrl)
+	mockEpochStateSkipVerifyErr := NewMockEpochState(ctrl)
+	mockEpochStateSkipVerifyTrue := NewMockEpochState(ctrl)
+	mockEpochStateGetVerifierInfoErr := NewMockEpochState(ctrl)
+	mockEpochStateNilBlockStateErr := NewMockEpochState(ctrl)
+	mockEpochStateVerifyAuthorshipErr := NewMockEpochState(ctrl)
 
 	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).
 		Return(false, errors.New("failed to check finalisation"))
@@ -1130,18 +1128,18 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	testHeader.Number = big.NewInt(2)
 
 	ctrl := gomock.NewController(t)
-	mockBlockStateEmpty := mocks.NewMockBlockState(ctrl)
-	mockBlockStateIsDescendantErr := mocks.NewMockBlockState(ctrl)
-	mockBlockStateAuthorityDisabled := mocks.NewMockBlockState(ctrl)
-	mockBlockStateOk := mocks.NewMockBlockState(ctrl)
+	mockBlockStateEmpty := NewMockBlockState(ctrl)
+	mockBlockStateIsDescendantErr := NewMockBlockState(ctrl)
+	mockBlockStateAuthorityDisabled := NewMockBlockState(ctrl)
+	mockBlockStateOk := NewMockBlockState(ctrl)
 
-	mockEpochStateGetEpochErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateGetEpochDataErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateIndexLenErr := mocks.NewMockEpochState(ctrl)
-	mockEpochStateSetDisabledProd := mocks.NewMockEpochState(ctrl)
-	mockEpochStateOk := mocks.NewMockEpochState(ctrl)
-	mockEpochStateOk2 := mocks.NewMockEpochState(ctrl)
-	mockEpochStateOk3 := mocks.NewMockEpochState(ctrl)
+	mockEpochStateGetEpochErr := NewMockEpochState(ctrl)
+	mockEpochStateGetEpochDataErr := NewMockEpochState(ctrl)
+	mockEpochStateIndexLenErr := NewMockEpochState(ctrl)
+	mockEpochStateSetDisabledProd := NewMockEpochState(ctrl)
+	mockEpochStateOk := NewMockEpochState(ctrl)
+	mockEpochStateOk2 := NewMockEpochState(ctrl)
+	mockEpochStateOk3 := NewMockEpochState(ctrl)
 
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).
 		Return(uint64(0), errors.New("get epoch error"))

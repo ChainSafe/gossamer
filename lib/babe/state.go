@@ -15,6 +15,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+//go:generate mockgen -source=./state.go -destination=./mock_state_test.go
+
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
@@ -76,8 +78,6 @@ type EpochState interface {
 	SkipVerify(*types.Header) (bool, error)
 	GetEpochFromTime(time.Time) (uint64, error)
 }
-
-//go:generate mockgen -source=./lib/babe/state.go -destination=./lib/babe/mock_state_test.go
 
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {

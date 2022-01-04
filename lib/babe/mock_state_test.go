@@ -2,19 +2,19 @@
 // Source: ./lib/babe/state.go
 
 // Package mock_babe is a generated GoMock package.
-package mocks
+package babe
 
 import (
-	"math/big"
-	"reflect"
-	"time"
+	big "math/big"
+	reflect "reflect"
+	time "time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/golang/mock/gomock"
+	types "github.com/ChainSafe/gossamer/dot/types"
+	common "github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
+	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	transaction "github.com/ChainSafe/gossamer/lib/transaction"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockBlockState is a mock of BlockState interface.
