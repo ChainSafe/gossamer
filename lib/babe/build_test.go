@@ -148,7 +148,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 func TestBuildBlock_ok(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
@@ -202,7 +202,7 @@ func TestBuildBlock_ok(t *testing.T) {
 func TestApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
@@ -297,7 +297,7 @@ func TestApplyExtrinsic(t *testing.T) {
 func TestBuildAndApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
@@ -380,7 +380,7 @@ func TestBuildBlock_failing(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),

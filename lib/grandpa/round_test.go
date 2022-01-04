@@ -95,7 +95,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	telemetryMock.
 		EXPECT().

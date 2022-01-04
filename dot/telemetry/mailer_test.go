@@ -43,17 +43,18 @@ func bootstrapMailer2Test(t *testing.T, resultCh chan []byte) (mailer *Mailer) {
 
 	wsAddr := strings.Replace(srv.URL, "http", "ws", -1)
 
-	// instantiate telemetry to connect to websocket (test) server
-	var testEndpoints []*genesis.TelemetryEndpoint
 	var testEndpoint1 = &genesis.TelemetryEndpoint{
 		Endpoint:  wsAddr,
 		Verbosity: 0,
 	}
 
+	// instantiate telemetry to connect to websocket (test) server
+	testEndpoints := append([]*genesis.TelemetryEndpoint{}, testEndpoint1)
+
 	logger := log.New(log.SetWriter(io.Discard))
 	const telemetryEnabled = true
 
-	mailer, err := BootstrapMailer(context.Background(), append(testEndpoints, testEndpoint1), telemetryEnabled, logger)
+	mailer, err := BootstrapMailer(context.Background(), testEndpoints, telemetryEnabled, logger)
 	require.NoError(t, err)
 
 	return mailer

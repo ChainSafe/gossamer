@@ -108,6 +108,9 @@ func TestCreateBlockVerifier(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
+
 	_, err = createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
@@ -127,6 +130,9 @@ func TestCreateSyncService(t *testing.T) {
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -163,6 +169,9 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
+
 	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, networkSrvc)
@@ -187,6 +196,9 @@ func TestCreateRPCService(t *testing.T) {
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
@@ -232,6 +244,9 @@ func TestCreateBABEService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
+
 	ks := keystore.NewGlobalKeystore()
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -269,6 +284,9 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -343,6 +361,9 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
+
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
 

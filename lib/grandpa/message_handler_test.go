@@ -171,7 +171,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", vm)
@@ -191,7 +191,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
@@ -242,7 +242,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
@@ -281,7 +281,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", fm)
@@ -308,7 +308,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", fm)
@@ -336,7 +336,7 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	_, err = h.handleMessage("", fm)
@@ -349,7 +349,7 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	_, err := h.handleMessage("", req)
@@ -362,7 +362,7 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	_, err := h.handleMessage("", req)
@@ -431,7 +431,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", req)
@@ -442,7 +442,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 func TestVerifyJustification(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
@@ -461,7 +461,7 @@ func TestVerifyJustification(t *testing.T) {
 func TestVerifyJustification_InvalidSignature(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
@@ -481,7 +481,7 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
@@ -504,7 +504,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
@@ -524,7 +524,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
@@ -551,7 +551,7 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
@@ -810,7 +810,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	gs, st := newTestService(t)
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
@@ -876,7 +876,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
@@ -950,7 +950,7 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 func Test_VerifyPreCommitJustification(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	telemetryMock.
 		EXPECT().

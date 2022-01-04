@@ -31,7 +31,7 @@ import (
 func newTestService(t *testing.T) (state *Service) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDir := utils.NewTestDir(t)
 	config := Config{
@@ -46,7 +46,7 @@ func newTestService(t *testing.T) (state *Service) {
 func newTestMemDBService(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDatadirPath := t.TempDir()
 	config := Config{
@@ -65,6 +65,9 @@ func TestService_Start(t *testing.T) {
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = state.SetupBase()
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -87,6 +90,9 @@ func TestService_Initialise(t *testing.T) {
 	require.NoError(t, err)
 
 	err = state.Initialise(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = state.SetupBase()
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -119,7 +125,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
 		Path:      testDir,
@@ -131,6 +137,9 @@ func TestService_BlockTree(t *testing.T) {
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateA.SetupBase()
 	require.NoError(t, err)
 
 	err = stateA.Start()
@@ -148,6 +157,9 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateB := NewService(config)
 
+	err = stateB.SetupBase()
+	require.NoError(t, err)
+
 	err = stateB.Start()
 	require.NoError(t, err)
 
@@ -162,7 +174,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	retainBlocks := 2
 	config := Config{
@@ -219,7 +231,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
 		Path:      testDir,
@@ -305,7 +317,7 @@ func TestService_Rewind(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
 		Path:      testDir,
@@ -366,7 +378,7 @@ func TestService_Import(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
 		Path:      testDir,
@@ -436,7 +448,7 @@ func TestStateServiceMetrics(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any())
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
 		Path:      testDir,

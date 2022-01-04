@@ -221,6 +221,9 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 
+	err = stateSrvc.SetupBase()
+	require.NoError(t, err)
+
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
