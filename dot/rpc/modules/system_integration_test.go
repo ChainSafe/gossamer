@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path"
 	"testing"
 	"time"
 
