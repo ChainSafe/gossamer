@@ -207,29 +207,29 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	storage, err := NewStorageState(db, blockState, genTrie, pruner.Config{})
 	require.NoError(t, err)
 
-	ts, err := runtime.NewTrieState(genTrie)
+	trieState, err := runtime.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(blockState.GenesisHash(), ts.MustRoot(),
+	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
 		common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
-	err = storage.StoreTrie(ts, header)
+	err = storage.StoreTrie(trieState, header)
 	require.NoError(t, err)
 
-	root, err := genTrie.Hash()
+	rootHash, err := genTrie.Hash()
 	require.NoError(t, err)
 
-	_, err = storage.GetStorageChild(&root, []byte("keyToChild"))
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.tries.Delete(root)
+	storage.tries.Delete(rootHash)
 
-	_, err = storage.GetStorageChild(&root, []byte("keyToChild"))
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
-	value, err := storage.GetStorageFromChild(&root, []byte("keyToChild"), []byte("keyInsidechild"))
+	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)
