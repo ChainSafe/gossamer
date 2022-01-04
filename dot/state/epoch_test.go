@@ -27,7 +27,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 }
 
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
-	db := newInMemoryDB(t)
+	db := NewInMemoryDB(t)
 	s, err := NewEpochStateFromGenesis(db, newTestBlockState(t, nil), genesisBABEConfig)
 	require.NoError(t, err)
 	return s

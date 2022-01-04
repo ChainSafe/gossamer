@@ -25,7 +25,7 @@ var testGenesisHeader = &types.Header{
 }
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
-	db := newInMemoryDB(t)
+	db := NewInMemoryDB(t)
 	if header == nil {
 		header = testGenesisHeader
 	}

@@ -23,21 +23,12 @@ var DefaultTestLogLvl = log.Info
 
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
-	return newTestInstanceWithTrie(t, targetRuntime, nil, DefaultTestLogLvl)
+	return NewTestInstanceWithTrie(t, targetRuntime, nil)
 }
 
 // NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
-func newTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Level) *Instance {
+func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	fp, cfg := setupConfig(t, targetRuntime, tt, DefaultTestLogLvl, 0)
-	r, err := NewInstanceFromFile(fp, cfg)
-	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
-	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
-	return r
-}
-
-// NewTestInstanceWithRole returns a test runtime with given role value
-func newTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Instance {
-	fp, cfg := setupConfig(t, targetRuntime, nil, DefaultTestLogLvl, role)
 	r, err := NewInstanceFromFile(fp, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)

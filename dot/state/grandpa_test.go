@@ -22,7 +22,7 @@ var (
 )
 
 func TestNewGrandpaStateFromGenesis(t *testing.T) {
-	db := newInMemoryDB(t)
+	db := NewInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
@@ -40,7 +40,7 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 }
 
 func TestGrandpaState_SetNextChange(t *testing.T) {
-	db := newInMemoryDB(t)
+	db := NewInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
@@ -57,7 +57,7 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 }
 
 func TestGrandpaState_IncrementSetID(t *testing.T) {
-	db := newInMemoryDB(t)
+	db := NewInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
@@ -70,7 +70,7 @@ func TestGrandpaState_IncrementSetID(t *testing.T) {
 }
 
 func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
-	db := newInMemoryDB(t)
+	db := NewInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
@@ -102,7 +102,7 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 }
 
 func TestGrandpaState_LatestRound(t *testing.T) {
-	db := newInMemoryDB(t)
+	db := NewInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 

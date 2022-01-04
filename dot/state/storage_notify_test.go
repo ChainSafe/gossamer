@@ -171,7 +171,7 @@ func Test_Example(t *testing.T) {
 	bValue := []byte("b-value")
 
 	// Open the DB.
-	db := newInMemoryDB(t)
+	db := NewInMemoryDB(t)
 
 	// Create the context here so we can cancel it after sending the writes.
 	ctx, cancel := context.WithCancel(context.Background())
