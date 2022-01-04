@@ -32,7 +32,7 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
+ 
 var (
 	defaultTestLogLvl = log.Info
 	emptyHash         = trie.EmptyHash
