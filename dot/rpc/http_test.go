@@ -10,7 +10,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -31,7 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
@@ -370,119 +368,83 @@ func externalIP() (string, error) {
 func newCoreServiceTest(t *testing.T) *core.Service {
 	t.Helper()
 
-	cfg := &core.Config{}
-
-	cfg.DigestHandler = new(coremocks.DigestHandler)
-	cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
-
-	if cfg.Keystore == nil {
-		cfg.Keystore = keystore.NewGlobalKeystore()
-		kp, err := sr25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = cfg.Keystore.Acco.Insert(kp)
-		require.NoError(t, err)
-	}
-
-	cfg.LogLvl = 3
-
-	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
-	if cfg.BlockState == nil || cfg.StorageState == nil ||
-		cfg.TransactionState == nil || cfg.EpochState == nil ||
-		cfg.CodeSubstitutedState == nil {
+	ctrl := gomock.NewController(t)
+	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-		ctrl := gomock.NewController(t)
-		telemetryMock := telemetry.NewMockTelemetry(ctrl)
-		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-		config := state.Config{
-			Path:      testDatadirPath,
-			LogLevel:  log.Info,
-			Telemetry: telemetryMock,
-		}
-
-		stateSrvc = state.NewService(config)
-		stateSrvc.UseMemDB()
-
-		err := stateSrvc.Initialise(gen, genHeader, genTrie)
-		require.Nil(t, err)
-
-		err = stateSrvc.Start()
-		require.Nil(t, err)
+	config := state.Config{
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 
-	if cfg.BlockState == nil {
-		cfg.BlockState = stateSrvc.Block
+	stateSrvc := state.NewService(config)
+	stateSrvc.UseMemDB()
+
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	require.Nil(t, err)
+
+	err = stateSrvc.SetupBase()
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.Nil(t, err)
+
+	cfg := &core.Config{
+		LogLvl:               3,
+		EpochState:           stateSrvc.Epoch,
+		BlockState:           stateSrvc.Block,
+		StorageState:         stateSrvc.Storage,
+		TransactionState:     stateSrvc.Transaction,
+		CodeSubstitutedState: stateSrvc.Base,
 	}
 
-	if cfg.StorageState == nil {
-		cfg.StorageState = stateSrvc.Storage
+	cfg.DigestHandler = new(coremocks.DigestHandler)
+	cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
+
+	cfg.Keystore = keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	err = cfg.Keystore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	rtCfg := &wasmer.Config{}
+
+	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	require.NoError(t, err)
+
+	nodeStorage := runtime.NodeStorage{
+		BaseDB: stateSrvc.Base,
 	}
+	rtCfg.NodeStorage = nodeStorage
 
-	if cfg.TransactionState == nil {
-		cfg.TransactionState = stateSrvc.Transaction
-	}
+	cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
 
-	if cfg.EpochState == nil {
-		cfg.EpochState = stateSrvc.Epoch
-	}
-
-	if cfg.CodeSubstitutedState == nil {
-		cfg.CodeSubstitutedState = stateSrvc.Base
-	}
-
-	if cfg.Runtime == nil {
-		rtCfg := &wasmer.Config{}
-
-		var err error
-		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
-		require.NoError(t, err)
-
-		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
-		require.NoError(t, err)
-
-		nodeStorage := runtime.NodeStorage{}
-
-		if stateSrvc != nil {
-			nodeStorage.BaseDB = stateSrvc.Base
-		} else {
-			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-			require.NoError(t, err)
-		}
-
-		rtCfg.NodeStorage = nodeStorage
-
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
-		require.NoError(t, err)
-	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
-	if cfg.Network == nil {
-		net := new(coremocks.Network)
-		net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
-		net.On("IsSynced").Return(true)
-		net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
-		cfg.Network = net
-	}
+	net := new(coremocks.Network)
+	net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
+	net.On("IsSynced").Return(true)
+	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 
-	if cfg.CodeSubstitutes == nil {
-		cfg.CodeSubstitutes = make(map[common.Hash]string)
+	cfg.Network = net
 
-		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData()
-		require.NoError(t, err)
+	cfg.CodeSubstitutes = make(map[common.Hash]string)
 
-		for k, v := range genesisData.CodeSubstitutes {
-			cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
-		}
-	}
+	genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData()
+	require.NoError(t, err)
 
-	if cfg.CodeSubstitutedState == nil {
-		cfg.CodeSubstitutedState = stateSrvc.Base
+	for k, v := range genesisData.CodeSubstitutes {
+		cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
 	}
 
 	s, err := core.NewService(cfg)
