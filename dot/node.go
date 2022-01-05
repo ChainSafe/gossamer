@@ -357,7 +357,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	return node, nil
 }
 
-func setupTelemetry(cfg *Config, genesisData *genesis.Data) (*telemetry.Mailer, error) {
+func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer *telemetry.Mailer, err error) {
 	var telemetryEndpoints []*genesis.TelemetryEndpoint
 	if len(cfg.Global.TelemetryURLs) == 0 && genesisData != nil {
 		telemetryEndpoints = append(telemetryEndpoints, genesisData.TelemetryEndpoints...)
