@@ -32,15 +32,15 @@ func TestHandleTransactionMessage(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-
 	expectedMsgArg := &TransactionMessage{
 		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
 	}
 
 	transactionHandler := NewMockTransactionHandler(ctrl)
 	transactionHandler.EXPECT().
-		HandleTransactionMessage(gomock.Any(), expectedMsgArg).
+		HandleTransactionMessage(peer.ID(""), expectedMsgArg).
 		Return(true, nil).MaxTimes(1)
+
 	transactionHandler.EXPECT().TransactionsCount().Return(0).MaxTimes(1)
 
 	basePath := utils.NewTestBasePath(t, "nodeA")
@@ -54,5 +54,8 @@ func TestHandleTransactionMessage(t *testing.T) {
 	}
 
 	s := createTestService(t, config)
-	s.handleTransactionMessage(peer.ID(""), expectedMsgArg)
+	ret, err := s.handleTransactionMessage(peer.ID(""), expectedMsgArg)
+
+	require.NoError(t, err)
+	require.True(t, ret)
 }
