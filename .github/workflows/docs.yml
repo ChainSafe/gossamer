@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - development
+    paths:
+      - .github/workflows/docs.yml
+      - "docs/**"
 
 jobs:
   build:
