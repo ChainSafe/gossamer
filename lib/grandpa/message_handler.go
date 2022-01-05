@@ -59,7 +59,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
 		err := h.handleCatchUpResponse(msg)
-		if err == blocktree.ErrNodeNotFound {
+		if errors.Is(err, blocktree.ErrNodeNotFound) {
 			// TODO: we are adding these messages to reprocess them again, but we
 			// haven't added code to reprocess them. Do that.
 			// Also, revisit if we need to add these message in synchronous manner
