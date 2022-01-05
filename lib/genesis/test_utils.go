@@ -5,9 +5,8 @@ package genesis
 
 import (
 	"encoding/json"
-	"io/fs"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -94,7 +93,7 @@ func CreateTestGenesisJSONFile(t *testing.T, asRaw bool) (filename string) {
 	bz, err := json.Marshal(tGen)
 	require.NoError(t, err)
 	filename = filepath.Join(t.TempDir(), "genesis-test")
-	err = ioutil.WriteFile(filename, bz, fs.ModePerm)
+	err = os.WriteFile(filename, bz, os.ModePerm)
 	require.NoError(t, err)
 	return filename
 }

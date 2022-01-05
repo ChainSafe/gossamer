@@ -39,7 +39,7 @@ func TestExportCommand(t *testing.T) {
 		{
 			"Test gossamer export --config --genesis --basepath --name --log --force",
 			[]string{"config", "genesis", "basepath", "name", "log", "force"},
-			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.Info.String(), "true"},
+			[]interface{}{testConfig, genFile, testDir, testName, log.Info.String(), "true"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
 					Name:           testName,
@@ -60,7 +60,7 @@ func TestExportCommand(t *testing.T) {
 					FinalityGadgetLvl: log.Info,
 				},
 				Init: dot.InitConfig{
-					Genesis: genFile.Name(),
+					Genesis: genFile,
 				},
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
@@ -82,13 +82,13 @@ func TestExportCommand(t *testing.T) {
 			"Test gossamer export --config --genesis --bootnodes --log --force",
 			[]string{"config", "genesis", "bootnodes", "name", "force", "pruning", "retain-blocks"},
 			[]interface{}{
-				testConfig, genFile.Name(), testBootnode,
+				testConfig, genFile, testBootnode,
 				"Gossamer", "true", gssmr.DefaultPruningMode,
 				gssmr.DefaultRetainBlocks},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
-					Genesis: genFile.Name(),
+					Genesis: genFile,
 				},
 				Log: dot.LogConfig{
 					CoreLvl:           log.Info,
@@ -120,13 +120,13 @@ func TestExportCommand(t *testing.T) {
 			"Test gossamer export --config --genesis --protocol --log --force",
 			[]string{"config", "genesis", "protocol", "force", "name", "pruning", "retain-blocks"},
 			[]interface{}{
-				testConfig, genFile.Name(), testProtocol,
+				testConfig, genFile, testProtocol,
 				"true", "Gossamer", gssmr.DefaultPruningMode,
 				gssmr.DefaultRetainBlocks},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
-					Genesis: genFile.Name(),
+					Genesis: genFile,
 				},
 				Log: dot.LogConfig{
 					CoreLvl:           log.Info,

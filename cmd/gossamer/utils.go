@@ -7,13 +7,13 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 	terminal "golang.org/x/term"
 )
@@ -108,10 +108,9 @@ func newTestConfig(t *testing.T) *dot.Config {
 func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	cfg := newTestConfig(t)
 
-	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
-	require.NoError(t, err)
+	filename := filepath.Join(cfg.Global.BasePath, "config.toml")
 
 	tomlCfg := dotConfigToToml(cfg)
-	cfgFile := exportConfig(tomlCfg, file.Name())
+	cfgFile := exportConfig(tomlCfg, filename)
 	return cfg, cfgFile
 }

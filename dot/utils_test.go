@@ -4,7 +4,6 @@
 package dot
 
 import (
-	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -31,9 +30,8 @@ func TestNewTestGenesis(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 }
 
 func TestNewTestGenesisFile(t *testing.T) {
@@ -41,16 +39,12 @@ func TestNewTestGenesisFile(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genHRFile := newTestGenesisFile(t, cfg)
-	require.NotNil(t, genHRFile)
-	defer os.Remove(genHRFile.Name())
 
 	genRawFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genRawFile)
-	defer os.Remove(genRawFile.Name())
 
-	genHR, err := genesis.NewGenesisFromJSON(genHRFile.Name(), 0)
+	genHR, err := genesis.NewGenesisFromJSON(genHRFile, 0)
 	require.NoError(t, err)
-	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile.Name())
+	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
 	// values from raw genesis file should equal values generated from human readable genesis file
@@ -62,11 +56,8 @@ func TestTrieSnapshot(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genRawFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genRawFile)
 
-	defer os.Remove(genRawFile.Name())
-
-	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile.Name())
+	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
 	tri := trie.NewEmptyTrie()

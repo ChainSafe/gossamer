@@ -30,22 +30,22 @@ func TestFixFlagOrder(t *testing.T) {
 		{
 			"Test gossamer --config --genesis --log --force --pruning --retain-blocks",
 			[]string{"config", "genesis", "log", "force", "pruning", "retain-blocks"},
-			[]interface{}{testConfig.Name(), genFile.Name(), "trace", true, dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			[]interface{}{testConfig.Name(), genFile, "trace", true, dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 		},
 		{
 			"Test gossamer --config --genesis --force --log --pruning --retain-blocks",
 			[]string{"config", "genesis", "force", "log", "pruning", "retain-blocks"},
-			[]interface{}{testConfig.Name(), genFile.Name(), true, "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			[]interface{}{testConfig.Name(), genFile, true, "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 		},
 		{
 			"Test gossamer --config --force --genesis --log ---pruning --retain-blocks",
 			[]string{"config", "force", "genesis", "log", "pruning", "retain-blocks"},
-			[]interface{}{testConfig.Name(), true, genFile.Name(), "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			[]interface{}{testConfig.Name(), true, genFile, "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 		},
 		{
 			"Test gossamer --force --config --genesis --log --pruning --retain-blocks",
 			[]string{"force", "config", "genesis", "log", "pruning", "retain-blocks"},
-			[]interface{}{true, testConfig.Name(), genFile.Name(), "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			[]interface{}{true, testConfig.Name(), genFile, "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 		},
 	}
 

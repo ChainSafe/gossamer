@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEncryptAndDecrypt(t *testing.T) {
@@ -64,27 +65,17 @@ func TestEncryptAndDecryptPrivateKey(t *testing.T) {
 	}
 }
 
-func createTestFile(t *testing.T) (*os.File, string) {
-	filename := "./test_key"
-
-	fp, err := filepath.Abs(filename)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	file, err := os.Create(fp)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return file, fp
+func createTestFile(t *testing.T) (file *os.File) {
+	filename := filepath.Join(t.TempDir(), "test_key")
+	file, err := os.Create(filename)
+	require.NoError(t, err)
+	return file
 }
 
 func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 	password := []byte("noot")
 
-	file, fp := createTestFile(t)
-	defer os.Remove(fp)
+	file := createTestFile(t)
 
 	kp, err := ed25519.GenerateKeypair()
 	if err != nil {
@@ -97,7 +88,7 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := ReadFromFileAndDecrypt(fp, password)
+	res, err := ReadFromFileAndDecrypt(file.Name(), password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,8 +100,7 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 
 func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 	password := []byte("noot")
-	file, fp := createTestFile(t)
-	defer os.Remove(fp)
+	file := createTestFile(t)
 
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
@@ -123,7 +113,7 @@ func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := ReadFromFileAndDecrypt(fp, password)
+	res, err := ReadFromFileAndDecrypt(file.Name(), password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,8 +125,7 @@ func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 
 func TestEncryptAndDecryptFromFile_Secp256k1(t *testing.T) {
 	password := []byte("noot")
-	file, fp := createTestFile(t)
-	defer os.Remove(fp)
+	file := createTestFile(t)
 
 	kp, err := secp256k1.GenerateKeypair()
 	if err != nil {
@@ -149,7 +138,7 @@ func TestEncryptAndDecryptFromFile_Secp256k1(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := ReadFromFileAndDecrypt(fp, password)
+	res, err := ReadFromFileAndDecrypt(file.Name(), password)
 	if err != nil {
 		t.Fatal(err)
 	}

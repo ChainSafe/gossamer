@@ -41,11 +41,8 @@ func newTestGenesis(t *testing.T) *genesis.Genesis {
 }
 
 // NewTestGenesisRawFile returns a test genesis file using "gssmr" raw data
-func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
-	dir := t.TempDir()
-
-	file, err := os.CreateTemp(dir, "genesis-")
-	require.Nil(t, err)
+func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
+	filename = filepath.Join(t.TempDir(), "genesis.json")
 
 	fp := utils.GetGssmrGenesisRawPath()
 
@@ -63,19 +60,14 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
 	b, err := json.Marshal(gen)
 	require.Nil(t, err)
 
-	_, err = file.Write(b)
-	require.Nil(t, err)
+	err = os.WriteFile(filename, b, os.ModePerm)
+	require.NoError(t, err)
 
-	return file
+	return filename
 }
 
 // newTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
-func newTestGenesisFile(t *testing.T, cfg *Config) *os.File {
-	dir := t.TempDir()
-
-	file, err := os.CreateTemp(dir, "genesis-")
-	require.Nil(t, err)
-
+func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	fp := utils.GetGssmrGenesisPath()
 
 	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
@@ -90,19 +82,18 @@ func newTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 	}
 
 	b, err := json.Marshal(gen)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	_, err = file.Write(b)
-	require.Nil(t, err)
+	filename = filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(filename, b, os.ModePerm)
+	require.NoError(t, err)
 
-	return file
+	return filename
 }
 
 // NewTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
-func NewTestGenesisAndRuntime(t *testing.T) string {
-	dir := t.TempDir()
-
+func NewTestGenesisAndRuntime(t *testing.T) (filename string) {
 	_ = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
 
@@ -119,16 +110,14 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 	gen.Genesis.Raw["top"]["0x3a636f6465"] = "0x" + hex
 	gen.Genesis.Raw["top"]["0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f"] = "0x0000000000000001"
 
-	genFile, err := os.CreateTemp(dir, "genesis-")
-	require.Nil(t, err)
-
 	genData, err := json.Marshal(gen)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	_, err = genFile.Write(genData)
-	require.Nil(t, err)
+	filename = filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(filename, genData, os.ModePerm)
+	require.NoError(t, err)
 
-	return genFile.Name()
+	return filename
 }
 
 // NewTestConfig returns a new test configuration using the provided basepath
@@ -158,10 +147,11 @@ func NewTestConfig(t *testing.T) *Config {
 func newTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 	cfg := NewTestConfig(t)
 
-	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
+	configPath := filepath.Join(cfg.Global.BasePath, "config.toml")
+	err := os.WriteFile(configPath, nil, os.ModePerm)
 	require.NoError(t, err)
 
-	cfgFile := exportConfig(cfg, file.Name())
+	cfgFile := exportConfig(cfg, configPath)
 	return cfg, cfgFile
 }
 

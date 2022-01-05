@@ -30,9 +30,8 @@ func TestInitNode(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -43,9 +42,8 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -57,9 +55,8 @@ func TestNodeInitialized(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	expected := NodeInitialized(cfg.Global.BasePath)
 	require.Equal(t, expected, false)
@@ -77,9 +74,8 @@ func TestNewNode(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -106,9 +102,8 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -138,9 +133,8 @@ func TestStartNode(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 	cfg.Core.GrandpaAuthority = false
 	cfg.Core.BABELead = true
 
