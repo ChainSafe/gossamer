@@ -374,11 +374,10 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 			hash, err)
 	}
 
-	n.SetDirty(false)
-
 	switch n.Type() {
 	case node.BranchType, node.BranchWithValueType:
 	default: // not a branch
+		n.SetDirty(false)
 		return nil
 	}
 
@@ -395,6 +394,8 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 			return err
 		}
 	}
+
+	branch.SetDirty(false)
 
 	return nil
 }
