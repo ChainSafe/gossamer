@@ -3,6 +3,8 @@
 
 package telemetry
 
+var _ Message = (*TxpoolImportTM)(nil)
+
 // TxpoolImportTM holds `txpool.import` telemetry message, which is supposed to be
 // sent when a new transaction gets imported in the transaction pool.
 type TxpoolImportTM struct {
@@ -11,8 +13,8 @@ type TxpoolImportTM struct {
 }
 
 // NewTxpoolImportTM creates a new TxpoolImportTM struct
-func NewTxpoolImportTM(ready, future uint) TxpoolImportTM {
-	return TxpoolImportTM{
+func NewTxpoolImportTM(ready, future uint) *TxpoolImportTM {
+	return &TxpoolImportTM{
 		Ready:  ready,
 		Future: future,
 	}

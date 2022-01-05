@@ -3,6 +3,8 @@
 
 package telemetry
 
+var _ Message = (*AfgAuthoritySetTM)(nil)
+
 // AfgAuthoritySetTM is a telemetry message of type `afg.authority_set` which is
 // meant to be sent when authority set changes (generally when a round is initiated)
 type AfgAuthoritySetTM struct {
@@ -14,8 +16,8 @@ type AfgAuthoritySetTM struct {
 }
 
 // NewAfgAuthoritySetTM creates a new AfgAuthoritySetTM struct.
-func NewAfgAuthoritySetTM(authorityID, authoritySetID, authorities string) AfgAuthoritySetTM {
-	return AfgAuthoritySetTM{
+func NewAfgAuthoritySetTM(authorityID, authoritySetID, authorities string) *AfgAuthoritySetTM {
+	return &AfgAuthoritySetTM{
 		AuthorityID:    authorityID,
 		AuthoritySetID: authoritySetID,
 		Authorities:    authorities,

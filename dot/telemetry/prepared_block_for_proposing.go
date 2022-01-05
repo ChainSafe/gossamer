@@ -7,6 +7,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var _ Message = (*PreparedBlockForProposingTM)(nil)
+
 // PreparedBlockForProposingTM holds a 'prepared_block_for_proposing' telemetry
 // message, which is supposed to be sent when a new block is built.
 type PreparedBlockForProposingTM struct {
@@ -17,8 +19,8 @@ type PreparedBlockForProposingTM struct {
 }
 
 // NewPreparedBlockForProposingTM gets a new PreparedBlockForProposingTM struct.
-func NewPreparedBlockForProposingTM(hash common.Hash, number string) PreparedBlockForProposingTM {
-	return PreparedBlockForProposingTM{
+func NewPreparedBlockForProposingTM(hash common.Hash, number string) *PreparedBlockForProposingTM {
+	return &PreparedBlockForProposingTM{
 		Hash:   hash,
 		Number: number,
 	}

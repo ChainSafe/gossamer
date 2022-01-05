@@ -7,6 +7,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var _ Message = (*NotifyFinalizedTM)(nil)
+
 // NotifyFinalizedTM holds `notify.finalized` telemetry message, which is
 // supposed to be send when a new block gets finalised.
 type NotifyFinalizedTM struct {
@@ -16,8 +18,8 @@ type NotifyFinalizedTM struct {
 }
 
 // NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
-func NewNotifyFinalizedTM(best common.Hash, height string) NotifyFinalizedTM {
-	return NotifyFinalizedTM{
+func NewNotifyFinalizedTM(best common.Hash, height string) *NotifyFinalizedTM {
+	return &NotifyFinalizedTM{
 		Best:   best,
 		Height: height,
 	}

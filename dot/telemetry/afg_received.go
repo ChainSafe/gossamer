@@ -7,6 +7,10 @@ import "github.com/ChainSafe/gossamer/lib/common"
 
 // AfG ("Al's Finality Gadget") is synonymous with GRANDPA.
 
+var _ Message = (*AfgReceivedPrecommitTM)(nil)
+var _ Message = (*AfgReceivedPrevoteTM)(nil)
+var _ Message = (*AfgReceivedCommitTM)(nil)
+
 type afgReceivedTM struct {
 	TargetHash   common.Hash `json:"target_hash"`
 	TargetNumber string      `json:"target_number"`
@@ -18,8 +22,8 @@ type afgReceivedTM struct {
 type AfgReceivedPrecommitTM afgReceivedTM
 
 // NewAfgReceivedPrecommitTM gets a new AfgReceivedPrecommitTM struct.
-func NewAfgReceivedPrecommitTM(targetHash common.Hash, targetNumber, voter string) AfgReceivedPrecommitTM {
-	return AfgReceivedPrecommitTM{
+func NewAfgReceivedPrecommitTM(targetHash common.Hash, targetNumber, voter string) *AfgReceivedPrecommitTM {
+	return &AfgReceivedPrecommitTM{
 		TargetHash:   targetHash,
 		TargetNumber: targetNumber,
 		Voter:        voter,
@@ -35,8 +39,8 @@ func (AfgReceivedPrecommitTM) messageType() string {
 type AfgReceivedPrevoteTM afgReceivedTM
 
 // NewAfgReceivedPrevoteTM gets a new AfgReceivedPrevoteTM struct.
-func NewAfgReceivedPrevoteTM(targetHash common.Hash, targetNumber, voter string) AfgReceivedPrevoteTM {
-	return AfgReceivedPrevoteTM{
+func NewAfgReceivedPrevoteTM(targetHash common.Hash, targetNumber, voter string) *AfgReceivedPrevoteTM {
+	return &AfgReceivedPrevoteTM{
 		TargetHash:   targetHash,
 		TargetNumber: targetNumber,
 		Voter:        voter,
@@ -56,8 +60,9 @@ type AfgReceivedCommitTM struct {
 }
 
 // NewAfgReceivedCommitTM gets a new AfgReceivedCommitTM struct.
-func NewAfgReceivedCommitTM(targetHash common.Hash, targetNumber string, containsPrecommitsSignedBy []string) AfgReceivedCommitTM {
-	return AfgReceivedCommitTM{
+func NewAfgReceivedCommitTM(targetHash common.Hash, targetNumber string,
+	containsPrecommitsSignedBy []string) *AfgReceivedCommitTM {
+	return &AfgReceivedCommitTM{
 		TargetHash:                 targetHash,
 		TargetNumber:               targetNumber,
 		ContainsPrecommitsSignedBy: containsPrecommitsSignedBy,

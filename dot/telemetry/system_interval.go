@@ -9,6 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var _ Message = (*SystemIntervalTM)(nil)
+
 // SystemIntervalTM struct to hold system interval telemetry messages
 type SystemIntervalTM struct {
 	BandwidthDownload  float64      `json:"bandwidth_download,omitempty"`
@@ -23,8 +25,8 @@ type SystemIntervalTM struct {
 }
 
 // NewBandwidthTM function to create new Bandwidth Telemetry Message
-func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) SystemIntervalTM {
-	return SystemIntervalTM{
+func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) *SystemIntervalTM {
+	return &SystemIntervalTM{
 		BandwidthDownload: bandwidthDownload,
 		BandwidthUpload:   bandwidthUpload,
 		Peers:             peers,
@@ -33,8 +35,8 @@ func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) Syste
 
 // NewBlockIntervalTM function to create new Block Interval Telemetry Message
 func NewBlockIntervalTM(beshHash *common.Hash, bestHeight *big.Int, finalisedHash *common.Hash,
-	finalisedHeight, txCount, usedStateCacheSize *big.Int) SystemIntervalTM {
-	return SystemIntervalTM{
+	finalisedHeight, txCount, usedStateCacheSize *big.Int) *SystemIntervalTM {
+	return &SystemIntervalTM{
 		BestHash:           beshHash,
 		BestHeight:         bestHeight,
 		FinalisedHash:      finalisedHash,

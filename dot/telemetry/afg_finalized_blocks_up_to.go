@@ -7,6 +7,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var _ Message = (*AfgFinalizedBlocksUpToTM)(nil)
+
 // AfgFinalizedBlocksUpToTM holds telemetry message of type `afg.finalized_blocks_up_to`,
 // which is supposed to be sent when GRANDPA client finalises new blocks.
 type AfgFinalizedBlocksUpToTM struct {
@@ -15,8 +17,8 @@ type AfgFinalizedBlocksUpToTM struct {
 }
 
 // NewAfgFinalizedBlocksUpToTM creates a new AfgFinalizedBlocksUpToTM struct.
-func NewAfgFinalizedBlocksUpToTM(hash common.Hash, number string) AfgFinalizedBlocksUpToTM {
-	return AfgFinalizedBlocksUpToTM{
+func NewAfgFinalizedBlocksUpToTM(hash common.Hash, number string) *AfgFinalizedBlocksUpToTM {
+	return &AfgFinalizedBlocksUpToTM{
 		Hash:   hash,
 		Number: number,
 	}

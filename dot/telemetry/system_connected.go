@@ -5,6 +5,8 @@ package telemetry
 
 import "github.com/ChainSafe/gossamer/lib/common"
 
+var _ Message = (*SystemConnectedTM)(nil)
+
 // SystemConnectedTM struct to hold system connected telemetry messages
 type SystemConnectedTM struct {
 	Authority      bool         `json:"authority"`
@@ -19,8 +21,8 @@ type SystemConnectedTM struct {
 
 // NewSystemConnectedTM function to create new System Connected Telemetry Message
 func NewSystemConnectedTM(authority bool, chain string, genesisHash *common.Hash,
-	implementation, name, networkID, startupTime, version string) SystemConnectedTM {
-	return SystemConnectedTM{
+	implementation, name, networkID, startupTime, version string) *SystemConnectedTM {
+	return &SystemConnectedTM{
 		Authority:      authority,
 		Chain:          chain,
 		GenesisHash:    genesisHash,

@@ -9,6 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var _ Message = (*BlockImportTM)(nil)
+
 // BlockImportTM struct to hold block import telemetry messages
 type BlockImportTM struct {
 	BestHash *common.Hash `json:"best"`
@@ -17,8 +19,8 @@ type BlockImportTM struct {
 }
 
 // NewBlockImportTM function to create new Block Import Telemetry Message
-func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) BlockImportTM {
-	return BlockImportTM{
+func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) *BlockImportTM {
+	return &BlockImportTM{
 		BestHash: bestHash,
 		Height:   height,
 		Origin:   origin,
