@@ -77,7 +77,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 	s := NewHTTPServer(cfg)
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 	defer s.Stop()
@@ -88,38 +88,38 @@ func TestNewHTTPServer(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	_, err = buf.Write(data)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer res.Body.Close()
 
 	require.Equal(t, "200 OK", res.Status)
 
 	// nil POST
 	req, err = http.NewRequest("POST", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json;")
 
 	res, err = client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer res.Body.Close()
 
 	require.Equal(t, "200 OK", res.Status)
 
 	// GET
 	req, err = http.NewRequest("GET", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json;")
 
 	res, err = client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer res.Body.Close()
 
 	require.Equal(t, "405 Method Not Allowed", res.Status)
@@ -386,13 +386,13 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	stateSrvc.UseMemDB()
 
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	cfg := &core.Config{
 		LogLvl:               3,
