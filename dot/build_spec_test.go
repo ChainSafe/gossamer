@@ -15,9 +15,7 @@ import (
 )
 
 func TestBuildFromGenesis(t *testing.T) {
-	file, err := genesis.CreateTestGenesisJSONFile(false)
-	defer os.Remove(file)
-	require.NoError(t, err)
+	file := genesis.CreateTestGenesisJSONFile(t, false)
 	bs, err := BuildFromGenesis(file, 0)
 
 	expectedChainType := "TESTCHAINTYPE"
