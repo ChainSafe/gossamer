@@ -229,7 +229,6 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 
 	equivocated := s.checkForEquivocation(voter, just, m.Message.Stage)
 	if equivocated {
-		// A vote is considered invalid if it is equivocatory
 		return nil, ErrEquivocation
 	}
 
