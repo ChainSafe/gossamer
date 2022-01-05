@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -30,7 +31,8 @@ func setupStateFile(t *testing.T) string {
 	bz, err := json.Marshal(pairs)
 	require.NoError(t, err)
 
-	fp := "./test_data/state.json"
+	testDir := t.TempDir()
+	fp := filepath.Join(testDir, "state.json")
 	err = os.WriteFile(fp, bz, 0777)
 	require.NoError(t, err)
 
@@ -47,7 +49,8 @@ func setupHeaderFile(t *testing.T) string {
 		`"number":"0x169d12",` +
 		`"parentHash":"0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975",` +
 		`"stateRoot":"0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"}`
-	fp := "./test_data/header.json"
+	testDir := t.TempDir()
+	fp := filepath.Join(testDir, "header.json")
 	err := os.WriteFile(fp, []byte(headerStr), 0777)
 	require.NoError(t, err)
 	return fp
