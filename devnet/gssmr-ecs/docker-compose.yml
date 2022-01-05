@@ -1,0 +1,71 @@
+services: 
+  alice:
+    image: 500822580415.dkr.ecr.us-east-2.amazonaws.com/gssmr-devnet-alice
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4096M
+    ports:
+      - 7001
+
+  bob:
+    image: 500822580415.dkr.ecr.us-east-2.amazonaws.com/gssmr-devnet-bob
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4096M
+    ports:
+      - 7001
+    depends_on:
+      - alice
+
+
+  charlie:
+    image: 500822580415.dkr.ecr.us-east-2.amazonaws.com/gssmr-devnet-charlie
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4096M
+    ports:
+      - 7001
+    depends_on:
+      - alice
+
+x-aws-cloudformation:  
+  Resources:
+    AliceTCP7001Listener: null
+    AliceTCP7001TargetGroup: null
+    AliceService:
+      DependsOn: null
+      Properties:
+        LoadBalancers: null
+        DeploymentConfiguration:
+          MaximumPercent: 100
+          MinimumHealthyPercent: 0
+    
+    BobService:
+      DependsOn:
+      - AliceService
+      Properties:
+        LoadBalancers: null
+        DeploymentConfiguration:
+          MaximumPercent: 100
+          MinimumHealthyPercent: 0
+    BobTCP7001Listener: null
+    BobTCP7001TargetGroup: null
+
+    CharlieService:
+      DependsOn:
+      - AliceService
+      Properties:
+        LoadBalancers: null
+        DeploymentConfiguration:
+          MaximumPercent: 100
+          MinimumHealthyPercent: 0
+    CharlieTCP7001Listener: null
+    CharlieTCP7001TargetGroup: null
+
+    LoadBalancer: null

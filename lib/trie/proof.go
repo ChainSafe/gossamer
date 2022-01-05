@@ -10,6 +10,8 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/trie/codec"
+	"github.com/ChainSafe/gossamer/internal/trie/record"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -40,19 +42,18 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 	}
 
 	for _, k := range keys {
-		nk := keyToNibbles(k)
+		nk := codec.KeyLEToNibbles(k)
 
-		recorder := new(recorder)
+		recorder := record.NewRecorder()
 		err := findAndRecord(proofTrie, nk, recorder)
 		if err != nil {
 			return nil, err
 		}
 
-		for !recorder.isEmpty() {
-			recNode := recorder.next()
-			nodeHashHex := common.BytesToHex(recNode.hash)
+		for _, recNode := range recorder.GetNodes() {
+			nodeHashHex := common.BytesToHex(recNode.Hash)
 			if _, ok := trackedProofs[nodeHashHex]; !ok {
-				trackedProofs[nodeHashHex] = recNode.rawData
+				trackedProofs[nodeHashHex] = recNode.RawData
 			}
 		}
 	}

@@ -233,14 +233,15 @@ func (s *GrandpaState) SetNextPause(number *big.Int) error {
 	return s.db.Put(pauseKey, number.Bytes())
 }
 
-// GetNextPause returns the block number of the next grandpa pause, nil if there is no upcoming pause
+// GetNextPause returns the block number of the next grandpa pause.
+// If the key is not found in the database, a nil block number is returned
+// to indicate there is no upcoming Grandpa pause.
+// It returns an error on failure.
 func (s *GrandpaState) GetNextPause() (*big.Int, error) {
 	num, err := s.db.Get(pauseKey)
-	if err == chaindb.ErrKeyNotFound {
-		return nil, nil
-	}
-
-	if err != nil {
+	if errors.Is(err, chaindb.ErrKeyNotFound) {
+		return nil, nil //nolint:nilnil
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -252,13 +253,15 @@ func (s *GrandpaState) SetNextResume(number *big.Int) error {
 	return s.db.Put(resumeKey, number.Bytes())
 }
 
-// GetNextResume returns the block number of the next grandpa resume, nil if there is no upcoming resume
+// GetNextResume returns the block number of the next grandpa resume.
+// If the key is not found in the database, a nil block number is returned
+// to indicate there is no upcoming Grandpa resume.
+// It returns an error on failure.
 func (s *GrandpaState) GetNextResume() (*big.Int, error) {
 	num, err := s.db.Get(resumeKey)
-	if err == chaindb.ErrKeyNotFound {
-		return nil, nil
-	}
-	if err != nil {
+	if errors.Is(err, chaindb.ErrKeyNotFound) {
+		return nil, nil //nolint:nilnil
+	} else if err != nil {
 		return nil, err
 	}
 

@@ -1,4 +1,18 @@
-on: [pull_request]
+on:
+  pull_request:
+    paths:
+      - .github/workflows/unit-tests.yml
+      - "**/*.go"
+      - "chain/**"
+      - "cmd/**"
+      - "dot/**"
+      - "internal/**"
+      - "lib/**"
+      - "pkg/**"
+      - "tests/**"
+      - go.mod
+      - go.sum
+      - Makefile
 name: unit-tests
 env:
   GO111MODULE: on
