@@ -26,7 +26,7 @@ import (
 func bootstrapMailer2Test(t *testing.T, resultCh chan []byte) (mailer *Mailer) {
 	t.Helper()
 
-	upgrader := websocket.Upgrader{
+	upgrader := &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 
@@ -42,7 +42,6 @@ func bootstrapMailer2Test(t *testing.T, resultCh chan []byte) (mailer *Mailer) {
 	})
 
 	wsAddr := strings.Replace(srv.URL, "http", "ws", -1)
-
 	var testEndpoint1 = &genesis.TelemetryEndpoint{
 		Endpoint:  wsAddr,
 		Verbosity: 0,
@@ -122,7 +121,6 @@ func TestHandler_SendMulti(t *testing.T) {
 
 	resultCh := make(chan []byte)
 	mailer := bootstrapMailer2Test(t, resultCh)
-
 	var wg sync.WaitGroup
 	for _, message := range messages {
 		wg.Add(1)
@@ -212,7 +210,7 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 }
 
-func pipeRequestToChannel(t *testing.T, wsUpgrader websocket.Upgrader, ch chan<- []byte) http.HandlerFunc {
+func pipeRequestToChannel(t *testing.T, wsUpgrader *websocket.Upgrader, ch chan<- []byte) http.HandlerFunc {
 	t.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {

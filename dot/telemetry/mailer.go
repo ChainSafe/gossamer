@@ -22,7 +22,6 @@ type Telemetry interface {
 }
 
 var ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
-var messageQueue chan Message = make(chan Message, 256)
 
 type telemetryConnection struct {
 	wsconn    *websocket.Conn
@@ -41,7 +40,7 @@ type Mailer struct {
 func newMailer(enabled bool, logger log.LeveledLogger) *Mailer {
 	return &Mailer{
 		enabled:      enabled,
-		messageQueue: messageQueue,
+		messageQueue: make(chan Message),
 		logger:       logger,
 	}
 }

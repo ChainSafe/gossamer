@@ -1,0 +1,10 @@
+=== RUN   TestHandler_SendMulti
+=== PAUSE TestHandler_SendMulti
+=== RUN   TestListenerConcurrency
+=== PAUSE TestListenerConcurrency
+=== CONT  TestHandler_SendMulti
+=== CONT  TestListenerConcurrency
+--- PASS: TestHandler_SendMulti (0.01s)
+--- PASS: TestListenerConcurrency (0.06s)
+PASS
+ok  	github.com/ChainSafe/gossamer/dot/telemetry	1.708s
