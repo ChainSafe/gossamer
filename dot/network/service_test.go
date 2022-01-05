@@ -73,11 +73,11 @@ func createTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 
 		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
 
-		msg.BlockData = append(msg.BlockData, &types.BlockData{
+		msg.BlockData[i] = &types.BlockData{
 			Hash:   testHeader.Hash(),
 			Header: testHeader,
 			Body:   body,
-		})
+		}
 	}
 
 	return msg
