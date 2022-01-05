@@ -3,21 +3,21 @@
 
 package telemetry
 
-// txpoolImportTM holds `txpool.import` telemetry message, which is supposed to be
+// TxpoolImportTM holds `txpool.import` telemetry message, which is supposed to be
 // sent when a new transaction gets imported in the transaction pool.
-type txpoolImportTM struct {
+type TxpoolImportTM struct {
 	Ready  uint `json:"ready"`
 	Future uint `json:"future"`
 }
 
-// NewTxpoolImportTM creates a new txpoolImportTM struct
-func NewTxpoolImportTM(ready, future uint) Message {
-	return &txpoolImportTM{
+// NewTxpoolImportTM creates a new TxpoolImportTM struct
+func NewTxpoolImportTM(ready, future uint) TxpoolImportTM {
+	return TxpoolImportTM{
 		Ready:  ready,
 		Future: future,
 	}
 }
 
-func (txpoolImportTM) messageType() string {
+func (TxpoolImportTM) messageType() string {
 	return txPoolImportMsg
 }

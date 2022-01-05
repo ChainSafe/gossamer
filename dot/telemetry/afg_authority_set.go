@@ -3,9 +3,9 @@
 
 package telemetry
 
-// afgAuthoritySetTM is a telemetry message of type `afg.authority_set` which is
+// AfgAuthoritySetTM is a telemetry message of type `afg.authority_set` which is
 // meant to be sent when authority set changes (generally when a round is initiated)
-type afgAuthoritySetTM struct {
+type AfgAuthoritySetTM struct {
 	AuthorityID    string `json:"authority_id"`
 	AuthoritySetID string `json:"authority_set_id"`
 	// Substrate creates an array of string of authority IDs. It JSON-serialises
@@ -13,15 +13,15 @@ type afgAuthoritySetTM struct {
 	Authorities string `json:"authorities"`
 }
 
-// NewAfgAuthoritySetTM creates a new afgAuthoritySetTM struct.
-func NewAfgAuthoritySetTM(authorityID, authoritySetID, authorities string) Message {
-	return &afgAuthoritySetTM{
+// NewAfgAuthoritySetTM creates a new AfgAuthoritySetTM struct.
+func NewAfgAuthoritySetTM(authorityID, authoritySetID, authorities string) AfgAuthoritySetTM {
+	return AfgAuthoritySetTM{
 		AuthorityID:    authorityID,
 		AuthoritySetID: authoritySetID,
 		Authorities:    authorities,
 	}
 }
 
-func (afgAuthoritySetTM) messageType() string {
+func (AfgAuthoritySetTM) messageType() string {
 	return afgAuthoritySetMsg
 }
