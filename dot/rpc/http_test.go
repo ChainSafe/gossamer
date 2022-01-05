@@ -378,7 +378,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	config := state.Config{
 		Path:      testDatadirPath,
-		LogLevel:  log.Info,
+		LogLevel:  log.Debug,
 		Telemetry: telemetryMock,
 	}
 
