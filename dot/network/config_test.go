@@ -13,13 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// test buildIdentity method
 func TestBuildIdentity(t *testing.T) {
 	t.Parallel()
 
+	testDir := t.TempDir()
+
 	configA := &Config{
 		logger:   log.New(log.SetWriter(io.Discard)),
-		BasePath: t.TempDir(),
+		BasePath: testDir,
 	}
 
 	err := configA.buildIdentity()
@@ -27,7 +28,7 @@ func TestBuildIdentity(t *testing.T) {
 
 	configB := &Config{
 		logger:   log.New(log.SetWriter(io.Discard)),
-		BasePath: t.TempDir(),
+		BasePath: testDir,
 	}
 
 	err = configB.buildIdentity()
