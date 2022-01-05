@@ -113,27 +113,27 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 
 	err = stateSrvc.SetupBase()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot setup state database: %w", err)
 	}
 
 	// start state service (initialise state database)
 	err = stateSrvc.Start()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot start state service: %w", err)
 	}
 	// set genesis fields data
 	ent, err := stateSrvc.Storage.Entries(nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail to get storage trie entries: %w", err)
 	}
 	err = genesis.BuildFromMap(ent, tmpGen)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail to build from map: %w", err)
 	}
 	// set genesisData
 	gd, err := stateSrvc.DB().Get(common.GenesisDataKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail to retrieve genesis data: %w", err)
 	}
 	gData := &genesis.Data{}
 	err = json.Unmarshal(gd, gData)
