@@ -60,11 +60,11 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 func createTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 	t.Helper()
 
+	const blockRequestSize = 128
 	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
+		BlockData: make([]*types.BlockData, blockRequestSize),
 	}
 
-	const blockRequestSize = 128
 	for i := 0; i < blockRequestSize; i++ {
 		testHeader := &types.Header{
 			Number: big.NewInt(int64(77 + i)),
