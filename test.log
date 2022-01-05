@@ -1,0 +1,378 @@
+=== RUN   TestEncodeBlockAnnounce
+=== PAUSE TestEncodeBlockAnnounce
+=== RUN   TestDecodeBlockAnnounce
+=== PAUSE TestDecodeBlockAnnounce
+=== RUN   TestEncodeBlockAnnounceHandshake
+=== PAUSE TestEncodeBlockAnnounceHandshake
+=== RUN   TestDecodeBlockAnnounceHandshake
+=== PAUSE TestDecodeBlockAnnounceHandshake
+=== RUN   TestHandleBlockAnnounceMessage
+=== PAUSE TestHandleBlockAnnounceMessage
+=== RUN   TestValidateBlockAnnounceHandshake
+=== PAUSE TestValidateBlockAnnounceHandshake
+=== RUN   TestBuildIdentity
+=== PAUSE TestBuildIdentity
+=== RUN   TestBuild
+=== PAUSE TestBuild
+=== RUN   TestMinPeers
+=== PAUSE TestMinPeers
+=== RUN   TestMaxPeers
+=== PAUSE TestMaxPeers
+=== RUN   TestProtectUnprotectPeer
+=== PAUSE TestProtectUnprotectPeer
+=== RUN   TestPersistentPeers
+=== PAUSE TestPersistentPeers
+=== RUN   TestRemovePeer
+=== PAUSE TestRemovePeer
+=== RUN   TestSetReservedPeer
+=== PAUSE TestSetReservedPeer
+=== RUN   TestKadDHT
+=== PAUSE TestKadDHT
+=== RUN   TestBeginDiscovery
+=== PAUSE TestBeginDiscovery
+=== RUN   TestBeginDiscovery_ThreeNodes
+=== PAUSE TestBeginDiscovery_ThreeNodes
+=== RUN   TestGossip
+=== PAUSE TestGossip
+=== RUN   TestExternalAddrs
+=== PAUSE TestExternalAddrs
+=== RUN   TestExternalAddrsPublicIP
+=== PAUSE TestExternalAddrsPublicIP
+=== RUN   TestExternalAddrsPublicDNS
+2022-01-05T17:31:44-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestExternalAddrsPublicDNS326826156/001/TestExternalAddrsPublicDNS/node/node.key	pkg=network
+2022-01-05T17:31:44-04:00 DBUG using config PublicDNS: alice	pkg=network
+2022-01-05T17:31:44-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:44-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:44-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/7001/p2p/12D3KooWBqPmgCYsZatd7wLkcAAkqEPGWCThd2yMQx9sfTPm3EL2	pkg=network
+2022-01-05T17:31:44-04:00 INFO Started listening on /dns/alice/tcp/7001/p2p/12D3KooWBqPmgCYsZatd7wLkcAAkqEPGWCThd2yMQx9sfTPm3EL2	pkg=network
+2022-01-05T17:31:45-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+--- PASS: TestExternalAddrsPublicDNS (0.71s)
+=== RUN   TestConnect
+=== PAUSE TestConnect
+=== RUN   TestBootstrap
+=== PAUSE TestBootstrap
+=== RUN   TestSend
+=== PAUSE TestSend
+=== RUN   TestExistingStream
+=== PAUSE TestExistingStream
+=== RUN   TestStreamCloseMetadataCleanup
+=== PAUSE TestStreamCloseMetadataCleanup
+=== RUN   Test_PeerSupportsProtocol
+=== PAUSE Test_PeerSupportsProtocol
+=== RUN   Test_AddReservedPeers
+=== PAUSE Test_AddReservedPeers
+=== RUN   Test_RemoveReservedPeers
+=== PAUSE Test_RemoveReservedPeers
+=== RUN   TestStreamCloseEOF
+=== PAUSE TestStreamCloseEOF
+=== RUN   TestPeerConnect
+=== PAUSE TestPeerConnect
+=== RUN   TestBannedPeer
+=== PAUSE TestBannedPeer
+=== RUN   TestPeerReputation
+=== PAUSE TestPeerReputation
+=== RUN   TestEncodeLightRequest
+=== PAUSE TestEncodeLightRequest
+=== RUN   TestEncodeLightResponse
+=== PAUSE TestEncodeLightResponse
+=== RUN   TestDecodeLightMessage
+=== PAUSE TestDecodeLightMessage
+=== RUN   TestHandleLightMessage_Response
+=== PAUSE TestHandleLightMessage_Response
+=== RUN   TestMDNS
+=== PAUSE TestMDNS
+=== RUN   TestMessageCache
+=== PAUSE TestMessageCache
+=== RUN   TestMessageCacheError
+=== PAUSE TestMessageCacheError
+=== RUN   TestEncodeBlockRequestMessage
+=== PAUSE TestEncodeBlockRequestMessage
+=== RUN   TestEncodeBlockRequestMessage_BlockHash
+=== PAUSE TestEncodeBlockRequestMessage_BlockHash
+=== RUN   TestEncodeBlockRequestMessage_BlockNumber
+=== PAUSE TestEncodeBlockRequestMessage_BlockNumber
+=== RUN   TestBlockRequestString
+=== PAUSE TestBlockRequestString
+=== RUN   TestEncodeBlockRequestMessage_NoOptionals
+=== PAUSE TestEncodeBlockRequestMessage_NoOptionals
+=== RUN   TestEncodeBlockResponseMessage_Empty
+=== PAUSE TestEncodeBlockResponseMessage_Empty
+=== RUN   TestEncodeBlockResponseMessage_WithBody
+=== PAUSE TestEncodeBlockResponseMessage_WithBody
+=== RUN   TestEncodeBlockResponseMessage_WithAll
+=== PAUSE TestEncodeBlockResponseMessage_WithAll
+=== RUN   TestEncodeBlockAnnounceMessage
+=== PAUSE TestEncodeBlockAnnounceMessage
+=== RUN   TestDecode_BlockAnnounceMessage
+=== PAUSE TestDecode_BlockAnnounceMessage
+=== RUN   TestEncodeTransactionMessageSingleExtrinsic
+=== PAUSE TestEncodeTransactionMessageSingleExtrinsic
+=== RUN   TestEncodeTransactionMessageTwoExtrinsics
+=== PAUSE TestEncodeTransactionMessageTwoExtrinsics
+=== RUN   TestDecodeTransactionMessageOneExtrinsic
+=== PAUSE TestDecodeTransactionMessageOneExtrinsic
+=== RUN   TestDecodeTransactionMessageTwoExtrinsics
+=== PAUSE TestDecodeTransactionMessageTwoExtrinsics
+=== RUN   TestDecodeConsensusMessage
+=== PAUSE TestDecodeConsensusMessage
+=== RUN   TestCreateDecoder_BlockAnnounce
+=== PAUSE TestCreateDecoder_BlockAnnounce
+=== RUN   TestCreateNotificationsMessageHandler_BlockAnnounce
+=== PAUSE TestCreateNotificationsMessageHandler_BlockAnnounce
+=== RUN   TestCreateNotificationsMessageHandler_BlockAnnounceHandshake
+=== PAUSE TestCreateNotificationsMessageHandler_BlockAnnounceHandshake
+=== RUN   Test_HandshakeTimeout
+=== PAUSE Test_HandshakeTimeout
+=== RUN   TestCreateNotificationsMessageHandler_HandleTransaction
+=== PAUSE TestCreateNotificationsMessageHandler_HandleTransaction
+=== RUN   TestBlockAnnounceHandshakeSize
+=== PAUSE TestBlockAnnounceHandshakeSize
+=== RUN   Test_sizedBufferPool
+=== PAUSE Test_sizedBufferPool
+=== RUN   Test_sizedBufferPool_race
+=== PAUSE Test_sizedBufferPool_race
+=== RUN   TestStartService
+=== PAUSE TestStartService
+=== RUN   TestBroadcastMessages
+=== PAUSE TestBroadcastMessages
+=== RUN   TestBroadcastDuplicateMessage
+=== PAUSE TestBroadcastDuplicateMessage
+=== RUN   TestService_NodeRoles
+=== PAUSE TestService_NodeRoles
+=== RUN   TestService_Health
+=== PAUSE TestService_Health
+=== RUN   TestPersistPeerStore
+=== PAUSE TestPersistPeerStore
+=== RUN   TestHandleConn
+=== PAUSE TestHandleConn
+=== RUN   TestSerivceIsMajorSyncMetrics
+=== PAUSE TestSerivceIsMajorSyncMetrics
+=== RUN   TestStreamManager
+=== PAUSE TestStreamManager
+=== RUN   TestStreamManager_KeepStream
+    stream_manager_test.go:91: 
+--- SKIP: TestStreamManager_KeepStream (0.00s)
+=== RUN   TestDecodeSyncMessage
+=== PAUSE TestDecodeSyncMessage
+=== RUN   TestDecodeTransactionHandshake
+=== PAUSE TestDecodeTransactionHandshake
+=== RUN   TestHandleTransactionMessage
+=== PAUSE TestHandleTransactionMessage
+=== RUN   TestStringToAddrInfo
+--- PASS: TestStringToAddrInfo (0.00s)
+=== RUN   TestStringsToAddrInfos
+--- PASS: TestStringsToAddrInfos (0.00s)
+=== RUN   TestGenerateKey
+--- PASS: TestGenerateKey (0.00s)
+=== RUN   TestReadLEB128ToUint64
+--- PASS: TestReadLEB128ToUint64 (0.00s)
+=== RUN   TestInvalidLeb128
+--- PASS: TestInvalidLeb128 (0.00s)
+=== CONT  TestEncodeBlockAnnounce
+=== CONT  TestStartService
+=== CONT  TestEncodeTransactionMessageSingleExtrinsic
+=== CONT  TestHandleConn
+=== CONT  TestHandleTransactionMessage
+=== CONT  TestDecodeTransactionHandshake
+=== CONT  TestDecodeSyncMessage
+=== CONT  TestStreamManager
+--- PASS: TestEncodeTransactionMessageSingleExtrinsic (0.00s)
+=== CONT  TestSerivceIsMajorSyncMetrics
+--- PASS: TestSerivceIsMajorSyncMetrics (0.00s)
+=== CONT  TestSetReservedPeer
+--- PASS: TestDecodeTransactionHandshake (0.00s)
+=== CONT  TestStreamCloseMetadataCleanup
+--- PASS: TestEncodeBlockAnnounce (0.00s)
+=== CONT  TestExistingStream
+--- PASS: TestDecodeSyncMessage (0.01s)
+=== CONT  Test_PeerSupportsProtocol
+2022-01-05T17:31:45-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestStreamCloseMetadataCleanup1059508998/001/TestStreamCloseMetadataCleanup/nodeA/node.key	pkg=network
+2022-01-05T17:31:45-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestSetReservedPeer3152623275/001/TestSetReservedPeer/node0/node.key	pkg=network
+2022-01-05T17:31:45-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestHandleConn4096426056/001/TestHandleConn/nodeA/node.key	pkg=network
+2022-01-05T17:31:45-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/Test_PeerSupportsProtocol1251351446/001/Test_PeerSupportsProtocol/nodeA/node.key	pkg=network
+2022-01-05T17:31:45-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestHandleTransactionMessage3892954869/001/TestHandleTransactionMessage/nodeA/node.key	pkg=network
+2022-01-05T17:31:45-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestStartService3367782957/001/TestStartService/node/node.key	pkg=network
+2022-01-05T17:31:45-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestExistingStream3754949235/001/TestExistingStream/nodeA/node.key	pkg=network
+--- PASS: TestStreamManager (1.50s)
+=== CONT  TestSend
+2022-01-05T17:31:46-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestSend234604927/001/TestSend/nodeA/node.key	pkg=network
+2022-01-05T17:31:49-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:49-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:49-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:49-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:49-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:49-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:49-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50400/p2p/12D3KooWGrits4sAmS95dRaMsrMb8xufXhc5J6ceDat22NwAUiQV	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50400/p2p/12D3KooWGrits4sAmS95dRaMsrMb8xufXhc5J6ceDat22NwAUiQV	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50402/p2p/12D3KooWLd3UtYFV7aRSxiv6nn3pFZm7xidyJtZqKWnPG2o5UUK3	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50402/p2p/12D3KooWLd3UtYFV7aRSxiv6nn3pFZm7xidyJtZqKWnPG2o5UUK3	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50403/p2p/12D3KooW9tWxAZKx93XTdKZBbGPQNt7g2oaMA96BBeQrr5K4qYA3	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50403/p2p/12D3KooW9tWxAZKx93XTdKZBbGPQNt7g2oaMA96BBeQrr5K4qYA3	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50398/p2p/12D3KooWJia1XfedkPR4Mx3zaFHNaRzT4T6scidhG8WSneqnq2iz	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50398/p2p/12D3KooWJia1XfedkPR4Mx3zaFHNaRzT4T6scidhG8WSneqnq2iz	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50405/p2p/12D3KooWLmXPwt3Nuj64qgeTHDcN3YbF1EpQwgX5AnN7dvBg9k3p	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50405/p2p/12D3KooWLmXPwt3Nuj64qgeTHDcN3YbF1EpQwgX5AnN7dvBg9k3p	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50399/p2p/12D3KooWDaCnRjUNzxddMPFvsw6h4smGgQtbSc6w93wqai9DTmTE	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50399/p2p/12D3KooWDaCnRjUNzxddMPFvsw6h4smGgQtbSc6w93wqai9DTmTE	pkg=network
+2022-01-05T17:31:50-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50397/p2p/12D3KooWET6PRJBBMrdLrRFhDqN6QF6aBxjAzHCqKyubuz2CCn8D	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50397/p2p/12D3KooWET6PRJBBMrdLrRFhDqN6QF6aBxjAzHCqKyubuz2CCn8D	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50541/p2p/12D3KooWQkL3axbGuNvRojtJyva7g1zj185moYWZzNCwP1KYdme6	pkg=network
+2022-01-05T17:31:50-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50541/p2p/12D3KooWQkL3axbGuNvRojtJyva7g1zj185moYWZzNCwP1KYdme6	pkg=network
+2022-01-05T17:31:50-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestStreamCloseMetadataCleanup1059508998/002/TestStreamCloseMetadataCleanup/nodeB/node.key	pkg=network
+2022-01-05T17:31:50-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestHandleConn4096426056/002/TestHandleConn/nodeB/node.key	pkg=network
+2022-01-05T17:31:50-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/Test_PeerSupportsProtocol1251351446/002/Test_PeerSupportsProtocol/nodeB/node.key	pkg=network
+2022-01-05T17:31:50-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestSetReservedPeer3152623275/002/TestSetReservedPeer/node1/node.key	pkg=network
+2022-01-05T17:31:50-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestExistingStream3754949235/002/TestExistingStream/nodeB/node.key	pkg=network
+2022-01-05T17:31:50-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:50-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestSend234604927/002/TestSend/nodeB/node.key	pkg=network
+--- PASS: TestStartService (5.76s)
+=== CONT  TestDecode_BlockAnnounceMessage
+--- PASS: TestHandleTransactionMessage (5.76s)
+=== CONT  TestBootstrap
+--- PASS: TestDecode_BlockAnnounceMessage (0.00s)
+=== CONT  TestEncodeBlockAnnounceMessage
+--- PASS: TestEncodeBlockAnnounceMessage (0.00s)
+=== CONT  TestEncodeBlockResponseMessage_WithAll
+--- PASS: TestEncodeBlockResponseMessage_WithAll (0.00s)
+=== CONT  TestConnect
+2022-01-05T17:31:51-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestBootstrap3300339174/001/TestBootstrap/nodeA/node.key	pkg=network
+2022-01-05T17:31:51-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestConnect197933007/001/TestConnect/nodeA/node.key	pkg=network
+2022-01-05T17:31:53-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:53-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:53-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:53-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50561/p2p/12D3KooWJDdV4J3aU3QwYktDcJNSTXXcjHYyoqmYyf6Hy7Ryhu4Z	pkg=network
+2022-01-05T17:31:53-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50561/p2p/12D3KooWJDdV4J3aU3QwYktDcJNSTXXcjHYyoqmYyf6Hy7Ryhu4Z	pkg=network
+2022-01-05T17:31:53-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:53-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:53-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:53-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50562/p2p/12D3KooWSXWyhRq5ZpQeKtk1k5P3UWs5RFGa9nUHfimHHkyk3fvm	pkg=network
+2022-01-05T17:31:53-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50562/p2p/12D3KooWSXWyhRq5ZpQeKtk1k5P3UWs5RFGa9nUHfimHHkyk3fvm	pkg=network
+2022-01-05T17:31:54-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50564/p2p/12D3KooWBiuXLrjcPoyQSzRixpvnUe1ScBbnZVnCGYpV2gctxFCz	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50564/p2p/12D3KooWBiuXLrjcPoyQSzRixpvnUe1ScBbnZVnCGYpV2gctxFCz	pkg=network
+2022-01-05T17:31:54-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:54-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50565/p2p/12D3KooWJ28BQgJcCnzG1sxSW1zkxP2XdvMQbEM6VFGb2CkcjnVA	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50565/p2p/12D3KooWJ28BQgJcCnzG1sxSW1zkxP2XdvMQbEM6VFGb2CkcjnVA	pkg=network
+--- PASS: TestHandleConn (9.15s)
+=== CONT  TestEncodeBlockResponseMessage_WithBody
+--- PASS: TestEncodeBlockResponseMessage_WithBody (0.00s)
+=== CONT  TestExternalAddrsPublicIP
+2022-01-05T17:31:54-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestExternalAddrsPublicIP1908276568/001/TestExternalAddrsPublicIP/node/node.key	pkg=network
+2022-01-05T17:31:54-04:00 DBUG using config PublicIP: 10.0.5.2	pkg=network
+2022-01-05T17:31:54-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:54-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:54-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:54-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50686/p2p/12D3KooWPoeJjwLH4bFtYTuipxUQ8L87igQk5mr2w8acYhfrtZCR	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/10.0.5.2/tcp/50686/p2p/12D3KooWPoeJjwLH4bFtYTuipxUQ8L87igQk5mr2w8acYhfrtZCR	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50600/p2p/12D3KooWLbczgy1yCVLcQ46jwXGsbvA1zxs5P1j3SwByHeeNSWJA	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50600/p2p/12D3KooWLbczgy1yCVLcQ46jwXGsbvA1zxs5P1j3SwByHeeNSWJA	pkg=network
+2022-01-05T17:31:54-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestSetReservedPeer3152623275/003/TestSetReservedPeer/node2/node.key	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50614/p2p/12D3KooWEBZJ3vj54hTDR7aTMr8pZtRg6eH4Bj3tjC8rmxwyp1J5	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50614/p2p/12D3KooWEBZJ3vj54hTDR7aTMr8pZtRg6eH4Bj3tjC8rmxwyp1J5	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50613/p2p/12D3KooWJ7Xui37kaAMcuPk6SLPM5ig8i4qhkGBT1eEhPxeKNKJi	pkg=network
+2022-01-05T17:31:54-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50613/p2p/12D3KooWJ7Xui37kaAMcuPk6SLPM5ig8i4qhkGBT1eEhPxeKNKJi	pkg=network
+2022-01-05T17:31:54-04:00 DBUG got public IP%!(EXTRA string=IP, net.IP=156.146.34.137)	pkg=network
+2022-01-05T17:31:55-04:00 INFO registered notifications sub-protocol /gossamer/test/0/block-announces/1	pkg=network
+2022-01-05T17:31:55-04:00 INFO registered notifications sub-protocol /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:55-04:00 INFO Started listening on /ip4/127.0.0.1/tcp/50563/p2p/12D3KooWRkNUKWqaMabPjssLQYapLCyiWenPCDstGUo8vFpZrX9u	pkg=network
+2022-01-05T17:31:55-04:00 INFO Started listening on /ip4/156.146.34.137/tcp/50563/p2p/12D3KooWRkNUKWqaMabPjssLQYapLCyiWenPCDstGUo8vFpZrX9u	pkg=network
+2022-01-05T17:31:55-04:00 DBUG cleaning up inbound handshake data for protocol=/gossamer/test/0/block-announces/1, peer=12D3KooWJia1XfedkPR4Mx3zaFHNaRzT4T6scidhG8WSneqnq2iz	pkg=network
+2022-01-05T17:31:55-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+    host_test.go:81: 
+        	Error Trace:	host_test.go:81
+        	Error:      	Not equal: 
+        	            	expected: []multiaddr.Multiaddr{(*multiaddr.multiaddr)(0xc004fff2f0), (*multiaddr.multiaddr)(0xc001df3e60)}
+        	            	actual  : []multiaddr.Multiaddr{(*multiaddr.multiaddr)(0xc004fff398), (*multiaddr.multiaddr)(0xc004fff3c8)}
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -3,3 +3,3 @@
+        	            	   bytes: ([]uint8) (len=8) {
+        	            	-   00000000  04 7f 00 00 01 06 c5 fe                           |........|
+        	            	+   00000000  04 7f 00 00 01 06 1b 59                           |.......Y|
+        	            	   }
+        	            	@@ -8,3 +8,3 @@
+        	            	   bytes: ([]uint8) (len=8) {
+        	            	-   00000000  04 0a 00 05 02 06 c5 fe                           |........|
+        	            	+   00000000  04 0a 00 05 02 06 1b 59                           |.......Y|
+        	            	   }
+        	Test:       	TestExternalAddrsPublicIP
+--- FAIL: TestExternalAddrsPublicIP (0.84s)
+=== CONT  TestEncodeBlockResponseMessage_Empty
+--- PASS: TestEncodeBlockResponseMessage_Empty (0.00s)
+=== CONT  TestExternalAddrs
+2022-01-05T17:31:55-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:55-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestExternalAddrs3238555169/001/TestExternalAddrs/node/node.key	pkg=network
+2022-01-05T17:31:55-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:55-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+2022-01-05T17:31:55-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestBootstrap3300339174/002/TestBootstrap/nodeB/node.key	pkg=network
+2022-01-05T17:31:55-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestConnect197933007/002/TestConnect/nodeB/node.key	pkg=network
+2022-01-05T17:31:55-04:00 INFO started network service with supported protocols /p2p/id/delta/1.0.0, /ipfs/id/1.0.0, /ipfs/id/push/1.0.0, /ipfs/ping/1.0.0, /gossamer/test/0/sync/2, /gossamer/test/0/light/2, /gossamer/test/0/block-announces/1, /gossamer/test/0/transactions/1	pkg=network
+--- PASS: Test_PeerSupportsProtocol (10.46s)
+=== CONT  TestEncodeBlockRequestMessage_NoOptionals
+--- PASS: TestEncodeBlockRequestMessage_NoOptionals (0.00s)
+=== CONT  TestGossip
+2022-01-05T17:31:55-04:00 INFO Generating p2p identity with seed 0 and key file /var/folders/vj/qljhg8m12mxfl4bfs4yb_7qh0000gn/T/TestGossip1894632832/001/TestGossip/nodeA/node.key	pkg=network
+panic: Fail in goroutine after TestHandleTransactionMessage has completed
+
+goroutine 1710 [running]:
+testing.(*common).Fail(0xc000583040)
+	/usr/local/go/src/testing/testing.go:710 +0xe5
+testing.(*common).FailNow(0xc000583040)
+	/usr/local/go/src/testing/testing.go:732 +0x1e
+testing.(*common).Fatalf(0x2, {0x4c8f473, 0x400de87}, {0xc001662b40, 0x4a02de0, 0xc000ae7401})
+	/usr/local/go/src/testing/testing.go:830 +0x56
+github.com/golang/mock/gomock.(*Controller).Call.func1(0xc000195110, {0x4a6bf00, 0xc00161c060}, {0x4c06e5d, 0x11}, {0x0, 0x0, 0x0})
+	/Users/eclesiojunior/go/pkg/mod/github.com/golang/mock@v1.6.0/gomock/controller.go:231 +0x334
+github.com/golang/mock/gomock.(*Controller).Call(0xc000195110, {0x4a6bf00, 0xc00161c060}, {0x4c06e5d, 0x11}, {0x0, 0x0, 0x0})
+	/Users/eclesiojunior/go/pkg/mod/github.com/golang/mock@v1.6.0/gomock/controller.go:247 +0xad
+github.com/ChainSafe/gossamer/dot/network.(*MockTransactionHandler).TransactionsCount(0xc00161c060)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/mock_transaction_handler.go:55 +0x59
+github.com/ChainSafe/gossamer/dot/network.(*Service).sentBlockIntervalTelemetry(0xc0002ff400)
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service.go:426 +0xfb
+created by github.com/ChainSafe/gossamer/dot/network.(*Service).Start
+	/Users/eclesiojunior/go/src/github.com/ChainSafe/gossamer/dot/network/service.go:286 +0xa4f
+FAIL	github.com/ChainSafe/gossamer/dot/network	13.441s
+FAIL

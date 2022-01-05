@@ -4,6 +4,7 @@
 package network
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -50,10 +51,11 @@ func mustNewMultiAddr(s string) (a ma.Multiaddr) {
 func TestExternalAddrsPublicIP(t *testing.T) {
 	t.Parallel()
 
+	port := availablePort(t)
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node"),
 		PublicIP:    "10.0.5.2",
-		Port:        availablePort(t),
+		Port:        port,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -75,8 +77,8 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 	}
 
 	expected := []ma.Multiaddr{
-		mustNewMultiAddr("/ip4/127.0.0.1/tcp/7001"),
-		mustNewMultiAddr("/ip4/10.0.5.2/tcp/7001"),
+		mustNewMultiAddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)),
+		mustNewMultiAddr(fmt.Sprintf("/ip4/10.0.5.2/tcp/%d", port)),
 	}
 	assert.Equal(t, addrInfo.Addrs, expected)
 }
