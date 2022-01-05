@@ -26,7 +26,7 @@ import (
 func bootstrapMailer2Test(t *testing.T, resultCh chan []byte) (mailer *Mailer) {
 	t.Helper()
 
-	upgrader := &websocket.Upgrader{
+	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 
@@ -210,7 +210,7 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 }
 
-func pipeRequestToChannel(t *testing.T, wsUpgrader *websocket.Upgrader, ch chan<- []byte) http.HandlerFunc {
+func pipeRequestToChannel(t *testing.T, wsUpgrader websocket.Upgrader, ch chan<- []byte) http.HandlerFunc {
 	t.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {
