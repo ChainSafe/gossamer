@@ -305,7 +305,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	} else if s.host.messageCache != nil {
 		if _, err := s.host.messageCache.put(peer, msg); err != nil {
-			logger.Errorf("failed to add message to cache for peer %s: %s", peer, err)
+			logger.Errorf("failed to add message to cache for peer %s: %w", peer, err)
 			return
 		}
 	}
