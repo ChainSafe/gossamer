@@ -77,7 +77,7 @@ func InitNode(cfg *Config) error {
 
 	telemetryMailer, err := setupTelemetry(cfg, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot setup telemetry mailer: %w", err)
 	}
 
 	config := state.Config{
@@ -217,13 +217,14 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 
 	telemetryMailer, err := setupTelemetry(cfg, gd)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot setup telemetry mailer: %w", err)
 	}
 
 	stateSrvc.SetTelemetry(telemetryMailer)
+
 	err = startStateService(cfg, stateSrvc)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot start state service: %w", err)
 	}
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
@@ -256,7 +257,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 
 		err = telemetryMailer.SendMessage(connectedMsg)
 		if err != nil {
-			logger.Debugf("problem sending system.connected telemetry message: %s", err)
+			logger.Debugf("failed sending system.connected telemetry message: %s", err)
 		}
 	} else {
 		// do not create or append network service if network service is not enabled
