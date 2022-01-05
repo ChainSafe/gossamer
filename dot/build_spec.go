@@ -98,8 +98,10 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 
 	// ignore the error value because there is no telemetry endpoint to connect
 	// error might happen only if there's some problem while connecting
-	disabledTelemetry, _ := telemetry.BootstrapMailer(
-		context.Background(), nil, false, nil)
+	disabledTelemetry, err := telemetry.BootstrapMailer(context.Background(), nil, false, nil)
+	if err != nil {
+		panic(fmt.Sprintf("telemetry should not fail at BuildFromDB function: %s\n", err.Error()))
+	}
 
 	config := state.Config{
 		Path:      path,
@@ -108,7 +110,8 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	}
 
 	stateSrvc := state.NewService(config)
-	err := stateSrvc.SetupBase()
+
+	err = stateSrvc.SetupBase()
 	if err != nil {
 		return nil, err
 	}
