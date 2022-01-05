@@ -286,10 +286,11 @@ func InitNodes(num int, config string) ([]*Node, error) {
 
 // StartNodes starts given array of nodes
 func StartNodes(t *testing.T, nodes []*Node) error {
-	for _, n := range nodes {
+	for i, n := range nodes {
 		err := StartGossamer(t, n, false)
 		if err != nil {
-			return nil
+			return fmt.Errorf("node %d of %d: %w",
+				i+1, len(nodes), err)
 		}
 	}
 	return nil

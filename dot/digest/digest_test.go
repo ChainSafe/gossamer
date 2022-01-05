@@ -186,6 +186,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 	nextPause, err := handler.grandpaState.(*state.GrandpaState).GetNextPause()
 	require.NoError(t, err)
+	require.NotNil(t, nextPause) // ensure pause was found
 	require.Equal(t, big.NewInt(int64(p.Delay)), nextPause)
 
 	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
@@ -221,6 +222,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	nextResume, err := handler.grandpaState.(*state.GrandpaState).GetNextResume()
 	require.NoError(t, err)
+	require.NotNil(t, nextResume) // ensure resume was found
 	require.Equal(t, big.NewInt(int64(r.Delay)+int64(p.Delay)), nextResume)
 }
 

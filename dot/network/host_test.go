@@ -4,7 +4,6 @@
 package network
 
 import (
-	"net"
 	"testing"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,16 +30,21 @@ func TestExternalAddrs(t *testing.T) {
 	node := createTestService(t, config)
 
 	addrInfo := node.host.addrInfo()
-	privateIPs := ma.NewFilters()
-	for _, cidr := range privateCIDRs {
-		_, ipnet, err := net.ParseCIDR(cidr)
-		require.NoError(t, err)
-		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
-	}
+
+	privateIPs, err := newPrivateIPFilters()
+	require.NoError(t, err)
 
 	for _, addr := range addrInfo.Addrs {
 		require.False(t, privateIPs.AddrBlocked(addr))
 	}
+}
+
+func mustNewMultiAddr(s string) (a ma.Multiaddr) {
+	a, err := ma.NewMultiaddr(s)
+	if err != nil {
+		panic(err)
+	}
+	return a
 }
 
 func TestExternalAddrsPublicIP(t *testing.T) {
@@ -54,14 +59,10 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 	}
 
 	node := createTestService(t, config)
-
 	addrInfo := node.host.addrInfo()
-	privateIPs := ma.NewFilters()
-	for _, cidr := range privateCIDRs {
-		_, ipnet, err := net.ParseCIDR(cidr)
-		require.NoError(t, err)
-		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
-	}
+
+	privateIPs, err := newPrivateIPFilters()
+	require.NoError(t, err)
 
 	for i, addr := range addrInfo.Addrs {
 		switch i {
@@ -71,8 +72,33 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 		default:
 			require.False(t, privateIPs.AddrBlocked(addr))
 		}
-
 	}
+
+	expected := []ma.Multiaddr{
+		mustNewMultiAddr("/ip4/127.0.0.1/tcp/7001"),
+		mustNewMultiAddr("/ip4/10.0.5.2/tcp/7001"),
+	}
+	assert.Equal(t, addrInfo.Addrs, expected)
+}
+
+func TestExternalAddrsPublicDNS(t *testing.T) {
+	config := &Config{
+		BasePath:    utils.NewTestBasePath(t, "node"),
+		PublicDNS:   "alice",
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	node := createTestService(t, config)
+	addrInfo := node.host.addrInfo()
+
+	expected := []ma.Multiaddr{
+		mustNewMultiAddr("/ip4/127.0.0.1/tcp/7001"),
+		mustNewMultiAddr("/dns/alice/tcp/7001"),
+	}
+	assert.Equal(t, addrInfo.Addrs, expected)
+
 }
 
 // test host connect method

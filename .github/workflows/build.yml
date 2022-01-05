@@ -3,6 +3,22 @@ on:
   push:
     branches:
       - development
+    paths:
+      - .github/workflows/build.yml
+      - "**/*.go"
+      - "chain/**"
+      - "cmd/**"
+      - "dot/**"
+      - "internal/**"
+      - "lib/**"
+      - "pkg/**"
+      - "tests/**"
+      - .dockerignore
+      - .codecov.yml
+      - Dockerfile
+      - go.mod
+      - go.sum
+      - Makefile
 
 jobs:
   builds:

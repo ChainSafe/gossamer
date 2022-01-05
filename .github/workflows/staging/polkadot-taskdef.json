@@ -35,11 +35,11 @@
             "expression": "attribute:ecs.availability-zone==us-east-2a"
         }
     ],
-    "memory": "3945",
+    "memory": "16041",
     "family": "gossamer-polkadot",
     "networkMode": "host",
     "requiresCompatibilities": [
         "EC2"
     ],
-    "cpu": "2048"
+    "cpu": "4096"
 }

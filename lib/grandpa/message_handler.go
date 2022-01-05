@@ -145,7 +145,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 
 func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMessage, error) {
 	if !h.grandpa.authority {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	logger.Debugf("received catch up request for round %d and set id %d",

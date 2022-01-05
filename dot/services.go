@@ -289,6 +289,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service,
 		SlotDuration:      slotDuration,
 		PublicIP:          cfg.Network.PublicIP,
 		Telemetry:         telemetryMailer,
+		PublicDNS:         cfg.Network.PublicDNS,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
