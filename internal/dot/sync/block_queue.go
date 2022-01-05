@@ -6,8 +6,8 @@ package sync
 import (
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 type blockQueue struct {

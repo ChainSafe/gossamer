@@ -10,12 +10,12 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/internal/dot/network"
+	"github.com/ChainSafe/gossamer/internal/dot/telemetry"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/blocktree"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"

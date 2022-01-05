@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/internal/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/internal/lib/transaction"
 )
 
 // BlockState interface for block state methods

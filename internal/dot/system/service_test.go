@@ -6,8 +6,8 @@ package system
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
 	"github.com/stretchr/testify/require"
 )
 

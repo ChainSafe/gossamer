@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto"
+	"github.com/ChainSafe/gossamer/internal/lib/keystore"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 
 	"github.com/urfave/cli"
 )

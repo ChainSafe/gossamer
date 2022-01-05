@@ -8,8 +8,8 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

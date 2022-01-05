@@ -9,11 +9,11 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	rtstorage "github.com/ChainSafe/gossamer/internal/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
 )
 
 // storagePrefix storage key prefix.

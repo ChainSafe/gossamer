@@ -18,8 +18,8 @@ RUN wget -O /usr/local/bin/subkey https://chainbridge.ams3.digitaloceanspaces.co
     chmod +x /usr/local/bin/subkey
 
 # Polkadot JS dependencies
-WORKDIR /go/src/github.com/ChainSafe/gossamer/tests/polkadotjs_test
-COPY tests/polkadotjs_test/package.json tests/polkadotjs_test/package-lock.json ./
+WORKDIR /go/src/github.com/ChainSafe/gossamer/internal/tests/polkadotjs_test
+COPY internal/tests/polkadotjs_test/package.json internal/tests/polkadotjs_test/package-lock.json ./
 RUN npm install
 
 WORKDIR /go/src/github.com/ChainSafe/gossamer

@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	common "github.com/ChainSafe/gossamer/lib/common"
+	common "github.com/ChainSafe/gossamer/internal/lib/common"
 	mock "github.com/stretchr/testify/mock"
 )
 

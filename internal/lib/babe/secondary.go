@@ -7,9 +7,9 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/sr25519"
 )
 
 func getSecondarySlotAuthor(slot uint64, numAuths int, randomness Randomness) (uint32, error) {

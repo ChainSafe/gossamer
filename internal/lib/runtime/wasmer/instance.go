@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/keystore"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime/offchain"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
-	"github.com/ChainSafe/gossamer/lib/trie"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )

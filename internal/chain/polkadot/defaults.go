@@ -4,9 +4,9 @@
 package polkadot
 
 import (
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 	// DefaultID Default chain ID
 	DefaultID = string("polkadot")
 	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./chain/polkadot/config.toml")
+	DefaultConfig = string("./internal/chain/polkadot/config.toml")
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/polkadot")
 
@@ -35,7 +35,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/polkadot/genesis.json")
+	DefaultGenesis = string("./internal/chain/polkadot/genesis.json")
 
 	// AccountConfig
 

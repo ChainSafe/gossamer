@@ -6,11 +6,11 @@ package state
 import (
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/internal/dot/telemetry"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/transaction"
 )
 
 // TransactionState represents the queue of transactions

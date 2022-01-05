@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot"
-	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/dot"
+	ctoml "github.com/ChainSafe/gossamer/internal/dot/config/toml"
+	"github.com/ChainSafe/gossamer/internal/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +39,7 @@ var (
 	BaseWSPort = 8546
 
 	currentDir, _ = os.Getwd()
-	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
+	gossamerCMD   = filepath.Join(currentDir, "../../..", "bin/gossamer")
 
 	// GenesisOneAuth is the genesis file that has 1 authority
 	GenesisOneAuth = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
@@ -428,7 +428,7 @@ func generateDefaultConfig() *ctoml.Config {
 			SyncLvl: "info",
 		},
 		Init: ctoml.InitConfig{
-			Genesis: "./chain/gssmr/genesis.json",
+			Genesis: "./internal/chain/gssmr/genesis.json",
 		},
 		Account: ctoml.AccountConfig{
 			Key:    "",

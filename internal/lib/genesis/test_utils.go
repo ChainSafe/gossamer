@@ -10,9 +10,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -111,11 +112,9 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	gen, err := NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
-	if err != nil {
-		gen, err = NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
-		require.NoError(t, err)
-	}
+	genesisPath := utils.GetGssmrGenesisRawPath()
+	gen, err := NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
 
 	tr, h := newGenesisTrieAndHeader(t, gen)
 	return gen, tr, h
@@ -123,11 +122,9 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 
 // NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	gen, err := NewGenesisFromJSONRaw("../../chain/dev/genesis.json")
-	if err != nil {
-		gen, err = NewGenesisFromJSONRaw("../../../chain/dev/genesis.json")
-		require.NoError(t, err)
-	}
+	genesisPath := utils.GetDevGenesisPath()
+	gen, err := NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
 
 	tr, h := newGenesisTrieAndHeader(t, gen)
 	return gen, tr, h

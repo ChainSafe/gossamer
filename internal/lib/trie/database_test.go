@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 

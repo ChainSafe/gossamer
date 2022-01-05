@@ -7,8 +7,8 @@ import (
 	"io"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/lib/services/mocks"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/services/mocks"
 	"github.com/stretchr/testify/require"
 )
 

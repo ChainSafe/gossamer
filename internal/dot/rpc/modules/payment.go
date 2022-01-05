@@ -6,7 +6,7 @@ package modules
 import (
 	"net/http"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // PaymentQueryInfoRequest represents the request to get the fee of an extrinsic in a given block

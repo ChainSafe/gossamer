@@ -4,9 +4,9 @@
 package dev
 
 import (
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 	// DefaultID is the chain ID
 	DefaultID = string("dev")
 	// DefaultConfig is the toml configuration path
-	DefaultConfig = string("./chain/dev/config.toml")
+	DefaultConfig = string("./internal/chain/dev/config.toml")
 	// DefaultBasePath is the node base directory path
 	DefaultBasePath = string("~/.gossamer/dev")
 
@@ -38,7 +38,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/dev/genesis-spec.json")
+	DefaultGenesis = string("./internal/chain/dev/genesis-spec.json")
 
 	// AccountConfig
 

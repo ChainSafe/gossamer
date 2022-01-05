@@ -11,20 +11,20 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/dot/state"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/internal/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ChainSafe/gossamer/dot/sync/mocks"
+	"github.com/ChainSafe/gossamer/internal/dot/sync/mocks"
 )
 
 func TestMain(m *testing.M) {
@@ -145,7 +145,7 @@ func newTestSyncer(t *testing.T) *Service {
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	fp := "../../chain/gssmr/genesis.json"
+	const fp = "../../chain/gssmr/genesis.json"
 	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 

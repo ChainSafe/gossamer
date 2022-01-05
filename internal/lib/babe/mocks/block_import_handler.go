@@ -3,8 +3,8 @@
 package mocks
 
 import (
-	types "github.com/ChainSafe/gossamer/dot/types"
-	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	types "github.com/ChainSafe/gossamer/internal/dot/types"
+	storage "github.com/ChainSafe/gossamer/internal/lib/runtime/storage"
 	mock "github.com/stretchr/testify/mock"
 )
 

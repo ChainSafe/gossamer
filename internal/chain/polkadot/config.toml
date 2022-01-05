@@ -14,7 +14,7 @@ grandpa = ""
 sync = ""
 
 [init]
-genesis = "./chain/polkadot/genesis.json"
+genesis = "./internal/chain/polkadot/genesis.json"
 
 [account]
 key = ""

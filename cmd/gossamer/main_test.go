@@ -16,8 +16,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/dot"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/stretchr/testify/require"
 )
@@ -195,10 +195,10 @@ func TestMain(m *testing.M) {
 	if reexec.Init() {
 		return
 	}
-	defaultGssmrConfigPath = "../../chain/gssmr/config.toml"
-	defaultKusamaConfigPath = "../../chain/kusama/config.toml"
-	defaultPolkadotConfigPath = "../../chain/polkadot/config.toml"
-	defaultDevConfigPath = "../../chain/dev/config.toml"
+	defaultGssmrConfigPath = "../../internal/chain/gssmr/config.toml"
+	defaultKusamaConfigPath = "../../internal/chain/kusama/config.toml"
+	defaultPolkadotConfigPath = "../../internal/chain/polkadot/config.toml"
+	defaultDevConfigPath = "../../internal/chain/dev/config.toml"
 	os.Exit(m.Run())
 }
 
@@ -259,7 +259,7 @@ func TestBuildSpecCommandWithOutput(t *testing.T) {
 	buildSpecCommand := runTestGossamer(t,
 		"build-spec",
 		"--raw",
-		"--genesis-spec", "../../chain/gssmr/genesis-spec.json",
+		"--genesis-spec", "../../internal/chain/gssmr/genesis-spec.json",
 		"--output", tmpOutputfile)
 
 	time.Sleep(5 * time.Second)

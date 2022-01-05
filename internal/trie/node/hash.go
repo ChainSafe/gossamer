@@ -6,8 +6,8 @@ package node
 import (
 	"bytes"
 
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // SetEncodingAndHash sets the encoding and hash slices

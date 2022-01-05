@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/dot/network"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/grandpa"
+	"github.com/ChainSafe/gossamer/internal/lib/keystore"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 	"github.com/ChainSafe/gossamer/internal/pprof"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"

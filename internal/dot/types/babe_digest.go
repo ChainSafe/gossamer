@@ -6,7 +6,7 @@ package types
 import (
 	"errors"
 
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/internal/tests/utils"
 
 	"github.com/stretchr/testify/require"
 )

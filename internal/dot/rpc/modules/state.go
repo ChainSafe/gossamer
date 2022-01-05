@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

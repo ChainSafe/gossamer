@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // leafMap provides quick lookup for existing leaves

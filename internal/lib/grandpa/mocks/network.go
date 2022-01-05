@@ -3,10 +3,9 @@
 package mocks
 
 import (
-	network "github.com/ChainSafe/gossamer/dot/network"
-	mock "github.com/stretchr/testify/mock"
-
+	network "github.com/ChainSafe/gossamer/internal/dot/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	mock "github.com/stretchr/testify/mock"
 
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 )

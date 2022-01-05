@@ -6,17 +6,17 @@ package modules
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/dot/core"
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/dot/core"
+	"github.com/ChainSafe/gossamer/internal/dot/state"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/grandpa"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime"
+	"github.com/ChainSafe/gossamer/internal/lib/transaction"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
 )
 
 //go:generate mockery --name StorageAPI --structname StorageAPI --case underscore --keeptree

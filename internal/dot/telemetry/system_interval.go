@@ -6,7 +6,7 @@ package telemetry
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // systemIntervalTM struct to hold system interval telemetry messages

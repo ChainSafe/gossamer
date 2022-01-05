@@ -22,7 +22,7 @@ BASE_PATH=~/gossamer-dev
 set -euxo pipefail
 
 if [ ! -f $BASE_PATH/genesis_created ]; then
-	/gossamer/bin/gossamer init --genesis=/gossamer/chain/gssmr/genesis.json
+	/gossamer/bin/gossamer init --genesis=/gossamer/internal/chaingssmr/genesis.json
 	touch $BASE_PATH/genesis_created;
 fi;
 

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto"
 	bip39 "github.com/cosmos/go-bip39"
 	"github.com/gtank/merlin"
 	"github.com/stretchr/testify/require"

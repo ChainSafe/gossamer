@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -147,50 +148,68 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 
 // GetGssmrGenesisRawPath gets the gssmr raw genesis path
 func GetGssmrGenesisRawPath() string {
-	path1 := "../chain/gssmr/genesis.json"
-	path2 := "../../chain/gssmr/genesis.json"
-
-	var fp string
-
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
+	chainDir, err := locateChainDirectory()
+	if err != nil {
+		panic(err)
 	}
 
-	return fp
+	return filepath.Join(chainDir, "gssmr/genesis.json")
 }
 
 // GetGssmrGenesisPath gets the gssmr human-readable genesis path
 func GetGssmrGenesisPath() string {
-	path1 := "../chain/gssmr/genesis-spec.json"
-	path2 := "../../chain/gssmr/genesis-spec.json"
-
-	var fp string
-
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
+	chainDir, err := locateChainDirectory()
+	if err != nil {
+		panic(err)
 	}
 
-	return fp
+	return filepath.Join(chainDir, "gssmr/genesis-spec.json")
 }
 
 // GetKusamaGenesisPath gets the kusama genesis path
 func GetKusamaGenesisPath() string {
-	path1 := "../chain/kusama/genesis.json"
-	path2 := "../../chain/kusama/genesis.json"
-
-	var fp string
-
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
+	chainDir, err := locateChainDirectory()
+	if err != nil {
+		panic(err)
 	}
 
-	return fp
+	return filepath.Join(chainDir, "kusama/genesis.json")
+}
+
+// GetDevGenesisPath gets the dev genesis path
+func GetDevGenesisPath() string {
+	chainDir, err := locateChainDirectory()
+	if err != nil {
+		panic(err)
+	}
+
+	return filepath.Join(chainDir, "dev/genesis.json")
+}
+
+var (
+	ErrChainDirectoryPathNotValid = errors.New("chain directory path is not valid")
+	ErrChainDirectoryPathNotFound = errors.New("chain directory path not found")
+)
+
+func locateChainDirectory() (chainDir string, err error) {
+	pathsToTry := []string{
+		"../../internal/chain/", // from cmd/gossamer
+		"../chain/",             // from internal/package
+		"../../chain/",          // from internal/package/subpackage
+		"../../../chain/",       // from internal/package/subpackage/subpackage
+	}
+
+	for _, pathToTry := range pathsToTry {
+		if PathExists(pathToTry) {
+			path, err := filepath.Abs(pathToTry)
+			if err != nil {
+				return "", fmt.Errorf("%w: %s", ErrChainDirectoryPathNotValid, pathToTry)
+			}
+			return path, nil
+		}
+	}
+
+	return "", ErrChainDirectoryPathNotFound
 }
 
 // LoadChainDB load the db at the given path.

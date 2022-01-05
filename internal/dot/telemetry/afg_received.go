@@ -3,7 +3,7 @@
 
 package telemetry
 
-import "github.com/ChainSafe/gossamer/lib/common"
+import "github.com/ChainSafe/gossamer/internal/lib/common"
 
 // AfG ("Al's Finality Gadget") is synonymous with GRANDPA.
 

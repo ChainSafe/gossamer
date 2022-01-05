@@ -12,7 +12,7 @@ import (
 
 	"github.com/naoina/toml"
 
-	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
+	ctoml "github.com/ChainSafe/gossamer/internal/dot/config/toml"
 )
 
 // loadConfig loads the values from the toml configuration file into the provided configuration

@@ -28,8 +28,8 @@ func TestPruneState(t *testing.T) {
 	}
 
 	var (
-		inputDBPath   = "../../tests/data/db"
-		configFile    = "../../tests/data/db/config.toml"
+		inputDBPath   = "../../internal/tests/data/db"
+		configFile    = "../../internal/tests/data/db/config.toml"
 		prunedDBPath  = fmt.Sprintf("%s/%s", t.TempDir(), "pruned")
 		storagePrefix = "storage"
 	)

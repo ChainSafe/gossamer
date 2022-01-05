@@ -4,11 +4,11 @@
 package runtime
 
 import (
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto"
+	"github.com/ChainSafe/gossamer/internal/lib/keystore"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 )
 
 // NodeStorageType type to identify offchain storage type

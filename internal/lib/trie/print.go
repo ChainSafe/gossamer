@@ -7,9 +7,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
-	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/disiqueira/gotree"
 )

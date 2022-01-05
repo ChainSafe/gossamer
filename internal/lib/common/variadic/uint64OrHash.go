@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // Uint64OrHash represents an optional interface type (int,hash).

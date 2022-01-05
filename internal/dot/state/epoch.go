@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

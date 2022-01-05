@@ -19,10 +19,10 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 
-	gosstypes "github.com/ChainSafe/gossamer/dot/types"
+	gosstypes "github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/internal/tests/utils"
 )
 
 func TestMain(m *testing.M) {

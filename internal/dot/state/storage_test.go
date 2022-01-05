@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	"github.com/ChainSafe/gossamer/dot/types"
-	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	runtime "github.com/ChainSafe/gossamer/internal/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
 
 	"github.com/stretchr/testify/require"
 )

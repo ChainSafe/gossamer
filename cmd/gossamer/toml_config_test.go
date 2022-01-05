@@ -6,17 +6,17 @@ package main
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/dot"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
 
-const GssmrConfigPath = "../../chain/gssmr/config.toml"
-const GssmrGenesisPath = "../../chain/gssmr/genesis.json"
+const GssmrConfigPath = "../../internal/chain/gssmr/config.toml"
+const GssmrGenesisPath = "../../internal/chain/gssmr/genesis.json"
 
-const KusamaConfigPath = "../../chain/kusama/config.toml"
-const KusamaGenesisPath = "../../chain/kusama/genesis.json"
+const KusamaConfigPath = "../../internal/chain/kusama/config.toml"
+const KusamaGenesisPath = "../../internal/chain/kusama/genesis.json"
 
 // TestLoadConfig tests loading a toml configuration file
 func TestLoadConfig(t *testing.T) {

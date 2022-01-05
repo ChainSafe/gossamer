@@ -14,10 +14,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/secp256k1"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/sr25519"
 
 	"golang.org/x/crypto/blake2b"
 )

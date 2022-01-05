@@ -14,7 +14,7 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 )
 
 var TestProtocolID = "/gossamer/test/0"

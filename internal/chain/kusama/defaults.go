@@ -4,9 +4,9 @@
 package kusama
 
 import (
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 	// DefaultID Default chain ID
 	DefaultID = string("ksmcc3")
 	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./chain/kusama/config.toml")
+	DefaultConfig = string("./internal/chain/kusama/config.toml")
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/kusama")
 
@@ -38,7 +38,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/kusama/genesis.json")
+	DefaultGenesis = string("./internal/chain/kusama/genesis.json")
 
 	// AccountConfig
 

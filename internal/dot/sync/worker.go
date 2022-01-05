@@ -11,8 +11,8 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/dot/network"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // workerState helps track the current worker set and set the upcoming worker ID

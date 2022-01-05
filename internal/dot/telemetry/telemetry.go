@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 )
 

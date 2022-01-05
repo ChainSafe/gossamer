@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/internal/dot"
+	"github.com/ChainSafe/gossamer/internal/dot/state"
+	"github.com/ChainSafe/gossamer/internal/lib/keystore"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/urfave/cli"
 )
 

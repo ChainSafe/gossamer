@@ -39,7 +39,7 @@ is distributed to network peers to allow for the verification of messages signed
 may be constructive to think about a public key as a username and private key as a password, such as for a banking or
 social media website. Participants in P2P networks that use asymmetric cryptography must protect their private keys, as
 well as keep track of the public keys that belong to the other participants in the network. Gossamer provides a
-[keystore](../../lib/keystore) for securely storing one's private keys. There are a number of Gossamer processes that
+[keystore](../../internal/lib/keystore) for securely storing one's private keys. There are a number of Gossamer processes that
 manage the public keys of network peers - some of these, such as
 [peer discovery and management](#peer-discovery--management), are described in this document, but there are other
 packages (most notably [`peerset`](../peerset)) that also interact with the public keys of network peers. One of the

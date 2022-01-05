@@ -20,7 +20,7 @@ This is the default Gossamer execution method, which invokes the `gossamerAction
 blockchain client are [described below in the Client Components section](#client-components).
 
 - `--basepath` - the path to the directory where Gossamer will store its data
-- `--chain` - specifies the [chain configuration](../../chain) that the
+- `--chain` - specifies the [chain configuration](../../internal/chain) that the
   [Gossamer host node](https://chainsafe.github.io/gossamer/getting-started/overview/host-architecture/) should load
 - `--key` - specifies a test keyring account to use (e.g. `--key=alice`)
 - `--log` - supports levels `crit` (silent), `error`, `warn`, `info`, `debug`, and `trce` (detailed), default is `info`
@@ -39,7 +39,7 @@ This subcommand accepts a genesis configuration file and uses it to initialise t
 The `account` subcommand provides the user with capabilities related to generating and using `ed25519`, `secp256k1`, and
 `sr25519` [account keys](https://wiki.polkadot.network/docs/learn-keys), and managing the keys present in the
 [Gossamer keystore](#keystore). The `accountAction` function is defined in [account.go](account.go); it is an interface
-to the capabilities defined in the [`lib/crypto`](../../lib/crypto) and [`lib/keystore`](../../lib/keystore) packages.
+to the capabilities defined in the [`lib/crypto`](../../internal/lib/crypto) and [`lib/keystore`](../../internal/lib/keystore) packages.
 This subcommand provides capabilities that are similar to
 [Parity's Subkey utility](https://docs.substrate.io/v3/tools/subkey).
 
@@ -68,7 +68,7 @@ in [`main.go`](main.go).
 
 ### Import State Subcommand
 
-The `import-state` subcommand allows a user to seed [Gossamer storage](../../dot/state) with key-value pairs in the form
+The `import-state` subcommand allows a user to seed [Gossamer storage](../../internal/dot/state) with key-value pairs in the form
 of a JSON file. The input for this subcommand can be retrieved from
 [the `state_getPairs` RPC endpoint](https://github.com/w3f/PSPs/blob/master/PSPs/drafts/psp-6.md#1114-state_getpairs).
 The `importStateAction` function is defined in [`main.go`](main.go).
@@ -86,7 +86,7 @@ The `importStateAction` function is defined in [`main.go`](main.go).
 The `export` subcommand transforms a genesis configuration and Gossamer state into a TOML configuration file. This
 subcommand invokes the `exportAction` function defined in [`export.go`](export.go).
 
-- `--config` - path to a TOML configuration file (e.g. those defined in [the `chain` directory](../../chain))
+- `--config` - path to a TOML configuration file (e.g. those defined in [the `chain` directory](../../internal/chain))
 - `--basepath` - path to the Gossamer data directory that defines the state to export
 
 ## Client Components
@@ -96,8 +96,8 @@ In its default method of execution, Gossamer orchestrates a number of modular se
 a blockchain network. Alongside these services, Gossamer manages [a keystore](#keystore), [a runtime](#runtime), and
 [monitoring utilities](#monitoring), all of which are described in greater detail below. The entry point to the Gossamer
 blockchain client capabilities is the `gossamerAction` function that is defined in [main.go](main.go), which in turn
-invokes the `NewNode` function in [dot/node.go](../../dot/node.go). `NewNode` calls into functions that are defined in
-[dot/services.go](../../dot/services.go) and starts the services that power a Gossamer node.
+invokes the `NewNode` function in [dot/node.go](../../internal/dot/node.go). `NewNode` calls into functions that are defined in
+[dot/services.go](../../internal/dot/services.go) and starts the services that power a Gossamer node.
 
 ### Services & Capabilities
 
@@ -108,11 +108,11 @@ What follows is a list that describes the services and capabilities that inform 
 This service is a wrapper around an instance of [`chaindb`](https://github.com/ChainSafe/chaindb), a key-value database
 that is built on top of [BadgerDB](https://github.com/dgraph-io/badger) from [Dgraph](https://dgraph.io/). The state
 service provides storage capabilities for the other Gossamer services - each service is assigned a prefix that is added
-to its storage keys. The state service is defined in [dot/state/service.go](../../dot/state/service.go).
+to its storage keys. The state service is defined in [dot/state/service.go](../../internal/dot/state/service.go).
 
 #### Network
 
-The network service, which is defined in [dot/network/service.go](../../dot/network/service.go), is built on top of
+The network service, which is defined in [dot/network/service.go](../../internal/dot/network/service.go), is built on top of
 [the Go implementation](https://github.com/libp2p/go-libp2p) of [the `libp2p` protocol](https://libp2p.io/). This
 service manages a `libp2p` "host", a peer-to-peer networking term for a network participant that is providing both
 client _and_ server capabilities to a peer-to-peer network. Gossamer's network service manages the discovery of other
@@ -120,7 +120,7 @@ hosts as well as the connections with these hosts that allow Gossamer to communi
 
 #### Digest Handler
 
-The digest handler ([dot/digest/digest.go](../../dot/digest/digest.go)) manages the verification of the
+The digest handler ([dot/digest/digest.go](../../internal/dot/digest/digest.go)) manages the verification of the
 [digests](https://docs.substrate.io/v3/getting-started/glossary/#digest) that are present in block headers.
 
 #### Consensus
@@ -128,40 +128,40 @@ The digest handler ([dot/digest/digest.go](../../dot/digest/digest.go)) manages 
 The BABE and GRANDPA services work together to provide Gossamer with its
 [hybrid consensus](https://wiki.polkadot.network/docs/learn-consensus#hybrid-consensus) capabilities. The term "hybrid
 consensus" refers to the fact that block _production_ is decoupled from block _finalisation_. Block production is
-handled by the BABE service, which is defined in [lib/babe/babe.go](../../lib/babe/babe.go); block finalisation is
-handled by the GRANDPA service, which is defined in [lib/grandpa/grandpa.go](../../lib/grandpa/grandpa.go).
+handled by the BABE service, which is defined in [lib/babe/babe.go](../../internal/lib/babe/babe.go); block finalisation is
+handled by the GRANDPA service, which is defined in [lib/grandpa/grandpa.go](../../internal/lib/grandpa/grandpa.go).
 
 #### Sync
 
 This service is concerned with keeping Gossamer in sync with a blockchain - it implements a "bootstrap" mode, to
 download and verify blocks that are part of an existing chain's history, and a "tip-syncing" mode that manages the
 multiple candidate forks that may exist at the head of a live chain. The sync service makes use of
-[a block verification utility](../../lib/babe/verify.go) that implements BABE logic and is used by Gossamer to verify
+[a block verification utility](../../internal/lib/babe/verify.go) that implements BABE logic and is used by Gossamer to verify
 blocks that were produced by other other nodes in the network. The sync service is defined in
-[dot/sync/syncer.go](../../dot/sync/syncer.go).
+[dot/sync/syncer.go](../../internal/dot/sync/syncer.go).
 
 #### RPC
 
-This service, which is defined in [dot/rpc/service.go](../../dot/rpc/service.go), exposes a JSON-RPC interface that is
+This service, which is defined in [dot/rpc/service.go](../../internal/dot/rpc/service.go), exposes a JSON-RPC interface that is
 used by client applications like [Polkadot JS Apps UI](https://polkadot.js.org/apps/). The RPC interface is used to
 interact with Gossamer to perform administrative tasks such as key management, as well as for interacting with the
 runtime by querying storage and submitting transactions, and inspecting the chain's history.
 
 #### System
 
-The system service is defined in [dot/system/service.go](../../dot/system/service.go) and exposes metadata about the
+The system service is defined in [dot/system/service.go](../../internal/dot/system/service.go) and exposes metadata about the
 Gossamer system, such as the names and versions of the protocols that it implements.
 
 #### Core
 
-As its name implies, the core service ([dot/core/service.go](../../dot/core/service.go)) encapsulates a range of
+As its name implies, the core service ([dot/core/service.go](../../internal/dot/core/service.go)) encapsulates a range of
 capabilities that are central to the functioning of a Gossamer node. In general, the core service is a type of
 dispatcher that coordinates interactions between services, e.g. writing blocks to the database, reloading
 [the runtime](#runtime) when its definition is updated, etc.
 
 ### Keystore
 
-The Gossamer keystore ([lib/keystore](../../lib/keystore)) is used for managing the public/private cryptographic key
+The Gossamer keystore ([lib/keystore](../../internal/lib/keystore)) is used for managing the public/private cryptographic key
 pairs that are used for participating in a blockchain network. Public keys are used to identify network participants;
 network participants use their private keys to sign messages in order to authorise privileged actions. In addition to
 informing the Gossamer blockchain client capabilities, the Gossamer keystore is accessible by way of the `account`
@@ -177,16 +177,16 @@ subcommand. The Gossamer keystore manages a number of key types, some of which a
 
 In addition to the above-described services, Gossamer hosts a Wasm execution environment that is used to manage an
 upgradeable blockchain runtime. The runtime must be implemented in Wasm, and must expose an interface that is specified
-in [lib/runtime/interface.go](../../lib/runtime/interface.go). The runtime defines the blockchain's state transition
+in [lib/runtime/interface.go](../../internal/lib/runtime/interface.go). The runtime defines the blockchain's state transition
 function, and the various Gossamer services consume this capability in order to author blocks, as well as to verify
 blocks that were authored by network peers. The runtime is dependent on a
 [Wasm host interface](https://docs.wasmer.io/integrations/examples/host-functions), which Gossamer implements and is
-defined in [lib/runtime/wasmer/exports.go](../../lib/runtime/wasmer/exports.go).
+defined in [lib/runtime/wasmer/exports.go](../../internal/lib/runtime/wasmer/exports.go).
 
 ### Monitoring
 
 Gossamer publishes telemetry data and also includes an embedded Prometheus server that reports metrics. The metrics
-capabilities are defined in the [dot/metrics](../../dot/metrics) package and build on
+capabilities are defined in the [dot/metrics](../../internal/dot/metrics) package and build on
 [the metrics library that is included with Go Ethereum](https://github.com/ethereum/go-ethereum/blob/master/metrics/README.md).
 The default port for Prometheus metrics is 9090, and Gossamer allows the user to configure this parameter with the
 `--metrics-port` command-line parameter. The Gossamer telemetry server publishes telemetry data that is compatible with

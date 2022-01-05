@@ -8,8 +8,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // ErrTransactionExists is returned when trying to add a transaction to the queue that already exists

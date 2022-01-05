@@ -6,7 +6,7 @@ package trie
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // ChildStorageKeyPrefix is the prefix for all child storage keys

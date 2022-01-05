@@ -8,9 +8,9 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/dot/peerset"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 //go:generate mockery --name BlockState --structname MockBlockState --case underscore --inpackage

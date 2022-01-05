@@ -9,8 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"

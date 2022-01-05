@@ -14,13 +14,13 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

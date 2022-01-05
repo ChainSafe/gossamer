@@ -9,16 +9,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
 func setupStateFile(t *testing.T) string {
-	filename := "../lib/runtime/test_data/kusama/block1482002.json"
+	const filename = "../lib/runtime/test_data/kusama/block1482002.json"
 
 	data, err := os.ReadFile(filename)
 	require.NoError(t, err)

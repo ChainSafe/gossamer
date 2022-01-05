@@ -8,7 +8,7 @@ syntax = "proto3";
 package api.v1;
 
 // This file is copied from https://github.com/paritytech/substrate/blob/9b08105b8c7106d723c4f470304ad9e2868569d9/client/network/src/schema/api.v1.proto
-option go_package = "github.com/ChainSafe/gossamer/dot/network/proto";
+option go_package = "github.com/ChainSafe/gossamer/internal/dot/network/proto";
 
 // Block enumeration direction.
 enum Direction {

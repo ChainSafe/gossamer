@@ -9,10 +9,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
 )
 
-var defaultGenesisSpecPath = "./chain/gssmr/genesis-spec.json"
+var defaultGenesisSpecPath = "./internal/chain/gssmr/genesis-spec.json"
 
 func createGenesisWithRuntime(fp string) (string, error) {
 	runtime, err := os.ReadFile(filepath.Clean(fp))

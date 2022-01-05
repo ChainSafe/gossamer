@@ -31,7 +31,7 @@ grandpa = " | trace | debug | info | warn | error | crit"
 sync = " | trace | debug | info | warn | error | crit"
 
 [init]
-genesis-raw = "./chain/gssmr/genesis-raw.json"
+genesis-raw = "./internal/chain/gssmr/genesis-raw.json"
 
 [account]
 key = ""

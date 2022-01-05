@@ -10,7 +10,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
 	"github.com/stretchr/testify/require"
 )
 

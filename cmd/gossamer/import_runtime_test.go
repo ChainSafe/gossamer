@@ -8,14 +8,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateGenesisWithRuntime(t *testing.T) {
-	defaultGenesisSpecPath = "../../chain/gssmr/genesis-spec.json"
+	defaultGenesisSpecPath = "../../internal/chain/gssmr/genesis-spec.json"
 
 	testCode := []byte("somecode")
 	testHex := common.BytesToHex(testCode)

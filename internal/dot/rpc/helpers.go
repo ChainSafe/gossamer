@@ -9,7 +9,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/dot/rpc/modules"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/rpc/v2"
 	"github.com/jpillora/ipfilter"

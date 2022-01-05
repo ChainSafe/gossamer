@@ -14,7 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 )
 
 func newTestDiscovery(t *testing.T, num int) []*discovery {

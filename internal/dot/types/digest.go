@@ -6,7 +6,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

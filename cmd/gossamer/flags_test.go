@@ -7,9 +7,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/chain/dev"
-	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/chain/dev"
+	"github.com/ChainSafe/gossamer/internal/dot"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"

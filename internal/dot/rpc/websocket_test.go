@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/system"
-	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/dot/core"
+	"github.com/ChainSafe/gossamer/internal/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/internal/dot/system"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )

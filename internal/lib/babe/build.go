@@ -10,11 +10,11 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime"
+	"github.com/ChainSafe/gossamer/internal/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )

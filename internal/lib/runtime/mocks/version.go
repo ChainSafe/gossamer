@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	runtime "github.com/ChainSafe/gossamer/lib/runtime"
+	runtime "github.com/ChainSafe/gossamer/internal/lib/runtime"
 	mock "github.com/stretchr/testify/mock"
 )
 

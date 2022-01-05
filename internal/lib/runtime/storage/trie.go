@@ -8,8 +8,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/trie"
 )
 
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.

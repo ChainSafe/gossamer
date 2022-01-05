@@ -6,7 +6,7 @@ package modules
 import (
 	"net/http"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // GetKeysRequest represents the request to retrieve the keys of a child storage

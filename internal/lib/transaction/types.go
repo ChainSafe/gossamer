@@ -4,7 +4,7 @@
 package transaction
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
 )
 
 // Validity struct see

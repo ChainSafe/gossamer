@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 )
 
 func main() {

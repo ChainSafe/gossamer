@@ -14,7 +14,7 @@ grandpa = ""
 sync = ""
 
 [init]
-genesis = "./chain/kusama/genesis.json"
+genesis = "./internal/chain/kusama/genesis.json"
 
 [account]
 key = ""

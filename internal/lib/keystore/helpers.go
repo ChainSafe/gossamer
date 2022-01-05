@@ -12,12 +12,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/secp256k1"
+	"github.com/ChainSafe/gossamer/internal/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 )
 
 // PrivateKeyToKeypair returns a public, private keypair given a private key

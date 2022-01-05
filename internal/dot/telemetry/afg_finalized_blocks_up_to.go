@@ -4,7 +4,7 @@
 package telemetry
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 )
 
 // afgFinalizedBlocksUpToTM holds telemetry message of type `afg.finalized_blocks_up_to`,

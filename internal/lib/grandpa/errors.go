@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/internal/lib/blocktree"
 )
 
 // errRoundMismatch is returned when trying to validate a vote message that isn't for the current round

@@ -14,7 +14,7 @@ grandpa = ""
 sync = ""
 
 [init]
-genesis = "./chain/gssmr/genesis-spec.json"
+genesis = "./internal/chain/gssmr/genesis-spec.json"
 
 [account]
 key = ""

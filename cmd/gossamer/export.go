@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot"
-	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/internal/dot"
+	ctoml "github.com/ChainSafe/gossamer/internal/dot/config/toml"
+	"github.com/ChainSafe/gossamer/internal/lib/utils"
 
 	"github.com/urfave/cli"
 )

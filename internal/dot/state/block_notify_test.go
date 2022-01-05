@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime"
+	runtimemocks "github.com/ChainSafe/gossamer/internal/lib/runtime/mocks"
 	"github.com/stretchr/testify/require"
 )
 

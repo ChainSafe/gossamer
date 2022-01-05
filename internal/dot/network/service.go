@@ -16,12 +16,12 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 
-	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
+	gssmrmetrics "github.com/ChainSafe/gossamer/internal/dot/metrics"
+	"github.com/ChainSafe/gossamer/internal/dot/peerset"
+	"github.com/ChainSafe/gossamer/internal/dot/telemetry"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/services"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/services"
 )
 
 const (

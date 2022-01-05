@@ -1,5 +1,5 @@
 [global]
-basepath = "../../tests/data/db"
+basepath = "../../internal/tests/data/db"
 log = "info"
 metrics-port = 9876
 
@@ -14,7 +14,7 @@ grandpa = ""
 sync = ""
 
 [init]
-genesis = "./chain/gssmr/genesis.json"
+genesis = "./internal/chain/gssmr/genesis.json"
 
 [account]
 key = ""

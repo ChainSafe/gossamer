@@ -6,8 +6,8 @@ package network
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"

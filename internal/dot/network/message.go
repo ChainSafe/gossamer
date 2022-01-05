@@ -10,10 +10,10 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	pb "github.com/ChainSafe/gossamer/dot/network/proto"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	pb "github.com/ChainSafe/gossamer/internal/dot/network/proto"
+	"github.com/ChainSafe/gossamer/internal/dot/types"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

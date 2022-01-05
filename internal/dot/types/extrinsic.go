@@ -6,7 +6,7 @@ package types
 import (
 	"bytes"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/lib/common"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )

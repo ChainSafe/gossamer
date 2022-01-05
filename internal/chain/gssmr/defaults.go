@@ -6,9 +6,9 @@ package gssmr
 import (
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/lib/genesis"
+	"github.com/ChainSafe/gossamer/internal/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 	// DefaultID Default chain ID
 	DefaultID = string("gssmr")
 	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./chain/gssmr/config.toml")
+	DefaultConfig = string("./internal/chain/gssmr/config.toml")
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/gssmr")
 
@@ -40,7 +40,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/gssmr/genesis-spec.json")
+	DefaultGenesis = string("./internal/chain/gssmr/genesis-spec.json")
 
 	// AccountConfig
 
