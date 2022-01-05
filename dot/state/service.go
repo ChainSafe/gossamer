@@ -50,7 +50,7 @@ type Service struct {
 	// Below are for state trie online pruner
 	PrunerCfg pruner.Config
 
-	Telemetry telemetry.Telemetry
+	Telemetry telemetry.Client
 }
 
 // Config is the default configuration used by state service.
@@ -58,7 +58,7 @@ type Config struct {
 	Path      string
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
-	Telemetry telemetry.Telemetry
+	Telemetry telemetry.Client
 }
 
 // NewService create a new instance of Service
@@ -91,7 +91,7 @@ func (s *Service) DB() chaindb.Database {
 }
 
 // SetTelemetry add a telemetry impl to state.Service.Telemetry field
-func (s *Service) SetTelemetry(t telemetry.Telemetry) {
+func (s *Service) SetTelemetry(t telemetry.Client) {
 	s.Telemetry = t
 }
 

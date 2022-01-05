@@ -103,7 +103,7 @@ type Config struct {
 	// SlotDuration is the slot duration to produce a block
 	SlotDuration time.Duration
 
-	Telemetry telemetry.Telemetry
+	Telemetry telemetry.Client
 }
 
 // build checks the configuration, sets up the private key for the network service,

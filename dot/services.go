@@ -170,7 +170,7 @@ func asAuthority(authority bool) string {
 }
 
 func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore,
-	cs *core.Service, telemetryMailer telemetry.Telemetry) (*babe.Service, error) {
+	cs *core.Service, telemetryMailer telemetry.Client) (*babe.Service, error) {
 	logger.Info("creating BABE service" +
 		asAuthority(cfg.Core.BabeAuthority) + "...")
 
@@ -259,7 +259,7 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 
 // createNetworkService creates a network service from the command configuration and genesis data
 func createNetworkService(cfg *Config, stateSrvc *state.Service,
-	telemetryMailer telemetry.Telemetry) (*network.Service, error) {
+	telemetryMailer telemetry.Client) (*network.Service, error) {
 	logger.Debugf(
 		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
@@ -365,7 +365,7 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 
 // createGRANDPAService creates a new GRANDPA service
 func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
-	ks keystore.Keystore, net *network.Service, telemetryMailer telemetry.Telemetry) (*grandpa.Service, error) {
+	ks keystore.Keystore, net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
 	rt, err := st.Block.GetRuntime(nil)
 	if err != nil {
 		return nil, err
@@ -416,7 +416,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 }
 
 func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
-	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer telemetry.Telemetry) (
+	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (
 	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {

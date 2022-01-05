@@ -37,7 +37,7 @@ type Config struct {
 	BabeVerifier       BabeVerifier
 	MinPeers, MaxPeers int
 	SlotDuration       time.Duration
-	Telemetry          telemetry.Telemetry
+	Telemetry          telemetry.Client
 }
 
 // NewService returns a new *sync.Service

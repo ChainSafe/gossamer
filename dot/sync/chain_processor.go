@@ -39,13 +39,13 @@ type chainProcessor struct {
 	babeVerifier       BabeVerifier
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
-	telemetry          telemetry.Telemetry
+	telemetry          telemetry.Client
 }
 
 func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
 	blockState BlockState, storageState StorageState,
 	transactionState TransactionState, babeVerifier BabeVerifier,
-	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler, telemetry telemetry.Telemetry) *chainProcessor {
+	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler, telemetry telemetry.Client) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{

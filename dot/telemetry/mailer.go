@@ -17,7 +17,7 @@ import (
 
 //go:generate mockgen -destination=telemetry_mock.go -package $GOPACKAGE . Telemetry
 // Telemetry interface holds the definitions to services send messages through telemetry
-type Telemetry interface {
+type Client interface {
 	SendMessage(msg Message) error
 }
 

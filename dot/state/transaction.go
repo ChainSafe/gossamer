@@ -23,11 +23,11 @@ type TransactionState struct {
 	notifierChannels map[chan transaction.Status]string
 	notifierLock     sync.RWMutex
 
-	telemetry telemetry.Telemetry
+	telemetry telemetry.Client
 }
 
 // NewTransactionState returns a new TransactionState
-func NewTransactionState(telemetry telemetry.Telemetry) *TransactionState {
+func NewTransactionState(telemetry telemetry.Client) *TransactionState {
 	return &TransactionState{
 		queue:            transaction.NewPriorityQueue(),
 		pool:             transaction.NewPool(),
