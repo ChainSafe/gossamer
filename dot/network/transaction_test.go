@@ -40,8 +40,8 @@ func TestHandleTransactionMessage(t *testing.T) {
 	transactionHandler := NewMockTransactionHandler(ctrl)
 	transactionHandler.EXPECT().
 		HandleTransactionMessage(gomock.Any(), expectedMsgArg).
-		Return(true, nil).AnyTimes()
-	transactionHandler.EXPECT().TransactionsCount().Return(0).AnyTimes()
+		Return(true, nil).MaxTimes(1)
+	transactionHandler.EXPECT().TransactionsCount().Return(0).MaxTimes(1)
 
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
