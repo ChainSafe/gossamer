@@ -22,7 +22,7 @@ func TestNewConfig(t *testing.T) {
 
 // TestNewConfigAndFile tests the NewTestConfigWithFile method
 func TestNewConfigAndFile(t *testing.T) {
-	testCfg, testCfgFile := NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	defer utils.RemoveTestDir(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
@@ -45,7 +45,7 @@ func TestNewTestGenesisFile(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genHRFile := NewTestGenesisFile(t, cfg)
+	genHRFile := newTestGenesisFile(t, cfg)
 	require.NotNil(t, genHRFile)
 	defer os.Remove(genHRFile.Name())
 
