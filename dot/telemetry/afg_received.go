@@ -7,9 +7,11 @@ import "github.com/ChainSafe/gossamer/lib/common"
 
 // AfG ("Al's Finality Gadget") is synonymous with GRANDPA.
 
-var _ Message = (*AfgReceivedPrecommitTM)(nil)
-var _ Message = (*AfgReceivedPrevoteTM)(nil)
-var _ Message = (*AfgReceivedCommitTM)(nil)
+var (
+	_ Message = (*AfgReceivedPrecommitTM)(nil)
+	_ Message = (*AfgReceivedPrevoteTM)(nil)
+	_ Message = (*AfgReceivedCommitTM)(nil)
+)
 
 type afgReceivedTM struct {
 	TargetHash   common.Hash `json:"target_hash"`
