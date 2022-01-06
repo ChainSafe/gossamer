@@ -66,7 +66,7 @@ func Test_bootstrapSyncer_handleNewPeerState(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, got, tt.want)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -81,7 +81,12 @@ func Test_bootstrapSyncer_handleTick(t *testing.T) {
 		want    []*worker
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "base case",
+			fields:  fields{},
+			want:    nil,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -93,14 +98,20 @@ func Test_bootstrapSyncer_handleTick(t *testing.T) {
 				t.Errorf("handleTick() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("handleTick() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
 func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := NewMockBlockState(ctrl)
+	m.EXPECT().BestBlockHeader().Return(&types.Header{
+		Number: big.NewInt(1),
+	}, nil).Times(3)
+	m.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{Number: big.NewInt(0)}, nil)
+
 	type fields struct {
 		blockState BlockState
 	}
@@ -108,13 +119,53 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 		res *worker
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *worker
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		want   *worker
+		err    error
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "res nil error",
+			fields: fields{},
+			args:   args{res: &worker{}},
+			want:   nil,
+		},
+		{
+			name:   "targetNumber less than header number",
+			fields: fields{blockState: m},
+			args: args{res: &worker{
+				targetNumber: big.NewInt(0),
+				err:          &workerError{},
+			}},
+			want: nil,
+		},
+		{
+			name:   "targetNumber greater than header number",
+			fields: fields{blockState: m},
+			args: args{res: &worker{
+				targetNumber: big.NewInt(2),
+				err:          &workerError{},
+			}},
+			want: &worker{
+				startNumber:  big.NewInt(2),
+				targetNumber: big.NewInt(2),
+			},
+		},
+		{
+			name:   "error unknown parent",
+			fields: fields{blockState: m},
+			args: args{res: &worker{
+				targetNumber: big.NewInt(2),
+				err: &workerError{
+					err: errUnknownParent,
+				},
+			}},
+			want: &worker{
+				startNumber:  big.NewInt(0),
+				targetNumber: big.NewInt(2),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -122,10 +173,12 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 				blockState: tt.fields.blockState,
 			}
 			got, err := s.handleWorkerResult(tt.args.res)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("handleWorkerResult() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
+			assert.Equal(t, tt.want, got)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("handleWorkerResult() got = %v, want %v", got, tt.want)
 			}
@@ -134,27 +187,32 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 }
 
 func Test_bootstrapSyncer_hasCurrentWorker(t *testing.T) {
-	type fields struct {
-		blockState BlockState
-	}
 	type args struct {
-		in0     *worker
 		workers map[uint64]*worker
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   bool
+		name string
+		args args
+		want bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "expect false",
+			want: false,
+		},
+		{
+			name: "expect true",
+			args: args{
+				workers: map[uint64]*worker{
+					0: &worker{},
+				},
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bo := &bootstrapSyncer{
-				blockState: tt.fields.blockState,
-			}
-			if got := bo.hasCurrentWorker(tt.args.in0, tt.args.workers); got != tt.want {
+			bo := &bootstrapSyncer{}
+			if got := bo.hasCurrentWorker(nil, tt.args.workers); got != tt.want {
 				t.Errorf("hasCurrentWorker() = %v, want %v", got, tt.want)
 			}
 		})
@@ -162,6 +220,10 @@ func Test_bootstrapSyncer_hasCurrentWorker(t *testing.T) {
 }
 
 func Test_newBootstrapSyncer(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := NewMockBlockState(ctrl)
+
 	type args struct {
 		blockState BlockState
 	}
@@ -170,13 +232,22 @@ func Test_newBootstrapSyncer(t *testing.T) {
 		args args
 		want *bootstrapSyncer
 	}{
-		// TODO: Add test cases.
+		{
+			name: "base case",
+			want: &bootstrapSyncer{},
+		},
+		{
+			name: "with block state",
+			args: args{
+				blockState: m,
+			},
+			want: &bootstrapSyncer{blockState: m},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := newBootstrapSyncer(tt.args.blockState); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newBootstrapSyncer() = %v, want %v", got, tt.want)
-			}
+			got := newBootstrapSyncer(tt.args.blockState)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
