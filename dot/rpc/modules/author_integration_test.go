@@ -53,7 +53,7 @@ func TestMain(m *testing.M) {
 
 func TestAuthorModule_Pending(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).
@@ -95,7 +95,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Skip()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).
@@ -139,7 +139,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Skip()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).
@@ -161,7 +161,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).
@@ -184,7 +184,7 @@ func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 	t.Skip()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.
 		EXPECT().
 		SendMessage(gomock.Any()).

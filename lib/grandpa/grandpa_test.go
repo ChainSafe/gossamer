@@ -53,7 +53,7 @@ func NewMockDigestHandler() *mocks.DigestHandler {
 
 func newTestState(t *testing.T) *state.Service {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDatadirPath := t.TempDir()
@@ -103,7 +103,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 	net := newTestNetwork(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &Config{

@@ -30,7 +30,7 @@ import (
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDir := utils.NewTestDir(t)
@@ -45,7 +45,7 @@ func newTestService(t *testing.T) (state *Service) {
 
 func newTestMemDBService(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDatadirPath := t.TempDir()
@@ -124,7 +124,7 @@ func TestService_BlockTree(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -173,7 +173,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	retainBlocks := 2
@@ -230,7 +230,7 @@ func TestService_PruneStorage(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -316,7 +316,7 @@ func TestService_Rewind(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -377,7 +377,7 @@ func TestService_Import(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -447,7 +447,7 @@ func TestStateServiceMetrics(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{

@@ -382,7 +382,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	ts := state.NewTransactionState(telemetryMock)
@@ -431,7 +431,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	ts := state.NewTransactionState(telemetryMock)

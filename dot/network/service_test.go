@@ -83,8 +83,8 @@ func createTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 	return msg
 }
 
-//go:generate mockgen -destination=mock_block_state.go -package $GOPACKAGE . BlockState
-//go:generate mockgen -destination=mock_syncer.go -package $GOPACKAGE . Syncer
+//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
+//go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
@@ -171,7 +171,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.Telemetry == nil {
-		telemetryMock := telemetry.NewMockTelemetry(ctrl)
+		telemetryMock := telemetry.NewMockClient(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 		cfg.Telemetry = telemetryMock
 	}

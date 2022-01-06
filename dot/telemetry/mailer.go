@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//go:generate mockgen -destination=telemetry_mock.go -package $GOPACKAGE . Telemetry
+//go:generate mockgen -destination=client_mock.go -package $GOPACKAGE . Client
 // Client interface holds the definitions to services send messages through telemetry
 type Client interface {
 	SendMessage(msg Message) error

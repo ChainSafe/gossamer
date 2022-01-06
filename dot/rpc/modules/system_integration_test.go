@@ -63,9 +63,8 @@ var (
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
-	ctrl := gomock.NewController(t)
 	cfg := &network.Config{
-		BlockState:   network.NewMockBlockState(ctrl),
+		BlockState:   nil,
 		BasePath:     testDir,
 		SlotDuration: time.Second,
 	}
@@ -326,7 +325,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	core := newCoreService(t, chain)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 
 	telemetryMock.
 		EXPECT().

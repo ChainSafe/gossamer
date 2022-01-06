@@ -87,14 +87,13 @@ func (*testNetwork) RegisterNotificationsProtocol(
 
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
-//go:generate mockgen -destination=telemetry_mock_test.go -package $GOPACKAGE . Telemetry
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 	*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	telemetryMock.

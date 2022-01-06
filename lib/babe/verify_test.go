@@ -25,7 +25,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{

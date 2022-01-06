@@ -66,7 +66,7 @@ func newMockNetwork() *mocks.Network {
 func newTestSyncer(t *testing.T) *Service {
 	wasmer.DefaultTestLogLvl = 3
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &Config{

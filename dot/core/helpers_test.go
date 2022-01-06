@@ -54,7 +54,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.TransactionState == nil || cfg.EpochState == nil ||
 		cfg.CodeSubstitutedState == nil {
 		ctrl := gomock.NewController(t)
-		telemetryMock := telemetry.NewMockTelemetry(ctrl)
+		telemetryMock := telemetry.NewMockClient(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{

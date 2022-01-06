@@ -144,10 +144,9 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	return block, slot
 }
 
-//go:generate mockgen -destination=telemetry_mock_test.go -package $GOPACKAGE . Telemetry
 func TestBuildBlock_ok(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &ServiceConfig{
@@ -201,7 +200,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 func TestApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &ServiceConfig{
@@ -296,7 +295,7 @@ func TestApplyExtrinsic(t *testing.T) {
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &ServiceConfig{
@@ -379,7 +378,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &ServiceConfig{

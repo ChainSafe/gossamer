@@ -56,7 +56,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	gs.state.voters = gs.state.voters[:1]
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockTelemetry(ctrl)
+	telemetryMock := telemetry.NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	telemetryMock.
