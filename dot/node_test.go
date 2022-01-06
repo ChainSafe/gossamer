@@ -4,7 +4,6 @@
 package dot
 
 import (
-	"context"
 	"math/big"
 	"reflect"
 	"testing"
@@ -21,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
@@ -196,15 +196,16 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	telemetryNotEnabled, err := telemetry.
-		BootstrapMailer(context.Background(), nil, false, nil)
+	ctrl := gomock.NewController(t)
+	telemetryMock := telemetry.NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalizedTM{}))
 
 	require.NoError(t, err)
 
 	config := state.Config{
 		Path:      cfg.Global.BasePath,
 		LogLevel:  log.Info,
-		Telemetry: telemetryNotEnabled,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)
 
