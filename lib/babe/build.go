@@ -25,13 +25,14 @@ const (
 )
 
 // construct a block for this slot with the given parent
-func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
+func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance,
+	authorityIndex uint32, proof *VrfOutputAndProof) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
 		b.keypair,
 		b.transactionState,
 		b.blockState,
-		b.slotToProof,
-		b.epochData.authorityIndex,
+		proof,
+		authorityIndex,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
@@ -60,13 +61,13 @@ type BlockBuilder struct {
 	keypair               *sr25519.Keypair
 	transactionState      TransactionState
 	blockState            BlockState
-	slotToProof           map[uint64]*VrfOutputAndProof
+	proof                 *VrfOutputAndProof
 	currentAuthorityIndex uint32
 }
 
 // NewBlockBuilder creates a new block builder.
 func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
-	bs BlockState, sp map[uint64]*VrfOutputAndProof,
+	bs BlockState, proof *VrfOutputAndProof,
 	authidx uint32) (*BlockBuilder, error) {
 	if ts == nil {
 		return nil, errors.New("cannot create block builder; transaction state is nil")
@@ -74,15 +75,15 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
 	if bs == nil {
 		return nil, errors.New("cannot create block builder; block state is nil")
 	}
-	if sp == nil {
-		return nil, errors.New("cannot create block builder; slot to proff is nil")
+	if proof == nil {
+		return nil, errors.New("cannot create block builder; slot VRF proof is nil")
 	}
 
 	bb := &BlockBuilder{
 		keypair:               kp,
 		transactionState:      ts,
 		blockState:            bs,
-		slotToProof:           sp,
+		proof:                 proof,
 		currentAuthorityIndex: authidx,
 	}
 
@@ -220,16 +221,11 @@ func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, 
 // buildBlockBABEPrimaryPreDigest creates the BABE header for the slot.
 // the BABE header includes the proof of authorship right for this slot.
 func (b *BlockBuilder) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BabePrimaryPreDigest, error) {
-	if b.slotToProof[slot.number] == nil {
-		return nil, ErrNotAuthorized
-	}
-
-	outAndProof := b.slotToProof[slot.number]
 	return types.NewBabePrimaryPreDigest(
 		b.currentAuthorityIndex,
 		slot.number,
-		outAndProof.output,
-		outAndProof.proof,
+		b.proof.output,
+		b.proof.proof,
 	), nil
 }
 
