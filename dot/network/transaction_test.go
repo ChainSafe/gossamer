@@ -5,6 +5,7 @@ package network
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -31,11 +32,11 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 func TestHandleTransactionMessage(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
 	expectedMsgArg := &TransactionMessage{
 		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
 	}
 
+	ctrl := gomock.NewController(t)
 	transactionHandler := NewMockTransactionHandler(ctrl)
 	transactionHandler.EXPECT().
 		HandleTransactionMessage(peer.ID(""), expectedMsgArg).
@@ -51,6 +52,7 @@ func TestHandleTransactionMessage(t *testing.T) {
 		NoBootstrap:        true,
 		NoMDNS:             true,
 		TransactionHandler: transactionHandler,
+		telemetryInterval:  time.Hour,
 	}
 
 	s := createTestService(t, config)
