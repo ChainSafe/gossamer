@@ -47,7 +47,7 @@ it-stable:
 ## it-stress: Runs Integration Tests stress mode
 it-stress: build
 	@echo "  >  \033[32mRunning stress tests...\033[0m "
-	HOSTNAME=0.0.0.0 MODE=stress go test ./tests/stress/... -timeout=15m -v -short -run TestSync_
+	HOSTNAME=0.0.0.0 MODE=stress go test ./tests/stress/... -timeout=15m -v -short -run ^TestSync_SingleBlockProducer$ > test.log
 
 it-grandpa: build
 	@echo "  >  \033[32mRunning GRANDPA stress tests...\033[0m "
