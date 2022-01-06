@@ -40,7 +40,7 @@ func TestHandleTransactionMessage(t *testing.T) {
 	transactionHandler := NewMockTransactionHandler(ctrl)
 	transactionHandler.EXPECT().
 		HandleTransactionMessage(peer.ID(""), expectedMsgArg).
-		Return(true, nil).MaxTimes(1)
+		Return(true, nil)
 
 	transactionHandler.EXPECT().TransactionsCount().Return(0).MaxTimes(1)
 
