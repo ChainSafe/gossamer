@@ -10,7 +10,6 @@ import (
 	"os/signal"
 	"path"
 	"runtime/debug"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -252,7 +251,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 			sysSrvc.SystemName(),
 			cfg.Global.Name,
 			networkSrvc.NetworkState().PeerID,
-			strconv.FormatInt(time.Now().UnixNano(), 10),
+			fmt.Sprint(time.Now().UnixNano()),
 			sysSrvc.SystemVersion())
 
 		err = telemetryMailer.SendMessage(connectedMsg)
