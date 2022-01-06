@@ -314,5 +314,5 @@ func TestResult_UseSetMoreThanOnce(t *testing.T) {
 	require.NoError(t, err)
 
 	err = result.Set(Err, "something failed")
-	require.ErrorIs(t, err, ErrResultAlreadySetted)
+	require.ErrorIs(t, err, ErrResultAlreadySet)
 }
