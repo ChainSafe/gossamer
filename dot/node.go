@@ -212,7 +212,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 
 	gd, err := stateSrvc.Base.LoadGenesisData()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot load genesis data: %w", err)
 	}
 
 	telemetryMailer, err := setupTelemetry(cfg, gd)
