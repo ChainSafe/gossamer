@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// NewTestGenesis returns a test genesis instance using "gssmr" raw data
-func NewTestGenesis(t *testing.T) *genesis.Genesis {
+// newTestGenesis returns a test genesis instance using "gssmr" raw data
+func newTestGenesis(t *testing.T) *genesis.Genesis {
 	fp := utils.GetGssmrGenesisRawPath()
 
 	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
@@ -69,8 +69,8 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
 	return file
 }
 
-// NewTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
-func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
+// newTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
+func newTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 	dir := utils.NewTestDir(t)
 
 	file, err := os.CreateTemp(dir, "genesis-")
@@ -109,7 +109,7 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 	runtimeData, err := os.ReadFile(filepath.Clean(runtimeFilePath))
 	require.Nil(t, err)
 
-	gen := NewTestGenesis(t)
+	gen := newTestGenesis(t)
 	hex := hex.EncodeToString(runtimeData)
 
 	gen.Genesis.Raw = map[string]map[string]string{}
@@ -154,25 +154,25 @@ func NewTestConfig(t *testing.T) *Config {
 	return cfg
 }
 
-// NewTestConfigWithFile returns a new test configuration and a temporary configuration file
-func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
+// newTestConfigWithFile returns a new test configuration and a temporary configuration file
+func newTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 	cfg := NewTestConfig(t)
 
 	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
 	require.NoError(t, err)
 
-	cfgFile := ExportConfig(cfg, file.Name())
+	cfgFile := exportConfig(cfg, file.Name())
 	return cfg, cfgFile
 }
 
-// ExportConfig exports a dot configuration to a toml configuration file
-func ExportConfig(cfg *Config, fp string) *os.File {
+// exportConfig exports a dot configuration to a toml configuration file
+func exportConfig(cfg *Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
 		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
-	return WriteConfig(raw, fp)
+	return writeConfig(raw, fp)
 }
 
 // ExportTomlConfig exports a dot configuration to a toml configuration file
@@ -182,11 +182,11 @@ func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
 		logger.Errorf("failed to marshal configuration: %s", err)
 		os.Exit(1)
 	}
-	return WriteConfig(raw, fp)
+	return writeConfig(raw, fp)
 }
 
-// WriteConfig writes the config `data` in the file 'fp'.
-func WriteConfig(data []byte, fp string) *os.File {
+// writeConfig writes the config `data` in the file 'fp'.
+func writeConfig(data []byte, fp string) *os.File {
 	newFile, err := os.Create(filepath.Clean(fp))
 	if err != nil {
 		logger.Errorf("failed to create configuration file: %s", err)
@@ -214,7 +214,7 @@ func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
 		logger.Errorf("failed to convert into raw json: %s", err)
 		os.Exit(1)
 	}
-	return WriteConfig(data, fp)
+	return writeConfig(data, fp)
 }
 
 // RandomNodeName generates a new random name if there is no name configured for the node

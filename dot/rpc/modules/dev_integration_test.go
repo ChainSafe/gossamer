@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	babemocks "github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -58,7 +57,7 @@ func newBABEService(t *testing.T) *babe.Service {
 
 	bs, es := newState(t)
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.Info)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 	bs.StoreRuntime(bs.GenesisHash(), rt)
 	tt.Put(
 		common.MustHexToBytes("0x886726f904d8372fdabb7707870c2fad"),
