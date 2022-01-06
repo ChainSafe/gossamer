@@ -287,5 +287,5 @@ func (s *TrieState) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{},
 func (s *TrieState) GetDeletedNodeHashes() (hashesSet map[common.Hash]struct{}) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.t.GetDeletedNodeHash()
+	return s.t.GetDeletedNodeHashes()
 }

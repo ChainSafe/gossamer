@@ -462,10 +462,10 @@ func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (e
 	return nil
 }
 
-// GetDeletedNodeHash returns a set of all the hashes of nodes that were
+// GetDeletedNodeHashes returns a set of all the hashes of nodes that were
 // deleted from the trie since the last snapshot was made.
 // The returned set is a copy of the internal set to prevent data races.
-func (t *Trie) GetDeletedNodeHash() (hashesSet map[common.Hash]struct{}) {
+func (t *Trie) GetDeletedNodeHashes() (hashesSet map[common.Hash]struct{}) {
 	hashesSet = make(map[common.Hash]struct{}, len(t.deletedKeys))
 	for k := range t.deletedKeys {
 		hashesSet[k] = struct{}{}
