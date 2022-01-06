@@ -364,7 +364,6 @@ func externalIP() (string, error) {
 	return "", errors.New("are you connected to the network?")
 }
 
-// NewTestService creates a new test core service
 func newCoreServiceTest(t *testing.T) *core.Service {
 	t.Helper()
 
