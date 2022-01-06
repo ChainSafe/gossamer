@@ -9,7 +9,7 @@ import (
 	"reflect"
 )
 
-var ErrResultAlreadySetted = errors.New("result already has an assigned value")
+var ErrResultAlreadySet = errors.New("result already has an assigned value")
 
 // ResultMode is the mode the Result is set to
 type ResultMode int
@@ -50,8 +50,7 @@ func NewResult(okIn, errIn interface{}) (res Result) {
 // Set takes in a mode (OK/Err) and the associated interface and sets the Result value
 func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 	if r.mode != Unset {
-		err = ErrResultAlreadySetted
-		return
+		return ErrResultAlreadySet
 	}
 
 	switch mode {
