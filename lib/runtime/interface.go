@@ -12,6 +12,7 @@ import (
 )
 
 //go:generate mockery --name Instance --structname Instance --case underscore --keeptree
+//go:generate mockgen -destination=mocks/mock_instance.go -package=$GOPACKAGE . Instance
 
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {

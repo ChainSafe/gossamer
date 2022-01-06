@@ -5,52 +5,97 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"math/big"
 	"reflect"
 	"testing"
 )
 
 func Test_chainProcessor_handleBlock(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockBlockState := NewMockBlockState(ctrl)
+	mockHeader := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+	mockHeaderHash := mockHeader.Hash()
+	mockBlock := &types.Block{
+		Header: types.Header{
+			Number: big.NewInt(0),
+		},
+		Body: types.Body{},
+	}
+	mockTrieState, _ := storage.NewTrieState(nil)
+	mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(mockHeader, nil)
+	mockInstance := mocks.NewMockInstance(ctrl)
+	mockInstance.EXPECT().SetContextStorage(mockTrieState)
+	mockInstance.EXPECT().ExecuteBlock(mockBlock)
+	mockBlockState.EXPECT().GetRuntime(&mockHeaderHash).Return(mockInstance, nil)
+
+	mockStorageState := NewMockStorageState(ctrl)
+	mockStorageState.EXPECT().Lock()
+	mockStorageState.EXPECT().Unlock()
+	mockStorageState.EXPECT().TrieState(&trie.EmptyHash).Return(mockTrieState, nil)
+
+	mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
+	mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState).Return(nil)
+
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
 		blockState         BlockState
 		storageState       StorageState
-		transactionState   TransactionState
-		babeVerifier       BabeVerifier
-		finalityGadget     FinalityGadget
 		blockImportHandler BlockImportHandler
 	}
 	type args struct {
 		block *types.Block
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		err    error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "nil block",
+			err:  errors.New("block or body is nil"),
+		},
+		{
+			name: "base case",
+			fields: fields{
+				blockState:         mockBlockState,
+				storageState:       mockStorageState,
+				blockImportHandler: mockBlockImportHandler,
+			},
+			args: args{
+				block: &types.Block{
+					Header: types.Header{
+						Number: big.NewInt(0),
+					},
+					Body: types.Body{},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &chainProcessor{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
 				blockState:         tt.fields.blockState,
 				storageState:       tt.fields.storageState,
-				transactionState:   tt.fields.transactionState,
-				babeVerifier:       tt.fields.babeVerifier,
-				finalityGadget:     tt.fields.finalityGadget,
 				blockImportHandler: tt.fields.blockImportHandler,
 			}
-			if err := s.handleBlock(tt.args.block); (err != nil) != tt.wantErr {
-				t.Errorf("handleBlock() error = %v, wantErr %v", err, tt.wantErr)
+			err := s.handleBlock(tt.args.block)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
