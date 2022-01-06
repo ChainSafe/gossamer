@@ -96,7 +96,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen.Genesis.Raw = make(map[string]map[string]string)
 	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
-	// BootstrapMailer should not return an error here since there is no URLs to connect
+	// BootstrapMailer should not return an error here since there is no URLs to connect to
 	disabledTelemetry, err := telemetry.BootstrapMailer(context.Background(), nil, false, nil)
 	if err != nil {
 		panic("telemetry should not fail at BuildFromDB function: " + err.Error())
