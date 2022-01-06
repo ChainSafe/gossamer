@@ -394,7 +394,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	require.NoError(t, err)
 
 	cfg := &core.Config{
-		LogLvl:               3,
+		LogLvl:               log.Warn,
 		EpochState:           stateSrvc.Epoch,
 		BlockState:           stateSrvc.Block,
 		StorageState:         stateSrvc.Storage,
