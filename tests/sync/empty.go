@@ -4,11 +4,22 @@
 package sync
 
 import (
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"math/big"
 	"reflect"
 	"testing"
 )
 
 func Test_bootstrapSyncer_handleNewPeerState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := NewMockBlockState(ctrl)
+	m.EXPECT().BestBlockHeader().Return(&types.Header{
+		Number: big.NewInt(1),
+	}, nil).AnyTimes()
+
 	type fields struct {
 		blockState BlockState
 	}
@@ -16,27 +27,46 @@ func Test_bootstrapSyncer_handleNewPeerState(t *testing.T) {
 		ps *peerState
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *worker
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		want   *worker
+		err    error
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "peer state number less than header number",
+			fields: fields{blockState: m},
+			args: args{ps: &peerState{
+				number: big.NewInt(0),
+			}},
+			want: nil,
+		},
+		{
+			name:   "peer state number greater than header number",
+			fields: fields{blockState: m},
+			args: args{ps: &peerState{
+				number: big.NewInt(2),
+			}},
+			want: &worker{
+				startNumber:  big.NewInt(2),
+				targetNumber: big.NewInt(2),
+				requestData:  bootstrapRequestData,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			s := &bootstrapSyncer{
 				blockState: tt.fields.blockState,
 			}
 			got, err := s.handleNewPeerState(tt.args.ps)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("handleNewPeerState() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("handleNewPeerState() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, got, tt.want)
 		})
 	}
 }
