@@ -113,11 +113,6 @@ func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, passwor
 		return "", fmt.Errorf("failed to write key to file: %s", err)
 	}
 
-	err = file.Close()
-	if err != nil {
-		return "", fmt.Errorf("failed to close file: %s", err)
-	}
-
 	return fp, nil
 }
 

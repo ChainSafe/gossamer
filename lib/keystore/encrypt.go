@@ -137,8 +137,17 @@ func EncryptAndWriteToFile(file *os.File, pk crypto.PrivateKey, password []byte)
 		return err
 	}
 
-	_, err = file.Write(append(data, byte('\n')))
-	return err
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write([]byte{'\n'})
+	if err != nil {
+		return err
+	}
+
+	return file.Close()
 }
 
 // ReadFromFileAndDecrypt reads ciphertext from a file and decrypts it using the password into a `crypto.PrivateKey`
