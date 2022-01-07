@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

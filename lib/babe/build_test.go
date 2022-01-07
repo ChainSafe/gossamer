@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
