@@ -242,16 +242,19 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		}
 		nodeSrvcs = append(nodeSrvcs, networkSrvc)
 
-		//sent NewSystemConnectedTM only if networkServiceEnabled
+		startupTime := fmt.Sprint(time.Now().UnixNano())
 		genesisHash := stateSrvc.Block.GenesisHash()
+		netstate := networkSrvc.NetworkState()
+
+		//sent NewSystemConnectedTM only if networkServiceEnabled
 		connectedMsg := telemetry.NewSystemConnectedTM(
 			cfg.Core.GrandpaAuthority,
 			sysSrvc.ChainName(),
 			&genesisHash,
 			sysSrvc.SystemName(),
 			cfg.Global.Name,
-			networkSrvc.NetworkState().PeerID,
-			fmt.Sprint(time.Now().UnixNano()),
+			netstate.PeerID,
+			startupTime,
 			sysSrvc.SystemVersion())
 
 		telemetryMailer.SendMessage(connectedMsg)
