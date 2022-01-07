@@ -35,11 +35,9 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // SendMessage mocks base method.
-func (m *MockClient) SendMessage(msg telemetry.Message) error {
+func (m *MockClient) SendMessage(msg telemetry.Message) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessage", msg)
-	ret0, _ := ret[0].(error)
-	return ret0
+	m.ctrl.Call(m, "SendMessage", msg)
 }
 
 // SendMessage indicates an expected call of SendMessage.

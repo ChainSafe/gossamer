@@ -25,7 +25,7 @@ const (
 
 // Client is the interface required by send messages to telemetry servers
 type Client interface {
-	SendMessage(msg Message) error
+	SendMessage(msg Message)
 }
 
 // Message interface for Message functions

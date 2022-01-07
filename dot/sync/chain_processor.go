@@ -249,13 +249,10 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	logger.Debugf("🔗 imported block number %s with hash %s", block.Header.Number, block.Header.Hash())
 
 	blockHash := block.Header.Hash()
-	err = s.telemetry.SendMessage(telemetry.NewBlockImportTM(
+	s.telemetry.SendMessage(telemetry.NewBlockImportTM(
 		&blockHash,
 		block.Header.Number,
 		"NetworkInitialSync"))
-	if err != nil {
-		logger.Debugf("problem sending block.import telemetry message: %s", err)
-	}
 
 	return nil
 }

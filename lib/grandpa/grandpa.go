@@ -287,16 +287,13 @@ func (s *Service) sendTelemetryAuthoritySet() {
 		return
 	}
 
-	err = s.telemetry.SendMessage(
+	s.telemetry.SendMessage(
 		telemetry.NewAfgAuthoritySetTM(
 			authorityID,
 			fmt.Sprint(s.state.setID),
 			string(authoritiesBytes),
 		),
 	)
-	if err != nil {
-		logger.Debugf("problem sending afg.authority_set telemetry message: %s", err)
-	}
 }
 
 func (s *Service) initiateRound() error {
@@ -644,13 +641,10 @@ func (s *Service) attemptToFinalize() error {
 		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
 
-		err = s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpToTM(
+		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpToTM(
 			s.head.Hash(),
 			s.head.Number.String(),
 		))
-		if err != nil {
-			logger.Debugf("problem sending `afg.finalized_blocks_up_to` telemetry message: %s", err)
-		}
 
 		return nil
 	}

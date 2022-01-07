@@ -25,24 +25,28 @@ type telemetryConnection struct {
 
 // Mailer can send messages to the telemetry servers.
 type Mailer struct {
-	messageQueue chan Message
-	connections  []*telemetryConnection
-	logger       log.LeveledLogger
-	enabled      bool
+	*sync.Mutex
+
+	logger  log.LeveledLogger
+	enabled bool
+
+	connections []*telemetryConnection
 }
 
 func newMailer(enabled bool, logger log.LeveledLogger) *Mailer {
-	return &Mailer{
-		enabled:      enabled,
-		messageQueue: make(chan Message),
-		logger:       logger,
+	mailer := &Mailer{
+		new(sync.Mutex),
+		logger,
+		enabled,
+		nil,
 	}
+
+	return mailer
 }
 
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
 func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, enabled bool, logger log.LeveledLogger) (
 	mailer *Mailer, err error) {
-	const retryDelay = time.Second * 15
 
 	mailer = newMailer(enabled, logger)
 	if !enabled {
@@ -51,12 +55,14 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 
 	for _, v := range conns {
 		const maxRetries = 5
+
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
 			conn, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
 				mailer.logger.Debugf("cannot dial telemetry endpoint %s (try %d of %d): %s",
 					v.Endpoint, connAttempts+1, maxRetries, err)
 
+				const retryDelay = time.Second * 15
 				timer := time.NewTimer(retryDelay)
 
 				select {
@@ -80,49 +86,23 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 		}
 	}
 
-	go mailer.asyncShipment(ctx)
 	return mailer, nil
 }
 
 // SendMessage sends Message to connected telemetry listeners through messageReceiver
-func (m *Mailer) SendMessage(msg Message) error {
-	const messageTimeout = time.Second
+func (m *Mailer) SendMessage(msg Message) {
+	m.Lock()
+	defer m.Unlock()
 
-	timer := time.NewTimer(messageTimeout)
-
-	select {
-	case m.messageQueue <- msg:
-		if !timer.Stop() {
-			<-timer.C
-		}
-
-	case <-timer.C:
-		return ErrTimoutMessageSending
-	}
-	return nil
-}
-
-func (m *Mailer) asyncShipment(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msg, ok := <-m.messageQueue:
-			if !ok {
-				return
-			}
-
-			if m.enabled {
-				go m.shipTelemetryMessage(msg)
-			}
-		}
+	if m.enabled {
+		go m.shipTelemetryMessage(msg)
 	}
 }
 
 func (m *Mailer) shipTelemetryMessage(msg Message) {
 	msgBytes, err := msgToJSON(msg)
 	if err != nil {
-		m.logger.Debugf("issue encoding telemetry message: %s", err)
+		m.logger.Debugf("issue encoding %T telemetry message: %s", msg, err)
 		return
 	}
 
@@ -132,7 +112,7 @@ func (m *Mailer) shipTelemetryMessage(msg Message) {
 
 		err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 		if err != nil {
-			m.logger.Debugf("issue while sending telemetry message: %s", err)
+			m.logger.Debugf("issue while sending %T telemetry message: %s", msg, err)
 		}
 	}
 }

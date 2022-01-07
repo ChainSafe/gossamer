@@ -388,18 +388,14 @@ func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
-main:
 	for {
 		select {
 		case <-done:
-			break main
+			return
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			err := s.telemetry.SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
-			if err != nil {
-				logger.Debugf("problem sending system.interval telemetry message: %s", err)
-			}
+			s.telemetry.SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
 		}
 	}
 }
@@ -418,7 +414,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		finalizedHash := finalised.Hash()
 
-		err = s.telemetry.SendMessage(telemetry.NewBlockIntervalTM(
+		s.telemetry.SendMessage(telemetry.NewBlockIntervalTM(
 			&bestHash,
 			best.Number,
 			&finalizedHash,
@@ -426,9 +422,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))
-		if err != nil {
-			logger.Debugf("problem sending system.interval telemetry message: %s", err)
-		}
+
 		time.Sleep(s.telemetryInterval)
 	}
 }

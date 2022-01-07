@@ -254,10 +254,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 			fmt.Sprint(time.Now().UnixNano()),
 			sysSrvc.SystemVersion())
 
-		err = telemetryMailer.SendMessage(connectedMsg)
-		if err != nil {
-			logger.Debugf("failed sending system.connected telemetry message: %s", err)
-		}
+		telemetryMailer.SendMessage(connectedMsg)
 	} else {
 		// do not create or append network service if network service is not enabled
 		logger.Debugf("network service disabled, roles are %d", cfg.Core.Roles)

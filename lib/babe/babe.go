@@ -543,15 +543,12 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		"built block with parent hash %s, header %s and body %s",
 		parent.Hash(), block.Header.String(), block.Body)
 
-	err = b.telemetry.SendMessage(
+	b.telemetry.SendMessage(
 		telemetry.NewPreparedBlockForProposingTM(
 			block.Header.Hash(),
 			block.Header.Number.String(),
 		),
 	)
-	if err != nil {
-		logger.Debugf("problem sending 'prepared_block_for_proposing' telemetry message: %s", err)
-	}
 
 	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
 		logger.Warnf("failed to import built block: %s", err)

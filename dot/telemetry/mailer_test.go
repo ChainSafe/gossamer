@@ -192,8 +192,7 @@ func TestListenerConcurrency(t *testing.T) {
 			for ctx.Err() == nil {
 				bestHash := common.Hash{}
 				msg := NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync")
-				err := mailer.SendMessage(msg)
-				require.NoError(t, err)
+				mailer.SendMessage(msg)
 			}
 		}()
 	}
