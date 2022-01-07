@@ -58,7 +58,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	return srvcs
 }
 
-func createTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
+func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 	t.Helper()
 
 	const blockRequestSize = 128
@@ -165,7 +165,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 		syncer.EXPECT().
 			CreateBlockResponse(gomock.Any()).
-			Return(createTestBlockResponseMessage(t), nil).AnyTimes()
+			Return(newTestBlockResponseMessage(t), nil).AnyTimes()
 
 		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
 		cfg.Syncer = syncer
