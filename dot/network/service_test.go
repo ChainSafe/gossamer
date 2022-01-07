@@ -106,15 +106,11 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.BlockState == nil {
-		parentHash := common.MustHexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
-		stateRoot := common.MustHexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
-		extrinsicsRoot := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-
 		header := &types.Header{
-			ParentHash:     parentHash,
+			ParentHash:     common.Hash{},
 			Number:         big.NewInt(1),
-			StateRoot:      stateRoot,
-			ExtrinsicsRoot: extrinsicsRoot,
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
 			Digest:         types.NewDigest(),
 		}
 
