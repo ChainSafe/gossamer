@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -28,7 +27,7 @@ var testGenesisHeader = &types.Header{
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockClient(ctrl)
+	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	db := NewInMemoryDB(t)

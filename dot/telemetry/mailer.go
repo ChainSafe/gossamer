@@ -15,11 +15,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Client is the interface required by send messages to telemetry servers
-type Client interface {
-	SendMessage(msg Message) error
-}
-
 var ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
 
 type telemetryConnection struct {

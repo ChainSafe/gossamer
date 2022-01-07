@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -33,6 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//go:generate mockgen -source=../telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
@@ -382,7 +382,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockClient(ctrl)
+	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	ts := state.NewTransactionState(telemetryMock)
@@ -431,7 +431,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockClient(ctrl)
+	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	ts := state.NewTransactionState(telemetryMock)

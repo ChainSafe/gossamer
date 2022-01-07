@@ -180,6 +180,7 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 }
 
+//go:generate mockgen -source=./telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
 // TestInitNode_LoadGenesisData
 func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
@@ -197,7 +198,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockClient(ctrl)
+	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalizedTM{}))
 
 	require.NoError(t, err)

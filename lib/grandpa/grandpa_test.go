@@ -14,7 +14,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -51,9 +50,11 @@ func NewMockDigestHandler() *mocks.DigestHandler {
 	return m
 }
 
+//go:generate mockgen -source=../../dot/telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+
 func newTestState(t *testing.T) *state.Service {
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockClient(ctrl)
+	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDatadirPath := t.TempDir()
@@ -103,7 +104,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 	net := newTestNetwork(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := telemetry.NewMockClient(ctrl)
+	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &Config{

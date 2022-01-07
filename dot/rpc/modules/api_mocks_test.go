@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//go:generate mockgen -source=../../telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+
 func TestNewMockStorageAPI(t *testing.T) {
 	m := NewMockStorageAPI()
 	require.NotNil(t, m)

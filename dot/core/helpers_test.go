@@ -9,7 +9,6 @@ import (
 
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -54,7 +53,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.TransactionState == nil || cfg.EpochState == nil ||
 		cfg.CodeSubstitutedState == nil {
 		ctrl := gomock.NewController(t)
-		telemetryMock := telemetry.NewMockClient(ctrl)
+		telemetryMock := NewMockClient(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
