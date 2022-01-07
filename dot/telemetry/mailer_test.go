@@ -122,16 +122,16 @@ func TestHandler_SendMulti(t *testing.T) {
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 
-	testsDone := make(chan struct{})
+	serverHandlerDone := make(chan struct{})
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		c, err := upgrader.Upgrade(w, r, nil)
 		require.NoError(t, err)
 
 		defer func() {
-			close(testsDone)
 			wsCloseErr := c.Close()
-			require.NoError(t, wsCloseErr)
+			assert.NoError(t, wsCloseErr)
+			close(serverHandlerDone)
 		}()
 
 		actual := make([][]byte, len(messages))
@@ -147,7 +147,6 @@ func TestHandler_SendMulti(t *testing.T) {
 			return bytes.Compare(actual[i], actual[j]) < 0
 		})
 
-		// assert
 		for i := range actual {
 			require.Contains(t, string(actual[i]), string(expected[i]))
 		}
@@ -164,7 +163,7 @@ func TestHandler_SendMulti(t *testing.T) {
 	}
 
 	wg.Wait()
-	<-testsDone
+	<-serverHandlerDone
 }
 
 func TestListenerConcurrency(t *testing.T) {
@@ -183,22 +182,22 @@ func TestListenerConcurrency(t *testing.T) {
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 
-	testsDone := make(chan struct{})
+	serverHandlerDone := make(chan struct{})
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		c, err := upgrader.Upgrade(w, r, nil)
 		require.NoError(t, err)
 
 		defer func() {
-			close(testsDone)
 			wsCloseErr := c.Close()
-			require.NoError(t, wsCloseErr)
+			assert.NoError(t, wsCloseErr)
+			close(serverHandlerDone)
 		}()
 
 		counter := 0
 		const expectedResult = `{"best":"0x0000000000000000000000000000000000000000000000000000000000000000","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":` //nolint:lll
 
-		for {
+		for idx := 0; idx < qty; idx++ {
 			_, msg, err := c.ReadMessage()
 			require.NoError(t, err)
 			counter++
@@ -207,10 +206,6 @@ func TestListenerConcurrency(t *testing.T) {
 				string(msg),
 				expectedResult,
 			)
-
-			if counter == qty {
-				break
-			}
 		}
 	}
 
@@ -246,5 +241,5 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 
 	doneWait.Wait()
-	<-testsDone
+	<-serverHandlerDone
 }
