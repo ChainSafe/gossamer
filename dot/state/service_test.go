@@ -125,7 +125,9 @@ func TestService_BlockTree(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := telemetry.NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().
+		SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalizedTM{})).
+		MaxTimes(2)
 
 	config := Config{
 		Path:      testDir,
