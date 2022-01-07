@@ -76,7 +76,7 @@ func WriteGenesisSpecFile(data []byte, fp string) error {
 		return err
 	}
 
-	WriteConfig(data, fp)
+	writeConfig(data, fp)
 	return nil
 }
 

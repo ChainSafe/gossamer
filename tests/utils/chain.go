@@ -15,18 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// GetHeader calls the endpoint chain_getHeader
-func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header {
-	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(fmt.Sprint(node.RPCPort)), "[\""+hash.String()+"\"]")
-	require.NoError(t, err)
-
-	header := new(modules.ChainBlockHeaderResponse)
-	err = DecodeRPC(t, respBody, header)
-	require.Nil(t, err)
-
-	return HeaderResponseToHeader(t, header)
-}
-
 // GetChainHead calls the endpoint chain_getHeader to get the latest chain head
 func GetChainHead(t *testing.T, node *Node) *types.Header {
 	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(fmt.Sprint(node.RPCPort)), "[]")
@@ -36,7 +24,7 @@ func GetChainHead(t *testing.T, node *Node) *types.Header {
 	err = DecodeRPC(t, respBody, header)
 	require.Nil(t, err)
 
-	return HeaderResponseToHeader(t, header)
+	return headerResponseToHeader(t, header)
 }
 
 // GetChainHeadWithError calls the endpoint chain_getHeader to get the latest chain head
@@ -50,7 +38,7 @@ func GetChainHeadWithError(t *testing.T, node *Node) (*types.Header, error) {
 		return nil, err
 	}
 
-	return HeaderResponseToHeader(t, header), nil
+	return headerResponseToHeader(t, header), nil
 }
 
 // GetBlockHash calls the endpoint chain_getBlockHash to get the latest chain head

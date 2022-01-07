@@ -44,7 +44,7 @@ func InitFramework(qtyNodes int) (*Framework, error) {
 // StartNodes calls RestartGossamor for all nodes
 func (fw *Framework) StartNodes(t *testing.T) (errorList []error) {
 	for _, node := range fw.nodes {
-		err := StartGossamer(t, node, false)
+		err := startGossamer(t, node, false)
 		if err != nil {
 			errorList = append(errorList, err)
 		}

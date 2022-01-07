@@ -5,37 +5,49 @@ package trie
 
 import (
 	"bytes"
+
+	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/record"
 )
 
+var _ recorder = (*record.Recorder)(nil)
+
+type recorder interface {
+	Record(hash, rawData []byte)
+}
+
 // findAndRecord search for a desired key recording all the nodes in the path including the desired node
-func findAndRecord(t *Trie, key []byte, recorder *recorder) error {
+func findAndRecord(t *Trie, key []byte, recorder recorder) error {
 	return find(t.root, key, recorder)
 }
 
-func find(parent node, key []byte, recorder *recorder) error {
-	enc, hash, err := parent.encodeAndHash()
+func find(parent Node, key []byte, recorder recorder) error {
+	enc, hash, err := parent.EncodeAndHash()
 	if err != nil {
 		return err
 	}
 
-	recorder.record(hash, enc)
+	recorder.Record(hash, enc)
 
-	b, ok := parent.(*branch)
-	if !ok {
+	switch parent.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default: // not a branch
 		return nil
 	}
 
-	length := lenCommonPrefix(b.key, key)
+	b := parent.(*node.Branch)
+
+	length := lenCommonPrefix(b.Key, key)
 
 	// found the value at this node
-	if bytes.Equal(b.key, key) || len(key) == 0 {
+	if bytes.Equal(b.Key, key) || len(key) == 0 {
 		return nil
 	}
 
 	// did not find value
-	if bytes.Equal(b.key[:length], key) && len(key) < len(b.key) {
+	if bytes.Equal(b.Key[:length], key) && len(key) < len(b.Key) {
 		return nil
 	}
 
-	return find(b.children[key[length]], key[length+1:], recorder)
+	return find(b.Children[key[length]], key[length+1:], recorder)
 }

@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// HeaderResponseToHeader converts a *ChainBlockHeaderResponse to a *types.Header
-func HeaderResponseToHeader(t *testing.T, header *modules.ChainBlockHeaderResponse) *types.Header {
+// headerResponseToHeader converts a *ChainBlockHeaderResponse to a *types.Header
+func headerResponseToHeader(t *testing.T, header *modules.ChainBlockHeaderResponse) *types.Header {
 	parentHash, err := common.HexToHash(header.ParentHash)
 	require.NoError(t, err)
 
