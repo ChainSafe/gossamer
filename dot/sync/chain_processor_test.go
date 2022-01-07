@@ -4,6 +4,7 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -102,17 +103,19 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 }
 
 func Test_chainProcessor_handleBody(t *testing.T) {
+	var testExtrinsic = []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockTransactionState := NewMockTransactionState(ctrl)
+	mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsic[0])
+	mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsic[1])
+	mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsic[2])
+
+	testBody := types.NewBody(testExtrinsic)
+
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		blockState         BlockState
-		storageState       StorageState
-		transactionState   TransactionState
-		babeVerifier       BabeVerifier
-		finalityGadget     FinalityGadget
-		blockImportHandler BlockImportHandler
+		transactionState TransactionState
 	}
 	type args struct {
 		body *types.Body
@@ -122,84 +125,103 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "base case",
+			fields: fields{
+				transactionState: mockTransactionState,
+			},
+			args: args{body: testBody},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &chainProcessor{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				blockState:         tt.fields.blockState,
-				storageState:       tt.fields.storageState,
-				transactionState:   tt.fields.transactionState,
-				babeVerifier:       tt.fields.babeVerifier,
-				finalityGadget:     tt.fields.finalityGadget,
-				blockImportHandler: tt.fields.blockImportHandler,
+				transactionState: tt.fields.transactionState,
 			}
-			fmt.Printf("s %v\n", s)
+			s.handleBody(tt.args.body)
 		})
 	}
 }
 
 func Test_chainProcessor_handleHeader(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockBabeVerifier.EXPECT().VerifyBlock(gomock.AssignableToTypeOf(&types.Header{})).DoAndReturn(func(h *types.
+		Header) error {
+		if h == nil {
+			return errors.New("nil header")
+		}
+		return nil
+	}).Times(2)
+
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		blockState         BlockState
-		storageState       StorageState
-		transactionState   TransactionState
-		babeVerifier       BabeVerifier
-		finalityGadget     FinalityGadget
-		blockImportHandler BlockImportHandler
+		babeVerifier BabeVerifier
 	}
 	type args struct {
 		header *types.Header
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		err    error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "nil header",
+			fields: fields{
+				babeVerifier: mockBabeVerifier,
+			},
+			err: errors.New("could not verify block: nil header"),
+		},
+		{
+			name: "base case",
+			fields: fields{
+				babeVerifier: mockBabeVerifier,
+			},
+			args: args{header: &types.Header{
+				Number: big.NewInt(0),
+			}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &chainProcessor{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				blockState:         tt.fields.blockState,
-				storageState:       tt.fields.storageState,
-				transactionState:   tt.fields.transactionState,
-				babeVerifier:       tt.fields.babeVerifier,
-				finalityGadget:     tt.fields.finalityGadget,
-				blockImportHandler: tt.fields.blockImportHandler,
+				babeVerifier: tt.fields.babeVerifier,
 			}
-			if err := s.handleHeader(tt.args.header); (err != nil) != tt.wantErr {
-				t.Errorf("handleHeader() error = %v, wantErr %v", err, tt.wantErr)
+			err := s.handleHeader(tt.args.header)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
 }
 
 func Test_chainProcessor_handleJustification(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockFinalityGadget := NewMockFinalityGadget(ctrl)
+	mockFinalityGadget.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
+		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(_ common.Hash, justification []byte) error {
+		if len(justification) < 2 {
+			return errors.New("error")
+		}
+		return nil
+	}).Times(3)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().SetJustification(gomock.AssignableToTypeOf(common.Hash{}),
+		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(_ common.Hash, justification []byte) error {
+		if bytes.Compare(justification, []byte(`xx`)) == 0 {
+			return errors.New("fake error")
+		}
+		return nil
+	}).Times(2)
+
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		blockState         BlockState
-		storageState       StorageState
-		transactionState   TransactionState
-		babeVerifier       BabeVerifier
-		finalityGadget     FinalityGadget
-		blockImportHandler BlockImportHandler
+		blockState     BlockState
+		finalityGadget FinalityGadget
 	}
 	type args struct {
 		header        *types.Header
@@ -210,28 +232,67 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "nil justification and header",
+		},
+		{
+			name: "invalid justification",
+			fields: fields{
+				finalityGadget: mockFinalityGadget,
+			},
+			args: args{
+				header: &types.Header{
+					Number: big.NewInt(0),
+				},
+				justification: []byte(`x`),
+			},
+		},
+		{
+			name: "set justification error",
+			fields: fields{
+				blockState:     mockBlockState,
+				finalityGadget: mockFinalityGadget,
+			},
+			args: args{
+				header: &types.Header{
+					Number: big.NewInt(0),
+				},
+				justification: []byte(`xx`),
+			},
+		},
+		{
+			name: "base case set",
+			fields: fields{
+				blockState:     mockBlockState,
+				finalityGadget: mockFinalityGadget,
+			},
+			args: args{
+				header: &types.Header{
+					Number: big.NewInt(0),
+				},
+				justification: []byte(`1234`),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &chainProcessor{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				blockState:         tt.fields.blockState,
-				storageState:       tt.fields.storageState,
-				transactionState:   tt.fields.transactionState,
-				babeVerifier:       tt.fields.babeVerifier,
-				finalityGadget:     tt.fields.finalityGadget,
-				blockImportHandler: tt.fields.blockImportHandler,
+				blockState:     tt.fields.blockState,
+				finalityGadget: tt.fields.finalityGadget,
 			}
-			fmt.Printf("s %v\n", s)
+			s.handleJustification(tt.args.header, tt.args.justification)
 		})
 	}
 }
 
 func Test_chainProcessor_processBlockData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{}))
+	mockBlockState.EXPECT().HasBlockBody(gomock.AssignableToTypeOf(common.Hash{}))
+	mockBlockState.EXPECT().CompareAndSetBlockData(gomock.AssignableToTypeOf(&types.BlockData{}))
+
 	type fields struct {
 		ctx                context.Context
 		cancel             context.CancelFunc
@@ -248,12 +309,22 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 		bd *types.BlockData
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		err    error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "nil BlockData",
+			err:  errors.New("got nil BlockData"),
+		},
+		{
+			name: "has header/body false",
+			args: args{bd: &types.BlockData{}},
+			fields: fields{
+				blockState: mockBlockState,
+			},
+		}, // TODO, add more tests
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -269,8 +340,11 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				finalityGadget:     tt.fields.finalityGadget,
 				blockImportHandler: tt.fields.blockImportHandler,
 			}
-			if err := s.processBlockData(tt.args.bd); (err != nil) != tt.wantErr {
-				t.Errorf("processBlockData() error = %v, wantErr %v", err, tt.wantErr)
+			err := s.processBlockData(tt.args.bd)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
