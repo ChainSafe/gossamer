@@ -53,7 +53,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 
 	err := stateSrvc.SetupBase()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot setup base: %w", err)
 	}
 
 	return stateSrvc, nil
@@ -65,7 +65,7 @@ func startStateService(cfg *Config, stateSrvc *state.Service) error {
 	// start state service (initialise state database)
 	err := stateSrvc.Start()
 	if err != nil {
-		return fmt.Errorf("failed to start state service: %s", err)
+		return fmt.Errorf("failed to start state service: %w", err)
 	}
 
 	if cfg.State.Rewind != 0 {
