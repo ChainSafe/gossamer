@@ -44,7 +44,7 @@ func TestCreateStateService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	stateSrvc.SetTelemetry(telemetryNotEnabled)
+	stateSrvc.Telemetry = telemetryNotEnabled
 	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 

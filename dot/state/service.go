@@ -90,11 +90,6 @@ func (s *Service) DB() chaindb.Database {
 	return s.db
 }
 
-// SetTelemetry add a telemetry impl to state.Service.Telemetry field
-func (s *Service) SetTelemetry(t telemetry.Client) {
-	s.Telemetry = t
-}
-
 // SetupBase intitializes state.Base property with
 // the instance of a chain.NewBadger database
 func (s *Service) SetupBase() error {
