@@ -43,7 +43,7 @@ func TestHandleTransactionMessage(t *testing.T) {
 		HandleTransactionMessage(peer.ID(""), expectedMsgArg).
 		Return(true, nil)
 
-	transactionHandler.EXPECT().TransactionsCount().Return(0).MaxTimes(1)
+	transactionHandler.EXPECT().TransactionsCount().Return(0)
 
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
