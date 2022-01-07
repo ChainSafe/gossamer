@@ -12,18 +12,23 @@ import (
 func TestRunLottery(t *testing.T) {
 	babeService := createTestService(t, nil)
 
-	babeService.epochData.threshold = maxThreshold
+	epochData, err := babeService.initiateEpoch(0)
+	require.NoError(t, err)
+	epochData.threshold = maxThreshold
 
-	outAndProof, err := babeService.runLottery(0, testEpochIndex)
+	outAndProof, err := babeService.runLottery(0, testEpochIndex, epochData)
 	require.NoError(t, err)
 	require.NotNil(t, outAndProof)
 }
 
 func TestRunLottery_False(t *testing.T) {
 	babeService := createTestService(t, nil)
-	babeService.epochData.threshold = minThreshold
 
-	outAndProof, err := babeService.runLottery(0, testEpochIndex)
+	epochData, err := babeService.initiateEpoch(0)
+	require.NoError(t, err)
+	epochData.threshold = minThreshold
+
+	outAndProof, err := babeService.runLottery(0, testEpochIndex, epochData)
 	require.ErrorIs(t, err, errOverPrimarySlotThreshold)
 	require.Nil(t, outAndProof)
 }

@@ -39,7 +39,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
 		}
 
 		if !has {
-			logger.Criticalf("%s, for epoch %d", errNoEpochData, epoch)
+			logger.Criticalf("%s number=%d", errNoEpochData, epoch)
 			return nil, errNoEpochData
 		}
 

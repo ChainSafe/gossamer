@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -42,7 +43,7 @@ func newEpochHandler(ctx context.Context, epochNumber, firstSlot uint64, epochDa
 	startTime := getSlotStartTime(firstSlot, constants.slotDuration)
 
 	// determine which slots we'll be authoring in by pre-calculating VRF output
-	slotToProof := make(map[uint64]*VrfOutputAndProof, constants.epochLength)
+	slotToProof := make(map[uint64]*VrfOutputAndProof)
 	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
 		proof, err := claimPrimarySlot(
 			epochData.randomness,
@@ -59,7 +60,7 @@ func newEpochHandler(ctx context.Context, epochNumber, firstSlot uint64, epochDa
 		}
 
 		slotToProof[i] = proof
-		logger.Tracef("claimed slot %d", i)
+		logger.Debugf("epoch %d: claimed slot %d", epochNumber, i)
 	}
 
 	return &epochHandler{
@@ -76,7 +77,13 @@ func newEpochHandler(ctx context.Context, epochNumber, firstSlot uint64, epochDa
 
 func (h *epochHandler) run(errCh chan<- error) {
 	currSlot := getCurrentSlot(h.constants.slotDuration)
-	if currSlot-h.firstSlot > h.constants.epochLength {
+
+	// if currSlot < h.firstSlot, it means we're at genesis and waiting for the first slot to arrive.
+	// we have to check it here to prevent int overflow.
+	if currSlot >= h.firstSlot && currSlot-h.firstSlot > h.constants.epochLength {
+		logger.Warnf("attempted to start epoch that has passed: current slot=%d, start slot of epoch=%d",
+			currSlot, h.firstSlot,
+		)
 		errCh <- errEpochPast
 		return
 	}
@@ -85,33 +92,63 @@ func (h *epochHandler) run(errCh chan<- error) {
 	// and make sure the timing is correct.
 	invokationSlot := currSlot + 1
 
-	// calculate how many slots we are handling this epoch
-	numSlots := h.constants.epochLength - (invokationSlot - h.firstSlot)
-
 	// for each slot we're handling, create a timer that will fire when it starts
-	// TODO: create timers only for slots where we're authoring
-	slotTimeTimers := make([]<-chan time.Time, numSlots)
-	for i := uint64(0); i < numSlots; i++ {
-		startTime := getSlotStartTime(invokationSlot+i, h.constants.slotDuration)
-		slotTimeTimers[i] = time.After(time.Until(startTime))
+	// we create timers only for slots where we're authoring
+	authoringSlots := getAuthoringSlots(h.slotToProof)
+
+	type slotWithTimer struct {
+		timer   <-chan time.Time
+		slotNum uint64
 	}
 
-	for i := uint64(0); i < numSlots; i++ {
+	slotTimeTimers := []*slotWithTimer{}
+	for _, authoringSlot := range authoringSlots {
+		// ignore slots already passed
+		if authoringSlot < invokationSlot {
+			continue
+		}
+
+		startTime := getSlotStartTime(authoringSlot, h.constants.slotDuration)
+		slotTimeTimers = append(slotTimeTimers, &slotWithTimer{
+			timer:   time.After(time.Until(startTime)),
+			slotNum: authoringSlot,
+		})
+		logger.Debugf("start time of slot %d: %v", authoringSlot, startTime)
+	}
+
+	logger.Debugf("authoring in %d slots in epoch %d", len(slotTimeTimers), h.epochNumber)
+
+	for _, swt := range slotTimeTimers {
+		logger.Debugf("waiting for next authoring slot %d", swt.slotNum)
+
 		select {
 		case <-h.ctx.Done():
 			return
-		case <-slotTimeTimers[i]:
-			slotNum := invokationSlot + i
-
-			// check if we can author a block in this slot
-			if _, has := h.slotToProof[slotNum]; !has {
+		case <-swt.timer:
+			if _, has := h.slotToProof[swt.slotNum]; !has {
+				logger.Errorf("no VRF proof for authoring slot! slot=%d", swt.slotNum)
 				continue
 			}
 
-			if err := h.handleSlot(h.epochNumber, slotNum, h.epochData.authorityIndex, h.slotToProof[slotNum]); err != nil {
-				logger.Warnf("failed to handle slot %d: %s", slotNum, err)
+			if err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToProof[swt.slotNum]); err != nil { //nolint:lll
+				logger.Warnf("failed to handle slot %d: %s", swt.slotNum, err)
 				continue
 			}
 		}
 	}
+}
+
+func getAuthoringSlots(slotToProof map[uint64]*VrfOutputAndProof) []uint64 {
+	authoringSlots := make([]uint64, len(slotToProof))
+	i := 0
+	for authoringSlot := range slotToProof {
+		authoringSlots[i] = authoringSlot
+		i++
+	}
+
+	sort.Slice(authoringSlots, func(i, j int) bool {
+		return authoringSlots[i] < authoringSlots[j]
+	})
+
+	return authoringSlots
 }

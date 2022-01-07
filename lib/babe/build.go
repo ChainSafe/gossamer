@@ -38,21 +38,19 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
 	}
 
-	startBuilt := time.Now()
-	block, err := builder.buildBlock(parent, slot, rt)
-
 	// is necessary to enable ethmetrics to be possible register values
 	ethmetrics.Enabled = true
 
+	start := time.Now()
+	block, err := builder.buildBlock(parent, slot, rt)
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
 		builderErrors.Inc(1)
-
 		return nil, err
 	}
 
 	timerMetrics := ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
-	timerMetrics.Update(time.Since(startBuilt))
+	timerMetrics.Update(time.Since(start))
 	return block, nil
 }
 
@@ -197,13 +195,8 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 // the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
 func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
 	babeHeader := types.NewBabeDigest()
-	data, err := b.buildBlockBABEPrimaryPreDigest(slot)
-	if err != nil {
-		return nil, err
-	}
-
-	err = babeHeader.Set(*data)
-	if err != nil {
+	data := b.buildBlockBABEPrimaryPreDigest(slot)
+	if err := babeHeader.Set(*data); err != nil {
 		return nil, err
 	}
 
@@ -220,13 +213,13 @@ func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, 
 
 // buildBlockBABEPrimaryPreDigest creates the BABE header for the slot.
 // the BABE header includes the proof of authorship right for this slot.
-func (b *BlockBuilder) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BabePrimaryPreDigest, error) {
+func (b *BlockBuilder) buildBlockBABEPrimaryPreDigest(slot Slot) *types.BabePrimaryPreDigest {
 	return types.NewBabePrimaryPreDigest(
 		b.currentAuthorityIndex,
 		slot.number,
 		b.proof.output,
 		b.proof.proof,
-	), nil
+	)
 }
 
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.

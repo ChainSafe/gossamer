@@ -34,13 +34,17 @@ func TestSeal(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
+	babeService.epochHandler, err = babeService.initiateAndGetEpochHandler(babeService.ctx, 0)
+	require.NoError(t, err)
+
+	authoringSlots := getAuthoringSlots(babeService.epochHandler.slotToProof)
 
 	builder, _ := NewBlockBuilder(
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
-		babeService.slotToProof,
-		babeService.epochData.authorityIndex,
+		babeService.epochHandler.slotToProof[authoringSlots[0]],
+		babeService.epochHandler.epochData.authorityIndex,
 	)
 
 	zeroHash, err := common.HexToHash("0x00")
@@ -62,13 +66,6 @@ func TestSeal(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, ok, "could not verify seal")
-}
-
-func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber, epoch uint64) {
-	outAndProof, err := babeService.runLottery(slotNumber, epoch)
-	require.NoError(t, err)
-	require.NotNil(t, outAndProof, "proof was nil when under threshold")
-	babeService.slotToProof[slotNumber] = outAndProof
 }
 
 func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
@@ -112,11 +109,7 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 }
 
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) {
-	// create proof that we can authorize this block
-	babeService.epochData.authorityIndex = 0
-	addAuthorshipProof(t, babeService, slotNumber, epoch)
-
+	exts [][]byte, slotNumber, epoch uint64, epochData *epochData) *types.Block {
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
 		_, _ = babeService.transactionState.Push(vtx)
@@ -134,12 +127,14 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	// build block
-	block, err := babeService.buildBlock(parent, slot, rt)
+	outAndProof, err := babeService.runLottery(slotNumber, epoch, epochData)
+	require.NoError(t, err)
+
+	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, outAndProof)
 	require.NoError(t, err)
 
 	babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
-	return block, slot
+	return block
 }
 
 func TestBuildBlock_ok(t *testing.T) {
@@ -149,35 +144,20 @@ func TestBuildBlock_ok(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
-	babeService.epochData.threshold = maxThreshold
-
-	builder, _ := NewBlockBuilder(
-		babeService.keypair,
-		babeService.transactionState,
-		babeService.blockState,
-		babeService.slotToProof,
-		babeService.epochData.authorityIndex,
-	)
 
 	parentHash := babeService.blockState.GenesisHash()
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
 	ext := createTestExtrinsic(t, rt, parentHash, 0)
-	block, slot := createTestBlock(t, babeService, emptyHeader, [][]byte{ext}, 1, testEpochIndex)
-
-	// create pre-digest
-	preDigest, err := builder.buildBlockPreDigest(slot)
-	require.NoError(t, err)
-
-	digest := types.NewDigest()
-	err = digest.Add(*preDigest)
-	require.NoError(t, err)
+	block := createTestBlock(t, babeService, emptyHeader, [][]byte{ext}, 1, testEpochIndex, epochData)
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest:     digest,
 	}
 
 	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
@@ -185,7 +165,6 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NotEqual(t, block.Header.StateRoot, emptyHash)
 	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
 	require.Equal(t, 3, len(block.Header.Digest.Types))
-	require.Equal(t, *preDigest, block.Header.Digest.Types[0].Value())
 
 	// confirm block body is correct
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
@@ -199,15 +178,13 @@ func TestApplyExtrinsic(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
-	babeService.epochData.authorityIndex = 0
-	babeService.epochData.threshold = maxThreshold
 
 	builder, _ := NewBlockBuilder(
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
-		babeService.slotToProof,
-		babeService.epochData.authorityIndex,
+		&VrfOutputAndProof{},
+		0,
 	)
 
 	duration, err := time.ParseDuration("1s")
@@ -219,14 +196,12 @@ func TestApplyExtrinsic(t *testing.T) {
 		duration: duration,
 		number:   slotnum,
 	}
-	addAuthorshipProof(t, babeService, slotnum, testEpochIndex)
 
 	slot2 := Slot{
 		start:    time.Now(),
 		duration: duration,
 		number:   2,
 	}
-	addAuthorshipProof(t, babeService, 2, testEpochIndex)
 
 	preDigest2, err := builder.buildBlockPreDigest(slot2)
 	require.NoError(t, err)
@@ -290,7 +265,6 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
-	babeService.epochData.threshold = maxThreshold
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
@@ -366,22 +340,7 @@ func TestBuildBlock_failing(t *testing.T) {
 		TransactionState: state.NewTransactionState(),
 	}
 
-	var err error
 	babeService := createTestService(t, cfg)
-
-	babeService.epochData.authorities = []types.Authority{
-		{Key: nil, Weight: 1},
-	}
-
-	// create proof that we can authorize this block
-	babeService.epochData.threshold = minThreshold
-	var slotNumber uint64 = 1
-
-	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
-	require.NoError(t, err)
-	require.NotNil(t, outAndProof, "proof was nil when over threshold")
-
-	babeService.slotToProof[slotNumber] = outAndProof
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
@@ -430,13 +389,13 @@ func TestBuildBlock_failing(t *testing.T) {
 	slot := Slot{
 		start:    time.Now(),
 		duration: duration,
-		number:   slotNumber,
+		number:   1000,
 	}
 
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	_, err = babeService.buildBlock(parentHeader, slot, rt)
+	_, err = babeService.buildBlock(parentHeader, slot, rt, 0, &VrfOutputAndProof{})
 	if err == nil {
 		t.Fatal("should error when attempting to include invalid tx")
 	}
@@ -470,7 +429,6 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Unregister(buildBlockTimer)
 
 	babeService := createTestService(t, nil)
-	babeService.epochData.threshold = maxThreshold
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -478,14 +436,15 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
 	timerMetrics.Stop()
 
-	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
-	require.Equal(t, int64(1), timerMetrics.Count())
-
-	rt, err := babeService.blockState.GetRuntime(nil)
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	_, err = babeService.buildBlock(parent, Slot{}, rt)
-	require.Error(t, err)
-	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
-	require.Equal(t, int64(1), buildErrorsMetrics.Count())
+	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex, epochData)
+	require.Equal(t, int64(1), timerMetrics.Count())
+
+	// TODO: there isn't an easy way to trigger an error in buildBlock from here
+	// _, err = babeService.buildBlock(parent, Slot{}, rt, 0, nil)
+	// require.Error(t, err)
+	// buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
+	// require.Equal(t, int64(1), buildErrorsMetrics.Count())
 }
