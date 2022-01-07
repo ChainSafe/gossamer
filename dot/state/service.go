@@ -125,11 +125,9 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	db := s.db
 	var err error
-
 	// create block state
-	s.Block, err = NewBlockState(db, s.Telemetry)
+	s.Block, err = NewBlockState(s.db, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -149,7 +147,7 @@ func (s *Service) Start() error {
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, trie.NewEmptyTrie(), pr)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
@@ -164,12 +162,12 @@ func (s *Service) Start() error {
 	s.Transaction = NewTransactionState(s.Telemetry)
 
 	// create epoch state
-	s.Epoch, err = NewEpochState(db, s.Block)
+	s.Epoch, err = NewEpochState(s.db, s.Block)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
 
-	s.Grandpa, err = NewGrandpaState(db)
+	s.Grandpa, err = NewGrandpaState(s.db)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %w", err)
 	}
