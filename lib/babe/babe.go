@@ -297,7 +297,7 @@ func (b *Service) initiate() {
 		return
 	}
 
-	// we should consider better error handligng for this - we should
+	// we should consider better error handling for this - we should
 	// retry to run the engine at some point (maybe the next epoch) if
 	// there's an error.
 	if err := b.runEngine(); err != nil {

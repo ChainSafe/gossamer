@@ -90,6 +90,8 @@ func (h *epochHandler) run(errCh chan<- error) {
 
 	// invoke block authoring in the next slot, this gives us ample time to setup
 	// and make sure the timing is correct.
+	// TODO: this will cause us to always miss the first slot of the epoch,
+	// test and make sure this isn't needed.
 	invokationSlot := currSlot + 1
 
 	// for each slot we're handling, create a timer that will fire when it starts
@@ -126,6 +128,7 @@ func (h *epochHandler) run(errCh chan<- error) {
 			return
 		case <-swt.timer:
 			if _, has := h.slotToProof[swt.slotNum]; !has {
+				// this should never happen
 				logger.Errorf("no VRF proof for authoring slot! slot=%d", swt.slotNum)
 				continue
 			}
@@ -138,6 +141,8 @@ func (h *epochHandler) run(errCh chan<- error) {
 	}
 }
 
+// getAuthoringSlots returns an ordered slice of slot numbers where we can author blocks,
+// based on the given VRF output and proof map.
 func getAuthoringSlots(slotToProof map[uint64]*VrfOutputAndProof) []uint64 {
 	authoringSlots := make([]uint64, len(slotToProof))
 	i := 0
