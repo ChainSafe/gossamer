@@ -39,7 +39,7 @@ func Test_Branch_Copy(t *testing.T) {
 				Children: [16]Node{
 					nil, nil, &Leaf{Key: []byte{9}},
 				},
-				dirty:      true,
+				Dirty:      true,
 				hashDigest: []byte{5},
 				encoding:   []byte{6},
 			},
@@ -49,7 +49,7 @@ func Test_Branch_Copy(t *testing.T) {
 				Children: [16]Node{
 					nil, nil, &Leaf{Key: []byte{9}},
 				},
-				dirty:      true,
+				Dirty:      true,
 				hashDigest: []byte{5},
 				encoding:   []byte{6},
 			},
@@ -93,14 +93,14 @@ func Test_Leaf_Copy(t *testing.T) {
 			leaf: &Leaf{
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
-				dirty:      true,
+				Dirty:      true,
 				hashDigest: []byte{5},
 				encoding:   []byte{6},
 			},
 			expectedLeaf: &Leaf{
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
-				dirty:      true,
+				Dirty:      true,
 				hashDigest: []byte{5},
 				encoding:   []byte{6},
 			},

@@ -17,9 +17,9 @@ type Branch struct {
 	Key      []byte // partial key
 	Children [16]Node
 	Value    []byte
-	// dirty is true when the branch differs
+	// Dirty is true when the branch differs
 	// from the node stored in the database.
-	dirty      bool
+	Dirty      bool
 	hashDigest []byte
 	encoding   []byte
 	// generation is incremented on every trie Snapshot() call.
@@ -35,7 +35,7 @@ func NewBranch(key, value []byte, dirty bool, generation uint64) *Branch {
 	return &Branch{
 		Key:        key,
 		Value:      value,
-		dirty:      dirty,
+		Dirty:      dirty,
 		generation: generation,
 	}
 }
@@ -52,8 +52,8 @@ func (b *Branch) Type() Type {
 func (b *Branch) String() string {
 	if len(b.Value) > 1024 {
 		return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value (hashed)=0x%x dirty=%t",
-			b.Key, b.ChildrenBitmap(), common.MustBlake2bHash(b.Value), b.dirty)
+			b.Key, b.ChildrenBitmap(), common.MustBlake2bHash(b.Value), b.Dirty)
 	}
 	return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value=0x%x dirty=%t",
-		b.Key, b.ChildrenBitmap(), b.Value, b.dirty)
+		b.Key, b.ChildrenBitmap(), b.Value, b.Dirty)
 }

@@ -10,7 +10,7 @@ func (b *Branch) Copy() Node {
 
 	cpy := &Branch{
 		Children:   b.Children, // copy interface pointers
-		dirty:      b.dirty,
+		Dirty:      b.Dirty,
 		generation: b.generation,
 	}
 	copy(cpy.Key, b.Key)
@@ -48,7 +48,7 @@ func (l *Leaf) Copy() Node {
 	defer l.encodingMu.RUnlock()
 
 	cpy := &Leaf{
-		dirty:      l.dirty,
+		Dirty:      l.Dirty,
 		generation: l.generation,
 	}
 

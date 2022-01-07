@@ -19,7 +19,7 @@ import (
 // NodeHeader | Extra partial key length | Partial Key | Value
 func (l *Leaf) Encode(buffer Buffer) (err error) {
 	l.encodingMu.RLock()
-	if !l.dirty && l.encoding != nil {
+	if !l.Dirty && l.encoding != nil {
 		_, err = buffer.Write(l.encoding)
 		l.encodingMu.RUnlock()
 		if err != nil {

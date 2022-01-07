@@ -73,7 +73,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			branch: &Branch{
 				Key:        []byte{1},
 				Value:      []byte{2},
-				dirty:      true,
+				Dirty:      true,
 				encoding:   []byte{3},
 				hashDigest: []byte{4},
 			},
@@ -88,7 +88,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			branch: &Branch{
 				Key:        []byte{1},
 				Value:      []byte{2},
-				dirty:      false,
+				Dirty:      false,
 				encoding:   []byte{3},
 				hashDigest: []byte{4},
 			},
@@ -195,7 +195,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 			leaf: &Leaf{
 				Key:        []byte{1},
 				Value:      []byte{2},
-				dirty:      true,
+				Dirty:      true,
 				encoding:   []byte{3},
 				hashDigest: []byte{4},
 			},
@@ -210,7 +210,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 			leaf: &Leaf{
 				Key:        []byte{1},
 				Value:      []byte{2},
-				dirty:      false,
+				Dirty:      false,
 				encoding:   []byte{3},
 				hashDigest: []byte{4},
 			},

@@ -18,7 +18,7 @@ type Leaf struct {
 	Value []byte
 	// Dirty is true when the branch differs
 	// from the node stored in the database.
-	dirty      bool
+	Dirty      bool
 	hashDigest []byte
 	encoding   []byte
 	encodingMu sync.RWMutex
@@ -35,7 +35,7 @@ func NewLeaf(key, value []byte, dirty bool, generation uint64) *Leaf {
 	return &Leaf{
 		Key:        key,
 		Value:      value,
-		dirty:      dirty,
+		Dirty:      dirty,
 		generation: generation,
 	}
 }
@@ -47,7 +47,7 @@ func (l *Leaf) Type() Type {
 
 func (l *Leaf) String() string {
 	if len(l.Value) > 1024 {
-		return fmt.Sprintf("leaf key=0x%x value (hashed)=0x%x dirty=%t", l.Key, common.MustBlake2bHash(l.Value), l.dirty)
+		return fmt.Sprintf("leaf key=0x%x value (hashed)=0x%x dirty=%t", l.Key, common.MustBlake2bHash(l.Value), l.Dirty)
 	}
-	return fmt.Sprintf("leaf key=0x%x value=0x%x dirty=%t", l.Key, l.Value, l.dirty)
+	return fmt.Sprintf("leaf key=0x%x value=0x%x dirty=%t", l.Key, l.Value, l.Dirty)
 }

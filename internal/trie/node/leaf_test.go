@@ -22,7 +22,7 @@ func Test_NewLeaf(t *testing.T) {
 	expectedLeaf := &Leaf{
 		Key:        key,
 		Value:      value,
-		dirty:      dirty,
+		Dirty:      dirty,
 		generation: generation,
 	}
 	assert.Equal(t, expectedLeaf, leaf)
@@ -58,7 +58,7 @@ func Test_Leaf_String(t *testing.T) {
 			leaf: &Leaf{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
-				dirty: true,
+				Dirty: true,
 			},
 			s: "leaf key=0x0102 value=0x0304 dirty=true",
 		},
@@ -66,7 +66,7 @@ func Test_Leaf_String(t *testing.T) {
 			leaf: &Leaf{
 				Key:   []byte{1, 2},
 				Value: make([]byte, 1025),
-				dirty: true,
+				Dirty: true,
 			},
 			s: "leaf key=0x0102 " +
 				"value (hashed)=0x307861663233363133353361303538646238383034626337353735323831663131663735313265326331346336373032393864306232336630396538386266333066 " + //nolint:lll
