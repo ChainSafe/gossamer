@@ -368,7 +368,7 @@ func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer *telemetry.M
 	}
 
 	telemetryLogger := log.NewFromGlobal(log.AddContext("pkg", "telemetry"))
-	return telemetry.BootstrapMailer(context.Background(),
+	return telemetry.BootstrapMailer(context.TODO(),
 		telemetryEndpoints, !cfg.Global.NoTelemetry, telemetryLogger)
 }
 
