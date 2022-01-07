@@ -83,8 +83,7 @@ func TestTrieSnapshot(t *testing.T) {
 		tri.Put([]byte(k), val)
 	}
 
-	// DeepCopy the trie.
-	dcTrie, err := tri.DeepCopy()
+	dcTrie := tri.DeepCopy()
 	require.NoError(t, err)
 
 	// Take Snapshot of the trie.

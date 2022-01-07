@@ -87,19 +87,35 @@ func (t *Trie) maybeUpdateGeneration(n Node) Node {
 	return n
 }
 
-// DeepCopy makes a new trie and copies over the existing trie into the new trie
-func (t *Trie) DeepCopy() (*Trie, error) {
-	cp := NewEmptyTrie()
-	for k, v := range t.Entries() {
-		keyCp := make([]byte, len(k))
-		copy(keyCp, k)
-		valCp := make([]byte, len(v))
-		copy(valCp, v)
-
-		cp.Put(keyCp, valCp)
+// DeepCopy deep copies the trie and returns
+// the copy.
+func (t *Trie) DeepCopy() (trieCopy *Trie) {
+	if t == nil {
+		return nil
 	}
 
-	return cp, nil
+	trieCopy = &Trie{
+		generation: t.generation,
+	}
+
+	if t.deletedKeys != nil {
+		trieCopy.deletedKeys = make([]common.Hash, len(t.deletedKeys))
+		copy(trieCopy.deletedKeys, t.deletedKeys)
+	}
+
+	if t.childTries != nil {
+		trieCopy.childTries = make(map[common.Hash]*Trie, len(t.childTries))
+		for hash, trie := range t.childTries {
+			trieCopy.childTries[hash] = trie.DeepCopy()
+		}
+	}
+
+	if t.root != nil {
+		const copyChildren = true
+		trieCopy.root = t.root.Copy(copyChildren)
+	}
+
+	return trieCopy
 }
 
 // RootNode returns the root of the trie

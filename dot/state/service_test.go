@@ -292,12 +292,10 @@ func TestService_PruneStorage(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
-		var trieVal *trie.Trie
-		trieVal, err = trieState.Trie().DeepCopy()
-		require.NoError(t, err)
+		copiedTrie := trieState.Trie().DeepCopy()
 
 		var rootHash common.Hash
-		rootHash, err = trieVal.Hash()
+		rootHash, err = copiedTrie.Hash()
 		require.NoError(t, err)
 
 		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
