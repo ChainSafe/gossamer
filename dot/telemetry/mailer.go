@@ -15,8 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//go:generate mockgen -destination=client_mock.go -package $GOPACKAGE . Client
-// Client interface holds the definitions to services send messages through telemetry
+// Client is the interface required by send messages to telemetry servers
 type Client interface {
 	SendMessage(msg Message) error
 }
@@ -29,7 +28,7 @@ type telemetryConnection struct {
 	sync.Mutex
 }
 
-// Mailer holds telemetry related attributes
+// Mailer can send messages to the telemetry servers.
 type Mailer struct {
 	messageQueue chan Message
 	connections  []*telemetryConnection

@@ -23,6 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//go:generate mockgen -destination=client_mock.go -package $GOPACKAGE . Client
+
 func bootstrapMailer2Test(t *testing.T, resultCh chan []byte) (mailer *Mailer) {
 	t.Helper()
 
