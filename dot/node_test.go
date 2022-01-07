@@ -200,7 +200,13 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalizedTM{}))
+
+	expectedArg := &telemetry.NotifyFinalizedTM{
+		Best:   common.MustHexToHash("0x336743aadf42654d4ef91294b61a167c9ed8a42f7f327d08d1e3c99541047392"),
+		Height: "0",
+	}
+
+	telemetryMock.EXPECT().SendMessage(expectedArg)
 
 	require.NoError(t, err)
 
