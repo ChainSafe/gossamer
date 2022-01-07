@@ -35,6 +35,7 @@ func failedToDial(err error) bool {
 }
 
 //go:generate mockgen -source=../telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+
 func createServiceHelper(t *testing.T, num int) []*Service {
 	t.Helper()
 

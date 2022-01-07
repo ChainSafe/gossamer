@@ -118,6 +118,7 @@ func TestMemDB_Start(t *testing.T) {
 }
 
 //go:generate mockgen -source=../telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+
 func TestService_BlockTree(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 

@@ -63,6 +63,7 @@ func newMockNetwork() *mocks.Network {
 }
 
 //go:generate mockgen -source=../telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+
 func newTestSyncer(t *testing.T) *Service {
 	wasmer.DefaultTestLogLvl = 3
 	ctrl := gomock.NewController(t)

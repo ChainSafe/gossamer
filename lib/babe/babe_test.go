@@ -59,6 +59,7 @@ var (
 )
 
 //go:generate mockgen -source=../../dot/telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 

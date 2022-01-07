@@ -23,6 +23,7 @@ import (
 )
 
 //go:generate mockgen -source=../telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+
 func newTestHandler(t *testing.T) *Handler {
 	testDatadirPath := t.TempDir()
 
