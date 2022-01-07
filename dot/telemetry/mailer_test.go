@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func bootstrapMailer2Test(t *testing.T, handler http.HandlerFunc) (mailer *Mailer) {
+func newTestMailer(t *testing.T, handler http.HandlerFunc) (mailer *Mailer) {
 	t.Helper()
 
 	mux := http.NewServeMux()
@@ -152,7 +152,7 @@ func TestHandler_SendMulti(t *testing.T) {
 		}
 	}
 
-	mailer := bootstrapMailer2Test(t, handler)
+	mailer := newTestMailer(t, handler)
 	var wg sync.WaitGroup
 	for _, message := range messages {
 		wg.Add(1)
@@ -218,7 +218,7 @@ func TestListenerConcurrency(t *testing.T) {
 
 	defer cancel()
 
-	mailer := bootstrapMailer2Test(t, handler)
+	mailer := newTestMailer(t, handler)
 
 	doneWait := new(sync.WaitGroup)
 	for i := 0; i < qty; i++ {
