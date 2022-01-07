@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -200,9 +201,14 @@ func TestListenerConcurrency(t *testing.T) {
 	doneWait.Wait()
 
 	counter := 0
-	for range resultCh {
-		counter++
+	for res := range resultCh {
+		const expectedResult = `{"best":"0x0000000000000000000000000000000000000000000000000000000000000000","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":` //nolint:lll
+		assert.Contains(t,
+			string(res),
+			expectedResult,
+		)
 
+		counter++
 		if counter == qty {
 			break
 		}
