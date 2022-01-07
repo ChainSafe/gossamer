@@ -34,7 +34,7 @@ func failedToDial(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "failed to dial")
 }
 
-//go:generate mockgen -source=../telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func createServiceHelper(t *testing.T, num int) []*Service {
 	t.Helper()

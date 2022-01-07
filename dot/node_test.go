@@ -180,7 +180,7 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 }
 
-//go:generate mockgen -source=./telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 // TestInitNode_LoadGenesisData
 func TestInitNode_LoadGenesisData(t *testing.T) {

@@ -363,7 +363,7 @@ func externalIP() (string, error) {
 	return "", errors.New("are you connected to the network?")
 }
 
-//go:generate mockgen -source=../telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func newCoreServiceTest(t *testing.T) *core.Service {
 	t.Helper()

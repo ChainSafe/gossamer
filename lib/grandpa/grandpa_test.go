@@ -50,7 +50,7 @@ func NewMockDigestHandler() *mocks.DigestHandler {
 	return m
 }
 
-//go:generate mockgen -source=../../dot/telemetry/telemetry.go -destination=mock_telemetry_test.go -package $GOPACKAGE Client
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func newTestState(t *testing.T) *state.Service {
 	ctrl := gomock.NewController(t)
