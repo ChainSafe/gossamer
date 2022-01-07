@@ -62,8 +62,6 @@ func TestChainRPC(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.Nil(t, err)
 
-	node := nodes[0]
-
 	time.Sleep(time.Second * 5) // give server a few seconds to start
 
 	chainBlockHeaderHash := ""
@@ -76,7 +74,7 @@ func TestChainRPC(t *testing.T) {
 				test.params = "[\"" + chainBlockHeaderHash + "\"]"
 			}
 
-			target := getResponse(t, test, node.RPCPort)
+			target := getResponse(t, test)
 
 			switch v := target.(type) {
 			case *modules.ChainBlockHeaderResponse:
@@ -181,11 +179,11 @@ func TestChainSubscriptionRPC(t *testing.T) {
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
-	node := nodes[0]
 
 	for _, test := range testCases {
+
 		t.Run(test.description, func(t *testing.T) {
-			callWebsocket(t, test, node.WSPort)
+			callWebsocket(t, test)
 		})
 	}
 
@@ -195,11 +193,11 @@ func TestChainSubscriptionRPC(t *testing.T) {
 	require.Len(t, errList, 0)
 }
 
-func callWebsocket(t *testing.T, test *testCase, wsPort int) {
+func callWebsocket(t *testing.T, test *testCase) {
 	if test.skip {
 		t.Skip("Websocket endpoint not yet implemented")
 	}
-	url := fmt.Sprintf("ws://localhost:%d/", wsPort) // todo don't hard code this
+	url := "ws://localhost:8546/" // todo don't hard code this
 	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
 	require.NoError(t, err)
 	defer ws.Close()

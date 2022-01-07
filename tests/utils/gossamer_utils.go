@@ -29,7 +29,8 @@ var maxRetries = 24
 
 var (
 	// KeyList is the list of built-in keys
-	KeyList = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
+	KeyList  = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
+	basePort = 7500
 
 	// BaseRPCPort is the starting RPC port for test nodes
 	BaseRPCPort = 8540
@@ -63,37 +64,15 @@ var (
 	ConfigNotAuthority = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
-const portsEnd = 8000
-
-type portsQueue chan int
-
-func (p portsQueue) get() int {
-	return <-p
-}
-
-func (p portsQueue) put(port int) {
-	p <- port
-}
-
-var availablePorts portsQueue
-
-func init() {
-	availablePorts = make(portsQueue, portsEnd)
-	for port := 7001; port <= portsEnd; port++ {
-		availablePorts <- port
-	}
-}
-
 // Node represents a gossamer process
 type Node struct {
 	Process  *exec.Cmd
 	Key      string
-	RPCPort  int
-	Port     int
+	RPCPort  string
 	Idx      int
 	basePath string
 	config   string
-	WSPort   int
+	WSPort   string
 	BABELead bool
 }
 
@@ -114,13 +93,10 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	}
 
 	Logger.Infof("initialised gossamer node %d!", idx)
-
-	// portRange avoid port conflicts with other functions that uses the InitGossamer
 	return &Node{
 		Idx:      idx,
-		Port:     availablePorts.get(),
-		RPCPort:  availablePorts.get(),
-		WSPort:   availablePorts.get(),
+		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
+		WSPort:   strconv.Itoa(BaseWSPort + idx),
 		basePath: basePath,
 		config:   config,
 	}, nil
@@ -129,12 +105,11 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 // startGossamer starts given node
 func startGossamer(t *testing.T, node *Node, websocket bool) error {
 	var key string
-	var params = []string{
-		"--port", fmt.Sprint(node.Port),
+	var params = []string{"--port", strconv.Itoa(basePort + node.Idx),
 		"--config", node.config,
 		"--basepath", node.basePath,
 		"--rpchost", HOSTNAME,
-		"--rpcport", fmt.Sprint(node.RPCPort),
+		"--rpcport", node.RPCPort,
 		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
 		"--log", "info"}
@@ -153,7 +128,7 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 
 	if websocket {
 		params = append(params, "--ws",
-			"--wsport", fmt.Sprint(node.WSPort))
+			"--wsport", node.WSPort)
 	}
 	node.Process = exec.Command(gossamerCMD, params...)
 
@@ -179,10 +154,6 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 		assert.NoError(t, err)
 		err = errfile.Close()
 		assert.NoError(t, err)
-
-		availablePorts.put(node.Port)
-		availablePorts.put(node.RPCPort)
-		availablePorts.put(node.WSPort)
 	})
 
 	stdoutPipe, err := node.Process.StdoutPipe()
@@ -222,16 +193,14 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 	var started bool
 	for i := 0; i < maxRetries; i++ {
 		time.Sleep(time.Second * 5)
-		if err = checkNodeStarted(t, "http://"+HOSTNAME+":"+fmt.Sprint(node.RPCPort)); err == nil {
+		if err = checkNodeStarted(t, "http://"+HOSTNAME+":"+node.RPCPort); err == nil {
 			started = true
 			break
 		}
 	}
 
 	if started {
-		Logger.Infof("node started with key %s and cmd.Process.Pid %d "+
-			"with PORT %d, RPCPort %d and WSPort %d", key, node.Process.Process.Pid,
-			node.Port, node.RPCPort, node.WSPort)
+		Logger.Infof("node started with key %s and cmd.Process.Pid %d", key, node.Process.Process.Pid)
 	} else {
 		Logger.Criticalf("node didn't start: %s", err)
 		errFileContents, _ := os.ReadFile(errfile.Name())

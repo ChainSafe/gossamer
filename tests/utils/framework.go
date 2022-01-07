@@ -63,7 +63,7 @@ func (fw *Framework) CallRPC(idx int, method, params string) (respJSON interface
 		return nil, fmt.Errorf("node index greater than quantity of nodes")
 	}
 	node := fw.nodes[idx]
-	respBody, err := PostRPC(method, NewEndpoint(fmt.Sprint(node.RPCPort)), params)
+	respBody, err := PostRPC(method, NewEndpoint(node.RPCPort), params)
 	if err != nil {
 		return nil, err
 	}

@@ -7,13 +7,17 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
 
-const rpcSuite = "rpc"
+var (
+	currentPort = strconv.Itoa(utils.BaseRPCPort)
+	rpcSuite    = "rpc"
+)
 
 func TestMain(m *testing.M) {
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start RPC suite test")
@@ -34,13 +38,13 @@ type testCase struct {
 	skip        bool
 }
 
-func getResponse(t *testing.T, test *testCase, rpcPort int) interface{} {
+func getResponse(t *testing.T, test *testCase) interface{} {
 	if test.skip {
 		t.Skip("RPC endpoint not yet implemented")
 		return nil
 	}
 
-	respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(fmt.Sprint(rpcPort)), test.params)
+	respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(currentPort), test.params)
 	require.Nil(t, err)
 
 	target := reflect.New(reflect.TypeOf(test.expected)).Interface()

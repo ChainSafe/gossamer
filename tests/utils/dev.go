@@ -5,7 +5,6 @@ package utils
 
 import (
 	"encoding/binary"
-	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -16,13 +15,13 @@ import (
 
 // PauseBABE calls the endpoint dev_control with the params ["babe", "stop"]
 func PauseBABE(t *testing.T, node *Node) error {
-	_, err := PostRPC(DevControl, NewEndpoint(fmt.Sprint(node.RPCPort)), "[\"babe\", \"stop\"]")
+	_, err := PostRPC(DevControl, NewEndpoint(node.RPCPort), "[\"babe\", \"stop\"]")
 	return err
 }
 
 // SlotDuration Calls dev endpoint for slot duration
 func SlotDuration(t *testing.T, node *Node) time.Duration {
-	slotDuration, err := PostRPC("dev_slotDuration", NewEndpoint(fmt.Sprint(node.RPCPort)), "[]")
+	slotDuration, err := PostRPC("dev_slotDuration", NewEndpoint(node.RPCPort), "[]")
 
 	if err != nil {
 		require.NoError(t, err)
@@ -40,7 +39,7 @@ func SlotDuration(t *testing.T, node *Node) time.Duration {
 
 // EpochLength Calls dev endpoint for epoch length
 func EpochLength(t *testing.T, node *Node) uint64 {
-	epochLength, err := PostRPC("dev_epochLength", NewEndpoint(fmt.Sprint(node.RPCPort)), "[]")
+	epochLength, err := PostRPC("dev_epochLength", NewEndpoint(node.RPCPort), "[]")
 
 	if err != nil {
 		require.NoError(t, err)

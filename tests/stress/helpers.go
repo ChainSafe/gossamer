@@ -213,7 +213,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 }
 
 func getPendingExtrinsics(t *testing.T, node *utils.Node) []string {
-	respBody, err := utils.PostRPC(utils.AuthorPendingExtrinsics, utils.NewEndpoint(fmt.Sprint(node.RPCPort)), "[]")
+	respBody, err := utils.PostRPC(utils.AuthorPendingExtrinsics, utils.NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 
 	exts := new(modules.PendingExtrinsicsResponse)
