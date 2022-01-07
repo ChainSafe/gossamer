@@ -70,7 +70,9 @@ func (t *Trie) maybeUpdateGeneration(n Node) Node {
 	// Make a copy if the generation is updated.
 	if n.GetGeneration() < t.generation {
 		// Insert a new node in the current generation.
-		newNode := n.Copy()
+		const copyChildren = false
+		newNode := n.Copy(copyChildren)
+
 		newNode.SetGeneration(t.generation)
 
 		// Hash of old nodes should already be computed since it belongs to older generation.

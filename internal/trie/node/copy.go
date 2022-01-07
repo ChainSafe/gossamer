@@ -4,16 +4,28 @@
 package node
 
 // Copy deep copies the branch.
-func (b *Branch) Copy() Node {
+// Setting copyChildren to true will deep copy
+// children as well.
+func (b *Branch) Copy(copyChildren bool) Node {
 	b.RLock()
 	defer b.RUnlock()
 
 	cpy := &Branch{
-		Children:   b.Children, // copy interface pointers
 		Dirty:      b.Dirty,
 		generation: b.generation,
 	}
 	copy(cpy.Key, b.Key)
+
+	if copyChildren {
+		for i, child := range b.Children {
+			if child == nil {
+				continue
+			}
+			cpy.Children[i] = child.Copy(copyChildren)
+		}
+	} else {
+		cpy.Children = b.Children // copy interface pointers only
+	}
 
 	if b.Key != nil {
 		cpy.Key = make([]byte, len(b.Key))
@@ -40,7 +52,7 @@ func (b *Branch) Copy() Node {
 }
 
 // Copy deep copies the leaf.
-func (l *Leaf) Copy() Node {
+func (l *Leaf) Copy(_ bool) Node {
 	l.RLock()
 	defer l.RUnlock()
 

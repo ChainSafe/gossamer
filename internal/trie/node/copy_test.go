@@ -26,6 +26,7 @@ func Test_Branch_Copy(t *testing.T) {
 
 	testCases := map[string]struct {
 		branch         *Branch
+		copyChildren   bool
 		expectedBranch *Branch
 	}{
 		"empty branch": {
@@ -54,6 +55,19 @@ func Test_Branch_Copy(t *testing.T) {
 				encoding:   []byte{6},
 			},
 		},
+		"branch with children copied": {
+			branch: &Branch{
+				Children: [16]Node{
+					nil, nil, &Leaf{Key: []byte{9}},
+				},
+			},
+			copyChildren: true,
+			expectedBranch: &Branch{
+				Children: [16]Node{
+					nil, nil, &Leaf{Key: []byte{9}},
+				},
+			},
+		},
 	}
 
 	for name, testCase := range testCases {
@@ -61,7 +75,7 @@ func Test_Branch_Copy(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			nodeCopy := testCase.branch.Copy()
+			nodeCopy := testCase.branch.Copy(testCase.copyChildren)
 
 			branchCopy, ok := nodeCopy.(*Branch)
 			require.True(t, ok)
@@ -112,7 +126,8 @@ func Test_Leaf_Copy(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			nodeCopy := testCase.leaf.Copy()
+			const copyChildren = false
+			nodeCopy := testCase.leaf.Copy(copyChildren)
 
 			leafCopy, ok := nodeCopy.(*Leaf)
 			require.True(t, ok)
