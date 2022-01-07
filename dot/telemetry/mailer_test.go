@@ -24,18 +24,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func bootstrapMailer2Test(t *testing.T, resultCh chan []byte) (mailer *Mailer) {
+func bootstrapMailer2Test(t *testing.T, handler http.HandlerFunc) (mailer *Mailer) {
 	t.Helper()
 
-	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool { return true },
-	}
-
-	// start server to listen for websocket connections
-	listen := pipeRequestToChannel(t, upgrader, resultCh)
-
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", listen)
+	mux.HandleFunc("/", handler)
 
 	srv := httptest.NewServer(mux)
 	t.Cleanup(func() {
@@ -120,8 +113,47 @@ func TestHandler_SendMulti(t *testing.T) {
 			"1"),
 	}
 
-	resultCh := make(chan []byte)
-	mailer := bootstrapMailer2Test(t, resultCh)
+	// sort the expected slice in alphabetical order
+	sort.Slice(expected, func(i, j int) bool {
+		return bytes.Compare(expected[i], expected[j]) < 0
+	})
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+
+	testsDone := make(chan struct{})
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		c, err := upgrader.Upgrade(w, r, nil)
+		require.NoError(t, err)
+
+		defer func() {
+			close(testsDone)
+			wsCloseErr := c.Close()
+			require.NoError(t, wsCloseErr)
+		}()
+
+		actual := make([][]byte, len(messages))
+		for idx := 0; idx < len(messages); idx++ {
+			_, msg, err := c.ReadMessage()
+			require.NoError(t, err)
+
+			actual[idx] = msg
+		}
+
+		// sort the actual slice in alphabetical order
+		sort.Slice(actual, func(i, j int) bool {
+			return bytes.Compare(actual[i], actual[j]) < 0
+		})
+
+		// assert
+		for i := range actual {
+			require.Contains(t, string(actual[i]), string(expected[i]))
+		}
+	}
+
+	mailer := bootstrapMailer2Test(t, handler)
 	var wg sync.WaitGroup
 	for _, message := range messages {
 		wg.Add(1)
@@ -132,32 +164,13 @@ func TestHandler_SendMulti(t *testing.T) {
 	}
 
 	wg.Wait()
-
-	var actual [][]byte
-	for data := range resultCh {
-		actual = append(actual, data)
-		if len(actual) == len(expected) {
-			break
-		}
-	}
-
-	sort.Slice(expected, func(i, j int) bool {
-		return bytes.Compare(expected[i], expected[j]) < 0
-	})
-
-	sort.Slice(actual, func(i, j int) bool {
-		return bytes.Compare(actual[i], actual[j]) < 0
-	})
-
-	for i := range actual {
-		require.Contains(t, string(actual[i]), string(expected[i]))
-	}
+	<-testsDone
 }
 
 func TestListenerConcurrency(t *testing.T) {
 	t.Parallel()
 
-	const qty = 10
+	const qty = 2000
 
 	readyWait := new(sync.WaitGroup)
 	readyWait.Add(qty)
@@ -165,6 +178,41 @@ func TestListenerConcurrency(t *testing.T) {
 	timerStartedCh := make(chan struct{})
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+
+	testsDone := make(chan struct{})
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		c, err := upgrader.Upgrade(w, r, nil)
+		require.NoError(t, err)
+
+		defer func() {
+			close(testsDone)
+			wsCloseErr := c.Close()
+			require.NoError(t, wsCloseErr)
+		}()
+
+		counter := 0
+		const expectedResult = `{"best":"0x0000000000000000000000000000000000000000000000000000000000000000","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":` //nolint:lll
+
+		for {
+			_, msg, err := c.ReadMessage()
+			require.NoError(t, err)
+			counter++
+
+			assert.Contains(t,
+				string(msg),
+				expectedResult,
+			)
+
+			if counter == qty {
+				break
+			}
+		}
+	}
 
 	go func() {
 		const timeout = 50 * time.Millisecond
@@ -175,8 +223,7 @@ func TestListenerConcurrency(t *testing.T) {
 
 	defer cancel()
 
-	resultCh := make(chan []byte)
-	mailer := bootstrapMailer2Test(t, resultCh)
+	mailer := bootstrapMailer2Test(t, handler)
 
 	doneWait := new(sync.WaitGroup)
 	for i := 0; i < qty; i++ {
@@ -199,35 +246,5 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 
 	doneWait.Wait()
-
-	counter := 0
-	for res := range resultCh {
-		const expectedResult = `{"best":"0x0000000000000000000000000000000000000000000000000000000000000000","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":` //nolint:lll
-		assert.Contains(t,
-			string(res),
-			expectedResult,
-		)
-
-		counter++
-		if counter == qty {
-			break
-		}
-	}
-}
-
-func pipeRequestToChannel(t *testing.T, wsUpgrader websocket.Upgrader, ch chan<- []byte) http.HandlerFunc {
-	t.Helper()
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := wsUpgrader.Upgrade(w, r, nil)
-		require.NoError(t, err)
-
-		defer c.Close()
-
-		for {
-			_, msg, err := c.ReadMessage()
-			require.NoError(t, err)
-			ch <- msg
-		}
-	}
+	<-testsDone
 }
