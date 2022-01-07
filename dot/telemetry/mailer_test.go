@@ -48,7 +48,7 @@ func bootstrapMailer2Test(t *testing.T, resultCh chan []byte) (mailer *Mailer) {
 	}
 
 	// instantiate telemetry to connect to websocket (test) server
-	testEndpoints := append([]*genesis.TelemetryEndpoint{}, testEndpoint1)
+	testEndpoints := []*genesis.TelemetryEndpoint{testEndpoint1}
 
 	logger := log.New(log.SetWriter(io.Discard))
 	const telemetryEnabled = true
