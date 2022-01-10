@@ -5,6 +5,7 @@ package types
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -91,6 +92,10 @@ func (a *Authority) FromRawSr25519(raw *AuthorityRaw) error {
 type AuthorityRaw struct {
 	Key    [sr25519.PublicKeyLength]byte
 	Weight uint64
+}
+
+func (a *AuthorityRaw) String() string {
+	return fmt.Sprintf("Key=0x%x Weight=%d", a.Key, a.Weight)
 }
 
 // AuthoritiesToRaw converts an array of Authority in an array of AuthorityRaw

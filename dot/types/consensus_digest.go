@@ -4,6 +4,8 @@
 package types
 
 import (
+	"fmt"
+	
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -69,6 +71,10 @@ type NextEpochData struct {
 
 // Index Returns VDT index
 func (d NextEpochData) Index() uint { return 1 }
+
+func (d NextEpochData) String() string {
+	return fmt.Sprintf("NextEpochData Authorities=%v Randomness=%v", d.Authorities, d.Randomness)
+}
 
 // ToEpochData returns the NextEpochData as EpochData
 func (d *NextEpochData) ToEpochData() (*EpochData, error) {
