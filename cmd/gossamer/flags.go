@@ -389,6 +389,7 @@ var (
 	GlobalFlags = []cli.Flag{
 		LogFlag,
 		LogCoreLevelFlag,
+		LogDigestLevelFlag,
 		LogSyncLevelFlag,
 		LogNetworkLevelFlag,
 		LogRPCLevelFlag,
