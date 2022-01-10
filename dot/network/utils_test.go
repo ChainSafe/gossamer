@@ -29,7 +29,7 @@ var availablePorts portQueue
 
 func init() {
 	availablePorts = make(chan uint16, portsAmount)
-	startAt := uint16(7500)
+	const startAt = uint16(7500)
 	for port := startAt; port < portsAmount+startAt; port++ {
 		availablePorts.put(port)
 	}
