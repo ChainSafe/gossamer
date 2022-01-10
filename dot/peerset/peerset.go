@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -178,7 +179,6 @@ type PeerSet struct {
 	nextPeriodicAllocSlots time.Duration
 	// chan for receiving action request.
 	actionQueue <-chan action
-	stopCh      chan struct{}
 }
 
 // config is configuration of a single set.
@@ -666,15 +666,14 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 }
 
 // start handles all the action for the peerSet.
-func (ps *PeerSet) start(aq chan action, stopCh chan struct{}) {
+func (ps *PeerSet) start(ctx context.Context, aq chan action) {
 	ps.actionQueue = aq
 
 	ps.resultMsgCh = make(chan Message, msgChanSize)
-	go ps.doWork(stopCh)
+	go ps.doWork(ctx)
 }
 
-func (ps *PeerSet) doWork(stopCh chan struct{}) {
-	ps.stopCh = make(chan struct{})
+func (ps *PeerSet) doWork(ctx context.Context) {
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
 
 	defer func() {
@@ -684,7 +683,8 @@ func (ps *PeerSet) doWork(stopCh chan struct{}) {
 
 	for {
 		select {
-		case <-stopCh:
+		case <-ctx.Done():
+			// TODO: log context error?
 			return
 		case <-ticker.C:
 			l := ps.peerState.getSetLength()
