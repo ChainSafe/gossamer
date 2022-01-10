@@ -60,15 +60,16 @@ var (
 	// ErrThresholdBothZero is returned when both parameters to CalculateThreshold are zero
 	ErrThresholdBothZero = errors.New("numerator or denominator cannot be 0")
 
-	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
-	errNilBlockState         = errors.New("cannot have nil BlockState")
-	errNilEpochState         = errors.New("cannot have nil EpochState")
-	errNilStorageState       = errors.New("storage state is nil")
-	errNilParentHeader       = errors.New("parent header is nil")
-	errInvalidResult         = errors.New("invalid error value")
-	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
-	errFirstBlockTimeout     = errors.New("timed out waiting for first block")
-	errChannelClosed         = errors.New("block notifier channel was closed")
+	errNilBlockImportHandler    = errors.New("cannot have nil BlockImportHandler")
+	errNilBlockState            = errors.New("cannot have nil BlockState")
+	errNilEpochState            = errors.New("cannot have nil EpochState")
+	errNilStorageState          = errors.New("storage state is nil")
+	errNilParentHeader          = errors.New("parent header is nil")
+	errInvalidResult            = errors.New("invalid error value")
+	errNoEpochData              = errors.New("no epoch data found for upcoming epoch")
+	errFirstBlockTimeout        = errors.New("timed out waiting for first block")
+	errChannelClosed            = errors.New("block notifier channel was closed")
+	errOverPrimarySlotThreshold = errors.New("cannot claim slot, over primary threshold")
 
 	other         Other
 	invalidCustom InvalidCustom
