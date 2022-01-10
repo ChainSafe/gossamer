@@ -40,6 +40,15 @@ func NewBranch(key, value []byte, dirty bool, generation uint64) *Branch {
 	}
 }
 
+// Type returns BranchType if the branch value
+// is nil, and BranchWithValueType otherwise.
+func (b *Branch) Type() Type {
+	if b.Value == nil {
+		return BranchType
+	}
+	return BranchWithValueType
+}
+
 func (b *Branch) String() string {
 	if len(b.Value) > 1024 {
 		return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value (hashed)=0x%x dirty=%t",
