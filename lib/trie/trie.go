@@ -124,7 +124,7 @@ func (t *Trie) RootNode() Node {
 }
 
 // encodeRoot returns the encoded root of the trie
-func (t *Trie) encodeRoot(buffer *bytes.Buffer) (err error) {
+func (t *Trie) encodeRoot(buffer node.Buffer) (err error) {
 	if t.root == nil {
 		_, err = buffer.Write([]byte{0})
 		if err != nil {
