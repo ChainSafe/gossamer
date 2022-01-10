@@ -448,7 +448,7 @@ func (t *Trie) getKeysWithPrefix(parent Node, prefix, key []byte, keys [][]byte)
 
 		if bytes.Equal(p.Key[:length], key) || len(key) == 0 {
 			// node has prefix, add to list and add all descendant nodes to list
-			keys = t.addAllKeys(p, prefix, keys)
+			keys = addAllKeys(p, prefix, keys)
 			return keys
 		}
 
@@ -472,7 +472,7 @@ func (t *Trie) getKeysWithPrefix(parent Node, prefix, key []byte, keys [][]byte)
 
 // addAllKeys appends all keys that are descendants of the parent node to a slice of keys
 // it uses the prefix to determine the entire key
-func (t *Trie) addAllKeys(parent Node, prefix []byte, keys [][]byte) [][]byte {
+func addAllKeys(parent Node, prefix []byte, keys [][]byte) [][]byte {
 	switch p := parent.(type) {
 	case *node.Branch:
 		if p.Value != nil {
@@ -480,7 +480,7 @@ func (t *Trie) addAllKeys(parent Node, prefix []byte, keys [][]byte) [][]byte {
 		}
 
 		for i, child := range p.Children {
-			keys = t.addAllKeys(child, append(append(prefix, p.Key...), byte(i)), keys)
+			keys = addAllKeys(child, append(append(prefix, p.Key...), byte(i)), keys)
 		}
 	case *node.Leaf:
 		keys = append(keys, codec.NibblesToKeyLE(append(prefix, p.Key...)))
