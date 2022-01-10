@@ -110,7 +110,7 @@ type PeersState struct {
 	// since, single Info can also manage the flow.
 	sets []Info
 
-	mu *sync.Mutex
+	mu sync.Mutex
 }
 
 func (ps *PeersState) getNode(p peer.ID) (*node, error) {
@@ -142,7 +142,7 @@ func NewPeerState(cfgs []*config) (*PeersState, error) {
 	peerState := &PeersState{
 		nodes: make(map[peer.ID]*node),
 		sets:  infoSet,
-		mu:    new(sync.Mutex),
+		mu:    sync.Mutex{},
 	}
 
 	return peerState, nil
