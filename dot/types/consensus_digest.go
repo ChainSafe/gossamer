@@ -5,7 +5,7 @@ package types
 
 import (
 	"fmt"
-	
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
