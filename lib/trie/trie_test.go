@@ -529,9 +529,7 @@ func TestDelete(t *testing.T) {
 		trie.Put(test.key, test.value)
 	}
 
-	// DeepCopy the trie.
-	dcTrie, err := trie.DeepCopy()
-	require.NoError(t, err)
+	dcTrie := trie.DeepCopy()
 
 	// Take Snapshot of the trie.
 	ssTrie := trie.Snapshot()
@@ -853,9 +851,7 @@ func TestClearPrefix(t *testing.T) {
 	for _, prefix := range testCases {
 		trie := buildTrie()
 
-		// DeepCopy the trie.
-		dcTrie, err := trie.DeepCopy()
-		require.NoError(t, err)
+		dcTrie := trie.DeepCopy()
 
 		// Take Snapshot of the trie.
 		ssTrie := trie.Snapshot()
@@ -918,9 +914,7 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	trie := NewEmptyTrie()
 
-	// DeepCopy the trie.
-	dcTrie, err := trie.DeepCopy()
-	require.NoError(t, err)
+	dcTrie := trie.DeepCopy()
 
 	// Take Snapshot of the trie.
 	ssTrie := trie.Snapshot()
@@ -1416,9 +1410,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 					trieClearPrefix.Put(test.key, test.value)
 				}
 
-				// DeepCopy the trie.
-				dcTrie, err := trieClearPrefix.DeepCopy()
-				require.NoError(t, err)
+				dcTrie := trieClearPrefix.DeepCopy()
 
 				// Take Snapshot of the trie.
 				ssTrie := trieClearPrefix.Snapshot()
