@@ -50,5 +50,3 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 	_, err := CalculateThreshold(C1, C2, 3)
 	require.NotNil(t, err)
 }
-
-// Test
