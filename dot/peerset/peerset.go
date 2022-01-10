@@ -666,8 +666,8 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 }
 
 // start handles all the action for the peerSet.
-func (ps *PeerSet) start(ctx context.Context, aq chan action) {
-	ps.actionQueue = aq
+func (ps *PeerSet) start(ctx context.Context, actionQueue chan action) {
+	ps.actionQueue = actionQueue
 
 	ps.resultMsgCh = make(chan Message, msgChanSize)
 	go ps.doWork(ctx)

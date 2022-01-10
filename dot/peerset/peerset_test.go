@@ -4,7 +4,6 @@
 package peerset
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 func TestPeerSetBanned(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, context.Background(), 25, 25, nil, nil, false)
+	handler := newTestPeerSet(t, 25, 25, nil, nil, false)
 
 	ps := handler.peerSet
 	require.Equal(t, unknownPeer, ps.peerState.peerStatus(0, peer1))
@@ -48,7 +47,7 @@ func TestPeerSetBanned(t *testing.T) {
 func TestAddReservedPeers(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, context.Background(), 0, 2, []peer.ID{bootNode}, []peer.ID{}, false)
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{}, false)
 	ps := handler.peerSet
 
 	handler.AddReservedPeer(0, reservedPeer)
@@ -77,7 +76,7 @@ func TestAddReservedPeers(t *testing.T) {
 func TestPeerSetIncoming(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, context.Background(), 2, 1, []peer.ID{bootNode}, []peer.ID{}, false)
+	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode}, []peer.ID{}, false)
 	ps := handler.peerSet
 
 	// connect message will be added ingoing queue for bootnode.
@@ -96,7 +95,7 @@ func TestPeerSetIncoming(t *testing.T) {
 func TestPeerSetDiscovered(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, context.Background(), 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false)
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false)
 
 	ps := handler.peerSet
 
@@ -115,7 +114,7 @@ func TestPeerSetDiscovered(t *testing.T) {
 func TestReAllocAfterBanned(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, context.Background(), 25, 25, []peer.ID{}, []peer.ID{}, false)
+	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false)
 
 	ps := handler.peerSet
 	// adding peer1 with incoming slot.
@@ -145,7 +144,7 @@ func TestReAllocAfterBanned(t *testing.T) {
 func TestRemovePeer(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, context.Background(), 0, 2, []peer.ID{discovered1, discovered2}, nil, false)
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2}, nil, false)
 	ps := handler.peerSet
 
 	require.Equal(t, 2, len(ps.resultMsgCh))
@@ -167,7 +166,7 @@ func TestRemovePeer(t *testing.T) {
 func TestSetReservePeer(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, context.Background(), 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2}, true)
+	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2}, true)
 	ps := handler.peerSet
 
 	require.Equal(t, 2, len(ps.resultMsgCh))

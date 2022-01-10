@@ -25,7 +25,7 @@ const (
 	peer2         = peer.ID("testPeer2")
 )
 
-func newTestPeerSet(t *testing.T, ctx context.Context, in, out uint32, bootNodes, reservedPeers []peer.ID, reservedOnly bool) *Handler {
+func newTestPeerSet(t *testing.T, in, out uint32, bootNodes, reservedPeers []peer.ID, reservedOnly bool) *Handler {
 	t.Helper()
 	con := &ConfigSet{
 		Set: []*config{
@@ -41,7 +41,7 @@ func newTestPeerSet(t *testing.T, ctx context.Context, in, out uint32, bootNodes
 	handler, err := NewPeerSetHandler(con)
 	require.NoError(t, err)
 
-	handler.Start(ctx)
+	handler.Start(context.Background())
 
 	handler.AddPeer(0, bootNodes...)
 	handler.AddReservedPeer(0, reservedPeers...)
