@@ -14,7 +14,8 @@ var _ Node = (*Leaf)(nil)
 
 // Leaf is a leaf in the trie.
 type Leaf struct {
-	Key   []byte // partial key
+	// Partial key bytes in nibbles (0 to f in hexadecimal)
+	Key   []byte
 	Value []byte
 	// Dirty is true when the branch differs
 	// from the node stored in the database.

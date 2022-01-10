@@ -156,10 +156,11 @@ func (t *Trie) Hash() (common.Hash, error) {
 		return [32]byte{}, err
 	}
 
-	return common.Blake2bHash(buffer.Bytes())
+	return common.Blake2bHash(buffer.Bytes()) // TODO optimisation: use hashers sync pools
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
+// where the keys are encoded in Little Endian.
 func (t *Trie) Entries() map[string][]byte {
 	return t.entries(t.root, nil, make(map[string][]byte))
 }
@@ -355,6 +356,7 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 // updateBranch attempts to add the value node to a branch
 // inserts the value node as the branch's child at the index that's
 // the first nibble of the key
+// Note it does NOT modify the trie and only use the generation value of the trie.
 func (t *Trie) updateBranch(p *node.Branch, key []byte, value Node) (n Node) {
 	length := lenCommonPrefix(key, p.Key)
 

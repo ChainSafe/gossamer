@@ -14,7 +14,8 @@ var _ Node = (*Branch)(nil)
 
 // Branch is a branch in the trie.
 type Branch struct {
-	Key      []byte // partial key
+	// Partial key bytes in nibbles (0 to f in hexadecimal)
+	Key      []byte
 	Children [16]Node
 	Value    []byte
 	// Dirty is true when the branch differs
