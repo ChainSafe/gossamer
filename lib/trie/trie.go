@@ -186,7 +186,7 @@ func entries(current Node, prefix []byte, kv map[string][]byte) map[string][]byt
 func (t *Trie) NextKey(key []byte) []byte {
 	k := codec.KeyLEToNibbles(key)
 
-	next := t.nextKey(t.root, nil, k)
+	next := nextKey(t.root, nil, k)
 	if next == nil {
 		return nil
 	}
@@ -194,7 +194,7 @@ func (t *Trie) NextKey(key []byte) []byte {
 	return codec.NibblesToKeyLE(next)
 }
 
-func (t *Trie) nextKey(curr Node, prefix, key []byte) []byte {
+func nextKey(curr Node, prefix, key []byte) []byte {
 	switch c := curr.(type) {
 	case *node.Branch:
 		fullKey := append(prefix, c.Key...)
@@ -224,7 +224,7 @@ func (t *Trie) nextKey(curr Node, prefix, key []byte) []byte {
 					continue
 				}
 
-				next := t.nextKey(child, append(fullKey, byte(i)), key)
+				next := nextKey(child, append(fullKey, byte(i)), key)
 				if len(next) != 0 {
 					return next
 				}
@@ -239,7 +239,7 @@ func (t *Trie) nextKey(curr Node, prefix, key []byte) []byte {
 					continue
 				}
 
-				next := t.nextKey(child, append(fullKey, byte(i)+idx), key)
+				next := nextKey(child, append(fullKey, byte(i)+idx), key)
 				if len(next) != 0 {
 					return next
 				}
