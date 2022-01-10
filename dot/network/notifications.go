@@ -288,7 +288,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	if (s.host.messageCache != nil) && (s.host.messageCache.exists(peer, msg)) {
+	if s.host.messageCache != nil && s.host.messageCache.exists(peer, msg) {
 		// message has already been sent
 		return
 	}
