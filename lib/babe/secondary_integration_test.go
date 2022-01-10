@@ -71,3 +71,5 @@ func TestVerifySecondarySlotVRF(t *testing.T) {
 
 	require.Equal(t, 1, numAuthorized, "only one block producer should be authorized per secondary slot")
 }
+
+// Test
