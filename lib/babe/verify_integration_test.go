@@ -401,3 +401,5 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = verifier.verifyAuthorshipRight(&block2.Header)
 	require.Equal(t, ErrProducerEquivocated, err)
 }
+
+// Test
