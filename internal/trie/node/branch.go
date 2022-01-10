@@ -21,7 +21,7 @@ type Branch struct {
 	// from the node stored in the database.
 	Dirty      bool
 	hashDigest []byte
-	encoding   []byte
+	Encoding   []byte
 	// generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain generation number,
 	// which is updated to match the trie generation once they are
