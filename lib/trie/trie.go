@@ -438,10 +438,10 @@ func (t *Trie) GetKeysWithPrefix(prefix []byte) [][]byte {
 		}
 	}
 
-	return t.getKeysWithPrefix(t.root, []byte{}, p, [][]byte{})
+	return getKeysWithPrefix(t.root, []byte{}, p, [][]byte{})
 }
 
-func (t *Trie) getKeysWithPrefix(parent Node, prefix, key []byte, keys [][]byte) [][]byte {
+func getKeysWithPrefix(parent Node, prefix, key []byte, keys [][]byte) [][]byte {
 	switch p := parent.(type) {
 	case *node.Branch:
 		length := lenCommonPrefix(p.Key, key)
@@ -458,7 +458,7 @@ func (t *Trie) getKeysWithPrefix(parent Node, prefix, key []byte, keys [][]byte)
 		}
 
 		key = key[len(p.Key):]
-		keys = t.getKeysWithPrefix(p.Children[key[0]], append(append(prefix, p.Key...), key[0]), key[1:], keys)
+		keys = getKeysWithPrefix(p.Children[key[0]], append(append(prefix, p.Key...), key[0]), key[1:], keys)
 	case *node.Leaf:
 		length := lenCommonPrefix(p.Key, key)
 		if bytes.Equal(p.Key[:length], key) || len(key) == 0 {
