@@ -13,22 +13,15 @@ import (
 
 const portsAmount = 200
 
-// portQueue is a non-blocking port queue
+// portQueue is a blocking port queue
 type portQueue chan uint16
 
 func (pq portQueue) put(p uint16) {
-	select {
-	case pq <- p:
-	default:
-	}
+	pq <- p
 }
 
 func (pq portQueue) get() (port uint16) {
-	select {
-	case port = <-pq:
-	default:
-	}
-
+	port = <-pq
 	return port
 }
 
