@@ -30,7 +30,7 @@ var maxRetries = 24
 var (
 	// KeyList is the list of built-in keys
 	KeyList  = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
-	basePort = 7500
+	basePort = 7000
 
 	// BaseRPCPort is the starting RPC port for test nodes
 	BaseRPCPort = 8540

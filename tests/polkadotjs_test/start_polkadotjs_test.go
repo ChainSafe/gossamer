@@ -34,8 +34,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	parts := strings.Fields(command)
 	data, err := exec.Command(parts[0], parts[1:]...).Output()
 
-	fmt.Printf("%s\n", data)
-	assert.NoError(t, err)
+	assert.NoError(t, err, string(data))
 
 	//uncomment this to see log results from javascript tests
 	//fmt.Printf("%s\n", data)
