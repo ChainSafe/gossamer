@@ -408,5 +408,3 @@ func TestService_PauseAndResume(t *testing.T) {
 	err = bs.Stop()
 	require.NoError(t, err)
 }
-
-// Test

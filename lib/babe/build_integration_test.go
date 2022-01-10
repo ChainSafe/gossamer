@@ -492,5 +492,3 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
 	require.Equal(t, int64(1), buildErrorsMetrics.Count())
 }
-
-// Test
