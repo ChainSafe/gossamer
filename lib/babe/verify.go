@@ -4,7 +4,6 @@
 package babe
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -234,7 +233,7 @@ func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, er
 		}
 	}
 
-	return nil, errors.New("cannot find ConfigData for epoch")
+	return nil, errNoConfigData
 }
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
@@ -268,7 +267,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest.Types) < 2 {
-		return fmt.Errorf("block header is missing digest items")
+		return errMissingDigestItems
 	}
 
 	logger.Tracef("beginning BABE authorship right verification for block %s", header.Hash())

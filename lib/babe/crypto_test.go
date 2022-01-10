@@ -56,8 +56,8 @@ func TestCalculateThreshold(t *testing.T) {
 		{
 			name: "max threshold",
 			args: args{
-				C1:       2147483647,
-				C2:       2147483647,
+				C1:       1,
+				C2:       1,
 				numAuths: 3,
 			},
 			exp: scale.MaxUint128,
@@ -155,6 +155,7 @@ func Test_claimPrimarySlot(t *testing.T) {
 				threshold:  &scale.Uint128{},
 				keypair:    keyring.Alice().(*sr25519.Keypair),
 			},
+			expErr: errors.New("cannot claim slot, over primary threshold: for slot 1, epoch 2 and threshold 0"),
 		},
 		{
 			name: "authority authorized",

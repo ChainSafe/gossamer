@@ -5,6 +5,7 @@ package babe
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -789,9 +790,9 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 	mockEpochStateGetErr := NewMockEpochState(ctrl)
 
 	mockEpochStateEmpty.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, nil)
-	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errors.New("no ConfigData"))
+	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errNoConfigData)
 	mockEpochStateGetErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
-	mockEpochStateGetErr.EXPECT().GetConfigData(gomock.Eq(uint64(0))).Return(nil, errors.New("cant get ConfigData"))
+	mockEpochStateGetErr.EXPECT().GetConfigData(gomock.Eq(uint64(0))).Return(nil, errNoConfigData)
 
 	vm0, err := NewVerificationManager(mockBlockState, mockEpochStateEmpty)
 	assert.NoError(t, err)
@@ -810,19 +811,19 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 			name:   "cant find ConfigData",
 			vm:     vm0,
 			epoch:  0,
-			expErr: errors.New("cannot find ConfigData for epoch"),
+			expErr: errNoConfigData,
 		},
 		{
 			name:   "hasConfigData error",
 			vm:     vm1,
 			epoch:  0,
-			expErr: errors.New("no ConfigData"),
+			expErr: errNoConfigData,
 		},
 		{
 			name:   "getConfigData error",
 			vm:     vm2,
 			epoch:  0,
-			expErr: errors.New("cant get ConfigData"),
+			expErr: errNoConfigData,
 		},
 	}
 	for _, tt := range tests {
@@ -847,14 +848,14 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	mockEpochStateThresholdErr := NewMockEpochState(ctrl)
 	mockEpochStateOk := NewMockEpochState(ctrl)
 
-	mockEpochStateGetErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(nil, errors.New("cant get ConfigData"))
+	mockEpochStateGetErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(nil, errNoConfigData)
 
 	mockEpochStateHasErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
 		Return(&types.EpochData{
 			Authorities: Authorities{},
 			Randomness:  Randomness{},
 		}, nil)
-	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errors.New("no ConfigData"))
+	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errNoConfigData)
 
 	mockEpochStateThresholdErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
 		Return(&types.EpochData{
@@ -902,13 +903,13 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 			name:   "getEpochData error",
 			vm:     vm0,
 			epoch:  0,
-			expErr: errors.New("failed to get epoch data for epoch 0: cant get ConfigData"),
+			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, errNoConfigData),
 		},
 		{
 			name:   "getConfigData error",
 			vm:     vm1,
 			epoch:  0,
-			expErr: errors.New("failed to get config data: no ConfigData"),
+			expErr: fmt.Errorf("failed to get config data: %w", errNoConfigData),
 		},
 		{
 			name:   "calculate threshold error",
@@ -969,29 +970,27 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	mockEpochStateNilBlockStateErr := NewMockEpochState(ctrl)
 	mockEpochStateVerifyAuthorshipErr := NewMockEpochState(ctrl)
 
-	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).
-		Return(false, errors.New("failed to check finalisation"))
+	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, errFailedFinalisation)
 
 	mockBlockStateNotFinal.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
 
 	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
-	mockEpochStateSetSlotErr.EXPECT().SetFirstSlot(gomock.Eq(uint64(1))).Return(errors.New("set first slot error"))
+	mockEpochStateSetSlotErr.EXPECT().SetFirstSlot(gomock.Eq(uint64(1))).Return(errSetFirstSlot)
 
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).
-		Return(uint64(0), errors.New("get epoch error"))
+		Return(uint64(0), errGetEpoch)
 
 	mockEpochStateSkipVerifyErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
-	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errors.New("get epochData error"))
-	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).
-		Return(false, errors.New("skipVerify error"))
+	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errGetEpochData)
+	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(false, errSkipVerify)
 
 	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
-	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errors.New("get epochData error"))
+	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errGetEpochData)
 	mockEpochStateSkipVerifyTrue.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(true, nil)
 
 	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
 	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochData(gomock.Eq(uint64(1))).
-		Return(nil, errors.New("get epochData error"))
+		Return(nil, errGetEpochData)
 	mockEpochStateGetVerifierInfoErr.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(false, nil)
 
 	mockEpochStateNilBlockStateErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
@@ -1055,31 +1054,31 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 			name:   "fail to check block 1 finalisation",
 			vm:     vm0,
 			header: block1Header,
-			expErr: errors.New("failed to check if block 1 is finalised: failed to check finalisation"),
+			expErr: fmt.Errorf("failed to check if block 1 is finalised: %w", errFailedFinalisation),
 		},
 		{
 			name:   "get slot from header error",
 			vm:     vm1,
 			header: block1Header,
-			expErr: errors.New("failed to get slot from block 1: chain head missing digest"),
+			expErr: fmt.Errorf("failed to get slot from block 1: %w", errMissingDigest),
 		},
 		{
 			name:   "set first slot error",
 			vm:     vm2,
 			header: block1Header2,
-			expErr: errors.New("failed to set current epoch after receiving block 1: set first slot error"),
+			expErr: fmt.Errorf("failed to set current epoch after receiving block 1: %w", errSetFirstSlot),
 		},
 		{
 			name:   "get epoch error",
 			vm:     vm3,
 			header: testBlockHeaderEmpty,
-			expErr: errors.New("failed to get epoch for block header: get epoch error"),
+			expErr: fmt.Errorf("failed to get epoch for block header: %w", errGetEpoch),
 		},
 		{
 			name:   "skip verify err",
 			vm:     vm4,
 			header: testBlockHeaderEmpty,
-			expErr: errors.New("failed to check if verification can be skipped: skipVerify error"),
+			expErr: fmt.Errorf("failed to check if verification can be skipped: %w", errSkipVerify),
 		},
 		{
 			name:   "skip verify true",
@@ -1090,20 +1089,20 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 			name:   "get verifierInfo err",
 			vm:     vm6,
 			header: testBlockHeaderEmpty,
-			expErr: errors.New("failed to get verifier info for block 2: " +
-				"failed to get epoch data for epoch 1: get epochData error"),
+			expErr: fmt.Errorf("failed to get verifier info for block 2: "+
+				"failed to get epoch data for epoch 1: %w", errGetEpochData),
 		},
 		{
 			name:   "nil blockState error",
 			vm:     vm7,
 			header: testBlockHeaderEmpty,
-			expErr: errors.New("failed to create new BABE verifier: cannot have nil BlockState"),
+			expErr: fmt.Errorf("failed to create new BABE verifier: %w", errNilBlockState),
 		},
 		{
 			name:   "verify block authorship err",
 			vm:     vm8,
 			header: testBlockHeaderEmpty,
-			expErr: errors.New("block header is missing digest items"),
+			expErr: errMissingDigestItems,
 		},
 	}
 	for _, tt := range tests {
@@ -1141,20 +1140,17 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	mockEpochStateOk2 := NewMockEpochState(ctrl)
 	mockEpochStateOk3 := NewMockEpochState(ctrl)
 
-	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).
-		Return(uint64(0), errors.New("get epoch error"))
+	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(0), errGetEpoch)
 
 	mockEpochStateGetEpochDataErr.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(0), nil)
-	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
-		Return(nil, errors.New("get epochData error"))
+	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(nil, errGetEpochData)
 
 	mockEpochStateIndexLenErr.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(2), nil)
 
 	mockEpochStateSetDisabledProd.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(2), nil)
 
 	mockEpochStateOk.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(2), nil)
-	mockBlockStateIsDescendantErr.EXPECT().IsDescendantOf(gomock.Any(), gomock.Any()).
-		Return(false, errors.New("descendant err"))
+	mockBlockStateIsDescendantErr.EXPECT().IsDescendantOf(gomock.Any(), gomock.Any()).Return(false, errDescendant)
 
 	mockEpochStateOk2.EXPECT().GetEpochForBlock(gomock.Eq(testHeader)).Return(uint64(2), nil)
 	mockBlockStateAuthorityDisabled.EXPECT().IsDescendantOf(gomock.Any(), gomock.Any()).Return(true, nil)
@@ -1227,7 +1223,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 				index:  0,
 				header: types.NewEmptyHeader(),
 			},
-			expErr: errors.New("get epoch error"),
+			expErr: errGetEpoch,
 		},
 		{
 			name: "get epoch data err",
@@ -1236,7 +1232,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 				index:  0,
 				header: types.NewEmptyHeader(),
 			},
-			expErr: errors.New("failed to get epoch data for epoch 0: get epochData error"),
+			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, errGetEpochData),
 		},
 		{
 			name: "index length error",
@@ -1262,7 +1258,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 				index:  0,
 				header: types.NewEmptyHeader(),
 			},
-			expErr: errors.New("descendant err"),
+			expErr: errDescendant,
 		},
 		{
 			name: "authority already disabled",
