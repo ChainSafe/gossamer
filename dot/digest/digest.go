@@ -57,7 +57,8 @@ type resume struct {
 }
 
 // NewHandler returns a new Handler
-func NewHandler(lvl log.Level, blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
+func NewHandler(lvl log.Level, blockState BlockState, epochState EpochState,
+	grandpaState GrandpaState) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()
 	finalised := blockState.GetFinalisedNotifierChannel()
 
