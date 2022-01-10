@@ -177,12 +177,12 @@ func (h *Handler) handleGrandpaConsensusDigest(digest scale.VaryingDataType, hea
 func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
-		logger.Debugf("handling BABENextEpochData data: %v", digest)
+		logger.Infof("handling BABENextEpochData data: %v", digest)
 		return h.handleNextEpochData(val, header)
 	case types.BABEOnDisabled:
 		return h.handleBABEOnDisabled(val, header)
 	case types.NextConfigData:
-		logger.Debugf("handling BABENextConfigData data: %v", digest)
+		logger.Infof("handling BABENextConfigData data: %v", digest)
 		return h.handleNextConfigData(val, header)
 	}
 
@@ -399,7 +399,7 @@ func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Hea
 		return err
 	}
 
-	logger.Debugf("setting data for block number %s and epoch %d with data: %v",
+	logger.Infof("setting data for block number %s and epoch %d with data: %v",
 		header.Number, currEpoch+1, data)
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
@@ -410,7 +410,7 @@ func (h *Handler) handleNextConfigData(config types.NextConfigData, header *type
 		return err
 	}
 
-	logger.Debugf("setting BABE config data for block number %s and epoch %d with data: %v",
+	logger.Infof("setting BABE config data for block number %s and epoch %d with data: %v",
 		header.Number, currEpoch+1, config.ToConfigData())
 	// set EpochState config data for upcoming epoch
 	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())

@@ -325,32 +325,34 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 			return err
 		}
 
-		rep := n.addReputation(change.Value)
+		// rep := n.addReputation(change.Value)
+		_ = n.addReputation(change.Value)
 		ps.peerState.nodes[pid] = n
-		if rep >= BannedThresholdValue {
-			return nil
-		}
+		// if rep >= BannedThresholdValue {
+		// 	return nil
+		// }
 
-		setLen := ps.peerState.getSetLength()
-		for i := 0; i < setLen; i++ {
-			if ps.peerState.peerStatus(i, pid) == connectedPeer {
-				// disconnect peer
-				err = ps.peerState.disconnect(i, pid)
-				if err != nil {
-					return err
-				}
+		// setLen := ps.peerState.getSetLength()
+		// for i := 0; i < setLen; i++ {
+		// 	if ps.peerState.peerStatus(i, pid) == connectedPeer {
+		// 		// disconnect peer
+		// 		err = ps.peerState.disconnect(i, pid)
+		// 		if err != nil {
+		// 			return err
+		// 		}
 
-				ps.resultMsgCh <- Message{
-					Status: Drop,
-					setID:  uint64(i),
-					PeerID: pid,
-				}
-				if err = ps.allocSlots(i); err != nil {
-					return err
-				}
-			}
-		}
+		// 		ps.resultMsgCh <- Message{
+		// 			Status: Drop,
+		// 			setID:  uint64(i),
+		// 			PeerID: pid,
+		// 		}
+		// 		if err = ps.allocSlots(i); err != nil {
+		// 			return err
+		// 		}
+		// 	}
+		// }
 	}
+
 	return nil
 }
 
