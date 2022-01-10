@@ -22,7 +22,7 @@ type networkVoteMessage struct {
 	msg  *VoteMessage
 }
 
-// receiveVoteMessages receives messages from the in channel until the specified condition is met
+// receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
 func (s *Service) receiveVoteMessages(ctx context.Context) {
 	for {
 		select {
@@ -153,7 +153,6 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	// vote is considered invalid if set ID do not match.
 	if m.SetID != s.state.setID {
 		return nil, ErrSetIDMismatch
 	}

@@ -24,8 +24,10 @@ type tracker struct {
 	mapLock        sync.Mutex
 	in             chan *types.Block // receive imported block from BlockState
 	stopped        chan struct{}
+
+	catchUpResponseMessageMutex sync.Mutex
 	// round(uint64) is used as key and *CatchUpResponse as value
-	catchUpResponseMessages sync.Map
+	catchUpResponseMessages map[uint64]*CatchUpResponse
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) *tracker {
@@ -37,7 +39,7 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		mapLock:                 sync.Mutex{},
 		in:                      bs.GetImportedBlockNotifierChannel(),
 		stopped:                 make(chan struct{}),
-		catchUpResponseMessages: sync.Map{},
+		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
 	}
 }
 
@@ -74,7 +76,9 @@ func (t *tracker) addCommit(cm *CommitMessage) {
 }
 
 func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) {
-	t.catchUpResponseMessages.Store(cr.Round, cr)
+	t.catchUpResponseMessageMutex.Lock()
+	defer t.catchUpResponseMessageMutex.Unlock()
+	t.catchUpResponseMessages[cr.Round] = cr
 }
 
 func (t *tracker) handleBlocks() {

@@ -553,7 +553,7 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
-	// Eventhough, this looks like we are sending messages multiple times,
+	// Though this looks like we are sending messages multiple times,
 	// caching would make sure that they are being sent only once.
 	for {
 		if s.paused.Load().(bool) {
