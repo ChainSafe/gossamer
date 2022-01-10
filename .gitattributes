@@ -1,5 +1,4 @@
 *.go -text diff=golang
-#*.go text eol=lf
 
 lib/runtime/test_data/kusama/ filter=lfs diff=lfs merge=lfs -text
 lib/runtime/test_data/polkadot/ filter=lfs diff=lfs merge=lfs -text
