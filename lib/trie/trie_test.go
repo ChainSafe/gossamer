@@ -159,7 +159,7 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 			} else if test.op == DEL {
 				trie.Delete(test.key)
 			} else if test.op == GETLEAF {
-				leaf := trie.tryGet(test.key)
+				leaf := tryGet(trie.root, test.key)
 				if leaf == nil {
 					t.Errorf("Fail to get key %x: nil leaf", test.key)
 				} else if !bytes.Equal(leaf.Value, test.value) {
