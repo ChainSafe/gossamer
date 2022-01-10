@@ -142,7 +142,6 @@ func NewPeerState(cfgs []*config) (*PeersState, error) {
 	peerState := &PeersState{
 		nodes: make(map[peer.ID]*node),
 		sets:  infoSet,
-		mu:    sync.Mutex{},
 	}
 
 	return peerState, nil
