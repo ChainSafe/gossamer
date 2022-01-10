@@ -162,17 +162,17 @@ func (t *Trie) Hash() (common.Hash, error) {
 // Entries returns all the key-value pairs in the trie as a map of keys to values
 // where the keys are encoded in Little Endian.
 func (t *Trie) Entries() map[string][]byte {
-	return t.entries(t.root, nil, make(map[string][]byte))
+	return entries(t.root, nil, make(map[string][]byte))
 }
 
-func (t *Trie) entries(current Node, prefix []byte, kv map[string][]byte) map[string][]byte {
+func entries(current Node, prefix []byte, kv map[string][]byte) map[string][]byte {
 	switch c := current.(type) {
 	case *node.Branch:
 		if c.Value != nil {
 			kv[string(codec.NibblesToKeyLE(append(prefix, c.Key...)))] = c.Value
 		}
 		for i, child := range c.Children {
-			t.entries(child, append(prefix, append(c.Key, byte(i))...), kv)
+			entries(child, append(prefix, append(c.Key, byte(i))...), kv)
 		}
 	case *node.Leaf:
 		kv[string(codec.NibblesToKeyLE(append(prefix, c.Key...)))] = c.Value
