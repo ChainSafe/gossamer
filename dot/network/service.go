@@ -650,7 +650,7 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 }
 
 func (s *Service) startPeerSetHandler() {
-	s.host.cm.peerSetHandler.Start()
+	s.host.cm.peerSetHandler.Start(s.ctx)
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()

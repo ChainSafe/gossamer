@@ -4,6 +4,7 @@
 package network
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -46,7 +47,7 @@ type TransactionHandler interface {
 
 // PeerSetHandler is the interface used by the connection manager to handle peerset.
 type PeerSetHandler interface {
-	Start()
+	Start(context.Context)
 	Stop()
 	ReportPeer(peerset.ReputationChange, ...peer.ID)
 	PeerAdd
