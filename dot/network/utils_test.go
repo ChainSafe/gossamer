@@ -5,26 +5,51 @@ package network
 
 import (
 	"bytes"
-	"net"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
+const portsAmount = 200
+
+// portQueue is a non-blocking port queue
+type portQueue chan uint16
+
+func (pq portQueue) put(p uint16) {
+	select {
+	case pq <- p:
+	default:
+	}
+}
+
+func (pq portQueue) get() (port uint16) {
+	select {
+	case port = <-pq:
+	default:
+	}
+
+	return port
+}
+
+var availablePorts portQueue
+
+func init() {
+	availablePorts = make(chan uint16, portsAmount)
+	startAt := uint16(7500)
+	for port := startAt; port < portsAmount+startAt; port++ {
+		availablePorts.put(port)
+	}
+}
+
+// availablePort is test helper function that gets an available port and release the same port after test ends
 func availablePort(t *testing.T) uint16 {
 	t.Helper()
+	port := availablePorts.get()
 
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	require.NoError(t, err)
-
-	l, err := net.ListenTCP("tcp", addr)
-	require.NoError(t, err)
-
-	port := uint16(l.Addr().(*net.TCPAddr).Port)
-
-	err = l.Close()
-	require.NoError(t, err, "failed to release port: %d", port)
+	t.Cleanup(func() {
+		availablePorts.put(port)
+	})
 
 	return port
 }
