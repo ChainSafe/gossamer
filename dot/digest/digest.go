@@ -18,8 +18,8 @@ import (
 var maxUint64 = uint64(math.MaxUint64)
 
 var (
-	_      services.Service  = &Handler{}
-	logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "digest")) // TODO: add to config options (#1851)
+	_      services.Service = &Handler{}
+	logger                  = log.NewFromGlobal(log.AddContext("pkg", "digest")) // TODO: add to config options (#1851)
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -57,13 +57,13 @@ type resume struct {
 }
 
 // NewHandler returns a new Handler
-func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
+func NewHandler(lvl log.Level, blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()
-
 	finalised := blockState.GetFinalisedNotifierChannel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	logger.Patch(log.SetLevel(lvl))
 
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Handler{
 		ctx:          ctx,
 		cancel:       cancel,
