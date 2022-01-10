@@ -33,7 +33,6 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	command := "npx mocha ./test --timeout 30000"
 	parts := strings.Fields(command)
 	data, err := exec.Command(parts[0], parts[1:]...).Output()
-
 	assert.NoError(t, err, string(data))
 
 	//uncomment this to see log results from javascript tests
