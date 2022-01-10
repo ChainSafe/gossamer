@@ -503,10 +503,10 @@ func (t *Trie) Get(key []byte) []byte {
 
 func (t *Trie) tryGet(key []byte) *node.Leaf {
 	k := codec.KeyLEToNibbles(key)
-	return t.retrieve(t.root, k)
+	return retrieve(t.root, k)
 }
 
-func (t *Trie) retrieve(parent Node, key []byte) *node.Leaf {
+func retrieve(parent Node, key []byte) *node.Leaf {
 	var (
 		value *node.Leaf
 	)
@@ -525,7 +525,7 @@ func (t *Trie) retrieve(parent Node, key []byte) *node.Leaf {
 			return nil
 		}
 
-		value = t.retrieve(p.Children[key[length]], key[length+1:])
+		value = retrieve(p.Children[key[length]], key[length+1:])
 	case *node.Leaf:
 		if bytes.Equal(p.Key, key) {
 			value = p
