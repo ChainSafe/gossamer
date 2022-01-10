@@ -41,7 +41,6 @@ var (
 	keyring, _ = keystore.NewSr25519Keyring()
 
 	maxThreshold = scale.MaxUint128
-	minThreshold = &scale.Uint128{}
 
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{

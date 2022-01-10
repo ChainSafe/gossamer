@@ -377,7 +377,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	}
 
 	// create proof that we can authorize this block
-	babeService.epochData.threshold = minThreshold
+	babeService.epochData.threshold = &scale.Uint128{}
 	var slotNumber uint64 = 1
 
 	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
