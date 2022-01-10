@@ -13,7 +13,7 @@ import (
 
 // TestExportConfig tests exporting a toml configuration file
 func TestExportConfig(t *testing.T) {
-	cfg, cfgFile := NewTestConfigWithFile(t)
+	cfg, cfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
@@ -26,6 +26,6 @@ func TestExportConfig(t *testing.T) {
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
-	file := ExportConfig(cfg, cfgFile.Name())
+	file := exportConfig(cfg, cfgFile.Name())
 	require.NotNil(t, file)
 }

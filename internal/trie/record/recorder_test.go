@@ -20,6 +20,8 @@ func Test_NewRecorder(t *testing.T) {
 }
 
 func Test_Recorder_Record(t *testing.T) {
+	t.Parallel()
+
 	testCases := map[string]struct {
 		recorder         *Recorder
 		hash             []byte
@@ -74,6 +76,8 @@ func Test_Recorder_Record(t *testing.T) {
 }
 
 func Test_Recorder_GetNodes(t *testing.T) {
+	t.Parallel()
+
 	testCases := map[string]struct {
 		recorder *Recorder
 		nodes    []Node

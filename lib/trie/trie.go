@@ -263,18 +263,23 @@ func (t *Trie) tryPut(key, value []byte) {
 
 // insert attempts to insert a key with value into the trie
 func (t *Trie) insert(parent Node, key []byte, value Node) Node {
-	switch p := t.maybeUpdateGeneration(parent).(type) {
-	case *node.Branch:
+	newParent := t.maybeUpdateGeneration(parent)
+	if newParent == nil {
+		value.SetKey(key)
+		return value
+	}
+
+	switch newParent.Type() {
+	case node.BranchType, node.BranchWithValueType:
+		p := newParent.(*node.Branch)
 		n := t.updateBranch(p, key, value)
 
 		if p != nil && n != nil && n.IsDirty() {
 			p.SetDirty(true)
 		}
 		return n
-	case nil:
-		value.SetKey(key)
-		return value
-	case *node.Leaf:
+	case node.LeafType:
+		p := newParent.(*node.Leaf)
 		// if a value already exists in the trie at this key, overwrite it with the new value
 		// if the values are the same, don't mark node dirty
 		if p.Value != nil && bytes.Equal(p.Key, key) {
@@ -324,9 +329,9 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 		}
 
 		return br
+	default:
+		panic("unknown node type: " + fmt.Sprint(newParent.Type()))
 	}
-	// This will never happen.
-	return nil
 }
 
 // updateBranch attempts to add the value node to a branch

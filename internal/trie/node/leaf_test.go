@@ -33,6 +33,16 @@ func Test_NewLeaf(t *testing.T) {
 	assert.Equal(t, expectedLeaf, leaf)
 }
 
+func Test_Leaf_Type(t *testing.T) {
+	t.Parallel()
+
+	leaf := new(Leaf)
+
+	Type := leaf.Type()
+
+	assert.Equal(t, LeafType, Type)
+}
+
 func Test_Leaf_String(t *testing.T) {
 	t.Parallel()
 
