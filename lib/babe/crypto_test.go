@@ -96,24 +96,16 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 		{
 			name: "happy path true",
 			args: args{
-				randomness: Randomness{},
-				slot:       uint64(0),
-				epoch:      uint64(0),
-				output:     [32]byte{},
-				threshold:  scale.MaxUint128,
-				pub:        aliceKeypair.Public().(*sr25519.PublicKey),
+				threshold: scale.MaxUint128,
+				pub:       aliceKeypair.Public().(*sr25519.PublicKey),
 			},
 			exp: true,
 		},
 		{
 			name: "happy path false",
 			args: args{
-				randomness: Randomness{},
-				slot:       uint64(0),
-				epoch:      uint64(0),
-				output:     [32]byte{},
-				threshold:  &scale.Uint128{},
-				pub:        aliceKeypair.Public().(*sr25519.PublicKey),
+				threshold: &scale.Uint128{},
+				pub:       aliceKeypair.Public().(*sr25519.PublicKey),
 			},
 		},
 	}
@@ -149,22 +141,20 @@ func Test_claimPrimarySlot(t *testing.T) {
 		{
 			name: "authority not authorized",
 			args: args{
-				randomness: Randomness{},
-				slot:       uint64(1),
-				epoch:      uint64(2),
-				threshold:  &scale.Uint128{},
-				keypair:    keyring.Alice().(*sr25519.Keypair),
+				slot:      1,
+				epoch:     2,
+				threshold: &scale.Uint128{},
+				keypair:   keyring.Alice().(*sr25519.Keypair),
 			},
 			expErr: errors.New("cannot claim slot, over primary threshold: for slot 1, epoch 2 and threshold 0"),
 		},
 		{
 			name: "authority authorized",
 			args: args{
-				randomness: Randomness{},
-				slot:       uint64(1),
-				epoch:      uint64(2),
-				threshold:  scale.MaxUint128,
-				keypair:    keyring.Alice().(*sr25519.Keypair),
+				slot:      1,
+				epoch:     2,
+				threshold: scale.MaxUint128,
+				keypair:   keyring.Alice().(*sr25519.Keypair),
 			},
 			exp: &VrfOutputAndProof{
 				output: [32]uint8{0x80, 0xf0, 0x8a, 0x7d, 0xa1, 0x71, 0x77, 0xdc, 0x7, 0x7f, 0x6, 0xd5, 0xc1, 0x5d, 0x90,

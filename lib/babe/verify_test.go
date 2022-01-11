@@ -74,7 +74,6 @@ func Test_getAuthorityIndex(t *testing.T) {
 	digest := types.NewDigest()
 	err := digest.Add(types.SealDigest{
 		ConsensusEngineID: types.ConsensusEngineID{},
-		Data:              nil,
 	})
 	assert.NoError(t, err)
 	headerNoPre := types.NewEmptyHeader()
@@ -203,17 +202,13 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 
 	auth := types.NewAuthority(kp.Public(), uint64(1))
 	vi := &verifierInfo{
-		authorities:    []types.Authority{*auth},
-		randomness:     Randomness{},
-		threshold:      &scale.Uint128{},
-		secondarySlots: false,
+		authorities: []types.Authority{*auth},
+		threshold:   &scale.Uint128{},
 	}
 
 	vi1 := &verifierInfo{
-		authorities:    []types.Authority{*auth},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: false,
+		authorities: []types.Authority{*auth},
+		threshold:   scale.MaxUint128,
 	}
 
 	v, err := newVerifier(mockBlockState, 1, vi)
@@ -242,10 +237,9 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 			name:     "Over threshold",
 			verifier: *v,
 			args: args{
-				authorityIndex: 0,
-				slot:           uint64(1),
-				vrfOutput:      [32]byte{},
-				vrfProof:       [64]byte{},
+				slot:      1,
+				vrfOutput: [32]byte{},
+				vrfProof:  [64]byte{},
 			},
 			expErr: ErrVRFOutputOverThreshold,
 		},
@@ -253,20 +247,18 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 			name:     "VRF not verified",
 			verifier: *v1,
 			args: args{
-				authorityIndex: 0,
-				slot:           uint64(1),
-				vrfOutput:      [32]byte{},
-				vrfProof:       [64]byte{},
+				slot:      1,
+				vrfOutput: [32]byte{},
+				vrfProof:  [64]byte{},
 			},
 		},
 		{
 			name:     "VRF verified",
 			verifier: *v1,
 			args: args{
-				authorityIndex: 0,
-				slot:           uint64(1),
-				vrfOutput:      output,
-				vrfProof:       proof,
+				slot:      1,
+				vrfOutput: output,
+				vrfProof:  proof,
 			},
 			exp: true,
 		},
@@ -298,20 +290,17 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 	assert.NoError(t, err)
 
 	secDigest1 := types.BabePrimaryPreDigest{
-		AuthorityIndex: 0,
-		SlotNumber:     uint64(1),
-		VRFOutput:      output,
-		VRFProof:       proof,
+		SlotNumber: 1,
+		VRFOutput:  output,
+		VRFProof:   proof,
 	}
 	prd1, err := secDigest1.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 
 	auth := types.NewAuthority(kp.Public(), uint64(1))
 	vi := &verifierInfo{
-		authorities:    []types.Authority{*auth, *auth},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: false,
+		authorities: []types.Authority{*auth, *auth},
+		threshold:   scale.MaxUint128,
 	}
 
 	v, err := newVerifier(mockBlockState, 1, vi)
@@ -323,10 +312,8 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	// Above threshold case
 	vi1 := &verifierInfo{
-		authorities:    []types.Authority{*auth, *auth},
-		randomness:     Randomness{},
-		threshold:      &scale.Uint128{},
-		secondarySlots: false,
+		authorities: []types.Authority{*auth, *auth},
+		threshold:   &scale.Uint128{},
 	}
 
 	v1, err := newVerifier(mockBlockState, 1, vi1)
@@ -334,10 +321,9 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	//BabeSecondaryVRFPreDigest case
 	secVRFDigest := types.BabeSecondaryVRFPreDigest{
-		AuthorityIndex: 0,
-		SlotNumber:     uint64(1),
-		VrfOutput:      output,
-		VrfProof:       proof,
+		SlotNumber: 1,
+		VrfOutput:  output,
+		VrfProof:   proof,
 	}
 
 	digestSecondaryVRF := types.NewBabeDigest()
@@ -351,15 +337,12 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	authVRFSec := types.NewAuthority(kp.Public(), uint64(1))
 	viVRFSec := &verifierInfo{
-		authorities:    []types.Authority{*authVRFSec, *authVRFSec},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: false,
+		authorities: []types.Authority{*authVRFSec, *authVRFSec},
+		threshold:   scale.MaxUint128,
 	}
 
 	viVRFSec2 := &verifierInfo{
 		authorities:    []types.Authority{*authVRFSec, *authVRFSec},
-		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
@@ -377,15 +360,12 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	authSec := types.NewAuthority(kp.Public(), uint64(1))
 	viSec := &verifierInfo{
-		authorities:    []types.Authority{*authSec, *authSec},
-		randomness:     Randomness{},
-		threshold:      scale.MaxUint128,
-		secondarySlots: false,
+		authorities: []types.Authority{*authSec, *authSec},
+		threshold:   scale.MaxUint128,
 	}
 
 	viSec2 := &verifierInfo{
 		authorities:    []types.Authority{*authSec, *authSec},
-		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
@@ -423,10 +403,9 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			verifier: *v,
 			args:     args{prd1},
 			exp: types.BabePrimaryPreDigest{
-				AuthorityIndex: 0,
-				SlotNumber:     uint64(1),
-				VRFOutput:      output,
-				VRFProof:       proof,
+				SlotNumber: 1,
+				VRFOutput:  output,
+				VRFProof:   proof,
 			},
 		},
 		{
@@ -497,18 +476,17 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	assert.NoError(t, err)
 
 	testBabePrimaryPreDigest := types.BabePrimaryPreDigest{
-		AuthorityIndex: 0,
-		SlotNumber:     uint64(1),
-		VRFOutput:      output,
-		VRFProof:       proof,
+		SlotNumber: 1,
+		VRFOutput:  output,
+		VRFProof:   proof,
 	}
 	testBabeSecondaryPlainPreDigest := types.BabeSecondaryPlainPreDigest{
 		AuthorityIndex: 1,
-		SlotNumber:     uint64(1),
+		SlotNumber:     1,
 	}
 	testBabeSecondaryVRFPreDigest := types.BabeSecondaryVRFPreDigest{
 		AuthorityIndex: 1,
-		SlotNumber:     uint64(1),
+		SlotNumber:     1,
 		VrfOutput:      output,
 		VrfProof:       proof,
 	}
@@ -811,19 +789,16 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 		{
 			name:   "cant find ConfigData",
 			vm:     vm0,
-			epoch:  0,
 			expErr: errNoConfigData,
 		},
 		{
 			name:   "hasConfigData error",
 			vm:     vm1,
-			epoch:  0,
 			expErr: errNoConfigData,
 		},
 		{
 			name:   "getConfigData error",
 			vm:     vm2,
-			epoch:  0,
 			expErr: errNoConfigData,
 		},
 	}
@@ -851,37 +826,23 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 
 	mockEpochStateGetErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(nil, errNoConfigData)
 
-	mockEpochStateHasErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
-		Return(&types.EpochData{
-			Authorities: Authorities{},
-			Randomness:  Randomness{},
-		}, nil)
+	mockEpochStateHasErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(&types.EpochData{}, nil)
 	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errNoConfigData)
 
-	mockEpochStateThresholdErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
-		Return(&types.EpochData{
-			Authorities: Authorities{},
-			Randomness:  Randomness{},
-		}, nil)
+	mockEpochStateThresholdErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(&types.EpochData{}, nil)
 	mockEpochStateThresholdErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
 	mockEpochStateThresholdErr.EXPECT().GetConfigData(gomock.Eq(uint64(0))).
 		Return(&types.ConfigData{
-			C1:             3,
-			C2:             1,
-			SecondarySlots: 0,
+			C1: 3,
+			C2: 1,
 		}, nil)
 
-	mockEpochStateOk.EXPECT().GetEpochData(gomock.Eq(uint64(0))).
-		Return(&types.EpochData{
-			Authorities: Authorities{},
-			Randomness:  Randomness{},
-		}, nil)
+	mockEpochStateOk.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(&types.EpochData{}, nil)
 	mockEpochStateOk.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
 	mockEpochStateOk.EXPECT().GetConfigData(gomock.Eq(uint64(0))).
 		Return(&types.ConfigData{
-			C1:             1,
-			C2:             3,
-			SecondarySlots: 0,
+			C1: 1,
+			C2: 3,
 		}, nil)
 
 	vm0, err := NewVerificationManager(mockBlockState, mockEpochStateGetErr)
@@ -903,30 +864,23 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 		{
 			name:   "getEpochData error",
 			vm:     vm0,
-			epoch:  0,
 			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, errNoConfigData),
 		},
 		{
 			name:   "getConfigData error",
 			vm:     vm1,
-			epoch:  0,
 			expErr: fmt.Errorf("failed to get config data: %w", errNoConfigData),
 		},
 		{
 			name:   "calculate threshold error",
 			vm:     vm2,
-			epoch:  0,
 			expErr: errors.New("failed to calculate threshold: invalid C1/C2: greater than 1"),
 		},
 		{
-			name:  "happy path",
-			vm:    vm3,
-			epoch: 0,
+			name: "happy path",
+			vm:   vm3,
 			exp: &verifierInfo{
-				authorities:    Authorities{},
-				randomness:     Randomness{},
-				threshold:      scale.MaxUint128,
-				secondarySlots: false,
+				threshold: scale.MaxUint128,
 			},
 		},
 	}
@@ -1014,7 +968,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
 		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
@@ -1035,7 +988,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	assert.NoError(t, err)
 	vm7 := &VerificationManager{
 		epochState: mockEpochStateNilBlockStateErr,
-		blockState: nil,
 		epochInfo:  make(map[uint64]*verifierInfo),
 		onDisabled: make(map[uint64]map[uint32][]*onDisabledInfo),
 	}
@@ -1162,7 +1114,6 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
 		authorities:    []types.Authority{*authority, *authority},
-		randomness:     Randomness{},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
@@ -1170,7 +1121,6 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	disabledInfo := []*onDisabledInfo{
 		{
 			blockNumber: big.NewInt(2),
-			blockHash:   common.Hash{},
 		},
 	}
 
@@ -1221,7 +1171,6 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			name: "get epoch err",
 			vm:   vm0,
 			args: args{
-				index:  0,
 				header: types.NewEmptyHeader(),
 			},
 			expErr: errGetEpoch,
@@ -1230,7 +1179,6 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			name: "get epoch data err",
 			vm:   vm1,
 			args: args{
-				index:  0,
 				header: types.NewEmptyHeader(),
 			},
 			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, errGetEpochData),
@@ -1248,7 +1196,6 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			name: "set disabled producers",
 			vm:   vm3,
 			args: args{
-				index:  0,
 				header: types.NewEmptyHeader(),
 			},
 		},
@@ -1256,7 +1203,6 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			name: "is Descendant of err",
 			vm:   vm4,
 			args: args{
-				index:  0,
 				header: types.NewEmptyHeader(),
 			},
 			expErr: errDescendant,
@@ -1265,7 +1211,6 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			name: "authority already disabled",
 			vm:   vm5,
 			args: args{
-				index:  0,
 				header: testHeader,
 			},
 			expErr: ErrAuthorityAlreadyDisabled,
@@ -1274,7 +1219,6 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			name: "happy path",
 			vm:   vm6,
 			args: args{
-				index:  0,
 				header: testHeader,
 			},
 		},
