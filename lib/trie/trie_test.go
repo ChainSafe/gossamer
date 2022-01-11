@@ -511,7 +511,7 @@ func TestTrieDiff(t *testing.T) {
 	err = newTrie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
-	for _, key := range deletedKeys {
+	for key := range deletedKeys {
 		err = storageDB.Del(key.ToBytes())
 		require.NoError(t, err)
 	}

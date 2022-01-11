@@ -29,10 +29,13 @@ func find(parent Node, key []byte, recorder recorder) error {
 
 	recorder.Record(hash, enc)
 
-	b, ok := parent.(*node.Branch)
-	if !ok {
+	switch parent.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default: // not a branch
 		return nil
 	}
+
+	b := parent.(*node.Branch)
 
 	length := lenCommonPrefix(b.Key, key)
 

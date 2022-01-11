@@ -25,6 +25,12 @@ var (
 // and the value is the encoded node.
 // Generally, this will only be used for the genesis trie.
 func (t *Trie) Store(db chaindb.Database) error {
+	for _, v := range t.childTries {
+		if err := v.Store(db); err != nil {
+			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.GetHash(), err)
+		}
+	}
+
 	batch := db.NewBatch()
 	err := t.store(batch, t.root)
 	if err != nil {
@@ -50,7 +56,9 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return err
 	}
 
-	if branch, ok := n.(*node.Branch); ok {
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+		branch := n.(*node.Branch)
 		for _, child := range branch.Children {
 			if child == nil {
 				continue
@@ -111,10 +119,13 @@ func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
 // loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting at the root
 func (t *Trie) loadProof(proofHashToNode map[string]Node, n Node) {
-	branch, ok := n.(*node.Branch)
-	if !ok {
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default:
 		return
 	}
+
+	branch := n.(*node.Branch)
 
 	for i, child := range branch.Children {
 		if child == nil {
@@ -161,10 +172,13 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 }
 
 func (t *Trie) load(db chaindb.Database, n Node) error {
-	branch, ok := n.(*node.Branch)
-	if !ok {
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default: // not a branch
 		return nil
 	}
+
+	branch := n.(*node.Branch)
 
 	for i, child := range branch.Children {
 		if child == nil {
@@ -193,16 +207,34 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		}
 	}
 
+	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
+		childTrie := NewEmptyTrie()
+		value := t.Get(key)
+		err := childTrie.Load(db, common.NewHash(value))
+		if err != nil {
+			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
+		}
+
+		err = t.PutChild(value, childTrie)
+		if err != nil {
+			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
+				childTrie.root.GetHash(), err)
+		}
+	}
+
 	return nil
 }
 
 // PopulateNodeHashes writes hashes of each children of the node given
 // as keys to the map hashesSet.
 func (t *Trie) PopulateNodeHashes(n Node, hashesSet map[common.Hash]struct{}) {
-	branch, ok := n.(*node.Branch)
-	if !ok {
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default:
 		return
 	}
+
+	branch := n.(*node.Branch)
 
 	for _, child := range branch.Children {
 		if child == nil {
@@ -363,12 +395,14 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 			hash, err)
 	}
 
-	branch, ok := n.(*node.Branch)
-	if !ok {
-		// the node is a leaf
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default: // not a branch
 		n.SetDirty(false)
 		return nil
 	}
+
+	branch := n.(*node.Branch)
 
 	for _, child := range branch.Children {
 		if child == nil {
@@ -382,28 +416,40 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 		}
 	}
 
+	for _, childTrie := range t.childTries {
+		if err := childTrie.writeDirty(db, childTrie.root); err != nil {
+			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.GetHash(), err)
+		}
+	}
+
 	branch.SetDirty(false)
 
 	return nil
 }
 
-// GetInsertedNodeHashes returns the hashes of all nodes that were
-// inserted in the state trie since the last snapshot.
+// GetInsertedNodeHashes returns a set of hashes with all
+// the hashes of all nodes that were inserted in the state trie
+// since the last snapshot.
 // We need to compute the hash values of each newly inserted node.
-func (t *Trie) GetInsertedNodeHashes() (hashes []common.Hash, err error) {
-	return t.getInsertedNodeHashes(t.root)
+func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err error) {
+	hashesSet = make(map[common.Hash]struct{})
+	err = t.getInsertedNodeHashes(t.root, hashesSet)
+	if err != nil {
+		return nil, err
+	}
+	return hashesSet, nil
 }
 
-func (t *Trie) getInsertedNodeHashes(n Node) (hashes []common.Hash, err error) {
+func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (err error) {
 	// TODO pass map of hashes or slice as argument to avoid copying
 	// and using more memory.
 	if n == nil || !n.IsDirty() {
-		return nil, nil
+		return nil
 	}
 
 	encoding, hash, err := n.EncodeAndHash()
 	if err != nil {
-		return nil, fmt.Errorf(
+		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
 			n.GetHash(), err)
 	}
@@ -412,39 +458,44 @@ func (t *Trie) getInsertedNodeHashes(n Node) (hashes []common.Hash, err error) {
 		// hash root node even if its encoding is under 32 bytes
 		encodingDigest, err := common.Blake2bHash(encoding)
 		if err != nil {
-			return nil, fmt.Errorf("cannot hash root node encoding: %w", err)
+			return fmt.Errorf("cannot hash root node encoding: %w", err)
 		}
 
 		hash = encodingDigest[:]
 	}
 
-	hashes = append(hashes, common.BytesToHash(hash))
+	hashes[common.BytesToHash(hash)] = struct{}{}
 
-	branch, ok := n.(*node.Branch)
-	if !ok {
-		// node is a leaf
-		return hashes, nil
+	switch n.Type() {
+	case node.BranchType, node.BranchWithValueType:
+	default: // not a branch
+		return nil
 	}
+
+	branch := n.(*node.Branch)
 
 	for _, child := range branch.Children {
 		if child == nil {
 			continue
 		}
 
-		deeperHashes, err := t.getInsertedNodeHashes(child)
+		err := t.getInsertedNodeHashes(child, hashes)
 		if err != nil {
 			// Note: do not wrap error since this is called recursively.
-			return nil, err
+			return err
 		}
-
-		hashes = append(hashes, deeperHashes...)
 	}
 
-	return hashes, nil
+	return nil
 }
 
-// GetDeletedNodeHash returns the hash of nodes that were
+// GetDeletedNodeHashes returns a set of all the hashes of nodes that were
 // deleted from the trie since the last snapshot was made.
-func (t *Trie) GetDeletedNodeHash() []common.Hash {
-	return t.deletedKeys
+// The returned set is a copy of the internal set to prevent data races.
+func (t *Trie) GetDeletedNodeHashes() (hashesSet map[common.Hash]struct{}) {
+	hashesSet = make(map[common.Hash]struct{}, len(t.deletedKeys))
+	for k := range t.deletedKeys {
+		hashesSet[k] = struct{}{}
+	}
+	return hashesSet
 }

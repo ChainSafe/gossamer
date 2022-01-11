@@ -6,6 +6,7 @@ package storage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"sort"
 	"testing"
 
@@ -221,7 +222,7 @@ func TestTrieState_DeleteChildLimit(t *testing.T) {
 			limit:           optLimit2,
 			expectedDeleted: 0,
 			expectedDelAll:  false,
-			errMsg:          "child trie does not exist at key :child_storage:default:fakekey",
+			errMsg:          fmt.Sprintf("child trie does not exist at key 0x%x", ":child_storage:default:fakekey"),
 		},
 		{key: []byte("keytochild"), limit: optLimit2, expectedDeleted: 2, expectedDelAll: false},
 		{key: []byte("keytochild"), limit: nil, expectedDeleted: 1, expectedDelAll: true},
