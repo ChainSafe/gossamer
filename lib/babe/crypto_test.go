@@ -42,7 +42,7 @@ func TestCalculateThreshold(t *testing.T) {
 				C2:       0,
 				numAuths: 0,
 			},
-			expErr: ErrThresholdBothZero,
+			expErr: ErrThresholdOneIsZero,
 		},
 		{
 			name: "C1 > C2",

@@ -57,8 +57,8 @@ var (
 	// ErrNotAuthority is returned when trying to perform authority functions when not an authority
 	ErrNotAuthority = errors.New("node is not an authority")
 
-	// ErrThresholdBothZero is returned when both parameters to CalculateThreshold are zero
-	ErrThresholdBothZero = errors.New("numerator or denominator cannot be 0")
+	// ErrThresholdOneIsZero is returned when one of or both parameters to CalculateThreshold is zero
+	ErrThresholdOneIsZero = errors.New("numerator or denominator cannot be 0")
 
 	errNilBlockImportHandler    = errors.New("cannot have nil BlockImportHandler")
 	errNilBlockState            = errors.New("cannot have nil BlockState")
