@@ -101,8 +101,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	require.NoError(t, err)
 
 	tmpFiles := []string{
-		"/tmp/unique-raw-genesis.json",
-		"./unique-raw-genesis.json",
+		t.TempDir() + "/unique-raw-genesis.json",
 	}
 
 	for _, tmpFile := range tmpFiles {

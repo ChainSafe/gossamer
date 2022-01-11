@@ -9,7 +9,6 @@ package dot
 import (
 	"math/big"
 	"reflect"
-	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -21,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -252,7 +250,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genPath := NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
+	require.NotEmpty(t, genPath)
 
 	defer utils.RemoveTestDir(t)
 
@@ -358,19 +356,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	require.Equal(t, expected, bal)
 }
 
-func TestNode_StopFunc(t *testing.T) {
-	testvar := "before"
-
-	node := &Node{
-		Services: &services.ServiceRegistry{},
-		wg:       sync.WaitGroup{},
-	}
-	node.wg.Add(1)
-
-	node.Stop()
-	require.Equal(t, testvar, "after")
-}
-
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	globalName := RandomNodeName()
 
@@ -392,6 +377,6 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	require.NoError(t, err)
 
 	storedName, err := LoadGlobalNodeName(cfg.Global.BasePath)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, globalName, storedName)
 }

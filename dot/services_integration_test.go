@@ -35,10 +35,10 @@ func TestCreateStateService(t *testing.T) {
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, stateSrvc)
 }
 
@@ -282,16 +282,16 @@ var testCalls = []struct {
 	call     []byte
 	expected []byte
 }{
-	{[]byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`), []byte(`{"id":1,"jsonrpc":"2.0",
-"result":"gossamer"}` + "\n")}, // working request
-	{[]byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`), []byte(`{"error":{"code":-32000,"data":null,
-"message":"rpc error method unknown not found"},"id":2,"jsonrpc":"2.0"}` + "\n")}, // unknown method
-	{[]byte{}, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n")},
-	// empty request
-	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`), []byte(`{"jsonrpc":"2.0",
-"result":1,"id":3}` + "\n")},
-	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`), []byte(`{"jsonrpc":"2.0",
-"result":2,"id":4}` + "\n")},
+	{[]byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
+		[]byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")}, // working request
+	{[]byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`),
+		[]byte(`{"error":{"code":-32000,"data":null,"message":"rpc error method unknown not found"},"id":2,"jsonrpc":"2.0"}` + "\n")}, // unknown method
+	{[]byte{},
+		[]byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n")}, // empty request
+	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`),
+		[]byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
+	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`),
+		[]byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 }
 
 func TestNewWebSocketServer(t *testing.T) {
@@ -313,10 +313,10 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.System.SystemName = "gossamer"
 
 	err := InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
 
@@ -333,7 +333,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
@@ -341,7 +341,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
 	require.NoError(t, err)
 	err = rpcSrvc.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 
@@ -353,10 +353,10 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	for _, item := range testCalls {
 		err = c.WriteMessage(websocket.TextMessage, item.call)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		_, message, err := c.ReadMessage()
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, item.expected, message)
 	}
 }
