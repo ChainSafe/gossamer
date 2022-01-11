@@ -33,6 +33,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type useRuntimeInstace func(*wasmer.Config) (runtime.Instance, error)
+
+// useInstanceFromGenesis creates a new runtime instance given a genesis file
+func useInstanceFromGenesis(cfg *wasmer.Config) (instance runtime.Instance, err error) {
+	return wasmer.NewRuntimeFromGenesis(cfg)
+}
+
+func useInstanceFromRuntimeV0910(cfg *wasmer.Config) (instance runtime.Instance, err error) {
+	runtimePath := runtime.GetAbsolutePath(runtime.POLKADOT_RUNTIME_FP_v0910)
+	return wasmer.NewInstanceFromFile(runtimePath, cfg)
+}
+
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
@@ -82,7 +94,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Parallel()
 	tmpbasepath := t.TempDir()
 
-	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath)
+	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, useInstanceFromGenesis)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState()
 
 	genesisHash := intCtrl.genesisHeader.Hash()
@@ -133,7 +145,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Parallel()
 	tmpbasepath := t.TempDir()
 
-	intCtrl := setupStateAndRuntime(t, tmpbasepath)
+	intCtrl := setupStateAndRuntime(t, tmpbasepath, useInstanceFromRuntimeV0910)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState()
 
 	genesisHash := intCtrl.genesisHeader.Hash()
@@ -167,7 +179,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 	// setup service
 	// setup auth module
-	intctrl := setupStateAndRuntime(t, tmppath)
+	intctrl := setupStateAndRuntime(t, tmppath, useInstanceFromGenesis)
 	auth := newAuthorModule(t, intctrl)
 
 	// create and submit extrinsic
@@ -182,7 +194,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	t.Parallel()
 
 	tmpbasepath := t.TempDir()
-	intCtrl := setupStateAndRuntime(t, tmpbasepath)
+	intCtrl := setupStateAndRuntime(t, tmpbasepath, useInstanceFromGenesis)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState()
 
 	genesisHash := intCtrl.genesisHeader.Hash()
@@ -234,7 +246,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 	tmppath := t.TempDir()
 
-	intctrl := setupStateAndRuntime(t, tmppath)
+	intctrl := setupStateAndRuntime(t, tmppath, useInstanceFromGenesis)
 	intctrl.keystore = keystore.NewGlobalKeystore()
 
 	auth := newAuthorModule(t, intctrl)
@@ -319,7 +331,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 func TestAuthorModule_HasKey_Integration(t *testing.T) {
 	tmppath := t.TempDir()
 
-	intctrl := setupStateAndRuntime(t, tmppath)
+	intctrl := setupStateAndRuntime(t, tmppath, useInstanceFromGenesis)
 
 	ks := keystore.NewGlobalKeystore()
 
@@ -387,7 +399,8 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	tmpdir := t.TempDir()
-	intCtrl := setupStateAndRuntime(t, tmpdir)
+
+	intCtrl := setupStateAndRuntime(t, tmpdir, useInstanceFromGenesis)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState()
 	intCtrl.keystore = keystore.NewGlobalKeystore()
 
@@ -498,7 +511,7 @@ type integrationTestController struct {
 	keystore      *keystore.GlobalKeystore
 }
 
-func setupStateAndRuntime(t *testing.T, basepath string) *integrationTestController {
+func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
 	state2test := state.NewService(state.Config{LogLevel: log.DoNotChange, Path: basepath})
@@ -527,7 +540,7 @@ func setupStateAndRuntime(t *testing.T, basepath string) *integrationTestControl
 	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
 	cfg.NodeStorage = nodeStorage
 
-	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
+	rt, err := useInstance(cfg)
 	require.NoError(t, err)
 
 	genesisHash := genesisHeader.Hash()
@@ -538,11 +551,12 @@ func setupStateAndRuntime(t *testing.T, basepath string) *integrationTestControl
 		genesisTrie:   genTrie,
 		genesisHeader: genesisHeader,
 		stateSrv:      state2test,
+		storageState:  state2test.Storage,
 		runtime:       rt,
 	}
 }
 
-func setupStateAndPopulateTrieState(t *testing.T, basepath string) *integrationTestController {
+func setupStateAndPopulateTrieState(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
 	state2test := state.NewService(state.Config{LogLevel: log.DoNotChange, Path: basepath})
@@ -571,7 +585,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string) *integrationT
 	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
 	cfg.NodeStorage = nodeStorage
 
-	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
+	rt, err := useInstance(cfg)
 	require.NoError(t, err)
 
 	genesisHash := genesisHeader.Hash()
@@ -608,6 +622,7 @@ func newAuthorModule(t *testing.T, intCtrl *integrationTestController) *AuthorMo
 		Keystore:         intCtrl.keystore,
 	}
 
-	core2test := core.NewService2Test(context.TODO(), t, cfg, nil)
+	uselessCh := make(chan *types.Block, 256)
+	core2test := core.NewService2Test(context.TODO(), t, cfg, uselessCh)
 	return NewAuthorModule(log.New(log.SetLevel(log.Debug)), core2test, intCtrl.stateSrv.Transaction)
 }
