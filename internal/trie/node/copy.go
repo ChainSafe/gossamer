@@ -14,7 +14,6 @@ func (b *Branch) Copy(copyChildren bool) Node {
 		Dirty:      b.Dirty,
 		generation: b.generation,
 	}
-	copy(cpy.Key, b.Key)
 
 	if copyChildren {
 		for i, child := range b.Children {
