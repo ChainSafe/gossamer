@@ -25,6 +25,12 @@ var (
 // and the value is the encoded node.
 // Generally, this will only be used for the genesis trie.
 func (t *Trie) Store(db chaindb.Database) error {
+	for _, v := range t.childTries {
+		if err := v.Store(db); err != nil {
+			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.GetHash(), err)
+		}
+	}
+
 	batch := db.NewBatch()
 	err := t.store(batch, t.root)
 	if err != nil {
@@ -198,6 +204,21 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		err = t.load(db, decodedNode)
 		if err != nil {
 			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
+		}
+	}
+
+	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
+		childTrie := NewEmptyTrie()
+		value := t.Get(key)
+		err := childTrie.Load(db, common.NewHash(value))
+		if err != nil {
+			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
+		}
+
+		err = t.PutChild(value, childTrie)
+		if err != nil {
+			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
+				childTrie.root.GetHash(), err)
 		}
 	}
 
@@ -392,6 +413,12 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 		if err != nil {
 			// Note: do not wrap error since it's returned recursively.
 			return err
+		}
+	}
+
+	for _, childTrie := range t.childTries {
+		if err := childTrie.writeDirty(db, childTrie.root); err != nil {
+			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.GetHash(), err)
 		}
 	}
 

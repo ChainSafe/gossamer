@@ -483,7 +483,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	logger.Debug("receiving pre-vote messages...")
-	go s.receiveMessages(ctx)
+	go s.receiveVoteMessages(ctx)
 	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
@@ -507,6 +507,9 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
+	// roundComplete is a signal channel which is closed when the round completes
+	// (will receive the default value of channel's type), so we don't need to
+	// explicitly send a value.
 	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
@@ -550,6 +553,8 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
+	// Though this looks like we are sending messages multiple times,
+	// caching would make sure that they are being sent only once.
 	for {
 		if s.paused.Load().(bool) {
 			return
