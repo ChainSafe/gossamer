@@ -4,11 +4,8 @@
 package dot
 
 import (
-	"log"
 	"os"
-	"runtime"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -25,7 +22,7 @@ func TestNewConfig(t *testing.T) {
 
 // TestNewConfigAndFile tests the NewTestConfigWithFile method
 func TestNewConfigAndFile(t *testing.T) {
-	testCfg, testCfgFile := NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	defer utils.RemoveTestDir(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
@@ -48,7 +45,7 @@ func TestNewTestGenesisFile(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genHRFile := NewTestGenesisFile(t, cfg)
+	genHRFile := newTestGenesisFile(t, cfg)
 	require.NotNil(t, genHRFile)
 	defer os.Remove(genHRFile.Name())
 
@@ -63,60 +60,6 @@ func TestNewTestGenesisFile(t *testing.T) {
 
 	// values from raw genesis file should equal values generated from human readable genesis file
 	require.Equal(t, genRaw.Genesis.Raw["top"], genHR.Genesis.Raw["top"])
-}
-
-func TestDeepCopyVsSnapshot(t *testing.T) {
-	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
-
-	genRawFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genRawFile)
-
-	defer os.Remove(genRawFile.Name())
-
-	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile.Name())
-	require.NoError(t, err)
-
-	tri := trie.NewEmptyTrie()
-	var ttlLenght int
-	for k, v := range genRaw.Genesis.Raw["top"] {
-		val := []byte(v)
-		ttlLenght += len(val)
-		tri.Put([]byte(k), val)
-	}
-
-	testCases := []struct {
-		name string
-		fn   func(tri *trie.Trie) (*trie.Trie, error)
-	}{
-		{"DeepCopy", func(tri *trie.Trie) (*trie.Trie, error) {
-			return tri.DeepCopy()
-		}},
-		{"Snapshot", func(tri *trie.Trie) (*trie.Trie, error) {
-			return tri.Snapshot(), nil
-		}},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			trieMap := make(map[int]*trie.Trie)
-			start := time.Now()
-			var m runtime.MemStats
-			for i := 0; i <= 200; i++ {
-				newTrie, err := tc.fn(tri)
-				require.NoError(t, err)
-
-				runtime.ReadMemStats(&m)
-				trieMap[i] = newTrie
-			}
-
-			log.Printf("\nAlloc = %v MB \nTotalAlloc = %v MB \nSys = %v MB \nNumGC = %v \n\n",
-				m.Alloc/(1024*1024), m.TotalAlloc/(1024*1024), m.Sys/(1024*1024), m.NumGC)
-			elapsed := time.Since(start)
-			log.Printf("DeepCopy to trie took %s", elapsed)
-			runtime.GC()
-		})
-	}
 }
 
 func TestTrieSnapshot(t *testing.T) {

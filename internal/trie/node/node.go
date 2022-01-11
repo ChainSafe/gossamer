@@ -19,4 +19,5 @@ type Node interface {
 	GetGeneration() (generation uint64)
 	SetGeneration(generation uint64)
 	Copy() Node
+	Type() Type
 }

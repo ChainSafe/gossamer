@@ -53,11 +53,20 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case *CommitMessage:
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourMessage:
+		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg)
 	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
-		return nil, h.handleCatchUpResponse(msg)
+		err := h.handleCatchUpResponse(msg)
+		if errors.Is(err, blocktree.ErrNodeNotFound) {
+			// TODO: we are adding these messages to reprocess them again, but we
+			// haven't added code to reprocess them. Do that.
+			// Also, revisit if we need to add these message in synchronous manner
+			// or not. If not, change catchUpResponseMessages to a normal map.  #1531
+			h.grandpa.tracker.addCatchUpResponse(msg)
+		}
+		return nil, err
 	default:
 		return nil, ErrInvalidMessageType
 	}
