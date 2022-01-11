@@ -99,8 +99,10 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 	}
 
 	if t.deletedKeys != nil {
-		trieCopy.deletedKeys = make([]common.Hash, len(t.deletedKeys))
-		copy(trieCopy.deletedKeys, t.deletedKeys)
+		trieCopy.deletedKeys = make(map[common.Hash]struct{}, len(t.deletedKeys))
+		for k := range t.deletedKeys {
+			trieCopy.deletedKeys[k] = struct{}{}
+		}
 	}
 
 	if t.childTries != nil {
@@ -356,7 +358,6 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 // updateBranch attempts to add the value node to a branch
 // inserts the value node as the branch's child at the index that's
 // the first nibble of the key
-// Note it does NOT modify the trie and only use the generation value of the trie.
 func (t *Trie) updateBranch(p *node.Branch, key []byte, value Node) (n Node) {
 	length := lenCommonPrefix(key, p.Key)
 
