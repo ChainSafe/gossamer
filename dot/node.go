@@ -247,7 +247,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		netstate := networkSrvc.NetworkState()
 
 		//sent NewSystemConnectedTM only if networkServiceEnabled
-		connectedMsg := telemetry.NewSystemConnectedTM(
+		connectedMsg := telemetry.NewSystemConnected(
 			cfg.Core.GrandpaAuthority,
 			sysSrvc.ChainName(),
 			&genesisHash,

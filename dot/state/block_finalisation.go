@@ -172,7 +172,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	bs.telemetry.SendMessage(
-		telemetry.NewNotifyFinalizedTM(
+		telemetry.NewNotifyFinalized(
 			header.Hash(),
 			header.Number.String(),
 		),

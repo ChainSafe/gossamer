@@ -544,7 +544,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		parent.Hash(), block.Header.String(), block.Body)
 
 	b.telemetry.SendMessage(
-		telemetry.NewPreparedBlockForProposingTM(
+		telemetry.NewPreparedBlockForProposing(
 			block.Header.Hash(),
 			block.Header.Number.String(),
 		),

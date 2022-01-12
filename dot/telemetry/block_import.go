@@ -4,29 +4,47 @@
 package telemetry
 
 import (
+	"encoding/json"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var _ Message = (*BlockImportTM)(nil)
+type BlockImportTM BlockImport
 
-// BlockImportTM struct to hold block import telemetry messages
-type BlockImportTM struct {
+var _ Message = (*BlockImport)(nil)
+
+// BlockImport struct to hold block import telemetry messages
+type BlockImport struct {
 	BestHash *common.Hash `json:"best"`
 	Height   *big.Int     `json:"height"`
 	Origin   string       `json:"origin"`
 }
 
 // NewBlockImportTM function to create new Block Import Telemetry Message
-func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) *BlockImportTM {
-	return &BlockImportTM{
+func NewBlockImport(bestHash *common.Hash, height *big.Int, origin string) *BlockImport {
+	return &BlockImport{
 		BestHash: bestHash,
 		Height:   height,
 		Origin:   origin,
 	}
 }
 
-func (BlockImportTM) messageType() string {
+func (BlockImport) messageType() string {
 	return blockImportMsg
+}
+
+func (bi BlockImport) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		BlockImportTM
+		Timestamp   time.Time `json:"ts"`
+		MessageType string    `json:"msg"`
+	}{
+		Timestamp:     time.Now(),
+		MessageType:   bi.messageType(),
+		BlockImportTM: BlockImportTM(bi),
+	}
+
+	return json.Marshal(telemetryData)
 }

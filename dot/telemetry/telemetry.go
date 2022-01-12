@@ -31,4 +31,5 @@ type Client interface {
 // Message interface for Message functions
 type Message interface {
 	messageType() string
+	MarshalJSON() ([]byte, error)
 }

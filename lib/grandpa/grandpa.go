@@ -288,7 +288,7 @@ func (s *Service) sendTelemetryAuthoritySet() {
 	}
 
 	s.telemetry.SendMessage(
-		telemetry.NewAfgAuthoritySetTM(
+		telemetry.NewAfgAuthoritySet(
 			authorityID,
 			fmt.Sprint(s.state.setID),
 			string(authoritiesBytes),
@@ -641,7 +641,7 @@ func (s *Service) attemptToFinalize() error {
 		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
 
-		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpToTM(
+		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
 			s.head.Hash(),
 			s.head.Number.String(),
 		))

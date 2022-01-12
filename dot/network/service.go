@@ -395,7 +395,7 @@ func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			s.telemetry.SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
+			s.telemetry.SendMessage(telemetry.NewBandwidth(o.RateIn, o.RateOut, s.host.peerCount()))
 		}
 	}
 }
@@ -414,7 +414,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		finalizedHash := finalised.Hash()
 
-		s.telemetry.SendMessage(telemetry.NewBlockIntervalTM(
+		s.telemetry.SendMessage(telemetry.NewBlockInterval(
 			&bestHash,
 			best.Number,
 			&finalizedHash,

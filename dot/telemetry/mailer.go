@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -100,7 +101,8 @@ func (m *Mailer) SendMessage(msg Message) {
 }
 
 func (m *Mailer) shipTelemetryMessage(msg Message) {
-	msgBytes, err := msgToJSON(msg)
+	msgBytes, err := json.Marshal(msg)
+	fmt.Printf(">>>>>> %s\n", string(msgBytes))
 	if err != nil {
 		m.logger.Debugf("issue encoding %T telemetry message: %s", msg, err)
 		return
@@ -117,24 +119,24 @@ func (m *Mailer) shipTelemetryMessage(msg Message) {
 	}
 }
 
-func msgToJSON(message Message) ([]byte, error) {
-	messageBytes, err := json.Marshal(message)
-	if err != nil {
-		return nil, err
-	}
+// func msgToJSON(message Message) ([]byte, error) {
+// 	messageBytes, err := json.Marshal(message)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	messageMap := make(map[string]interface{})
-	err = json.Unmarshal(messageBytes, &messageMap)
-	if err != nil {
-		return nil, err
-	}
+// 	messageMap := make(map[string]interface{})
+// 	err = json.Unmarshal(messageBytes, &messageMap)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	messageMap["ts"] = time.Now()
-	messageMap["msg"] = message.messageType()
+// 	messageMap["ts"] = time.Now()
+// 	messageMap["msg"] = message.messageType()
 
-	fullRes, err := json.Marshal(messageMap)
-	if err != nil {
-		return nil, err
-	}
-	return fullRes, nil
-}
+// 	fullRes, err := json.Marshal(messageMap)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return fullRes, nil
+// }

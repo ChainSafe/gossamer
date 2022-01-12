@@ -6,10 +6,12 @@ package telemetry
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -72,30 +74,30 @@ func TestHandler_SendMulti(t *testing.T) {
 	}
 
 	messages := []Message{
-		NewBandwidthTM(2, 3, 1),
-		NewTxpoolImportTM(1, 2),
+		NewBandwidth(2, 3, 1),
+		NewTxpoolImport(1, 2),
 
 		func(genesisHash common.Hash) Message {
-			return NewSystemConnectedTM(false, "chain", &genesisHash,
+			return NewSystemConnected(false, "chain", &genesisHash,
 				"systemName", "nodeName", "netID", "startTime", "0.1")
 		}(common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")),
 
 		func(bh common.Hash) Message {
-			return NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync")
+			return NewBlockImport(&bh, big.NewInt(2), "NetworkInitialSync")
 		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")),
 
 		func(bestHash, finalisedHash common.Hash) Message {
-			return NewBlockIntervalTM(&bestHash, big.NewInt(32375), &finalisedHash,
+			return NewBlockInterval(&bestHash, big.NewInt(32375), &finalisedHash,
 				big.NewInt(32256), big.NewInt(0), big.NewInt(1234))
 		}(
 			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
 			common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2"),
 		),
 
-		NewAfgAuthoritySetTM("authority_id", "authority_set_id", "json-stringified-ids-of-authorities"),
-		NewAfgFinalizedBlocksUpToTM(
+		NewAfgAuthoritySet("authority_id", "authority_set_id", "json-stringified-ids-of-authorities"),
+		NewAfgFinalizedBlocksUpTo(
 			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"), "1"),
-		NewAfgReceivedCommitTM(
+		NewAfgReceivedCommit(
 			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", []string{}),
 		NewAfgReceivedPrecommitTM(
@@ -105,10 +107,10 @@ func TestHandler_SendMulti(t *testing.T) {
 			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", ""),
 
-		NewNotifyFinalizedTM(
+		NewNotifyFinalized(
 			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
 			"32375"),
-		NewPreparedBlockForProposingTM(
+		NewPreparedBlockForProposing(
 			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1"),
 	}
@@ -234,7 +236,7 @@ func TestListenerConcurrency(t *testing.T) {
 
 			for ctx.Err() == nil {
 				bestHash := common.Hash{}
-				msg := NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync")
+				msg := NewBlockImport(&bestHash, big.NewInt(2), "NetworkInitialSync")
 				mailer.SendMessage(msg)
 			}
 		}()
@@ -242,4 +244,148 @@ func TestListenerConcurrency(t *testing.T) {
 
 	doneWait.Wait()
 	<-serverHandlerDone
+}
+
+func TestTelemetryMarshalMessage(t *testing.T) {
+	tests := map[string]struct {
+		message  Message
+		expected *regexp.Regexp
+	}{
+		"AfgAuthoritySet_marshal": {
+			message: &AfgAuthoritySet{
+				AuthorityID:    "0",
+				AuthoritySetID: "0",
+				Authorities:    "authorities",
+			},
+			expected: regexp.MustCompile(`^{"authority_id":"0","authority_set_id":"0","authorities"` +
+				`:"authorities","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.` +
+				`[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.authority_set"}$`),
+		},
+		"AfgFinalizedBlocksUpTo_marshal": {
+			message: &AfgFinalizedBlocksUpTo{
+				Hash:   common.Hash{},
+				Number: "0",
+			},
+			expected: regexp.MustCompile(`^{"hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
+				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"number":"0",` +
+				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.finalized_blocks_up_to"}$`),
+		},
+		"AfgReceivedPrecommit_marshal": {
+			message: &AfgReceivedPrecommitTM{
+				TargetHash:   common.Hash{},
+				TargetNumber: "0",
+				Voter:        "0x0",
+			},
+			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
+				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","voter":"0x0",` +
+				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.received_precommit"}$`),
+		},
+		"AfgReceivedPrevoteTM_marshal": {
+			message: &AfgReceivedPrevoteTM{
+				TargetHash:   common.Hash{},
+				TargetNumber: "0",
+				Voter:        "0x0",
+			},
+			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
+				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","voter":"0x0",` +
+				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.received_prevote"}$`),
+		},
+		"AfgReceivedCommit_marshal": {
+			message: &AfgReceivedCommit{
+				TargetHash:                 common.Hash{},
+				TargetNumber:               "0",
+				ContainsPrecommitsSignedBy: []string{"0x0", "0x1"},
+			},
+			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
+				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","contains_precommits_signed_by":\["0x0","0x1"\],` +
+				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.received_commit"}$`),
+		},
+		"BlockImport_marshal": {
+			message: &BlockImport{
+				BestHash: &common.Hash{},
+				Height:   &big.Int{},
+				Origin:   "0x0",
+			},
+			expected: regexp.MustCompile(`^{"best":"0x[0]{64}","height":0,"origin":"0x0",` +
+				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"block.import"}$`),
+		},
+		"NotifyFinalized_marshal": {
+			message: &NotifyFinalized{
+				Best:   common.Hash{},
+				Height: "0",
+			},
+			expected: regexp.MustCompile(`^{"best":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
+				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"height":"0",` +
+				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"notify.finalized"}$`),
+		},
+		"PreparedBlockForProposing_marshal": {
+			message: &PreparedBlockForProposing{
+				Hash:   common.Hash{},
+				Number: "0",
+			},
+			expected: regexp.MustCompile(`^{"hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
+				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"number":"0",` +
+				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"prepared_block_for_proposing"}$`),
+		},
+		"SystemConnected_marshal": {
+			message: &SystemConnected{
+				Authority:      true,
+				Chain:          "0x0",
+				GenesisHash:    &common.Hash{},
+				Implementation: "gossamer",
+				Name:           "gossamer",
+				NetworkID:      "0",
+				StartupTime:    "0ms",
+				Version:        "0",
+			},
+			expected: regexp.MustCompile(`^{"authority":true,"chain":"0x0","genesis_hash":"0x[0]{64}",` +
+				`"implementation":"gossamer","name":"gossamer","network_id":"0","startup_time":"0ms",` +
+				`"version":"0","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"system.connected"}$`),
+		},
+		"SystemInterval_marshal": {
+			message: &SystemInterval{
+				BandwidthDownload:  1.5,
+				BandwidthUpload:    1.5,
+				Peers:              1,
+				BestHash:           &common.Hash{},
+				BestHeight:         &big.Int{},
+				FinalisedHash:      &common.Hash{},
+				FinalisedHeight:    &big.Int{},
+				TxCount:            &big.Int{},
+				UsedStateCacheSize: &big.Int{},
+			},
+			expected: regexp.MustCompile(`^{"bandwidth_download":1.5,"bandwidth_upload":1.5,"peers":1,` +
+				`"best":"0x[0]{64}","height":0,"finalized_hash":"0x[0]{64}","finalized_height":0,` +
+				`"txcount":0,"used_state_cache_size":0,"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"system.interval"}$`),
+		},
+		"TxpoolImport_marshal": {
+			message: &TxpoolImport{
+				Ready:  11,
+				Future: 10,
+			},
+			expected: regexp.MustCompile(`^{"ready":11,"future":10,` +
+				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"txpool.import"}$`),
+		},
+	}
+
+	for tname, tt := range tests {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			telemetryBytes, err := json.Marshal(tt.message)
+			require.NoError(t, err)
+			require.True(t, tt.expected.MatchString(string(telemetryBytes)))
+		})
+	}
 }

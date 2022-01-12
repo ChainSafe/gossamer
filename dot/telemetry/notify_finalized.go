@@ -4,27 +4,46 @@
 package telemetry
 
 import (
+	"encoding/json"
+	"time"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var _ Message = (*NotifyFinalizedTM)(nil)
+type NotifyFinalizedTM NotifyFinalized
 
-// NotifyFinalizedTM holds `notify.finalized` telemetry message, which is
+var _ Message = (*NotifyFinalized)(nil)
+
+// NotifyFinalized holds `notify.finalized` telemetry message, which is
 // supposed to be send when a new block gets finalised.
-type NotifyFinalizedTM struct {
+type NotifyFinalized struct {
 	Best common.Hash `json:"best"`
 	// Height is same as block.Header.Number
 	Height string `json:"height"`
 }
 
 // NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
-func NewNotifyFinalizedTM(best common.Hash, height string) *NotifyFinalizedTM {
-	return &NotifyFinalizedTM{
+func NewNotifyFinalized(best common.Hash, height string) *NotifyFinalized {
+	return &NotifyFinalized{
 		Best:   best,
 		Height: height,
 	}
 }
 
-func (NotifyFinalizedTM) messageType() string {
+func (NotifyFinalized) messageType() string {
 	return notifyFinalizedMsg
+}
+
+func (nf NotifyFinalized) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		NotifyFinalizedTM
+		Timestamp   time.Time `json:"ts"`
+		MessageType string    `json:"msg"`
+	}{
+		Timestamp:         time.Now(),
+		MessageType:       nf.messageType(),
+		NotifyFinalizedTM: NotifyFinalizedTM(nf),
+	}
+
+	return json.Marshal(telemetryData)
 }
