@@ -62,7 +62,9 @@ func Decode(reader io.Reader) (n Node, err error) {
 // find other values using the persistent database.
 func decodeBranch(reader io.Reader, header byte) (branch *Branch, err error) {
 	nodeType := Type(header >> 6)
-	if nodeType != BranchType && nodeType != BranchWithValueType {
+	switch nodeType {
+	case BranchType, BranchWithValueType:
+	default:
 		return nil, fmt.Errorf("%w: %d", ErrNodeTypeIsNotABranch, nodeType)
 	}
 

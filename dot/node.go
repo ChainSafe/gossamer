@@ -233,7 +233,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, err
 	}
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	if err != nil {
 		return nil, err
 	}

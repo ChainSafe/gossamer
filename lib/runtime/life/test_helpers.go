@@ -18,13 +18,13 @@ import (
 // DefaultTestLogLvl is the log level used for test runtime instances
 var DefaultTestLogLvl = log.Info
 
-// NewTestInstance will create a new runtime instance using the given target runtime
-func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
-	return NewTestInstanceWithTrie(t, targetRuntime, nil, DefaultTestLogLvl)
+// newTestInstance will create a new runtime instance using the given target runtime
+func newTestInstance(t *testing.T, targetRuntime string) *Instance { //nolint:unparam
+	return newTestInstanceWithTrie(t, runtime.HOST_API_TEST_RUNTIME, nil, DefaultTestLogLvl)
 }
 
-// NewTestInstanceWithTrie will create a new runtime instance with the supplied trie as the storage
-func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Level) *Instance {
+// newTestInstanceWithTrie will create a new runtime instance with the supplied trie as the storage
+func newTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Level) *Instance {
 	fp, cfg := setupConfig(t, targetRuntime, tt, lvl, 0)
 	r, err := NewInstanceFromFile(fp, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)

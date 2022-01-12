@@ -4,6 +4,8 @@
 package node
 
 import (
+	"bytes"
+	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -251,7 +253,7 @@ func Test_Branch_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot write encoded value to buffer: test error",
 		},
-		"buffer write error for children encoded sequentially": {
+		"buffer write error for children encoding": {
 			branch: &Branch{
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
@@ -280,10 +282,10 @@ func Test_Branch_Encode(t *testing.T) {
 			},
 			wrappedErr: errTest,
 			errMessage: "cannot encode children of branch: " +
-				"cannot encode child at index 3: " +
-				"failed to write child to buffer: test error",
+				"cannot write encoding of child at index 3: " +
+				"test error",
 		},
-		"success with sequential children encoding": {
+		"success with children encoding": {
 			branch: &Branch{
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
@@ -346,7 +348,46 @@ func Test_Branch_Encode(t *testing.T) {
 	}
 }
 
-func Test_encodeChildrenInParallel(t *testing.T) {
+// Opportunistic parallel:	13781602 ns/op	14419488 B/op	  323575 allocs/op
+// Sequentially:			24269268 ns/op	20126525 B/op	  327668 allocs/op
+func Benchmark_encodeChildrenOpportunisticParallel(b *testing.B) {
+	const valueBytesSize = 10
+	const depth = 3 // do not raise above 4
+
+	children := populateChildren(valueBytesSize, depth)
+
+	b.Run("", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = encodeChildrenOpportunisticParallel(children, io.Discard)
+		}
+	})
+}
+
+func populateChildren(valueSize, depth int) (children [16]Node) {
+	someValue := make([]byte, valueSize)
+
+	if depth == 0 {
+		for i := range children {
+			children[i] = &Leaf{
+				Key:   someValue,
+				Value: someValue,
+			}
+		}
+		return children
+	}
+
+	for i := range children {
+		children[i] = &Branch{
+			Key:      someValue,
+			Value:    someValue,
+			Children: populateChildren(valueSize, depth-1),
+		}
+	}
+
+	return children
+}
+
+func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -393,7 +434,7 @@ func Test_encodeChildrenInParallel(t *testing.T) {
 				},
 			},
 		},
-		"encoding error": {
+		"leaf encoding error": {
 			children: [16]Node{
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
@@ -412,6 +453,23 @@ func Test_encodeChildrenInParallel(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot write encoding of child at index 11: " +
 				"test error",
+		},
+		"branch encoding": {
+			// Note this may run in parallel or not depending on other tests
+			// running in parallel.
+			children: [16]Node{
+				&Branch{
+					Key: []byte{1},
+					Children: [16]Node{
+						&Leaf{Key: []byte{1}},
+					},
+				},
+			},
+			writes: []writeCall{
+				{
+					written: []byte{32, 129, 1, 1, 0, 12, 65, 1, 0},
+				},
+			},
 		},
 	}
 
@@ -434,7 +492,7 @@ func Test_encodeChildrenInParallel(t *testing.T) {
 				previousCall = call
 			}
 
-			err := encodeChildrenInParallel(testCase.children, buffer)
+			err := encodeChildrenOpportunisticParallel(testCase.children, buffer)
 
 			if testCase.wrappedErr != nil {
 				assert.ErrorIs(t, err, testCase.wrappedErr)
@@ -444,6 +502,31 @@ func Test_encodeChildrenInParallel(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("opportunist parallel branch encoding", func(t *testing.T) {
+		t.Parallel()
+
+		var children [16]Node
+		for i := range children {
+			children[i] = &Branch{}
+		}
+
+		buffer := bytes.NewBuffer(nil)
+
+		err := encodeChildrenOpportunisticParallel(children, buffer)
+
+		require.NoError(t, err)
+		expectedBytes := []byte{
+			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0,
+			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0,
+			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0,
+			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0,
+			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0,
+			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0,
+			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0,
+			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0}
+		assert.Equal(t, expectedBytes, buffer.Bytes())
+	})
 }
 
 func Test_encodeChildrenSequentially(t *testing.T) {

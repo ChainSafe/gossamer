@@ -53,6 +53,7 @@ type GlobalConfig struct {
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
 	CoreLvl           log.Level
+	DigestLvl         log.Level
 	SyncLvl           log.Level
 	NetworkLvl        log.Level
 	RPCLvl            log.Level
@@ -179,6 +180,7 @@ func GssmrConfig() *Config {
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
+			DigestLvl:         gssmr.DefaultLvl,
 			SyncLvl:           gssmr.DefaultLvl,
 			NetworkLvl:        gssmr.DefaultLvl,
 			RPCLvl:            gssmr.DefaultLvl,
@@ -242,6 +244,7 @@ func KusamaConfig() *Config {
 		},
 		Log: LogConfig{
 			CoreLvl:           kusama.DefaultLvl,
+			DigestLvl:         kusama.DefaultLvl,
 			SyncLvl:           kusama.DefaultLvl,
 			NetworkLvl:        kusama.DefaultLvl,
 			RPCLvl:            kusama.DefaultLvl,
@@ -299,6 +302,7 @@ func PolkadotConfig() *Config {
 		},
 		Log: LogConfig{
 			CoreLvl:           polkadot.DefaultLvl,
+			DigestLvl:         polkadot.DefaultLvl,
 			SyncLvl:           polkadot.DefaultLvl,
 			NetworkLvl:        polkadot.DefaultLvl,
 			RPCLvl:            polkadot.DefaultLvl,
@@ -356,6 +360,7 @@ func DevConfig() *Config {
 		},
 		Log: LogConfig{
 			CoreLvl:           dev.DefaultLvl,
+			DigestLvl:         dev.DefaultLvl,
 			SyncLvl:           dev.DefaultLvl,
 			NetworkLvl:        dev.DefaultLvl,
 			RPCLvl:            dev.DefaultLvl,

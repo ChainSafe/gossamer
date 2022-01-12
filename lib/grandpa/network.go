@@ -55,12 +55,7 @@ func (hs *GrandpaHandshake) Encode() ([]byte, error) {
 
 // Decode the message into a GrandpaHandshake
 func (hs *GrandpaHandshake) Decode(in []byte) error {
-	err := scale.Unmarshal(in, hs)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return scale.Unmarshal(in, hs)
 }
 
 // Type ...

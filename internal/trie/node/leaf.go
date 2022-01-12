@@ -40,6 +40,11 @@ func NewLeaf(key, value []byte, dirty bool, generation uint64) *Leaf {
 	}
 }
 
+// Type returns LeafType.
+func (l *Leaf) Type() Type {
+	return LeafType
+}
+
 func (l *Leaf) String() string {
 	if len(l.Value) > 1024 {
 		return fmt.Sprintf("leaf key=0x%x value (hashed)=0x%x dirty=%t", l.Key, common.MustBlake2bHash(l.Value), l.dirty)
