@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type NotifyFinalizedTM NotifyFinalized
+type notifyFinalizedTM NotifyFinalized
 
 var _ Message = (*NotifyFinalized)(nil)
 
@@ -22,7 +22,7 @@ type NotifyFinalized struct {
 	Height string `json:"height"`
 }
 
-// NewNotifyFinalizedTM gets a new NotifyFinalizedTM struct.
+// NewNotifyFinalized gets a new NotifyFinalizedTM struct.
 func NewNotifyFinalized(best common.Hash, height string) *NotifyFinalized {
 	return &NotifyFinalized{
 		Best:   best,
@@ -36,13 +36,13 @@ func (NotifyFinalized) messageType() string {
 
 func (nf NotifyFinalized) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
-		NotifyFinalizedTM
+		notifyFinalizedTM
 		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
 	}{
 		Timestamp:         time.Now(),
 		MessageType:       nf.messageType(),
-		NotifyFinalizedTM: NotifyFinalizedTM(nf),
+		notifyFinalizedTM: notifyFinalizedTM(nf),
 	}
 
 	return json.Marshal(telemetryData)

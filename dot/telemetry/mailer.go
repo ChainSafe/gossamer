@@ -118,25 +118,3 @@ func (m *Mailer) shipTelemetryMessage(msg Message) {
 		}
 	}
 }
-
-// func msgToJSON(message Message) ([]byte, error) {
-// 	messageBytes, err := json.Marshal(message)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	messageMap := make(map[string]interface{})
-// 	err = json.Unmarshal(messageBytes, &messageMap)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	messageMap["ts"] = time.Now()
-// 	messageMap["msg"] = message.messageType()
-
-// 	fullRes, err := json.Marshal(messageMap)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return fullRes, nil
-// }

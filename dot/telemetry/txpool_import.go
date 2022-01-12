@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type TxpoolImportTM TxpoolImport
+type txpoolImportTM TxpoolImport
 
 var _ Message = (*TxpoolImport)(nil)
 
@@ -19,7 +19,7 @@ type TxpoolImport struct {
 	Future uint `json:"future"`
 }
 
-// NewTxpoolImportTM creates a new TxpoolImportTM struct
+// NewTxpoolImport creates a new TxpoolImportTM struct
 func NewTxpoolImport(ready, future uint) *TxpoolImport {
 	return &TxpoolImport{
 		Ready:  ready,
@@ -33,13 +33,13 @@ func (TxpoolImport) messageType() string {
 
 func (tx TxpoolImport) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
-		TxpoolImportTM
+		txpoolImportTM
 		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
 	}{
 		Timestamp:      time.Now(),
 		MessageType:    tx.messageType(),
-		TxpoolImportTM: TxpoolImportTM(tx),
+		txpoolImportTM: txpoolImportTM(tx),
 	}
 
 	return json.Marshal(telemetryData)

@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type SystemIntervalTM SystemInterval
+type systemIntervalTM SystemInterval
 
 var _ Message = (*SystemInterval)(nil)
 
@@ -28,7 +28,7 @@ type SystemInterval struct {
 	UsedStateCacheSize *big.Int     `json:"used_state_cache_size,omitempty"`
 }
 
-// NewBandwidthTM function to create new Bandwidth Telemetry Message
+// NewBandwidth function to create new Bandwidth Telemetry Message
 func NewBandwidth(bandwidthDownload, bandwidthUpload float64, peers int) *SystemInterval {
 	return &SystemInterval{
 		BandwidthDownload: bandwidthDownload,
@@ -37,7 +37,7 @@ func NewBandwidth(bandwidthDownload, bandwidthUpload float64, peers int) *System
 	}
 }
 
-// NewBlockIntervalTM function to create new Block Interval Telemetry Message
+// NewBlockInterval function to create new Block Interval Telemetry Message
 func NewBlockInterval(beshHash *common.Hash, bestHeight *big.Int, finalisedHash *common.Hash,
 	finalisedHeight, txCount, usedStateCacheSize *big.Int) *SystemInterval {
 	return &SystemInterval{
@@ -56,13 +56,13 @@ func (SystemInterval) messageType() string {
 
 func (si SystemInterval) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
-		SystemIntervalTM
+		systemIntervalTM
 		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
 	}{
 		Timestamp:        time.Now(),
 		MessageType:      si.messageType(),
-		SystemIntervalTM: SystemIntervalTM(si),
+		systemIntervalTM: systemIntervalTM(si),
 	}
 
 	return json.Marshal(telemetryData)

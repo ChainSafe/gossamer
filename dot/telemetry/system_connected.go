@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type SystemConnectedTM SystemConnected
+type systemConnectedTM SystemConnected
 
 var _ Message = (*SystemConnected)(nil)
 
@@ -26,7 +26,7 @@ type SystemConnected struct {
 	Version        string       `json:"version"`
 }
 
-// NewSystemConnectedTM function to create new System Connected Telemetry Message
+// NewSystemConnected function to create new System Connected Telemetry Message
 func NewSystemConnected(authority bool, chain string, genesisHash *common.Hash,
 	implementation, name, networkID, startupTime, version string) *SystemConnected {
 	return &SystemConnected{
@@ -47,13 +47,13 @@ func (SystemConnected) messageType() string {
 
 func (sc SystemConnected) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
-		SystemConnectedTM
+		systemConnectedTM
 		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
 	}{
 		Timestamp:         time.Now(),
 		MessageType:       sc.messageType(),
-		SystemConnectedTM: SystemConnectedTM(sc),
+		systemConnectedTM: systemConnectedTM(sc),
 	}
 
 	return json.Marshal(telemetryData)

@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type PreparedBlockForProposingTM PreparedBlockForProposing
+type preparedBlockForProposingTM PreparedBlockForProposing
 
 var _ Message = (*PreparedBlockForProposing)(nil)
 
@@ -22,7 +22,7 @@ type PreparedBlockForProposing struct {
 	Number string `json:"number"`
 }
 
-// NewPreparedBlockForProposingTM gets a new PreparedBlockForProposingTM struct.
+// NewPreparedBlockForProposing gets a new PreparedBlockForProposingTM struct.
 func NewPreparedBlockForProposing(hash common.Hash, number string) *PreparedBlockForProposing {
 	return &PreparedBlockForProposing{
 		Hash:   hash,
@@ -36,13 +36,13 @@ func (PreparedBlockForProposing) messageType() string {
 
 func (pb PreparedBlockForProposing) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
-		PreparedBlockForProposingTM
+		preparedBlockForProposingTM
 		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
 	}{
 		Timestamp:                   time.Now(),
 		MessageType:                 pb.messageType(),
-		PreparedBlockForProposingTM: PreparedBlockForProposingTM(pb),
+		preparedBlockForProposingTM: preparedBlockForProposingTM(pb),
 	}
 
 	return json.Marshal(telemetryData)

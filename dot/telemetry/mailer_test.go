@@ -100,10 +100,10 @@ func TestHandler_SendMulti(t *testing.T) {
 		NewAfgReceivedCommit(
 			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", []string{}),
-		NewAfgReceivedPrecommitTM(
+		NewAfgReceivedPrecommit(
 			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", ""),
-		NewAfgReceivedPrevoteTM(
+		NewAfgReceivedPrevote(
 			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", ""),
 
@@ -272,7 +272,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.finalized_blocks_up_to"}$`),
 		},
 		"AfgReceivedPrecommit_marshal": {
-			message: &AfgReceivedPrecommitTM{
+			message: &AfgReceivedPrecommit{
 				TargetHash:   common.Hash{},
 				TargetNumber: "0",
 				Voter:        "0x0",
@@ -283,7 +283,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.received_precommit"}$`),
 		},
 		"AfgReceivedPrevoteTM_marshal": {
-			message: &AfgReceivedPrevoteTM{
+			message: &AfgReceivedPrevote{
 				TargetHash:   common.Hash{},
 				TargetNumber: "0",
 				Voter:        "0x0",

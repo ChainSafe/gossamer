@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type AfgFinalizedBlocksUpToTM AfgFinalizedBlocksUpTo
+type afgFinalizedBlocksUpToTM AfgFinalizedBlocksUpTo
 
 var _ Message = (*AfgFinalizedBlocksUpTo)(nil)
 
@@ -21,7 +21,7 @@ type AfgFinalizedBlocksUpTo struct {
 	Number string      `json:"number"`
 }
 
-// NewAfgFinalizedBlocksUpToTM creates a new AfgFinalizedBlocksUpToTM struct.
+// NewAfgFinalizedBlocksUpTo creates a new AfgFinalizedBlocksUpToTM struct.
 func NewAfgFinalizedBlocksUpTo(hash common.Hash, number string) *AfgFinalizedBlocksUpTo {
 	return &AfgFinalizedBlocksUpTo{
 		Hash:   hash,
@@ -35,13 +35,13 @@ func (AfgFinalizedBlocksUpTo) messageType() string {
 
 func (afg AfgFinalizedBlocksUpTo) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
-		AfgFinalizedBlocksUpToTM
+		afgFinalizedBlocksUpToTM
 		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
 	}{
 		Timestamp:                time.Now(),
 		MessageType:              afg.messageType(),
-		AfgFinalizedBlocksUpToTM: AfgFinalizedBlocksUpToTM(afg),
+		afgFinalizedBlocksUpToTM: afgFinalizedBlocksUpToTM(afg),
 	}
 
 	return json.Marshal(telemetryData)
