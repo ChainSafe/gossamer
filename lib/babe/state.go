@@ -15,7 +15,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-//go:generate mockgen -source=./state.go -destination=./mock_state_test.go
+////go:generate mockgen -source=./state.go -destination=./mock_state_test.go
+
+//go:generate mockgen -destination=./mock_state_test.go -package $GOPACKAGE . BlockState,ImportedBlockNotifierManager,StorageState,TransactionState,EpochState,DigestHandler,BlockImportHandler
 
 // BlockState interface for block state methods
 type BlockState interface {
@@ -84,7 +86,7 @@ type DigestHandler interface {
 	HandleDigests(*types.Header)
 }
 
-//go:generate mockery --name BlockImportHandler --structname BlockImportHandler --case underscore --keeptree
+////go:generate mockery --name BlockImportHandler --structname BlockImportHandler --case underscore --keeptree
 
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
