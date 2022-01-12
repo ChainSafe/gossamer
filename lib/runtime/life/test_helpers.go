@@ -49,12 +49,12 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Leve
 		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 	cfg := &Config{}
-	cfg.Storage = s
-	cfg.Keystore = keystore.NewGlobalKeystore()
-	cfg.LogLvl = lvl
-	cfg.NodeStorage = ns
-	cfg.Network = new(runtime.TestRuntimeNetwork)
-	cfg.Role = role
+	cfg.Storage = s                               //nolint
+	cfg.Keystore = keystore.NewGlobalKeystore()   //nolint
+	cfg.LogLvl = lvl                              //nolint
+	cfg.NodeStorage = ns                          //nolint
+	cfg.Network = new(runtime.TestRuntimeNetwork) //nolint
+	cfg.Role = role                               //nolint
 	cfg.Resolver = new(Resolver)
 	return fp, cfg
 }

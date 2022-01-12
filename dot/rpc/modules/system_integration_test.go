@@ -404,12 +404,13 @@ func TestSyncState(t *testing.T) {
 }
 
 func TestLocalListenAddresses(t *testing.T) {
-	ma, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWCYyh5xoAc5oRyiGU4d9ktcqFQ23JjitNFR6bEcbw7YdN")
+	ma, err := multiaddr.NewMultiaddr("/ip4/127.0.0." + //nolint
+		"1/tcp/7001/p2p/12D3KooWCYyh5xoAc5oRyiGU4d9ktcqFQ23JjitNFR6bEcbw7YdN")
 	require.NoError(t, err)
 
 	mockedNetState := common.NetworkState{
 		PeerID:     "fake-peer-id",
-		Multiaddrs: []multiaddr.Multiaddr{ma},
+		Multiaddrs: []multiaddr.Multiaddr{ma}, //nolint
 	}
 
 	mockNetAPI := new(mocks.NetworkAPI)
@@ -426,7 +427,7 @@ func TestLocalListenAddresses(t *testing.T) {
 	require.Len(t, res, 1)
 	require.Equal(t, res[0], ma.String())
 
-	mockNetAPI.On("NetworkState").Return(common.NetworkState{Multiaddrs: []multiaddr.Multiaddr{}}).Once()
+	mockNetAPI.On("NetworkState").Return(common.NetworkState{Multiaddrs: []multiaddr.Multiaddr{}}).Once() //nolint
 	err = sysmodule.LocalListenAddresses(nil, nil, &res)
 	require.Error(t, err, "multiaddress list is empty")
 }

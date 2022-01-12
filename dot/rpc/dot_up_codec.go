@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"unicode"
-	"unicode/utf8"
+	"unicode"      //nolint
+	"unicode/utf8" //nolint
 
 	"github.com/ChainSafe/gossamer/dot/rpc/json2"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/gorilla/rpc/v2"
+	"github.com/gorilla/rpc/v2" //nolint
 )
 
 // DotUpCodec for overridding default jsonCodec
@@ -24,7 +24,7 @@ func NewDotUpCodec() *DotUpCodec {
 }
 
 // NewRequest is overridden to inject our codec handler
-func (c *DotUpCodec) NewRequest(r *http.Request) rpc.CodecRequest {
+func (c *DotUpCodec) NewRequest(r *http.Request) rpc.CodecRequest { //nolint
 	outerCR := &DotUpCodecRequest{} // Our custom CR
 	jsonC := json2.NewCodec()       // json Codec to create json CR
 	innerCR := jsonC.NewRequest(r)  // create the json CR, sort of.

@@ -126,7 +126,7 @@ func (*Resolver) ResolveFunc(module, field string) exec.FunctionImport { //nolin
 	default:
 		panic(fmt.Errorf("unknown module: %s", module))
 	}
-}
+} //nolint
 
 // ResolveGlobal ...
 func (*Resolver) ResolveGlobal(_, _ string) int64 {

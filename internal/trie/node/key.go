@@ -4,7 +4,7 @@
 package node
 
 import (
-	"bytes"
+	"bytes" //nolint
 	"errors"
 	"fmt"
 	"io"

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p" //nolint
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -40,13 +40,13 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 	addrB, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", portB))
 	require.NoError(t, err)
 
-	ha, err := libp2p.New(
-		ctx, libp2p.ListenAddrs(addrA),
+	ha, err := libp2p.New( //nolint
+		ctx, libp2p.ListenAddrs(addrA), //nolint
 	)
 	require.NoError(t, err)
 
-	hb, err := libp2p.New(
-		ctx, libp2p.ListenAddrs(addrB),
+	hb, err := libp2p.New( //nolint
+		ctx, libp2p.ListenAddrs(addrB), //nolint
 	)
 	require.NoError(t, err)
 

@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/gorilla/rpc/v2"
+	"github.com/gorilla/rpc/v2" //nolint
 	"github.com/stretchr/testify/require"
 )
 
@@ -92,7 +92,7 @@ func (w *mockResponseWriter) WriteHeader(status int) {
 }
 
 func TestJson2ReadRequest(t *testing.T) {
-	s := rpc.NewServer()
+	s := rpc.NewServer() //nolint
 	s.RegisterService(new(mockService), "mockService")
 	s.RegisterCodec(NewDotUpCodec(), "application/json")
 

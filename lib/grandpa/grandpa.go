@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
-	"sync/atomic"
+	"sync/atomic" //nolint
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"

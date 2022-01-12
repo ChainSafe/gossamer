@@ -53,11 +53,11 @@ type Instance struct {
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
 func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
-	if cfg.Storage == nil {
+	if cfg.Storage == nil { //nolint
 		return nil, errors.New("storage is nil")
 	}
 
-	code := cfg.Storage.LoadCode()
+	code := cfg.Storage.LoadCode() //nolint
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in state")
 	}
@@ -94,7 +94,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, errors.New("code is empty")
 	}
 
-	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true)) //nolint
 
 	imports, err := cfg.Imports()
 	if err != nil {
@@ -132,13 +132,13 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	allocator := runtime.NewAllocator(instance.Memory, heapBase)
 
 	runtimeCtx := &runtime.Context{
-		Storage:         cfg.Storage,
+		Storage:         cfg.Storage, //nolint
 		Allocator:       allocator,
-		Keystore:        cfg.Keystore,
-		Validator:       cfg.Role == byte(4),
-		NodeStorage:     cfg.NodeStorage,
-		Network:         cfg.Network,
-		Transaction:     cfg.Transaction,
+		Keystore:        cfg.Keystore,        //nolint
+		Validator:       cfg.Role == byte(4), //nolint
+		NodeStorage:     cfg.NodeStorage,     //nolint
+		Network:         cfg.Network,         //nolint
+		Transaction:     cfg.Transaction,     //nolint
 		SigVerifier:     crypto.NewSignatureVerifier(logger),
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
@@ -150,7 +150,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		vm:       instance,
 		ctx:      runtimeCtx,
 		imports:  cfg.Imports,
-		codeHash: cfg.CodeHash,
+		codeHash: cfg.CodeHash, //nolint
 	}
 
 	inst.version, _ = inst.Version()
@@ -187,8 +187,8 @@ func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 		ctx:     in.ctx,
 	}
 
-	in.Lock()
-	defer in.Unlock()
+	in.Lock()         //nolint
+	defer in.Unlock() //nolint
 
 	err := tmp.setupInstanceVM(code)
 	if err != nil {
@@ -238,15 +238,15 @@ func (in *Instance) setupInstanceVM(code []byte) error {
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
-	in.Lock()
-	defer in.Unlock()
+	in.Lock()         //nolint
+	defer in.Unlock() //nolint
 	in.ctx.Storage = s
 }
 
 // Stop func
 func (in *Instance) Stop() {
-	in.Lock()
-	defer in.Unlock()
+	in.Lock()         //nolint
+	defer in.Unlock() //nolint
 	if !in.isClosed {
 		in.vm.Close()
 		in.isClosed = true
@@ -276,8 +276,8 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, runtime.ErrNilStorage
 	}
 
-	in.Lock()
-	defer in.Unlock()
+	in.Lock()         //nolint
+	defer in.Unlock() //nolint
 
 	if in.isClosed {
 		return nil, errors.New("instance is stopped")
