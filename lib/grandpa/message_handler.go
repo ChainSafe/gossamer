@@ -22,7 +22,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const CATCHUP_THRESHOLD = 2
+const catchupThreshold = 2
 
 // MessageHandler handles GRANDPA consensus messages
 type MessageHandler struct {
@@ -59,12 +59,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg, from)
 	case *CatchUpRequest:
-		networkMessage, err := h.handleCatchUpRequest(msg, from)
-		if err != nil {
-			logger.Debugf("could not handle catch up request: %s", err)
-		}
-
-		return networkMessage, err
+		return nil, h.handleCatchUpRequest(msg, from)
 	case *CatchUpResponse:
 		logger.Debugf(
 			"received catch up response with hash %s for round %d and set id %d, from %s",
@@ -72,9 +67,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 		err := h.handleCatchUpResponse(msg)
 		if errors.Is(err, blocktree.ErrNodeNotFound) || errors.Is(err, chaindb.ErrKeyNotFound) {
-			// TODO: we are adding these messages to reprocess them again, but we
-			// haven't added code to reprocess them. Do that.
-			// Also, revisit if we need to add these message in synchronous manner
+			// TODO: revisit if we need to add these message in synchronous manner
 			// or not. If not, change catchUpResponseMessages to a normal map.  #1531
 			h.grandpa.tracker.addCatchUpResponse(&networkCatchUpResponseMessage{
 				from: from,
@@ -123,14 +116,12 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 		return err
 	}
 
-	// TODO: printing uint64 tends to overflow sometimes, not sure why!
 	logger.Debugf("msg.Round %d - highestRound %d lagging behind by %d", msg.Round, highestRound, int(msg.Round)-int(highestRound))
 	// catch up only if we are behind by more than catchup threshold
-	if (int(msg.Round) - int(highestRound)) > CATCHUP_THRESHOLD {
-		_, err := h.sendCatchUpRequest(
+	if (int(msg.Round) - int(highestRound)) > catchupThreshold {
+		if err := h.sendCatchUpRequest(
 			from, newCatchUpRequest(msg.Round, setID),
-		)
-		if err != nil {
+		); err != nil {
 			logger.Debugf("failed to send catch up request: %s", err.Error())
 			return err
 		}
@@ -146,15 +137,15 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	return nil
 }
 
-func (h *MessageHandler) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) (*CatchUpResponse, error) {
+func (h *MessageHandler) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 	cm, err := req.ToConsensusMessage()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = h.grandpa.network.SendMessage(to, cm)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	h.grandpa.paused.Store(true)
@@ -169,7 +160,7 @@ func (h *MessageHandler) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) (*C
 	// case <-timer.C:
 	// 	return nil, errors.New("timeout")
 	// }
-	return nil, nil
+	return nil
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
@@ -222,9 +213,9 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	return nil
 }
 
-func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID) (*ConsensusMessage, error) {
+func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID) error {
 	if !h.grandpa.authority {
-		return nil, nil //nolint:nilnil
+		return nil
 	}
 
 	logger.Debugf("received catch up request for round %d and set id %d, from %s",
@@ -233,33 +224,33 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 	logger.Debugf("Our latest round is %d", h.grandpa.state.round)
 
 	if msg.SetID != h.grandpa.state.setID {
-		return nil, ErrSetIDMismatch
+		return ErrSetIDMismatch
 	}
 
 	if msg.Round > h.grandpa.state.round {
-		return nil, ErrInvalidCatchUpRound
+		return ErrInvalidCatchUpRound
 	}
 
 	resp, err := h.grandpa.newCatchUpResponse(h.grandpa.state.round, h.grandpa.state.setID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cm, err := resp.ToConsensusMessage()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = h.grandpa.network.SendMessage(from, cm)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	logger.Debugf(
 		"sent catch up response with hash %s for round %d and set id %d, to %s",
 		resp.Hash, msg.Round, msg.SetID, from)
 
-	return nil, nil
+	return nil
 }
 
 func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
