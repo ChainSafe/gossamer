@@ -83,7 +83,7 @@ func TestCreateCoreService(t *testing.T) {
 
 	networkSrvc := &network.Service{}
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
@@ -141,7 +141,7 @@ func TestCreateSyncService(t *testing.T) {
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
@@ -212,7 +212,7 @@ func TestCreateRPCService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
@@ -257,7 +257,7 @@ func TestCreateBABEService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
@@ -300,7 +300,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
@@ -376,7 +376,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)

@@ -111,7 +111,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	numCmps := 10
 	for i := 0; i < numCmps; i++ {
-		time.Sleep(time.Second)
+		time.Sleep(3 * time.Second)
 		t.Log("comparing...", i)
 		hashes, err := compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
 		if len(hashes) > 1 || len(hashes) == 0 {

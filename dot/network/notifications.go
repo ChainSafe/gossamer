@@ -288,21 +288,9 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	if s.host.messageCache != nil {
-		added, err := s.host.messageCache.put(peer, msg)
-		if err != nil {
-			logger.Errorf("failed to add message to cache for peer %s: %s", peer, err)
-			return
-		}
-
-		// TODO: ensure grandpa stores *all* previously received votes and discards them
-		// only when they are for already finalised rounds; currently this causes issues
-		// because a vote might be received slightly too early, causing a round mismatch err,
-		// causing grandpa to discard the vote. (#1855)
-		_, isConsensusMsg := msg.(*ConsensusMessage)
-		if !added && !isConsensusMsg {
-			return
-		}
+	if s.host.messageCache != nil && s.host.messageCache.exists(peer, msg) {
+		// message has already been sent
+		return
 	}
 
 	// we've completed the handshake with the peer, send message directly
@@ -315,6 +303,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			closeOutboundStream(info, peer, stream)
 		}
 		return
+	} else if s.host.messageCache != nil {
+		if _, err := s.host.messageCache.put(peer, msg); err != nil {
+			logger.Errorf("failed to add message to cache for peer %s: %w", peer, err)
+			return
+		}
 	}
 
 	logger.Tracef("successfully sent message on protocol %s to peer %s: message=", info.protocolID, peer, msg)

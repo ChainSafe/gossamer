@@ -6,6 +6,8 @@ package scale
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecodeResult(t *testing.T) {
@@ -303,4 +305,14 @@ func TestResult_Set(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResult_UseSetMoreThanOnce(t *testing.T) {
+	result := NewResult(int(0), string(""))
+
+	err := result.Set(OK, 10)
+	require.NoError(t, err)
+
+	err = result.Set(Err, "something failed")
+	require.ErrorIs(t, err, ErrResultAlreadySet)
 }
