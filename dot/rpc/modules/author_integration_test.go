@@ -33,14 +33,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstace func(*wasmer.Config) (runtime.Instance, error)
+type useRuntimeInstace func(*testing.T, *wasmer.Config) (runtime.Instance, error)
 
 // useInstanceFromGenesis creates a new runtime instance given a genesis file
-func useInstanceFromGenesis(cfg *wasmer.Config) (instance runtime.Instance, err error) {
+func useInstanceFromGenesis(t *testing.T, cfg *wasmer.Config) (instance runtime.Instance, err error) {
+	t.Helper()
 	return wasmer.NewRuntimeFromGenesis(cfg)
 }
 
-func useInstanceFromRuntimeV0910(cfg *wasmer.Config) (instance runtime.Instance, err error) {
+func useInstanceFromRuntimeV0910(t *testing.T, cfg *wasmer.Config) (instance runtime.Instance, err error) {
+	t.Helper()
 	runtimePath := runtime.GetAbsolutePath(runtime.POLKADOT_RUNTIME_FP_v0910)
 	return wasmer.NewInstanceFromFile(runtimePath, cfg)
 }
@@ -94,7 +96,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Parallel()
 	tmpbasepath := t.TempDir()
 
-	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, useInstanceFromGenesis)
+	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, useInstanceFromRuntimeV0910)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState()
 
 	genesisHash := intCtrl.genesisHeader.Hash()
@@ -540,7 +542,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
 	cfg.NodeStorage = nodeStorage
 
-	rt, err := useInstance(cfg)
+	rt, err := useInstance(t, cfg)
 	require.NoError(t, err)
 
 	genesisHash := genesisHeader.Hash()
@@ -579,13 +581,18 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string, useInstance u
 	require.NoError(t, err)
 
 	cfg := &wasmer.Config{}
+	cfg.Role = 0
+	cfg.LogLvl = log.Warn
 	cfg.Storage = rtStorage
-	cfg.LogLvl = 4
-	nodeStorage := runtime.NodeStorage{}
-	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
-	cfg.NodeStorage = nodeStorage
+	cfg.Keystore = keystore.NewGlobalKeystore()
+	cfg.Network = new(runtime.TestRuntimeNetwork)
+	cfg.NodeStorage = runtime.NodeStorage{
+		LocalStorage:      runtime.NewInMemoryDB(t),
+		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+	}
 
-	rt, err := useInstance(cfg)
+	rt, err := useInstance(t, cfg)
 	require.NoError(t, err)
 
 	genesisHash := genesisHeader.Hash()
