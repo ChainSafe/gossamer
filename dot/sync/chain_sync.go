@@ -692,6 +692,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 	// response was validated! place into ready block queue
 	for _, bd := range resp.BlockData {
 		// block is ready to be processed!
+		logger.Infof("handling block response block %v", bd)
 		handleReadyBlock(bd, cs.pendingBlocks, cs.readyBlocks)
 	}
 

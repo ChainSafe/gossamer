@@ -210,6 +210,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 		if has || s.readyBlocks.has(block.header.ParentHash) {
 			// block is ready, as parent is known!
 			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
+			logger.Infof("moving block from pending to ready: block=%v", block.toBlockData())
 			handleReadyBlock(block.toBlockData(), s.pendingBlocks, s.readyBlocks)
 			continue
 		}
