@@ -700,8 +700,10 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 }
 
 func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue) {
-	// see if there are any descendents in the pending queue that are now ready to be processed,
-	// as we have just become aware of their parent block
+	// first check that the block isn't already in the ready queue
+	if readyBlocks.has(bd.Hash) {
+		return
+	}
 
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
@@ -722,6 +724,8 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 
 	logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)
 
+	// see if there are any descendents in the pending queue that are now ready to be processed,
+	// as we have just become aware of their parent block
 	ready := []*types.BlockData{bd}
 	ready = pendingBlocks.getReadyDescendants(bd.Hash, ready)
 
