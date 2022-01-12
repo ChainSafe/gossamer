@@ -55,7 +55,7 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Leve
 	cfg := &Config{
 		Imports: ImportsNodeRuntime,
 	}
-	cfg.Storage = s
+	cfg.Storage = s //nolint
 	cfg.Keystore = keystore.NewGlobalKeystore()
 	cfg.LogLvl = lvl
 	cfg.NodeStorage = ns

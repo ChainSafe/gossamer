@@ -15,9 +15,9 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"   //nolint
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1" //nolint
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"   //nolint
 
 	"golang.org/x/crypto/blake2b"
 )

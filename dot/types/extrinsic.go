@@ -64,5 +64,5 @@ func (e *ExtrinsicData) DecodeVersion(encExt Extrinsic) error {
 		return err
 	}
 
-	return decoder.Decode(&e.Version)
+	return decoder.Decode(&e.Version) //nolint
 }

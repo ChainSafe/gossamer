@@ -9,9 +9,9 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"   //nolint
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1" //nolint
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"   //nolint
 )
 
 // GenericKeystore holds keys of any type

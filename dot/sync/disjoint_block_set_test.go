@@ -67,7 +67,7 @@ func TestDisjointBlockSet(t *testing.T) {
 
 	block := &types.Block{
 		Header: *header2,
-		Body:   types.Body{{0xa}},
+		Body:   types.Body{{0xa}}, //nolint
 	}
 	s.addBlock(block)
 	require.Equal(t, 3, s.size())
@@ -97,7 +97,7 @@ func TestPendingBlock_toBlockData(t *testing.T) {
 		header: &types.Header{
 			Number: big.NewInt(1),
 		},
-		body: &types.Body{{0x1, 0x2, 0x3}},
+		body: &types.Body{{0x1, 0x2, 0x3}}, //nolint
 	}
 
 	expected := &types.BlockData{

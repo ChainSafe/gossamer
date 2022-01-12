@@ -102,8 +102,8 @@ func NewHTTPSet() *HTTPSet {
 // StartRequest create a new request using the method and the uri, adds the request into the list
 // and then return the position of the request inside the list
 func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
-	p.Lock()
-	defer p.Unlock()
+	p.Lock()         //nolint
+	defer p.Unlock() //nolint
 
 	id, err := p.idBuff.get()
 	if err != nil {
@@ -135,8 +135,8 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 
 // Remove just remove a expecific request from reqs
 func (p *HTTPSet) Remove(id int16) error {
-	p.Lock()
-	defer p.Unlock()
+	p.Lock()         //nolint
+	defer p.Unlock() //nolint
 
 	delete(p.reqs, id)
 
@@ -145,8 +145,8 @@ func (p *HTTPSet) Remove(id int16) error {
 
 // Get returns a request or nil if request not found
 func (p *HTTPSet) Get(id int16) *Request {
-	p.Lock()
-	defer p.Unlock()
+	p.Lock()         //nolint
+	defer p.Unlock() //nolint
 
 	return p.reqs[id]
 }

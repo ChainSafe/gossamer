@@ -10,8 +10,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/rpc/v2"
+	"github.com/gorilla/rpc/v2" //nolint
 	"github.com/jpillora/ipfilter"
 )
 
@@ -24,7 +23,7 @@ func LocalhostFilter() *ipfilter.IPFilter {
 }
 
 // LocalRequestOnly HTTP handler to restrict to only local connections
-func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
+func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error { //nolint
 	ip, _, err := net.SplitHostPort(r.Request.RemoteAddr)
 
 	if err != nil {

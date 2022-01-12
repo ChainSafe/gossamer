@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multiaddr" //nolint
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -371,9 +371,9 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	mockNetworkAPIEmpty := new(mocks.NetworkAPI)
 	mockNetworkAPIEmpty.On("NetworkState").Return(common.NetworkState{})
 
-	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80")
+	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80") //nolint
 	require.NoError(t, err)
-	multiAddy := make([]multiaddr.Multiaddr, 1)
+	multiAddy := make([]multiaddr.Multiaddr, 1) //nolint
 	multiAddy[0] = addr
 	ns := common.NetworkState{
 		PeerID:     "jimbo",
@@ -431,9 +431,9 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	mockNetworkAPIEmpty := new(mocks.NetworkAPI)
 	mockNetworkAPIEmpty.On("NetworkState").Return(common.NetworkState{})
 
-	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80")
+	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80") //nolint
 	require.NoError(t, err)
-	multiAddy := make([]multiaddr.Multiaddr, 1)
+	multiAddy := make([]multiaddr.Multiaddr, 1) //nolint
 	multiAddy[0] = addr
 	ns := common.NetworkState{
 		PeerID:     "jimbo",
