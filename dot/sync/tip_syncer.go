@@ -8,23 +8,28 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var _ workHandler = &tipSyncer{}
 
+type handleReadyBlockFunc = func(*types.BlockData)
+
 // tipSyncer handles workers when syncing at the tip of the chain
 type tipSyncer struct {
-	blockState    BlockState
-	pendingBlocks DisjointBlockSet
-	readyBlocks   *blockQueue
+	blockState       BlockState
+	pendingBlocks    DisjointBlockSet
+	readyBlocks      *blockQueue
+	handleReadyBlock handleReadyBlockFunc
 }
 
-func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue) *tipSyncer {
+func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue, handleReadyBlock handleReadyBlockFunc) *tipSyncer {
 	return &tipSyncer{
-		blockState:    blockState,
-		pendingBlocks: pendingBlocks,
-		readyBlocks:   readyBlocks,
+		blockState:       blockState,
+		pendingBlocks:    pendingBlocks,
+		readyBlocks:      readyBlocks,
+		handleReadyBlock: handleReadyBlock,
 	}
 }
 
@@ -211,7 +216,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			// block is ready, as parent is known!
 			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
 			logger.Infof("moving block from pending to ready: block=%v", block.toBlockData())
-			handleReadyBlock(block.toBlockData(), s.pendingBlocks, s.readyBlocks)
+			s.handleReadyBlock(block.toBlockData())
 			continue
 		}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -46,6 +47,8 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 
 	readyBlocks := newBlockQueue(maxResponseSize)
+
+	logger.Patch(log.SetLevel(log.Trace))
 
 	cfg := &chainSyncConfig{
 		bs:            bs,
@@ -662,6 +665,7 @@ func TestChainSync_doSync(t *testing.T) {
 	resp := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
+				Hash: common.Hash{0x1},
 				Header: &types.Header{
 					Number: big.NewInt(1),
 				},
@@ -687,6 +691,7 @@ func TestChainSync_doSync(t *testing.T) {
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
+				Hash: common.Hash{0x3},
 				Header: &types.Header{
 					ParentHash: parent,
 					Number:     big.NewInt(3),
@@ -694,6 +699,7 @@ func TestChainSync_doSync(t *testing.T) {
 				Body: &types.Body{},
 			},
 			{
+				Hash: common.Hash{0x2},
 				Header: &types.Header{
 					Number: big.NewInt(2),
 				},
@@ -762,7 +768,7 @@ func TestHandleReadyBlock(t *testing.T) {
 	}
 	cs.pendingBlocks.addBlock(block2NotDescendant)
 
-	handleReadyBlock(block1.ToBlockData(), cs.pendingBlocks, cs.readyBlocks)
+	cs.handleReadyBlock(block1.ToBlockData())
 
 	require.False(t, cs.pendingBlocks.hasBlock(header1.Hash()))
 	require.False(t, cs.pendingBlocks.hasBlock(header2.Hash()))
