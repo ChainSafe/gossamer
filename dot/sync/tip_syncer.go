@@ -24,7 +24,8 @@ type tipSyncer struct {
 	handleReadyBlock handleReadyBlockFunc
 }
 
-func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue, handleReadyBlock handleReadyBlockFunc) *tipSyncer {
+func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue,
+	handleReadyBlock handleReadyBlockFunc) *tipSyncer {
 	return &tipSyncer{
 		blockState:       blockState,
 		pendingBlocks:    pendingBlocks,
