@@ -26,8 +26,8 @@ type tracker struct {
 	stopped        chan struct{}
 
 	catchUpResponseMessageMutex sync.Mutex
-	// round(uint64) is used as key and *CatchUpResponse as value
-	catchUpResponseMessages map[uint64]*CatchUpResponse
+	// block hash is used as key and *CatchUpResponse as value
+	catchUpResponseMessages map[common.Hash]*networkCatchUpResponseMessage
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) *tracker {
@@ -39,7 +39,7 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		mapLock:                 sync.Mutex{},
 		in:                      bs.GetImportedBlockNotifierChannel(),
 		stopped:                 make(chan struct{}),
-		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
+		catchUpResponseMessages: make(map[common.Hash]*networkCatchUpResponseMessage),
 	}
 }
 
@@ -75,10 +75,11 @@ func (t *tracker) addCommit(cm *CommitMessage) {
 	t.commitMessages[cm.Vote.Hash] = cm
 }
 
-func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) {
+func (t *tracker) addCatchUpResponse(cr *networkCatchUpResponseMessage) {
 	t.catchUpResponseMessageMutex.Lock()
 	defer t.catchUpResponseMessageMutex.Unlock()
-	t.catchUpResponseMessages[cr.Round] = cr
+
+	t.catchUpResponseMessages[cr.msg.Hash] = cr
 }
 
 func (t *tracker) handleBlocks() {
@@ -110,6 +111,8 @@ func (t *tracker) handleBlock(b *types.Block) {
 			}
 		}
 
+		// TODO: Check if we should delete all vote messages for h,
+		// if fail to process a few of the vote messages.
 		delete(t.voteMessages, h)
 	}
 
@@ -117,8 +120,18 @@ func (t *tracker) handleBlock(b *types.Block) {
 		_, err := t.handler.handleMessage("", cm)
 		if err != nil {
 			logger.Warnf("failed to handle commit message %v: %s", cm, err)
+		} else {
+			delete(t.commitMessages, h)
 		}
+	}
 
-		delete(t.commitMessages, h)
+	// TODO: Can I use the same mapLock or do I need to use catchUpResponseLock?
+	if cr, has := t.catchUpResponseMessages[h]; has {
+		_, err := t.handler.handleMessage(cr.from, cr.msg)
+		if err != nil {
+			logger.Warnf("failed to handle catch up response message %v: %s", cr, err)
+		} else {
+			delete(t.catchUpResponseMessages, h)
+		}
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
-	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -57,7 +56,6 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case *CommitMessage:
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourMessage:
-		fmt.Println("got a neighbour message")
 		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg, from)
 	case *CatchUpRequest:
@@ -68,13 +66,20 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 		return networkMessage, err
 	case *CatchUpResponse:
+		logger.Debugf(
+			"received catch up response with hash %s for round %d and set id %d, from %s",
+			msg.Hash, msg.Round, msg.SetID, from)
+
 		err := h.handleCatchUpResponse(msg)
-		if errors.Is(err, blocktree.ErrNodeNotFound) {
+		if errors.Is(err, blocktree.ErrNodeNotFound) || errors.Is(err, chaindb.ErrKeyNotFound) {
 			// TODO: we are adding these messages to reprocess them again, but we
 			// haven't added code to reprocess them. Do that.
 			// Also, revisit if we need to add these message in synchronous manner
 			// or not. If not, change catchUpResponseMessages to a normal map.  #1531
-			h.grandpa.tracker.addCatchUpResponse(msg)
+			h.grandpa.tracker.addCatchUpResponse(&networkCatchUpResponseMessage{
+				from: from,
+				msg:  msg,
+			})
 		} else if err != nil {
 			logger.Debugf("could not catchup: %s", err)
 		}
@@ -113,16 +118,17 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	logger.Debugf("got neighbour message with number %d, set id %d and round %d", msg.Number, msg.SetID, msg.Round)
 	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
 
-	highestRound, highestSetID, err := h.blockState.GetHighestRoundAndSetID()
+	highestRound, setID, err := h.blockState.GetHighestRoundAndSetID()
 	if err != nil {
 		return err
 	}
 
-	logger.Debugf("lagging behind by %d", msg.Round-highestRound)
+	// TODO: printing uint64 tends to overflow sometimes, not sure why!
+	logger.Debugf("msg.Round %d - highestRound %d lagging behind by %d", msg.Round, highestRound, int(msg.Round)-int(highestRound))
 	// catch up only if we are behind by more than catchup threshold
-	if (msg.Round - highestRound) > CATCHUP_THRESHOLD {
-		catchUpResponse, err := h.sendCatchUpRequest(
-			from, newCatchUpRequest(highestRound, highestSetID),
+	if (int(msg.Round) - int(highestRound)) > CATCHUP_THRESHOLD {
+		_, err := h.sendCatchUpRequest(
+			from, newCatchUpRequest(msg.Round, setID),
 		)
 		if err != nil {
 			logger.Debugf("failed to send catch up request: %s", err.Error())
@@ -131,10 +137,10 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 
 		logger.Debugf("sent a catch up request to node %s", from)
 
-		err = h.handleCatchUpResponse(catchUpResponse)
-		if err != nil {
-			return err
-		}
+		// err = h.handleCatchUpResponse(catchUpResponse)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil
@@ -151,19 +157,19 @@ func (h *MessageHandler) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) (*C
 		return nil, err
 	}
 
-	// Can we do this without pausing?
-	// h.grandpa.paused.Store(true)
+	h.grandpa.paused.Store(true)
 
-	timer := time.NewTimer(time.Second * 5)
-	defer timer.Stop()
+	// timer := time.NewTimer(time.Second * 10)
+	// defer timer.Stop()
 
-	select {
-	case resp := <-h.grandpa.catchUpResponseCh:
-		fmt.Println("got a response, this is awesome")
-		return resp, nil
-	case <-timer.C:
-		return nil, errors.New("timeout")
-	}
+	// select {
+	// case resp := <-h.grandpa.catchUpResponseCh:
+	// 	fmt.Println("got a response, this is awesome")
+	// 	return resp, nil
+	// case <-timer.C:
+	// 	return nil, errors.New("timeout")
+	// }
+	return nil, nil
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
@@ -221,14 +227,16 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 		return nil, nil //nolint:nilnil
 	}
 
-	logger.Debugf("received catch up request for round %d and set id %d",
-		msg.Round, msg.SetID)
+	logger.Debugf("received catch up request for round %d and set id %d, from %s",
+		msg.Round, msg.SetID, from)
+
+	logger.Debugf("Our latest round is %d", h.grandpa.state.round)
 
 	if msg.SetID != h.grandpa.state.setID {
 		return nil, ErrSetIDMismatch
 	}
 
-	if msg.Round >= h.grandpa.state.round {
+	if msg.Round > h.grandpa.state.round {
 		return nil, ErrInvalidCatchUpRound
 	}
 
@@ -248,8 +256,8 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 	}
 
 	logger.Debugf(
-		"sent catch up response with hash %s for round %d and set id %d",
-		resp.Hash, msg.Round, msg.SetID)
+		"sent catch up response with hash %s for round %d and set id %d, to %s",
+		resp.Hash, msg.Round, msg.SetID, from)
 
 	return nil, nil
 }
@@ -259,9 +267,9 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		return nil
 	}
 
-	logger.Debugf(
-		"received catch up response with hash %s for round %d and set id %d",
-		msg.Hash, msg.Round, msg.SetID)
+	// logger.Debugf(
+	// 	"received catch up response with hash %s for round %d and set id %d",
+	// 	msg.Hash, msg.Round, msg.SetID)
 
 	// if we aren't currently expecting a catch up response, return
 	if !h.grandpa.paused.Load().(bool) {
@@ -279,7 +287,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	// TODO: confirm if we should add the message to the channel after or before
 	// checking set id and round.
-	h.grandpa.catchUpResponseCh <- msg
+	// h.grandpa.catchUpResponseCh <- msg
 
 	prevote, err := h.verifyPreVoteJustification(msg)
 	if err != nil {
@@ -309,16 +317,8 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	// update state and signal to grandpa we are ready to initiate
 	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
-		h.grandpa.CatchUpResponseCacheLock.Lock()
-
-		h.grandpa.CatchUpResponseCache[msg.Round] = *msg
-
-		h.grandpa.CatchUpResponseCacheLock.Unlock()
-
+	if err != nil {
 		logger.Debugf("couldn not catch up to round %d, storing the catch up response to retry", msg.Round)
-		return nil
-	} else if err != nil {
 		return err
 	}
 
@@ -326,7 +326,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	h.grandpa.state.round = msg.Round
 	close(h.grandpa.resumed)
 	h.grandpa.resumed = make(chan struct{})
-	// h.grandpa.paused.Store(false)
+	h.grandpa.paused.Store(false)
 	logger.Debugf("caught up to round; unpaused service and grandpa state round is %d", h.grandpa.state.round)
 	return nil
 }

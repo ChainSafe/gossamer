@@ -22,6 +22,11 @@ type networkVoteMessage struct {
 	msg  *VoteMessage
 }
 
+type networkCatchUpResponseMessage struct {
+	from peer.ID
+	msg  *CatchUpResponse
+}
+
 // receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
 func (s *Service) receiveVoteMessages(ctx context.Context) {
 	for {
