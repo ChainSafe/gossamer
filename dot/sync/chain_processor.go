@@ -169,7 +169,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if err := s.handleBlock(block); err != nil {
-			logger.Errorf("failed to handle block number %s: %s", block.Header.Number, err)
+			logger.Debugf("failed to handle block number %s: %s", block.Header.Number, err)
 			return err
 		}
 
