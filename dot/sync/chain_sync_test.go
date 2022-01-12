@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -47,8 +46,6 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 
 	readyBlocks := newBlockQueue(maxResponseSize)
-
-	logger.Patch(log.SetLevel(log.Trace))
 
 	cfg := &chainSyncConfig{
 		bs:            bs,

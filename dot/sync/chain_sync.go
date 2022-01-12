@@ -703,7 +703,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 	// first check that the block isn't already in the ready queue
 	if cs.readyBlocks.has(bd.Hash) {
-		logger.Tracef("ignoring block %s, already in ready queue", bd.Hash)
+		logger.Tracef("ignoring block %s in response, already in ready queue", bd.Hash)
 		return
 	}
 
@@ -722,7 +722,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 
 			if has {
 				// seems we already processed the block, so let's just return
-				logger.Tracef("ignoring block we already have, hash=%s", bd.Hash)
+				logger.Tracef("ignoring block we've already processed, hash=%s", bd.Hash)
 				return
 			}
 
