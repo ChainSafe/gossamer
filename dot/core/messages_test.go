@@ -5,6 +5,7 @@ package core
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -21,6 +22,7 @@ import (
 var (
 	errBestHeader = errors.New("best header error")
 	errGetRuntime = errors.New("get runtime error")
+	errTrieState  = errors.New("trie state error")
 )
 
 func TestService_TransactionsCount(t *testing.T) {
@@ -68,11 +70,16 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockSyncedNet1 := NewMockNetwork(ctrl)
 	mockSyncedNet2 := NewMockNetwork(ctrl)
 	mockSyncedNetHappy := NewMockNetwork(ctrl)
+	mockSyncedNet3 := NewMockNetwork(ctrl)
 
 	// BlockState
 	mockBlockStateBestHeadErr := NewMockBlockState(ctrl)
 	mockBlockStateRuntimeErr := NewMockBlockState(ctrl)
-	mockBlockStateRuntimeOk := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeOk1 := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeOk2 := NewMockBlockState(ctrl)
+
+	// Storage
+	mockStorageStateTrieStateErr := NewMockStorageState(ctrl)
 
 	// Runtime
 	runtimeMock := new(mocksruntime.Instance)
@@ -87,12 +94,22 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockBlockStateRuntimeErr.EXPECT().GetRuntime(gomock.Any()).Return(nil, errGetRuntime)
 
 	mockSyncedNetHappy.EXPECT().IsSynced().Return(true)
-	mockBlockStateRuntimeOk.EXPECT().BestBlockHeader().Return(testEmptyHeader, nil)
-	mockBlockStateRuntimeOk.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
+	mockBlockStateRuntimeOk1.EXPECT().BestBlockHeader().Return(testEmptyHeader, nil)
+	mockBlockStateRuntimeOk1.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
 	mockSyncedNetHappy.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.GoodTransactionValue,
 		Reason: peerset.GoodTransactionReason,
 	}, peer.ID("jimbo"))
+
+	//Enter loop
+	mockSyncedNet3.EXPECT().IsSynced().Return(true)
+	mockBlockStateRuntimeOk2.EXPECT().BestBlockHeader().Return(testEmptyHeader, nil)
+	mockBlockStateRuntimeOk2.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
+	mockStorageStateTrieStateErr.EXPECT().Lock()
+	mockStorageStateTrieStateErr.EXPECT().Unlock()
+	mockStorageStateTrieStateErr.EXPECT().TrieState(&common.Hash{}).Return(nil, errTrieState)
+
+	// invalid txn report peer
 
 	type args struct {
 		peerID peer.ID
@@ -137,13 +154,28 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			name: "happy path no loop",
 			service: &Service{
 				net:        mockSyncedNetHappy,
-				blockState: mockBlockStateRuntimeOk,
+				blockState: mockBlockStateRuntimeOk1,
 			},
 			args: args{
 				peerID: peer.ID("jimbo"),
 				msg:    &network.TransactionMessage{Extrinsics: []types.Extrinsic{}},
 			},
 			exp: false,
+		},
+		{
+			name: "trie state error",
+			service: &Service{
+				net:          mockSyncedNet3,
+				blockState:   mockBlockStateRuntimeOk2,
+				storageState: mockStorageStateTrieStateErr,
+			},
+			args: args{
+				peerID: peer.ID("jimbo"),
+				msg: &network.TransactionMessage{
+					Extrinsics: []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}},
+				},
+			},
+			expErr: errTrieState,
 		},
 	}
 	for _, tt := range tests {
