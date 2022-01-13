@@ -137,20 +137,9 @@ func EncryptAndWriteToFile(path string, pk crypto.PrivateKey, password []byte) e
 		return err
 	}
 
-	file, err := os.OpenFile(filepath.Clean(path), os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0600)
+	err = os.WriteFile(filepath.Clean(path), append(data, byte('\n')), 0600)
 	if err != nil {
-		return fmt.Errorf("cannot open destination file: %w", err)
-	}
-
-	_, err = file.Write(append(data, byte('\n')))
-	if err != nil {
-		_ = file.Close()
-		return err
-	}
-
-	err = file.Close()
-	if err != nil {
-		return fmt.Errorf("cannot close destination file: %w", err)
+		return fmt.Errorf("cannot write to destination file: %w", err)
 	}
 
 	return nil
