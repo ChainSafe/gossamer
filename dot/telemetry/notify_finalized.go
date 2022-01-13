@@ -37,8 +37,8 @@ func (NotifyFinalized) messageType() string {
 func (nf NotifyFinalized) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		notifyFinalizedTM
-		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:         time.Now(),
 		MessageType:       nf.messageType(),

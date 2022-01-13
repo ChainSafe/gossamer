@@ -59,18 +59,18 @@ func TestHandler_SendMulti(t *testing.T) {
 	t.Parallel()
 
 	expected := [][]byte{
-		[]byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`), //nolint:lll
-		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`),                                                                                                      //nolint:lll
-		[]byte(`{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1,"ts":`),
-		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","ts":`), //nolint:lll
-		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":"32375","msg":"notify.finalized","ts":`),                                                                                                             //nolint:lll
-		[]byte(`{"hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","msg":"prepared_block_for_proposing","number":"1","ts":`),                                                                                                     //nolint:lll
-		[]byte(`{"future":2,"msg":"txpool.import","ready":1,"ts":`),
-		[]byte(`{"authorities":"json-stringified-ids-of-authorities","authority_id":"authority_id","authority_set_id":"authority_set_id","msg":"afg.authority_set","ts`),                       //nolint:lll
-		[]byte(`{"hash":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","msg":"afg.finalized_blocks_up_to","number":"1","ts":`),                                           //nolint:lll
-		[]byte(`{"contains_precommits_signed_by":[],"msg":"afg.received_commit","target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","ts":`), //nolint:lll
-		[]byte(`{"msg":"afg.received_precommit","target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","ts":`),                                 //nolint:lll
-		[]byte(`{"msg":"afg.received_prevote","target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","ts":`),                                   //nolint:lll
+		[]byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","name":"nodeName","network_id":"netID","startup_time":"startTime","version":"0.1","msg":"system.connected","ts":`), //nolint:lll
+		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"origin":"NetworkInitialSync","msg":"block.import","ts":`),                                                                                                                      //nolint:lll
+		[]byte(`{"bandwidth_download":2,"bandwidth_upload":3,"peers":1,"msg":"system.interval","ts":`),
+		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":32375,"finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"txcount":0,"used_state_cache_size":1234,"msg":"system.interval","ts":`), //nolint:lll
+		[]byte(`{"best":[7,183,73,182,226,15,213,241,21,145,83,162,231,144,35,80,24,98,29,208,96,114,166,43,205,37,232,87,111,111,245,230],"height":"32375","msg":"notify.finalized","ts":`),                                                                                                        //nolint:lll
+		[]byte(`{"hash":[88,20,174,195,226,133,39,248,31,101,132,30,3,72,114,243,163,3,55,207,108,51,178,210,88,187,166,7,30,55,226,124],"number":"1","msg":"prepared_block_for_proposing","ts":`),                                                                                                  //nolint:lll
+		[]byte(`{"ready":1,"future":2,"msg":"txpool.import","ts":`),
+		[]byte(`{"authority_id":"authority_id","authority_set_id":"authority_set_id","authorities":"json-stringified-ids-of-authorities","msg":"afg.authority_set","ts`),                                                                   //nolint:lll
+		[]byte(`{"hash":[7,183,73,182,226,15,213,241,21,145,83,162,231,144,35,80,24,98,29,208,96,114,166,43,205,37,232,87,111,111,245,230],"number":"1","msg":"afg.finalized_blocks_up_to","ts":`),                                         //nolint:lll
+		[]byte(`{"target_hash":[88,20,174,195,226,133,39,248,31,101,132,30,3,72,114,243,163,3,55,207,108,51,178,210,88,187,166,7,30,55,226,124],"target_number":"1","contains_precommits_signed_by":[],"msg":"afg.received_commit","ts":`), //nolint:lll
+		[]byte(`{"target_hash":[88,20,174,195,226,133,39,248,31,101,132,30,3,72,114,243,163,3,55,207,108,51,178,210,88,187,166,7,30,55,226,124],"target_number":"1","voter":"","msg":"afg.received_precommit","ts":`),                      //nolint:lll
+		[]byte(`{"target_hash":[88,20,174,195,226,133,39,248,31,101,132,30,3,72,114,243,163,3,55,207,108,51,178,210,88,187,166,7,30,55,226,124],"target_number":"1","voter":"","msg":"afg.received_prevote","ts":`),                        //nolint:lll
 	}
 
 	messages := []Message{
@@ -115,11 +115,6 @@ func TestHandler_SendMulti(t *testing.T) {
 			"1"),
 	}
 
-	// sort the expected slice in alphabetical order
-	sort.Slice(expected, func(i, j int) bool {
-		return bytes.Compare(expected[i], expected[j]) < 0
-	})
-
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
@@ -149,8 +144,13 @@ func TestHandler_SendMulti(t *testing.T) {
 			return bytes.Compare(actual[i], actual[j]) < 0
 		})
 
+		// sort the expected slice in alphabetical order
+		sort.Slice(expected, func(i, j int) bool {
+			return bytes.Compare(expected[i], expected[j]) < 0
+		})
+
 		for i := range actual {
-			require.Contains(t, string(actual[i]), string(expected[i]))
+			assert.Contains(t, string(actual[i]), string(expected[i]))
 		}
 	}
 
@@ -171,7 +171,7 @@ func TestHandler_SendMulti(t *testing.T) {
 func TestListenerConcurrency(t *testing.T) {
 	t.Parallel()
 
-	const qty = 2000
+	const qty = 5
 
 	readyWait := new(sync.WaitGroup)
 	readyWait.Add(qty)
@@ -185,6 +185,9 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 
 	serverHandlerDone := make(chan struct{})
+	expectedResult := regexp.MustCompile(`^{"best":"0x[0]{64}","height":2,"origin":"NetworkInitialSync",` +
+		`"msg":"block.import","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+		`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`)
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		c, err := upgrader.Upgrade(w, r, nil)
@@ -193,21 +196,14 @@ func TestListenerConcurrency(t *testing.T) {
 		defer func() {
 			wsCloseErr := c.Close()
 			assert.NoError(t, wsCloseErr)
-			close(serverHandlerDone)
 		}()
-
-		counter := 0
-		const expectedResult = `{"best":"0x0000000000000000000000000000000000000000000000000000000000000000","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":` //nolint:lll
+		close(serverHandlerDone)
 
 		for idx := 0; idx < qty; idx++ {
 			_, msg, err := c.ReadMessage()
 			require.NoError(t, err)
-			counter++
-
-			assert.Contains(t,
-				string(msg),
-				expectedResult,
-			)
+			assert.True(t,
+				expectedResult.MatchString(string(msg)))
 		}
 	}
 
@@ -258,8 +254,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				Authorities:    "authorities",
 			},
 			expected: regexp.MustCompile(`^{"authority_id":"0","authority_set_id":"0","authorities"` +
-				`:"authorities","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.` +
-				`[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.authority_set"}$`),
+				`:"authorities","msg":"afg.authority_set","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.` +
+				`[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"AfgFinalizedBlocksUpTo_marshal": {
 			message: &AfgFinalizedBlocksUpTo{
@@ -268,8 +264,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
 				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"number":"0",` +
-				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.finalized_blocks_up_to"}$`),
+				`"msg":"afg.finalized_blocks_up_to","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"AfgReceivedPrecommit_marshal": {
 			message: &AfgReceivedPrecommit{
@@ -279,8 +275,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
 				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","voter":"0x0",` +
-				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.received_precommit"}$`),
+				`"msg":"afg.received_precommit","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"AfgReceivedPrevoteTM_marshal": {
 			message: &AfgReceivedPrevote{
@@ -290,8 +286,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
 				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","voter":"0x0",` +
-				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.received_prevote"}$`),
+				`"msg":"afg.received_prevote","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"AfgReceivedCommit_marshal": {
 			message: &AfgReceivedCommit{
@@ -301,8 +297,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
 				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","contains_precommits_signed_by":\["0x0","0x1"\],` +
-				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"afg.received_commit"}$`),
+				`"msg":"afg.received_commit","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"BlockImport_marshal": {
 			message: &BlockImport{
@@ -311,8 +307,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				Origin:   "0x0",
 			},
 			expected: regexp.MustCompile(`^{"best":"0x[0]{64}","height":0,"origin":"0x0",` +
-				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"block.import"}$`),
+				`"msg":"block.import","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"NotifyFinalized_marshal": {
 			message: &NotifyFinalized{
@@ -321,8 +317,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"best":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
 				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"height":"0",` +
-				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"notify.finalized"}$`),
+				`"msg":"notify.finalized","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"PreparedBlockForProposing_marshal": {
 			message: &PreparedBlockForProposing{
@@ -331,8 +327,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
 				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"number":"0",` +
-				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"prepared_block_for_proposing"}$`),
+				`"msg":"prepared_block_for_proposing","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"SystemConnected_marshal": {
 			message: &SystemConnected{
@@ -347,8 +343,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"authority":true,"chain":"0x0","genesis_hash":"0x[0]{64}",` +
 				`"implementation":"gossamer","name":"gossamer","network_id":"0","startup_time":"0ms",` +
-				`"version":"0","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"system.connected"}$`),
+				`"version":"0","msg":"system.connected","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"SystemInterval_marshal": {
 			message: &SystemInterval{
@@ -364,8 +360,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"bandwidth_download":1.5,"bandwidth_upload":1.5,"peers":1,` +
 				`"best":"0x[0]{64}","height":0,"finalized_hash":"0x[0]{64}","finalized_height":0,` +
-				`"txcount":0,"used_state_cache_size":0,"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"system.interval"}$`),
+				`"txcount":0,"used_state_cache_size":0,"msg":"system.interval","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"TxpoolImport_marshal": {
 			message: &TxpoolImport{
@@ -373,8 +369,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				Future: 10,
 			},
 			expected: regexp.MustCompile(`^{"ready":11,"future":10,` +
-				`"ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}","msg":"txpool.import"}$`),
+				`"msg":"txpool.import","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 	}
 

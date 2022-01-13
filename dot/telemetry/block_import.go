@@ -38,8 +38,8 @@ func (BlockImport) messageType() string {
 func (bi BlockImport) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		blockImportTM
-		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:     time.Now(),
 		MessageType:   bi.messageType(),

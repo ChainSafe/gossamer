@@ -39,12 +39,12 @@ func (AfgAuthoritySet) messageType() string {
 func (afg AfgAuthoritySet) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		afgAuthoritySetTM
-		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
 	}{
-		Timestamp:         time.Now(),
-		MessageType:       afg.messageType(),
 		afgAuthoritySetTM: afgAuthoritySetTM(afg),
+		MessageType:       afg.messageType(),
+		Timestamp:         time.Now(),
 	}
 
 	return json.Marshal(telemetryData)

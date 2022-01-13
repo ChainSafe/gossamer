@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -102,7 +101,6 @@ func (m *Mailer) SendMessage(msg Message) {
 
 func (m *Mailer) shipTelemetryMessage(msg Message) {
 	msgBytes, err := json.Marshal(msg)
-	fmt.Printf(">>>>>> %s\n", string(msgBytes))
 	if err != nil {
 		m.logger.Debugf("issue encoding %T telemetry message: %s", msg, err)
 		return

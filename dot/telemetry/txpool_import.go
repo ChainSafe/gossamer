@@ -34,8 +34,8 @@ func (TxpoolImport) messageType() string {
 func (tx TxpoolImport) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		txpoolImportTM
-		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:      time.Now(),
 		MessageType:    tx.messageType(),

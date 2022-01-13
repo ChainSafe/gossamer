@@ -57,8 +57,8 @@ func (SystemInterval) messageType() string {
 func (si SystemInterval) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		systemIntervalTM
-		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:        time.Now(),
 		MessageType:      si.messageType(),

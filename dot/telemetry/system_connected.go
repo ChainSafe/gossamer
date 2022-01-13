@@ -48,8 +48,8 @@ func (SystemConnected) messageType() string {
 func (sc SystemConnected) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		systemConnectedTM
-		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:         time.Now(),
 		MessageType:       sc.messageType(),

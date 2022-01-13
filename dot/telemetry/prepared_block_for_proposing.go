@@ -37,8 +37,8 @@ func (PreparedBlockForProposing) messageType() string {
 func (pb PreparedBlockForProposing) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		preparedBlockForProposingTM
-		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:                   time.Now(),
 		MessageType:                 pb.messageType(),

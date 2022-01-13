@@ -36,8 +36,8 @@ func (AfgFinalizedBlocksUpTo) messageType() string {
 func (afg AfgFinalizedBlocksUpTo) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		afgFinalizedBlocksUpToTM
-		Timestamp   time.Time `json:"ts"`
 		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:                time.Now(),
 		MessageType:              afg.messageType(),
