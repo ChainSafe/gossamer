@@ -187,7 +187,7 @@ func TestListenerConcurrency(t *testing.T) {
 	serverHandlerDone := make(chan struct{})
 	expectedResult := regexp.MustCompile(`^{"best":"0x[0]{64}","height":2,"origin":"NetworkInitialSync",` +
 		`"msg":"block.import","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-		`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`)
+		`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`)
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		c, err := upgrader.Upgrade(w, r, nil)
