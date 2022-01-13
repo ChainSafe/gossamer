@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"strconv"
@@ -49,21 +50,17 @@ func BytesToStringArray(in [][]byte) []string {
 }
 
 // HexToBytes turns a 0x prefixed hex string into a byte slice
-func HexToBytes(in string) ([]byte, error) {
-	if len(in) < 2 {
-		return nil, errors.New("invalid string")
+func HexToBytes(in string) (b []byte, err error) {
+	if !strings.HasPrefix(in, "0x") {
+		return nil, fmt.Errorf("%w: %s", ErrNoPrefix, in)
 	}
 
-	if strings.Compare(in[:2], "0x") != 0 {
-		return nil, ErrNoPrefix
+	b, err = hex.DecodeString(in[2:])
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", err, in)
 	}
-	// Ensure we have an even length, otherwise hex.DecodeString will fail and return zero hash
-	if len(in)%2 != 0 {
-		return nil, errors.New("cannot decode an odd length string")
-	}
-	in = in[2:]
-	out, err := hex.DecodeString(in)
-	return out, err
+
+	return b, nil
 }
 
 // MustHexToBytes turns a 0x prefixed hex string into a byte slice
