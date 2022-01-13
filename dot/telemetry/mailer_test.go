@@ -360,7 +360,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			},
 			expected: regexp.MustCompile(`^{"bandwidth_download":1.5,"bandwidth_upload":1.5,"peers":1,` +
 				`"best":"0x[0]{64}","height":0,"finalized_hash":"0x[0]{64}","finalized_height":0,` +
-				`"txcount":0,"used_state_cache_size":0,"msg":"system.interval","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
+				`"txcount":0,"used_state_cache_size":0,"msg":"system.interval","ts":` +
+				`"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
 				`[0-9]{2}.[0-9]+-[0-9]{2}:[0-9]{2}"}$`),
 		},
 		"TxpoolImport_marshal": {
