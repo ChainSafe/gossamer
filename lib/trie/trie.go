@@ -495,26 +495,17 @@ func addAllKeys(parent Node, prefix []byte, keys [][]byte) [][]byte {
 // Get returns the value for key stored in the trie at the corresponding key
 func (t *Trie) Get(key []byte) []byte {
 	keyNibbles := codec.KeyLEToNibbles(key)
-	l := retrieve(t.root, keyNibbles)
-	if l == nil {
-		return nil
-	}
-
-	return l.Value
+	return retrieve(t.root, keyNibbles)
 }
 
-func retrieve(parent Node, key []byte) *node.Leaf {
-	var (
-		value *node.Leaf
-	)
-
+func retrieve(parent Node, key []byte) (value []byte) {
 	switch p := parent.(type) {
 	case *node.Branch:
 		length := lenCommonPrefix(p.Key, key)
 
 		// found the value at this node
 		if bytes.Equal(p.Key, key) || len(key) == 0 {
-			return node.NewLeaf(p.Key, p.Value, false, 0)
+			return p.Value
 		}
 
 		// did not find value
@@ -525,7 +516,7 @@ func retrieve(parent Node, key []byte) *node.Leaf {
 		value = retrieve(p.Children[key[length]], key[length+1:])
 	case *node.Leaf:
 		if bytes.Equal(p.Key, key) {
-			value = p
+			value = p.Value
 		}
 	case nil:
 		return nil
