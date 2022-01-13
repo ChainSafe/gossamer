@@ -29,10 +29,6 @@ func NewAfgFinalizedBlocksUpTo(hash common.Hash, number string) *AfgFinalizedBlo
 	}
 }
 
-func (AfgFinalizedBlocksUpTo) Type() string {
-	return afgFinalizedBlocksUpToMsg
-}
-
 func (afg AfgFinalizedBlocksUpTo) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		afgFinalizedBlocksUpToTM
@@ -40,7 +36,7 @@ func (afg AfgFinalizedBlocksUpTo) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:                time.Now(),
-		MessageType:              afg.Type(),
+		MessageType:              afgFinalizedBlocksUpToMsg,
 		afgFinalizedBlocksUpToTM: afgFinalizedBlocksUpToTM(afg),
 	}
 

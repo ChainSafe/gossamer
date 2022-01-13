@@ -30,10 +30,6 @@ func NewNotifyFinalized(best common.Hash, height string) *NotifyFinalized {
 	}
 }
 
-func (NotifyFinalized) Type() string {
-	return notifyFinalizedMsg
-}
-
 func (nf NotifyFinalized) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		notifyFinalizedTM
@@ -41,7 +37,7 @@ func (nf NotifyFinalized) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:         time.Now(),
-		MessageType:       nf.Type(),
+		MessageType:       notifyFinalizedMsg,
 		notifyFinalizedTM: notifyFinalizedTM(nf),
 	}
 

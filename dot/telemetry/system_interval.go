@@ -50,10 +50,6 @@ func NewBlockInterval(beshHash *common.Hash, bestHeight *big.Int, finalisedHash 
 	}
 }
 
-func (SystemInterval) Type() string {
-	return systemIntervalMsg
-}
-
 func (si SystemInterval) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		systemIntervalTM
@@ -61,7 +57,7 @@ func (si SystemInterval) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:        time.Now(),
-		MessageType:      si.Type(),
+		MessageType:      systemIntervalMsg,
 		systemIntervalTM: systemIntervalTM(si),
 	}
 

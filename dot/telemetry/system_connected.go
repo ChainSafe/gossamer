@@ -41,10 +41,6 @@ func NewSystemConnected(authority bool, chain string, genesisHash *common.Hash,
 	}
 }
 
-func (SystemConnected) Type() string {
-	return systemConnectedMsg
-}
-
 func (sc SystemConnected) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		systemConnectedTM
@@ -52,7 +48,7 @@ func (sc SystemConnected) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:         time.Now(),
-		MessageType:       sc.Type(),
+		MessageType:       systemConnectedMsg,
 		systemConnectedTM: systemConnectedTM(sc),
 	}
 

@@ -37,10 +37,6 @@ func NewAfgReceivedPrecommit(targetHash common.Hash, targetNumber, voter string)
 	}
 }
 
-func (AfgReceivedPrecommit) Type() string {
-	return afgReceivedPrecommitMsg
-}
-
 func (afg AfgReceivedPrecommit) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		afgReceived
@@ -48,7 +44,7 @@ func (afg AfgReceivedPrecommit) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:   time.Now(),
-		MessageType: afg.Type(),
+		MessageType: afgReceivedPrecommitMsg,
 		afgReceived: afgReceived(afg),
 	}
 
@@ -68,10 +64,6 @@ func NewAfgReceivedPrevote(targetHash common.Hash, targetNumber, voter string) *
 	}
 }
 
-func (AfgReceivedPrevote) Type() string {
-	return afgReceivedPrevoteMsg
-}
-
 func (afg AfgReceivedPrevote) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		afgReceived
@@ -79,7 +71,7 @@ func (afg AfgReceivedPrevote) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:   time.Now(),
-		MessageType: afg.Type(),
+		MessageType: afgReceivedPrevoteMsg,
 		afgReceived: afgReceived(afg),
 	}
 
@@ -106,10 +98,6 @@ func NewAfgReceivedCommit(targetHash common.Hash, targetNumber string,
 	}
 }
 
-func (AfgReceivedCommit) Type() string {
-	return afgReceivedCommitMsg
-}
-
 func (afg AfgReceivedCommit) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		afgReceivedCommitTM
@@ -117,7 +105,7 @@ func (afg AfgReceivedCommit) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:           time.Now(),
-		MessageType:         afg.Type(),
+		MessageType:         afgReceivedCommitMsg,
 		afgReceivedCommitTM: afgReceivedCommitTM(afg),
 	}
 

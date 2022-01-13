@@ -27,10 +27,6 @@ func NewTxpoolImport(ready, future uint) *TxpoolImport {
 	}
 }
 
-func (TxpoolImport) Type() string {
-	return txPoolImportMsg
-}
-
 func (tx TxpoolImport) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		txpoolImportTM
@@ -38,7 +34,7 @@ func (tx TxpoolImport) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:      time.Now(),
-		MessageType:    tx.Type(),
+		MessageType:    txPoolImportMsg,
 		txpoolImportTM: txpoolImportTM(tx),
 	}
 

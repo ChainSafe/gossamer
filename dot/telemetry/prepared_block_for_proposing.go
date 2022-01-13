@@ -30,10 +30,6 @@ func NewPreparedBlockForProposing(hash common.Hash, number string) *PreparedBloc
 	}
 }
 
-func (PreparedBlockForProposing) Type() string {
-	return preparedBlockForProposingMsg
-}
-
 func (pb PreparedBlockForProposing) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		preparedBlockForProposingTM
@@ -41,7 +37,7 @@ func (pb PreparedBlockForProposing) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:                   time.Now(),
-		MessageType:                 pb.Type(),
+		MessageType:                 preparedBlockForProposingMsg,
 		preparedBlockForProposingTM: preparedBlockForProposingTM(pb),
 	}
 

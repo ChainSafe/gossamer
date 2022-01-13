@@ -31,10 +31,6 @@ func NewBlockImport(bestHash *common.Hash, height *big.Int, origin string) *Bloc
 	}
 }
 
-func (BlockImport) Type() string {
-	return blockImportMsg
-}
-
 func (bi BlockImport) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		blockImportTM
@@ -42,7 +38,7 @@ func (bi BlockImport) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:     time.Now(),
-		MessageType:   bi.Type(),
+		MessageType:   blockImportMsg,
 		blockImportTM: blockImportTM(bi),
 	}
 
