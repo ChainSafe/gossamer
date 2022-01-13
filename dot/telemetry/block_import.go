@@ -31,7 +31,7 @@ func NewBlockImport(bestHash *common.Hash, height *big.Int, origin string) *Bloc
 	}
 }
 
-func (BlockImport) messageType() string {
+func (BlockImport) Type() string {
 	return blockImportMsg
 }
 
@@ -42,7 +42,7 @@ func (bi BlockImport) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:     time.Now(),
-		MessageType:   bi.messageType(),
+		MessageType:   bi.Type(),
 		blockImportTM: blockImportTM(bi),
 	}
 

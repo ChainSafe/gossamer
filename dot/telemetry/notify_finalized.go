@@ -30,7 +30,7 @@ func NewNotifyFinalized(best common.Hash, height string) *NotifyFinalized {
 	}
 }
 
-func (NotifyFinalized) messageType() string {
+func (NotifyFinalized) Type() string {
 	return notifyFinalizedMsg
 }
 
@@ -41,7 +41,7 @@ func (nf NotifyFinalized) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:         time.Now(),
-		MessageType:       nf.messageType(),
+		MessageType:       nf.Type(),
 		notifyFinalizedTM: notifyFinalizedTM(nf),
 	}
 

@@ -31,7 +31,7 @@ func NewAfgAuthoritySet(authorityID, authoritySetID, authorities string) *AfgAut
 	}
 }
 
-func (AfgAuthoritySet) messageType() string {
+func (AfgAuthoritySet) Type() string {
 	return afgAuthoritySetMsg
 }
 
@@ -43,7 +43,7 @@ func (afg AfgAuthoritySet) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		afgAuthoritySetTM: afgAuthoritySetTM(afg),
-		MessageType:       afg.messageType(),
+		MessageType:       afg.Type(),
 		Timestamp:         time.Now(),
 	}
 

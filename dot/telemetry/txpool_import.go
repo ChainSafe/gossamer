@@ -27,7 +27,7 @@ func NewTxpoolImport(ready, future uint) *TxpoolImport {
 	}
 }
 
-func (TxpoolImport) messageType() string {
+func (TxpoolImport) Type() string {
 	return txPoolImportMsg
 }
 
@@ -38,7 +38,7 @@ func (tx TxpoolImport) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:      time.Now(),
-		MessageType:    tx.messageType(),
+		MessageType:    tx.Type(),
 		txpoolImportTM: txpoolImportTM(tx),
 	}
 

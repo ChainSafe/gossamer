@@ -50,7 +50,7 @@ func NewBlockInterval(beshHash *common.Hash, bestHeight *big.Int, finalisedHash 
 	}
 }
 
-func (SystemInterval) messageType() string {
+func (SystemInterval) Type() string {
 	return systemIntervalMsg
 }
 
@@ -61,7 +61,7 @@ func (si SystemInterval) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:        time.Now(),
-		MessageType:      si.messageType(),
+		MessageType:      si.Type(),
 		systemIntervalTM: systemIntervalTM(si),
 	}
 

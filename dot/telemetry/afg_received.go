@@ -37,7 +37,7 @@ func NewAfgReceivedPrecommit(targetHash common.Hash, targetNumber, voter string)
 	}
 }
 
-func (AfgReceivedPrecommit) messageType() string {
+func (AfgReceivedPrecommit) Type() string {
 	return afgReceivedPrecommitMsg
 }
 
@@ -48,7 +48,7 @@ func (afg AfgReceivedPrecommit) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:   time.Now(),
-		MessageType: afg.messageType(),
+		MessageType: afg.Type(),
 		afgReceived: afgReceived(afg),
 	}
 
@@ -68,7 +68,7 @@ func NewAfgReceivedPrevote(targetHash common.Hash, targetNumber, voter string) *
 	}
 }
 
-func (AfgReceivedPrevote) messageType() string {
+func (AfgReceivedPrevote) Type() string {
 	return afgReceivedPrevoteMsg
 }
 
@@ -79,7 +79,7 @@ func (afg AfgReceivedPrevote) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:   time.Now(),
-		MessageType: afg.messageType(),
+		MessageType: afg.Type(),
 		afgReceived: afgReceived(afg),
 	}
 
@@ -106,7 +106,7 @@ func NewAfgReceivedCommit(targetHash common.Hash, targetNumber string,
 	}
 }
 
-func (AfgReceivedCommit) messageType() string {
+func (AfgReceivedCommit) Type() string {
 	return afgReceivedCommitMsg
 }
 
@@ -117,7 +117,7 @@ func (afg AfgReceivedCommit) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:           time.Now(),
-		MessageType:         afg.messageType(),
+		MessageType:         afg.Type(),
 		afgReceivedCommitTM: afgReceivedCommitTM(afg),
 	}
 

@@ -41,7 +41,7 @@ func NewSystemConnected(authority bool, chain string, genesisHash *common.Hash,
 	}
 }
 
-func (SystemConnected) messageType() string {
+func (SystemConnected) Type() string {
 	return systemConnectedMsg
 }
 
@@ -52,7 +52,7 @@ func (sc SystemConnected) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:         time.Now(),
-		MessageType:       sc.messageType(),
+		MessageType:       sc.Type(),
 		systemConnectedTM: systemConnectedTM(sc),
 	}
 

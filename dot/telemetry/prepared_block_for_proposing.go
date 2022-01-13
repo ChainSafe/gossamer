@@ -30,7 +30,7 @@ func NewPreparedBlockForProposing(hash common.Hash, number string) *PreparedBloc
 	}
 }
 
-func (PreparedBlockForProposing) messageType() string {
+func (PreparedBlockForProposing) Type() string {
 	return preparedBlockForProposingMsg
 }
 
@@ -41,7 +41,7 @@ func (pb PreparedBlockForProposing) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:                   time.Now(),
-		MessageType:                 pb.messageType(),
+		MessageType:                 pb.Type(),
 		preparedBlockForProposingTM: preparedBlockForProposingTM(pb),
 	}
 

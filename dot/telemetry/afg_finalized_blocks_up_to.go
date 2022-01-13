@@ -29,7 +29,7 @@ func NewAfgFinalizedBlocksUpTo(hash common.Hash, number string) *AfgFinalizedBlo
 	}
 }
 
-func (AfgFinalizedBlocksUpTo) messageType() string {
+func (AfgFinalizedBlocksUpTo) Type() string {
 	return afgFinalizedBlocksUpToMsg
 }
 
@@ -40,7 +40,7 @@ func (afg AfgFinalizedBlocksUpTo) MarshalJSON() ([]byte, error) {
 		Timestamp   time.Time `json:"ts"`
 	}{
 		Timestamp:                time.Now(),
-		MessageType:              afg.messageType(),
+		MessageType:              afg.Type(),
 		afgFinalizedBlocksUpToTM: afgFinalizedBlocksUpToTM(afg),
 	}
 
