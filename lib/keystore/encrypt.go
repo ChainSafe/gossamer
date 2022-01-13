@@ -137,14 +137,9 @@ func EncryptAndWriteToFile(file *os.File, pk crypto.PrivateKey, password []byte)
 		return err
 	}
 
-	_, err = file.Write(data)
+	_, err = file.Write(append(data, byte('\n')))
 	if err != nil {
-		return err
-	}
-
-	_, err = file.Write([]byte{'\n'})
-	if err != nil {
-		return err
+	    return err
 	}
 
 	return file.Close()
