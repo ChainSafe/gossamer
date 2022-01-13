@@ -14,7 +14,7 @@ import (
 
 var _ workHandler = &tipSyncer{}
 
-type handleReadyBlockFunc = func(*types.BlockData)
+type handleReadyBlockFunc func(*types.BlockData)
 
 // tipSyncer handles workers when syncing at the tip of the chain
 type tipSyncer struct {
