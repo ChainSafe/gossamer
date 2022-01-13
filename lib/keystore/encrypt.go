@@ -98,7 +98,7 @@ func DecryptPrivateKey(data, password []byte, keytype string) (crypto.PrivateKey
 }
 
 // EncryptAndWriteToFile encrypts the `crypto.PrivateKey` using the password and saves it to the specified file
-func EncryptAndWriteToFile(file *os.File, pk crypto.PrivateKey, password []byte) error {
+func EncryptAndWriteToFile(path string, pk crypto.PrivateKey, password []byte) error {
 	ciphertext, err := EncryptPrivateKey(pk, password)
 	if err != nil {
 		return err
@@ -137,12 +137,23 @@ func EncryptAndWriteToFile(file *os.File, pk crypto.PrivateKey, password []byte)
 		return err
 	}
 
-	_, err = file.Write(append(data, byte('\n')))
+	file, err := os.OpenFile(filepath.Clean(path), os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-	    return err
+		return fmt.Errorf("cannot open destination file: %w", err)
 	}
 
-	return file.Close()
+	_, err = file.Write(append(data, byte('\n')))
+	if err != nil {
+		_ = file.Close()
+		return err
+	}
+
+	err = file.Close()
+	if err != nil {
+		return fmt.Errorf("cannot close destination file: %w", err)
+	}
+
+	return nil
 }
 
 // ReadFromFileAndDecrypt reads ciphertext from a file and decrypts it using the password into a `crypto.PrivateKey`
