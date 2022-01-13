@@ -29,16 +29,16 @@ func newTestHeader(t *testing.T, digest ...scale.VaryingDataTypeValue) *types.He
 	return header
 }
 
-func signAndAddSeal(t *testing.T, kp *sr25519.Keypair, header *types.Header, data []byte) error {
+func signAndAddSeal(t *testing.T, kp *sr25519.Keypair, header *types.Header, data []byte) {
 	t.Helper()
 	sig, err := kp.Sign(data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	return header.Digest.Add(types.SealDigest{
+	err = header.Digest.Add(types.SealDigest{
 		ConsensusEngineID: types.BabeEngineID,
 		Data:              sig,
 	})
-
+	assert.NoError(t, err)
 }
 
 func newEncodedBabeDigest(t *testing.T, value scale.VaryingDataTypeValue) ([]byte, error) {
@@ -577,8 +577,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	assert.NoError(t, err)
 	header4 := newTestHeader(t, *babePrd2)
 
-	err = signAndAddSeal(t, kp, header4, []byte{1})
-	assert.NoError(t, err)
+	signAndAddSeal(t, kp, header4, []byte{1})
 
 	babeVerifier2, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 	assert.NoError(t, err)
@@ -588,8 +587,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	assert.NoError(t, err)
 	header5 := newTestHeader(t, *babeSecPlainPrd)
 
-	err = signAndAddSeal(t, kp, header5, []byte{1})
-	assert.NoError(t, err)
+	signAndAddSeal(t, kp, header5, []byte{1})
 
 	babeVerifier3, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
 	assert.NoError(t, err)
@@ -599,8 +597,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	assert.NoError(t, err)
 	header6 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encSecVrfDigest))
 
-	err = signAndAddSeal(t, kp, header6, []byte{1})
-	assert.NoError(t, err)
+	signAndAddSeal(t, kp, header6, []byte{1})
 
 	babeVerifier4, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
 	assert.NoError(t, err)
@@ -622,8 +619,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	hash, err := encodeAndHashHeader(t, header7)
 	assert.NoError(t, err)
 
-	err = signAndAddSeal(t, kp, header7, hash[:])
-	assert.NoError(t, err)
+	signAndAddSeal(t, kp, header7, hash[:])
 
 	babeVerifier5, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 	assert.NoError(t, err)
@@ -644,8 +640,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	hash2, err := encodeAndHashHeader(t, header8)
 	assert.NoError(t, err)
 
-	err = signAndAddSeal(t, kp, header8, hash2[:])
-	assert.NoError(t, err)
+	signAndAddSeal(t, kp, header8, hash2[:])
 
 	babeVerifier8, err := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 	assert.NoError(t, err)
@@ -658,8 +653,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	hash3, err := encodeAndHashHeader(t, header9)
 	assert.NoError(t, err)
 
-	err = signAndAddSeal(t, kp, header9, hash3[:])
-	assert.NoError(t, err)
+	signAndAddSeal(t, kp, header9, hash3[:])
 
 	babeVerifier9, err := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
 	assert.NoError(t, err)
