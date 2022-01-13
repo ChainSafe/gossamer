@@ -558,7 +558,8 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	}
 }
 
-func setupStateAndPopulateTrieState(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
+func setupStateAndPopulateTrieState(t *testing.T, basepath string,
+	useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
 	state2test := state.NewService(state.Config{LogLevel: log.DoNotChange, Path: basepath})
