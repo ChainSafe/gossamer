@@ -13,13 +13,24 @@ import (
 	"testing"
 	"time"
 
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+
 	"github.com/ChainSafe/gossamer/dot/core"
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/btcsuite/btcutil/base58"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +61,7 @@ func TestRegisterModules(t *testing.T) {
 }
 
 func TestNewHTTPServer(t *testing.T) {
-	coreAPI := core.NewTestService(t, nil)
+	coreAPI := newCoreServiceTest(t)
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
 	}
@@ -65,7 +76,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 	s := NewHTTPServer(cfg)
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 	defer s.Stop()
@@ -76,38 +87,38 @@ func TestNewHTTPServer(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	_, err = buf.Write(data)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer res.Body.Close()
 
 	require.Equal(t, "200 OK", res.Status)
 
 	// nil POST
 	req, err = http.NewRequest("POST", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json;")
 
 	res, err = client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer res.Body.Close()
 
 	require.Equal(t, "200 OK", res.Status)
 
 	// GET
 	req, err = http.NewRequest("GET", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json;")
 
 	res, err = client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer res.Body.Close()
 
 	require.Equal(t, "405 Method Not Allowed", res.Status)
@@ -350,4 +361,94 @@ func externalIP() (string, error) {
 		}
 	}
 	return "", errors.New("are you connected to the network?")
+}
+
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
+func newCoreServiceTest(t *testing.T) *core.Service {
+	t.Helper()
+
+	testDatadirPath := t.TempDir()
+
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	config := state.Config{
+		Path:      testDatadirPath,
+		LogLevel:  log.Debug,
+		Telemetry: telemetryMock,
+	}
+
+	stateSrvc := state.NewService(config)
+	stateSrvc.UseMemDB()
+
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.SetupBase()
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.NoError(t, err)
+
+	cfg := &core.Config{
+		LogLvl:               log.Warn,
+		EpochState:           stateSrvc.Epoch,
+		BlockState:           stateSrvc.Block,
+		StorageState:         stateSrvc.Storage,
+		TransactionState:     stateSrvc.Transaction,
+		CodeSubstitutedState: stateSrvc.Base,
+	}
+
+	cfg.DigestHandler = new(coremocks.DigestHandler)
+	cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
+
+	cfg.Keystore = keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	err = cfg.Keystore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	rtCfg := &wasmer.Config{}
+
+	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	require.NoError(t, err)
+
+	nodeStorage := runtime.NodeStorage{
+		BaseDB: stateSrvc.Base,
+	}
+	rtCfg.NodeStorage = nodeStorage
+
+	cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
+
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
+
+	net := new(coremocks.Network)
+	net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
+	net.On("IsSynced").Return(true)
+	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
+
+	cfg.Network = net
+
+	cfg.CodeSubstitutes = make(map[common.Hash]string)
+
+	genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData()
+	require.NoError(t, err)
+
+	for k, v := range genesisData.CodeSubstitutes {
+		cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
+	}
+
+	s, err := core.NewService(cfg)
+	require.NoError(t, err)
+
+	return s
 }

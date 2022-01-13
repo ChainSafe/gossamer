@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -19,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
@@ -178,6 +180,8 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 }
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
 // TestInitNode_LoadGenesisData
 func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
@@ -194,9 +198,22 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+
+	expectedArg := &telemetry.NotifyFinalized{
+		Best:   common.MustHexToHash("0x336743aadf42654d4ef91294b61a167c9ed8a42f7f327d08d1e3c99541047392"),
+		Height: "0",
+	}
+
+	telemetryMock.EXPECT().SendMessage(expectedArg)
+
+	require.NoError(t, err)
+
 	config := state.Config{
-		Path:     cfg.Global.BasePath,
-		LogLevel: log.Info,
+		Path:      cfg.Global.BasePath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)
 
@@ -211,6 +228,9 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.SetupBase()
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()

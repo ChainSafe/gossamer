@@ -3,23 +3,40 @@
 
 package telemetry
 
-var _ Message = (*TxpoolImportTM)(nil)
+import (
+	"encoding/json"
+	"time"
+)
 
-// TxpoolImportTM holds `txpool.import` telemetry message, which is supposed to be
+type txpoolImportTM TxpoolImport
+
+var _ Message = (*TxpoolImport)(nil)
+
+// TxpoolImport holds `txpool.import` telemetry message, which is supposed to be
 // sent when a new transaction gets imported in the transaction pool.
-type TxpoolImportTM struct {
+type TxpoolImport struct {
 	Ready  uint `json:"ready"`
 	Future uint `json:"future"`
 }
 
-// NewTxpoolImportTM creates a new TxpoolImportTM struct
-func NewTxpoolImportTM(ready, future uint) *TxpoolImportTM {
-	return &TxpoolImportTM{
+// NewTxpoolImport creates a new TxpoolImportTM struct
+func NewTxpoolImport(ready, future uint) *TxpoolImport {
+	return &TxpoolImport{
 		Ready:  ready,
 		Future: future,
 	}
 }
 
-func (TxpoolImportTM) messageType() string {
-	return txPoolImportMsg
+func (tx TxpoolImport) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		txpoolImportTM
+		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
+	}{
+		Timestamp:      time.Now(),
+		MessageType:    txPoolImportMsg,
+		txpoolImportTM: txpoolImportTM(tx),
+	}
+
+	return json.Marshal(telemetryData)
 }

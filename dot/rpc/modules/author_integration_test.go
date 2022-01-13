@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,7 +51,14 @@ func TestMain(m *testing.M) {
 }
 
 func TestAuthorModule_Pending(t *testing.T) {
-	txQueue := state.NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	txQueue := state.NewTransactionState(telemetryMock)
 	auth := NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, txQueue)
 
 	res := new(PendingExtrinsicsResponse)
@@ -84,8 +92,16 @@ func TestAuthorModule_Pending(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Skip()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	// setup auth module
-	txQueue := state.NewTransactionState()
+	txQueue := state.NewTransactionState(telemetryMock)
 
 	auth := setupAuthModule(t, txQueue)
 
@@ -120,9 +136,17 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Skip()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	// setup service
 	// setup auth module
-	txQueue := state.NewTransactionState()
+	txQueue := state.NewTransactionState(telemetryMock)
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
@@ -135,9 +159,16 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	// setup service
 	// setup auth module
-	txQueue := state.NewTransactionState()
+	txQueue := state.NewTransactionState(telemetryMock)
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
@@ -150,8 +181,16 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 	t.Skip()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	// setup auth module
-	txQueue := state.NewTransactionState()
+	txQueue := state.NewTransactionState(telemetryMock)
 
 	auth := setupAuthModule(t, txQueue)
 

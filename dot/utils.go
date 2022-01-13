@@ -137,10 +137,11 @@ func NewTestConfig(t *testing.T) *Config {
 
 	cfg := &Config{
 		Global: GlobalConfig{
-			Name:     GssmrConfig().Global.Name,
-			ID:       GssmrConfig().Global.ID,
-			BasePath: dir,
-			LogLvl:   log.Info,
+			Name:        GssmrConfig().Global.Name,
+			ID:          GssmrConfig().Global.ID,
+			BasePath:    dir,
+			LogLvl:      log.Info,
+			NoTelemetry: true,
 		},
 		Log:     GssmrConfig().Log,
 		Init:    GssmrConfig().Init,

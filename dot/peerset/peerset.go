@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -229,6 +230,7 @@ func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 	// TODO: currently we only have one set, change this once we have more (#1886).
 	cfgSet := cfg.Set[0]
 	now := time.Now()
+
 	ps := &PeerSet{
 		peerState:              peerState,
 		reservedNode:           make(map[peer.ID]struct{}),
@@ -320,13 +322,11 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	}
 
 	for _, pid := range peers {
-		n, err := ps.peerState.getNode(pid)
+		rep, err := ps.peerState.addReputation(pid, change)
 		if err != nil {
 			return err
 		}
 
-		rep := n.addReputation(change.Value)
-		ps.peerState.nodes[pid] = n
 		if rep >= BannedThresholdValue {
 			return nil
 		}
@@ -666,18 +666,26 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 }
 
 // start handles all the action for the peerSet.
-func (ps *PeerSet) start(aq chan action) {
-	ps.actionQueue = aq
+func (ps *PeerSet) start(ctx context.Context, actionQueue chan action) {
+	ps.actionQueue = actionQueue
+
 	ps.resultMsgCh = make(chan Message, msgChanSize)
-	go ps.doWork()
+	go ps.doWork(ctx)
 }
 
-func (ps *PeerSet) doWork() {
+func (ps *PeerSet) doWork(ctx context.Context) {
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
-	defer ticker.Stop()
+
+	defer func() {
+		ticker.Stop()
+		close(ps.resultMsgCh)
+	}()
 
 	for {
 		select {
+		case <-ctx.Done():
+			// TODO: log context error?
+			return
 		case <-ticker.C:
 			l := ps.peerState.getSetLength()
 			for i := 0; i < l; i++ {
@@ -721,8 +729,4 @@ func (ps *PeerSet) doWork() {
 			}
 		}
 	}
-}
-
-func (ps *PeerSet) stop() {
-	close(ps.resultMsgCh)
 }

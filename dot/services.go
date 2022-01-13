@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
@@ -39,8 +40,6 @@ func newInMemoryDB(path string) (chaindb.Database, error) {
 	return utils.SetupDatabase(filepath.Join(path, "local_storage"), true)
 }
 
-// State Service
-
 // createStateService creates the state service and initialise state database
 func createStateService(cfg *Config) (*state.Service, error) {
 	logger.Debug("creating state service...")
@@ -52,20 +51,31 @@ func createStateService(cfg *Config) (*state.Service, error) {
 
 	stateSrvc := state.NewService(config)
 
+	err := stateSrvc.SetupBase()
+	if err != nil {
+		return nil, fmt.Errorf("cannot setup base: %w", err)
+	}
+
+	return stateSrvc, nil
+}
+
+func startStateService(cfg *Config, stateSrvc *state.Service) error {
+	logger.Debug("starting state service...")
+
 	// start state service (initialise state database)
 	err := stateSrvc.Start()
 	if err != nil {
-		return nil, fmt.Errorf("failed to start state service: %s", err)
+		return fmt.Errorf("failed to start state service: %w", err)
 	}
 
 	if cfg.State.Rewind != 0 {
 		err = stateSrvc.Rewind(int64(cfg.State.Rewind))
 		if err != nil {
-			return nil, fmt.Errorf("failed to rewind state: %w", err)
+			return fmt.Errorf("failed to rewind state: %w", err)
 		}
 	}
 
-	return stateSrvc, nil
+	return nil
 }
 
 func createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {
@@ -159,7 +169,8 @@ func asAuthority(authority bool) string {
 	return ""
 }
 
-func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service) (*babe.Service, error) {
+func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore,
+	cs *core.Service, telemetryMailer telemetry.Client) (*babe.Service, error) {
 	logger.Info("creating BABE service" +
 		asAuthority(cfg.Core.BabeAuthority) + "...")
 
@@ -183,6 +194,7 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs 
 		Authority:          cfg.Core.BabeAuthority,
 		IsDev:              cfg.Global.ID == "dev",
 		Lead:               cfg.Core.BABELead,
+		Telemetry:          telemetryMailer,
 	}
 
 	if cfg.Core.BabeAuthority {
@@ -246,7 +258,8 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service,
+	telemetryMailer telemetry.Client) (*network.Service, error) {
 	logger.Debugf(
 		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
@@ -275,6 +288,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
 		SlotDuration:      slotDuration,
 		PublicIP:          cfg.Network.PublicIP,
+		Telemetry:         telemetryMailer,
 		PublicDNS:         cfg.Network.PublicDNS,
 	}
 
@@ -352,7 +366,7 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 
 // createGRANDPAService creates a new GRANDPA service
 func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
-	ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+	ks keystore.Keystore, net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
 	rt, err := st.Block.GetRuntime(nil)
 	if err != nil {
 		return nil, err
@@ -383,6 +397,7 @@ func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
 		Authority:     cfg.Core.GrandpaAuthority,
 		Network:       net,
 		Interval:      cfg.Core.GrandpaInterval,
+		Telemetry:     telemetryMailer,
 	}
 
 	if cfg.Core.GrandpaAuthority {
@@ -402,7 +417,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 }
 
 func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
-	verifier *babe.VerificationManager, cs *core.Service, net *network.Service) (
+	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (
 	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {
@@ -421,6 +436,7 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
 		MinPeers:           cfg.Network.MinPeers,
 		MaxPeers:           cfg.Network.MaxPeers,
 		SlotDuration:       slotDuration,
+		Telemetry:          telemetryMailer,
 	}
 
 	return sync.NewService(syncCfg)
