@@ -804,6 +804,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
 			SyncLvl:           log.Info,
 			NetworkLvl:        log.Info,
 			RPCLvl:            log.Info,
@@ -859,6 +860,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
 			SyncLvl:           log.Info,
 			NetworkLvl:        log.Info,
 			RPCLvl:            log.Info,
@@ -910,6 +912,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
 			SyncLvl:           log.Info,
 			NetworkLvl:        log.Info,
 			RPCLvl:            log.Info,
@@ -1257,6 +1260,7 @@ func Test_setLogConfig(t *testing.T) {
 			},
 			expectedLogCfg: dot.LogConfig{
 				CoreLvl:           log.Info,
+				DigestLvl:         log.Info,
 				SyncLvl:           log.Info,
 				NetworkLvl:        log.Info,
 				RPCLvl:            log.Info,
@@ -1290,6 +1294,7 @@ func Test_setLogConfig(t *testing.T) {
 			},
 			expectedLogCfg: dot.LogConfig{
 				CoreLvl:           log.Error,
+				DigestLvl:         log.Info,
 				SyncLvl:           log.Debug,
 				NetworkLvl:        log.Info,
 				RPCLvl:            log.Info,

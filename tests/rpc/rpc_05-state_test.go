@@ -5,7 +5,6 @@ package rpc
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -16,7 +15,7 @@ import (
 
 func TestStateRPCResponseValidation(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 
@@ -126,7 +125,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 
 func TestStateRPCAPI(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 
@@ -328,7 +327,7 @@ func TestStateRPCAPI(t *testing.T) {
 
 func TestRPCStructParamUnmarshal(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 

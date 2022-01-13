@@ -343,6 +343,12 @@ func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config,
 			levelPtr:  &logCfg.CoreLvl,
 		},
 		{
+			name:      "digest",
+			flagName:  LogDigestLevelFlag.Name,
+			tomlValue: tomlConfig.Log.DigestLvl,
+			levelPtr:  &logCfg.DigestLvl,
+		},
+		{
 			name:      "sync",
 			flagName:  LogSyncLevelFlag.Name,
 			tomlValue: tomlConfig.Log.SyncLvl,
