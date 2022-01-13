@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/big"
 	"net/http"
@@ -381,6 +382,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			t.Parallel()
 			telemetryBytes, err := json.Marshal(tt.message)
 			require.NoError(t, err)
+
+			fmt.Printf("%s\n---------\n", string(telemetryBytes))
 			assert.True(t, tt.expected.MatchString(string(telemetryBytes)))
 		})
 	}
