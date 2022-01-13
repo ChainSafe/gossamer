@@ -4,9 +4,7 @@
 package rpc
 
 import (
-	"fmt"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -18,7 +16,7 @@ import (
 
 func TestChainRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 
@@ -124,7 +122,7 @@ func TestChainRPC(t *testing.T) {
 
 func TestChainSubscriptionRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 

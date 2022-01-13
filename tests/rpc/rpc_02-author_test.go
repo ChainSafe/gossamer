@@ -6,7 +6,6 @@ package rpc
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -21,7 +20,7 @@ import (
 
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 
@@ -90,7 +89,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 func TestAuthorRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 
