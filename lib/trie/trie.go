@@ -494,17 +494,13 @@ func addAllKeys(parent Node, prefix []byte, keys [][]byte) [][]byte {
 
 // Get returns the value for key stored in the trie at the corresponding key
 func (t *Trie) Get(key []byte) []byte {
-	l := tryGet(t.root, key)
+	keyNibbles := codec.KeyLEToNibbles(key)
+	l := retrieve(t.root, keyNibbles)
 	if l == nil {
 		return nil
 	}
 
 	return l.Value
-}
-
-func tryGet(root node.Node, key []byte) *node.Leaf {
-	k := codec.KeyLEToNibbles(key)
-	return retrieve(root, k)
 }
 
 func retrieve(parent Node, key []byte) *node.Leaf {

@@ -159,13 +159,11 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 			} else if test.op == DEL {
 				trie.Delete(test.key)
 			} else if test.op == GETLEAF {
-				leaf := tryGet(trie.root, test.key)
-				if leaf == nil {
+				value := trie.Get(test.key)
+				if value == nil {
 					t.Errorf("Fail to get key %x: nil leaf", test.key)
-				} else if !bytes.Equal(leaf.Value, test.value) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, leaf.Value)
-				} else if !bytes.Equal(leaf.Key, test.pk) {
-					t.Errorf("Fail to get correct partial key %x with key %x: got %x", test.pk, test.key, leaf.Key)
+				} else if !bytes.Equal(value, test.value) {
+					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, value)
 				}
 			}
 		})
@@ -340,18 +338,18 @@ func TestGetPartialKey(t *testing.T) {
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: PUT},
 		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: PUT},
 		{key: []byte{}, value: []byte("floof"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), pk: []byte{9}, op: GETLEAF},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GETLEAF},
 		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: DEL},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), pk: []byte{0x9}, op: GETLEAF},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), pk: []byte{0x1, 0x3, 0x5}, op: GETLEAF},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GETLEAF},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GETLEAF},
 		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), pk: []byte{7}, op: GETLEAF},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: GETLEAF},
 		{key: []byte{0xf2}, value: []byte("pen"), op: PUT},
 		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: PUT},
 		{key: []byte{}, value: []byte("floof"), op: GET},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), pk: []byte{0x3, 0x5}, op: GETLEAF},
-		{key: []byte{0xf2}, value: []byte("pen"), pk: []byte{0x2}, op: GETLEAF},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), pk: []byte{0x0d, 0x03}, op: GETLEAF},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GETLEAF},
+		{key: []byte{0xf2}, value: []byte("pen"), op: GETLEAF},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: GETLEAF},
 	}
 
 	runTests(t, trie, tests)
