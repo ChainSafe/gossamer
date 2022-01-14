@@ -91,7 +91,6 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 		name   string
 		args   args
 		exp    bool
-		expErr error
 	}{
 		{
 			name: "happy path true",
@@ -113,11 +112,7 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := checkPrimaryThreshold(tt.args.randomness, tt.args.slot, tt.args.epoch,
 				tt.args.output, tt.args.threshold, tt.args.pub)
-			if tt.expErr != nil {
-				assert.EqualError(t, err, tt.expErr.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.NoError(t, err)
 			assert.Equal(t, tt.exp, res)
 		})
 	}

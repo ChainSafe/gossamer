@@ -22,7 +22,6 @@ func Test_getSecondarySlotAuthor(t *testing.T) {
 		name   string
 		args   args
 		exp    uint32
-		expErr error
 	}{
 		{
 			name: "happy path",
@@ -36,11 +35,7 @@ func Test_getSecondarySlotAuthor(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := getSecondarySlotAuthor(tt.args.slot, tt.args.numAuths, tt.args.randomness)
-			if tt.expErr != nil {
-				assert.EqualError(t, err, tt.expErr.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.NoError(t, err)
 			assert.Equal(t, tt.exp, res)
 		})
 	}

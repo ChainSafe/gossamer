@@ -22,7 +22,7 @@ func TestVerifySecondarySlotPlain(t *testing.T) {
 	err = verifySecondarySlotPlain(0, 77, 2, Randomness{})
 	require.NoError(t, err)
 
-	numAuths := 20
+	const numAuths = 20
 	numAuthorized := 0
 	for i := 0; i < numAuths; i++ {
 		err = verifySecondarySlotPlain(uint32(i), 77, numAuths, Randomness{})
@@ -58,7 +58,7 @@ func TestVerifySecondarySlotVRF(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 
-	numAuths := 20
+	const numAuths = 20
 	numAuthorized := 0
 	for i := 0; i < numAuths; i++ {
 		digest := createSecondaryVRFPreDigest(t, kp, uint32(i), slot, epoch, Randomness{})
