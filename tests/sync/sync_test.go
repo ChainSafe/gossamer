@@ -47,7 +47,7 @@ var checks = []checkDBCall{
 
 func TestMain(m *testing.M) {
 	if utils.MODE != "sync" {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
+		fmt.Println("Going to skip stress test")
 		return
 	}
 	fw, err := utils.InitFramework(3)

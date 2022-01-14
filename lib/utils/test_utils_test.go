@@ -22,20 +22,6 @@ func TestNewTestDir(t *testing.T) {
 	RemoveTestDir(t)
 }
 
-// TestNewTestBasePath tests the NewTestBasePath method
-func TestNewTestBasePath(t *testing.T) {
-	basePath := "test"
-
-	testDir := NewTestBasePath(t, basePath)
-
-	expected := path.Join(TestDir, t.Name(), basePath)
-
-	require.Equal(t, expected, testDir)
-	require.Equal(t, PathExists(testDir), true)
-
-	RemoveTestDir(t)
-}
-
 // TestRemoveTestDir tests the RemoveTestDir method
 func TestRemoveTestDir(t *testing.T) {
 	testDir := NewTestDir(t)

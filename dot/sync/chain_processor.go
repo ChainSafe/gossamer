@@ -39,12 +39,13 @@ type chainProcessor struct {
 	babeVerifier       BabeVerifier
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
+	telemetry          telemetry.Client
 }
 
 func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
 	blockState BlockState, storageState StorageState,
 	transactionState TransactionState, babeVerifier BabeVerifier,
-	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
+	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler, telemetry telemetry.Client) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
@@ -58,6 +59,7 @@ func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
 		babeVerifier:       babeVerifier,
 		finalityGadget:     finalityGadget,
 		blockImportHandler: blockImportHandler,
+		telemetry:          telemetry,
 	}
 }
 
@@ -247,13 +249,10 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	logger.Debugf("🔗 imported block number %s with hash %s", block.Header.Number, block.Header.Hash())
 
 	blockHash := block.Header.Hash()
-	err = telemetry.GetInstance().SendMessage(telemetry.NewBlockImportTM(
+	s.telemetry.SendMessage(telemetry.NewBlockImport(
 		&blockHash,
 		block.Header.Number,
 		"NetworkInitialSync"))
-	if err != nil {
-		logger.Debugf("problem sending block.import telemetry message: %s", err)
-	}
 
 	return nil
 }

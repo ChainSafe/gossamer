@@ -8,6 +8,8 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // TestDir test data directory
@@ -32,25 +34,16 @@ func NewTestDir(t *testing.T) string {
 
 // NewTestBasePath create new test data directory
 func NewTestBasePath(t *testing.T, name string) string {
-	testDir := path.Join(TestDir, t.Name())
-	basePath := path.Join(testDir, name)
+	t.Helper()
 
-	err := os.Mkdir(TestDir, os.ModePerm)
-	if err != nil && !PathExists(TestDir) {
-		fmt.Println(fmt.Errorf("failed to create test directory: %s", err))
-	}
+	tmpdir := t.TempDir()
+	basepathTmp := path.Join(tmpdir, t.Name(), name)
+	err := os.MkdirAll(basepathTmp, os.ModePerm)
 
-	err = os.Mkdir(testDir, os.ModePerm)
-	if err != nil && !PathExists(testDir) {
-		fmt.Println(fmt.Errorf("failed to create test directory: %s", err))
-	}
+	require.NoError(t, err)
+	require.True(t, PathExists(basepathTmp))
 
-	err = os.Mkdir(basePath, os.ModePerm)
-	if err != nil && !PathExists(basePath) {
-		fmt.Println(fmt.Errorf("failed to create test data directory: %s", err))
-	}
-
-	return basePath
+	return basepathTmp
 }
 
 // RemoveTestDir removes the test data directory

@@ -4,6 +4,7 @@
 package network
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -12,8 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
-
-//go:generate mockery --name BlockState --structname MockBlockState --case underscore --inpackage
 
 // BlockState interface for block state methods
 type BlockState interface {
@@ -24,8 +23,6 @@ type BlockState interface {
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
-
-//go:generate mockery --name Syncer --structname MockSyncer --case underscore --inpackage
 
 // Syncer is implemented by the syncing service
 type Syncer interface {
@@ -42,8 +39,6 @@ type Syncer interface {
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 }
 
-//go:generate mockery --name TransactionHandler --structname MockTransactionHandler --case underscore --inpackage
-
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {
 	HandleTransactionMessage(peer.ID, *TransactionMessage) (bool, error)
@@ -52,7 +47,7 @@ type TransactionHandler interface {
 
 // PeerSetHandler is the interface used by the connection manager to handle peerset.
 type PeerSetHandler interface {
-	Start()
+	Start(context.Context)
 	Stop()
 	ReportPeer(peerset.ReputationChange, ...peer.ID)
 	PeerAdd

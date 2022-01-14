@@ -4,6 +4,7 @@
 package network
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -18,9 +19,11 @@ import (
 )
 
 func TestExternalAddrs(t *testing.T) {
+	t.Parallel()
+
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node"),
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -46,10 +49,13 @@ func mustNewMultiAddr(s string) (a ma.Multiaddr) {
 }
 
 func TestExternalAddrsPublicIP(t *testing.T) {
+	t.Parallel()
+
+	port := availablePort(t)
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node"),
 		PublicIP:    "10.0.5.2",
-		Port:        7001,
+		Port:        port,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -71,8 +77,8 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 	}
 
 	expected := []ma.Multiaddr{
-		mustNewMultiAddr("/ip4/127.0.0.1/tcp/7001"),
-		mustNewMultiAddr("/ip4/10.0.5.2/tcp/7001"),
+		mustNewMultiAddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)),
+		mustNewMultiAddr(fmt.Sprintf("/ip4/10.0.5.2/tcp/%d", port)),
 	}
 	assert.Equal(t, addrInfo.Addrs, expected)
 }
@@ -99,11 +105,13 @@ func TestExternalAddrsPublicDNS(t *testing.T) {
 
 // test host connect method
 func TestConnect(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -115,7 +123,7 @@ func TestConnect(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -135,30 +143,19 @@ func TestConnect(t *testing.T) {
 	peerCountA := nodeA.host.peerCount()
 	peerCountB := nodeB.host.peerCount()
 
-	if peerCountA != 1 {
-		t.Error(
-			"node A does not have expected peer count",
-			"\nexpected:", 1,
-			"\nreceived:", peerCountA,
-		)
-	}
-
-	if peerCountB != 1 {
-		t.Error(
-			"node B does not have expected peer count",
-			"\nexpected:", 1,
-			"\nreceived:", peerCountB,
-		)
-	}
+	require.Equal(t, 1, peerCountA)
+	require.Equal(t, 1, peerCountB)
 }
 
 // test host bootstrap method on start
 func TestBootstrap(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -172,7 +169,7 @@ func TestBootstrap(t *testing.T) {
 
 	configB := &Config{
 		BasePath:  basePathB,
-		Port:      7002,
+		Port:      availablePort(t),
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
 	}
@@ -181,39 +178,26 @@ func TestBootstrap(t *testing.T) {
 	nodeB.noGossip = true
 
 	peerCountA := nodeA.host.peerCount()
-	peerCountB := nodeB.host.peerCount()
-
 	if peerCountA == 0 {
-		// check peerstore for disconnected peers
 		peerCountA := len(nodeA.host.h.Peerstore().Peers())
-		if peerCountA == 0 {
-			t.Error(
-				"node A does not have expected peer count",
-				"\nexpected:", "not zero",
-				"\nreceived:", peerCountA,
-			)
-		}
+		require.NotZero(t, peerCountA)
 	}
 
+	peerCountB := nodeB.host.peerCount()
 	if peerCountB == 0 {
-		// check peerstore for disconnected peers
 		peerCountB := len(nodeB.host.h.Peerstore().Peers())
-		if peerCountB == 0 {
-			t.Error(
-				"node B does not have expected peer count",
-				"\nexpected:", "not zero",
-				"\nreceived:", peerCountB,
-			)
-		}
+		require.NotZero(t, peerCountB)
 	}
 }
 
 // test host send method
 func TestSend(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -225,7 +209,7 @@ func TestSend(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -244,7 +228,8 @@ func TestSend(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	_, err = nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockRequestMessage)
+	testBlockReqMessage := newTestBlockRequestMessage(t)
+	_, err = nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockReqMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
@@ -252,15 +237,17 @@ func TestSend(t *testing.T) {
 	msg, ok := handler.messages[nodeA.host.id()]
 	require.True(t, ok)
 	require.Equal(t, 1, len(msg))
-	require.Equal(t, testBlockRequestMessage, msg[0])
+	require.Equal(t, testBlockReqMessage, msg[0])
 }
 
 // test host send method with existing stream
 func TestExistingStream(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -274,7 +261,7 @@ func TestExistingStream(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -293,36 +280,40 @@ func TestExistingStream(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	testBlockReqMessage := newTestBlockRequestMessage(t)
+
 	// node A opens the stream to send the first message
-	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockRequestMessage)
+	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockReqMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
 	require.NotNil(t, handlerB.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
 
 	// node A uses the stream to send a second message
-	err = nodeA.host.writeToStream(stream, testBlockRequestMessage)
+	err = nodeA.host.writeToStream(stream, testBlockReqMessage)
 	require.NoError(t, err)
 	require.NotNil(t, handlerB.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
 
 	// node B opens the stream to send the first message
-	stream, err = nodeB.host.send(addrInfoA.ID, nodeB.host.protocolID, testBlockRequestMessage)
+	stream, err = nodeB.host.send(addrInfoA.ID, nodeB.host.protocolID, testBlockReqMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
 	require.NotNil(t, handlerA.messages[nodeB.host.id()], "node A timeout waiting for message from node B")
 
 	// node B uses the stream to send a second message
-	err = nodeB.host.writeToStream(stream, testBlockRequestMessage)
+	err = nodeB.host.writeToStream(stream, testBlockReqMessage)
 	require.NoError(t, err)
 	require.NotNil(t, handlerA.messages[nodeB.host.id()], "node A timeout waiting for message from node B")
 }
 
 func TestStreamCloseMetadataCleanup(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -335,7 +326,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -354,9 +345,14 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	const (
+		roles           byte   = 4
+		bestBlockNumber uint32 = 77
+	)
+
 	testHandshake := &BlockAnnounceHandshake{
-		Roles:           4,
-		BestBlockNumber: 77,
+		Roles:           roles,
+		BestBlockNumber: bestBlockNumber,
 		BestBlockHash:   common.Hash{1},
 		GenesisHash:     nodeB.blockState.GenesisHash(),
 	}
@@ -389,10 +385,12 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 }
 
 func Test_PeerSupportsProtocol(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -402,7 +400,7 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -453,10 +451,12 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 }
 
 func Test_AddReservedPeers(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -467,7 +467,7 @@ func Test_AddReservedPeers(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -485,10 +485,12 @@ func Test_AddReservedPeers(t *testing.T) {
 }
 
 func Test_RemoveReservedPeers(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -499,7 +501,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -525,15 +527,17 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
 	require.False(t, isProtected)
 
-	err = nodeA.host.removeReservedPeers("failing peer ID")
+	err = nodeA.host.removeReservedPeers("unknown_perr_id")
 	require.Error(t, err)
 }
 
 func TestStreamCloseEOF(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -545,7 +549,7 @@ func TestStreamCloseEOF(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -565,7 +569,9 @@ func TestStreamCloseEOF(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockRequestMessage)
+	testBlockReqMessage := newTestBlockRequestMessage(t)
+
+	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockReqMessage)
 	require.NoError(t, err)
 	require.False(t, handler.exit)
 
@@ -579,10 +585,12 @@ func TestStreamCloseEOF(t *testing.T) {
 
 // Test to check the nodes connection by peer set manager
 func TestPeerConnect(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -596,7 +604,7 @@ func TestPeerConnect(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -618,11 +626,13 @@ func TestPeerConnect(t *testing.T) {
 
 // Test to check banned peer disconnection by peer set manager
 func TestBannedPeer(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -636,7 +646,7 @@ func TestBannedPeer(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -673,11 +683,13 @@ func TestBannedPeer(t *testing.T) {
 
 // Test to check reputation updated by peer set manager
 func TestPeerReputation(t *testing.T) {
+	t.Parallel()
+
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
 		BasePath:    basePathA,
-		Port:        7001,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -691,7 +703,7 @@ func TestPeerReputation(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    basePathB,
-		Port:        7002,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,

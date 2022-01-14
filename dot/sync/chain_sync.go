@@ -14,10 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/chaindb"
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -526,7 +527,7 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 	case bootstrap:
 		cs.handler = newBootstrapSyncer(cs.blockState)
 	case tip:
-		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.readyBlocks)
+		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.readyBlocks, cs.handleReadyBlock)
 	}
 
 	cs.state = mode
@@ -696,22 +697,38 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 	// response was validated! place into ready block queue
 	for _, bd := range resp.BlockData {
 		// block is ready to be processed!
-		handleReadyBlock(bd, cs.pendingBlocks, cs.readyBlocks)
+		cs.handleReadyBlock(bd)
 	}
 
 	return nil
 }
 
-func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue) {
-	// see if there are any descendents in the pending queue that are now ready to be processed,
-	// as we have just become aware of their parent block
+func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
+	if cs.readyBlocks.has(bd.Hash) {
+		logger.Tracef("ignoring block %s in response, already in ready queue", bd.Hash)
+		return
+	}
 
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
-		block := pendingBlocks.getBlock(bd.Hash)
+		block := cs.pendingBlocks.getBlock(bd.Hash)
 		if block == nil {
-			logger.Criticalf("block with unknown header is ready: hash=%s", bd.Hash)
+			// block wasn't in the pending set!
+			// let's check the db as maybe we already processed it
+			has, err := cs.blockState.HasHeader(bd.Hash)
+			if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+				logger.Debugf("failed to check if header is known for hash %s: %s", bd.Hash, err)
+				return
+			}
+
+			if has {
+				logger.Tracef("ignoring block we've already processed, hash=%s", bd.Hash)
+				return
+			}
+
+			// this is bad and shouldn't happen
+			logger.Errorf("block with unknown header is ready: hash=%s", bd.Hash)
 			return
 		}
 
@@ -719,18 +736,20 @@ func handleReadyBlock(bd *types.BlockData, pendingBlocks DisjointBlockSet, ready
 	}
 
 	if bd.Header == nil {
-		logger.Criticalf("new ready block number (unknown) with hash %s", bd.Hash)
+		logger.Errorf("new ready block number (unknown) with hash %s", bd.Hash)
 		return
 	}
 
 	logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)
 
+	// see if there are any descendents in the pending queue that are now ready to be processed,
+	// as we have just become aware of their parent block
 	ready := []*types.BlockData{bd}
-	ready = pendingBlocks.getReadyDescendants(bd.Hash, ready)
+	ready = cs.pendingBlocks.getReadyDescendants(bd.Hash, ready)
 
 	for _, rb := range ready {
-		pendingBlocks.removeBlock(rb.Hash)
-		readyBlocks.push(rb)
+		cs.pendingBlocks.removeBlock(rb.Hash)
+		cs.readyBlocks.push(rb)
 	}
 }
 

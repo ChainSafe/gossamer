@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/require"
@@ -90,6 +91,14 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
@@ -100,6 +109,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 		Authority:     true,
 		Network:       net,
 		Interval:      time.Second,
+		Telemetry:     telemetryMock,
 	}
 
 	gs, err := NewService(cfg)

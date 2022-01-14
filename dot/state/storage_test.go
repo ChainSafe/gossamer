@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
@@ -195,7 +197,14 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	_, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
-	blockState, err := NewBlockStateFromGenesis(db, genHeader)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(telemetry.NewNotifyFinalized(
+		genHeader.Hash(),
+		"0",
+	))
+
+	blockState, err := NewBlockStateFromGenesis(db, genHeader, telemetryMock)
 	require.NoError(t, err)
 
 	testChildTrie := trie.NewEmptyTrie()

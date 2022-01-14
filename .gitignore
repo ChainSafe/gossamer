@@ -9,6 +9,7 @@
 
 # Output of go coverage tool when used with LiteIDE
 *.out
+*.log
 
 /bin
 
