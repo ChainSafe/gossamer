@@ -130,6 +130,10 @@ issues:
       linters:
         - revive
 
+    - text: "exported: exported method [a-zA-Z]*.MarshalJSON should have comment or be unexported"
+      linters:
+        - revive
+
     - text: 'shadow: declaration of "err" shadows declaration*'
       linters:
         - govet

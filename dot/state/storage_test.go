@@ -10,9 +10,14 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
@@ -182,4 +187,59 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	require.Equal(t, 2, syncMapLen(storage.tries))
+}
+
+func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
+	// initialise database using data directory
+	basepath := t.TempDir()
+	db, err := utils.SetupDatabase(basepath, false)
+	require.NoError(t, err)
+
+	_, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(telemetry.NewNotifyFinalized(
+		genHeader.Hash(),
+		"0",
+	))
+
+	blockState, err := NewBlockStateFromGenesis(db, genHeader, telemetryMock)
+	require.NoError(t, err)
+
+	testChildTrie := trie.NewEmptyTrie()
+	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
+
+	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
+	require.NoError(t, err)
+
+	storage, err := NewStorageState(db, blockState, genTrie, pruner.Config{})
+	require.NoError(t, err)
+
+	trieState, err := runtime.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
+		common.Hash{}, big.NewInt(1), types.NewDigest())
+	require.NoError(t, err)
+
+	err = storage.StoreTrie(trieState, header)
+	require.NoError(t, err)
+
+	rootHash, err := genTrie.Hash()
+	require.NoError(t, err)
+
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	require.NoError(t, err)
+
+	// Clear trie from cache and fetch data from disk.
+	storage.tries.Delete(rootHash)
+
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	require.NoError(t, err)
+
+	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
+	require.NoError(t, err)
+
+	require.Equal(t, []byte("voila"), value)
 }

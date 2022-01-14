@@ -22,8 +22,8 @@ type networkVoteMessage struct {
 	msg  *VoteMessage
 }
 
-// receiveMessages receives messages from the in channel until the specified condition is met
-func (s *Service) receiveMessages(ctx context.Context) {
+// receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
+func (s *Service) receiveVoteMessages(ctx context.Context) {
 	for {
 		select {
 		case msg, ok := <-s.in:
@@ -40,32 +40,26 @@ func (s *Service) receiveMessages(ctx context.Context) {
 
 			switch vm.Message.Stage {
 			case prevote, primaryProposal:
-				err := telemetry.GetInstance().SendMessage(
-					telemetry.NewAfgReceivedPrevoteTM(
+				s.telemetry.SendMessage(
+					telemetry.NewAfgReceivedPrevote(
 						vm.Message.Hash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
 				)
-				if err != nil {
-					logger.Debugf("problem sending afg.received_prevote telemetry message: %s", err)
-				}
 			case precommit:
-				err := telemetry.GetInstance().SendMessage(
-					telemetry.NewAfgReceivedPrecommitTM(
+				s.telemetry.SendMessage(
+					telemetry.NewAfgReceivedPrecommit(
 						vm.Message.Hash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
 				)
-				if err != nil {
-					logger.Debugf("problem sending afg.received_precommit telemetry message: %s", err)
-				}
 			default:
 				logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
 			}
 
-			v, err := s.validateMessage(msg.from, vm)
+			v, err := s.validateVoteMessage(msg.from, vm)
 			if err != nil {
 				logger.Debugf("failed to validate vote message %v: %s", vm, err)
 				continue
@@ -122,9 +116,9 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 	return pc, vm, nil
 }
 
-// validateMessage validates a VoteMessage and adds it to the current votes
+// validateVoteMessage validates a VoteMessage and adds it to the current votes
 // it returns the resulting vote if validated, error otherwise
-func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
+func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	// make sure round does not increment while VoteMessage is being validated
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
@@ -153,7 +147,6 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 		return nil, err
 	}
 
-	// check that setIDs match
 	if m.SetID != s.state.setID {
 		return nil, ErrSetIDMismatch
 	}

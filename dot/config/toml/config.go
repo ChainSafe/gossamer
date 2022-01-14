@@ -29,6 +29,7 @@ type GlobalConfig struct {
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
 	CoreLvl           string `toml:"core,omitempty"`
+	DigestLvl         string `toml:"digest,omitempty"`
 	SyncLvl           string `toml:"sync,omitempty"`
 	NetworkLvl        string `toml:"network,omitempty"`
 	RPCLvl            string `toml:"rpc,omitempty"`

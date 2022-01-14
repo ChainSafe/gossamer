@@ -110,7 +110,7 @@ type PeersState struct {
 	// since, single Info can also manage the flow.
 	sets []Info
 
-	mu *sync.Mutex
+	mu sync.Mutex
 }
 
 func (ps *PeersState) getNode(p peer.ID) (*node, error) {
@@ -142,7 +142,6 @@ func NewPeerState(cfgs []*config) (*PeersState, error) {
 	peerState := &PeersState{
 		nodes: make(map[peer.ID]*node),
 		sets:  infoSet,
-		mu:    new(sync.Mutex),
 	}
 
 	return peerState, nil
@@ -211,7 +210,8 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 	return peerIDs
 }
 
-func (ps *PeersState) addReputation(pid peer.ID, change ReputationChange) (Reputation, error) {
+func (ps *PeersState) addReputation(pid peer.ID, change ReputationChange) (
+	newReputation Reputation, err error) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
@@ -220,10 +220,10 @@ func (ps *PeersState) addReputation(pid peer.ID, change ReputationChange) (Reput
 		return 0, err
 	}
 
-	rep := n.addReputation(change.Value)
+	newReputation = n.addReputation(change.Value)
 	ps.nodes[pid] = n
 
-	return rep, nil
+	return newReputation, nil
 }
 
 // highestNotConnectedPeer returns the peer with the highest Reputation and that we are not connected to.

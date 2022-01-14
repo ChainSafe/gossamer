@@ -12,10 +12,12 @@ import (
 	"testing"
 	"time"
 
-	mock "github.com/stretchr/testify/mock"
+	"github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
@@ -31,6 +33,8 @@ var TestBackoffTimeout = 5 * time.Second
 func failedToDial(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "failed to dial")
 }
+
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func createServiceHelper(t *testing.T, num int) []*Service {
 	t.Helper()
@@ -54,9 +58,39 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	return srvcs
 }
 
+func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
+	t.Helper()
+
+	const blockRequestSize = 128
+	msg := &BlockResponseMessage{
+		BlockData: make([]*types.BlockData, blockRequestSize),
+	}
+
+	for i := 0; i < blockRequestSize; i++ {
+		testHeader := &types.Header{
+			Number: big.NewInt(int64(77 + i)),
+			Digest: types.NewDigest(),
+		}
+
+		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
+
+		msg.BlockData[i] = &types.BlockData{
+			Hash:   testHeader.Hash(),
+			Header: testHeader,
+			Body:   body,
+		}
+	}
+
+	return msg
+}
+
+//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
+//go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
+
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	t.Helper()
+	ctrl := gomock.NewController(t)
 
 	if cfg == nil {
 		basePath := utils.NewTestBasePath(t, "node")
@@ -72,17 +106,38 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = NewMockBlockState(nil)
+		header := &types.Header{
+			ParentHash:     common.Hash{},
+			Number:         big.NewInt(1),
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         types.NewDigest(),
+		}
+
+		blockstate := NewMockBlockState(ctrl)
+
+		blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
+		blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
+		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
+		blockstate.EXPECT().BestBlockNumber().Return(big.NewInt(1), nil).AnyTimes()
+
+		blockstate.EXPECT().HasBlockBody(
+			gomock.AssignableToTypeOf(common.Hash([32]byte{}))).Return(false, nil).AnyTimes()
+		blockstate.EXPECT().GetHashByNumber(gomock.Any()).Return(common.Hash{}, nil).AnyTimes()
+
+		cfg.BlockState = blockstate
 	}
 
 	if cfg.TransactionHandler == nil {
-		mocktxhandler := &MockTransactionHandler{}
-		mocktxhandler.On("HandleTransactionMessage",
-			mock.AnythingOfType("peer.ID"),
-			mock.AnythingOfType("*network.TransactionMessage")).
-			Return(true, nil)
-		mocktxhandler.On("TransactionsCount").Return(0)
-		cfg.TransactionHandler = mocktxhandler
+		th := NewMockTransactionHandler(ctrl)
+		th.EXPECT().
+			HandleTransactionMessage(
+				gomock.AssignableToTypeOf(peer.ID("")),
+				gomock.Any()).
+			Return(true, nil).AnyTimes()
+
+		th.EXPECT().TransactionsCount().Return(0).AnyTimes()
+		cfg.TransactionHandler = th
 	}
 
 	cfg.SlotDuration = time.Second
@@ -93,7 +148,29 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = NewMockSyncer()
+		syncer := NewMockSyncer(ctrl)
+		syncer.EXPECT().
+			HandleBlockAnnounceHandshake(
+				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
+			Return(nil).AnyTimes()
+
+		syncer.EXPECT().
+			HandleBlockAnnounce(
+				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
+			Return(nil).AnyTimes()
+
+		syncer.EXPECT().
+			CreateBlockResponse(gomock.Any()).
+			Return(newTestBlockResponseMessage(t), nil).AnyTimes()
+
+		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
+		cfg.Syncer = syncer
+	}
+
+	if cfg.Telemetry == nil {
+		telemetryMock := NewMockClient(ctrl)
+		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+		cfg.Telemetry = telemetryMock
 	}
 
 	cfg.noPreAllocate = true
@@ -107,8 +184,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		srvc.Stop()
-		availablePorts.put(int(cfg.Port))
+		err := srvc.Stop()
+		require.NoError(t, err)
 	})
 	return srvc
 }
@@ -262,6 +339,7 @@ func TestService_NodeRoles(t *testing.T) {
 	cfg := &Config{
 		BasePath: basePath,
 		Roles:    1,
+		Port:     availablePort(t),
 	}
 	svc := createTestService(t, cfg)
 
@@ -271,6 +349,7 @@ func TestService_NodeRoles(t *testing.T) {
 
 func TestService_Health(t *testing.T) {
 	t.Parallel()
+	ctrl := gomock.NewController(t)
 
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
@@ -279,17 +358,17 @@ func TestService_Health(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
-	mocksyncer := &MockSyncer{}
-	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
+
+	syncer := NewMockSyncer(ctrl)
 
 	s := createTestService(t, config)
-	s.syncer = mocksyncer
+	s.syncer = syncer
 
-	mocksyncer.On("IsSynced").Return(false).Once()
+	syncer.EXPECT().IsSynced().Return(false)
 	h := s.Health()
 	require.Equal(t, true, h.IsSyncing)
 
-	mocksyncer.On("IsSynced").Return(true).Once()
+	syncer.EXPECT().IsSynced().Return(true)
 	h = s.Health()
 	require.Equal(t, false, h.IsSyncing)
 }
@@ -353,18 +432,19 @@ func TestHandleConn(t *testing.T) {
 func TestSerivceIsMajorSyncMetrics(t *testing.T) {
 	t.Parallel()
 
-	mocksyncer := new(MockSyncer)
+	ctrl := gomock.NewController(t)
+	mocksyncer := NewMockSyncer(ctrl)
 
 	node := &Service{
 		syncer: mocksyncer,
 	}
 
-	mocksyncer.On("IsSynced").Return(false).Once()
+	mocksyncer.EXPECT().IsSynced().Return(false)
 	m := node.CollectGauge()
 
 	require.Equal(t, int64(1), m[gssmrIsMajorSyncMetric])
 
-	mocksyncer.On("IsSynced").Return(true).Once()
+	mocksyncer.EXPECT().IsSynced().Return(true)
 	m = node.CollectGauge()
 
 	require.Equal(t, int64(0), m[gssmrIsMajorSyncMetric])

@@ -71,15 +71,6 @@ var (
 	other         Other
 	invalidCustom InvalidCustom
 	unknownCustom UnknownCustom
-
-	dispatchError = scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
-	invalid       = scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
-	unknown = scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
-
-	okRes  = scale.NewResult(nil, dispatchError)
-	errRes = scale.NewResult(invalid, unknown)
-	result = scale.NewResult(okRes, errRes)
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic
@@ -279,6 +270,15 @@ func determineErrType(vdt scale.VaryingDataType) error {
 }
 
 func determineErr(res []byte) error {
+	dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
+	invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
+	unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
+
+	okRes := scale.NewResult(nil, dispatchError)
+	errRes := scale.NewResult(invalid, unknown)
+	result := scale.NewResult(okRes, errRes)
+
 	err := scale.Unmarshal(res, &result)
 	if err != nil {
 		return &UnmarshalError{err.Error()}

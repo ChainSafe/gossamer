@@ -45,7 +45,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 		}},
 	}
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 250)
 	// called when register and called when store trie
 	mockobs.AssertNumberOfCalls(t, "GetFilter", 2)
 	mockobs.AssertNumberOfCalls(t, "Update", 1)

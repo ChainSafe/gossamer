@@ -84,6 +84,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
 			SyncLvl:           log.Info,
 			NetworkLvl:        log.Info,
 			RPCLvl:            log.Info,

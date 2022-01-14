@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,10 +36,14 @@ var genesisBABEConfig = &types.BabeConfiguration{
 }
 
 func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	db := state.NewInMemoryDB(t)
 
 	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader)
+	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
 	require.NoError(t, err)

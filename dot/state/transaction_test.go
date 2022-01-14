@@ -12,12 +12,17 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestTransactionState_Pending(t *testing.T) {
-	ts := NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	ts := NewTransactionState(telemetryMock)
 
 	txs := []*transaction.ValidTransaction{
 		{
@@ -67,7 +72,11 @@ func TestTransactionState_Pending(t *testing.T) {
 }
 
 func TestTransactionState_NotifierChannels(t *testing.T) {
-	ts := NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	ts := NewTransactionState(telemetryMock)
 
 	ext := types.Extrinsic{}
 	notifierChannel := ts.GetStatusNotifierChannel(ext)

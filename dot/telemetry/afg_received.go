@@ -3,74 +3,111 @@
 
 package telemetry
 
-import "github.com/ChainSafe/gossamer/lib/common"
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
 // AfG ("Al's Finality Gadget") is synonymous with GRANDPA.
 
 var (
-	_ Message = (*AfgReceivedPrecommitTM)(nil)
-	_ Message = (*AfgReceivedPrevoteTM)(nil)
-	_ Message = (*AfgReceivedCommitTM)(nil)
+	_ Message = (*AfgReceivedPrecommit)(nil)
+	_ Message = (*AfgReceivedPrevote)(nil)
+	_ Message = (*AfgReceivedCommit)(nil)
 )
 
-type afgReceivedTM struct {
+type afgReceived struct {
 	TargetHash   common.Hash `json:"target_hash"`
 	TargetNumber string      `json:"target_number"`
 	Voter        string      `json:"voter"`
 }
 
-// AfgReceivedPrecommitTM holds `afg.received_precommit` telemetry message which is
+// AfgReceivedPrecommit holds `afg.received_precommit` telemetry message which is
 // supposed to be sent when grandpa client receives a precommit.
-type AfgReceivedPrecommitTM afgReceivedTM
+type AfgReceivedPrecommit afgReceived
 
-// NewAfgReceivedPrecommitTM gets a new AfgReceivedPrecommitTM struct.
-func NewAfgReceivedPrecommitTM(targetHash common.Hash, targetNumber, voter string) *AfgReceivedPrecommitTM {
-	return &AfgReceivedPrecommitTM{
+// NewAfgReceivedPrecommit gets a new AfgReceivedPrecommitTM struct.
+func NewAfgReceivedPrecommit(targetHash common.Hash, targetNumber, voter string) *AfgReceivedPrecommit {
+	return &AfgReceivedPrecommit{
 		TargetHash:   targetHash,
 		TargetNumber: targetNumber,
 		Voter:        voter,
 	}
 }
 
-func (AfgReceivedPrecommitTM) messageType() string {
-	return afgReceivedPrecommitMsg
+func (afg AfgReceivedPrecommit) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		afgReceived
+		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
+	}{
+		Timestamp:   time.Now(),
+		MessageType: afgReceivedPrecommitMsg,
+		afgReceived: afgReceived(afg),
+	}
+
+	return json.Marshal(telemetryData)
 }
 
-// AfgReceivedPrevoteTM holds `afg.received_prevote` telemetry message which is
+// AfgReceivedPrevote holds `afg.received_prevote` telemetry message which is
 // supposed to be sent when grandpa client receives a prevote.
-type AfgReceivedPrevoteTM afgReceivedTM
+type AfgReceivedPrevote afgReceived
 
-// NewAfgReceivedPrevoteTM gets a new AfgReceivedPrevoteTM struct.
-func NewAfgReceivedPrevoteTM(targetHash common.Hash, targetNumber, voter string) *AfgReceivedPrevoteTM {
-	return &AfgReceivedPrevoteTM{
+// NewAfgReceivedPrevote gets a new AfgReceivedPrevote* struct.
+func NewAfgReceivedPrevote(targetHash common.Hash, targetNumber, voter string) *AfgReceivedPrevote {
+	return &AfgReceivedPrevote{
 		TargetHash:   targetHash,
 		TargetNumber: targetNumber,
 		Voter:        voter,
 	}
 }
 
-func (AfgReceivedPrevoteTM) messageType() string {
-	return afgReceivedPrevoteMsg
+func (afg AfgReceivedPrevote) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		afgReceived
+		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
+	}{
+		Timestamp:   time.Now(),
+		MessageType: afgReceivedPrevoteMsg,
+		afgReceived: afgReceived(afg),
+	}
+
+	return json.Marshal(telemetryData)
 }
 
-// AfgReceivedCommitTM holds `afg.received_commit` telemetry message which is
+type afgReceivedCommitTM AfgReceivedCommit
+
+// AfgReceivedCommit holds `afg.received_commit` telemetry message which is
 // supposed to be sent when grandpa client receives a commit.
-type AfgReceivedCommitTM struct {
+type AfgReceivedCommit struct {
 	TargetHash                 common.Hash `json:"target_hash"`
 	TargetNumber               string      `json:"target_number"`
 	ContainsPrecommitsSignedBy []string    `json:"contains_precommits_signed_by"`
 }
 
-// NewAfgReceivedCommitTM gets a new AfgReceivedCommitTM struct.
-func NewAfgReceivedCommitTM(targetHash common.Hash, targetNumber string,
-	containsPrecommitsSignedBy []string) *AfgReceivedCommitTM {
-	return &AfgReceivedCommitTM{
+// NewAfgReceivedCommit gets a new AfgReceivedCommit* struct.
+func NewAfgReceivedCommit(targetHash common.Hash, targetNumber string,
+	containsPrecommitsSignedBy []string) *AfgReceivedCommit {
+	return &AfgReceivedCommit{
 		TargetHash:                 targetHash,
 		TargetNumber:               targetNumber,
 		ContainsPrecommitsSignedBy: containsPrecommitsSignedBy,
 	}
 }
 
-func (AfgReceivedCommitTM) messageType() string {
-	return afgReceivedCommitMsg
+func (afg AfgReceivedCommit) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		afgReceivedCommitTM
+		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
+	}{
+		Timestamp:           time.Now(),
+		MessageType:         afgReceivedCommitMsg,
+		afgReceivedCommitTM: afgReceivedCommitTM(afg),
+	}
+
+	return json.Marshal(telemetryData)
 }

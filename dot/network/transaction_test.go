@@ -5,13 +5,14 @@ package network
 
 import (
 	"testing"
+	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,32 +29,36 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 	require.Equal(t, testHandshake, msg)
 }
 
+//go:generate mockgen -destination=mock_transaction_handler_test.go -package $GOPACKAGE . TransactionHandler
 func TestHandleTransactionMessage(t *testing.T) {
 	t.Parallel()
 
-	basePath := utils.NewTestBasePath(t, "nodeA")
-	mockhandler := &MockTransactionHandler{}
-	mockhandler.On("HandleTransactionMessage",
-		mock.AnythingOfType("peer.ID"),
-		mock.AnythingOfType("*network.TransactionMessage")).
+	expectedMsgArg := &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+
+	ctrl := gomock.NewController(t)
+	transactionHandler := NewMockTransactionHandler(ctrl)
+	transactionHandler.EXPECT().
+		HandleTransactionMessage(peer.ID(""), expectedMsgArg).
 		Return(true, nil)
-	mockhandler.On("TransactionsCount").Return(0)
+
+	transactionHandler.EXPECT().TransactionsCount().Return(0)
+
+	basePath := utils.NewTestBasePath(t, "nodeA")
 
 	config := &Config{
 		BasePath:           basePath,
 		Port:               availablePort(t),
 		NoBootstrap:        true,
 		NoMDNS:             true,
-		TransactionHandler: mockhandler,
+		TransactionHandler: transactionHandler,
+		telemetryInterval:  time.Hour,
 	}
 
 	s := createTestService(t, config)
+	ret, err := s.handleTransactionMessage(peer.ID(""), expectedMsgArg)
 
-	msg := &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
-	}
-
-	s.handleTransactionMessage(peer.ID(""), msg)
-	mockhandler.AssertCalled(t, "HandleTransactionMessage",
-		mock.AnythingOfType("peer.ID"), msg)
+	require.NoError(t, err)
+	require.True(t, ret)
 }
