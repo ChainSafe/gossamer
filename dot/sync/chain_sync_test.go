@@ -824,3 +824,189 @@ func TestChainSync_determineSyncPeers(t *testing.T) {
 	require.Equal(t, 1, len(peers))
 	require.Equal(t, []peer.ID{testPeerB}, peers)
 }
+
+func TestChainSync_highestBlock(t *testing.T) {
+	type input struct {
+		peerState map[peer.ID]*peerState
+	}
+	type output struct {
+		highestBlock int64
+		err          error
+	}
+	type test struct {
+		name string
+		in   input
+		out  output
+	}
+	tests := []test{
+		{
+			name: "when has an empty map should return 0, errNoPeers",
+			in: input{
+				peerState: map[peer.ID]*peerState{},
+			},
+			out: output{
+				highestBlock: int64(0),
+				err:          errNoPeers,
+			},
+		},
+		{
+			name: "when has a nil map should return 0, errNoPeers",
+			in: input{
+				peerState: map[peer.ID]*peerState{},
+			},
+			out: output{
+				highestBlock: int64(0),
+				err:          errNoPeers,
+			},
+		},
+		{
+			name: "when has only one peer with number 90 should return 90, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest": {
+						who:    "idtest#1",
+						hash:   common.BytesToHash([]byte("hash#1")),
+						number: big.NewInt(90),
+					},
+				},
+			},
+			out: output{
+				highestBlock: int64(90),
+				err:          nil,
+			},
+		},
+		{
+			name: "when has only one peer with number nil should return 0, errNilBlockData",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest": {
+						who:    "idtest#1",
+						hash:   common.BytesToHash([]byte("hash#1")),
+						number: nil,
+					},
+				},
+			},
+			out: output{
+				highestBlock: int64(0),
+				err:          errNilBlockData,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number 90 and p2.number 190 should return 190, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {
+						who:    "idtest#1",
+						hash:   common.BytesToHash([]byte("hash#1")),
+						number: big.NewInt(90),
+					},
+					"idtest#2": {
+						who:    "idtest#2",
+						hash:   common.BytesToHash([]byte("hash#2")),
+						number: big.NewInt(190),
+					},
+				},
+			},
+			out: output{
+				highestBlock: int64(190),
+				err:          nil,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number 190 and p2.number 90 should return 190, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {
+						who:    "idtest#1",
+						hash:   common.BytesToHash([]byte("hash#1")),
+						number: big.NewInt(190),
+					},
+					"idtest#2": {
+						who:    "idtest#2",
+						hash:   common.BytesToHash([]byte("hash#2")),
+						number: big.NewInt(90),
+					},
+				},
+			},
+			out: output{
+				highestBlock: int64(190),
+				err:          nil,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number nil and p2.number 90 should return 90, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {
+						who:    "idtest#1",
+						hash:   common.BytesToHash([]byte("hash#1")),
+						number: nil,
+					},
+					"idtest#2": {
+						who:    "idtest#2",
+						hash:   common.BytesToHash([]byte("hash#2")),
+						number: big.NewInt(90),
+					},
+				},
+			},
+			out: output{
+				highestBlock: int64(90),
+				err:          nil,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number 90 and p2.number nil should return 90, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {
+						who:    "idtest#1",
+						hash:   common.BytesToHash([]byte("hash#1")),
+						number: big.NewInt(90),
+					},
+					"idtest#2": {
+						who:    "idtest#2",
+						hash:   common.BytesToHash([]byte("hash#2")),
+						number: nil,
+					},
+				},
+			},
+			out: output{
+				highestBlock: int64(90),
+				err:          nil,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number nil and p2.number nil should return 0, errNilBlockData",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {
+						who:    "idtest#1",
+						hash:   common.BytesToHash([]byte("hash#1")),
+						number: nil,
+					},
+					"idtest#2": {
+						who:    "idtest#2",
+						hash:   common.BytesToHash([]byte("hash#2")),
+						number: nil,
+					},
+				},
+			},
+			out: output{
+				highestBlock: int64(0),
+				err:          errNilBlockData,
+			},
+		},
+	}
+
+	cs, _ := newTestChainSync(t) // just to improve tests performance
+
+	for _, ts := range tests {
+		t.Run(ts.name, func(t *testing.T) {
+			cs.peerState = ts.in.peerState
+
+			highestBlock, err := cs.getHighestBlock()
+			require.ErrorIsf(t, err, ts.out.err, ts.name)
+			require.Equalf(t, highestBlock, ts.out.highestBlock, ts.name)
+		})
+	}
+}
