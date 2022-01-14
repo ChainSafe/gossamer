@@ -1,9 +1,6 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-//go:build integration
-// +build integration
-
 package babe
 
 import (
@@ -19,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
@@ -146,8 +144,12 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 }
 
 func TestBuildBlock_ok(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &ServiceConfig{
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 		LogLvl:           log.Info,
 	}
 
@@ -196,8 +198,12 @@ func TestBuildBlock_ok(t *testing.T) {
 }
 
 func TestApplyExtrinsic(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &ServiceConfig{
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 		LogLvl:           log.Info,
 	}
 
@@ -287,8 +293,12 @@ func TestApplyExtrinsic(t *testing.T) {
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &ServiceConfig{
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 		LogLvl:           log.Info,
 	}
 
@@ -365,8 +375,13 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &ServiceConfig{
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 	}
 
 	var err error
