@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/dgraph-io/badger/v2" //nolint
+	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/badger/v2/pb"
 )
 
@@ -182,7 +182,7 @@ func (p *OfflinePruner) Prune() error {
 	stream := inputDB.NewStream()
 	stream.LogPrefix = fmt.Sprintf("Streaming DB to new DB at %s ", p.prunedDBPath)
 
-	stream.ChooseKey = func(item *badger.Item) bool { //nolint
+	stream.ChooseKey = func(item *badger.Item) bool {
 		key := string(item.Key())
 		// All the non storage keys will be streamed to new db.
 		if !strings.HasPrefix(key, storagePrefix) {

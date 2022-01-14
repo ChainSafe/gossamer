@@ -50,8 +50,8 @@ func (lm *leafMap) load(key Hash) (*node, error) {
 
 // Replace deletes the old node from the map and inserts the new one
 func (lm *leafMap) replace(oldNode, newNode *node) {
-	lm.Lock()         //nolint
-	defer lm.Unlock() //nolint
+	lm.Lock()
+	defer lm.Unlock()
 	lm.smap.Delete(oldNode.hash)
 	lm.store(newNode.hash, newNode)
 }
@@ -59,8 +59,8 @@ func (lm *leafMap) replace(oldNode, newNode *node) {
 // DeepestLeaf searches the stored leaves to the find the one with the greatest number.
 // If there are two leaves with the same number, choose the one with the earliest arrival time.
 func (lm *leafMap) deepestLeaf() *node {
-	lm.RLock()         //nolint
-	defer lm.RUnlock() //nolint
+	lm.RLock()
+	defer lm.RUnlock()
 
 	max := big.NewInt(-1)
 
@@ -104,8 +104,8 @@ func (lm *leafMap) deepestLeaf() *node {
 }
 
 func (lm *leafMap) toMap() map[common.Hash]*node {
-	lm.RLock()         //nolint
-	defer lm.RUnlock() //nolint
+	lm.RLock()
+	defer lm.RUnlock()
 
 	mmap := make(map[common.Hash]*node)
 
@@ -120,8 +120,8 @@ func (lm *leafMap) toMap() map[common.Hash]*node {
 }
 
 func (lm *leafMap) nodes() []*node {
-	lm.RLock()         //nolint
-	defer lm.RUnlock() //nolint
+	lm.RLock()
+	defer lm.RUnlock()
 
 	nodes := []*node{}
 

@@ -320,7 +320,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 	val := reflect.ValueOf(i)
 	var (
 		encode []byte
-		err    error //nolint
+		err    error
 	)
 
 	switch t := reflect.Indirect(val).Field(idx).Interface().(type) {
@@ -476,7 +476,7 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 
 	for _, strV := range storageVal {
 		for _, v := range strV {
-			var validatorAccID []byte //nolint
+			var validatorAccID []byte
 			switch t := v.(type) {
 			case string:
 				var nextKeyHash []byte

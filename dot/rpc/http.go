@@ -14,16 +14,16 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/go-playground/validator/v10" //nolint
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/rpc/v2" //nolint
+	"github.com/gorilla/rpc/v2"
 	"github.com/gorilla/websocket"
 )
 
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
 	logger       *log.Logger
-	rpcServer    *rpc.Server //nolint // Actual RPC call handler
+	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
 	wsConns      []*subscription.WSConn
 }
@@ -81,7 +81,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 
 	server := &HTTPServer{
 		logger:       logger,
-		rpcServer:    rpc.NewServer(), //nolint
+		rpcServer:    rpc.NewServer(),
 		serverConfig: cfg,
 	}
 
@@ -144,7 +144,7 @@ func (h *HTTPServer) Start() error {
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 
-	validate := validator.New() //nolint
+	validate := validator.New()
 	// Add custom validator for `common.Hash`
 	validate.RegisterCustomTypeFunc(common.HashValidator, common.Hash{})
 

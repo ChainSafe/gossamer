@@ -37,8 +37,8 @@ func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
 
 // GetFinalisedHeader returns the finalised block header by round and setID
 func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
-	bs.Lock()         //nolint
-	defer bs.Unlock() //nolint
+	bs.Lock()
+	defer bs.Unlock()
 
 	h, err := bs.GetFinalisedHash(round, setID)
 	if err != nil {
@@ -116,8 +116,8 @@ func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 
 // SetFinalisedHash sets the latest finalised block hash
 func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
-	bs.Lock()         //nolint
-	defer bs.Unlock() //nolint
+	bs.Lock()
+	defer bs.Unlock()
 
 	has, _ := bs.HasHeader(hash)
 	if !has {

@@ -285,7 +285,8 @@ var testCalls = []struct {
 	{[]byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
 		[]byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")}, // working request
 	{[]byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`),
-		[]byte(`{"error":{"code":-32000,"data":null,"message":"rpc error method unknown not found"},"id":2,"jsonrpc":"2.0"}` + "\n")}, // unknown method
+		[]byte(`{"error":{"code":-32000,"data":null,"message":"rpc error method unknown not found"},"id":2,
+"jsonrpc":"2.0"}` + "\n")}, // unknown method
 	{[]byte{},
 		[]byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n")}, // empty request
 	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`),

@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/go-playground/validator/v10" //nolint
-	"github.com/gorilla/rpc/v2"              //nolint
+	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/rpc/v2"
 	"github.com/jpillora/ipfilter"
 )
 
@@ -24,7 +24,7 @@ func LocalhostFilter() *ipfilter.IPFilter {
 }
 
 // LocalRequestOnly HTTP handler to restrict to only local connections
-func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error { //nolint
+func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
 	ip, _, err := net.SplitHostPort(r.Request.RemoteAddr)
 
 	if err != nil {
@@ -48,9 +48,9 @@ func snakeCaseFormat(method string) (string, error) {
 	return strings.Join([]string{service, funcName}, "_"), nil
 }
 
-func rpcValidator(cfg *HTTPServerConfig, validate *validator.Validate) func(r *rpc.RequestInfo, //nolint
+func rpcValidator(cfg *HTTPServerConfig, validate *validator.Validate) func(r *rpc.RequestInfo,
 	i interface{}) error {
-	return func(r *rpc.RequestInfo, v interface{}) error { //nolint
+	return func(r *rpc.RequestInfo, v interface{}) error {
 		var (
 			err       error
 			rpcmethod string
