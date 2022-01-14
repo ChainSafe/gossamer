@@ -5,46 +5,46 @@ package network
 
 import (
 	"bytes"
-	"net"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
-func availablePort(t *testing.T) uint16 {
-	t.Helper()
+const portsAmount = 200
 
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	require.NoError(t, err)
+// portQueue is a blocking port queue
+type portQueue chan uint16
 
-	l, err := net.ListenTCP("tcp", addr)
-	require.NoError(t, err)
-	defer l.Close()
-
-	port := l.Addr().(*net.TCPAddr).Port
-	return uint16(port)
+func (pq portQueue) put(p uint16) {
+	pq <- p
 }
 
-const portsAmount = 7100
-
-type portsQueue chan int
-
-func (p portsQueue) get() int {
-	return <-p
+func (pq portQueue) get() (port uint16) {
+	port = <-pq
+	return port
 }
 
-func (p portsQueue) put(port int) {
-	p <- port
-}
-
-var availablePorts portsQueue
+var availablePorts portQueue
 
 func init() {
-	availablePorts = make(portsQueue, portsAmount)
-	for port := 7001; port <= portsAmount; port++ {
-		availablePorts <- port
+	availablePorts = make(chan uint16, portsAmount)
+	const startAt = uint16(7500)
+	for port := startAt; port < portsAmount+startAt; port++ {
+		availablePorts.put(port)
 	}
+}
+
+// availablePort is test helper function that gets an available port and release the same port after test ends
+func availablePort(t *testing.T) uint16 {
+	t.Helper()
+	port := availablePorts.get()
+
+	t.Cleanup(func() {
+		availablePorts.put(port)
+	})
+
+	return port
 }
 
 // list of IPFS peers, for testing only

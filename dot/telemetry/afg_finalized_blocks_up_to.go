@@ -4,26 +4,41 @@
 package telemetry
 
 import (
+	"encoding/json"
+	"time"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var _ Message = (*AfgFinalizedBlocksUpToTM)(nil)
+type afgFinalizedBlocksUpToTM AfgFinalizedBlocksUpTo
 
-// AfgFinalizedBlocksUpToTM holds telemetry message of type `afg.finalized_blocks_up_to`,
+var _ Message = (*AfgFinalizedBlocksUpTo)(nil)
+
+// AfgFinalizedBlocksUpTo holds telemetry message of type `afg.finalized_blocks_up_to`,
 // which is supposed to be sent when GRANDPA client finalises new blocks.
-type AfgFinalizedBlocksUpToTM struct {
+type AfgFinalizedBlocksUpTo struct {
 	Hash   common.Hash `json:"hash"`
 	Number string      `json:"number"`
 }
 
-// NewAfgFinalizedBlocksUpToTM creates a new AfgFinalizedBlocksUpToTM struct.
-func NewAfgFinalizedBlocksUpToTM(hash common.Hash, number string) *AfgFinalizedBlocksUpToTM {
-	return &AfgFinalizedBlocksUpToTM{
+// NewAfgFinalizedBlocksUpTo creates a new AfgFinalizedBlocksUpToTM struct.
+func NewAfgFinalizedBlocksUpTo(hash common.Hash, number string) *AfgFinalizedBlocksUpTo {
+	return &AfgFinalizedBlocksUpTo{
 		Hash:   hash,
 		Number: number,
 	}
 }
 
-func (AfgFinalizedBlocksUpToTM) messageType() string {
-	return afgFinalizedBlocksUpToMsg
+func (afg AfgFinalizedBlocksUpTo) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		afgFinalizedBlocksUpToTM
+		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
+	}{
+		Timestamp:                time.Now(),
+		MessageType:              afgFinalizedBlocksUpToMsg,
+		afgFinalizedBlocksUpToTM: afgFinalizedBlocksUpToTM(afg),
+	}
+
+	return json.Marshal(telemetryData)
 }

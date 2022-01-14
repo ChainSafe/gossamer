@@ -4,7 +4,6 @@
 package polkadotjs_test
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -19,7 +18,7 @@ var polkadotSuite = "polkadot"
 
 func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	if utils.MODE != polkadotSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip polkadot.js/api suite tests")
+		t.Log("Going to skip polkadot.js/api suite tests")
 		return
 	}
 	t.Log("starting gossamer for polkadot.js/api tests...")

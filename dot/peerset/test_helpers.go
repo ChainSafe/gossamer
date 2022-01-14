@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -40,7 +41,7 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNodes, reservedPeers []pee
 	handler, err := NewPeerSetHandler(con)
 	require.NoError(t, err)
 
-	handler.Start()
+	handler.Start(context.Background())
 
 	handler.AddPeer(0, bootNodes...)
 	handler.AddReservedPeer(0, reservedPeers...)

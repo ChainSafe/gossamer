@@ -23,7 +23,12 @@ const (
 	txPoolImportMsg = "txpool.import"
 )
 
+// Client is the interface to send messages to telemetry servers
+type Client interface {
+	SendMessage(msg Message)
+}
+
 // Message interface for Message functions
 type Message interface {
-	messageType() string
+	MarshalJSON() ([]byte, error)
 }

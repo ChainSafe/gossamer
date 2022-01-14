@@ -15,12 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var (
-	// ErrInsufficientConnections occurs when BootstrapMailer is not able to connect to any endpoint
-	ErrInsufficientConnections = errors.New("insufficient connections")
-	ErrTimoutMessageSending    = errors.New("timeout sending telemetry message")
-)
-var messageQueue chan Message = make(chan Message, 256)
+var ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
 
 type telemetryConnection struct {
 	wsconn    *websocket.Conn
@@ -28,34 +23,46 @@ type telemetryConnection struct {
 	sync.Mutex
 }
 
-// Handler struct for holding telemetry related things
-type mailer struct {
-	messageQueue chan Message
-	connections  []*telemetryConnection
-	logger       log.LeveledLogger
+// Mailer can send messages to the telemetry servers.
+type Mailer struct {
+	*sync.Mutex
+
+	logger  log.LeveledLogger
+	enabled bool
+
+	connections []*telemetryConnection
 }
 
-func newMailer(logger log.LeveledLogger) *mailer {
-	return &mailer{
-		messageQueue: messageQueue,
-		logger:       logger,
+func newMailer(enabled bool, logger log.LeveledLogger) *Mailer {
+	mailer := &Mailer{
+		new(sync.Mutex),
+		logger,
+		enabled,
+		nil,
 	}
+
+	return mailer
 }
 
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
-func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) error {
-	const retryDelay = time.Second * 15
+func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, enabled bool, logger log.LeveledLogger) (
+	mailer *Mailer, err error) {
 
-	mailer := newMailer(logger)
+	mailer = newMailer(enabled, logger)
+	if !enabled {
+		return mailer, nil
+	}
 
 	for _, v := range conns {
 		const maxRetries = 5
+
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
 			conn, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
 				mailer.logger.Debugf("cannot dial telemetry endpoint %s (try %d of %d): %s",
 					v.Endpoint, connAttempts+1, maxRetries, err)
 
+				const retryDelay = time.Second * 15
 				timer := time.NewTimer(retryDelay)
 
 				select {
@@ -67,7 +74,7 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 						<-timer.C
 					}
 
-					return ctx.Err()
+					return nil, ctx.Err()
 				}
 			}
 
@@ -79,51 +86,23 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 		}
 	}
 
-	if len(mailer.connections) == 0 {
-		return ErrInsufficientConnections
-	}
-
-	go mailer.asyncShipment(ctx)
-	return nil
+	return mailer, nil
 }
 
 // SendMessage sends Message to connected telemetry listeners through messageReceiver
-func SendMessage(msg Message) error {
-	const messageTimeout = time.Second
+func (m *Mailer) SendMessage(msg Message) {
+	m.Lock()
+	defer m.Unlock()
 
-	timer := time.NewTimer(messageTimeout)
-
-	select {
-	case messageQueue <- msg:
-		if !timer.Stop() {
-			<-timer.C
-		}
-
-	case <-timer.C:
-		return ErrTimoutMessageSending
-	}
-	return nil
-}
-
-func (m *mailer) asyncShipment(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msg, ok := <-m.messageQueue:
-			if !ok {
-				return
-			}
-
-			go m.shipTelemetryMessage(msg)
-		}
+	if m.enabled {
+		go m.shipTelemetryMessage(msg)
 	}
 }
 
-func (m *mailer) shipTelemetryMessage(msg Message) {
-	msgBytes, err := msgToJSON(msg)
+func (m *Mailer) shipTelemetryMessage(msg Message) {
+	msgBytes, err := json.Marshal(msg)
 	if err != nil {
-		m.logger.Debugf("issue encoding telemetry message: %s", err)
+		m.logger.Debugf("issue encoding %T telemetry message: %s", msg, err)
 		return
 	}
 
@@ -133,29 +112,7 @@ func (m *mailer) shipTelemetryMessage(msg Message) {
 
 		err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 		if err != nil {
-			m.logger.Debugf("issue while sending telemetry message: %s", err)
+			m.logger.Debugf("issue while sending %T telemetry message: %s", msg, err)
 		}
 	}
-}
-
-func msgToJSON(message Message) ([]byte, error) {
-	messageBytes, err := json.Marshal(message)
-	if err != nil {
-		return nil, err
-	}
-
-	messageMap := make(map[string]interface{})
-	err = json.Unmarshal(messageBytes, &messageMap)
-	if err != nil {
-		return nil, err
-	}
-
-	messageMap["ts"] = time.Now()
-	messageMap["msg"] = message.messageType()
-
-	fullRes, err := json.Marshal(messageMap)
-	if err != nil {
-		return nil, err
-	}
-	return fullRes, nil
 }

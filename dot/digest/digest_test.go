@@ -17,16 +17,24 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
 func newTestHandler(t *testing.T) *Handler {
 	testDatadirPath := t.TempDir()
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
@@ -35,10 +43,13 @@ func newTestHandler(t *testing.T) *Handler {
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
+	err = stateSrvc.SetupBase()
+	require.NoError(t, err)
+
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
+	dh, err := NewHandler(log.Critical, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
 	return dh
 }

@@ -74,6 +74,8 @@ type Service struct {
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
 	neighbourMessage *NeighbourMessage // cached neighbour message
+
+	telemetry telemetry.Client
 }
 
 // Config represents a GRANDPA service configuration
@@ -87,6 +89,7 @@ type Config struct {
 	Keypair       *ed25519.Keypair
 	Authority     bool
 	Interval      time.Duration
+	Telemetry     telemetry.Client
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -166,13 +169,14 @@ func NewService(cfg *Config) (*Service, error) {
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
+		telemetry:          cfg.Telemetry,
 	}
 
 	if err := s.registerProtocol(); err != nil {
 		return nil, err
 	}
 
-	s.messageHandler = NewMessageHandler(s, s.blockState)
+	s.messageHandler = NewMessageHandler(s, s.blockState, cfg.Telemetry)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.paused.Store(false)
 	return s, nil
@@ -283,16 +287,13 @@ func (s *Service) sendTelemetryAuthoritySet() {
 		return
 	}
 
-	err = telemetry.SendMessage(
-		telemetry.NewAfgAuthoritySetTM(
+	s.telemetry.SendMessage(
+		telemetry.NewAfgAuthoritySet(
 			authorityID,
 			fmt.Sprint(s.state.setID),
 			string(authoritiesBytes),
 		),
 	)
-	if err != nil {
-		logger.Debugf("problem sending afg.authority_set telemetry message: %s", err)
-	}
 }
 
 func (s *Service) initiateRound() error {
@@ -483,7 +484,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	logger.Debug("receiving pre-vote messages...")
-	go s.receiveMessages(ctx)
+	go s.receiveVoteMessages(ctx)
 	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
@@ -507,6 +508,9 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
+	// roundComplete is a signal channel which is closed when the round completes
+	// (will receive the default value of channel's type), so we don't need to
+	// explicitly send a value.
 	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
@@ -550,6 +554,8 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
+	// Though this looks like we are sending messages multiple times,
+	// caching would make sure that they are being sent only once.
 	for {
 		if s.paused.Load().(bool) {
 			return
@@ -640,13 +646,10 @@ func (s *Service) attemptToFinalize() error {
 		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
 
-		err = telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpToTM(
+		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
 			s.head.Hash(),
 			s.head.Number.String(),
 		))
-		if err != nil {
-			logger.Debugf("problem sending `afg.finalized_blocks_up_to` telemetry message: %s", err)
-		}
 
 		return nil
 	}

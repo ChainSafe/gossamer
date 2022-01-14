@@ -5,7 +5,6 @@ package network
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"regexp"
 	"testing"
@@ -107,7 +106,6 @@ func TestBlockRequestString(t *testing.T) {
 	var blockRequestStringRegex = regexp.MustCompile(
 		`^\ABlockRequestMessage RequestedData=[0-9]* StartingBlock={[\[0-9(\s?)]+\]} EndBlockHash=0x[0-9]+ Direction=[0-9]* Max=[0-9]*\z$`) //nolint:lll
 
-	fmt.Println(bm.String())
 	match := blockRequestStringRegex.MatchString(bm.String())
 	require.True(t, match)
 }

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/chyeh/pubip"
 	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
@@ -99,12 +100,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		if err != nil {
 			return nil, err
 		}
-<<<<<<< HEAD
-	} else {
-		if strings.TrimSpace(publicIP) != "" {
-			logger.Debugf("got public IP", "IP", publicIP)
-			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", publicIP, cfg.Port))
-=======
 	case strings.TrimSpace(cfg.PublicDNS) != "":
 		logger.Debugf("using config PublicDNS: %s", cfg.PublicDNS)
 		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/dns/%s/tcp/%d", cfg.PublicDNS, cfg.Port))
@@ -118,7 +113,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		} else {
 			logger.Debugf("got public IP address %s", ip)
 			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
->>>>>>> development
 			if err != nil {
 				return nil, err
 			}

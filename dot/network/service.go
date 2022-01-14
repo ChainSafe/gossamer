@@ -89,6 +89,8 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
+
+	telemetry telemetry.Client
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -163,6 +165,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
+		telemetry:              cfg.Telemetry,
 	}
 
 	return network, err
@@ -385,18 +388,14 @@ func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
-main:
 	for {
 		select {
 		case <-done:
-			break main
+			return
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			err := telemetry.SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
-			if err != nil {
-				logger.Debugf("problem sending system.interval telemetry message: %s", err)
-			}
+			s.telemetry.SendMessage(telemetry.NewBandwidth(o.RateIn, o.RateOut, s.host.peerCount()))
 		}
 	}
 }
@@ -415,7 +414,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		finalizedHash := finalised.Hash()
 
-		err = telemetry.SendMessage(telemetry.NewBlockIntervalTM(
+		s.telemetry.SendMessage(telemetry.NewBlockInterval(
 			&bestHash,
 			best.Number,
 			&finalizedHash,
@@ -423,9 +422,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))
-		if err != nil {
-			logger.Debugf("problem sending system.interval telemetry message: %s", err)
-		}
+
 		time.Sleep(s.telemetryInterval)
 	}
 }
@@ -653,7 +650,7 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 }
 
 func (s *Service) startPeerSetHandler() {
-	s.host.cm.peerSetHandler.Start()
+	s.host.cm.peerSetHandler.Start(s.ctx)
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()

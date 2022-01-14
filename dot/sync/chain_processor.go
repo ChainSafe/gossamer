@@ -39,12 +39,13 @@ type chainProcessor struct {
 	babeVerifier       BabeVerifier
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
+	telemetry          telemetry.Client
 }
 
 func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
 	blockState BlockState, storageState StorageState,
 	transactionState TransactionState, babeVerifier BabeVerifier,
-	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
+	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler, telemetry telemetry.Client) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
@@ -58,6 +59,7 @@ func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
 		babeVerifier:       babeVerifier,
 		finalityGadget:     finalityGadget,
 		blockImportHandler: blockImportHandler,
+		telemetry:          telemetry,
 	}
 }
 
@@ -83,16 +85,18 @@ func (s *chainProcessor) processReadyBlocks() {
 		}
 
 		if err := s.processBlockData(bd); err != nil {
-			logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
-
 			// depending on the error, we might want to save this block for later
-			if errors.Is(err, errFailedToGetParent) {
-				if err := s.pendingBlocks.addBlock(&types.Block{
-					Header: *bd.Header,
-					Body:   *bd.Body,
-				}); err != nil {
-					logger.Debugf("failed to re-add block to pending blocks: %s", err)
-				}
+			if !errors.Is(err, errFailedToGetParent) {
+				logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
+				continue
+			}
+
+			logger.Tracef("block data processing for block with hash %s failed: %s", bd.Hash, err)
+			if err := s.pendingBlocks.addBlock(&types.Block{
+				Header: *bd.Header,
+				Body:   *bd.Body,
+			}); err != nil {
+				logger.Debugf("failed to re-add block to pending blocks: %s", err)
 			}
 		}
 	}
@@ -167,7 +171,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if err := s.handleBlock(block); err != nil {
-			logger.Errorf("failed to handle block number %s: %s", block.Header.Number, err)
+			logger.Debugf("failed to handle block number %s: %s", block.Header.Number, err)
 			return err
 		}
 
@@ -247,13 +251,10 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	logger.Debugf("🔗 imported block number %s with hash %s", block.Header.Number, block.Header.Hash())
 
 	blockHash := block.Header.Hash()
-	err = telemetry.SendMessage(telemetry.NewBlockImportTM(
+	s.telemetry.SendMessage(telemetry.NewBlockImport(
 		&blockHash,
 		block.Header.Number,
 		"NetworkInitialSync"))
-	if err != nil {
-		logger.Debugf("problem sending block.import telemetry message: %s", err)
-	}
 
 	return nil
 }
