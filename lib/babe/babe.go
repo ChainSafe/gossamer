@@ -54,6 +54,8 @@ type Service struct {
 	// State variables
 	sync.RWMutex
 	pause chan struct{}
+
+	telemetry telemetry.Client
 }
 
 // ServiceConfig represents a BABE configuration
@@ -70,6 +72,7 @@ type ServiceConfig struct {
 	IsDev              bool
 	Authority          bool
 	Lead               bool
+	Telemetry          telemetry.Client
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -108,6 +111,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
 		lead:               cfg.Lead,
+		telemetry:          cfg.Telemetry,
 	}
 
 	epoch, err := cfg.EpochState.GetCurrentEpoch()
@@ -539,15 +543,12 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		"built block with parent hash %s, header %s and body %s",
 		parent.Hash(), block.Header.String(), block.Body)
 
-	err = telemetry.GetInstance().SendMessage(
-		telemetry.NewPreparedBlockForProposingTM(
+	b.telemetry.SendMessage(
+		telemetry.NewPreparedBlockForProposing(
 			block.Header.Hash(),
 			block.Header.Number.String(),
 		),
 	)
-	if err != nil {
-		logger.Debugf("problem sending 'prepared_block_for_proposing' telemetry message: %s", err)
-	}
 
 	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
 		logger.Warnf("failed to import built block: %s", err)

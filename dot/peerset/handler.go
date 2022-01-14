@@ -4,6 +4,8 @@
 package peerset
 
 import (
+	"context"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -12,6 +14,8 @@ type Handler struct {
 	actionQueue chan<- action
 	peerSet     *PeerSet
 	closeCh     chan struct{}
+
+	cancelCtx context.CancelFunc
 }
 
 // NewPeerSetHandler creates a new *peerset.Handler.
@@ -113,11 +117,15 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 }
 
 // Start starts peerSet processing
-func (h *Handler) Start() {
+func (h *Handler) Start(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	h.cancelCtx = cancel
+
 	actionCh := make(chan action, msgChanSize)
 	h.closeCh = make(chan struct{})
 	h.actionQueue = actionCh
-	h.peerSet.start(actionCh)
+
+	h.peerSet.start(ctx, actionCh)
 }
 
 // SortedPeers return chan for sorted connected peer in the peerSet.
@@ -137,8 +145,8 @@ func (h *Handler) Stop() {
 	select {
 	case <-h.closeCh:
 	default:
+		h.cancelCtx()
 		close(h.closeCh)
 		close(h.actionQueue)
-		h.peerSet.stop()
 	}
 }

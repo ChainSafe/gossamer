@@ -16,6 +16,8 @@ import (
 )
 
 func TestMessageCache(t *testing.T) {
+	t.Parallel()
+
 	cacheSize := 64 << 20 // 64 MB
 	msgCache, err := newMessageCache(ristretto.Config{
 		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
@@ -45,7 +47,6 @@ func TestMessageCache(t *testing.T) {
 	ok = msgCache.exists(peerID, msg)
 	require.True(t, ok)
 
-	// TODO: Cache has issues with timeout. https://discuss.dgraph.io/t/setwithttl-doesnt-work/14192
 	time.Sleep(3 * time.Second)
 
 	ok = msgCache.exists(peerID, msg)
@@ -53,6 +54,8 @@ func TestMessageCache(t *testing.T) {
 }
 
 func TestMessageCacheError(t *testing.T) {
+	t.Parallel()
+
 	cacheSize := 64 << 20 // 64 MB
 	msgCache, err := newMessageCache(ristretto.Config{
 		NumCounters: int64(float64(cacheSize) * 0.05 * 2),

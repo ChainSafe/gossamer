@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -61,10 +62,12 @@ type BlockState struct {
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
 	pruneKeyCh chan *types.Header
+
+	telemetry telemetry.Client
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, telemetry telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
@@ -74,6 +77,7 @@ func NewBlockState(db chaindb.Database) (*BlockState, error) {
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		telemetry:                  telemetry,
 	}
 
 	gh, err := bs.db.Get(headerHashKey(0))
@@ -95,7 +99,8 @@ func NewBlockState(db chaindb.Database) (*BlockState, error) {
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
+func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header,
+	telemetryMailer telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
@@ -107,6 +112,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),
+		telemetry:                  telemetryMailer,
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
