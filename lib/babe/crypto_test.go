@@ -88,9 +88,9 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 		pub        *sr25519.PublicKey
 	}
 	tests := []struct {
-		name   string
-		args   args
-		exp    bool
+		name string
+		args args
+		exp  bool
 	}{
 		{
 			name: "happy path true",

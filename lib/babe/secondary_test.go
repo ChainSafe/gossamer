@@ -19,9 +19,9 @@ func Test_getSecondarySlotAuthor(t *testing.T) {
 		randomness Randomness
 	}
 	tests := []struct {
-		name   string
-		args   args
-		exp    uint32
+		name string
+		args args
+		exp  uint32
 	}{
 		{
 			name: "happy path",
