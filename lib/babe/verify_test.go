@@ -63,7 +63,7 @@ func encodeAndHashHeader(t *testing.T, header *types.Header) common.Hash {
 }
 
 func newTestVerifier(t *testing.T, kp *sr25519.Keypair, blockState BlockState,
-	threshold *scale.Uint128, secSlots bool) (*verifier, error) {
+	threshold *scale.Uint128, secSlots bool) *verifier {
 	t.Helper()
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
@@ -72,7 +72,9 @@ func newTestVerifier(t *testing.T, kp *sr25519.Keypair, blockState BlockState,
 		threshold:      threshold,
 		secondarySlots: secSlots,
 	}
-	return newVerifier(blockState, 1, info)
+	verifier, err := newVerifier(blockState, 1, info)
+	require.NoError(t, err)
+	return verifier
 }
 
 func Test_getAuthorityIndex(t *testing.T) {
@@ -566,9 +568,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babePrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header3 := newTestHeader(t, *babePrd, testInvalidSeal)
-
-	babeVerifier, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
-	assert.NoError(t, err)
+	babeVerifier := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 
 	// Case 4: Invalid signature - BabePrimaryPreDigest
 	babePrd2, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
@@ -576,9 +576,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	header4 := newTestHeader(t, *babePrd2)
 
 	signAndAddSeal(t, kp, header4, []byte{1})
-
-	babeVerifier2, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
-	assert.NoError(t, err)
+	babeVerifier2 := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 
 	// Case 5: Invalid signature - BabeSecondaryPlainPreDigest
 	babeSecPlainPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
@@ -586,9 +584,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	header5 := newTestHeader(t, *babeSecPlainPrd)
 
 	signAndAddSeal(t, kp, header5, []byte{1})
-
-	babeVerifier3, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
-	assert.NoError(t, err)
+	babeVerifier3 := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
 
 	// Case 6: Invalid signature - BabeSecondaryVrfPreDigest
 	encSecVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
@@ -596,9 +592,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	header6 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encSecVrfDigest))
 
 	signAndAddSeal(t, kp, header6, []byte{1})
-
-	babeVerifier4, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
-	assert.NoError(t, err)
+	babeVerifier4 := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
 
 	// Case 7: GetAuthorityIndex Err
 	babeParentPrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
@@ -614,17 +608,13 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	hash := encodeAndHashHeader(t, header7)
 	signAndAddSeal(t, kp, header7, hash[:])
-
-	babeVerifier5, err := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
-	assert.NoError(t, err)
+	babeVerifier5 := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 
 	//// Case 8: Get header error
-	babeVerifier6, err := newTestVerifier(t, kp, mockBlockStateErr, scale.MaxUint128, false)
-	assert.NoError(t, err)
+	babeVerifier6 := newTestVerifier(t, kp, mockBlockStateErr, scale.MaxUint128, false)
 
 	// Case 9: Equivocate case primary
-	babeVerifier7, err := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
-	assert.NoError(t, err)
+	babeVerifier7 := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
 
 	// Case 10: Equivocate case secondary plain
 	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
@@ -633,9 +623,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	hash2 := encodeAndHashHeader(t, header8)
 	signAndAddSeal(t, kp, header8, hash2[:])
-
-	babeVerifier8, err := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
-	assert.NoError(t, err)
+	babeVerifier8 := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 
 	// Case 11: equivocation case secondary VRF
 	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
@@ -644,9 +632,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	hash3 := encodeAndHashHeader(t, header9)
 	signAndAddSeal(t, kp, header9, hash3[:])
-
-	babeVerifier9, err := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
-	assert.NoError(t, err)
+	babeVerifier9 := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
 
 	tests := []struct {
 		name     string
