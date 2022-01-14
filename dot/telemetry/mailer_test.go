@@ -63,14 +63,14 @@ func TestHandler_SendMulti(t *testing.T) {
 		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"origin":"NetworkInitialSync","msg":"block.import","ts":`),                                                                                                                      //nolint:lll
 		[]byte(`{"bandwidth_download":2,"bandwidth_upload":3,"peers":1,"msg":"system.interval","ts":`),
 		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":32375,"finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"txcount":0,"used_state_cache_size":1234,"msg":"system.interval","ts":`), //nolint:lll
-		[]byte(`{"best":[7,183,73,182,226,15,213,241,21,145,83,162,231,144,35,80,24,98,29,208,96,114,166,43,205,37,232,87,111,111,245,230],"height":"32375","msg":"notify.finalized","ts":`),                                                                                                        //nolint:lll
-		[]byte(`{"hash":[88,20,174,195,226,133,39,248,31,101,132,30,3,72,114,243,163,3,55,207,108,51,178,210,88,187,166,7,30,55,226,124],"number":"1","msg":"prepared_block_for_proposing","ts":`),                                                                                                  //nolint:lll
+		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":"32375","msg":"notify.finalized","ts":`),                                                                                                                                                      //nolint:lll
+		[]byte(`{"hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","number":"1","msg":"prepared_block_for_proposing","ts":`),                                                                                                                                              //nolint:lll
 		[]byte(`{"ready":1,"future":2,"msg":"txpool.import","ts":`),
-		[]byte(`{"authority_id":"authority_id","authority_set_id":"authority_set_id","authorities":"json-stringified-ids-of-authorities","msg":"afg.authority_set","ts`),                                                                   //nolint:lll
-		[]byte(`{"hash":[7,183,73,182,226,15,213,241,21,145,83,162,231,144,35,80,24,98,29,208,96,114,166,43,205,37,232,87,111,111,245,230],"number":"1","msg":"afg.finalized_blocks_up_to","ts":`),                                         //nolint:lll
-		[]byte(`{"target_hash":[88,20,174,195,226,133,39,248,31,101,132,30,3,72,114,243,163,3,55,207,108,51,178,210,88,187,166,7,30,55,226,124],"target_number":"1","contains_precommits_signed_by":[],"msg":"afg.received_commit","ts":`), //nolint:lll
-		[]byte(`{"target_hash":[88,20,174,195,226,133,39,248,31,101,132,30,3,72,114,243,163,3,55,207,108,51,178,210,88,187,166,7,30,55,226,124],"target_number":"1","voter":"","msg":"afg.received_precommit","ts":`),                      //nolint:lll
-		[]byte(`{"target_hash":[88,20,174,195,226,133,39,248,31,101,132,30,3,72,114,243,163,3,55,207,108,51,178,210,88,187,166,7,30,55,226,124],"target_number":"1","voter":"","msg":"afg.received_prevote","ts":`),                        //nolint:lll
+		[]byte(`{"authority_id":"authority_id","authority_set_id":"authority_set_id","authorities":"json-stringified-ids-of-authorities","msg":"afg.authority_set","ts`),                       //nolint:lll
+		[]byte(`{"hash":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","number":"1","msg":"afg.finalized_blocks_up_to","ts":`),                                           //nolint:lll
+		[]byte(`{"target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","contains_precommits_signed_by":[],"msg":"afg.received_commit","ts":`), //nolint:lll
+		[]byte(`{"target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","voter":"","msg":"afg.received_precommit","ts":`),                      //nolint:lll
+		[]byte(`{"target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","voter":"","msg":"afg.received_prevote","ts":`),                        //nolint:lll
 	}
 
 	messages := []Message{
@@ -95,23 +95,34 @@ func TestHandler_SendMulti(t *testing.T) {
 		),
 
 		NewAfgAuthoritySet("authority_id", "authority_set_id", "json-stringified-ids-of-authorities"),
-		NewAfgFinalizedBlocksUpTo(
-			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"), "1"),
-		NewAfgReceivedCommit(
-			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
+
+		func(hash common.Hash, number string) Message {
+			return NewAfgFinalizedBlocksUpTo(&hash, number)
+		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"), "1"),
+
+		func(targetHash common.Hash, targetNumber string, containsPrecommitsSignedBy []string) Message {
+			return NewAfgReceivedCommit(&targetHash, targetNumber, containsPrecommitsSignedBy)
+		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", []string{}),
-		NewAfgReceivedPrecommit(
-			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
-			"1", ""),
-		NewAfgReceivedPrevote(
-			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
+
+		func(targetHash common.Hash, targetNumber string, voter string) Message {
+			return NewAfgReceivedPrecommit(&targetHash, targetNumber, voter)
+		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", ""),
 
-		NewNotifyFinalized(
-			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
+		func(targetHash common.Hash, targetNumber string, voter string) Message {
+			return NewAfgReceivedPrevote(&targetHash, targetNumber, voter)
+		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
+			"1", ""),
+
+		func(best common.Hash, height string) Message {
+			return NewNotifyFinalized(&best, height)
+		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
 			"32375"),
-		NewPreparedBlockForProposing(
-			common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
+
+		func(hash common.Hash, number string) Message {
+			return NewPreparedBlockForProposing(&hash, number)
+		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1"),
 	}
 
@@ -259,44 +270,40 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 		},
 		"AfgFinalizedBlocksUpTo_marshal": {
 			message: &AfgFinalizedBlocksUpTo{
-				Hash:   common.Hash{},
+				Hash:   &common.Hash{},
 				Number: "0",
 			},
-			expected: regexp.MustCompile(`^{"hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
-				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"number":"0",` +
+			expected: regexp.MustCompile(`^{"hash":"0x[0]{64}","number":"0",` +
 				`"msg":"afg.finalized_blocks_up_to","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
 				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
 		},
 		"AfgReceivedPrecommit_marshal": {
 			message: &AfgReceivedPrecommit{
-				TargetHash:   common.Hash{},
+				TargetHash:   &common.Hash{},
 				TargetNumber: "0",
 				Voter:        "0x0",
 			},
-			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
-				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","voter":"0x0",` +
+			expected: regexp.MustCompile(`^{"target_hash":"0x[0]{64}","target_number":"0","voter":"0x0",` +
 				`"msg":"afg.received_precommit","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
 				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
 		},
 		"AfgReceivedPrevoteTM_marshal": {
 			message: &AfgReceivedPrevote{
-				TargetHash:   common.Hash{},
+				TargetHash:   &common.Hash{},
 				TargetNumber: "0",
 				Voter:        "0x0",
 			},
-			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
-				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","voter":"0x0",` +
+			expected: regexp.MustCompile(`^{"target_hash":"0x[0]{64}","target_number":"0","voter":"0x0",` +
 				`"msg":"afg.received_prevote","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
 				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
 		},
 		"AfgReceivedCommit_marshal": {
 			message: &AfgReceivedCommit{
-				TargetHash:                 common.Hash{},
+				TargetHash:                 &common.Hash{},
 				TargetNumber:               "0",
 				ContainsPrecommitsSignedBy: []string{"0x0", "0x1"},
 			},
-			expected: regexp.MustCompile(`^{"target_hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
-				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"target_number":"0","contains_precommits_signed_by":\["0x0","0x1"\],` +
+			expected: regexp.MustCompile(`^{"target_hash":"0x[0]{64}","target_number":"0","contains_precommits_signed_by":\["0x0","0x1"\],` +
 				`"msg":"afg.received_commit","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
 				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
 		},
@@ -312,21 +319,19 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 		},
 		"NotifyFinalized_marshal": {
 			message: &NotifyFinalized{
-				Best:   common.Hash{},
+				Best:   &common.Hash{},
 				Height: "0",
 			},
-			expected: regexp.MustCompile(`^{"best":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
-				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"height":"0",` +
+			expected: regexp.MustCompile(`^{"best":"0x[0]{64}","height":"0",` +
 				`"msg":"notify.finalized","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
 				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
 		},
 		"PreparedBlockForProposing_marshal": {
 			message: &PreparedBlockForProposing{
-				Hash:   common.Hash{},
+				Hash:   &common.Hash{},
 				Number: "0",
 			},
-			expected: regexp.MustCompile(`^{"hash":\[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,` +
-				`0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\],"number":"0",` +
+			expected: regexp.MustCompile(`^{"hash":"0x[0]{64}","number":"0",` +
 				`"msg":"prepared_block_for_proposing","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
 				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
 		},

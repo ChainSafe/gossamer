@@ -196,11 +196,12 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	_, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genHash := genHeader.Hash()
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(telemetry.NewNotifyFinalized(
-		genHeader.Hash(),
+		&genHash,
 		"0",
 	))
 

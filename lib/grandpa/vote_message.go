@@ -42,7 +42,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 			case prevote, primaryProposal:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrevote(
-						vm.Message.Hash,
+						&vm.Message.Hash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
@@ -50,7 +50,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 			case precommit:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrecommit(
-						vm.Message.Hash,
+						&vm.Message.Hash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),

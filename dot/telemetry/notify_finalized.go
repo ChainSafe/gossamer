@@ -17,13 +17,13 @@ var _ Message = (*NotifyFinalized)(nil)
 // NotifyFinalized holds `notify.finalized` telemetry message, which is
 // supposed to be send when a new block gets finalised.
 type NotifyFinalized struct {
-	Best common.Hash `json:"best"`
+	Best *common.Hash `json:"best"`
 	// Height is same as block.Header.Number
 	Height string `json:"height"`
 }
 
 // NewNotifyFinalized gets a new NotifyFinalizedTM struct.
-func NewNotifyFinalized(best common.Hash, height string) *NotifyFinalized {
+func NewNotifyFinalized(best *common.Hash, height string) *NotifyFinalized {
 	return &NotifyFinalized{
 		Best:   best,
 		Height: height,

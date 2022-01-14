@@ -17,13 +17,13 @@ var _ Message = (*PreparedBlockForProposing)(nil)
 // PreparedBlockForProposing holds a 'prepared_block_for_proposing' telemetry
 // message, which is supposed to be sent when a new block is built.
 type PreparedBlockForProposing struct {
-	Hash common.Hash `json:"hash"`
+	Hash *common.Hash `json:"hash"`
 	// Height of the chain, Block.Header.Number
 	Number string `json:"number"`
 }
 
 // NewPreparedBlockForProposing gets a new PreparedBlockForProposingTM struct.
-func NewPreparedBlockForProposing(hash common.Hash, number string) *PreparedBlockForProposing {
+func NewPreparedBlockForProposing(hash *common.Hash, number string) *PreparedBlockForProposing {
 	return &PreparedBlockForProposing{
 		Hash:   hash,
 		Number: number,

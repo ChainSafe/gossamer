@@ -17,12 +17,12 @@ var _ Message = (*AfgFinalizedBlocksUpTo)(nil)
 // AfgFinalizedBlocksUpTo holds telemetry message of type `afg.finalized_blocks_up_to`,
 // which is supposed to be sent when GRANDPA client finalises new blocks.
 type AfgFinalizedBlocksUpTo struct {
-	Hash   common.Hash `json:"hash"`
-	Number string      `json:"number"`
+	Hash   *common.Hash `json:"hash"`
+	Number string       `json:"number"`
 }
 
 // NewAfgFinalizedBlocksUpTo creates a new AfgFinalizedBlocksUpToTM struct.
-func NewAfgFinalizedBlocksUpTo(hash common.Hash, number string) *AfgFinalizedBlocksUpTo {
+func NewAfgFinalizedBlocksUpTo(hash *common.Hash, number string) *AfgFinalizedBlocksUpTo {
 	return &AfgFinalizedBlocksUpTo{
 		Hash:   hash,
 		Number: number,
