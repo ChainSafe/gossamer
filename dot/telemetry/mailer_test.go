@@ -116,12 +116,12 @@ func TestHandler_SendMulti(t *testing.T) {
 			"1", ""),
 
 		func(best common.Hash, height string) Message {
-			return NewNotifyFinalized(&best, height)
+			return NewNotifyFinalized(best, height)
 		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
 			"32375"),
 
 		func(hash common.Hash, number string) Message {
-			return NewPreparedBlockForProposing(&hash, number)
+			return NewPreparedBlockForProposing(hash, number)
 		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1"),
 	}
@@ -320,7 +320,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 		},
 		"NotifyFinalized_marshal": {
 			message: &NotifyFinalized{
-				Best:   &common.Hash{},
+				Best:   common.Hash{},
 				Height: "0",
 			},
 			expected: regexp.MustCompile(`^{"best":"0x[0]{64}","height":"0",` +
@@ -329,7 +329,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 		},
 		"PreparedBlockForProposing_marshal": {
 			message: &PreparedBlockForProposing{
-				Hash:   &common.Hash{},
+				Hash:   common.Hash{},
 				Number: "0",
 			},
 			expected: regexp.MustCompile(`^{"hash":"0x[0]{64}","number":"0",` +

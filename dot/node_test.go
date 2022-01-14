@@ -201,9 +201,8 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 
-	bestHash := common.MustHexToHash("0x336743aadf42654d4ef91294b61a167c9ed8a42f7f327d08d1e3c99541047392")
 	expectedArg := &telemetry.NotifyFinalized{
-		Best:   &bestHash,
+		Best:   common.MustHexToHash("0x336743aadf42654d4ef91294b61a167c9ed8a42f7f327d08d1e3c99541047392"),
 		Height: "0",
 	}
 
