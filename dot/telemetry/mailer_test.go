@@ -97,21 +97,21 @@ func TestHandler_SendMulti(t *testing.T) {
 		NewAfgAuthoritySet("authority_id", "authority_set_id", "json-stringified-ids-of-authorities"),
 
 		func(hash common.Hash, number string) Message {
-			return NewAfgFinalizedBlocksUpTo(&hash, number)
+			return NewAfgFinalizedBlocksUpTo(hash, number)
 		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"), "1"),
 
 		func(targetHash common.Hash, targetNumber string, containsPrecommitsSignedBy []string) Message {
-			return NewAfgReceivedCommit(&targetHash, targetNumber, containsPrecommitsSignedBy)
+			return NewAfgReceivedCommit(targetHash, targetNumber, containsPrecommitsSignedBy)
 		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", []string{}),
 
 		func(targetHash common.Hash, targetNumber string, voter string) Message {
-			return NewAfgReceivedPrecommit(&targetHash, targetNumber, voter)
+			return NewAfgReceivedPrecommit(targetHash, targetNumber, voter)
 		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", ""),
 
 		func(targetHash common.Hash, targetNumber string, voter string) Message {
-			return NewAfgReceivedPrevote(&targetHash, targetNumber, voter)
+			return NewAfgReceivedPrevote(targetHash, targetNumber, voter)
 		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
 			"1", ""),
 
@@ -270,7 +270,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 		},
 		"AfgFinalizedBlocksUpTo_marshal": {
 			message: &AfgFinalizedBlocksUpTo{
-				Hash:   &common.Hash{},
+				Hash:   common.Hash{},
 				Number: "0",
 			},
 			expected: regexp.MustCompile(`^{"hash":"0x[0]{64}","number":"0",` +
@@ -279,7 +279,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 		},
 		"AfgReceivedPrecommit_marshal": {
 			message: &AfgReceivedPrecommit{
-				TargetHash:   &common.Hash{},
+				TargetHash:   common.Hash{},
 				TargetNumber: "0",
 				Voter:        "0x0",
 			},
@@ -289,7 +289,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 		},
 		"AfgReceivedPrevoteTM_marshal": {
 			message: &AfgReceivedPrevote{
-				TargetHash:   &common.Hash{},
+				TargetHash:   common.Hash{},
 				TargetNumber: "0",
 				Voter:        "0x0",
 			},
@@ -299,7 +299,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 		},
 		"AfgReceivedCommit_marshal": {
 			message: &AfgReceivedCommit{
-				TargetHash:                 &common.Hash{},
+				TargetHash:                 common.Hash{},
 				TargetNumber:               "0",
 				ContainsPrecommitsSignedBy: []string{"0x0", "0x1"},
 			},

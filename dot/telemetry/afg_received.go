@@ -19,9 +19,9 @@ var (
 )
 
 type afgReceived struct {
-	TargetHash   *common.Hash `json:"target_hash"`
-	TargetNumber string       `json:"target_number"`
-	Voter        string       `json:"voter"`
+	TargetHash   common.Hash `json:"target_hash"`
+	TargetNumber string      `json:"target_number"`
+	Voter        string      `json:"voter"`
 }
 
 // AfgReceivedPrecommit holds `afg.received_precommit` telemetry message which is
@@ -29,7 +29,7 @@ type afgReceived struct {
 type AfgReceivedPrecommit afgReceived
 
 // NewAfgReceivedPrecommit gets a new AfgReceivedPrecommitTM struct.
-func NewAfgReceivedPrecommit(targetHash *common.Hash, targetNumber, voter string) *AfgReceivedPrecommit {
+func NewAfgReceivedPrecommit(targetHash common.Hash, targetNumber, voter string) *AfgReceivedPrecommit {
 	return &AfgReceivedPrecommit{
 		TargetHash:   targetHash,
 		TargetNumber: targetNumber,
@@ -56,7 +56,7 @@ func (afg AfgReceivedPrecommit) MarshalJSON() ([]byte, error) {
 type AfgReceivedPrevote afgReceived
 
 // NewAfgReceivedPrevote gets a new AfgReceivedPrevote* struct.
-func NewAfgReceivedPrevote(targetHash *common.Hash, targetNumber, voter string) *AfgReceivedPrevote {
+func NewAfgReceivedPrevote(targetHash common.Hash, targetNumber, voter string) *AfgReceivedPrevote {
 	return &AfgReceivedPrevote{
 		TargetHash:   targetHash,
 		TargetNumber: targetNumber,
@@ -83,13 +83,13 @@ type afgReceivedCommitTM AfgReceivedCommit
 // AfgReceivedCommit holds `afg.received_commit` telemetry message which is
 // supposed to be sent when grandpa client receives a commit.
 type AfgReceivedCommit struct {
-	TargetHash                 *common.Hash `json:"target_hash"`
-	TargetNumber               string       `json:"target_number"`
-	ContainsPrecommitsSignedBy []string     `json:"contains_precommits_signed_by"`
+	TargetHash                 common.Hash `json:"target_hash"`
+	TargetNumber               string      `json:"target_number"`
+	ContainsPrecommitsSignedBy []string    `json:"contains_precommits_signed_by"`
 }
 
 // NewAfgReceivedCommit gets a new AfgReceivedCommit* struct.
-func NewAfgReceivedCommit(targetHash *common.Hash, targetNumber string,
+func NewAfgReceivedCommit(targetHash common.Hash, targetNumber string,
 	containsPrecommitsSignedBy []string) *AfgReceivedCommit {
 	return &AfgReceivedCommit{
 		TargetHash:                 targetHash,
