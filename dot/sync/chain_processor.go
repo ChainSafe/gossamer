@@ -85,16 +85,18 @@ func (s *chainProcessor) processReadyBlocks() {
 		}
 
 		if err := s.processBlockData(bd); err != nil {
-			logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
-
 			// depending on the error, we might want to save this block for later
-			if errors.Is(err, errFailedToGetParent) {
-				if err := s.pendingBlocks.addBlock(&types.Block{
-					Header: *bd.Header,
-					Body:   *bd.Body,
-				}); err != nil {
-					logger.Debugf("failed to re-add block to pending blocks: %s", err)
-				}
+			if !errors.Is(err, errFailedToGetParent) {
+				logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
+				continue
+			}
+
+			logger.Tracef("block data processing for block with hash %s failed: %s", bd.Hash, err)
+			if err := s.pendingBlocks.addBlock(&types.Block{
+				Header: *bd.Header,
+				Body:   *bd.Body,
+			}); err != nil {
+				logger.Debugf("failed to re-add block to pending blocks: %s", err)
 			}
 		}
 	}
@@ -169,7 +171,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if err := s.handleBlock(block); err != nil {
-			logger.Errorf("failed to handle block number %s: %s", block.Header.Number, err)
+			logger.Debugf("failed to handle block number %s: %s", block.Header.Number, err)
 			return err
 		}
 
