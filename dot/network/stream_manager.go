@@ -11,8 +11,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 )
 
-var cleanupStreamInterval = time.Minute
-
 type streamData struct {
 	lastReceivedMessage time.Time
 	stream              network.Stream
@@ -23,20 +21,22 @@ type streamData struct {
 // This prevents keeping stale streams open and continuously trying to
 // read from it, which takes up lots of CPU over time.
 type streamManager struct {
-	ctx           context.Context
-	streamDataMap *sync.Map //map[string]*streamData
+	ctx                   context.Context
+	streamDataMap         *sync.Map //map[string]*streamData
+	cleanupStreamInterval time.Duration
 }
 
-func newStreamManager(ctx context.Context) *streamManager {
+func newStreamManager(ctx context.Context, cleanupStreamInterval time.Duration) *streamManager {
 	return &streamManager{
-		ctx:           ctx,
-		streamDataMap: new(sync.Map),
+		ctx:                   ctx,
+		streamDataMap:         new(sync.Map),
+		cleanupStreamInterval: cleanupStreamInterval,
 	}
 }
 
 func (sm *streamManager) start() {
 	go func() {
-		ticker := time.NewTicker(cleanupStreamInterval)
+		ticker := time.NewTicker(sm.cleanupStreamInterval)
 		defer ticker.Stop()
 
 		for {
@@ -56,7 +56,7 @@ func (sm *streamManager) cleanupStreams() {
 		lastReceived := sdata.lastReceivedMessage
 		stream := sdata.stream
 
-		if time.Since(lastReceived) > cleanupStreamInterval {
+		if time.Since(lastReceived) > sm.cleanupStreamInterval {
 			_ = stream.Close()
 			sm.streamDataMap.Delete(id)
 		}

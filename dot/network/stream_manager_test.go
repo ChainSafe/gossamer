@@ -18,19 +18,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, []*streamManager) {
+func setupStreamManagerTest(t *testing.T, cleanupStreamInterval time.Duration) (context.Context, []libp2phost.Host, []*streamManager) {
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	cleanupStreamInterval = time.Millisecond * 500
 	t.Cleanup(func() {
-		cleanupStreamInterval = time.Minute
 		cancel()
 	})
 
-	smA := newStreamManager(ctx)
-	smB := newStreamManager(ctx)
+	smA := newStreamManager(ctx, cleanupStreamInterval)
+	smB := newStreamManager(ctx, cleanupStreamInterval)
 
 	portA := availablePort(t)
 	portB := availablePort(t)
@@ -66,7 +64,9 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 func TestStreamManager(t *testing.T) {
 	t.Parallel()
 
-	ctx, hosts, sms := setupStreamManagerTest(t)
+	const interval = time.Millisecond * 50
+	ctx, hosts, sms := setupStreamManagerTest(t, interval)
+
 	ha, hb := hosts[0], hosts[1]
 	smA, smB := sms[0], sms[1]
 
@@ -77,7 +77,7 @@ func TestStreamManager(t *testing.T) {
 	smA.start()
 	smB.start()
 
-	time.Sleep(cleanupStreamInterval * 2)
+	time.Sleep(interval * 2)
 	connsAToB := ha.Network().ConnsToPeer(hb.ID())
 	require.GreaterOrEqual(t, len(connsAToB), 1)
 	require.Equal(t, 0, len(connsAToB[0].GetStreams()))
@@ -89,7 +89,9 @@ func TestStreamManager(t *testing.T) {
 
 func TestStreamManager_KeepStream(t *testing.T) {
 	t.Skip() // TODO: test is flaky (#1026)
-	ctx, hosts, sms := setupStreamManagerTest(t)
+	const interval = time.Millisecond * 50
+
+	ctx, hosts, sms := setupStreamManagerTest(t, interval)
 	ha, hb := hosts[0], hosts[1]
 	smA, smB := sms[0], sms[1]
 
@@ -100,7 +102,7 @@ func TestStreamManager_KeepStream(t *testing.T) {
 	smA.start()
 	smB.start()
 
-	time.Sleep(cleanupStreamInterval / 3)
+	time.Sleep(interval / 3)
 	connsAToB := ha.Network().ConnsToPeer(hb.ID())
 	require.GreaterOrEqual(t, len(connsAToB), 1)
 	require.Equal(t, 1, len(connsAToB[0].GetStreams()))

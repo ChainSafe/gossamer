@@ -146,6 +146,9 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 	bufPool := newSizedBufferPool(preAllocateInPool, poolSize)
 
+	const cleanupStreamInterval = time.Minute
+	streamManager := newStreamManager(ctx, cleanupStreamInterval)
+
 	network := &Service{
 		ctx:                    ctx,
 		cancel:                 cancel,
@@ -163,7 +166,7 @@ func NewService(cfg *Config) (*Service, error) {
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
-		streamManager:          newStreamManager(ctx),
+		streamManager:          streamManager,
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		telemetry:              cfg.Telemetry,
 	}
