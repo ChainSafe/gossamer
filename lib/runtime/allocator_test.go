@@ -17,13 +17,13 @@ func newMemoryMock(size uint32) *mockMemory {
 	m := new(mockMemory)
 	testobj := make([]byte, size)
 
-	m.On("Data").Return(testobj) //nolint
-	lengthcall := m.On("Length") //nolint
+	m.On("Data").Return(testobj)
+	lengthcall := m.On("Length")
 	lengthcall.RunFn = func(args mock.Arguments) {
 		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
 	}
 
-	growcall := m.On("Grow", mock.Anything) //nolint
+	growcall := m.On("Grow", mock.Anything)
 	growcall.RunFn = func(args mock.Arguments) {
 		arg := args[0].(uint32)
 		testobj = append(testobj, make([]byte, PageSize*arg)...)

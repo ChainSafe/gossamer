@@ -53,11 +53,11 @@ func (*Instance) GetCodeHash() common.Hash {
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
 func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
-	if cfg.Storage == nil { //nolint
+	if cfg.Storage == nil {
 		return nil, errors.New("storage is nil")
 	}
 
-	code := cfg.Storage.LoadCode() //nolint
+	code := cfg.Storage.LoadCode()
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in state")
 	}
@@ -87,7 +87,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, errors.New("code is empty")
 	}
 
-	logger.Patch(log.SetLevel(cfg.LogLvl)) //nolint
+	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	vmCfg := exec.VMConfig{
 		DefaultMemoryPages: 23,
@@ -106,13 +106,13 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	allocator := runtime.NewAllocator(memory, 0)
 
 	runtimeCtx := &runtime.Context{
-		Storage:     cfg.Storage, //nolint
+		Storage:     cfg.Storage,
 		Allocator:   allocator,
-		Keystore:    cfg.Keystore,        //nolint
-		Validator:   cfg.Role == byte(4), //nolint
-		NodeStorage: cfg.NodeStorage,     //nolint
-		Network:     cfg.Network,         //nolint
-		Transaction: cfg.Transaction,     //nolint
+		Keystore:    cfg.Keystore,
+		Validator:   cfg.Role == byte(4),
+		NodeStorage: cfg.NodeStorage,
+		Network:     cfg.Network,
+		Transaction: cfg.Transaction,
 		SigVerifier: crypto.NewSignatureVerifier(logger),
 	}
 

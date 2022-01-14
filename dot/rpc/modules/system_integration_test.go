@@ -410,7 +410,7 @@ func TestLocalListenAddresses(t *testing.T) {
 
 	mockedNetState := common.NetworkState{
 		PeerID:     "fake-peer-id",
-		Multiaddrs: []multiaddr.Multiaddr{ma}, //nolint
+		Multiaddrs: []multiaddr.Multiaddr{ma},
 	}
 
 	mockNetAPI := new(mocks.NetworkAPI)
@@ -427,7 +427,7 @@ func TestLocalListenAddresses(t *testing.T) {
 	require.Len(t, res, 1)
 	require.Equal(t, res[0], ma.String())
 
-	mockNetAPI.On("NetworkState").Return(common.NetworkState{Multiaddrs: []multiaddr.Multiaddr{}}).Once() //nolint
+	mockNetAPI.On("NetworkState").Return(common.NetworkState{Multiaddrs: []multiaddr.Multiaddr{}}).Once()
 	err = sysmodule.LocalListenAddresses(nil, nil, &res)
 	require.Error(t, err, "multiaddress list is empty")
 }

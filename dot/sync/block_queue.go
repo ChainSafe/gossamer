@@ -28,9 +28,9 @@ func newBlockQueue(cap int) *blockQueue {
 
 // push pushes an item into the queue. it blocks if the queue is at capacity.
 func (q *blockQueue) push(bd *types.BlockData) {
-	q.Lock() //nolint
+	q.Lock()
 	q.blocks[bd.Hash] = bd
-	q.Unlock() //nolint
+	q.Unlock()
 
 	q.ch <- bd
 }
@@ -38,15 +38,15 @@ func (q *blockQueue) push(bd *types.BlockData) {
 // pop pops an item from the queue. it blocks if the queue is empty.
 func (q *blockQueue) pop() *types.BlockData {
 	bd := <-q.ch
-	q.Lock() //nolint
+	q.Lock()
 	delete(q.blocks, bd.Hash)
-	q.Unlock() //nolint
+	q.Unlock()
 	return bd
 }
 
 func (q *blockQueue) has(hash common.Hash) bool {
-	q.RLock()         //nolint
-	defer q.RUnlock() //nolint
+	q.RLock()
+	defer q.RUnlock()
 	_, has := q.blocks[hash]
 	return has
 }

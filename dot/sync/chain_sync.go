@@ -185,9 +185,9 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 func (cs *chainSync) start() {
 	// wait until we have received at least `minPeers` peer heads
 	for {
-		cs.RLock() //nolint
+		cs.RLock()
 		n := len(cs.peerState)
-		cs.RUnlock() //nolint
+		cs.RUnlock()
 		if n >= cs.minPeers {
 			break
 		}
@@ -242,9 +242,9 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		hash:   hash,
 		number: number,
 	}
-	cs.Lock() //nolint
+	cs.Lock()
 	cs.peerState[p] = ps
-	cs.Unlock() //nolint
+	cs.Unlock()
 
 	// if the peer reports a lower or equal best block number than us,
 	// check if they are on a fork or not
@@ -376,9 +376,9 @@ func (cs *chainSync) ignorePeer(who peer.ID) {
 		return
 	}
 
-	cs.Lock() //nolint
+	cs.Lock()
 	cs.ignorePeers[who] = struct{}{}
-	cs.Unlock() //nolint
+	cs.Unlock()
 }
 
 func (cs *chainSync) sync() {
@@ -535,8 +535,8 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 // head block number, it would leave us in bootstrap mode forever
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
 func (cs *chainSync) getTarget() *big.Int {
-	cs.RLock()         //nolint
-	defer cs.RUnlock() //nolint
+	cs.RLock()
+	defer cs.RUnlock()
 
 	// in practice, this shouldn't happen, as we only start the module once we have some peer states
 	if len(cs.peerState) == 0 {
@@ -756,18 +756,18 @@ func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersT
 		start = req.StartingBlock.Uint64()
 	}
 
-	cs.RLock()         //nolint
-	defer cs.RUnlock() //nolint
+	cs.RLock()
+	defer cs.RUnlock()
 
 	// if we're currently ignoring all our peers, clear out the list.
 	if len(cs.peerState) == len(cs.ignorePeers) {
-		cs.RUnlock() //nolint
-		cs.Lock()    //nolint
+		cs.RUnlock()
+		cs.Lock()
 		for p := range cs.ignorePeers {
 			delete(cs.ignorePeers, p)
 		}
-		cs.Unlock() //nolint
-		cs.RLock()  //nolint
+		cs.Unlock()
+		cs.RLock()
 	}
 
 	peers := make([]peer.ID, 0, len(cs.peerState))

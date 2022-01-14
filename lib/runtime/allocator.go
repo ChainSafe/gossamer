@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/bits" //nolint
+	"math/bits"
 )
 
 // This module implements a freeing-bump allocator

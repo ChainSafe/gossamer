@@ -44,7 +44,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 	for _, tx := range txs {
 		err = func() error {
 			s.storageState.Lock()
-			defer s.storageState.Unlock() //nolint
+			defer s.storageState.Unlock()
 
 			ts, err := s.storageState.TrieState(&head.StateRoot)
 			if err != nil {

@@ -4,7 +4,7 @@
 package node
 
 import (
-	"bytes" //nolint
+	"bytes"
 
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"

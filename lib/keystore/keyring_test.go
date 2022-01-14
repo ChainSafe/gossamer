@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519" //nolint
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519" //nolint
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 
 	"github.com/stretchr/testify/require"
 )

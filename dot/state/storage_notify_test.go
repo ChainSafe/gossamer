@@ -26,9 +26,9 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	mockfilter := map[string][]byte{}
 	mockobs := &MockObserver{}
 
-	mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult")) //nolint
-	mockobs.On("GetID").Return(uint(10))                                   //nolint
-	mockobs.On("GetFilter").Return(mockfilter)                             //nolint
+	mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
+	mockobs.On("GetID").Return(uint(10))
+	mockobs.On("GetFilter").Return(mockfilter)
 
 	ss.RegisterStorageObserver(mockobs)
 	defer ss.UnregisterStorageObserver(mockobs)
@@ -47,9 +47,9 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 250)
 	// called when register and called when store trie
-	mockobs.AssertNumberOfCalls(t, "GetFilter", 2)    //nolint
-	mockobs.AssertNumberOfCalls(t, "Update", 1)       //nolint
-	mockobs.AssertCalled(t, "Update", expectedResult) //nolint
+	mockobs.AssertNumberOfCalls(t, "GetFilter", 2)
+	mockobs.AssertNumberOfCalls(t, "Update", 1)
+	mockobs.AssertCalled(t, "Update", expectedResult)
 }
 
 func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
@@ -65,9 +65,9 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 		mockfilter := map[string][]byte{}
 		mockobs := &MockObserver{}
 
-		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult")) //nolint
-		mockobs.On("GetID").Return(uint(10))                                   //nolint
-		mockobs.On("GetFilter").Return(mockfilter)                             //nolint
+		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
+		mockobs.On("GetID").Return(uint(10))
+		mockobs.On("GetFilter").Return(mockfilter)
 
 		mocks = append(mocks, mockobs)
 		ss.RegisterStorageObserver(mockobs)
@@ -93,9 +93,9 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 	}
 
 	for _, mockobs := range mocks {
-		mockobs.AssertNumberOfCalls(t, "GetFilter", 2)    //nolint
-		mockobs.AssertNumberOfCalls(t, "Update", 1)       //nolint
-		mockobs.AssertCalled(t, "Update", expectedResult) //nolint
+		mockobs.AssertNumberOfCalls(t, "GetFilter", 2)
+		mockobs.AssertNumberOfCalls(t, "Update", 1)
+		mockobs.AssertCalled(t, "Update", expectedResult)
 	}
 
 	for _, observer := range mocks {
@@ -120,9 +120,9 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		mockobs := &MockObserver{}
-		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult")) //nolint
-		mockobs.On("GetID").Return(uint(i))                                    //nolint
-		mockobs.On("GetFilter").Return(filter)                                 //nolint
+		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
+		mockobs.On("GetID").Return(uint(i))
+		mockobs.On("GetFilter").Return(filter)
 
 		mocks = append(mocks, mockobs)
 		ss.RegisterStorageObserver(mockobs)
@@ -143,9 +143,9 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	}
 
 	for _, mockobs := range mocks {
-		mockobs.AssertNumberOfCalls(t, "GetFilter", len(filter)+3) //nolint
-		mockobs.AssertNumberOfCalls(t, "Update", 1)                //nolint
-		mockobs.AssertCalled(t, "Update", expectedResult)          //nolint
+		mockobs.AssertNumberOfCalls(t, "GetFilter", len(filter)+3)
+		mockobs.AssertNumberOfCalls(t, "Update", 1)
+		mockobs.AssertCalled(t, "Update", expectedResult)
 	}
 
 	for _, observer := range mocks {

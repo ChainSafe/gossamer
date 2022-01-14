@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"sync/atomic" //nolint
+	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/internal/log"

@@ -35,8 +35,8 @@ func newWorkerState() *workerState {
 }
 
 func (s *workerState) add(w *worker) {
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 
 	w.id = s.nextWorker
 	w.ctx = s.ctx
@@ -45,8 +45,8 @@ func (s *workerState) add(w *worker) {
 }
 
 func (s *workerState) delete(id uint64) {
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 	delete(s.workers, id)
 }
 
@@ -54,8 +54,8 @@ func (s *workerState) reset() {
 	s.cancel()
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 
 	for id := range s.workers {
 		delete(s.workers, id)

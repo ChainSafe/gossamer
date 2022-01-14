@@ -131,8 +131,8 @@ func (s *disjointBlockSet) run(done <-chan struct{}) {
 }
 
 func (s *disjointBlockSet) clearBlocks() {
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 
 	for _, block := range s.blocks {
 		if s.timeNow().Sub(block.clearAt) > 0 {
@@ -152,8 +152,8 @@ func (s *disjointBlockSet) addToParentMap(parent, child common.Hash) {
 }
 
 func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) error {
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 
 	if b, has := s.blocks[hash]; has {
 		b.clearAt = s.timeNow().Add(ttl)
@@ -169,8 +169,8 @@ func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) e
 }
 
 func (s *disjointBlockSet) addHeader(header *types.Header) error {
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 
 	hash := header.Hash()
 	if b, has := s.blocks[hash]; has {
@@ -189,8 +189,8 @@ func (s *disjointBlockSet) addHeader(header *types.Header) error {
 }
 
 func (s *disjointBlockSet) addBlock(block *types.Block) error {
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 
 	hash := block.Header.Hash()
 	if b, has := s.blocks[hash]; has {
@@ -210,8 +210,8 @@ func (s *disjointBlockSet) addBlock(block *types.Block) error {
 }
 
 func (s *disjointBlockSet) addJustification(hash common.Hash, just []byte) error {
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 
 	b, has := s.blocks[hash]
 	if has {
@@ -225,8 +225,8 @@ func (s *disjointBlockSet) addJustification(hash common.Hash, just []byte) error
 }
 
 func (s *disjointBlockSet) removeBlock(hash common.Hash) {
-	s.Lock()         //nolint
-	defer s.Unlock() //nolint
+	s.Lock()
+	defer s.Unlock()
 	s.removeBlockInner(hash)
 }
 
@@ -261,33 +261,33 @@ func (s *disjointBlockSet) removeLowerBlocks(num *big.Int) {
 }
 
 func (s *disjointBlockSet) hasBlock(hash common.Hash) bool {
-	s.RLock()         //nolint
-	defer s.RUnlock() //nolint
+	s.RLock()
+	defer s.RUnlock()
 	_, has := s.blocks[hash]
 	return has
 }
 
 func (s *disjointBlockSet) size() int {
-	s.RLock()         //nolint
-	defer s.RUnlock() //nolint
+	s.RLock()
+	defer s.RUnlock()
 	return len(s.blocks)
 }
 
 func (s *disjointBlockSet) getChildren(hash common.Hash) map[common.Hash]struct{} {
-	s.RLock()         //nolint
-	defer s.RUnlock() //nolint
+	s.RLock()
+	defer s.RUnlock()
 	return s.parentToChildren[hash]
 }
 
 func (s *disjointBlockSet) getBlock(hash common.Hash) *pendingBlock {
-	s.RLock()         //nolint
-	defer s.RUnlock() //nolint
+	s.RLock()
+	defer s.RUnlock()
 	return s.blocks[hash]
 }
 
 func (s *disjointBlockSet) getBlocks() []*pendingBlock {
-	s.RLock()         //nolint
-	defer s.RUnlock() //nolint
+	s.RLock()
+	defer s.RUnlock()
 
 	blocks := make([]*pendingBlock, len(s.blocks))
 	i := 0

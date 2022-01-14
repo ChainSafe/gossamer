@@ -218,8 +218,8 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
 	}
 
-	s.storageState.Lock()         //nolint
-	defer s.storageState.Unlock() //nolint
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
 
 	ts, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {

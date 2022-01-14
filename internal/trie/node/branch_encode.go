@@ -6,11 +6,11 @@ package node
 import (
 	"bytes"
 	"fmt"
-	"hash" //nolint
+	"hash"
 	"io"
 	"runtime"
 
-	"github.com/ChainSafe/gossamer/internal/trie/codec" //nolint
+	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -91,13 +91,13 @@ func (b *Branch) Encode(buffer Buffer) (err error) {
 	}
 
 	keyLE := codec.NibblesToKeyLE(b.Key)
-	_, err = buffer.Write(keyLE) //nolint
+	_, err = buffer.Write(keyLE)
 	if err != nil {
 		return fmt.Errorf("cannot write encoded key to buffer: %w", err)
 	}
 
 	childrenBitmap := common.Uint16ToBytes(b.ChildrenBitmap())
-	_, err = buffer.Write(childrenBitmap) //nolint
+	_, err = buffer.Write(childrenBitmap)
 	if err != nil {
 		return fmt.Errorf("cannot write children bitmap to buffer: %w", err)
 	}
@@ -108,7 +108,7 @@ func (b *Branch) Encode(buffer Buffer) (err error) {
 			return fmt.Errorf("cannot scale encode value: %w", err)
 		}
 
-		_, err = buffer.Write(bytes) //nolint
+		_, err = buffer.Write(bytes)
 		if err != nil {
 			return fmt.Errorf("cannot write encoded value to buffer: %w", err)
 		}

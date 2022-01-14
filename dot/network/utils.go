@@ -17,7 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multiaddr" //nolint
+	"github.com/multiformats/go-multiaddr"
 )
 
 func isInbound(stream libp2pnetwork.Stream) bool {
@@ -26,7 +26,7 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 
 // stringToAddrInfos converts a single string peer id to AddrInfo
 func stringToAddrInfo(s string) (peer.AddrInfo, error) {
-	maddr, err := multiaddr.NewMultiaddr(s) //nolint
+	maddr, err := multiaddr.NewMultiaddr(s)
 	if err != nil {
 		return peer.AddrInfo{}, err
 	}

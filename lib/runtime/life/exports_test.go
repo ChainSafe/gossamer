@@ -31,8 +31,8 @@ func newInstanceFromGenesis(t *testing.T) runtime.Instance {
 	require.NoError(t, err)
 
 	cfg := &Config{}
-	cfg.Storage = genState //nolint
-	cfg.LogLvl = 4         //nolint
+	cfg.Storage = genState
+	cfg.LogLvl = 4
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -233,8 +233,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{}
-	cfg.Storage = genState //nolint
-	cfg.LogLvl = 4         //nolint
+	cfg.Storage = genState
+	cfg.LogLvl = 4
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -283,8 +283,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{}
-	cfg.Storage = genState //nolint
-	cfg.LogLvl = 5         //nolint
+	cfg.Storage = genState
+	cfg.LogLvl = 5
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
