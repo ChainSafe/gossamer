@@ -5,7 +5,6 @@ package core
 
 import (
 	"errors"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -63,6 +62,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 						Reason: peerset.BadTransactionReason,
 					}, peerID)
 				}
+
 				logger.Debugf("failed to validate transaction: %s", err)
 				return nil
 			}

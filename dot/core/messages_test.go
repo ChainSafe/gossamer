@@ -6,6 +6,8 @@ package core
 import (
 	"errors"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -71,18 +73,22 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockSyncedNet2 := NewMockNetwork(ctrl)
 	mockSyncedNetHappy := NewMockNetwork(ctrl)
 	mockSyncedNet3 := NewMockNetwork(ctrl)
+	mockSyncedNet4 := NewMockNetwork(ctrl)
 
 	// BlockState
 	mockBlockStateBestHeadErr := NewMockBlockState(ctrl)
 	mockBlockStateRuntimeErr := NewMockBlockState(ctrl)
 	mockBlockStateRuntimeOk1 := NewMockBlockState(ctrl)
 	mockBlockStateRuntimeOk2 := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeOk3 := NewMockBlockState(ctrl)
 
 	// Storage
 	mockStorageStateTrieStateErr := NewMockStorageState(ctrl)
+	mockStorageStateTrieState := NewMockStorageState(ctrl)
 
 	// Runtime
 	runtimeMock := new(mocksruntime.Instance)
+	runtimeMock2 := new(mocksruntime.Instance)
 
 	mockNotSyncedNet.EXPECT().IsSynced().Return(false)
 
@@ -109,7 +115,24 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockStorageStateTrieStateErr.EXPECT().Unlock()
 	mockStorageStateTrieStateErr.EXPECT().TrieState(&common.Hash{}).Return(nil, errTrieState)
 
-	// invalid txn report peer
+	// invalid txn report peer runtime.ErrInvalidTransaction
+	test := []types.Extrinsic{{1, 2, 3}}
+	mockSyncedNet4.EXPECT().IsSynced().Return(true)
+	mockBlockStateRuntimeOk3.EXPECT().BestBlockHeader().Return(testEmptyHeader, nil)
+	mockBlockStateRuntimeOk3.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock2, nil)
+	mockStorageStateTrieState.EXPECT().Lock()
+	mockStorageStateTrieState.EXPECT().Unlock()
+	mockStorageStateTrieState.EXPECT().TrieState(&common.Hash{}).Return(&storage.TrieState{}, nil)
+	runtimeMock2.On("SetContextStorage", &storage.TrieState{})
+	runtimeMock2.On("ValidateTransaction", types.Extrinsic(append([]byte{byte(types.TxnExternal)}, test[0]...))).Return(nil, runtime.ErrInvalidTransaction)
+	mockSyncedNet4.EXPECT().ReportPeer(peerset.ReputationChange{
+		Value:  peerset.BadTransactionValue,
+		Reason: peerset.BadTransactionReason,
+	}, peer.ID("jimbo"))
+	mockSyncedNet4.EXPECT().ReportPeer(peerset.ReputationChange{
+		Value:  peerset.GoodTransactionValue,
+		Reason: peerset.GoodTransactionReason,
+	}, peer.ID("jimbo"))
 
 	type args struct {
 		peerID peer.ID
@@ -176,6 +199,20 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				},
 			},
 			expErr: errTrieState,
+		},
+		{
+			name: "runtime.ErrInvalidTransaction",
+			service: &Service{
+				net:          mockSyncedNet4,
+				blockState:   mockBlockStateRuntimeOk3,
+				storageState: mockStorageStateTrieState,
+			},
+			args: args{
+				peerID: peer.ID("jimbo"),
+				msg: &network.TransactionMessage{
+					Extrinsics: []types.Extrinsic{{1, 2, 3}},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
