@@ -430,6 +430,25 @@ func (s *Service) sentBlockIntervalTelemetry() {
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
 	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
+
+	// exchange BlockAnnounceHandshake with peer so we can start to
+	// sync if necessary.
+	prtl, has := s.notificationsProtocols[BlockAnnounceMsgType]
+	if !has {
+		return
+	}
+
+	hs, err := prtl.getHandshake()
+	if err != nil {
+		return
+	}
+
+	stream, err := s.sendHandshake(conn.RemotePeer(), hs, prtl)
+	if err != nil {
+		return
+	}
+
+	_ = stream.Close()
 }
 
 // Stop closes running instances of the host and network services as well as

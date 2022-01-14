@@ -84,6 +84,7 @@ func (s *StorageState) SetSyncing(syncing bool) {
 }
 
 func (s *StorageState) pruneKey(keyHeader *types.Header) {
+	logger.Tracef("pruning trie, number=%d hash=%s", keyHeader.Number, keyHeader.Hash())
 	s.tries.Delete(keyHeader.StateRoot)
 }
 
