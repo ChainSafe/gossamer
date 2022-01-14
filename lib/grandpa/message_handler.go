@@ -112,7 +112,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 
 	h.telemetry.SendMessage(
 		telemetry.NewAfgReceivedCommit(
-			&msg.Vote.Hash,
+			msg.Vote.Hash,
 			fmt.Sprint(msg.Vote.Number),
 			containsPrecommitsSignedBy,
 		),

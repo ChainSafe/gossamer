@@ -646,9 +646,8 @@ func (s *Service) attemptToFinalize() error {
 		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
 
-		hash := s.head.Hash()
 		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-			&hash,
+			s.head.Hash(),
 			s.head.Number.String(),
 		))
 
