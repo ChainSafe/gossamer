@@ -36,8 +36,7 @@ func NewTestDir(t *testing.T) string {
 func NewTestBasePath(t *testing.T, name string) string {
 	t.Helper()
 
-	tmpdir := t.TempDir()
-	basepathTmp := path.Join(tmpdir, t.Name(), name)
+	basepathTmp := path.Join(t.TempDir(), t.Name(), name)
 	err := os.MkdirAll(basepathTmp, os.ModePerm)
 
 	require.NoError(t, err)

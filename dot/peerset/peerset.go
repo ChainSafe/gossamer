@@ -179,7 +179,6 @@ type PeerSet struct {
 	nextPeriodicAllocSlots time.Duration
 	// chan for receiving action request.
 	actionQueue <-chan action
-	stopCh      chan struct{}
 }
 
 // config is configuration of a single set.
