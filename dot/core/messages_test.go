@@ -27,6 +27,8 @@ var (
 	errTrieState  = errors.New("trie state error")
 )
 
+// TODO use new test format
+
 func TestService_TransactionsCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockTxnStateEmpty := NewMockTransactionState(ctrl)
@@ -128,10 +130,6 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockSyncedNet4.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.BadTransactionValue,
 		Reason: peerset.BadTransactionReason,
-	}, peer.ID("jimbo"))
-	mockSyncedNet4.EXPECT().ReportPeer(peerset.ReputationChange{
-		Value:  peerset.GoodTransactionValue,
-		Reason: peerset.GoodTransactionReason,
 	}, peer.ID("jimbo"))
 
 	type args struct {

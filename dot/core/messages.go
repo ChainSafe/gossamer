@@ -40,6 +40,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
+	hasInvalidTxn := false
 	for _, tx := range txs {
 		err = func() error {
 			s.storageState.Lock()
@@ -63,6 +64,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 					}, peerID)
 				}
 
+				hasInvalidTxn = true
 				logger.Debugf("failed to validate transaction: %s", err)
 				return nil
 			}
@@ -87,10 +89,12 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		}
 	}
 
-	s.net.ReportPeer(peerset.ReputationChange{
-		Value:  peerset.GoodTransactionValue,
-		Reason: peerset.GoodTransactionReason,
-	}, peerID)
+	if !hasInvalidTxn {
+		s.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.GoodTransactionValue,
+			Reason: peerset.GoodTransactionReason,
+		}, peerID)
+	}
 
 	msg.Extrinsics = toPropagate
 	return len(msg.Extrinsics) > 0, nil
