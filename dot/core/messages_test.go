@@ -5,27 +5,26 @@ package core
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
-	"testing"
-
-	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/golang/mock/gomock"
 )
 
 var (
-	errBestHeader  = errors.New("best header error")
-	errGetRuntime  = errors.New("get runtime error")
-	errTrieState   = errors.New("trie state error")
-	errValidateTxn = errors.New("validate transaction error")
+	errBestHeader = errors.New("best header error")
+	errGetRuntime = errors.New("get runtime error")
+	errTrieState  = errors.New("trie state error")
 )
 
 // TODO use new test format
@@ -68,7 +67,11 @@ func TestService_TransactionsCount(t *testing.T) {
 func TestServiceHandleTransactionMessage(t *testing.T) {
 	testEmptyHeader := types.NewEmptyHeader()
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
-	testValidTransaction := transaction.NewValidTransaction(types.Extrinsic{1, 2, 3}, &transaction.Validity{Propagate: true})
+	testValidTransaction := transaction.NewValidTransaction(
+		types.Extrinsic{1, 2, 3},
+		&transaction.Validity{
+			Propagate: true,
+		})
 
 	ctrl := gomock.NewController(t)
 	mockNotSyncedNet := NewMockNetwork(ctrl)
@@ -127,7 +130,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockStorageStateTrieStateOk.EXPECT().Unlock()
 	mockStorageStateTrieStateOk.EXPECT().TrieState(&common.Hash{}).Return(&storage.TrieState{}, nil)
 	runtimeMock2.On("SetContextStorage", &storage.TrieState{})
-	runtimeMock2.On("ValidateTransaction", types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...))).Return(nil, runtime.ErrInvalidTransaction)
+	runtimeMock2.On("ValidateTransaction",
+		types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...))).
+		Return(nil, runtime.ErrInvalidTransaction)
 	mockSyncedNet4.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.BadTransactionValue,
 		Reason: peerset.BadTransactionReason,
@@ -140,7 +145,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockStorageStateTrieStateOk2.EXPECT().Unlock()
 	mockStorageStateTrieStateOk2.EXPECT().TrieState(&common.Hash{}).Return(&storage.TrieState{}, nil)
 	runtimeMock3.On("SetContextStorage", &storage.TrieState{})
-	runtimeMock3.On("ValidateTransaction", types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...))).Return(&transaction.Validity{Propagate: true}, nil)
+	runtimeMock3.On("ValidateTransaction",
+		types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...))).
+		Return(&transaction.Validity{Propagate: true}, nil)
 	mockTxnState.EXPECT().AddToPool(testValidTransaction).Return(common.Hash{})
 	mockSyncedNet5.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.GoodTransactionValue,
@@ -249,8 +256,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := tt.service
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)
-			assert.ErrorIs(t, err, tt.expErr) // takes care of nil as well
-			if tt.expErr != nil {             // only assert message if we expect the error to not be nil so you don't have to set `tt.expErrMsg` to <nil> every time
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErrMsg)
 			}
 			assert.Equal(t, tt.exp, res)

@@ -5,13 +5,14 @@ package core
 
 import (
 	"errors"
-	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // HandleTransactionMessage validates each transaction in the message and
