@@ -4,11 +4,13 @@
 package sync
 
 import (
+	"errors"
 	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -40,6 +42,17 @@ func TestMain(m *testing.M) {
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
 }
+
+type syncAPIMock struct {
+	fnGetHighestBlock func() (int64, error)
+}
+
+func (_m syncAPIMock) start()                                                         {}
+func (_m syncAPIMock) stop()                                                          {}
+func (_m syncAPIMock) setBlockAnnounce(from peer.ID, header *types.Header) error      { return nil }
+func (_m syncAPIMock) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) error { return nil }
+func (_m syncAPIMock) syncState() chainSyncState                                      { return 0 }
+func (_m syncAPIMock) getHighestBlock() (int64, error)                                { return _m.fnGetHighestBlock() }
 
 func newMockFinalityGadget() *mocks.FinalityGadget {
 	m := new(mocks.FinalityGadget)
@@ -156,4 +169,65 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
+}
+
+func TestHighestBlock(t *testing.T) {
+	type input struct {
+		highestBlock int64
+		err          error
+	}
+	type output struct {
+		highestBlock int64
+	}
+	type test struct {
+		name string
+		in   input
+		out  output
+	}
+	tests := []test{
+		{
+			name: "when *chainSync.getHighestBlock() returns error should return 0",
+			in: input{
+				highestBlock: 0,
+				err:          errors.New("fake error"),
+			},
+			out: output{
+				highestBlock: 0,
+			},
+		},
+		{
+			name: "when *chainSync.getHighestBlock() returns 0 should return 0",
+			in: input{
+				highestBlock: 0,
+				err:          nil,
+			},
+			out: output{
+				highestBlock: 0,
+			},
+		},
+		{
+			name: "when *chainSync.getHighestBlock() returns 50 should return 50",
+			in: input{
+				highestBlock: 50,
+				err:          nil,
+			},
+			out: output{
+				highestBlock: 50,
+			},
+		},
+	}
+	for _, ts := range tests {
+		t.Run(ts.name, func(t *testing.T) {
+			s := newTestSyncer(t)
+
+			chainSync := syncAPIMock{}
+			chainSync.fnGetHighestBlock = func() (int64, error) {
+				return ts.in.highestBlock, ts.in.err
+			}
+
+			s.chainSync = chainSync
+			result := s.HighestBlock()
+			require.Equalf(t, result, ts.out.highestBlock, ts.name)
+		})
+	}
 }

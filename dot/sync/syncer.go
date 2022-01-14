@@ -134,6 +134,15 @@ func (s *Service) IsSynced() bool {
 	return s.chainSync.syncState() == tip
 }
 
+func (s *Service) HighestBlock() int64 {
+	highestBlock, err := s.chainSync.getHighestBlock()
+	if err != nil {
+		logger.Errorf("failed to get the highest block: %w", err)
+		return 0
+	}
+	return highestBlock
+}
+
 func reverseBlockData(data []*types.BlockData) {
 	for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
 		data[i], data[j] = data[j], data[i]

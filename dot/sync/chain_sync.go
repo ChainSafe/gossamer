@@ -92,6 +92,9 @@ type ChainSync interface {
 
 	// syncState returns the current syncing state
 	syncState() chainSyncState
+
+	// getHighestBlock returns the highest block or an error
+	getHighestBlock() (int64, error)
 }
 
 type chainSync struct {

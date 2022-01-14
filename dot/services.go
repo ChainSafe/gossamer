@@ -35,6 +35,19 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
+// createRPCServiceParams struct to implements the Parameter Object Pattern: https://refactoring.guru/introduce-parameter-object
+type createRPCServiceParams struct {
+	cfg         *Config
+	ns          *runtime.NodeStorage
+	stateSrvc   *state.Service
+	coreSrvc    *core.Service
+	networkSrvc *network.Service
+	bp          modules.BlockProducerAPI
+	sysSrvc     *system.Service
+	finSrvc     *grandpa.Service
+	syncer      *sync.Service
+}
+
 func newInMemoryDB(path string) (chaindb.Database, error) {
 	return utils.SetupDatabase(filepath.Join(path, "local_storage"), true)
 }
@@ -290,51 +303,50 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service,
-	coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI,
-	sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
+func createRPCService(params createRPCServiceParams) (*rpc.HTTPServer, error) {
 	logger.Infof(
 		"creating rpc service with host %s, external=%t, port %d, modules %s, ws=%t, ws port %d and ws external=%t",
-		cfg.RPC.Host, cfg.RPC.External, cfg.RPC.Port, strings.Join(cfg.RPC.Modules, ","), cfg.RPC.WS,
-		cfg.RPC.WSPort, cfg.RPC.WSExternal,
+		params.cfg.RPC.Host, params.cfg.RPC.External, params.cfg.RPC.Port, strings.Join(params.cfg.RPC.Modules, ","), params.cfg.RPC.WS,
+		params.cfg.RPC.WSPort, params.cfg.RPC.WSExternal,
 	)
 	rpcService := rpc.NewService()
 
-	genesisData, err := stateSrvc.Base.LoadGenesisData()
+	genesisData, err := params.stateSrvc.Base.LoadGenesisData()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load genesis data: %s", err)
 	}
 
-	syncStateSrvc, err := modules.NewStateSync(genesisData, stateSrvc.Storage)
+	syncStateSrvc, err := modules.NewStateSync(genesisData, params.stateSrvc.Storage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sync state service: %s", err)
 	}
 
 	rpcConfig := &rpc.HTTPServerConfig{
-		LogLvl:              cfg.Log.RPCLvl,
-		BlockAPI:            stateSrvc.Block,
-		StorageAPI:          stateSrvc.Storage,
-		NetworkAPI:          networkSrvc,
-		CoreAPI:             coreSrvc,
-		NodeStorage:         ns,
-		BlockProducerAPI:    bp,
-		BlockFinalityAPI:    finSrvc,
-		TransactionQueueAPI: stateSrvc.Transaction,
+		LogLvl:              params.cfg.Log.RPCLvl,
+		BlockAPI:            params.stateSrvc.Block,
+		StorageAPI:          params.stateSrvc.Storage,
+		NetworkAPI:          params.networkSrvc,
+		CoreAPI:             params.coreSrvc,
+		NodeStorage:         params.ns,
+		BlockProducerAPI:    params.bp,
+		BlockFinalityAPI:    params.finSrvc,
+		TransactionQueueAPI: params.stateSrvc.Transaction,
 		RPCAPI:              rpcService,
 		SyncStateAPI:        syncStateSrvc,
-		SystemAPI:           sysSrvc,
-		RPC:                 cfg.RPC.Enabled,
-		RPCExternal:         cfg.RPC.External,
-		RPCUnsafe:           cfg.RPC.Unsafe,
-		RPCUnsafeExternal:   cfg.RPC.UnsafeExternal,
-		Host:                cfg.RPC.Host,
-		RPCPort:             cfg.RPC.Port,
-		WS:                  cfg.RPC.WS,
-		WSExternal:          cfg.RPC.WSExternal,
-		WSUnsafe:            cfg.RPC.WSUnsafe,
-		WSUnsafeExternal:    cfg.RPC.WSUnsafeExternal,
-		WSPort:              cfg.RPC.WSPort,
-		Modules:             cfg.RPC.Modules,
+		SyncAPI:             params.syncer,
+		SystemAPI:           params.sysSrvc,
+		RPC:                 params.cfg.RPC.Enabled,
+		RPCExternal:         params.cfg.RPC.External,
+		RPCUnsafe:           params.cfg.RPC.Unsafe,
+		RPCUnsafeExternal:   params.cfg.RPC.UnsafeExternal,
+		Host:                params.cfg.RPC.Host,
+		RPCPort:             params.cfg.RPC.Port,
+		WS:                  params.cfg.RPC.WS,
+		WSExternal:          params.cfg.RPC.WSExternal,
+		WSUnsafe:            params.cfg.RPC.WSUnsafe,
+		WSUnsafeExternal:    params.cfg.RPC.WSUnsafeExternal,
+		WSPort:              params.cfg.RPC.WSPort,
+		Modules:             params.cfg.RPC.Modules,
 	}
 
 	return rpc.NewHTTPServer(rpcConfig), nil
