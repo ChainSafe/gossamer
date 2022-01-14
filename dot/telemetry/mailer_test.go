@@ -303,7 +303,8 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				TargetNumber:               "0",
 				ContainsPrecommitsSignedBy: []string{"0x0", "0x1"},
 			},
-			expected: regexp.MustCompile(`^{"target_hash":"0x[0]{64}","target_number":"0","contains_precommits_signed_by":\["0x0","0x1"\],` +
+			expected: regexp.MustCompile(`^{"target_hash":"0x[0]{64}","target_number":"0",` +
+				`"contains_precommits_signed_by":\["0x0","0x1"\],` +
 				`"msg":"afg.received_commit","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
 				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
 		},
