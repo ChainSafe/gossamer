@@ -36,17 +36,17 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
-// createRPCServiceParams struct to implements the Parameter Object Pattern: https://refactoring.guru/introduce-parameter-object
-type createRPCServiceParams struct {
-	cfg         *Config
-	ns          *runtime.NodeStorage
-	stateSrvc   *state.Service
-	coreSrvc    *core.Service
-	networkSrvc *network.Service
-	bp          modules.BlockProducerAPI
-	sysSrvc     *system.Service
-	finSrvc     *grandpa.Service
-	syncer      *sync.Service
+// rpcServiceSettings struct to implements the Parameter Object Pattern: https://refactoring.guru/introduce-parameter-object
+type rpcServiceSettings struct {
+	config        *Config
+	nodeStorage   *runtime.NodeStorage
+	state         *state.Service
+	core          *core.Service
+	network       *network.Service
+	blockProducer modules.BlockProducerAPI
+	system        *system.Service
+	blockFinality *grandpa.Service
+	syncer        *sync.Service
 }
 
 func newInMemoryDB(path string) (chaindb.Database, error) {
@@ -317,50 +317,55 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service,
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(params createRPCServiceParams) (*rpc.HTTPServer, error) {
+func createRPCService(params rpcServiceSettings) (*rpc.HTTPServer, error) {
 	logger.Infof(
 		"creating rpc service with host %s, external=%t, port %d, modules %s, ws=%t, ws port %d and ws external=%t",
-		params.cfg.RPC.Host, params.cfg.RPC.External, params.cfg.RPC.Port, strings.Join(params.cfg.RPC.Modules, ","), params.cfg.RPC.WS,
-		params.cfg.RPC.WSPort, params.cfg.RPC.WSExternal,
+		params.config.RPC.Host,
+		params.config.RPC.External,
+		params.config.RPC.Port,
+		strings.Join(params.config.RPC.Modules, ","),
+		params.config.RPC.WS,
+		params.config.RPC.WSPort,
+		params.config.RPC.WSExternal,
 	)
 	rpcService := rpc.NewService()
 
-	genesisData, err := params.stateSrvc.Base.LoadGenesisData()
+	genesisData, err := params.state.Base.LoadGenesisData()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load genesis data: %s", err)
 	}
 
-	syncStateSrvc, err := modules.NewStateSync(genesisData, params.stateSrvc.Storage)
+	syncStateSrvc, err := modules.NewStateSync(genesisData, params.state.Storage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sync state service: %s", err)
 	}
 
 	rpcConfig := &rpc.HTTPServerConfig{
-		LogLvl:              params.cfg.Log.RPCLvl,
-		BlockAPI:            params.stateSrvc.Block,
-		StorageAPI:          params.stateSrvc.Storage,
-		NetworkAPI:          params.networkSrvc,
-		CoreAPI:             params.coreSrvc,
-		NodeStorage:         params.ns,
-		BlockProducerAPI:    params.bp,
-		BlockFinalityAPI:    params.finSrvc,
-		TransactionQueueAPI: params.stateSrvc.Transaction,
+		LogLvl:              params.config.Log.RPCLvl,
+		BlockAPI:            params.state.Block,
+		StorageAPI:          params.state.Storage,
+		NetworkAPI:          params.network,
+		CoreAPI:             params.core,
+		NodeStorage:         params.nodeStorage,
+		BlockProducerAPI:    params.blockProducer,
+		BlockFinalityAPI:    params.blockFinality,
+		TransactionQueueAPI: params.state.Transaction,
 		RPCAPI:              rpcService,
 		SyncStateAPI:        syncStateSrvc,
 		SyncAPI:             params.syncer,
-		SystemAPI:           params.sysSrvc,
-		RPC:                 params.cfg.RPC.Enabled,
-		RPCExternal:         params.cfg.RPC.External,
-		RPCUnsafe:           params.cfg.RPC.Unsafe,
-		RPCUnsafeExternal:   params.cfg.RPC.UnsafeExternal,
-		Host:                params.cfg.RPC.Host,
-		RPCPort:             params.cfg.RPC.Port,
-		WS:                  params.cfg.RPC.WS,
-		WSExternal:          params.cfg.RPC.WSExternal,
-		WSUnsafe:            params.cfg.RPC.WSUnsafe,
-		WSUnsafeExternal:    params.cfg.RPC.WSUnsafeExternal,
-		WSPort:              params.cfg.RPC.WSPort,
-		Modules:             params.cfg.RPC.Modules,
+		SystemAPI:           params.system,
+		RPC:                 params.config.RPC.Enabled,
+		RPCExternal:         params.config.RPC.External,
+		RPCUnsafe:           params.config.RPC.Unsafe,
+		RPCUnsafeExternal:   params.config.RPC.UnsafeExternal,
+		Host:                params.config.RPC.Host,
+		RPCPort:             params.config.RPC.Port,
+		WS:                  params.config.RPC.WS,
+		WSExternal:          params.config.RPC.WSExternal,
+		WSUnsafe:            params.config.RPC.WSUnsafe,
+		WSUnsafeExternal:    params.config.RPC.WSUnsafeExternal,
+		WSPort:              params.config.RPC.WSPort,
+		Modules:             params.config.RPC.Modules,
 	}
 
 	return rpc.NewHTTPServer(rpcConfig), nil
