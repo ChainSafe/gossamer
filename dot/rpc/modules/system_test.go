@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/stretchr/testify/assert"
@@ -319,8 +320,9 @@ func TestSystemModule_SyncState(t *testing.T) {
 	mockNetworkAPI := new(mocks.NetworkAPI)
 	mockNetworkAPI.On("StartingBlock").Return(int64(23))
 
-	mockSyncAPI := new(mocks.SyncAPI)
-	mockSyncAPI.On("HighestBlock").Return(int64(21))
+	ctrlSyncAPI := gomock.NewController(t)
+	mockSyncAPI := NewMockSyncAPI(ctrlSyncAPI)
+	mockSyncAPI.EXPECT().HighestBlock().Return(int64(21))
 
 	type args struct {
 		r   *http.Request

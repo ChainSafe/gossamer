@@ -153,7 +153,7 @@ type SyncStateAPI interface {
 	GenSyncSpec(raw bool) (*genesis.Genesis, error)
 }
 
-//go:generate mockery --name SyncAPI --structname SyncAPI --case underscore --keeptree
+//go:generate mockgen -destination=./mock_sync_api_test.go -package $GOPACKAGE . SyncAPI
 type SyncAPI interface {
 	HighestBlock() int64
 }

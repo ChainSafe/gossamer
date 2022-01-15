@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -43,17 +42,6 @@ func TestMain(m *testing.M) {
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
 }
-
-type syncAPIMock struct {
-	fnGetHighestBlock func() (int64, error)
-}
-
-func (_m syncAPIMock) start()                                                         {}
-func (_m syncAPIMock) stop()                                                          {}
-func (_m syncAPIMock) setBlockAnnounce(from peer.ID, header *types.Header) error      { return nil }
-func (_m syncAPIMock) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) error { return nil }
-func (_m syncAPIMock) syncState() chainSyncState                                      { return 0 }
-func (_m syncAPIMock) getHighestBlock() (int64, error)                                { return _m.fnGetHighestBlock() }
 
 func newMockFinalityGadget() *mocks.FinalityGadget {
 	m := new(mocks.FinalityGadget)
@@ -230,12 +218,12 @@ func TestHighestBlock(t *testing.T) {
 		t.Run(ts.name, func(t *testing.T) {
 			s := newTestSyncer(t)
 
-			chainSync := syncAPIMock{}
-			chainSync.fnGetHighestBlock = func() (int64, error) {
-				return ts.in.highestBlock, ts.in.err
-			}
+			ctrl := gomock.NewController(t)
+			chainSync := NewMockChainSync(ctrl)
+			chainSync.EXPECT().getHighestBlock().Return(ts.in.highestBlock, ts.in.err)
 
 			s.chainSync = chainSync
+
 			result := s.HighestBlock()
 			require.Equalf(t, result, ts.out.highestBlock, ts.name)
 		})
