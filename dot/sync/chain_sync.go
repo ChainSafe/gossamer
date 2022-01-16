@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -942,37 +941,27 @@ func (cs *chainSync) getHighestBlock() (int64, error) {
 	ps := cs.peerState
 	cs.RUnlock()
 
-	if len(ps) <= 0 {
+	if len(ps) == 0 {
 		return 0, errNoPeers
 	}
 
-	// improve performance returning first highestBlock
-	if len(ps) == 1 {
-		for _, p := range ps {
-			if p.number == nil {
-				return 0, errNilBlockData
-			}
-			return p.number.Int64(), nil
-		}
-	}
+	highestBlock := big.NewInt(-1)
 
-	numbers := []*big.Int{}
 	for _, ps := range ps {
 		if ps.number == nil {
 			continue
 		}
-		numbers = append(numbers, ps.number)
+		if ps.number.Cmp(highestBlock) < 0 { // ps.number < highestBlock: https://pkg.go.dev/math/big#Int.Cmp
+			continue
+		}
+		highestBlock = ps.number
 	}
 
-	if len(numbers) <= 0 {
+	if highestBlock.Cmp(big.NewInt(-1)) == 0 { // highestBlock == -1 : https://pkg.go.dev/math/big#Int.Cmp
 		return 0, errNilBlockData
 	}
 
-	sort.SliceStable(numbers, func(i, j int) bool {
-		return numbers[i].Cmp(numbers[j]) >= 0 // numbers[i] >= numbers[j]: https://pkg.go.dev/math/big#Int.Cmp
-	})
-
-	return numbers[0].Int64(), nil
+	return highestBlock.Int64(), nil
 }
 
 func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
