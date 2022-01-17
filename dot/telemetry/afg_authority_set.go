@@ -31,7 +31,6 @@ func NewAfgAuthoritySet(authorityID, authoritySetID, authorities string) *AfgAut
 	}
 }
 
-// MarshalJSON ...
 func (afg AfgAuthoritySet) MarshalJSON() ([]byte, error) {
 	telemetryData := struct {
 		afgAuthoritySetTM

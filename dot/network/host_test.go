@@ -10,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
@@ -22,7 +21,7 @@ func TestExternalAddrs(t *testing.T) {
 	t.Parallel()
 
 	config := &Config{
-		BasePath:    utils.NewTestBasePath(t, "node"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -53,7 +52,7 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 
 	port := availablePort(t)
 	config := &Config{
-		BasePath:    utils.NewTestBasePath(t, "node"),
+		BasePath:    t.TempDir(),
 		PublicIP:    "10.0.5.2",
 		Port:        port,
 		NoBootstrap: true,
@@ -87,7 +86,7 @@ func TestExternalAddrsPublicDNS(t *testing.T) {
 	t.Parallel()
 
 	config := &Config{
-		BasePath:    utils.NewTestBasePath(t, "node"),
+		BasePath:    t.TempDir(),
 		PublicDNS:   "alice",
 		Port:        7001,
 		NoBootstrap: true,
@@ -108,10 +107,8 @@ func TestExternalAddrsPublicDNS(t *testing.T) {
 func TestConnect(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
-
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -120,10 +117,8 @@ func TestConnect(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -152,10 +147,8 @@ func TestConnect(t *testing.T) {
 func TestBootstrap(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
-
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -166,10 +159,8 @@ func TestBootstrap(t *testing.T) {
 
 	addrA := nodeA.host.multiaddrs()[0]
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
 	configB := &Config{
-		BasePath:  basePathB,
+		BasePath:  t.TempDir(),
 		Port:      availablePort(t),
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
@@ -195,9 +186,8 @@ func TestBootstrap(t *testing.T) {
 func TestSend(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -206,10 +196,8 @@ func TestSend(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -245,9 +233,8 @@ func TestSend(t *testing.T) {
 func TestExistingStream(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -259,9 +246,8 @@ func TestExistingStream(t *testing.T) {
 	nodeA.host.registerStreamHandler(nodeA.host.protocolID, handlerA.handleStream)
 
 	addrInfoA := nodeA.host.addrInfo()
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -319,9 +305,8 @@ func TestExistingStream(t *testing.T) {
 func TestStreamCloseMetadataCleanup(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -332,9 +317,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	handlerA := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeA.host.registerStreamHandler(blockAnnounceID, handlerA.handleStream)
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -396,9 +380,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 func Test_PeerSupportsProtocol(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -406,9 +389,8 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -462,9 +444,8 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 func Test_AddReservedPeers(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -473,9 +454,8 @@ func Test_AddReservedPeers(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -496,9 +476,8 @@ func Test_AddReservedPeers(t *testing.T) {
 func Test_RemoveReservedPeers(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -507,9 +486,8 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -543,9 +521,8 @@ func Test_RemoveReservedPeers(t *testing.T) {
 func TestStreamCloseEOF(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -554,10 +531,8 @@ func TestStreamCloseEOF(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -596,9 +571,8 @@ func TestStreamCloseEOF(t *testing.T) {
 func TestPeerConnect(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -609,10 +583,8 @@ func TestPeerConnect(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -637,10 +609,8 @@ func TestPeerConnect(t *testing.T) {
 func TestBannedPeer(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
-
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -651,10 +621,8 @@ func TestBannedPeer(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -694,10 +662,8 @@ func TestBannedPeer(t *testing.T) {
 func TestPeerReputation(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
-
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -708,10 +674,8 @@ func TestPeerReputation(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,

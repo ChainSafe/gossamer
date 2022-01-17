@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -41,7 +40,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	var srvcs []*Service
 	for i := 0; i < num; i++ {
 		config := &Config{
-			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
+			BasePath:    t.TempDir(),
 			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
@@ -92,10 +91,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	ctrl := gomock.NewController(t)
 
 	if cfg == nil {
-		basePath := utils.NewTestBasePath(t, "node")
-
 		cfg = &Config{
-			BasePath:     basePath,
+			BasePath:     t.TempDir(),
 			Port:         availablePort(t),
 			NoBootstrap:  true,
 			NoMDNS:       true,
@@ -189,18 +186,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	return srvc
 }
 
-// func TestMain(m *testing.M) {
-// 	// Start all tests
-// 	code := m.Run()
-
-// 	// Cleanup test path.
-// 	err := os.RemoveAll(utils.TestDir)
-// 	if err != nil {
-// 		fmt.Printf("failed to remove path %s : %s\n", utils.TestDir, err)
-// 	}
-// 	os.Exit(code)
-// }
-
 // test network service starts
 func TestStartService(t *testing.T) {
 	t.Parallel()
@@ -213,9 +198,8 @@ func TestStartService(t *testing.T) {
 func TestBroadcastMessages(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -224,9 +208,8 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -262,9 +245,8 @@ func TestBroadcastMessages(t *testing.T) {
 func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:        basePathA,
+		BasePath:        t.TempDir(),
 		Port:            availablePort(t),
 		NoBootstrap:     true,
 		NoMDNS:          true,
@@ -274,9 +256,8 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:        basePathB,
+		BasePath:        t.TempDir(),
 		Port:            availablePort(t),
 		NoBootstrap:     true,
 		NoMDNS:          true,
@@ -397,9 +378,8 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 func TestService_NodeRoles(t *testing.T) {
 	t.Parallel()
 
-	basePath := utils.NewTestBasePath(t, "node")
 	cfg := &Config{
-		BasePath: basePath,
+		BasePath: t.TempDir(),
 		Roles:    1,
 		Port:     availablePort(t),
 	}
@@ -413,9 +393,8 @@ func TestService_Health(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 
-	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
-		BasePath:    basePath,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -465,7 +444,7 @@ func TestHandleConn(t *testing.T) {
 	t.Parallel()
 
 	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -474,7 +453,7 @@ func TestHandleConn(t *testing.T) {
 	nodeA := createTestService(t, configA)
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,

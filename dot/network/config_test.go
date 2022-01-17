@@ -8,13 +8,11 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 )
 
-// test buildIdentity method
 func TestBuildIdentity(t *testing.T) {
 	t.Parallel()
 
@@ -60,7 +58,8 @@ func TestBuildIdentity(t *testing.T) {
 // test build configuration method
 func TestBuild(t *testing.T) {
 	t.Parallel()
-	testBasePath := utils.NewTestBasePath(t, "node")
+
+	testBasePath := t.TempDir()
 
 	testBlockState := &state.BlockState{}
 	testRandSeed := int64(1)

@@ -1,6 +1,9 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+//go:build integration
+// +build integration
+
 package babe
 
 import (
@@ -392,7 +395,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	}
 
 	// create proof that we can authorize this block
-	babeService.epochData.threshold = minThreshold
+	babeService.epochData.threshold = &scale.Uint128{}
 	var slotNumber uint64 = 1
 
 	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)

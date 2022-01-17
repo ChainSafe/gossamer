@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,8 +12,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 func newTestDiscovery(t *testing.T, num int) []*discovery {
@@ -23,7 +20,7 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 	var discs []*discovery
 	for i := 0; i < num; i++ {
 		config := &Config{
-			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
+			BasePath:    t.TempDir(),
 			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
@@ -105,7 +102,7 @@ func TestBeginDiscovery(t *testing.T) {
 	t.Parallel()
 
 	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -115,7 +112,7 @@ func TestBeginDiscovery(t *testing.T) {
 	nodeA.noGossip = true
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -143,7 +140,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	t.Parallel()
 
 	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -153,7 +150,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	nodeA.noGossip = true
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -163,7 +160,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	nodeB.noGossip = true
 
 	configC := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeC"),
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
