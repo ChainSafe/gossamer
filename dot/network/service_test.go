@@ -326,7 +326,7 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 200)
 	messages, _ := handler.messagesFrom(nodeA.host.id())
-	require.Len(t, messages, 6)
+	require.Len(t, messages, 5)
 }
 
 func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
