@@ -255,20 +255,21 @@ func TestBroadcastMessages(t *testing.T) {
 	// simulate message sent from core service
 	nodeA.GossipMessage(anounceMessage)
 	time.Sleep(time.Second * 2)
-	require.NotNil(t, handler.messages[nodeA.host.id()])
+
+	messages, _ := handler.messagesFrom(nodeA.host.id())
+	require.NotNil(t, messages)
 }
 
 func TestBroadcastDuplicateMessage(t *testing.T) {
 	t.Parallel()
 
-	msgCacheTTL = 2 * time.Second
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
-		Port:        availablePort(t),
-		NoBootstrap: true,
-		NoMDNS:      true,
+		BasePath:        basePathA,
+		Port:            availablePort(t),
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MessageCacheTTL: 2 * time.Second,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -276,10 +277,11 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        availablePort(t),
-		NoBootstrap: true,
-		NoMDNS:      true,
+		BasePath:        basePathB,
+		Port:            availablePort(t),
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MessageCacheTTL: 2 * time.Second,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -320,7 +322,8 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 200)
-	require.Equal(t, 1, len(handler.messages[nodeA.host.id()]))
+	messages, _ := handler.messagesFrom(nodeA.host.id())
+	require.Len(t, messages, 1)
 
 	nodeA.host.messageCache = nil
 
@@ -329,7 +332,9 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
-	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
+
+	messages, _ = handler.messagesFrom(nodeA.host.id())
+	require.Len(t, messages, 6)
 }
 
 func TestService_NodeRoles(t *testing.T) {

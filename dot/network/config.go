@@ -107,6 +107,8 @@ type Config struct {
 	SlotDuration time.Duration
 
 	Telemetry telemetry.Client
+
+	MessageCacheTTL time.Duration
 }
 
 // build checks the configuration, sets up the private key for the network service,

@@ -201,7 +201,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 			return int64(1)
 		},
 	}
-	msgCache, err := newMessageCache(config, msgCacheTTL)
+	msgCache, err := newMessageCache(config, cfg.MessageCacheTTL)
 	if err != nil {
 		return nil, err
 	}
