@@ -114,6 +114,9 @@ type PeersState struct {
 }
 
 func (ps *PeersState) getNode(p peer.ID) (*node, error) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
 	if n, ok := ps.nodes[p]; ok {
 		return n, nil
 	}

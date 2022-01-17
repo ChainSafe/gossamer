@@ -18,8 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const blockRequestSize uint32 = 128
-
 type testStreamHandler struct {
 	sync.Mutex
 
