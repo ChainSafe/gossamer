@@ -23,7 +23,7 @@ func Test_NewBranch(t *testing.T) {
 		Key:        key,
 		Value:      value,
 		Dirty:      dirty,
-		generation: generation,
+		Generation: generation,
 	}
 	assert.Equal(t, expectedBranch, branch)
 

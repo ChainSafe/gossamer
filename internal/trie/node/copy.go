@@ -12,7 +12,7 @@ func (b *Branch) Copy(copyChildren bool) Node {
 
 	cpy := &Branch{
 		Dirty:      b.Dirty,
-		generation: b.generation,
+		Generation: b.Generation,
 	}
 
 	if copyChildren {
@@ -60,7 +60,7 @@ func (l *Leaf) Copy(_ bool) Node {
 
 	cpy := &Leaf{
 		Dirty:      l.Dirty,
-		generation: l.generation,
+		Generation: l.Generation,
 	}
 
 	if l.Key != nil {

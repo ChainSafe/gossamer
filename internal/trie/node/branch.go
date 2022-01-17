@@ -23,11 +23,11 @@ type Branch struct {
 	Dirty      bool
 	hashDigest []byte
 	Encoding   []byte
-	// generation is incremented on every trie Snapshot() call.
-	// Each node also contain a certain generation number,
-	// which is updated to match the trie generation once they are
+	// Generation is incremented on every trie Snapshot() call.
+	// Each node also contain a certain Generation number,
+	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
-	generation uint64
+	Generation uint64
 	sync.RWMutex
 }
 
@@ -37,7 +37,7 @@ func NewBranch(key, value []byte, dirty bool, generation uint64) *Branch {
 		Key:        key,
 		Value:      value,
 		Dirty:      dirty,
-		generation: generation,
+		Generation: generation,
 	}
 }
 
