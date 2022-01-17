@@ -109,7 +109,7 @@ func (h *Hash) UnmarshalJSON(data []byte) error {
 }
 
 // MarshalJSON converts hash to hex data
-func (h *Hash) MarshalJSON() ([]byte, error) {
+func (h Hash) MarshalJSON() ([]byte, error) {
 	return json.Marshal(h.String())
 }
 
