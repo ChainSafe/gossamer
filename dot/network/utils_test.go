@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -78,8 +77,7 @@ func TestStringsToAddrInfos(t *testing.T) {
 }
 
 func TestGenerateKey(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
 
 	keyA, err := generateKey(0, testDir)
 	require.NoError(t, err)

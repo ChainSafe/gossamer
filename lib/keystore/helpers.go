@@ -103,19 +103,9 @@ func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, passwor
 		return "", fmt.Errorf("failed to create absolute filepath: %s", err)
 	}
 
-	file, err := os.OpenFile(filepath.Clean(fp), os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
-		return "", err
-	}
-
-	err = EncryptAndWriteToFile(file, kp.Private(), password)
+	err = EncryptAndWriteToFile(fp, kp.Private(), password)
 	if err != nil {
 		return "", fmt.Errorf("failed to write key to file: %s", err)
-	}
-
-	err = file.Close()
-	if err != nil {
-		return "", fmt.Errorf("failed to close file: %s", err)
 	}
 
 	return fp, nil
