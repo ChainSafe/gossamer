@@ -84,6 +84,8 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 }
 
 func TestExternalAddrsPublicDNS(t *testing.T) {
+	t.Parallel()
+
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node"),
 		PublicDNS:   "alice",
@@ -100,7 +102,6 @@ func TestExternalAddrsPublicDNS(t *testing.T) {
 		mustNewMultiAddr("/dns/alice/tcp/7001"),
 	}
 	assert.Equal(t, addrInfo.Addrs, expected)
-
 }
 
 // test host connect method

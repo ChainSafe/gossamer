@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -190,17 +189,17 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	return srvc
 }
 
-func TestMain(m *testing.M) {
-	// Start all tests
-	code := m.Run()
+// func TestMain(m *testing.M) {
+// 	// Start all tests
+// 	code := m.Run()
 
-	// Cleanup test path.
-	err := os.RemoveAll(utils.TestDir)
-	if err != nil {
-		fmt.Printf("failed to remove path %s : %s\n", utils.TestDir, err)
-	}
-	os.Exit(code)
-}
+// 	// Cleanup test path.
+// 	err := os.RemoveAll(utils.TestDir)
+// 	if err != nil {
+// 		fmt.Printf("failed to remove path %s : %s\n", utils.TestDir, err)
+// 	}
+// 	os.Exit(code)
+// }
 
 // test network service starts
 func TestStartService(t *testing.T) {
