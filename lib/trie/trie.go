@@ -550,7 +550,7 @@ func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bo
 	case *node.Branch:
 		length := lenCommonPrefix(c.Key, prefix)
 		if length == len(prefix) {
-			n, _ := t.deleteNodes(c, []byte{}, limit)
+			n := t.deleteNodes(c, []byte{}, limit)
 			if n == nil {
 				return nil, true, true
 			}
@@ -559,7 +559,7 @@ func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bo
 
 		if len(prefix) == len(c.Key)+1 && length == len(prefix)-1 {
 			i := prefix[len(c.Key)]
-			c.Children[i], _ = t.deleteNodes(c.Children[i], []byte{}, limit)
+			c.Children[i] = t.deleteNodes(c.Children[i], []byte{}, limit)
 
 			c.SetDirty(true)
 			curr = handleDeletion(c, prefix)
@@ -601,16 +601,17 @@ func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bo
 	return nil, false, true
 }
 
-func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (Node, bool) {
+func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (newNode Node) {
 	curr := t.maybeUpdateGeneration(cn)
+
+	if *limit == 0 {
+		return curr
+	}
 
 	switch c := curr.(type) {
 	case *node.Leaf:
-		if *limit == 0 {
-			return c, false
-		}
 		*limit--
-		return nil, true
+		return nil
 	case *node.Branch:
 		if len(c.Key) != 0 {
 			prefix = append(prefix, c.Key...)
@@ -621,10 +622,7 @@ func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (Node, bool) {
 				continue
 			}
 
-			var isDel bool
-			if c.Children[i], isDel = t.deleteNodes(child, prefix, limit); !isDel {
-				continue
-			}
+			c.Children[i] = t.deleteNodes(child, prefix, limit)
 
 			c.SetDirty(true)
 			curr = handleDeletion(c, prefix)
@@ -634,22 +632,18 @@ func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (Node, bool) {
 			}
 
 			if *limit == 0 {
-				return curr, true
+				return curr
 			}
-		}
-
-		if *limit == 0 {
-			return c, true
 		}
 
 		// Delete the current node as well
 		if c.Value != nil {
 			*limit--
 		}
-		return nil, true
+		return nil
 	}
 
-	return curr, true
+	return curr
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
