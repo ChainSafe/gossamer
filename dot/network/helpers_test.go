@@ -23,13 +23,17 @@ type testStreamHandler struct {
 
 	messages map[peer.ID][]Message
 	decoder  messageDecoder
-	exit     bool
+
+	// exitChan is a notify chan that the readStream
+	// works and sucessfuly returns
+	exitChan chan struct{}
 }
 
 func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
 	return &testStreamHandler{
 		messages: make(map[peer.ID][]Message),
 		decoder:  decoder,
+		exitChan: make(chan struct{}),
 	}
 }
 
@@ -75,7 +79,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 	msgBytes := make([]byte, maxBlockResponseSize)
 
 	defer func() {
-		s.exit = true
+		close(s.exitChan)
 	}()
 
 	for {

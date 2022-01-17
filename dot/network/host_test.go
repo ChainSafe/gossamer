@@ -566,7 +566,6 @@ func TestStreamCloseEOF(t *testing.T) {
 	nodeB.noGossip = true
 	handler := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handler.handleStream)
-	require.False(t, handler.exit)
 
 	addrInfoB := nodeB.host.addrInfo()
 	err := nodeA.host.connect(addrInfoB)
@@ -581,14 +580,15 @@ func TestStreamCloseEOF(t *testing.T) {
 
 	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockReqMessage)
 	require.NoError(t, err)
-	require.False(t, handler.exit)
 
 	err = stream.Close()
 	require.NoError(t, err)
 
-	time.Sleep(TestBackoffTimeout)
-
-	require.True(t, handler.exit)
+	select {
+	case <-time.After(time.Millisecond * 500):
+		require.Fail(t, "stream handler does not exit after stream closed")
+	case <-handler.exitChan:
+	}
 }
 
 // Test to check the nodes connection by peer set manager
