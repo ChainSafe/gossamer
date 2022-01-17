@@ -58,11 +58,14 @@ func newTestMailer(t *testing.T, handler http.HandlerFunc) (mailer *Mailer) {
 func TestHandler_SendMulti(t *testing.T) {
 	t.Parallel()
 
+	firstHash := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
+	secondHash := common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c")
+
 	expected := [][]byte{
-		[]byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","name":"nodeName","network_id":"netID","startup_time":"startTime","version":"0.1","msg":"system.connected","ts":`), //nolint:lll
+		[]byte(`{"authority":false,"chain":"chain","genesis_hash":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","implementation":"systemName","name":"nodeName","network_id":"netID","startup_time":"startTime","version":"0.1","msg":"system.connected","ts":`), //nolint:lll
 		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"origin":"NetworkInitialSync","msg":"block.import","ts":`),                                                                                                                      //nolint:lll
 		[]byte(`{"bandwidth_download":2,"bandwidth_upload":3,"peers":1,"msg":"system.interval","ts":`),
-		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":32375,"finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"txcount":0,"used_state_cache_size":1234,"msg":"system.interval","ts":`), //nolint:lll
+		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":32375,"finalized_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","finalized_height":32256,"txcount":0,"used_state_cache_size":1234,"msg":"system.interval","ts":`), //nolint:lll
 		[]byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":"32375","msg":"notify.finalized","ts":`),                                                                                                                                                      //nolint:lll
 		[]byte(`{"hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","number":"1","msg":"prepared_block_for_proposing","ts":`),                                                                                                                                              //nolint:lll
 		[]byte(`{"ready":1,"future":2,"msg":"txpool.import","ts":`),
@@ -76,54 +79,18 @@ func TestHandler_SendMulti(t *testing.T) {
 	messages := []Message{
 		NewBandwidth(2, 3, 1),
 		NewTxpoolImport(1, 2),
-
-		func(genesisHash common.Hash) Message {
-			return NewSystemConnected(false, "chain", &genesisHash,
-				"systemName", "nodeName", "netID", "startTime", "0.1")
-		}(common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")),
-
-		func(bh common.Hash) Message {
-			return NewBlockImport(&bh, big.NewInt(2), "NetworkInitialSync")
-		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")),
-
-		func(bestHash, finalisedHash common.Hash) Message {
-			return NewBlockInterval(&bestHash, big.NewInt(32375), &finalisedHash,
-				big.NewInt(32256), big.NewInt(0), big.NewInt(1234))
-		}(
-			common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
-			common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2"),
-		),
-
+		NewSystemConnected(false, "chain", &firstHash,
+			"systemName", "nodeName", "netID", "startTime", "0.1"),
+		NewBlockImport(&firstHash, big.NewInt(2), "NetworkInitialSync"),
+		NewBlockInterval(&firstHash, big.NewInt(32375), &secondHash,
+			big.NewInt(32256), big.NewInt(0), big.NewInt(1234)),
 		NewAfgAuthoritySet("authority_id", "authority_set_id", "json-stringified-ids-of-authorities"),
-
-		func(hash common.Hash, number string) Message {
-			return NewAfgFinalizedBlocksUpTo(hash, number)
-		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"), "1"),
-
-		func(targetHash common.Hash, targetNumber string, containsPrecommitsSignedBy []string) Message {
-			return NewAfgReceivedCommit(targetHash, targetNumber, containsPrecommitsSignedBy)
-		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
-			"1", []string{}),
-
-		func(targetHash common.Hash, targetNumber string, voter string) Message {
-			return NewAfgReceivedPrecommit(targetHash, targetNumber, voter)
-		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
-			"1", ""),
-
-		func(targetHash common.Hash, targetNumber string, voter string) Message {
-			return NewAfgReceivedPrevote(targetHash, targetNumber, voter)
-		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
-			"1", ""),
-
-		func(best common.Hash, height string) Message {
-			return NewNotifyFinalized(best, height)
-		}(common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
-			"32375"),
-
-		func(hash common.Hash, number string) Message {
-			return NewPreparedBlockForProposing(hash, number)
-		}(common.MustHexToHash("0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c"),
-			"1"),
+		NewAfgFinalizedBlocksUpTo(firstHash, "1"),
+		NewAfgReceivedCommit(secondHash, "1", []string{}),
+		NewAfgReceivedPrecommit(secondHash, "1", ""),
+		NewAfgReceivedPrevote(secondHash, "1", ""),
+		NewNotifyFinalized(firstHash, "32375"),
+		NewPreparedBlockForProposing(secondHash, "1"),
 	}
 
 	upgrader := websocket.Upgrader{
