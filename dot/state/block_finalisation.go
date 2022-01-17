@@ -152,10 +152,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		}
 
 		logger.Tracef("pruned block number %s with hash %s", block.Header.Number, hash)
-
-		go func(header *types.Header) {
-			bs.pruneKeyCh <- header
-		}(&block.Header)
+		bs.pruneKeyCh <- &block.Header
 	}
 
 	// if nothing was previously finalised, set the first slot of the network to the
