@@ -443,12 +443,12 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 		return
 	}
 
-	stream, err := s.sendHandshake(conn.RemotePeer(), hs, prtl)
+	_, err = s.sendHandshake(conn.RemotePeer(), hs, prtl)
 	if err != nil {
 		return
 	}
 
-	_ = stream.Close()
+	// leave stream open if there's no error
 }
 
 // Stop closes running instances of the host and network services as well as

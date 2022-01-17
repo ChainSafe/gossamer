@@ -19,14 +19,16 @@ import (
 
 type testStreamHandler struct {
 	messages map[peer.ID][]Message
-	decoder  messageDecoder
-	exit     bool
+	//handshakes map[peer.ID][]Message
+	decoder messageDecoder
+	exit    bool
 }
 
 func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
 	return &testStreamHandler{
 		messages: make(map[peer.ID][]Message),
-		decoder:  decoder,
+		//handshakes: make(map[peer.ID][]Message),
+		decoder: decoder,
 	}
 }
 
@@ -44,6 +46,7 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Message) error {
 	msgs := s.messages[stream.Conn().RemotePeer()]
 	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
+
 	announceHandshake := &BlockAnnounceHandshake{
 		BestBlockNumber: 0,
 	}

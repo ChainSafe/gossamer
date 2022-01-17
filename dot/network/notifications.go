@@ -290,6 +290,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 	if s.host.messageCache != nil && s.host.messageCache.exists(peer, msg) {
 		// message has already been sent
+		logger.Tracef("not sending message, already sent: peer=%s msg=%s", peer, msg)
 		return
 	}
 

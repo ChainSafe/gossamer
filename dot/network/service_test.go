@@ -100,7 +100,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 			Port:         availablePort(t),
 			NoBootstrap:  true,
 			NoMDNS:       true,
-			LogLvl:       4,
+			LogLvl:       5,
 			SlotDuration: time.Second,
 		}
 	}
@@ -285,6 +285,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
+	// TODO: create a decoder that handles both handshakes and messages
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
@@ -313,14 +314,16 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 		Digest: types.NewDigest(),
 	}
 
+	delete(handler.messages, nodeA.host.id())
+
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
 		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	time.Sleep(time.Millisecond * 200)
-	require.Equal(t, 1, len(handler.messages[nodeA.host.id()]))
+	time.Sleep(time.Millisecond * 500)
+	require.Equal(t, 2, len(handler.messages[nodeA.host.id()]))
 
 	nodeA.host.messageCache = nil
 
@@ -329,7 +332,8 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
-	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
+
+	require.Equal(t, 7, len(handler.messages[nodeA.host.id()]))
 }
 
 func TestService_NodeRoles(t *testing.T) {
