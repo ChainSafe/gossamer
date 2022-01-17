@@ -260,7 +260,76 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NotNil(t, messages)
 }
 
-func TestBroadcastDuplicateMessage(t *testing.T) {
+func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
+	t.Parallel()
+
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:        basePathA,
+		Port:            availablePort(t),
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MessageCacheTTL: 2 * time.Second,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:        basePathB,
+		Port:            availablePort(t),
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MessageCacheTTL: 2 * time.Second,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
+
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(addrInfoB)
+	}
+	require.NoError(t, err)
+
+	stream, err := nodeA.host.h.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
+	require.NoError(t, err)
+	require.NotNil(t, stream)
+
+	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
+	protocol.outboundHandshakeData.Store(nodeB.host.id(), &handshakeData{
+		received:  true,
+		validated: true,
+		stream:    stream,
+	})
+
+	announceMessage := &BlockAnnounceMessage{
+		Number: big.NewInt(128 * 7),
+		Digest: types.NewDigest(),
+	}
+
+	// disable message cache before sent the messages
+	nodeA.host.messageCache = nil
+
+	// All 5 message will be sent since cache is disabled.
+	for i := 0; i < 5; i++ {
+		nodeA.GossipMessage(announceMessage)
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	time.Sleep(time.Millisecond * 200)
+	messages, _ := handler.messagesFrom(nodeA.host.id())
+	require.Len(t, messages, 6)
+}
+
+func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 	t.Parallel()
 
 	basePathA := utils.NewTestBasePath(t, "nodeA")
@@ -324,17 +393,6 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	time.Sleep(time.Millisecond * 200)
 	messages, _ := handler.messagesFrom(nodeA.host.id())
 	require.Len(t, messages, 1)
-
-	nodeA.host.messageCache = nil
-
-	// All 5 message will be sent since cache is disabled.
-	for i := 0; i < 5; i++ {
-		nodeA.GossipMessage(announceMessage)
-		time.Sleep(time.Millisecond * 10)
-	}
-
-	messages, _ = handler.messagesFrom(nodeA.host.id())
-	require.Len(t, messages, 6)
 }
 
 func TestService_NodeRoles(t *testing.T) {
