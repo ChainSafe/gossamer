@@ -4,8 +4,6 @@
 package rpc
 
 import (
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -15,7 +13,7 @@ import (
 
 func TestOffchainRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 

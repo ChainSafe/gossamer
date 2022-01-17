@@ -87,6 +87,9 @@ func checkPrimaryThreshold(randomness Randomness,
 // equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
 // see https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L44
 func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
+	if C1 == 0 || C2 == 0 {
+		return nil, ErrThresholdOneIsZero
+	}
 	c := float64(C1) / float64(C2)
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")

@@ -40,27 +40,21 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 
 			switch vm.Message.Stage {
 			case prevote, primaryProposal:
-				err := telemetry.GetInstance().SendMessage(
-					telemetry.NewAfgReceivedPrevoteTM(
+				s.telemetry.SendMessage(
+					telemetry.NewAfgReceivedPrevote(
 						vm.Message.Hash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
 				)
-				if err != nil {
-					logger.Debugf("problem sending afg.received_prevote telemetry message: %s", err)
-				}
 			case precommit:
-				err := telemetry.GetInstance().SendMessage(
-					telemetry.NewAfgReceivedPrecommitTM(
+				s.telemetry.SendMessage(
+					telemetry.NewAfgReceivedPrecommit(
 						vm.Message.Hash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
 				)
-				if err != nil {
-					logger.Debugf("problem sending afg.received_precommit telemetry message: %s", err)
-				}
 			default:
 				logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
 			}

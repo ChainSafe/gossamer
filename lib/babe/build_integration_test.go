@@ -1,6 +1,9 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+//go:build integration
+// +build integration
+
 package babe
 
 import (
@@ -16,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
@@ -138,8 +142,12 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 }
 
 func TestBuildBlock_ok(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &ServiceConfig{
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 		LogLvl:           log.Info,
 	}
 
@@ -172,8 +180,12 @@ func TestBuildBlock_ok(t *testing.T) {
 }
 
 func TestApplyExtrinsic(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &ServiceConfig{
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 		LogLvl:           log.Info,
 	}
 
@@ -259,8 +271,12 @@ func TestApplyExtrinsic(t *testing.T) {
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &ServiceConfig{
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 		LogLvl:           log.Info,
 	}
 
@@ -336,12 +352,34 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &ServiceConfig{
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 	}
 
 	babeService := createTestService(t, cfg)
 
+	// <<<<<<< HEAD:lib/babe/build_test.go
+	// =======
+	// 	babeService.epochData.authorities = []types.Authority{
+	// 		{Key: nil, Weight: 1},
+	// 	}
+
+	// 	// create proof that we can authorize this block
+	// 	babeService.epochData.threshold = &scale.Uint128{}
+	// 	var slotNumber uint64 = 1
+
+	// 	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
+	// 	require.NoError(t, err)
+	// 	require.NotNil(t, outAndProof, "proof was nil when over threshold")
+
+	// 	babeService.slotToProof[slotNumber] = outAndProof
+
+	// >>>>>>> a7581c9eec83dd1b78dcf16a13db45e8f14f97cc:lib/babe/build_integration_test.go
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
 	txa := []byte{

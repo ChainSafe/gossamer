@@ -18,15 +18,14 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 func TestCreateDecoder_BlockAnnounce(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "nodeA")
+	t.Parallel()
 
 	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -84,11 +83,11 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 }
 
 func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "nodeA")
+	t.Parallel()
 
 	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -96,8 +95,8 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	s := createTestService(t, config)
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -145,9 +144,11 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 }
 
 func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) {
+	t.Parallel()
+
 	config := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -165,8 +166,8 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage, nil)
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -222,10 +223,11 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 }
 
 func Test_HandshakeTimeout(t *testing.T) {
-	basePathA := utils.NewTestBasePath(t, "nodeA")
+	t.Parallel()
+
 	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -233,10 +235,9 @@ func Test_HandshakeTimeout(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -302,11 +303,12 @@ func Test_HandshakeTimeout(t *testing.T) {
 }
 
 func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
+	t.Parallel()
+
 	const batchSize = 5
-	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 		batchSize:   batchSize,
@@ -315,8 +317,8 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	srvc1 := createTestService(t, config)
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -410,5 +412,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 }
 
 func TestBlockAnnounceHandshakeSize(t *testing.T) {
+	t.Parallel()
+
 	require.Equal(t, unsafe.Sizeof(BlockAnnounceHandshake{}), reflect.TypeOf(BlockAnnounceHandshake{}).Size())
 }

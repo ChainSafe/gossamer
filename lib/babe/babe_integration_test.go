@@ -1,6 +1,9 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+//go:build integration
+// +build integration
+
 package babe
 
 import (
@@ -24,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -37,7 +41,6 @@ var (
 	keyring, _ = keystore.NewSr25519Keyring()
 
 	maxThreshold = scale.MaxUint128
-	minThreshold = &scale.Uint128{}
 
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{
@@ -55,6 +58,8 @@ var (
 		SecondarySlots:     0,
 	}
 )
+
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
@@ -88,8 +93,14 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.AuthData = []types.Authority{auth}
 	}
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	cfg.Telemetry = telemetryMock
+
 	if cfg.TransactionState == nil {
-		cfg.TransactionState = state.NewTransactionState()
+		cfg.TransactionState = state.NewTransactionState(telemetryMock)
 	}
 
 	testDatadirPath := t.TempDir()
@@ -98,8 +109,9 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	var dbSrv *state.Service
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
 		config := state.Config{
-			Path:     testDatadirPath,
-			LogLevel: log.Info,
+			Path:      testDatadirPath,
+			LogLevel:  log.Info,
+			Telemetry: telemetryMock,
 		}
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
@@ -164,11 +176,16 @@ func TestMain(m *testing.M) {
 }
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	testDatadirPath := t.TempDir()
 
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()

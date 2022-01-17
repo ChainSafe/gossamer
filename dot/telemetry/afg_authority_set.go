@@ -3,11 +3,18 @@
 
 package telemetry
 
-var _ Message = (*AfgAuthoritySetTM)(nil)
+import (
+	"encoding/json"
+	"time"
+)
 
-// AfgAuthoritySetTM is a telemetry message of type `afg.authority_set` which is
+type afgAuthoritySetTM AfgAuthoritySet
+
+var _ Message = (*AfgAuthoritySet)(nil)
+
+// AfgAuthoritySet is a telemetry message of type `afg.authority_set` which is
 // meant to be sent when authority set changes (generally when a round is initiated)
-type AfgAuthoritySetTM struct {
+type AfgAuthoritySet struct {
 	AuthorityID    string `json:"authority_id"`
 	AuthoritySetID string `json:"authority_set_id"`
 	// Substrate creates an array of string of authority IDs. It JSON-serialises
@@ -15,15 +22,25 @@ type AfgAuthoritySetTM struct {
 	Authorities string `json:"authorities"`
 }
 
-// NewAfgAuthoritySetTM creates a new AfgAuthoritySetTM struct.
-func NewAfgAuthoritySetTM(authorityID, authoritySetID, authorities string) *AfgAuthoritySetTM {
-	return &AfgAuthoritySetTM{
+// NewAfgAuthoritySet creates a new AfgAuthoritySetTM struct.
+func NewAfgAuthoritySet(authorityID, authoritySetID, authorities string) *AfgAuthoritySet {
+	return &AfgAuthoritySet{
 		AuthorityID:    authorityID,
 		AuthoritySetID: authoritySetID,
 		Authorities:    authorities,
 	}
 }
 
-func (AfgAuthoritySetTM) messageType() string {
-	return afgAuthoritySetMsg
+func (afg AfgAuthoritySet) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		afgAuthoritySetTM
+		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
+	}{
+		afgAuthoritySetTM: afgAuthoritySetTM(afg),
+		MessageType:       afgAuthoritySetMsg,
+		Timestamp:         time.Now(),
+	}
+
+	return json.Marshal(telemetryData)
 }

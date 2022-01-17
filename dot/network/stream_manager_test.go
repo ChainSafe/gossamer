@@ -19,6 +19,8 @@ import (
 )
 
 func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, []*streamManager) {
+	t.Helper()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cleanupStreamInterval = time.Millisecond * 500
@@ -30,8 +32,9 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 	smA := newStreamManager(ctx)
 	smB := newStreamManager(ctx)
 
-	portA := 7001
-	portB := 7002
+	portA := availablePort(t)
+	portB := availablePort(t)
+
 	addrA, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", portA))
 	require.NoError(t, err)
 	addrB, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", portB))
@@ -61,6 +64,8 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 }
 
 func TestStreamManager(t *testing.T) {
+	t.Parallel()
+
 	ctx, hosts, sms := setupStreamManagerTest(t)
 	ha, hb := hosts[0], hosts[1]
 	smA, smB := sms[0], sms[1]

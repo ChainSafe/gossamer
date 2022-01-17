@@ -65,22 +65,18 @@ For coding style, you may refer to the [code style](CODE_STYLE.md) document whic
     go test <file_you_are_working_on>
     ```
 
-    Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `MyInterface`, the comment would be:
+    Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `Client` in the `dot/telemetry` pacakge, the comment would be:
 
     ```go
-    //go:generate mockery --name MyInterface --structname MyInterface --case underscore --keeptree
+    //go:generate mockgen -destination=mock_myinterface_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
     ```
 
-    This will generate a Go file `./mocks/my_interface.go` with the `MyInterface` Mockery mock.
+    This will generate a Go file `mock_myinterface_test.go` with the `Client` mock. Note this is only accessible
+    in your current package since it's written to a `_test.go` file. We prefer to generate mocks locally where they are needed instead of sharing them to reduce package dependency and the Go API 'noise'.
 
-    If you want to have your mock in the same package you are working on:
-      - Replace `--keeptree` with `-inpackage`
-      - Add `--filename mock_my_interface_test.go` so it's clear it's only used for package local tests
-      - Prefix the `--structname` value with `mock` to differentiate it with the original interface.
+    Generate the mock code with `go generate -run "mockgen" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `go generate -run "mockgen" ./...` from the repository root. Note this does not log anything out.
 
-    This will generate a Go file `./mock_my_interface_test.go` with mock `mockMyInterface`.
-
-    Generate the mock code with `go generate -run "mockery" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `go generate -run "mockery" ./...` from the repository root.
+    ⚠️ We are still using `mockery` instead of `gomock` for older mocks, so you need to run `go generate -run "mockery|mockgen" ./...` to update all the existing mocks. We are slowly migrating our mocks and test code to use `gomock`.
 
 9. **Lint your changes.**
 
