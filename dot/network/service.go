@@ -285,8 +285,7 @@ func (s *Service) Start() error {
 	}
 
 	go s.logPeerCount()
-	go s.publishNetworkTelemetry(s.closeCh)
-	go s.sentBlockIntervalTelemetry()
+	go s.publishTelemetry(s.closeCh)
 	s.streamManager.start()
 
 	return nil
@@ -387,47 +386,56 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
+func (s *Service) publishTelemetry(done <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
 	for {
+		s.sentBandwidthTelemetry()
+		err := s.sentBlockIntervalTelemetry()
+		if err != nil {
+			logger.Warnf("failed to sent block interval telemetry: %s", err)
+			continue
+		}
+
 		select {
 		case <-done:
 			return
-
 		case <-ticker.C:
-			o := s.host.bwc.GetBandwidthTotals()
-			s.telemetry.SendMessage(telemetry.NewBandwidth(o.RateIn, o.RateOut, s.host.peerCount()))
 		}
 	}
 }
 
-func (s *Service) sentBlockIntervalTelemetry() {
-	for {
-		best, err := s.blockState.BestBlockHeader()
-		if err != nil {
-			continue
-		}
-		bestHash := best.Hash()
+func (s *Service) sentBandwidthTelemetry() {
+	o := s.host.bwc.GetBandwidthTotals()
+	s.telemetry.SendMessage(telemetry.NewBandwidth(o.RateIn, o.RateOut, s.host.peerCount()))
+}
 
-		finalised, err := s.blockState.GetHighestFinalisedHeader()
-		if err != nil {
-			continue
-		}
-		finalizedHash := finalised.Hash()
-
-		s.telemetry.SendMessage(telemetry.NewBlockInterval(
-			&bestHash,
-			best.Number,
-			&finalizedHash,
-			finalised.Number,
-			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
-			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
-		))
-
-		time.Sleep(s.telemetryInterval)
+func (s *Service) sentBlockIntervalTelemetry() (err error) {
+	best, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
 	}
+
+	bestHash := best.Hash()
+
+	finalised, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return err
+	}
+
+	finalizedHash := finalised.Hash()
+
+	s.telemetry.SendMessage(telemetry.NewBlockInterval(
+		&bestHash,
+		best.Number,
+		&finalizedHash,
+		finalised.Number,
+		big.NewInt(int64(s.transactionHandler.TransactionsCount())),
+		big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
+	))
+
+	return nil
 }
 
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {

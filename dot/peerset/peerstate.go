@@ -215,15 +215,16 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 
 func (ps *PeersState) addReputation(pid peer.ID, change ReputationChange) (
 	newReputation Reputation, err error) {
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
-
 	n, err := ps.getNode(pid)
 	if err != nil {
 		return 0, err
 	}
 
 	newReputation = n.addReputation(change.Value)
+
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
 	ps.nodes[pid] = n
 
 	return newReputation, nil
