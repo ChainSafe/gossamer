@@ -136,6 +136,7 @@ func (s *Service) IsSynced() bool {
 	return s.chainSync.syncState() == tip
 }
 
+// HighestBlock gets the highest known block number
 func (s *Service) HighestBlock() int64 {
 	highestBlock, err := s.chainSync.getHighestBlock()
 	if err != nil {
