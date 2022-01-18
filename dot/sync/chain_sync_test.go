@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"math/big"
 	"reflect"
@@ -23,7 +24,21 @@ func Test_chainSyncState_String(t *testing.T) {
 		s    chainSyncState
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "case bootstrap",
+			s:    bootstrap,
+			want: "bootstrap",
+		},
+		{
+			name: "case tip",
+			s:    tip,
+			want: "tip",
+		},
+		{
+			name: "case unknown",
+			s:    3,
+			want: "unknown",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -36,25 +51,7 @@ func Test_chainSyncState_String(t *testing.T) {
 
 func Test_chainSync_determineSyncPeers(t *testing.T) {
 	type fields struct {
-		ctx              context.Context
-		cancel           context.CancelFunc
-		blockState       BlockState
-		network          Network
-		workQueue        chan *peerState
-		resultQueue      chan *worker
-		RWMutex          sync.RWMutex
-		peerState        map[peer.ID]*peerState
-		ignorePeers      map[peer.ID]struct{}
-		workerState      *workerState
-		readyBlocks      *blockQueue
-		pendingBlocks    DisjointBlockSet
-		state            chainSyncState
-		handler          workHandler
-		benchmarker      *syncBenchmarker
-		finalisedCh      <-chan *types.FinalisationInfo
-		minPeers         int
-		maxWorkerRetries uint16
-		slotDuration     time.Duration
+		peerState map[peer.ID]*peerState
 	}
 	type args struct {
 		req        *network.BlockRequestMessage
@@ -66,30 +63,35 @@ func Test_chainSync_determineSyncPeers(t *testing.T) {
 		args   args
 		want   []peer.ID
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "base case",
+			fields: fields{},
+			args: args{
+				req: &network.BlockRequestMessage{
+					StartingBlock: *variadic.MustNewUint64OrHash(0),
+				},
+				peersTried: nil,
+			},
+			want: []peer.ID{},
+		},
+		{
+			name: "peer state",
+			fields: fields{
+				peerState: map[peer.ID]*peerState{peer.ID("1"): &peerState{}},
+			},
+			args: args{
+				req: &network.BlockRequestMessage{
+					StartingBlock: *variadic.MustNewUint64OrHash(0),
+				},
+				peersTried: nil,
+			},
+			want: []peer.ID{"1"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cs := &chainSync{
-				ctx:              tt.fields.ctx,
-				cancel:           tt.fields.cancel,
-				blockState:       tt.fields.blockState,
-				network:          tt.fields.network,
-				workQueue:        tt.fields.workQueue,
-				resultQueue:      tt.fields.resultQueue,
-				RWMutex:          tt.fields.RWMutex,
-				peerState:        tt.fields.peerState,
-				ignorePeers:      tt.fields.ignorePeers,
-				workerState:      tt.fields.workerState,
-				readyBlocks:      tt.fields.readyBlocks,
-				pendingBlocks:    tt.fields.pendingBlocks,
-				state:            tt.fields.state,
-				handler:          tt.fields.handler,
-				benchmarker:      tt.fields.benchmarker,
-				finalisedCh:      tt.fields.finalisedCh,
-				minPeers:         tt.fields.minPeers,
-				maxWorkerRetries: tt.fields.maxWorkerRetries,
-				slotDuration:     tt.fields.slotDuration,
+				peerState: tt.fields.peerState,
 			}
 			if got := cs.determineSyncPeers(tt.args.req, tt.args.peersTried); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("determineSyncPeers() = %v, want %v", got, tt.want)

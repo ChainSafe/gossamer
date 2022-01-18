@@ -589,7 +589,6 @@ func Test_chainProcessor_stop(t *testing.T) {
 }
 
 func Test_newChainProcessor(t *testing.T) {
-	//ctx, cancel := context.WithCancel(context.Background())
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockReadyBlock := newBlockQueue(5)
