@@ -855,7 +855,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 		{
 			name: "when has a nil map should return 0, errNoPeers",
 			in: input{
-				peerState: map[peer.ID]*peerState{},
+				peerState: nil,
 			},
 			out: output{
 				highestBlock: int64(0),

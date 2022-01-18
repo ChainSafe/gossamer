@@ -948,10 +948,7 @@ func (cs *chainSync) getHighestBlock() (int64, error) {
 	highestBlock := big.NewInt(-1)
 
 	for _, ps := range ps {
-		if ps.number == nil {
-			continue
-		}
-		if ps.number.Cmp(highestBlock) < 0 { // ps.number < highestBlock: https://pkg.go.dev/math/big#Int.Cmp
+		if ps.number == nil || ps.number.Cmp(highestBlock) < 0 {
 			continue
 		}
 		highestBlock = ps.number
