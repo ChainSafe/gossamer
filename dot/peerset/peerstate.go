@@ -92,7 +92,7 @@ func (n *node) getReputation() Reputation {
 	return n.rep
 }
 
-func (n *node) addReputation(modifier Reputation) Reputation { //nolint:unparam
+func (n *node) addReputation(modifier Reputation) Reputation {
 	n.rep = n.rep.add(modifier)
 	return n.rep
 }
