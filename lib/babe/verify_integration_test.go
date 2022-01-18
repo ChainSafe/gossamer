@@ -1,6 +1,9 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+//go:build integration
+// +build integration
+
 package babe
 
 import (
@@ -16,50 +19,57 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
 	testDatadirPath := t.TempDir()
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
+
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
-
-	if genCfg == nil {
-		genCfg = genesisBABEConfig
-	}
 
 	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
 	err := dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
-	return nil
-	// err = dbSrv.Start()
-	// require.NoError(t, err)
-	// dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
-	// require.NoError(t, err)
+	err = dbSrv.Start()
+	require.NoError(t, err)
 
-	// logger.Patch(log.SetLevel(defaultTestLogLvl))
+	if genCfg == nil {
+		genCfg = genesisBABEConfig
+	}
 
-	// vm, err := NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
-	// require.NoError(t, err)
-	// return vm
+	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
+	require.NoError(t, err)
+
+	logger.Patch(log.SetLevel(defaultTestLogLvl))
+
+	vm, err := NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
+	require.NoError(t, err)
+	return vm
 }
 
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	vm := newTestVerificationManager(t, nil)
-	t.Log(vm)
-	// babeService := createTestService(t, nil)
-	// epochData, err := babeService.initiateEpoch(testEpochIndex)
-	// require.NoError(t, err)
+	babeService := createTestService(t, nil)
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
 
-	// block := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex, epochData)
-	// err = vm.SetOnDisabled(1, &block.Header)
-	// require.Equal(t, err, ErrInvalidBlockProducerIndex)
+	block := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex, epochData)
+	err = vm.SetOnDisabled(1, &block.Header)
+	require.Equal(t, err, ErrInvalidBlockProducerIndex)
 }
 
 func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
