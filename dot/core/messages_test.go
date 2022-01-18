@@ -21,11 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	errBestHeader = errors.New("best header error")
-	errGetRuntime = errors.New("get runtime error")
-	errTrieState  = errors.New("trie state error")
-)
+var errDummyErr = errors.New("dummy error for testing")
 
 func TestService_TransactionsCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -100,11 +96,11 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockNotSyncedNet.EXPECT().IsSynced().Return(false)
 
 	mockSyncedNet1.EXPECT().IsSynced().Return(true)
-	mockBlockStateBestHeadErr.EXPECT().BestBlockHeader().Return(nil, errBestHeader)
+	mockBlockStateBestHeadErr.EXPECT().BestBlockHeader().Return(nil, errDummyErr)
 
 	mockSyncedNet2.EXPECT().IsSynced().Return(true)
 	mockBlockStateRuntimeErr.EXPECT().BestBlockHeader().Return(testEmptyHeader, nil)
-	mockBlockStateRuntimeErr.EXPECT().GetRuntime(gomock.Any()).Return(nil, errGetRuntime)
+	mockBlockStateRuntimeErr.EXPECT().GetRuntime(gomock.Any()).Return(nil, errDummyErr)
 
 	mockSyncedNetHappy.EXPECT().IsSynced().Return(true)
 	mockBlockStateRuntimeOk1.EXPECT().BestBlockHeader().Return(testEmptyHeader, nil)
@@ -119,7 +115,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	mockBlockStateRuntimeOk2.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
 	mockStorageStateTrieStateErr.EXPECT().Lock()
 	mockStorageStateTrieStateErr.EXPECT().Unlock()
-	mockStorageStateTrieStateErr.EXPECT().TrieState(&common.Hash{}).Return(nil, errTrieState)
+	mockStorageStateTrieStateErr.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
 
 	mockSyncedNet4.EXPECT().IsSynced().Return(true)
 	mockBlockStateRuntimeOk3.EXPECT().BestBlockHeader().Return(testEmptyHeader, nil)
@@ -177,8 +173,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			args: args{
 				msg: &network.TransactionMessage{Extrinsics: []types.Extrinsic{}},
 			},
-			expErr:    errBestHeader,
-			expErrMsg: errBestHeader.Error(),
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "get runtime error",
@@ -189,8 +185,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			args: args{
 				msg: &network.TransactionMessage{Extrinsics: []types.Extrinsic{}},
 			},
-			expErr:    errGetRuntime,
-			expErrMsg: errGetRuntime.Error(),
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "happy path no loop",
@@ -216,8 +212,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 					Extrinsics: []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}},
 				},
 			},
-			expErr:    errTrieState,
-			expErrMsg: errTrieState.Error(),
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "runtime.ErrInvalidTransaction",
