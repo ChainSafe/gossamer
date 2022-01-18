@@ -27,8 +27,6 @@ var (
 	errTrieState  = errors.New("trie state error")
 )
 
-// TODO use new test format
-
 func TestService_TransactionsCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockTxnStateEmpty := NewMockTransactionState(ctrl)
