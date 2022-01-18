@@ -289,9 +289,74 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{}))
-	mockBlockState.EXPECT().HasBlockBody(gomock.AssignableToTypeOf(common.Hash{}))
-	mockBlockState.EXPECT().CompareAndSetBlockData(gomock.AssignableToTypeOf(&types.BlockData{}))
+	mockBlockState.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.
+		Hash) (bool, error) {
+		if hash.IsEmpty() {
+			return false, nil
+		}
+		return true, nil
+	}).Times(5)
+	mockBlockState.EXPECT().HasBlockBody(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.
+		Hash) (bool, error) {
+		if hash.IsEmpty() {
+			return false, nil
+		}
+		return true, nil
+	}).Times(5)
+	mockBlockState.EXPECT().CompareAndSetBlockData(gomock.AssignableToTypeOf(&types.BlockData{})).Times(3)
+	mockBlockState.EXPECT().GetBlockByHash(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.
+		Hash) (*types.Block, error) {
+		if hash.IsEmpty() {
+			return nil, nil
+		}
+		num := big.NewInt(0)
+		num.SetBytes(hash[0:1])
+		block := &types.Block{
+			Header: types.Header{
+				Number: num,
+			},
+		}
+		return block, nil
+	}).Times(2)
+	mockBlockState.EXPECT().AddBlockToBlockTree(gomock.AssignableToTypeOf(&types.Block{})).DoAndReturn(func(
+		block *types.Block) error {
+		if block.Header.Number.Cmp(big.NewInt(1)) == 0 {
+			return errors.New("fake error adding block")
+		}
+		return nil
+	}).Times(2)
+	mockBlockState.EXPECT().GetHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(&types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314"),
+	}, nil).Times(2)
+	mockInstance := mocks.NewMockInstance(ctrl)
+	mockTrieState, _ := storage.NewTrieState(nil)
+	mockInstance.EXPECT().SetContextStorage(mockTrieState).Times(2)
+	mockInstance.EXPECT().ExecuteBlock(gomock.AssignableToTypeOf(&types.Block{})).Times(2)
+	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(&common.Hash{})).Return(mockInstance, nil).Times(2)
+
+	mockStorageState := NewMockStorageState(ctrl)
+	mockStorageState.EXPECT().TrieState(gomock.AssignableToTypeOf(&common.Hash{})).DoAndReturn(func(hash *common.
+		Hash) (*storage.TrieState, error) {
+		return storage.NewTrieState(nil)
+
+	}).Times(3)
+	mockStorageState.EXPECT().Lock().Times(2)
+	mockStorageState.EXPECT().Unlock().Times(2)
+
+	mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
+	mockBlockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
+		gomock.AssignableToTypeOf(&storage.TrieState{})).Times(3)
+
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockBabeVerifier.EXPECT().VerifyBlock(gomock.AssignableToTypeOf(&types.Header{})).Times(2)
+
+	mockJustification := []byte{0, 1, 2}
+	mockFinalityGadget := NewMockFinalityGadget(ctrl)
+	mockFinalityGadget.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
+		gomock.AssignableToTypeOf([]byte{}))
+	mockBlockState.EXPECT().SetJustification(gomock.AssignableToTypeOf(common.Hash{}),
+		gomock.AssignableToTypeOf([]byte{}))
 
 	type fields struct {
 		ctx                context.Context
@@ -324,7 +389,60 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			fields: fields{
 				blockState: mockBlockState,
 			},
-		}, // TODO, add more tests
+		},
+		{
+			name: "error adding block data",
+			args: args{bd: &types.BlockData{
+				Hash: common.MustHexToHash("0x010203"),
+			}},
+			fields: fields{
+				blockState: mockBlockState,
+			},
+			err: errors.New("fake error adding block"),
+		},
+		{
+			name: "handle block import",
+			args: args{bd: &types.BlockData{
+				Hash: common.MustHexToHash("0x020203"),
+			}},
+			fields: fields{
+				blockState:         mockBlockState,
+				storageState:       mockStorageState,
+				blockImportHandler: mockBlockImportHandler,
+			},
+		},
+		{
+			name: "handle header",
+			args: args{bd: &types.BlockData{
+				Header: &types.Header{
+					Number: big.NewInt(0),
+				},
+				Body: &types.Body{},
+			}},
+			fields: fields{
+				blockState:         mockBlockState,
+				storageState:       mockStorageState,
+				blockImportHandler: mockBlockImportHandler,
+				babeVerifier:       mockBabeVerifier,
+			},
+		},
+		{
+			name: "handle justification",
+			args: args{bd: &types.BlockData{
+				Header: &types.Header{
+					Number: big.NewInt(0),
+				},
+				Body:          &types.Body{},
+				Justification: &mockJustification,
+			}},
+			fields: fields{
+				blockState:         mockBlockState,
+				storageState:       mockStorageState,
+				blockImportHandler: mockBlockImportHandler,
+				babeVerifier:       mockBabeVerifier,
+				finalityGadget:     mockFinalityGadget,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
