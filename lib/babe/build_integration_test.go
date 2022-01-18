@@ -363,23 +363,6 @@ func TestBuildBlock_failing(t *testing.T) {
 
 	babeService := createTestService(t, cfg)
 
-	// <<<<<<< HEAD:lib/babe/build_test.go
-	// =======
-	// 	babeService.epochData.authorities = []types.Authority{
-	// 		{Key: nil, Weight: 1},
-	// 	}
-
-	// 	// create proof that we can authorize this block
-	// 	babeService.epochData.threshold = &scale.Uint128{}
-	// 	var slotNumber uint64 = 1
-
-	// 	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
-	// 	require.NoError(t, err)
-	// 	require.NotNil(t, outAndProof, "proof was nil when over threshold")
-
-	// 	babeService.slotToProof[slotNumber] = outAndProof
-
-	// >>>>>>> a7581c9eec83dd1b78dcf16a13db45e8f14f97cc:lib/babe/build_integration_test.go
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
 	txa := []byte{

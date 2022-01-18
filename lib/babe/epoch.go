@@ -6,6 +6,7 @@ package babe
 import (
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 )
@@ -13,87 +14,26 @@ import (
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
-	var (
-		startSlot uint64
-		err       error
-		ed        *epochData
-	)
-
 	logger.Debugf("initiating epoch %d", epoch)
 
-	// TODO: if epoch == 1, check that first slot is still set correctly
-	if epoch == 0 {
-		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
-		if err != nil {
+	// if epoch == 1, check that first slot is still set correctly
+	// ie. that the start slot of the network is the same as the slot number of block 1
+	if epoch == 1 {
+		if err := b.checkAndSetFirstSlot(); err != nil {
 			return nil, err
 		}
+	}
 
-		ed, err = b.getLatestEpochData()
-		if err != nil {
-			return nil, err
-		}
-	} else if epoch > 0 {
-		has, err := b.epochState.HasEpochData(epoch)
-		if err != nil {
-			return nil, err
-		}
-
-		if !has {
-			logger.Criticalf("%s number=%d", errNoEpochData, epoch)
-			return nil, errNoEpochData
-		}
-
-		data, err := b.epochState.GetEpochData(epoch)
-		if err != nil {
-			return nil, err
-		}
-
-		idx, err := b.getAuthorityIndex(data.Authorities)
-		if err != nil {
-			return nil, err
-		}
-
-		has, err = b.epochState.HasConfigData(epoch)
-		if err != nil {
-			return nil, err
-		}
-
-		var cfgData *types.ConfigData
-		if has {
-			cfgData, err = b.epochState.GetConfigData(epoch)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			cfgData, err = b.epochState.GetLatestConfigData()
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
-		if err != nil {
-			return nil, err
-		}
-
-		ed = &epochData{
-			randomness:     data.Randomness,
-			authorities:    data.Authorities,
-			authorityIndex: idx,
-			threshold:      threshold,
-		}
-
-		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
-		if err != nil {
-			return nil, err
-		}
+	ed, startSlot, err := b.getEpochDataAndStartSlot(epoch)
+	if err != nil {
+		return nil, err
 	}
 
 	// if we're at genesis, we need to determine when the first slot of the network will be
 	// by checking when we will be able to produce block 1.
 	// note that this assumes there will only be one producer of block 1
 	if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
-		startSlot, err = b.getFirstSlot(epoch, ed)
+		startSlot, err = b.getFirstAuthoringSlot(epoch, ed)
 		if err != nil {
 			return nil, err
 		}
@@ -108,6 +48,104 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
 
 	logger.Infof("initiating epoch %d with start slot %d", epoch, startSlot)
 	return ed, nil
+}
+
+func (b *Service) checkAndSetFirstSlot() error {
+	firstSlot, err := b.epochState.GetStartSlotForEpoch(0)
+	if err != nil {
+		return err
+	}
+
+	block, err := b.blockState.GetBlockByNumber(big.NewInt(1))
+	if err != nil {
+		return err
+	}
+
+	slot, err := types.GetSlotFromHeader(&block.Header)
+	if err != nil {
+		return err
+	}
+
+	if slot != firstSlot {
+		if err := b.epochState.SetFirstSlot(slot); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, error) {
+	if epoch == 0 {
+		startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		ed, err := b.getLatestEpochData()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return ed, startSlot, nil
+	}
+
+	has, err := b.epochState.HasEpochData(epoch)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if !has {
+		logger.Criticalf("%s number=%d", errNoEpochData, epoch)
+		return nil, 0, errNoEpochData
+	}
+
+	data, err := b.epochState.GetEpochData(epoch)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	idx, err := b.getAuthorityIndex(data.Authorities)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	has, err = b.epochState.HasConfigData(epoch)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var cfgData *types.ConfigData
+	if has {
+		cfgData, err = b.epochState.GetConfigData(epoch)
+		if err != nil {
+			return nil, 0, err
+		}
+	} else {
+		cfgData, err = b.epochState.GetLatestConfigData()
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+
+	threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	ed := &epochData{
+		randomness:     data.Randomness,
+		authorities:    data.Authorities,
+		authorityIndex: idx,
+		threshold:      threshold,
+	}
+
+	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return ed, startSlot, nil
 }
 
 func (b *Service) getLatestEpochData() (*epochData, error) {
@@ -140,7 +178,7 @@ func (b *Service) getLatestEpochData() (*epochData, error) {
 	return resEpochData, err
 }
 
-func (b *Service) getFirstSlot(epoch uint64, epochData *epochData) (uint64, error) {
+func (b *Service) getFirstAuthoringSlot(epoch uint64, epochData *epochData) (uint64, error) {
 	startSlot := getCurrentSlot(b.constants.slotDuration)
 	for i := startSlot; i < startSlot+b.constants.epochLength; i++ {
 		_, err := b.runLottery(i, epoch, epochData)
