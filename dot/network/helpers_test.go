@@ -19,16 +19,14 @@ import (
 
 type testStreamHandler struct {
 	messages map[peer.ID][]Message
-	//handshakes map[peer.ID][]Message
-	decoder messageDecoder
-	exit    bool
+	decoder  messageDecoder
+	exit     bool
 }
 
 func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
 	return &testStreamHandler{
 		messages: make(map[peer.ID][]Message),
-		//handshakes: make(map[peer.ID][]Message),
-		decoder: decoder,
+		decoder:  decoder,
 	}
 }
 
