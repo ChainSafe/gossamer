@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -181,5 +182,59 @@ func TestSetReservePeer(t *testing.T) {
 	require.Equal(t, len(newRsrPeerSet), len(ps.reservedNode))
 	for _, p := range newRsrPeerSet {
 		require.Contains(t, ps.reservedNode, p)
+	}
+}
+
+func TestReputationTick(t *testing.T) {
+	var before Reputation = 1044351
+	after := reputationTick(before)
+	t.Errorf("after: %v", after)
+}
+
+func TestReputation_add(t *testing.T) {
+	type args struct {
+		num Reputation
+	}
+	tests := []struct {
+		name string
+		r    Reputation
+		args args
+		want Reputation
+	}{
+		{
+			r: Reputation(math.MaxInt32 - 499),
+			args: args{
+				num: Reputation(500),
+			},
+			want: Reputation(math.MaxInt32),
+		},
+		{
+			r: Reputation(math.MaxInt32 - 250),
+			args: args{
+				num: Reputation(500),
+			},
+			want: Reputation(math.MaxInt32),
+		},
+		{
+			r: Reputation(math.MinInt32 + 250),
+			args: args{
+				num: Reputation(-500),
+			},
+			want: Reputation(math.MinInt32),
+		},
+		{
+			r: Reputation(math.MinInt32 + 499),
+			args: args{
+				num: Reputation(-500),
+			},
+			want: Reputation(math.MinInt32),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.r.add(tt.args.num); got != tt.want {
+				t.Errorf("Reputation.add() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

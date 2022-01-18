@@ -12,11 +12,25 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "peerset"))
+	// peerScoreGauge = metrics.NewRegisteredGauge("peerset.reputation", nil)
+	reputationGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "peerset_reputation",
+		Help: "peer reputation",
+	}, []string{"peer_id"})
+	banCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "peerset_ban",
+		Help: "peer ban",
+	}, []string{"peer_id"})
 )
+
+func init() {
+	// metrics.DefaultRegistry.Register()
+}
 
 const (
 	// disconnectReputationChange Reputation change value for a node when we get disconnected from it.
@@ -255,7 +269,6 @@ func reputationTick(reput Reputation) Reputation {
 	} else if diff == 0 && reput > 0 {
 		diff = 1
 	}
-
 	return reput.sub(diff)
 }
 
@@ -327,10 +340,21 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 			return err
 		}
 
+<<<<<<< HEAD
+=======
+		rep := n.addReputation(change.Value)
+		ps.peerState.nodes[pid] = n
+		reputationGauge.With(prometheus.Labels{"peer_id": pid.Pretty()}).Set(float64(rep))
+>>>>>>> 8fb43f8d (add prometheus endpoint)
 		if rep >= BannedThresholdValue {
 			return nil
 		}
 
+<<<<<<< HEAD
+=======
+		logger.Criticalf("Banning peer id %s with reputation: %d", pid, rep)
+		banCounter.With(prometheus.Labels{"peer_id": pid.Pretty()}).Inc()
+>>>>>>> 8fb43f8d (add prometheus endpoint)
 		setLen := ps.peerState.getSetLength()
 		for i := 0; i < setLen; i++ {
 			if ps.peerState.peerStatus(i, pid) == connectedPeer {
@@ -339,6 +363,22 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				if err != nil {
 					return err
 				}
+<<<<<<< HEAD
+=======
+
+				ps.resultMsgCh <- Message{
+					Status: Drop,
+					setID:  uint64(i),
+					PeerID: pid,
+				}
+				if err = ps.allocSlots(i); err != nil {
+					return err
+				}
+			}
+		}
+		panic("yo!")
+	}
+>>>>>>> 8fb43f8d (add prometheus endpoint)
 
 				ps.resultMsgCh <- Message{
 					Status: Drop,

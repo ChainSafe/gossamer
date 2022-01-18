@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
@@ -36,4 +37,12 @@ func setupMetricsServer(address string) {
 			logger.Errorf("Metrics HTTP server crashed: %s", err)
 		}
 	}()
+
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		if err := http.ListenAndServe(":8888", nil); err != nil {
+			logger.Errorf("Metrics HTTP server crashed: %s", err)
+		}
+	}()
+
 }
