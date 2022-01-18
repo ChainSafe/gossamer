@@ -15,7 +15,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance, tx types.Extrinsic, toPropagate *[]types.Extrinsic) (bool, error) {
+func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance,
+	tx types.Extrinsic, toPropagate *[]types.Extrinsic) (bool, error) {
 	s.storageState.Lock()
 	defer s.storageState.Unlock()
 
