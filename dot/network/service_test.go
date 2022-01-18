@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
@@ -100,7 +101,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 			Port:         availablePort(t),
 			NoBootstrap:  true,
 			NoMDNS:       true,
-			LogLvl:       5,
+			LogLvl:       log.Warn,
 			SlotDuration: time.Second,
 		}
 	}

@@ -449,7 +449,7 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 
 	_, err = s.sendHandshake(conn.RemotePeer(), hs, prtl)
 	if err != nil {
-		logger.Debugf("failed to send handshake to peer on connection, peer=%s: %s",
+		logger.Debugf("failed to send handshake to peer %s on connection: %s",
 			conn.RemotePeer(),
 			err,
 		)
