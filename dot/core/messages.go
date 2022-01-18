@@ -15,6 +15,47 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance, tx types.Extrinsic) (*transaction.Validity, error) {
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
+
+	ts, err := s.storageState.TrieState(&head.StateRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	rt.SetContextStorage(ts)
+
+	// validate each transaction
+	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
+	val, err := rt.ValidateTransaction(externalExt)
+	if err != nil {
+		if errors.Is(err, runtime.ErrInvalidTransaction) {
+			s.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.BadTransactionValue,
+				Reason: peerset.BadTransactionReason,
+			}, peerID)
+		}
+
+		logger.Debugf("failed to validate transaction: %s", err)
+		return nil, errors.New("failed to validate transaction")
+	}
+
+	// create new valid transaction
+	vtx := transaction.NewValidTransaction(tx, val)
+
+	// push to the transaction queue of BABE session
+	hash := s.transactionState.AddToPool(vtx)
+	logger.Tracef("added transaction with hash %s to pool", hash)
+
+	//// find tx(s) that should propagate
+	//if val.Propagate {
+	//	toPropagate = append(toPropagate, tx)
+	//}
+	//
+	return val, nil
+}
+
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
 // returns boolean for transaction propagation, true - transactions should be propagated
@@ -43,51 +84,63 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 
 	hasInvalidTxn := false
 	for _, tx := range txs {
-		err = func() error {
-			s.storageState.Lock()
-			defer s.storageState.Unlock()
-
-			ts, err := s.storageState.TrieState(&head.StateRoot)
-			if err != nil {
-				return err
-			}
-
-			rt.SetContextStorage(ts)
-
-			// validate each transaction
-			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
-			val, err := rt.ValidateTransaction(externalExt)
-			if err != nil {
-				if errors.Is(err, runtime.ErrInvalidTransaction) {
-					s.net.ReportPeer(peerset.ReputationChange{
-						Value:  peerset.BadTransactionValue,
-						Reason: peerset.BadTransactionReason,
-					}, peerID)
-				}
-
-				hasInvalidTxn = true
-				logger.Debugf("failed to validate transaction: %s", err)
-				return nil
-			}
-
-			// create new valid transaction
-			vtx := transaction.NewValidTransaction(tx, val)
-
-			// push to the transaction queue of BABE session
-			hash := s.transactionState.AddToPool(vtx)
-			logger.Tracef("added transaction with hash %s to pool", hash)
-
-			// find tx(s) that should propagate
-			if val.Propagate {
-				toPropagate = append(toPropagate, tx)
-			}
-
-			return nil
-		}()
-
+		//	s.storageState.Lock()
+		//	defer s.storageState.Unlock()
+		val, err := s.validateTransaction(peerID, head, rt, tx)
 		if err != nil {
-			return false, err
+			hasInvalidTxn = true
 		}
+
+		// find tx(s) that should propagate
+		if val.Propagate {
+			toPropagate = append(toPropagate, tx)
+		}
+
+		//err = func() error {
+		//	s.storageState.Lock()
+		//	defer s.storageState.Unlock()
+		//
+		//	ts, err := s.storageState.TrieState(&head.StateRoot)
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	rt.SetContextStorage(ts)
+		//
+		//	// validate each transaction
+		//	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
+		//	val, err := rt.ValidateTransaction(externalExt)
+		//	if err != nil {
+		//		if errors.Is(err, runtime.ErrInvalidTransaction) {
+		//			s.net.ReportPeer(peerset.ReputationChange{
+		//				Value:  peerset.BadTransactionValue,
+		//				Reason: peerset.BadTransactionReason,
+		//			}, peerID)
+		//		}
+		//
+		//		hasInvalidTxn = true
+		//		logger.Debugf("failed to validate transaction: %s", err)
+		//		return nil
+		//	}
+		//
+		//	// create new valid transaction
+		//	vtx := transaction.NewValidTransaction(tx, val)
+		//
+		//	// push to the transaction queue of BABE session
+		//	hash := s.transactionState.AddToPool(vtx)
+		//	logger.Tracef("added transaction with hash %s to pool", hash)
+		//
+		//	// find tx(s) that should propagate
+		//	if val.Propagate {
+		//		toPropagate = append(toPropagate, tx)
+		//	}
+		//
+		//	return nil
+		//}()
+		//
+		//if err != nil {
+		//	return false, err
+		//}
 	}
 
 	if !hasInvalidTxn {

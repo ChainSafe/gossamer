@@ -27,7 +27,7 @@ func TestService_TransactionsCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockTxnStateEmpty := NewMockTransactionState(ctrl)
 	mockTxnState := NewMockTransactionState(ctrl)
-	
+
 	txs := []*transaction.ValidTransaction{nil, nil}
 
 	mockTxnStateEmpty.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{})
