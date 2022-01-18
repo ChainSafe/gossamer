@@ -938,8 +938,9 @@ func TestClearPrefix_Small(t *testing.T) {
 	ssTrie.ClearPrefix([]byte("noo"))
 
 	expectedRoot := &node.Leaf{
-		Key:   codec.KeyLEToNibbles([]byte("other")),
-		Value: []byte("other"),
+		Key:        codec.KeyLEToNibbles([]byte("other")),
+		Value:      []byte("other"),
+		Generation: 1,
 	}
 	expectedRoot.SetDirty(true)
 
