@@ -23,6 +23,8 @@ var (
 	errSetAtLimit   = errors.New("cannot add block; set is at capacity")
 )
 
+//go:generate mockgen -destination=mock_disjoint_block_set.go -package=$GOPACKAGE . DisjointBlockSet
+
 // DisjointBlockSet represents a set of incomplete blocks, or blocks
 // with an unknown parent. it is implemented by *disjointBlockSet
 type DisjointBlockSet interface {

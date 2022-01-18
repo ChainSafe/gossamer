@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"

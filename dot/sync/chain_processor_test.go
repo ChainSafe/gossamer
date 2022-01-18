@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
@@ -16,8 +15,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"math/big"
-	"reflect"
 	"testing"
+	"time"
 )
 
 func Test_chainProcessor_handleBlock(t *testing.T) {
@@ -359,13 +358,8 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 		gomock.AssignableToTypeOf([]byte{}))
 
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
 		blockState         BlockState
 		storageState       StorageState
-		transactionState   TransactionState
 		babeVerifier       BabeVerifier
 		finalityGadget     FinalityGadget
 		blockImportHandler BlockImportHandler
@@ -447,13 +441,8 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &chainProcessor{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
 				blockState:         tt.fields.blockState,
 				storageState:       tt.fields.storageState,
-				transactionState:   tt.fields.transactionState,
 				babeVerifier:       tt.fields.babeVerifier,
 				finalityGadget:     tt.fields.finalityGadget,
 				blockImportHandler: tt.fields.blockImportHandler,
@@ -469,39 +458,62 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 }
 
 func Test_chainProcessor_processReadyBlocks(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.
+		Hash) (bool, error) {
+		if hash.IsEmpty() {
+			return false, nil
+		}
+		return true, nil
+	}).Times(1)
+	mockBlockState.EXPECT().HasBlockBody(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.
+		Hash) (bool, error) {
+		if hash.IsEmpty() {
+			return false, nil
+		}
+		return true, nil
+	}).Times(1)
+	mockBlockState.EXPECT().CompareAndSetBlockData(gomock.AssignableToTypeOf(&types.BlockData{})).Times(1)
+
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		blockState         BlockState
-		storageState       StorageState
-		transactionState   TransactionState
-		babeVerifier       BabeVerifier
-		finalityGadget     FinalityGadget
-		blockImportHandler BlockImportHandler
+		ctx         context.Context
+		cancel      context.CancelFunc
+		readyBlocks *blockQueue
+		blockState  BlockState
 	}
 	tests := []struct {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+		{
+			name: "base case",
+			fields: fields{
+				blockState: mockBlockState,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			readyBlock := newBlockQueue(5)
+
 			s := &chainProcessor{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				blockState:         tt.fields.blockState,
-				storageState:       tt.fields.storageState,
-				transactionState:   tt.fields.transactionState,
-				babeVerifier:       tt.fields.babeVerifier,
-				finalityGadget:     tt.fields.finalityGadget,
-				blockImportHandler: tt.fields.blockImportHandler,
+				ctx:         ctx,
+				cancel:      cancel,
+				readyBlocks: readyBlock,
+				blockState:  tt.fields.blockState,
 			}
-			fmt.Printf("s %v\n", s)
+
+			go s.processReadyBlocks()
+
+			readyBlock.push(&types.BlockData{
+				Hash: common.Hash{},
+			})
+			time.Sleep(time.Millisecond)
+
+			s.cancel()
 		})
 	}
 }
@@ -523,7 +535,10 @@ func Test_chainProcessor_start(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "base case",
+			fields: fields{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -539,50 +554,53 @@ func Test_chainProcessor_start(t *testing.T) {
 				finalityGadget:     tt.fields.finalityGadget,
 				blockImportHandler: tt.fields.blockImportHandler,
 			}
-			fmt.Printf("s %v\n", s)
+			s.start()
 		})
 	}
 }
 
 func Test_chainProcessor_stop(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		blockState         BlockState
-		storageState       StorageState
-		transactionState   TransactionState
-		babeVerifier       BabeVerifier
-		finalityGadget     FinalityGadget
-		blockImportHandler BlockImportHandler
+		ctx    context.Context
+		cancel context.CancelFunc
 	}
 	tests := []struct {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+		{
+			name: "base case",
+			fields: fields{
+				ctx:    ctx,
+				cancel: cancel,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &chainProcessor{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				blockState:         tt.fields.blockState,
-				storageState:       tt.fields.storageState,
-				transactionState:   tt.fields.transactionState,
-				babeVerifier:       tt.fields.babeVerifier,
-				finalityGadget:     tt.fields.finalityGadget,
-				blockImportHandler: tt.fields.blockImportHandler,
+				ctx:    tt.fields.ctx,
+				cancel: tt.fields.cancel,
 			}
-			fmt.Printf("s %v\n", s)
+			s.stop()
 		})
 	}
 }
 
 func Test_newChainProcessor(t *testing.T) {
+	//ctx, cancel := context.WithCancel(context.Background())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockReadyBlock := newBlockQueue(5)
+	mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockStorageState := NewMockStorageState(ctrl)
+	mockTransactionState := NewMockTransactionState(ctrl)
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockFinalityGadget := NewMockFinalityGadget(ctrl)
+	mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
+
 	type args struct {
 		readyBlocks        *blockQueue
 		pendingBlocks      DisjointBlockSet
@@ -598,13 +616,48 @@ func Test_newChainProcessor(t *testing.T) {
 		args args
 		want *chainProcessor
 	}{
-		// TODO: Add test cases.
+		{
+			name: "base case",
+			args: args{},
+			want: &chainProcessor{},
+		},
+		{
+			name: "with args",
+			args: args{
+				readyBlocks:        mockReadyBlock,
+				pendingBlocks:      mockDisjointBlockSet,
+				blockState:         mockBlockState,
+				storageState:       mockStorageState,
+				transactionState:   mockTransactionState,
+				babeVerifier:       mockBabeVerifier,
+				finalityGadget:     mockFinalityGadget,
+				blockImportHandler: mockBlockImportHandler,
+			},
+			want: &chainProcessor{
+				readyBlocks:        mockReadyBlock,
+				pendingBlocks:      mockDisjointBlockSet,
+				blockState:         mockBlockState,
+				storageState:       mockStorageState,
+				transactionState:   mockTransactionState,
+				babeVerifier:       mockBabeVerifier,
+				finalityGadget:     mockFinalityGadget,
+				blockImportHandler: mockBlockImportHandler,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := newChainProcessor(tt.args.readyBlocks, tt.args.pendingBlocks, tt.args.blockState, tt.args.storageState, tt.args.transactionState, tt.args.babeVerifier, tt.args.finalityGadget, tt.args.blockImportHandler); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newChainProcessor() = %v, want %v", got, tt.want)
-			}
+			got := newChainProcessor(tt.args.readyBlocks, tt.args.pendingBlocks, tt.args.blockState, tt.args.storageState, tt.args.transactionState, tt.args.babeVerifier, tt.args.finalityGadget, tt.args.blockImportHandler)
+			assert.NotEmpty(t, got.ctx)
+			assert.NotEmpty(t, got.cancel)
+			assert.Equal(t, tt.want.readyBlocks, got.readyBlocks)
+			assert.Equal(t, tt.want.pendingBlocks, got.pendingBlocks)
+			assert.Equal(t, tt.want.blockState, got.blockState)
+			assert.Equal(t, tt.want.storageState, got.storageState)
+			assert.Equal(t, tt.want.transactionState, got.transactionState)
+			assert.Equal(t, tt.want.babeVerifier, got.babeVerifier)
+			assert.Equal(t, tt.want.finalityGadget, got.finalityGadget)
+			assert.Equal(t, tt.want.blockImportHandler, got.blockImportHandler)
 		})
 	}
 }
