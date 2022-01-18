@@ -5,20 +5,20 @@ package node
 
 // SetGeneration sets the generation given to the branch.
 func (b *Branch) SetGeneration(generation uint64) {
-	b.generation = generation
+	b.Generation = generation
 }
 
 // GetGeneration returns the generation of the branch.
 func (b *Branch) GetGeneration() (generation uint64) {
-	return b.generation
+	return b.Generation
 }
 
 // SetGeneration sets the generation given to the leaf.
 func (l *Leaf) SetGeneration(generation uint64) {
-	l.generation = generation
+	l.Generation = generation
 }
 
 // GetGeneration returns the generation of the leaf.
 func (l *Leaf) GetGeneration() (generation uint64) {
-	return l.generation
+	return l.Generation
 }

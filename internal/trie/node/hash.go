@@ -13,7 +13,7 @@ import (
 // SetEncodingAndHash sets the encoding and hash slices
 // given to the branch. Note it does not copy them, so beware.
 func (b *Branch) SetEncodingAndHash(enc, hash []byte) {
-	b.encoding = enc
+	b.Encoding = enc
 	b.hashDigest = hash
 }
 
@@ -30,8 +30,8 @@ func (b *Branch) GetHash() []byte {
 // If the encoding is less than 32 bytes, the hash returned
 // is the encoding and not the hash of the encoding.
 func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
-	if !b.dirty && b.encoding != nil && b.hashDigest != nil {
-		return b.encoding, b.hashDigest, nil
+	if !b.Dirty && b.Encoding != nil && b.hashDigest != nil {
+		return b.Encoding, b.hashDigest, nil
 	}
 
 	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
@@ -45,9 +45,9 @@ func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 
 	bufferBytes := buffer.Bytes()
 
-	b.encoding = make([]byte, len(bufferBytes))
-	copy(b.encoding, bufferBytes)
-	encoding = b.encoding // no need to copy
+	b.Encoding = make([]byte, len(bufferBytes))
+	copy(b.Encoding, bufferBytes)
+	encoding = b.Encoding // no need to copy
 
 	if buffer.Len() < 32 {
 		b.hashDigest = make([]byte, len(bufferBytes))
@@ -71,7 +71,7 @@ func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 // given to the branch. Note it does not copy them, so beware.
 func (l *Leaf) SetEncodingAndHash(enc, hash []byte) {
 	l.encodingMu.Lock()
-	l.encoding = enc
+	l.Encoding = enc
 	l.encodingMu.Unlock()
 	l.hashDigest = hash
 }
@@ -90,9 +90,9 @@ func (l *Leaf) GetHash() []byte {
 // is the encoding and not the hash of the encoding.
 func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	l.encodingMu.RLock()
-	if !l.IsDirty() && l.encoding != nil && l.hashDigest != nil {
+	if !l.IsDirty() && l.Encoding != nil && l.hashDigest != nil {
 		l.encodingMu.RUnlock()
-		return l.encoding, l.hashDigest, nil
+		return l.Encoding, l.hashDigest, nil
 	}
 	l.encodingMu.RUnlock()
 
@@ -110,10 +110,10 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	l.encodingMu.Lock()
 	// TODO remove this copying since it defeats the purpose of `buffer`
 	// and the sync.Pool.
-	l.encoding = make([]byte, len(bufferBytes))
-	copy(l.encoding, bufferBytes)
+	l.Encoding = make([]byte, len(bufferBytes))
+	copy(l.Encoding, bufferBytes)
 	l.encodingMu.Unlock()
-	encoding = l.encoding // no need to copy
+	encoding = l.Encoding // no need to copy
 
 	if len(bufferBytes) < 32 {
 		l.hashDigest = make([]byte, len(bufferBytes))

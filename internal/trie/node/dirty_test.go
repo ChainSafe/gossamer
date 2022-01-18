@@ -21,7 +21,7 @@ func Test_Branch_IsDirty(t *testing.T) {
 		},
 		"dirty": {
 			branch: &Branch{
-				dirty: true,
+				Dirty: true,
 			},
 			dirty: true,
 		},
@@ -54,16 +54,16 @@ func Test_Branch_SetDirty(t *testing.T) {
 		"not dirty to dirty": {
 			branch:   &Branch{},
 			dirty:    true,
-			expected: &Branch{dirty: true},
+			expected: &Branch{Dirty: true},
 		},
 		"dirty to not dirty": {
-			branch:   &Branch{dirty: true},
+			branch:   &Branch{Dirty: true},
 			expected: &Branch{},
 		},
 		"dirty to dirty": {
-			branch:   &Branch{dirty: true},
+			branch:   &Branch{Dirty: true},
 			dirty:    true,
-			expected: &Branch{dirty: true},
+			expected: &Branch{Dirty: true},
 		},
 	}
 
@@ -91,7 +91,7 @@ func Test_Leaf_IsDirty(t *testing.T) {
 		},
 		"dirty": {
 			leaf: &Leaf{
-				dirty: true,
+				Dirty: true,
 			},
 			dirty: true,
 		},
@@ -124,16 +124,16 @@ func Test_Leaf_SetDirty(t *testing.T) {
 		"not dirty to dirty": {
 			leaf:     &Leaf{},
 			dirty:    true,
-			expected: &Leaf{dirty: true},
+			expected: &Leaf{Dirty: true},
 		},
 		"dirty to not dirty": {
-			leaf:     &Leaf{dirty: true},
+			leaf:     &Leaf{Dirty: true},
 			expected: &Leaf{},
 		},
 		"dirty to dirty": {
-			leaf:     &Leaf{dirty: true},
+			leaf:     &Leaf{Dirty: true},
 			dirty:    true,
-			expected: &Leaf{dirty: true},
+			expected: &Leaf{Dirty: true},
 		},
 	}
 

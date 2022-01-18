@@ -209,7 +209,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	wsconn.BlockAPI = nil
 	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI()
 	listner, err := wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
-	require.EqualError(t, err, "could not byteify non 0x prefixed string")
+	require.EqualError(t, err, "could not byteify non 0x prefixed string: NotHex")
 	require.Nil(t, listner)
 
 	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})

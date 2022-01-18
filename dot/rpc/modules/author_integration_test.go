@@ -176,7 +176,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &ext, res)
-	require.EqualError(t, err, "could not byteify non 0x prefixed string")
+	require.EqualError(t, err, "could not byteify non 0x prefixed string: 0x31")
 }
 
 func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
