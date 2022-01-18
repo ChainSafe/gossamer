@@ -30,9 +30,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
@@ -382,7 +385,11 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 		},
 	}
 
-	ts := state.NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	ts := state.NewTransactionState(telemetryMock)
 	hashes := make([]common.Hash, len(txs))
 
 	for i, tx := range txs {
@@ -427,7 +434,11 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		},
 	}
 
-	ts := state.NewTransactionState()
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	ts := state.NewTransactionState(telemetryMock)
 	hashes := make([]common.Hash, len(txs))
 
 	for i, tx := range txs {
