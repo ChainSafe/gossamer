@@ -13,6 +13,7 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/core/mocks"
@@ -127,9 +128,13 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &Config{
 		Keystore:         ks,
-		TransactionState: state.NewTransactionState(),
+		TransactionState: state.NewTransactionState(telemetryMock),
 	}
 
 	s := NewTestService(t, cfg)
