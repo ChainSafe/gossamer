@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -25,12 +26,18 @@ type Test struct {
 	op    int
 }
 
-func generateKeyValues(tb testing.TB, seed int64, size int) (kv map[string][]byte) {
+// newGenerator creates a new PRNG seeded with the
+// unix nanoseconds value of the current time.
+func newGenerator() (prng *rand.Rand) {
+	seed := time.Now().UnixNano()
+	source := rand.NewSource(seed)
+	return rand.New(source)
+}
+
+func generateKeyValues(tb testing.TB, generator *rand.Rand, size int) (kv map[string][]byte) {
 	tb.Helper()
 
 	kv = make(map[string][]byte, size)
-
-	generator := rand.New(rand.NewSource(seed))
 
 	const maxKeySize, maxValueSize = 510, 128
 	for i := 0; i < size; i++ {
@@ -80,4 +87,18 @@ func generateRandBytes(tb testing.TB, size int,
 	_, err := generator.Read(b)
 	require.NoError(tb, err)
 	return b
+}
+
+func generateRandString(minSize, maxSize int,
+	generator *rand.Rand) string {
+	size := minSize + generator.Intn(maxSize)
+	b := make([]byte, size)
+
+	for i := range b {
+		const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		letterIndex := generator.Intn(len(letters))
+		b[i] = letters[letterIndex]
+	}
+
+	return string(b)
 }

@@ -84,18 +84,12 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 			trie.Put(test.key, test.value)
 		case get:
 			val := trie.Get(test.key)
-			if !bytes.Equal(val, test.value) {
-				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-			}
+			assert.Equal(t, test.value, val)
 		case del:
 			trie.Delete(test.key)
 		case getLeaf:
 			value := trie.Get(test.key)
-			if value == nil {
-				t.Errorf("Fail to get key %x: nil leaf", test.key)
-			} else if !bytes.Equal(value, test.value) {
-				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, value)
-			}
+			assert.Equal(t, test.value, value)
 		}
 	}
 }
@@ -138,10 +132,10 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 	runTests(t, trie, tests)
 }
 
-func Test_Trie_PutAndGet(t *testing.T) { // TODO move to trie_fuzz_test.go
-	seed := time.Now().UnixNano()
+func Test_Trie_PutAndGet(t *testing.T) {
+	generator := newGenerator()
 	const kvSize = 10000
-	kv := generateKeyValues(t, seed, kvSize)
+	kv := generateKeyValues(t, generator, kvSize)
 
 	testPutAndGetKeyValues(t, kv)
 
@@ -168,7 +162,9 @@ func testPutAndGetKeyValues(t *testing.T, kv map[string][]byte) {
 	}
 }
 
-// Test_Trie_PutAndGet_FailedData tests random data that failed in Test_Trie_PutAndGet
+// Test_Trie_PutAndGet_FailedData tests random data that failed in Test_Trie_PutAndGet.
+// It checks every file starting with trie_putandget_failed_test_data_ and
+// removes them if the test passes.
 func Test_Trie_PutAndGet_FailedData(t *testing.T) {
 	var failedTestDataPaths []string
 	dirEntries, err := os.ReadDir(".")
@@ -343,19 +339,24 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	testDataDirPath := t.TempDir()
-
 	cfg := &chaindb.Config{
-		DataDir:  testDataDirPath,
-		InMemory: false,
+		DataDir: t.TempDir(),
 	}
 
 	db, err := chaindb.NewBadgerDB(cfg)
 	require.NoError(t, err)
 
-	storageDB := chaindb.NewTable(db, "storage")
+	t.Cleanup(func() {
+		err = db.Close()
+		require.NoError(t, err)
+	})
 
-	defer db.Close()
+	storageDB := chaindb.NewTable(db, "storage")
+	t.Cleanup(func() {
+		err = storageDB.Close()
+		require.NoError(t, err)
+	})
+
 	trie := NewEmptyTrie()
 
 	var testKey = []byte("testKey")
@@ -404,9 +405,9 @@ func TestTrieDiff(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	seed := time.Now().UnixNano()
+	generator := newGenerator()
 	const kvSize = 100
-	kv := generateKeyValues(t, seed, kvSize)
+	kv := generateKeyValues(t, generator, kvSize)
 
 	for keyString, value := range kv {
 		key := []byte(keyString)
@@ -431,9 +432,6 @@ func TestDelete(t *testing.T) {
 	// Root hash for all the 3 tries should be equal.
 	require.Equal(t, tHash, dcTrieHash)
 	require.Equal(t, dcTrieHash, ssTrieHash)
-
-	source := rand.NewSource(seed)
-	generator := rand.New(source)
 
 	for keyString, value := range kv {
 		key := []byte(keyString)
@@ -477,16 +475,6 @@ func TestClearPrefix(t *testing.T) {
 		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xaa, 0x11}, value: []byte("fgh"), op: put},
 	}
 
-	buildTrie := func() *Trie {
-		trie := NewEmptyTrie()
-
-		for _, test := range tests {
-			trie.Put(test.key, test.value)
-		}
-
-		return trie
-	}
-
 	// prefix to clear cases
 	testCases := [][]byte{
 		{},
@@ -504,7 +492,11 @@ func TestClearPrefix(t *testing.T) {
 	}
 
 	for _, prefix := range testCases {
-		trie := buildTrie()
+		trie := NewEmptyTrie()
+
+		for _, test := range tests {
+			trie.Put(test.key, test.value)
+		}
 
 		dcTrie := trie.DeepCopy()
 
@@ -684,9 +676,7 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 			trieClearPrefix.ClearPrefix(prefix)
 
-			require.Equal(t, trieClearPrefix.MustHash(), trieDelete.MustHash(),
-				fmt.Sprintf("tries not equal! prefix=0x%x\n, %s, %s", prefix, trieClearPrefix, trieDelete),
-			)
+			require.Equal(t, trieClearPrefix.MustHash(), trieDelete.MustHash())
 		}
 	}
 }
@@ -723,17 +713,9 @@ func TestSnapshot(t *testing.T) {
 	require.NotEqual(t, parentTrie.MustHash(), newTrie.MustHash())
 }
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-func RandStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
-}
-
 func TestNextKey_Random(t *testing.T) {
+	generator := newGenerator()
+
 	for i := 0; i < 100; i++ {
 		trie := NewEmptyTrie()
 
@@ -742,8 +724,9 @@ func TestNextKey_Random(t *testing.T) {
 		size := 1000 + rand.Intn(10000)
 
 		for ii := 0; ii < size; ii++ {
-			str := RandStringBytes(1 + rand.Intn(20))
-			if len(str) == 0 {
+			const minLen, maxLen = 1, 20
+			str := generateRandString(minLen, maxLen, generator)
+			if str == "" {
 				continue
 			}
 			testCaseMap[str] = struct{}{}
@@ -777,9 +760,9 @@ func TestNextKey_Random(t *testing.T) {
 }
 
 func Benchmark_Trie_Hash(b *testing.B) {
+	generator := newGenerator()
 	const kvSize = 1000000
-	seed := time.Now().UnixNano()
-	kv := generateKeyValues(b, seed, kvSize)
+	kv := generateKeyValues(b, generator, kvSize)
 
 	trie := NewEmptyTrie()
 	for keyString, value := range kv {
@@ -1136,7 +1119,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 }
 
 func Test_encodeRoot_fuzz(t *testing.T) {
-	seed := time.Now().UnixNano()
+	generator := newGenerator()
 
 	trie := NewEmptyTrie()
 
@@ -1144,7 +1127,7 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 
 	for i := 0; i < randomBatches; i++ {
 		const kvSize = 16
-		kv := generateKeyValues(t, seed, kvSize)
+		kv := generateKeyValues(t, generator, kvSize)
 		for keyString, value := range kv {
 			key := []byte(keyString)
 			trie.Put(key, value)

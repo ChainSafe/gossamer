@@ -4,9 +4,7 @@
 package trie
 
 import (
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
@@ -24,9 +22,7 @@ func TestProofGeneration(t *testing.T) {
 	require.NoError(t, err)
 
 	const size = 32
-	seed := time.Now().UnixNano()
-	source := rand.NewSource(seed)
-	generator := rand.New(source)
+	generator := newGenerator()
 
 	expectedValue := generateRandBytes(t, size, generator)
 
