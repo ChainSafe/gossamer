@@ -4,6 +4,7 @@
 package wasmer
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -18,6 +19,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 // Name represents the name of the interpreter
@@ -92,6 +95,22 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
+	}
+
+	// Substrate Wasm compression
+	// https://github.com/paritytech/substrate/blob/master/primitives/maybe-compressed-blob/src/lib.rs
+	compressionFlag := []byte{82, 188, 83, 118, 70, 219, 142, 5}
+	if bytes.HasPrefix(code, compressionFlag) {
+		logger.Debug("Decompressing Wasm runtime code")
+		var decoder, err = zstd.NewReader(nil)
+		if err != nil {
+			return nil, errors.New("failed to create zstd decoder")
+		}
+
+		code, err = decoder.DecodeAll(code[len(compressionFlag):], nil)
+		if err != nil {
+			return nil, errors.New("failed to decompress Wasm")
+		}
 	}
 
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
