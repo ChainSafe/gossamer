@@ -4,13 +4,11 @@
 package core
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -24,28 +22,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-// NewService2Test is ideal to Integration tests because creates a pointer to core.Service
-// given a configuration without doing extra checks or assign default values to nil dependencies
-func NewService2Test(ctx context.Context, t *testing.T, cfg *Config, blockAddCh chan *types.Block) *Service {
-	t.Helper()
-	ctx, cancel := context.WithCancel(ctx)
-
-	return &Service{
-		ctx:                  ctx,
-		cancel:               cancel,
-		keys:                 cfg.Keystore,
-		blockState:           cfg.BlockState,
-		epochState:           cfg.EpochState,
-		storageState:         cfg.StorageState,
-		transactionState:     cfg.TransactionState,
-		net:                  cfg.Network,
-		blockAddCh:           blockAddCh,
-		codeSubstitute:       cfg.CodeSubstitutes,
-		codeSubstitutedState: cfg.CodeSubstitutedState,
-		digestHandler:        cfg.DigestHandler,
-	}
-}
 
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
