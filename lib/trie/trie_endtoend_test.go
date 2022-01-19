@@ -790,92 +790,72 @@ func bToMb(b uint64) uint64 {
 }
 
 func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
-	base := buildSmallTrie()
-	size := 65536
+	generator := newGenerator()
+	const size = 1000
+	const workers = 4
 
-	testCasesA := make([]Test, size)
-	expectedA := buildSmallTrie()
-	for i := 0; i < size; i++ {
-		k := make([]byte, 2)
-		_, err := rand.Read(k)
-		require.NoError(t, err)
-		op := rand.Intn(3)
+	testCases := make([][]Test, workers)
+	expectedTries := make([]*Trie, workers)
 
-		switch op {
-		case put:
-			expectedA.Put(k, k)
-		case del:
-			expectedA.Delete(k)
-		case clearPrefix:
-			expectedA.ClearPrefix(k)
-		}
+	for i := 0; i < workers; i++ {
+		testCases[i] = make([]Test, size)
+		expectedTries[i] = buildSmallTrie()
+		for j := 0; j < size; j++ {
+			k := make([]byte, 2)
+			_, err := generator.Read(k)
+			require.NoError(t, err)
+			op := generator.Intn(3)
 
-		testCasesA[i] = Test{
-			key: k,
-			op:  op,
+			switch op {
+			case put:
+				expectedTries[i].Put(k, k)
+			case del:
+				expectedTries[i].Delete(k)
+			case clearPrefix:
+				expectedTries[i].ClearPrefix(k)
+			}
+
+			testCases[i][j] = Test{
+				key: k,
+				op:  op,
+			}
 		}
 	}
 
-	testCasesB := make([]Test, size)
-	expectedB := buildSmallTrie()
-	for i := 0; i < size; i++ {
-		k := make([]byte, 2)
-		_, err := rand.Read(k)
-		require.NoError(t, err)
-		op := rand.Intn(3)
+	startWg := new(sync.WaitGroup)
+	finishWg := new(sync.WaitGroup)
+	startWg.Add(workers)
+	finishWg.Add(workers)
+	snapshotedTries := make([]*Trie, workers)
 
-		switch op {
-		case put:
-			expectedB.Put(k, k)
-		case del:
-			expectedB.Delete(k)
-		case clearPrefix:
-			expectedB.ClearPrefix(k)
-		}
+	for i := 0; i < workers; i++ {
+		snapshotedTries[i] = buildSmallTrie().Snapshot()
 
-		testCasesB[i] = Test{
-			key: k,
-			op:  op,
-		}
+		go func(trie *Trie, operations []Test,
+			startWg, finishWg *sync.WaitGroup) {
+			defer finishWg.Done()
+			startWg.Done()
+			startWg.Wait()
+			for _, operation := range operations {
+				switch operation.op {
+				case put:
+					trie.Put(operation.key, operation.key)
+				case del:
+					trie.Delete(operation.key)
+				case clearPrefix:
+					trie.ClearPrefix(operation.key)
+				}
+			}
+		}(snapshotedTries[i], testCases[i], startWg, finishWg)
 	}
 
-	wg := new(sync.WaitGroup)
-	wg.Add(2)
-	trieA := base.Snapshot()
-	trieB := base.Snapshot()
+	finishWg.Wait()
 
-	go func() {
-		for _, tc := range testCasesA {
-			switch tc.op {
-			case put:
-				trieA.Put(tc.key, tc.key)
-			case del:
-				trieA.Delete(tc.key)
-			case clearPrefix:
-				trieA.ClearPrefix(tc.key)
-			}
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		for _, tc := range testCasesB {
-			switch tc.op {
-			case put:
-				trieB.Put(tc.key, tc.key)
-			case del:
-				trieB.Delete(tc.key)
-			case clearPrefix:
-				trieB.ClearPrefix(tc.key)
-			}
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	require.Equal(t, expectedA.MustHash(), trieA.MustHash())
-	require.Equal(t, expectedB.MustHash(), trieB.MustHash())
+	for i := 0; i < workers; i++ {
+		assert.Equal(t,
+			expectedTries[i].MustHash(),
+			snapshotedTries[i].MustHash())
+	}
 }
 
 func TestTrie_ClearPrefixLimit(t *testing.T) {
