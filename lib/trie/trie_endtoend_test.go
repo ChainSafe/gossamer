@@ -1093,7 +1093,7 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 
 	trie := NewEmptyTrie()
 
-	const randomBatches = 20
+	const randomBatches = 3
 
 	for i := 0; i < randomBatches; i++ {
 		const kvSize = 16
@@ -1104,11 +1104,10 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 
 			retrievedValue := trie.Get(key)
 			assert.Equal(t, value, retrievedValue)
-
-			buffer := bytes.NewBuffer(nil)
-			err := trie.root.Encode(buffer)
-			require.NoError(t, err)
-			require.NotEmpty(t, buffer.Bytes())
 		}
+		buffer := bytes.NewBuffer(nil)
+		err := trie.root.Encode(buffer)
+		require.NoError(t, err)
+		require.NotEmpty(t, buffer.Bytes())
 	}
 }
