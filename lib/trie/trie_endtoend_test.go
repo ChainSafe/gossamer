@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -713,49 +712,40 @@ func TestSnapshot(t *testing.T) {
 	require.NotEqual(t, parentTrie.MustHash(), newTrie.MustHash())
 }
 
-func TestNextKey_Random(t *testing.T) {
+func Test_Trie_NextKey_Random(t *testing.T) {
 	generator := newGenerator()
 
-	for i := 0; i < 100; i++ {
-		trie := NewEmptyTrie()
+	trie := NewEmptyTrie()
 
-		// Generate random test cases.
-		testCaseMap := make(map[string]struct{}) // ensure no duplicate keys
-		size := 1000 + rand.Intn(10000)
+	const minKVSize, maxKVSize = 1000, 10000
+	kvSize := minKVSize + generator.Intn(maxKVSize-minKVSize)
+	kv := generateKeyValues(t, generator, kvSize)
 
-		for ii := 0; ii < size; ii++ {
-			const minLen, maxLen = 1, 20
-			str := generateRandString(minLen, maxLen, generator)
-			if str == "" {
-				continue
-			}
-			testCaseMap[str] = struct{}{}
+	sortedKeys := make([][]byte, 0, len(kv))
+	for keyString := range kv {
+		key := []byte(keyString)
+		sortedKeys = append(sortedKeys, key)
+	}
+
+	sort.Slice(sortedKeys, func(i, j int) bool {
+		return bytes.Compare(sortedKeys[i], sortedKeys[j]) < 0
+	})
+
+	for _, key := range sortedKeys {
+		value := []byte{1}
+		trie.Put(key, value)
+	}
+
+	for i, key := range sortedKeys {
+
+		nextKey := trie.NextKey(key)
+
+		var expectedNextKey []byte
+		isLastKey := i == len(sortedKeys)-1
+		if !isLastKey {
+			expectedNextKey = sortedKeys[i+1]
 		}
-
-		testCases := make([][]byte, len(testCaseMap))
-		j := 0
-
-		for k := range testCaseMap {
-			testCases[j] = []byte(k)
-			j++
-		}
-
-		sort.Slice(testCases, func(i, j int) bool {
-			return bytes.Compare(testCases[i], testCases[j]) < 0
-		})
-
-		for _, tc := range testCases {
-			trie.Put(tc, tc)
-		}
-
-		for idx, tc := range testCases {
-			next := trie.NextKey(tc)
-			if idx == len(testCases)-1 {
-				require.Nil(t, next)
-			} else {
-				require.Equal(t, testCases[idx+1], next, common.BytesToHex(tc))
-			}
-		}
+		require.Equal(t, expectedNextKey, nextKey)
 	}
 }
 
