@@ -212,8 +212,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 					Extrinsics: []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}},
 				},
 			},
-			expErr:    errDummyErr,
-			expErrMsg: errDummyErr.Error(),
+			expErr: errDummyErr,
+			expErrMsg: "cannot get trie state from storage for root 0x0000000000000000000000000000000000000000000000000000000000000000: dummy error for testing",
 		},
 		{
 			name: "runtime.ErrInvalidTransaction",

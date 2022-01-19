@@ -5,6 +5,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -16,13 +17,13 @@ import (
 )
 
 func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance,
-	tx types.Extrinsic, toPropagate *[]types.Extrinsic) (bool, error) {
+	tx types.Extrinsic, toPropagate *[]types.Extrinsic) (failed bool, err error) {
 	s.storageState.Lock()
 	defer s.storageState.Unlock()
 
 	ts, err := s.storageState.TrieState(&head.StateRoot)
 	if err != nil {
-		return true, err
+		return false, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
 	}
 
 	rt.SetContextStorage(ts)
@@ -39,7 +40,7 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt run
 		}
 
 		logger.Debugf("failed to validate transaction: %s", err)
-		return true, nil
+		return false, nil
 	}
 
 	// create new valid transaction
@@ -54,7 +55,7 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt run
 		*toPropagate = append(*toPropagate, tx)
 	}
 
-	return false, nil
+	return true, nil
 }
 
 // HandleTransactionMessage validates each transaction in the message and
@@ -83,11 +84,11 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
-	hasInvalidTxn := false
+	isValid := true
 	for _, tx := range txs {
-		isInvalid, err := s.validateTransaction(peerID, head, rt, tx, &toPropagate)
-		if isInvalid {
-			hasInvalidTxn = true
+		isValidTxn, err := s.validateTransaction(peerID, head, rt, tx, &toPropagate)
+		if !isValidTxn {
+			isValid = false
 		}
 
 		if err != nil {
@@ -95,7 +96,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		}
 	}
 
-	if !hasInvalidTxn {
+	if isValid {
 		s.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GoodTransactionValue,
 			Reason: peerset.GoodTransactionReason,
