@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -79,28 +78,25 @@ func buildSmallTrie() *Trie {
 }
 
 func runTests(t *testing.T, trie *Trie, tests []Test) {
-	for i, test := range tests {
-		test := test
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			switch test.op {
-			case put:
-				trie.Put(test.key, test.value)
-			case get:
-				val := trie.Get(test.key)
-				if !bytes.Equal(val, test.value) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-				}
-			case del:
-				trie.Delete(test.key)
-			case getLeaf:
-				value := trie.Get(test.key)
-				if value == nil {
-					t.Errorf("Fail to get key %x: nil leaf", test.key)
-				} else if !bytes.Equal(value, test.value) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, value)
-				}
+	for _, test := range tests {
+		switch test.op {
+		case put:
+			trie.Put(test.key, test.value)
+		case get:
+			val := trie.Get(test.key)
+			if !bytes.Equal(val, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
-		})
+		case del:
+			trie.Delete(test.key)
+		case getLeaf:
+			value := trie.Get(test.key)
+			if value == nil {
+				t.Errorf("Fail to get key %x: nil leaf", test.key)
+			} else if !bytes.Equal(value, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, value)
+			}
+		}
 	}
 }
 
@@ -916,7 +912,6 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 	}
 
 	cases := [][]Test{
-
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x36}, value: []byte("pencil")},
@@ -995,11 +990,9 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 	}
 
 	for _, testCase := range cases {
-		t.Run("Test", func(t *testing.T) {
-			for _, prefix := range prefixes {
-				testFn(t, testCase, prefix)
-			}
-		})
+		for _, prefix := range prefixes {
+			testFn(t, testCase, prefix)
+		}
 	}
 }
 
@@ -1020,7 +1013,6 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 	}
 
 	cases := [][]Test{
-
 		{
 			{key: []byte{0x01}, value: []byte("feather")},
 		},
