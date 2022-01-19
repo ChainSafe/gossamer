@@ -225,7 +225,7 @@ func TestHighestBlock(t *testing.T) {
 			s.chainSync = chainSync
 
 			result := s.HighestBlock()
-			require.Equalf(t, result, ts.out.highestBlock, ts.name)
+			require.Equal(t, result, ts.out.highestBlock, ts.name)
 		})
 	}
 }

@@ -1001,15 +1001,14 @@ func TestChainSync_highestBlock(t *testing.T) {
 		},
 	}
 
-	cs, _ := newTestChainSync(t) // just to improve tests performance
-
 	for _, ts := range tests {
 		t.Run(ts.name, func(t *testing.T) {
+			cs, _ := newTestChainSync(t)
 			cs.peerState = ts.in.peerState
 
 			highestBlock, err := cs.getHighestBlock()
-			require.ErrorIsf(t, err, ts.out.err, ts.name)
-			require.Equalf(t, highestBlock, ts.out.highestBlock, ts.name)
+			require.ErrorIs(t, err, ts.out.err, ts.name)
+			require.Equal(t, highestBlock, ts.out.highestBlock, ts.name)
 		})
 	}
 }
