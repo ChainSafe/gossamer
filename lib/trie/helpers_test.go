@@ -88,17 +88,3 @@ func generateRandBytes(tb testing.TB, size int,
 	require.NoError(tb, err)
 	return b
 }
-
-func generateRandString(minSize, maxSize int,
-	generator *rand.Rand) string {
-	size := minSize + generator.Intn(maxSize)
-	b := make([]byte, size)
-
-	for i := range b {
-		const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		letterIndex := generator.Intn(len(letters))
-		b[i] = letters[letterIndex]
-	}
-
-	return string(b)
-}
