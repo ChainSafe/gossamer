@@ -939,16 +939,15 @@ func (cs *chainSync) validateJustification(bd *types.BlockData) error {
 
 func (cs *chainSync) getHighestBlock() (int64, error) {
 	cs.RLock()
-	ps := cs.peerState
-	cs.RUnlock()
+	defer cs.RUnlock()
 
-	if len(ps) == 0 {
+	if len(cs.peerState) == 0 {
 		return 0, errNoPeers
 	}
 
 	highestBlock := big.NewInt(-1)
 
-	for _, ps := range ps {
+	for _, ps := range cs.peerState {
 		if ps.number == nil || ps.number.Cmp(highestBlock) < 0 {
 			continue
 		}
