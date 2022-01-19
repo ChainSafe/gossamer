@@ -239,10 +239,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		}
 
 		logger.Tracef("cleaned out finalised block from memory; block number %s with hash %s", block.Header.Number, hash)
-
-		go func(header *types.Header) {
-			bs.pruneKeyCh <- header
-		}(&block.Header)
+		bs.pruneKeyCh <- header
 	}
 
 	return batch.Flush()
