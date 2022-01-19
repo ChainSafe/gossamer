@@ -111,6 +111,8 @@ const (
 	Accept
 	// Reject incoming connect request.
 	Reject
+	// Noop does nothing.
+	Noop
 )
 
 // Message that will be sent by the peerSet.
@@ -331,26 +333,26 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 			return nil
 		}
 
-		// TODO: re-add once #2098 is fixed
-		// setLen := ps.peerState.getSetLength()
-		// for i := 0; i < setLen; i++ {
-		// 	if ps.peerState.peerStatus(i, pid) == connectedPeer {
-		// 		// disconnect peer
-		// 		err = ps.peerState.disconnect(i, pid)
-		// 		if err != nil {
-		// 			return err
-		// 		}
+		setLen := ps.peerState.getSetLength()
+		for i := 0; i < setLen; i++ {
+			if ps.peerState.peerStatus(i, pid) == connectedPeer {
+				// disconnect peer
+				err = ps.peerState.disconnect(i, pid)
+				if err != nil {
+					return err
+				}
 
-		// 		ps.resultMsgCh <- Message{
-		// 			Status: Drop,
-		// 			setID:  uint64(i),
-		// 			PeerID: pid,
-		// 		}
-		// 		if err = ps.allocSlots(i); err != nil {
-		// 			return err
-		// 		}
-		// 	}
-		// }
+				// TODO: change Noop to Drop once #2098 is fixed
+				ps.resultMsgCh <- Message{
+					Status: Noop,
+					setID:  uint64(i),
+					PeerID: pid,
+				}
+				if err = ps.allocSlots(i); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	return nil
