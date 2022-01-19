@@ -153,6 +153,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		codeHash: cfg.CodeHash,
 	}
 
+	// TODO: log this error in debug, trace or warn mode. Do not ignore it.
 	inst.version, _ = inst.Version()
 	return inst, nil
 }

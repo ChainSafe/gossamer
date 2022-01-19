@@ -108,7 +108,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	// 	return nil
 	// }
 
-	logger.Debugf("got neighbour message with number %d, set id %d and round %d", msg.Number, msg.SetID, msg.Round)
+	logger.Debugf("got neighbour message with number %d, set id %d and round %d, from: %s ", msg.Number, msg.SetID, msg.Round, from)
 	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
 
 	highestRound, setID, err := h.blockState.GetHighestRoundAndSetID()
@@ -127,11 +127,6 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 		}
 
 		logger.Debugf("sent a catch up request to node %s", from)
-
-		// err = h.handleCatchUpResponse(catchUpResponse)
-		// if err != nil {
-		// 	return err
-		// }
 	}
 
 	return nil
@@ -143,10 +138,13 @@ func (h *MessageHandler) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) err
 		return err
 	}
 
+	// TODO: Uncomment if gossipping do not work
 	err = h.grandpa.network.SendMessage(to, cm)
 	if err != nil {
 		return err
 	}
+
+	// h.grandpa.network.GossipMessage(cm)
 
 	h.grandpa.paused.Store(true)
 
@@ -245,6 +243,8 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 	if err != nil {
 		return err
 	}
+
+	// h.grandpa.network.GossipMessage(cm)
 
 	logger.Debugf(
 		"sent catch up response with hash %s for round %d and set id %d, to %s",

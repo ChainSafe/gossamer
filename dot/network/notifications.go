@@ -370,7 +370,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		}
 
 		if hsResponse.err != nil {
-			logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
+			logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, hsResponse.err)
 			closeOutboundStream(info, peer, stream)
 			return nil, hsResponse.err
 		}
@@ -419,6 +419,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			continue
 		}
 
+		info.outboundHandshakeMutexes.Store(peer, new(sync.Mutex))
 		go s.sendData(peer, hs, info, msg)
 	}
 }
