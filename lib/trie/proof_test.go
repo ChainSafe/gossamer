@@ -4,7 +4,9 @@
 package trie
 
 import (
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
@@ -21,14 +23,19 @@ func TestProofGeneration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	expectedValue := rand32Bytes()
+	const size = 32
+	seed := time.Now().UnixNano()
+	source := rand.NewSource(seed)
+	generator := rand.New(source)
+
+	expectedValue := generateRandBytes(t, size, generator)
 
 	trie := NewEmptyTrie()
-	trie.Put([]byte("cat"), rand32Bytes())
-	trie.Put([]byte("catapulta"), rand32Bytes())
+	trie.Put([]byte("cat"), generateRandBytes(t, size, generator))
+	trie.Put([]byte("catapulta"), generateRandBytes(t, size, generator))
 	trie.Put([]byte("catapora"), expectedValue)
-	trie.Put([]byte("dog"), rand32Bytes())
-	trie.Put([]byte("doguinho"), rand32Bytes())
+	trie.Put([]byte("dog"), generateRandBytes(t, size, generator))
+	trie.Put([]byte("doguinho"), generateRandBytes(t, size, generator))
 
 	err = trie.Store(memdb)
 	require.NoError(t, err)

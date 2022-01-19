@@ -205,7 +205,7 @@ func Test_Trie_RootNode(t *testing.T) {
 
 //go:generate mockgen -destination=buffer_mock_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/internal/trie/node Buffer
 
-func Test_Trie_encodeRoot(t *testing.T) {
+func Test_encodeRoot(t *testing.T) {
 	t.Parallel()
 
 	type bufferCalls struct {

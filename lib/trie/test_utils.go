@@ -4,9 +4,7 @@
 package trie
 
 import (
-	"crypto/rand"
-	"encoding/binary"
-	prand "math/rand"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,67 +17,59 @@ type Test struct {
 	op    int
 }
 
-// Key returns the test key
-func (t *Test) Key() []byte {
-	return t.key
-}
+func generateKeyValues(tb testing.TB, seed int64, size int) (kv map[string][]byte) {
+	tb.Helper()
 
-// Value returns the test value
-func (t *Test) Value() []byte {
-	return t.value
-}
+	kv = make(map[string][]byte, size)
 
-// GenerateRandomTests returns an array of random Tests
-func GenerateRandomTests(t testing.TB, size int) []Test {
-	rt := make([]Test, size)
-	kv := make(map[string][]byte)
+	generator := rand.New(rand.NewSource(seed)) //nolint:gosec
 
-	const seed = 912378
-	generator := prand.New(prand.NewSource(seed)) //nolint:gosec
-
-	for i := range rt {
-		test := generateRandomTest(t, kv, generator)
-		rt[i] = test
-		kv[string(test.key)] = rt[i].value
+	const maxKeySize, maxValueSize = 510, 128
+	for i := 0; i < size; i++ {
+		populateKeyValueMap(tb, kv, generator, maxKeySize, maxValueSize)
 	}
 
-	return rt
+	return kv
 }
 
-func generateRandomTest(t testing.TB, kv map[string][]byte, generator *prand.Rand) Test {
-	test := Test{}
+func populateKeyValueMap(tb testing.TB, kv map[string][]byte,
+	generator *rand.Rand, maxKeySize, maxValueSize int) {
+	tb.Helper()
 
 	for {
-		var n int64 = 2 // arbitrary positive number
-		size := int64(generator.Intn(510))
+		const minKeySize = 2
+		key := generateRandBytesMinMax(tb, minKeySize, maxKeySize, generator)
 
-		buf := make([]byte, size+n)
-		_, err := generator.Read(buf)
-		require.NoError(t, err)
+		keyString := string(key)
 
-		key := binary.LittleEndian.Uint16(buf[:2])
+		_, keyExists := kv[keyString]
 
-		if kv[string(buf)] == nil || key < 256 {
-			test.key = buf
-
-			size := int64(generator.Intn(128))
-
-			buf = make([]byte, size+n)
-			_, err = generator.Read(buf)
-			require.NoError(t, err)
-
-			test.value = buf
-
-			return test
+		if keyExists && key[1] != byte(0) {
+			continue
 		}
+
+		const minValueSize = 2
+		value := generateRandBytesMinMax(tb, minValueSize, maxValueSize, generator)
+
+		kv[keyString] = value
+
+		break
 	}
 }
 
-func rand32Bytes() []byte {
-	r := make([]byte, 32)
-	_, err := rand.Read(r)
-	if err != nil {
-		panic(err)
-	}
-	return r
+func generateRandBytesMinMax(tb testing.TB, minSize, maxSize int,
+	generator *rand.Rand) (b []byte) {
+	tb.Helper()
+	size := minSize +
+		generator.Intn(maxSize-minSize)
+	return generateRandBytes(tb, size, generator)
+}
+
+func generateRandBytes(tb testing.TB, size int,
+	generator *rand.Rand) (b []byte) {
+	tb.Helper()
+	b = make([]byte, size)
+	_, err := generator.Read(b)
+	require.NoError(tb, err)
+	return b
 }
