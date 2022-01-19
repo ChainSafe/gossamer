@@ -79,7 +79,8 @@ type workHandler interface {
 	handleTick() ([]*worker, error)
 }
 
-//go:generate mockgen -destination=./mock_chain_sync_test.go -package $GOPACKAGE . ChainSync
+//go:generate mockgen -destination=mock_chain_sync_test.go -package $GOPACKAGE . ChainSync
+
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
 	start()
@@ -954,7 +955,7 @@ func (cs *chainSync) getHighestBlock() (int64, error) {
 		highestBlock = ps.number
 	}
 
-	if highestBlock.Cmp(big.NewInt(-1)) == 0 { // highestBlock == -1 : https://pkg.go.dev/math/big#Int.Cmp
+	if highestBlock.Cmp(big.NewInt(-1)) == 0 {
 		return 0, errNilBlockData
 	}
 

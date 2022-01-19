@@ -154,7 +154,8 @@ type SyncStateAPI interface {
 }
 
 //go:generate mockgen -destination=mock_sync_api_test.go -package $GOPACKAGE . SyncAPI
-// SyncAPI is the interface to interact with sync service
+
+// SyncAPI is the interface to interact with the sync service
 type SyncAPI interface {
 	HighestBlock() int64
 }

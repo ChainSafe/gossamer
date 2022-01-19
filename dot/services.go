@@ -36,8 +36,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
-// rpcServiceSettings struct to implements the Parameter Object Pattern:
-// https://refactoring.guru/introduce-parameter-object
 type rpcServiceSettings struct {
 	config        *Config
 	nodeStorage   *runtime.NodeStorage
