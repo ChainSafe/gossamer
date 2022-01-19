@@ -32,11 +32,6 @@ var (
 	errEpochPast = errors.New("cannot run epoch that has already passed")
 )
 
-type constants struct {
-	slotDuration time.Duration
-	epochLength  uint64
-}
-
 type epochHandler struct {
 	ctx context.Context
 

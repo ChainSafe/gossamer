@@ -8,11 +8,9 @@ import (
 	"testing"
 	"time"
 
-	// "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	// "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +28,7 @@ func TestNewEpochHandler(t *testing.T) {
 
 	constants := &constants{
 		slotDuration: sd,
-		epochLength: 200,
+		epochLength:  200,
 	}
 
 	keypair := keyring.Alice().(*sr25519.Keypair)
@@ -44,4 +42,51 @@ func TestNewEpochHandler(t *testing.T) {
 	require.Equal(t, constants, eh.constants)
 	require.Equal(t, epochData, eh.epochData)
 	require.NotNil(t, eh.handleSlot)
+}
+
+func TestEpochHandler_run(t *testing.T) {
+	sd, err := time.ParseDuration("10ms")
+	require.NoError(t, err)
+	startSlot := getCurrentSlot(sd)
+
+	var callsToHandleSlot, firstExecutedSlot uint64
+	testHandleSlotFunc := func(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof) error {
+		require.Equal(t, uint64(1), epoch)
+		if callsToHandleSlot == 0 {
+			firstExecutedSlot = slotNum
+		} else {
+			require.Equal(t, firstExecutedSlot+callsToHandleSlot, slotNum)
+		}
+		require.Equal(t, uint32(0), authorityIndex)
+		require.NotNil(t, proof)
+		callsToHandleSlot++
+		return nil
+	}
+
+	epochData := &epochData{
+		threshold: scale.MaxUint128,
+	}
+
+	constants := &constants{
+		slotDuration: sd,
+		epochLength:  100,
+	}
+
+	keypair := keyring.Alice().(*sr25519.Keypair)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	eh, err := newEpochHandler(ctx, 1, startSlot, epochData, constants, testHandleSlotFunc, keypair)
+	require.NoError(t, err)
+	require.Equal(t, 100, len(eh.slotToProof))
+
+	errCh := make(chan error)
+	go eh.run(errCh)
+	timer := time.After(sd * 100)
+	select {
+	case <-timer:
+		require.Equal(t, 100-(firstExecutedSlot-startSlot), callsToHandleSlot)
+	case err := <-errCh:
+		require.NoError(t, err)
+	}
 }
