@@ -38,7 +38,7 @@ var (
 	emptyHash         = trie.EmptyHash
 	testEpochIndex    = uint64(0)
 
-	keyring, _ = keystore.NewSr25519Keyring()
+	keyring, _ = keystore.NewSr25519Keyring() //nolint:typecheck
 
 	maxThreshold = scale.MaxUint128
 

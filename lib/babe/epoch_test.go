@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var keyring, _ = keystore.NewSr25519Keyring()
+var keyring, _ = keystore.NewSr25519Keyring() //nolint:typecheck
 
 func TestBabeService_checkAndSetFirstSlot(t *testing.T) {
 	ctrl := gomock.NewController(t)
