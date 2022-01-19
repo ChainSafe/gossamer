@@ -45,16 +45,27 @@ var (
 	testPeers []common.PeerInfo
 )
 
+//go:generate mockgen -destination=mock_block_state_test.go -package modules github.com/ChainSafe/gossamer/dot/network BlockState
+//go:generate mockgen -destination=mock_syncer_test.go -package modules github.com/ChainSafe/gossamer/dot/network Syncer
+//go:generate mockgen -destination=mock_transaction_handler_test.go -package modules github.com/ChainSafe/gossamer/dot/network TransactionHandler
+
 func newNetworkService(t *testing.T) *network.Service {
+	ctrl := gomock.NewController(t)
+	blockStateMock := NewMockBlockState(ctrl)
+	syncerMock := NewMockSyncer(ctrl)
+	transactionHandlerMock := NewMockTransactionHandler(ctrl)
+
 	cfg := &network.Config{
-		BasePath:     t.TempDir(),
-		SlotDuration: time.Second,
+		BasePath:           t.TempDir(),
+		SlotDuration:       time.Second,
+		BlockState:         blockStateMock,
+		Port:               0,
+		Syncer:             syncerMock,
+		TransactionHandler: transactionHandlerMock,
 	}
 
 	srv, err := network.NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = srv.Start()
 	require.NoError(t, err)
