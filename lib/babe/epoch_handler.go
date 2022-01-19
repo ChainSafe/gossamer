@@ -99,12 +99,6 @@ func (h *epochHandler) run(errCh chan<- error) {
 		return
 	}
 
-	// invoke block authoring in the next slot, this gives us ample time to setup
-	// and make sure the timing is correct.
-	// TODO: this will cause us to always miss the first slot of the epoch,
-	// test and make sure this isn't needed.
-	invokationSlot := currSlot + 1
-
 	// for each slot we're handling, create a timer that will fire when it starts
 	// we create timers only for slots where we're authoring
 	authoringSlots := getAuthoringSlots(h.slotToProof)
@@ -117,7 +111,7 @@ func (h *epochHandler) run(errCh chan<- error) {
 	slotTimeTimers := []*slotWithTimer{}
 	for _, authoringSlot := range authoringSlots {
 		// ignore slots already passed
-		if authoringSlot < invokationSlot {
+		if authoringSlot < currSlot {
 			continue
 		}
 
