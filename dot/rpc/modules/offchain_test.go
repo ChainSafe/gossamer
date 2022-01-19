@@ -86,7 +86,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 					Key:  "0x1",
 				},
 			},
-			expErr: errors.New("cannot decode an odd length string"),
+			expErr: errors.New("encoding/hex: odd length hex string: 0x1"),
 		},
 	}
 	for _, tt := range tests {
@@ -153,7 +153,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Value: "0x22222222222222",
 				},
 			},
-			expErr: errors.New("cannot decode an odd length string"),
+			expErr: errors.New("encoding/hex: odd length hex string: 0x1"),
 		},
 		{
 			name: "Invalid Value",
@@ -167,7 +167,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Value: "0x2",
 				},
 			},
-			expErr: errors.New("cannot decode an odd length string"),
+			expErr: errors.New("encoding/hex: odd length hex string: 0x2"),
 		},
 		{
 			name: "setPersistentError",

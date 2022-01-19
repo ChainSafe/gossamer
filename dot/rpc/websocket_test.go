@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -58,7 +57,7 @@ var testCalls = []struct {
 }
 
 func TestHTTPServer_ServeHTTP(t *testing.T) {
-	coreAPI := core.NewTestService(t, nil)
+	coreAPI := newCoreServiceTest(t)
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
 	}

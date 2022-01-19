@@ -5,20 +5,20 @@ package node
 
 // IsDirty returns the dirty status of the branch.
 func (b *Branch) IsDirty() bool {
-	return b.dirty
+	return b.Dirty
 }
 
 // SetDirty sets the dirty status to the branch.
 func (b *Branch) SetDirty(dirty bool) {
-	b.dirty = dirty
+	b.Dirty = dirty
 }
 
 // IsDirty returns the dirty status of the leaf.
 func (l *Leaf) IsDirty() bool {
-	return l.dirty
+	return l.Dirty
 }
 
 // SetDirty sets the dirty status to the leaf.
 func (l *Leaf) SetDirty(dirty bool) {
-	l.dirty = dirty
+	l.Dirty = dirty
 }

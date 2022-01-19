@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,17 +12,16 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 func newTestDiscovery(t *testing.T, num int) []*discovery {
 	t.Helper()
+
 	var discs []*discovery
 	for i := 0; i < num; i++ {
 		config := &Config{
-			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint16(7001 + i),
+			BasePath:    t.TempDir(),
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -52,9 +50,7 @@ func connectNoSync(ctx context.Context, t *testing.T, a, b *discovery) {
 
 	idB := b.h.ID()
 	addrB := b.h.Peerstore().Addrs(idB)
-	if len(addrB) == 0 {
-		t.Fatal("peers setup incorrectly: no local address")
-	}
+	require.NotEqual(t, 0, len(addrB), "peers setup incorrectly: no local address")
 
 	a.h.Peerstore().AddAddrs(idB, addrB, time.Minute)
 	pi := peer.AddrInfo{ID: idB}
@@ -65,6 +61,7 @@ func connectNoSync(ctx context.Context, t *testing.T, a, b *discovery) {
 		time.Sleep(TestBackoffTimeout)
 		err = a.h.Connect(ctx, pi)
 	}
+
 	require.NoError(t, err)
 }
 
@@ -73,6 +70,8 @@ func TestKadDHT(t *testing.T) {
 	if testing.Short() {
 		return
 	}
+
+	t.Parallel()
 
 	// setup 3 nodes
 	nodes := newTestDiscovery(t, 3)
@@ -100,9 +99,11 @@ func TestKadDHT(t *testing.T) {
 }
 
 func TestBeginDiscovery(t *testing.T) {
+	t.Parallel()
+
 	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -111,8 +112,8 @@ func TestBeginDiscovery(t *testing.T) {
 	nodeA.noGossip = true
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -136,9 +137,11 @@ func TestBeginDiscovery(t *testing.T) {
 }
 
 func TestBeginDiscovery_ThreeNodes(t *testing.T) {
+	t.Parallel()
+
 	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -147,8 +150,8 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	nodeA.noGossip = true
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -157,8 +160,8 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	nodeB.noGossip = true
 
 	configC := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeC"),
-		Port:        7003,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

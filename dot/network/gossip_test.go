@@ -4,10 +4,11 @@
 package network
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/stretchr/testify/require"
 )
@@ -18,11 +19,11 @@ func TestGossip(t *testing.T) {
 		t.Skip("skipping TestGossip; currently, nothing is gossiped")
 	}
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
+	t.Parallel()
 
 	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -31,10 +32,9 @@ func TestGossip(t *testing.T) {
 	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeA.host.registerStreamHandler(nodeA.host.protocolID, handlerA.handleStream)
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -52,10 +52,9 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	basePathC := utils.NewTestBasePath(t, "nodeC")
 	configC := &Config{
-		BasePath:    basePathC,
-		Port:        7003,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -81,12 +80,17 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	_, err = nodeA.host.send(addrInfoB.ID, "", testBlockAnnounceMessage)
+	announceMessage := &BlockAnnounceMessage{
+		Number: big.NewInt(128 * 7),
+		Digest: types.NewDigest(),
+	}
+
+	_, err = nodeA.host.send(addrInfoB.ID, "", announceMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
 
-	if hasSeenB, ok := nodeB.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenB.(bool) == false {
+	if hasSeenB, ok := nodeB.gossip.seen.Load(announceMessage.Hash()); !ok || hasSeenB.(bool) == false {
 		t.Error(
 			"node B did not receive block request message from node A",
 			"\nreceived:", hasSeenB,
@@ -94,7 +98,7 @@ func TestGossip(t *testing.T) {
 		)
 	}
 
-	if hasSeenC, ok := nodeC.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenC.(bool) == false {
+	if hasSeenC, ok := nodeC.gossip.seen.Load(announceMessage.Hash()); !ok || hasSeenC.(bool) == false {
 		t.Error(
 			"node C did not receive block request message from node B",
 			"\nreceived:", hasSeenC,
@@ -102,7 +106,7 @@ func TestGossip(t *testing.T) {
 		)
 	}
 
-	if hasSeenA, ok := nodeA.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenA.(bool) == false {
+	if hasSeenA, ok := nodeA.gossip.seen.Load(announceMessage.Hash()); !ok || hasSeenA.(bool) == false {
 		t.Error(
 			"node A did not receive block request message from node C",
 			"\nreceived:", hasSeenA,

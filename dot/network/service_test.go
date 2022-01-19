@@ -5,16 +5,17 @@ package network
 
 import (
 	"context"
-	"fmt"
-	"os"
+	"math/big"
 	"strings"
 	"testing"
 	"time"
 
-	mock "github.com/stretchr/testify/mock"
+	"github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // failedToDial returns true if "failed to dial" error, otherwise false
@@ -22,13 +23,16 @@ func failedToDial(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "failed to dial")
 }
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
 func createServiceHelper(t *testing.T, num int) []*Service {
 	t.Helper()
+
 	var srvcs []*Service
 	for i := 0; i < num; i++ {
 		config := &Config{
-			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
-			Port:        uint16(7001 + i),
+			BasePath:    t.TempDir(),
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -43,38 +47,87 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	return srvcs
 }
 
+func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
+	t.Helper()
+
+	const blockRequestSize = 128
+	msg := &BlockResponseMessage{
+		BlockData: make([]*types.BlockData, blockRequestSize),
+	}
+
+	for i := 0; i < blockRequestSize; i++ {
+		testHeader := &types.Header{
+			Number: big.NewInt(int64(77 + i)),
+			Digest: types.NewDigest(),
+		}
+
+		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
+
+		msg.BlockData[i] = &types.BlockData{
+			Hash:   testHeader.Hash(),
+			Header: testHeader,
+			Body:   body,
+		}
+	}
+
+	return msg
+}
+
+//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
+//go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
+
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	t.Helper()
+	ctrl := gomock.NewController(t)
 
 	if cfg == nil {
-		basePath := utils.NewTestBasePath(t, "node")
-
 		cfg = &Config{
-			BasePath:    basePath,
-			Port:        7001,
-			NoBootstrap: true,
-			NoMDNS:      true,
-			LogLvl:      4,
+			BasePath:     t.TempDir(),
+			Port:         availablePort(t),
+			NoBootstrap:  true,
+			NoMDNS:       true,
+			LogLvl:       4,
+			SlotDuration: time.Second,
 		}
 	}
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = NewMockBlockState(nil)
+		header := &types.Header{
+			ParentHash:     common.Hash{},
+			Number:         big.NewInt(1),
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         types.NewDigest(),
+		}
+
+		blockstate := NewMockBlockState(ctrl)
+
+		blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
+		blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
+		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
+		blockstate.EXPECT().BestBlockNumber().Return(big.NewInt(1), nil).AnyTimes()
+
+		blockstate.EXPECT().HasBlockBody(
+			gomock.AssignableToTypeOf(common.Hash([32]byte{}))).Return(false, nil).AnyTimes()
+		blockstate.EXPECT().GetHashByNumber(gomock.Any()).Return(common.Hash{}, nil).AnyTimes()
+
+		cfg.BlockState = blockstate
 	}
 
 	if cfg.TransactionHandler == nil {
-		mocktxhandler := &MockTransactionHandler{}
-		mocktxhandler.On("HandleTransactionMessage",
-			mock.AnythingOfType("peer.ID"),
-			mock.AnythingOfType("*network.TransactionMessage")).
-			Return(true, nil)
-		mocktxhandler.On("TransactionsCount").Return(0)
-		cfg.TransactionHandler = mocktxhandler
+		th := NewMockTransactionHandler(ctrl)
+		th.EXPECT().
+			HandleTransactionMessage(
+				gomock.AssignableToTypeOf(peer.ID("")),
+				gomock.Any()).
+			Return(true, nil).AnyTimes()
+
+		th.EXPECT().TransactionsCount().Return(0).AnyTimes()
+		cfg.TransactionHandler = th
 	}
 
 	cfg.SlotDuration = time.Second
-
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
 	if cfg.LogLvl == 0 {
@@ -82,7 +135,29 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = NewMockSyncer()
+		syncer := NewMockSyncer(ctrl)
+		syncer.EXPECT().
+			HandleBlockAnnounceHandshake(
+				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
+			Return(nil).AnyTimes()
+
+		syncer.EXPECT().
+			HandleBlockAnnounce(
+				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
+			Return(nil).AnyTimes()
+
+		syncer.EXPECT().
+			CreateBlockResponse(gomock.Any()).
+			Return(newTestBlockResponseMessage(t), nil).AnyTimes()
+
+		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
+		cfg.Syncer = syncer
+	}
+
+	if cfg.Telemetry == nil {
+		telemetryMock := NewMockClient(ctrl)
+		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+		cfg.Telemetry = telemetryMock
 	}
 
 	cfg.noPreAllocate = true
@@ -96,57 +171,42 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		srvc.Stop()
-		err = os.RemoveAll(cfg.BasePath)
-		if err != nil {
-			fmt.Printf("failed to remove path %s : %s\n", cfg.BasePath, err)
-		}
+		err := srvc.Stop()
+		require.NoError(t, err)
 	})
 	return srvc
 }
 
-func TestMain(m *testing.M) {
-	// Start all tests
-	code := m.Run()
-
-	// Cleanup test path.
-	err := os.RemoveAll(utils.TestDir)
-	if err != nil {
-		fmt.Printf("failed to remove path %s : %s\n", utils.TestDir, err)
-	}
-	os.Exit(code)
-}
-
 // test network service starts
 func TestStartService(t *testing.T) {
+	t.Parallel()
+
 	node := createTestService(t, nil)
-	node.Stop()
+	require.NoError(t, node.Stop())
 }
 
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
-	basePathA := utils.NewTestBasePath(t, "nodeA")
+	t.Parallel()
+
 	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeA := createTestService(t, configA)
-	defer nodeA.Stop()
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
-	defer nodeB.Stop()
 	nodeB.noGossip = true
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
@@ -160,37 +220,40 @@ func TestBroadcastMessages(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	anounceMessage := &BlockAnnounceMessage{
+		Number: big.NewInt(128 * 7),
+		Digest: types.NewDigest(),
+	}
+
 	// simulate message sent from core service
-	nodeA.GossipMessage(testBlockAnnounceMessage)
+	nodeA.GossipMessage(anounceMessage)
 	time.Sleep(time.Second * 2)
 	require.NotNil(t, handler.messages[nodeA.host.id()])
 }
 
 func TestBroadcastDuplicateMessage(t *testing.T) {
+	t.Parallel()
+
 	msgCacheTTL = 2 * time.Second
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeA := createTestService(t, configA)
-	defer nodeA.Stop()
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
-	defer nodeB.Stop()
 	nodeB.noGossip = true
 
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
@@ -216,9 +279,14 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 		stream:    stream,
 	})
 
+	announceMessage := &BlockAnnounceMessage{
+		Number: big.NewInt(128 * 7),
+		Digest: types.NewDigest(),
+	}
+
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
-		nodeA.GossipMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 
@@ -229,17 +297,19 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	// All 5 message will be sent since cache is disabled.
 	for i := 0; i < 5; i++ {
-		nodeA.GossipMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
 }
 
 func TestService_NodeRoles(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "node")
+	t.Parallel()
+
 	cfg := &Config{
-		BasePath: basePath,
+		BasePath: t.TempDir(),
 		Roles:    1,
+		Port:     availablePort(t),
 	}
 	svc := createTestService(t, cfg)
 
@@ -248,30 +318,33 @@ func TestService_NodeRoles(t *testing.T) {
 }
 
 func TestService_Health(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "nodeA")
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+
 	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
-	mocksyncer := &MockSyncer{}
-	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
+	syncer := NewMockSyncer(ctrl)
 
 	s := createTestService(t, config)
-	s.syncer = mocksyncer
+	s.syncer = syncer
 
-	mocksyncer.On("IsSynced").Return(false).Once()
+	syncer.EXPECT().IsSynced().Return(false)
 	h := s.Health()
 	require.Equal(t, true, h.IsSyncing)
 
-	mocksyncer.On("IsSynced").Return(true).Once()
+	syncer.EXPECT().IsSynced().Return(true)
 	h = s.Health()
 	require.Equal(t, false, h.IsSyncing)
 }
 
 func TestPersistPeerStore(t *testing.T) {
+	t.Parallel()
+
 	nodes := createServiceHelper(t, 2)
 	nodeA := nodes[0]
 	nodeB := nodes[1]
@@ -296,9 +369,11 @@ func TestPersistPeerStore(t *testing.T) {
 }
 
 func TestHandleConn(t *testing.T) {
+	t.Parallel()
+
 	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -306,8 +381,8 @@ func TestHandleConn(t *testing.T) {
 	nodeA := createTestService(t, configA)
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -324,18 +399,21 @@ func TestHandleConn(t *testing.T) {
 }
 
 func TestSerivceIsMajorSyncMetrics(t *testing.T) {
-	mocksyncer := new(MockSyncer)
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mocksyncer := NewMockSyncer(ctrl)
 
 	node := &Service{
 		syncer: mocksyncer,
 	}
 
-	mocksyncer.On("IsSynced").Return(false).Once()
+	mocksyncer.EXPECT().IsSynced().Return(false)
 	m := node.CollectGauge()
 
 	require.Equal(t, int64(1), m[gssmrIsMajorSyncMetric])
 
-	mocksyncer.On("IsSynced").Return(true).Once()
+	mocksyncer.EXPECT().IsSynced().Return(true)
 	m = node.CollectGauge()
 
 	require.Equal(t, int64(0), m[gssmrIsMajorSyncMetric])

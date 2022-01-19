@@ -78,7 +78,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{},
 			},
 			exp:    false,
-			expErr: errors.New("invalid string"),
+			expErr: errors.New("could not byteify non 0x prefixed string: "),
 		},
 		{
 			name: "decodeSessionKeys err",
@@ -179,7 +179,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			args: args{
 				req: &Extrinsic{fmt.Sprintf("%x", "1")},
 			},
-			expErr:  fmt.Errorf("could not byteify non 0x prefixed string"),
+			expErr:  fmt.Errorf("could not byteify non 0x prefixed string: 31"),
 			wantRes: ExtrinsicHashResponse(""),
 		},
 		{

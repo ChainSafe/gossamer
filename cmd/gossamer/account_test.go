@@ -7,15 +7,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/require"
 )
 
 // TestAccountGenerate test "gossamer account --generate"
 func TestAccountGenerate(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
+
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false"})
 	require.NoError(t, err)
@@ -34,8 +32,8 @@ func TestAccountGenerate(t *testing.T) {
 
 // TestAccountGeneratePassword test "gossamer account --generate --password"
 func TestAccountGeneratePassword(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
+
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=true"})
 	require.NoError(t, err)
@@ -54,8 +52,8 @@ func TestAccountGeneratePassword(t *testing.T) {
 
 // TestAccountGenerateEd25519 test "gossamer account --generate --ed25519"
 func TestAccountGenerateEd25519(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
+
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false", "--ed25519"})
 	require.NoError(t, err)
@@ -74,8 +72,8 @@ func TestAccountGenerateEd25519(t *testing.T) {
 
 // TestAccountGenerateSr25519 test "gossamer account --generate --ed25519"
 func TestAccountGenerateSr25519(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
+
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false", "--sr25519"})
 	require.NoError(t, err)
@@ -94,8 +92,7 @@ func TestAccountGenerateSr25519(t *testing.T) {
 
 // TestAccountGenerateSecp256k1 test "gossamer account --generate --ed25519"
 func TestAccountGenerateSecp256k1(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false", "--secp256k1"})
 	require.NoError(t, err)
@@ -114,8 +111,7 @@ func TestAccountGenerateSecp256k1(t *testing.T) {
 
 // TestAccountImport test "gossamer account --import"
 func TestAccountImport(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 
 	err := app.Run([]string{"irrelevant", "account", directory, "--import=./test_inputs/test-key.key"})
@@ -135,8 +131,7 @@ func TestAccountImport(t *testing.T) {
 
 // TestAccountImport test "gossamer account --import-raw"
 func TestAccountImportRaw(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 
 	err := app.Run([]string{
@@ -163,8 +158,7 @@ func TestAccountImportRaw(t *testing.T) {
 
 // TestAccountList test "gossamer account --list"
 func TestAccountList(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 	err := app.Run([]string{"irrelevant", "account", directory, "--list"})
 	require.NoError(t, err)

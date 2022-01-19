@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path"
 	"testing"
 	"time"
 
 	"github.com/btcsuite/btcutil/base58"
+	"github.com/golang/mock/gomock"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -46,14 +46,9 @@ var (
 )
 
 func newNetworkService(t *testing.T) *network.Service {
-	testDir := path.Join(os.TempDir(), "test_data")
-
 	cfg := &network.Config{
-		BlockState:         network.NewMockBlockState(nil),
-		BasePath:           testDir,
-		Syncer:             network.NewMockSyncer(),
-		TransactionHandler: network.NewMockTransactionHandler(),
-		SlotDuration:       time.Second,
+		BasePath:     t.TempDir(),
+		SlotDuration: time.Second,
 	}
 
 	srv, err := network.NewService(cfg)
@@ -310,7 +305,16 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	txQueue := state.NewTransactionState()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	txQueue := state.NewTransactionState(telemetryMock)
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil)
 }
 
@@ -346,7 +350,10 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		CodeSubstitutedState: srvc.Base,
 	}
 
-	return core.NewTestService(t, cfg)
+	s, err := core.NewService(cfg)
+	require.NoError(t, err)
+
+	return s
 }
 
 func TestSyncState(t *testing.T) {

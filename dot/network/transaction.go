@@ -110,9 +110,9 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage) {
+func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDuration time.Duration) {
 	protocolID := s.host.protocolID + transactionsID
-	ticker := time.NewTicker(s.cfg.SlotDuration)
+	ticker := time.NewTicker(slotDuration)
 	defer ticker.Stop()
 
 	for {
@@ -120,7 +120,7 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage) {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
-			timer := time.NewTimer(s.cfg.SlotDuration / 3)
+			timer := time.NewTimer(slotDuration / 3)
 			var timedOut bool
 			for !timedOut {
 				select {
@@ -147,7 +147,7 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage) {
 }
 
 func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) NotificationsMessageBatchHandler {
-	go s.startTxnBatchProcessing(txnBatchCh)
+	go s.startTxnBatchProcessing(txnBatchCh, s.cfg.SlotDuration)
 
 	return func(peer peer.ID, msg NotificationsMessage) {
 		data := &BatchMessage{

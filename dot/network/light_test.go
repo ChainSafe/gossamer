@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
@@ -49,6 +48,8 @@ func TestEncodeLightResponse(t *testing.T) {
 }
 
 func TestDecodeLightMessage(t *testing.T) {
+	t.Parallel()
+
 	s := &Service{
 		lightRequest: make(map[peer.ID]struct{}),
 	}
@@ -85,17 +86,19 @@ func TestDecodeLightMessage(t *testing.T) {
 }
 
 func TestHandleLightMessage_Response(t *testing.T) {
+	t.Parallel()
+
 	config := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 	s := createTestService(t, config)
 
 	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
+		BasePath:    t.TempDir(),
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

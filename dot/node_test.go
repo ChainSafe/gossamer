@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -18,7 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
@@ -29,11 +30,8 @@ func TestInitNode(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -44,11 +42,8 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -60,11 +55,8 @@ func TestNodeInitialized(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	expected := NodeInitialized(cfg.Global.BasePath)
 	require.Equal(t, expected, false)
@@ -82,11 +74,8 @@ func TestNewNode(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -113,11 +102,8 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -147,11 +133,8 @@ func TestStartNode(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 	cfg.Core.GrandpaAuthority = false
 	cfg.Core.BABELead = true
 
@@ -178,6 +161,8 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 }
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
 // TestInitNode_LoadGenesisData
 func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
@@ -186,17 +171,28 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	genPath := NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Init.Genesis = genPath
 	cfg.Core.GrandpaAuthority = false
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+
+	expectedArg := &telemetry.NotifyFinalized{
+		Best:   common.MustHexToHash("0x336743aadf42654d4ef91294b61a167c9ed8a42f7f327d08d1e3c99541047392"),
+		Height: "0",
+	}
+
+	telemetryMock.EXPECT().SendMessage(expectedArg)
+
+	require.NoError(t, err)
+
 	config := state.Config{
-		Path:     cfg.Global.BasePath,
-		LogLevel: log.Info,
+		Path:      cfg.Global.BasePath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)
 
@@ -211,6 +207,9 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.SetupBase()
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -251,8 +250,6 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 
 	genPath := NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -314,8 +311,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	genPath := NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
 
-	defer utils.RemoveTestDir(t)
-
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
@@ -365,8 +360,6 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 
 	genPath := NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false

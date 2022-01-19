@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// TestPathExists tests the NewTestDir method
+// TestPathExists tests the PathExists method
 func TestPathExists(t *testing.T) {
 	require.Equal(t, PathExists("../utils"), true)
 	require.Equal(t, PathExists("../utilzzz"), false)
@@ -18,51 +19,44 @@ func TestPathExists(t *testing.T) {
 
 // TestHomeDir tests the HomeDir method
 func TestHomeDir(t *testing.T) {
-	require.NotEqual(t, HomeDir(), "")
+	const envHomeValue = "/home/test"
+	t.Setenv("HOME", envHomeValue)
+	homeDir := HomeDir()
+	assert.Equal(t, envHomeValue, homeDir)
+
+	t.Setenv("HOME", "")
+	homeDir = HomeDir()
+	assert.NotEmpty(t, homeDir)
 }
 
 // TestExpandDir tests the ExpandDir method
 func TestExpandDir(t *testing.T) {
-	testDirA := "~/.gossamer-test"
-
 	homeDir := HomeDir()
-	expandedDirA := ExpandDir(testDirA)
 
-	require.NotEqual(t, testDirA, expandedDirA)
-	require.Equal(t, strings.Contains(expandedDirA, homeDir), true)
+	const tildePath = "~/.gossamer-test"
+	expandedTildePath := ExpandDir(tildePath)
+	assert.Equal(t, homeDir+"/.gossamer-test", expandedTildePath)
 
-	testDirB := NewTestBasePath(t, "test")
-	defer RemoveTestDir(t)
-
-	expandedDirB := ExpandDir(testDirB)
-
-	require.Equal(t, testDirB, expandedDirB)
-	require.Equal(t, strings.Contains(expandedDirB, homeDir), false)
+	const absPath = "/tmp/absolute"
+	expandedAbsPath := ExpandDir(absPath)
+	assert.Equal(t, absPath, expandedAbsPath)
 }
 
-// TestBasePath tests the BasePath method
 func TestBasePath(t *testing.T) {
-	testDir := NewTestBasePath(t, "test")
-	defer RemoveTestDir(t)
+	const pathSuffix = "sometestdirectory"
 
-	homeDir := HomeDir()
-	basePath := BasePath(testDir)
+	basePath := BasePath(pathSuffix)
 
-	require.NotEqual(t, testDir, basePath)
-	require.Equal(t, strings.Contains(basePath, homeDir), true)
+	assert.NotEqual(t, pathSuffix, basePath)
+	assert.True(t, strings.HasSuffix(basePath, pathSuffix))
+	assert.True(t, strings.HasPrefix(basePath, HomeDir()))
 }
 
-// TestKeystoreDir tests the KeystoreDir method
 func TestKeystoreDir(t *testing.T) {
-	testDir := NewTestBasePath(t, "test")
-	defer RemoveTestDir(t)
-
-	homeDir := HomeDir()
-	basePath := BasePath(testDir)
+	testDir := t.TempDir()
 
 	keystoreDir, err := KeystoreDir(testDir)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	require.NotEqual(t, testDir, basePath)
-	require.Equal(t, strings.Contains(keystoreDir, homeDir), true)
+	assert.Equal(t, testDir+"/keystore", keystoreDir)
 }

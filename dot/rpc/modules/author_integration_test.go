@@ -28,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -66,9 +65,16 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 
 	tmpdir := t.TempDir()
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	state2test := state.NewService(state.Config{LogLevel: log.DoNotChange, Path: tmpdir})
 	state2test.UseMemDB()
-	state2test.Transaction = state.NewTransactionState()
+	state2test.Transaction = state.NewTransactionState(telemetryMock)
 
 	auth := newAuthorModule(t, &integrationTestController{stateSrv: state2test})
 	res := new(PendingExtrinsicsResponse)
@@ -147,8 +153,15 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Parallel()
 	tmpbasepath := t.TempDir()
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	intCtrl := setupStateAndRuntime(t, tmpbasepath, useInstanceFromRuntimeV0910)
-	intCtrl.stateSrv.Transaction = state.NewTransactionState()
+	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := intCtrl.genesisHeader.Hash()
 
@@ -189,7 +202,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &ext, res)
-	require.EqualError(t, err, "could not byteify non 0x prefixed string")
+	require.EqualError(t, err, "could not byteify non 0x prefixed string: 0x31")
 }
 
 func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
@@ -197,7 +210,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 
 	tmpbasepath := t.TempDir()
 	intCtrl := setupStateAndRuntime(t, tmpbasepath, useInstanceFromGenesis)
-	intCtrl.stateSrv.Transaction = state.NewTransactionState()
+	intCtrl.stateSrv.Transaction = state.NewTransactionState(nil)
 
 	genesisHash := intCtrl.genesisHeader.Hash()
 

@@ -110,7 +110,7 @@ func decodeBranch(reader io.Reader, header byte) (branch *Branch, err error) {
 		}
 	}
 
-	branch.dirty = true
+	branch.Dirty = true
 
 	return branch, nil
 }
@@ -123,7 +123,7 @@ func decodeLeaf(reader io.Reader, header byte) (leaf *Leaf, err error) {
 	}
 
 	leaf = &Leaf{
-		dirty: true,
+		Dirty: true,
 	}
 
 	keyLen := header & keyLenOffset

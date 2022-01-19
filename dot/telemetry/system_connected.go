@@ -3,12 +3,19 @@
 
 package telemetry
 
-import "github.com/ChainSafe/gossamer/lib/common"
+import (
+	"encoding/json"
+	"time"
 
-var _ Message = (*SystemConnectedTM)(nil)
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
-// SystemConnectedTM struct to hold system connected telemetry messages
-type SystemConnectedTM struct {
+type systemConnectedTM SystemConnected
+
+var _ Message = (*SystemConnected)(nil)
+
+// SystemConnected struct to hold system connected telemetry messages
+type SystemConnected struct {
 	Authority      bool         `json:"authority"`
 	Chain          string       `json:"chain"`
 	GenesisHash    *common.Hash `json:"genesis_hash"`
@@ -19,10 +26,10 @@ type SystemConnectedTM struct {
 	Version        string       `json:"version"`
 }
 
-// NewSystemConnectedTM function to create new System Connected Telemetry Message
-func NewSystemConnectedTM(authority bool, chain string, genesisHash *common.Hash,
-	implementation, name, networkID, startupTime, version string) *SystemConnectedTM {
-	return &SystemConnectedTM{
+// NewSystemConnected function to create new System Connected Telemetry Message
+func NewSystemConnected(authority bool, chain string, genesisHash *common.Hash,
+	implementation, name, networkID, startupTime, version string) *SystemConnected {
+	return &SystemConnected{
 		Authority:      authority,
 		Chain:          chain,
 		GenesisHash:    genesisHash,
@@ -34,6 +41,16 @@ func NewSystemConnectedTM(authority bool, chain string, genesisHash *common.Hash
 	}
 }
 
-func (SystemConnectedTM) messageType() string {
-	return systemConnectedMsg
+func (sc SystemConnected) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		systemConnectedTM
+		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
+	}{
+		Timestamp:         time.Now(),
+		MessageType:       systemConnectedMsg,
+		systemConnectedTM: systemConnectedTM(sc),
+	}
+
+	return json.Marshal(telemetryData)
 }

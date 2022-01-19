@@ -7,9 +7,8 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"testing"
 	"time"
-
-	"github.com/stretchr/testify/mock"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -28,96 +27,7 @@ const (
 
 	// TestBackoffTimeout time between connection retries (BackoffBase default 5 seconds)
 	TestBackoffTimeout = 5 * time.Second
-
-	blockRequestSize uint32 = 128
 )
-
-// NewMockBlockState create and return a network BlockState interface mock
-func NewMockBlockState(n *big.Int) *MockBlockState {
-	parentHash, _ := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
-	stateRoot, _ := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
-	extrinsicsRoot, _ := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-
-	if n == nil {
-		n = big.NewInt(1)
-	}
-	header := &types.Header{
-		ParentHash:     parentHash,
-		Number:         n,
-		StateRoot:      stateRoot,
-		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.NewDigest(),
-	}
-
-	m := new(MockBlockState)
-	m.On("BestBlockHeader").Return(header, nil)
-	m.On("GetHighestFinalisedHeader").Return(header, nil)
-	m.On("GenesisHash").Return(common.NewHash([]byte{}))
-	m.On("BestBlockNumber").Return(big.NewInt(1), nil)
-	m.On("HasBlockBody", mock.AnythingOfType("common.Hash")).Return(false, nil)
-	m.On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
-
-	return m
-}
-
-// NewMockSyncer create and return a network Syncer interface mock
-func NewMockSyncer() *MockSyncer {
-	mocksyncer := new(MockSyncer)
-	mocksyncer.
-		On("HandleBlockAnnounceHandshake",
-			mock.AnythingOfType("peer.ID"),
-			mock.AnythingOfType("*network.BlockAnnounceHandshake")).
-		Return(nil, nil)
-	mocksyncer.
-		On("HandleBlockAnnounce",
-			mock.AnythingOfType("peer.ID"),
-			mock.AnythingOfType("*network.BlockAnnounceMessage")).
-		Return(nil, nil)
-	mocksyncer.
-		On("CreateBlockResponse",
-			mock.AnythingOfType("*network.BlockRequestMessage")).
-		Return(testBlockResponseMessage(), nil)
-	mocksyncer.
-		On("IsSynced").Return(false)
-	return mocksyncer
-}
-
-// NewMockTransactionHandler create and return a network TransactionHandler interface
-func NewMockTransactionHandler() *MockTransactionHandler {
-	mocktxhandler := new(MockTransactionHandler)
-	mocktxhandler.On("HandleTransactionMessage",
-		mock.AnythingOfType("peer.ID"),
-		mock.AnythingOfType("*network.TransactionMessage")).
-		Return(true, nil)
-	mocktxhandler.On("TransactionsCount").Return(0)
-	return mocktxhandler
-}
-
-func testBlockResponseMessage() *BlockResponseMessage {
-	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
-	}
-
-	for i := 0; i < int(blockRequestSize); i++ {
-		testHeader := &types.Header{
-			Number: big.NewInt(int64(77 + i)),
-			Digest: types.NewDigest(),
-		}
-
-		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
-
-		msg.BlockData = append(msg.BlockData, &types.BlockData{
-			Hash:          testHeader.Hash(),
-			Header:        testHeader,
-			Body:          body,
-			MessageQueue:  nil,
-			Receipt:       nil,
-			Justification: nil,
-		})
-	}
-
-	return msg
-}
 
 type testStreamHandler struct {
 	messages map[peer.ID][]Message
@@ -146,7 +56,10 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Message) error {
 	msgs := s.messages[stream.Conn().RemotePeer()]
 	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
-	return s.writeToStream(stream, testBlockAnnounceHandshake)
+	announceHandshake := &BlockAnnounceHandshake{
+		BestBlockNumber: 0,
+	}
+	return s.writeToStream(stream, announceHandshake)
 }
 
 func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Message) error {
@@ -202,27 +115,22 @@ var starting, _ = variadic.NewUint64OrHash(uint64(1))
 
 var one = uint32(1)
 
-var testBlockRequestMessage = &BlockRequestMessage{
-	RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-	StartingBlock: *starting,
-	EndBlockHash:  &common.Hash{},
-	Direction:     1,
-	Max:           &one,
+func newTestBlockRequestMessage(t *testing.T) *BlockRequestMessage {
+	t.Helper()
+
+	return &BlockRequestMessage{
+		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
+		StartingBlock: *starting,
+		EndBlockHash:  &common.Hash{},
+		Direction:     1,
+		Max:           &one,
+	}
 }
 
 func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
-}
-
-var testBlockAnnounceMessage = &BlockAnnounceMessage{
-	Number: big.NewInt(128 * 7),
-	Digest: types.NewDigest(),
-}
-
-var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
-	BestBlockNumber: 0,
 }
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {

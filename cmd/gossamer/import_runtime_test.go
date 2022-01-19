@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -19,14 +20,12 @@ func TestCreateGenesisWithRuntime(t *testing.T) {
 
 	testCode := []byte("somecode")
 	testHex := common.BytesToHex(testCode)
-	testFile, err := os.CreateTemp("", "testcode-*.wasm")
-	require.NoError(t, err)
-	defer os.Remove(testFile.Name())
 
-	err = os.WriteFile(testFile.Name(), testCode, 0777)
+	filename := filepath.Join(t.TempDir(), "test.wasm")
+	err := os.WriteFile(filename, testCode, os.ModePerm)
 	require.NoError(t, err)
 
-	out, err := createGenesisWithRuntime(testFile.Name())
+	out, err := createGenesisWithRuntime(filename)
 	require.NoError(t, err)
 
 	g := new(genesis.Genesis)
