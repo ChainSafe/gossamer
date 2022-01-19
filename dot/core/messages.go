@@ -17,13 +17,13 @@ import (
 )
 
 func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance,
-	tx types.Extrinsic, toPropagate *[]types.Extrinsic) (failed bool, err error) {
+	tx types.Extrinsic) (validity *transaction.Validity, failed bool, err error) {
 	s.storageState.Lock()
 	defer s.storageState.Unlock()
 
 	ts, err := s.storageState.TrieState(&head.StateRoot)
 	if err != nil {
-		return false, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
+		return nil, false, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
 	}
 
 	rt.SetContextStorage(ts)
@@ -40,22 +40,16 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt run
 		}
 
 		logger.Debugf("failed to validate transaction: %s", err)
-		return false, nil
+		return nil, false, nil
 	}
 
-	// create new valid transaction
 	vtx := transaction.NewValidTransaction(tx, val)
 
 	// push to the transaction queue of BABE session
 	hash := s.transactionState.AddToPool(vtx)
 	logger.Tracef("added transaction with hash %s to pool", hash)
 
-	// find tx(s) that should propagate
-	if val.Propagate {
-		*toPropagate = append(*toPropagate, tx)
-	}
-
-	return true, nil
+	return val, true, nil
 }
 
 // HandleTransactionMessage validates each transaction in the message and
@@ -86,9 +80,14 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 
 	isValid := true
 	for _, tx := range txs {
-		isValidTxn, err := s.validateTransaction(peerID, head, rt, tx, &toPropagate)
+		validity, isValidTxn, err := s.validateTransaction(peerID, head, rt, tx)
 		if !isValidTxn {
 			isValid = false
+		} else {
+			// find tx(s) that should propagate
+			if validity.Propagate {
+				toPropagate = append(toPropagate, tx)
+			}
 		}
 
 		if err != nil {
