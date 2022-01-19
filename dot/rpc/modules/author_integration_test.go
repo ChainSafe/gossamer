@@ -41,12 +41,6 @@ func useInstanceFromGenesis(t *testing.T, cfg *wasmer.Config) (instance runtime.
 	return wasmer.NewRuntimeFromGenesis(cfg)
 }
 
-func useRuntimeV0910(t *testing.T, cfg *wasmer.Config) (instance runtime.Instance, err error) {
-	t.Helper()
-	runtimePath := runtime.GetAbsolutePath(runtime.POLKADOT_RUNTIME_FP_v0910)
-	return wasmer.NewInstanceFromFile(runtimePath, cfg)
-}
-
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
