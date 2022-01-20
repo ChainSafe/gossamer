@@ -271,7 +271,7 @@ func TestService_IsSynced(t *testing.T) {
 
 func TestService_Start(t *testing.T) {
 	ctrl := gomock.NewController(t)
-
+	mockChainProcessor := NewMockChainProcessor(ctrl)
 	type fields struct {
 		chainSync      ChainSync
 		chainProcessor ChainProcessor
@@ -285,7 +285,7 @@ func TestService_Start(t *testing.T) {
 			name: "working example",
 			fields: fields{
 				chainSync:      newMockChainSync(ctrl),
-				chainProcessor: NewMockChainProcessor(ctrl),
+				chainProcessor: mockChainProcessor,
 			},
 			wantErr: false,
 		},
