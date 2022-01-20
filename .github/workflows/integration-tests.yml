@@ -54,6 +54,6 @@ jobs:
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-mod
 
-      - name: Run unit tests
+      - name: Run integration tests
         run: go test -timeout=30m -tags integration ${{ matrix.packages }}
 
