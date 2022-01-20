@@ -109,14 +109,17 @@ func getAbsolutePath(t *testing.T, pathFromRoot string) string {
 	finderPath := path.Dir(fullpath)
 
 	const searchingFor = "go.mod"
-	const boundary = "gossamer"
-
 	for {
-		require.Contains(t, finderPath, boundary)
 		filepathToCheck := path.Join(finderPath, searchingFor)
 		_, err := os.Stat(filepathToCheck)
 
-		if errors.Is(err, os.ErrNotExist) {
+		fileNotFound := errors.Is(err, os.ErrNotExist)
+		if fileNotFound && finderPath == "/" {
+			require.FailNow(t, "cannot found project root")
+			break
+		}
+
+		if fileNotFound {
 			finderPath = path.Dir(finderPath)
 			continue
 		}
