@@ -150,13 +150,12 @@ func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 	configPath := filepath.Join(cfg.Global.BasePath, "config.toml")
 	err := os.WriteFile(configPath, nil, os.ModePerm)
 	require.NoError(t, err)
-
 	cfgFile := exportConfig(cfg, configPath)
 	return cfg, cfgFile
 }
 
-// ExportConfig exports a dot configuration to a toml configuration file
-func ExportConfig(cfg *Config, fp string) *os.File {
+// exportConfig exports a dot configuration to a toml configuration file
+func exportConfig(cfg *Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
 		logger.Errorf("failed to marshal configuration: %s", err)
