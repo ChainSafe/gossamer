@@ -84,7 +84,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		if err != nil {
 			return false, err
 		}
-		
+
 		if !isValidTxn {
 			isValid = false
 		} else {
