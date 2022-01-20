@@ -14,8 +14,6 @@ on:
       - go.sum
       - Makefile
 name: integration-tests
-env:
-  GO111MODULE: on
 
 jobs:
   integration-tests:
