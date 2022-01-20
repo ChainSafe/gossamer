@@ -17,7 +17,7 @@ import (
 )
 
 func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance,
-	tx types.Extrinsic) (validity *transaction.Validity, failed bool, err error) {
+	tx types.Extrinsic) (validity *transaction.Validity, valid bool, err error) {
 	s.storageState.Lock()
 	defer s.storageState.Unlock()
 
@@ -81,6 +81,10 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 	isValid := true
 	for _, tx := range txs {
 		validity, isValidTxn, err := s.validateTransaction(peerID, head, rt, tx)
+		if err != nil {
+			return false, err
+		}
+		
 		if !isValidTxn {
 			isValid = false
 		} else {
@@ -88,10 +92,6 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 			if validity.Propagate {
 				toPropagate = append(toPropagate, tx)
 			}
-		}
-
-		if err != nil {
-			return false, err
 		}
 	}
 
