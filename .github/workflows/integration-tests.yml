@@ -1,7 +1,7 @@
 on:
   pull_request:
     paths:
-      - .github/workflows/unit-tests.yml
+      - .github/workflows/integration-tests.yml
       - "**/*.go"
       - "chain/**"
       - "cmd/**"
@@ -18,7 +18,7 @@ env:
   GO111MODULE: on
 
 jobs:
-  unit-tests:
+  integration-tests:
     timeout-minutes: 60
     strategy:
       matrix:
