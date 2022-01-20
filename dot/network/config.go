@@ -94,7 +94,8 @@ type Config struct {
 	privateKey crypto.PrivKey
 
 	// PublishMetrics enables collection of network metrics
-	PublishMetrics bool
+	PublishMetrics  bool
+	metricsInterval time.Duration
 
 	// telemetryInterval how often to send telemetry metrics
 	telemetryInterval time.Duration
@@ -146,6 +147,8 @@ func (c *Config) build() error {
 	if !c.NoBootstrap && len(c.Bootnodes) == 0 {
 		c.logger.Warn("Bootstrap is enabled but no bootstrap nodes are defined")
 	}
+
+	c.metricsInterval = time.Second * 10
 
 	// set telemetryInterval to default
 	if c.telemetryInterval.Microseconds() == 0 {

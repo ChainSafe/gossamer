@@ -344,7 +344,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		c := metrics.NewCollector(context.Background())
 		c.AddGauge(fg)
 		c.AddGauge(stateSrvc)
-		c.AddGauge(networkSrvc)
+		// c.AddGauge(networkSrvc)
 
 		go c.Start()
 

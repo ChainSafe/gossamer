@@ -340,21 +340,10 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 			return err
 		}
 
-<<<<<<< HEAD
-=======
-		rep := n.addReputation(change.Value)
-		ps.peerState.nodes[pid] = n
-		reputationGauge.With(prometheus.Labels{"peer_id": pid.Pretty()}).Set(float64(rep))
->>>>>>> 8fb43f8d (add prometheus endpoint)
 		if rep >= BannedThresholdValue {
 			return nil
 		}
 
-<<<<<<< HEAD
-=======
-		logger.Criticalf("Banning peer id %s with reputation: %d", pid, rep)
-		banCounter.With(prometheus.Labels{"peer_id": pid.Pretty()}).Inc()
->>>>>>> 8fb43f8d (add prometheus endpoint)
 		setLen := ps.peerState.getSetLength()
 		for i := 0; i < setLen; i++ {
 			if ps.peerState.peerStatus(i, pid) == connectedPeer {
@@ -363,22 +352,6 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				if err != nil {
 					return err
 				}
-<<<<<<< HEAD
-=======
-
-				ps.resultMsgCh <- Message{
-					Status: Drop,
-					setID:  uint64(i),
-					PeerID: pid,
-				}
-				if err = ps.allocSlots(i); err != nil {
-					return err
-				}
-			}
-		}
-		panic("yo!")
-	}
->>>>>>> 8fb43f8d (add prometheus endpoint)
 
 				ps.resultMsgCh <- Message{
 					Status: Drop,

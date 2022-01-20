@@ -406,23 +406,23 @@ func TestHandleConn(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestSerivceIsMajorSyncMetrics(t *testing.T) {
-	t.Parallel()
+// func TestSerivceIsMajorSyncMetrics(t *testing.T) {
+// 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	mocksyncer := NewMockSyncer(ctrl)
+// 	ctrl := gomock.NewController(t)
+// 	mocksyncer := NewMockSyncer(ctrl)
 
-	node := &Service{
-		syncer: mocksyncer,
-	}
+// 	node := &Service{
+// 		syncer: mocksyncer,
+// 	}
 
-	mocksyncer.EXPECT().IsSynced().Return(false)
-	m := node.CollectGauge()
+// 	mocksyncer.EXPECT().IsSynced().Return(false)
+// 	m := node.CollectGauge()
 
-	require.Equal(t, int64(1), m[gssmrIsMajorSyncMetric])
+// 	require.Equal(t, int64(1), m[gssmrIsMajorSyncMetric])
 
-	mocksyncer.EXPECT().IsSynced().Return(true)
-	m = node.CollectGauge()
+// 	mocksyncer.EXPECT().IsSynced().Return(true)
+// 	m = node.CollectGauge()
 
-	require.Equal(t, int64(0), m[gssmrIsMajorSyncMetric])
-}
+// 	require.Equal(t, int64(0), m[gssmrIsMajorSyncMetric])
+// }
