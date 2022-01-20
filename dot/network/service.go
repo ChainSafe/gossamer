@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -138,7 +139,7 @@ type Service struct {
 	noMDNS      bool
 	noGossip    bool // internal option
 
-	metricsInterval time.Duration
+	Metrics metrics.IntervalConfig
 
 	// telemetry
 	telemetryInterval time.Duration
@@ -223,7 +224,7 @@ func NewService(cfg *Config) (*Service, error) {
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		telemetry:              cfg.Telemetry,
-		metricsInterval:        cfg.metricsInterval,
+		Metrics:                cfg.Metrics,
 	}
 
 	return network, err
@@ -335,8 +336,7 @@ func (s *Service) Start() error {
 
 	logger.Info("started network service with supported protocols " + strings.Join(s.host.protocols(), ", "))
 
-	if s.cfg.PublishMetrics {
-		// go s.collectNetworkMetrics()
+	if s.Metrics.Publish {
 		go s.updateMetrics()
 	}
 
@@ -349,7 +349,7 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) updateMetrics() {
-	ticker := time.NewTicker(s.metricsInterval)
+	ticker := time.NewTicker(s.Metrics.Interval)
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -382,47 +382,6 @@ func (s *Service) updateMetrics() {
 		}
 	}
 }
-
-// func (s *Service) collectNetworkMetrics() {
-// 	for {
-// 		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
-// 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
-// 		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
-// 		syncedBlocks := metrics.GetOrRegisterGauge(
-// 			"service/blocks/sync",
-// 			metrics.DefaultRegistry)
-// 		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
-// 			"network/streams/block_announce/inbound",
-// 			metrics.DefaultRegistry)
-// 		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
-// 			"network/streams/block_announce/outbound",
-// 			metrics.DefaultRegistry)
-// 		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
-// 		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
-// 		totalInboundStreams := metrics.GetOrRegisterGauge("network/streams/total/inbound", metrics.DefaultRegistry)
-// 		totalOutboundStreams := metrics.GetOrRegisterGauge("network/streams/total/outbound", metrics.DefaultRegistry)
-
-// 		peerCount.Update(int64(s.host.peerCount()))
-// 		totalConn.Update(int64(len(s.host.h.Network().Conns())))
-// 		networkLatency.Update(int64(s.host.h.Peerstore().LatencyEWMA(s.host.id())))
-
-// 		numInboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, true))
-// 		numOutboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, false))
-// 		numInboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, true))
-// 		numOutboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, false))
-// 		totalInboundStreams.Update(s.getTotalStreams(true))
-// 		totalOutboundStreams.Update(s.getTotalStreams(false))
-
-// 		num, err := s.blockState.BestBlockNumber()
-// 		if err != nil {
-// 			syncedBlocks.Update(0)
-// 		} else {
-// 			syncedBlocks.Update(num.Int64())
-// 		}
-
-// 		time.Sleep(gssmrmetrics.RefreshInterval)
-// 	}
-// }
 
 func (s *Service) getTotalStreams(inbound bool) (count int64) {
 	for _, conn := range s.host.h.Network().Conns() {
@@ -708,18 +667,6 @@ func (s *Service) RemoveReservedPeers(addrs ...string) error {
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
 }
-
-// // CollectGauge will be used to collect countable metrics from network service
-// func (s *Service) CollectGauge() map[string]int64 {
-// 	var isSynced int64
-// 	if !s.syncer.IsSynced() {
-// 		isSynced = 1
-// 	}
-
-// 	return map[string]int64{
-// 		gssmrIsMajorSyncMetric: isSynced,
-// 	}
-// }
 
 // HighestBlock returns the highest known block number
 func (*Service) HighestBlock() int64 {

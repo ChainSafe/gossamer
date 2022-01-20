@@ -285,13 +285,13 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service,
 		NoMDNS:            cfg.Network.NoMDNS,
 		MinPeers:          cfg.Network.MinPeers,
 		MaxPeers:          cfg.Network.MaxPeers,
-		PublishMetrics:    cfg.Global.PublishMetrics,
 		PersistentPeers:   cfg.Network.PersistentPeers,
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
 		SlotDuration:      slotDuration,
 		PublicIP:          cfg.Network.PublicIP,
 		Telemetry:         telemetryMailer,
 		PublicDNS:         cfg.Network.PublicDNS,
+		Metrics:           metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

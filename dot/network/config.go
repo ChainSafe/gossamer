@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 )
 
 const (
@@ -93,10 +94,6 @@ type Config struct {
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
 
-	// PublishMetrics enables collection of network metrics
-	PublishMetrics  bool
-	metricsInterval time.Duration
-
 	// telemetryInterval how often to send telemetry metrics
 	telemetryInterval time.Duration
 
@@ -108,6 +105,7 @@ type Config struct {
 	SlotDuration time.Duration
 
 	Telemetry telemetry.Client
+	Metrics   metrics.IntervalConfig
 }
 
 // build checks the configuration, sets up the private key for the network service,
@@ -147,8 +145,6 @@ func (c *Config) build() error {
 	if !c.NoBootstrap && len(c.Bootnodes) == 0 {
 		c.logger.Warn("Bootstrap is enabled but no bootstrap nodes are defined")
 	}
-
-	c.metricsInterval = time.Second * 10
 
 	// set telemetryInterval to default
 	if c.telemetryInterval.Microseconds() == 0 {
