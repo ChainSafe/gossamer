@@ -19,6 +19,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var TestProtocolID = "/gossamer/test/0"
+
+// maximum wait time for non-status message to be handled
+var TestMessageTimeout = time.Second
+
+// time between connection retries (BackoffBase default 5 seconds)
+var TestBackoffTimeout = 5 * time.Second
+
 // failedToDial returns true if "failed to dial" error, otherwise false
 func failedToDial(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "failed to dial")
