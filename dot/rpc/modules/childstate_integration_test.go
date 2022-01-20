@@ -150,7 +150,8 @@ func TestGetStorageHash(t *testing.T) {
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
-			err:      fmt.Errorf("child trie does not exist at key 0x%x%x", string(trie.ChildStorageKeyPrefix), []byte(":not_exist")),
+			err: fmt.Errorf("child trie does not exist at key 0x%x%x",
+				string(trie.ChildStorageKeyPrefix), []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
