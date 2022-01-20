@@ -1,3 +1,6 @@
+// Copyright 2022 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package metrics
 
 import (
@@ -12,6 +15,7 @@ const defaultInterval = 10 * time.Second
 
 var logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
 
+// Config is base config for metrics
 type Config struct {
 	Publish bool
 }
@@ -22,6 +26,7 @@ type IntervalConfig struct {
 	Interval time.Duration
 }
 
+// NewIntervalConfig is constructor for IntervalConfig, and uses default metrics interval
 func NewIntervalConfig(publish bool) IntervalConfig {
 	return IntervalConfig{
 		Config:   Config{publish},
@@ -38,5 +43,4 @@ func Start(address string) {
 			log.Errorf("Metrics HTTP server crashed: %s", err)
 		}
 	}()
-	return
 }
