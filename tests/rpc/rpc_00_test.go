@@ -20,7 +20,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	_, _ = fmt.Fprintln(os.Stdout, "Going to start RPC suite test")
+	fmt.Println("Going to start RPC suite test")
 
 	utils.CreateDefaultConfig()
 	defer os.Remove(utils.ConfigDefault)

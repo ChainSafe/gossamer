@@ -9,62 +9,139 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestVerifySecondarySlotPlain(t *testing.T) {
-	err := verifySecondarySlotPlain(0, 77, 1, Randomness{})
-	require.NoError(t, err)
-
-	err = verifySecondarySlotPlain(0, 77, 2, Randomness{})
-	require.NoError(t, err)
-
-	numAuths := 20
-	numAuthorized := 0
-	for i := 0; i < numAuths; i++ {
-		err = verifySecondarySlotPlain(uint32(i), 77, numAuths, Randomness{})
-		if err == nil {
-			numAuthorized++
-		}
+func Test_getSecondarySlotAuthor(t *testing.T) {
+	type args struct {
+		slot       uint64
+		numAuths   int
+		randomness Randomness
 	}
-
-	require.Equal(t, 1, numAuthorized, "only one block producer should be authorized per secondary slot")
+	tests := []struct {
+		name string
+		args args
+		exp  uint32
+	}{
+		{
+			name: "happy path",
+			args: args{
+				slot:     21,
+				numAuths: 21,
+			},
+			exp: 14,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := getSecondarySlotAuthor(tt.args.slot, tt.args.numAuths, tt.args.randomness)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
 
-func createSecondaryVRFPreDigest(t *testing.T,
-	keypair *sr25519.Keypair, index uint32,
-	slot, epoch uint64, randomness Randomness,
-) *types.BabeSecondaryVRFPreDigest {
-	transcript := makeTranscript(randomness, slot, epoch)
-	out, proof, err := keypair.VrfSign(transcript)
-	require.NoError(t, err)
-
-	return types.NewBabeSecondaryVRFPreDigest(index, slot, out, proof)
+func Test_verifySecondarySlotPlain(t *testing.T) {
+	type args struct {
+		authorityIndex uint32
+		slot           uint64
+		numAuths       int
+		randomness     Randomness
+	}
+	tests := []struct {
+		name   string
+		args   args
+		expErr error
+	}{
+		{
+			name: "happy path",
+			args: args{
+				authorityIndex: 14,
+				slot:           21,
+				numAuths:       21,
+			},
+		},
+		{
+			name: "err path",
+			args: args{
+				authorityIndex: 13,
+				slot:           21,
+				numAuths:       21,
+			},
+			expErr: ErrBadSecondarySlotClaim,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := verifySecondarySlotPlain(tt.args.authorityIndex, tt.args.slot, tt.args.numAuths, tt.args.randomness)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
-func TestVerifySecondarySlotVRF(t *testing.T) {
+func Test_verifySecondarySlotVRF(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
-	slot := uint64(77)
-	epoch := uint64(0)
+	transcript := makeTranscript(Randomness{}, 77, 0)
+	out, proof, err := kp.VrfSign(transcript)
+	assert.NoError(t, err)
 
-	digest := createSecondaryVRFPreDigest(t, kp, 0, slot, epoch, Randomness{})
-
-	ok, err := verifySecondarySlotVRF(digest, kp.Public().(*sr25519.PublicKey), epoch, 1, Randomness{})
-	require.NoError(t, err)
-	require.True(t, ok)
-
-	numAuths := 20
-	numAuthorized := 0
-	for i := 0; i < numAuths; i++ {
-		digest := createSecondaryVRFPreDigest(t, kp, uint32(i), slot, epoch, Randomness{})
-
-		ok, err = verifySecondarySlotVRF(digest, kp.Public().(*sr25519.PublicKey), epoch, 1, Randomness{})
-		if err == nil && ok {
-			numAuthorized++
-		}
+	type args struct {
+		digest     *types.BabeSecondaryVRFPreDigest
+		pk         *sr25519.PublicKey
+		epoch      uint64
+		numAuths   int
+		randomness Randomness
 	}
-
-	require.Equal(t, 1, numAuthorized, "only one block producer should be authorized per secondary slot")
+	tests := []struct {
+		name   string
+		args   args
+		exp    bool
+		expErr error
+	}{
+		{
+			name: "happy path",
+			args: args{
+				digest:   types.NewBabeSecondaryVRFPreDigest(0, 77, out, proof),
+				pk:       kp.Public().(*sr25519.PublicKey),
+				numAuths: 1,
+			},
+			exp: true,
+		},
+		{
+			name: "err ErrBadSecondarySlotClaim",
+			args: args{
+				digest:   types.NewBabeSecondaryVRFPreDigest(3, 77, out, proof),
+				pk:       kp.Public().(*sr25519.PublicKey),
+				epoch:    77,
+				numAuths: 1,
+			},
+			expErr: ErrBadSecondarySlotClaim,
+		},
+		{
+			name: "false path",
+			args: args{
+				digest:   types.NewBabeSecondaryVRFPreDigest(0, 77, out, proof),
+				pk:       kp.Public().(*sr25519.PublicKey),
+				epoch:    77,
+				numAuths: 1,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := verifySecondarySlotVRF(tt.args.digest, tt.args.pk, tt.args.epoch, tt.args.numAuths, tt.args.randomness)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }

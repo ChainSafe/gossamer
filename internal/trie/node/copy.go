@@ -4,16 +4,27 @@
 package node
 
 // Copy deep copies the branch.
-func (b *Branch) Copy() Node {
+// Setting copyChildren to true will deep copy
+// children as well.
+func (b *Branch) Copy(copyChildren bool) Node {
 	b.RLock()
 	defer b.RUnlock()
 
 	cpy := &Branch{
-		Children:   b.Children, // copy interface pointers
-		dirty:      b.dirty,
-		generation: b.generation,
+		Dirty:      b.Dirty,
+		Generation: b.Generation,
 	}
-	copy(cpy.Key, b.Key)
+
+	if copyChildren {
+		for i, child := range b.Children {
+			if child == nil {
+				continue
+			}
+			cpy.Children[i] = child.Copy(copyChildren)
+		}
+	} else {
+		cpy.Children = b.Children // copy interface pointers only
+	}
 
 	if b.Key != nil {
 		cpy.Key = make([]byte, len(b.Key))
@@ -31,16 +42,16 @@ func (b *Branch) Copy() Node {
 		copy(cpy.hashDigest, b.hashDigest)
 	}
 
-	if b.encoding != nil {
-		cpy.encoding = make([]byte, len(b.encoding))
-		copy(cpy.encoding, b.encoding)
+	if b.Encoding != nil {
+		cpy.Encoding = make([]byte, len(b.Encoding))
+		copy(cpy.Encoding, b.Encoding)
 	}
 
 	return cpy
 }
 
 // Copy deep copies the leaf.
-func (l *Leaf) Copy() Node {
+func (l *Leaf) Copy(_ bool) Node {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -48,8 +59,8 @@ func (l *Leaf) Copy() Node {
 	defer l.encodingMu.RUnlock()
 
 	cpy := &Leaf{
-		dirty:      l.dirty,
-		generation: l.generation,
+		Dirty:      l.Dirty,
+		Generation: l.Generation,
 	}
 
 	if l.Key != nil {
@@ -68,9 +79,9 @@ func (l *Leaf) Copy() Node {
 		copy(cpy.hashDigest, l.hashDigest)
 	}
 
-	if l.encoding != nil {
-		cpy.encoding = make([]byte, len(l.encoding))
-		copy(cpy.encoding, l.encoding)
+	if l.Encoding != nil {
+		cpy.Encoding = make([]byte, len(l.Encoding))
+		copy(cpy.Encoding, l.Encoding)
 	}
 
 	return cpy

@@ -89,6 +89,8 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
+
+	telemetry telemetry.Client
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -163,6 +165,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
+		telemetry:              cfg.Telemetry,
 	}
 
 	return network, err
@@ -385,18 +388,14 @@ func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
-main:
 	for {
 		select {
 		case <-done:
-			break main
+			return
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
-			if err != nil {
-				logger.Debugf("problem sending system.interval telemetry message: %s", err)
-			}
+			s.telemetry.SendMessage(telemetry.NewBandwidth(o.RateIn, o.RateOut, s.host.peerCount()))
 		}
 	}
 }
@@ -415,7 +414,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		finalizedHash := finalised.Hash()
 
-		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
+		s.telemetry.SendMessage(telemetry.NewBlockInterval(
 			&bestHash,
 			best.Number,
 			&finalizedHash,
@@ -423,9 +422,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))
-		if err != nil {
-			logger.Debugf("problem sending system.interval telemetry message: %s", err)
-		}
+
 		time.Sleep(s.telemetryInterval)
 	}
 }
@@ -433,6 +430,33 @@ func (s *Service) sentBlockIntervalTelemetry() {
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
 	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
+
+	// exchange BlockAnnounceHandshake with peer so we can start to
+	// sync if necessary.
+	prtl, has := s.notificationsProtocols[BlockAnnounceMsgType]
+	if !has {
+		return
+	}
+
+	hs, err := prtl.getHandshake()
+	if err != nil {
+		logger.Warnf("failed to get handshake for protocol %s: %s",
+			prtl.protocolID,
+			err,
+		)
+		return
+	}
+
+	_, err = s.sendHandshake(conn.RemotePeer(), hs, prtl)
+	if err != nil {
+		logger.Debugf("failed to send handshake to peer %s on connection: %s",
+			conn.RemotePeer(),
+			err,
+		)
+		return
+	}
+
+	// leave stream open if there's no error
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -653,7 +677,7 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 }
 
 func (s *Service) startPeerSetHandler() {
-	s.host.cm.peerSetHandler.Start()
+	s.host.cm.peerSetHandler.Start(s.ctx)
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()
@@ -702,7 +726,11 @@ func (s *Service) startProcessingMsg() {
 		select {
 		case <-s.ctx.Done():
 			return
-		case msg := <-msgCh:
+		case msg, ok := <-msgCh:
+			if !ok {
+				return
+			}
+
 			s.processMessage(msg)
 		}
 	}

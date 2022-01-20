@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
@@ -167,7 +168,11 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	_, vm, err := gs.createSignedVoteAndVoteMessage(v, precommit)
 	require.NoError(t, err)
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", vm)
 	require.NoError(t, err)
 	require.Nil(t, out)
@@ -182,7 +187,12 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 
 func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	msg := &NeighbourMessage{
 		Version: 1,
@@ -229,7 +239,11 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 		AuthorityID: gs.publicKeyBytes(),
 	}
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
 	require.Equal(t, err, ErrInvalidSignature)
 }
@@ -264,7 +278,11 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", fm)
 	require.NoError(t, err)
 	require.Nil(t, out)
@@ -287,7 +305,11 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	fm, err := gs.newCommitMessage(testGenesisHeader, round)
 	require.NoError(t, err)
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", fm)
 	require.EqualError(t, err, ErrMinVotesNotMet.Error())
 	require.Nil(t, out)
@@ -311,7 +333,11 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 
 	gs.state.voters = gs.state.voters[:1]
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	_, err = h.handleMessage("", fm)
 	require.NoError(t, err)
 }
@@ -320,7 +346,11 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 	gs, st := newTestService(t)
 	req := newCatchUpRequest(77, 0)
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	_, err := h.handleMessage("", req)
 	require.Equal(t, ErrInvalidCatchUpRound, err)
 }
@@ -329,7 +359,11 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 	gs, st := newTestService(t)
 	req := newCatchUpRequest(1, 77)
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	_, err := h.handleMessage("", req)
 	require.Equal(t, ErrSetIDMismatch, err)
 }
@@ -394,15 +428,23 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	// create and handle request
 	req := newCatchUpRequest(round, setID)
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", req)
 	require.NoError(t, err)
 	require.Equal(t, expected, out)
 }
 
 func TestVerifyJustification(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	vote := NewVote(testHash, 123)
 	just := &SignedVote{
@@ -416,8 +458,12 @@ func TestVerifyJustification(t *testing.T) {
 }
 
 func TestVerifyJustification_InvalidSignature(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	vote := NewVote(testHash, 123)
 	just := &SignedVote{
@@ -432,8 +478,12 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 }
 
 func TestVerifyJustification_InvalidAuthority(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	// sign vote with key not in authority set
 	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString(
 		"0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
@@ -451,8 +501,12 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	just := buildTestJustification(t, int(gs.state.threshold()), 1, gs.state.setID, kr, prevote)
 	msg := &CatchUpResponse{
@@ -467,8 +521,12 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	round := uint64(1)
 	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
@@ -490,7 +548,11 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	err := st.Block.SetHeader(testHeader)
 	require.NoError(t, err)
 
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	round := uint64(77)
 	gs.state.round = round + 1
@@ -745,7 +807,11 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	const fakeRound = 2
 
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	const previousBlocksToAdd = 8
 	now := time.Unix(1000, 0)
@@ -807,8 +873,12 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 }
 
 func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	const previousBlocksToAdd = 9
 	now := time.Unix(1000, 0)
@@ -877,8 +947,17 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 }
 
 func Test_VerifyPreCommitJustification(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	const previousBlocksToAdd = 7
 	now := time.Unix(1000, 0)

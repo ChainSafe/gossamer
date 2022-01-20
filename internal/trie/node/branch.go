@@ -14,19 +14,20 @@ var _ Node = (*Branch)(nil)
 
 // Branch is a branch in the trie.
 type Branch struct {
-	Key      []byte // partial key
+	// Partial key bytes in nibbles (0 to f in hexadecimal)
+	Key      []byte
 	Children [16]Node
 	Value    []byte
-	// dirty is true when the branch differs
+	// Dirty is true when the branch differs
 	// from the node stored in the database.
-	dirty      bool
+	Dirty      bool
 	hashDigest []byte
-	encoding   []byte
-	// generation is incremented on every trie Snapshot() call.
-	// Each node also contain a certain generation number,
-	// which is updated to match the trie generation once they are
+	Encoding   []byte
+	// Generation is incremented on every trie Snapshot() call.
+	// Each node also contain a certain Generation number,
+	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
-	generation uint64
+	Generation uint64
 	sync.RWMutex
 }
 
@@ -35,8 +36,8 @@ func NewBranch(key, value []byte, dirty bool, generation uint64) *Branch {
 	return &Branch{
 		Key:        key,
 		Value:      value,
-		dirty:      dirty,
-		generation: generation,
+		Dirty:      dirty,
+		Generation: generation,
 	}
 }
 
@@ -52,8 +53,8 @@ func (b *Branch) Type() Type {
 func (b *Branch) String() string {
 	if len(b.Value) > 1024 {
 		return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value (hashed)=0x%x dirty=%t",
-			b.Key, b.ChildrenBitmap(), common.MustBlake2bHash(b.Value), b.dirty)
+			b.Key, b.ChildrenBitmap(), common.MustBlake2bHash(b.Value), b.Dirty)
 	}
 	return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value=0x%x dirty=%t",
-		b.Key, b.ChildrenBitmap(), b.Value, b.dirty)
+		b.Key, b.ChildrenBitmap(), b.Value, b.Dirty)
 }

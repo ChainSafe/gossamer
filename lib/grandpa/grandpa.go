@@ -74,6 +74,8 @@ type Service struct {
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
 	neighbourMessage *NeighbourMessage // cached neighbour message
+
+	telemetry telemetry.Client
 }
 
 // Config represents a GRANDPA service configuration
@@ -87,6 +89,7 @@ type Config struct {
 	Keypair       *ed25519.Keypair
 	Authority     bool
 	Interval      time.Duration
+	Telemetry     telemetry.Client
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -166,13 +169,14 @@ func NewService(cfg *Config) (*Service, error) {
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
+		telemetry:          cfg.Telemetry,
 	}
 
 	if err := s.registerProtocol(); err != nil {
 		return nil, err
 	}
 
-	s.messageHandler = NewMessageHandler(s, s.blockState)
+	s.messageHandler = NewMessageHandler(s, s.blockState, cfg.Telemetry)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.paused.Store(false)
 	return s, nil
@@ -283,16 +287,13 @@ func (s *Service) sendTelemetryAuthoritySet() {
 		return
 	}
 
-	err = telemetry.GetInstance().SendMessage(
-		telemetry.NewAfgAuthoritySetTM(
+	s.telemetry.SendMessage(
+		telemetry.NewAfgAuthoritySet(
 			authorityID,
 			fmt.Sprint(s.state.setID),
 			string(authoritiesBytes),
 		),
 	)
-	if err != nil {
-		logger.Debugf("problem sending afg.authority_set telemetry message: %s", err)
-	}
 }
 
 func (s *Service) initiateRound() error {
@@ -645,13 +646,10 @@ func (s *Service) attemptToFinalize() error {
 		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
 
-		err = telemetry.GetInstance().SendMessage(telemetry.NewAfgFinalizedBlocksUpToTM(
+		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
 			s.head.Hash(),
 			s.head.Number.String(),
 		))
-		if err != nil {
-			logger.Debugf("problem sending `afg.finalized_blocks_up_to` telemetry message: %s", err)
-		}
 
 		return nil
 	}

@@ -50,6 +50,10 @@ var (
 		Name:  "log-core",
 		Usage: "Core package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
 	}
+	LogDigestLevelFlag = cli.StringFlag{
+		Name:  "log-digest",
+		Usage: "Digest package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+	}
 	LogSyncLevelFlag = cli.StringFlag{
 		Name:  "log-sync",
 		Usage: "Sync package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
@@ -99,7 +103,7 @@ var (
 		Name:  "basepath",
 		Usage: "Data directory for the node",
 	}
-	PprofServerFlag = cli.StringFlag{
+	PprofServerFlag = cli.BoolFlag{
 		Name:  "pprofserver",
 		Usage: "enable or disable the pprof HTTP server",
 	}
@@ -385,6 +389,7 @@ var (
 	GlobalFlags = []cli.Flag{
 		LogFlag,
 		LogCoreLevelFlag,
+		LogDigestLevelFlag,
 		LogSyncLevelFlag,
 		LogNetworkLevelFlag,
 		LogRPCLevelFlag,

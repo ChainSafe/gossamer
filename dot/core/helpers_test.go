@@ -18,6 +18,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -51,10 +52,16 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
 		cfg.TransactionState == nil || cfg.EpochState == nil ||
 		cfg.CodeSubstitutedState == nil {
+		ctrl := gomock.NewController(t)
+		telemetryMock := NewMockClient(ctrl)
+		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 		config := state.Config{
-			Path:     testDatadirPath,
-			LogLevel: log.Info,
+			Path:      testDatadirPath,
+			LogLevel:  log.Info,
+			Telemetry: telemetryMock,
 		}
+
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 

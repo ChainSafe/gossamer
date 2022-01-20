@@ -5,9 +5,9 @@ package genesis
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -68,13 +68,7 @@ var TestFieldsRaw = Fields{
 }
 
 // CreateTestGenesisJSONFile utility to create mock test genesis JSON file
-func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
-	// Create temp file
-	file, err := os.CreateTemp("", "genesis-test")
-	if err != nil {
-		return "", err
-	}
-
+func CreateTestGenesisJSONFile(t *testing.T, asRaw bool) (filename string) {
 	tGen := &Genesis{
 		Name:       "test",
 		ID:         "",
@@ -97,16 +91,11 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 	}
 
 	bz, err := json.Marshal(tGen)
-	if err != nil {
-		return "", fmt.Errorf("cannot marshal test genesis: %w", err)
-	}
-	// Write to temp file
-	_, err = file.Write(bz)
-	if err != nil {
-		return "", fmt.Errorf("cannot write JSON test genesis: %w", err)
-	}
-
-	return file.Name(), nil
+	require.NoError(t, err)
+	filename = filepath.Join(t.TempDir(), "genesis-test")
+	err = os.WriteFile(filename, bz, os.ModePerm)
+	require.NoError(t, err)
+	return filename
 }
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header

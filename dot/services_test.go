@@ -4,17 +4,18 @@
 package dot
 
 import (
+	"context"
 	"flag"
 	"net/url"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -26,16 +27,23 @@ func TestCreateStateService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
+	telemetryNotEnabled, err := telemetry.
+		BootstrapMailer(context.Background(), nil, false, nil)
+	require.NoError(t, err)
+
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	stateSrvc.Telemetry = telemetryNotEnabled
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
+
 	require.Nil(t, err)
 	require.NotNil(t, stateSrvc)
 }
@@ -46,19 +54,19 @@ func TestCreateCoreService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -68,7 +76,7 @@ func TestCreateCoreService(t *testing.T) {
 
 	networkSrvc := &network.Service{}
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
@@ -81,16 +89,16 @@ func TestCreateBlockVerifier(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	_, err = createBlockVerifier(stateSrvc)
@@ -102,16 +110,16 @@ func TestCreateSyncService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -120,13 +128,13 @@ func TestCreateSyncService(t *testing.T) {
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	_, err = newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{})
+	_, err = newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{}, nil)
 	require.NoError(t, err)
 }
 
@@ -136,11 +144,8 @@ func TestCreateNetworkService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -148,7 +153,10 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
+
+	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, networkSrvc)
 }
@@ -159,19 +167,19 @@ func TestCreateRPCService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
@@ -185,7 +193,7 @@ func TestCreateRPCService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
@@ -204,17 +212,17 @@ func TestCreateBABEService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -227,13 +235,13 @@ func TestCreateBABEService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	bs, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
+	bs, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }
@@ -243,17 +251,17 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.AuthorityRole
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -267,13 +275,13 @@ func TestCreateGrandpaService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc)
+	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
+	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }
@@ -310,14 +318,11 @@ func TestNewWebSocketServer(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 	cfg.RPC.External = false
 	cfg.RPC.WS = true
 	cfg.RPC.WSExternal = false
@@ -328,6 +333,9 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
+
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
 
@@ -340,7 +348,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)

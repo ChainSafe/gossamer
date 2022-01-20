@@ -57,6 +57,9 @@ var (
 	// ErrNotAuthority is returned when trying to perform authority functions when not an authority
 	ErrNotAuthority = errors.New("node is not an authority")
 
+	// ErrThresholdOneIsZero is returned when one of or both parameters to CalculateThreshold is zero
+	ErrThresholdOneIsZero = errors.New("numerator or denominator cannot be 0")
+
 	errNilBlockImportHandler    = errors.New("cannot have nil BlockImportHandler")
 	errNilBlockState            = errors.New("cannot have nil BlockState")
 	errNilEpochState            = errors.New("cannot have nil EpochState")
@@ -67,19 +70,19 @@ var (
 	errFirstBlockTimeout        = errors.New("timed out waiting for first block")
 	errChannelClosed            = errors.New("block notifier channel was closed")
 	errOverPrimarySlotThreshold = errors.New("cannot claim slot, over primary threshold")
+	errNoConfigData             = errors.New("cannot find ConfigData for epoch")
+	errGetEpochData             = errors.New("get epochData error")
+	errFailedFinalisation       = errors.New("failed to check finalisation")
+	errMissingDigest            = errors.New("chain head missing digest")
+	errSetFirstSlot             = errors.New("set first slot error")
+	errGetEpoch                 = errors.New("get epoch error")
+	errSkipVerify               = errors.New("skipVerify error")
+	errMissingDigestItems       = errors.New("block header is missing digest items")
+	errDescendant               = errors.New("descendant err")
 
 	other         Other
 	invalidCustom InvalidCustom
 	unknownCustom UnknownCustom
-
-	dispatchError = scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
-	invalid       = scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
-	unknown = scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
-
-	okRes  = scale.NewResult(nil, dispatchError)
-	errRes = scale.NewResult(invalid, unknown)
-	result = scale.NewResult(okRes, errRes)
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic
@@ -279,6 +282,15 @@ func determineErrType(vdt scale.VaryingDataType) error {
 }
 
 func determineErr(res []byte) error {
+	dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
+	invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
+	unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
+
+	okRes := scale.NewResult(nil, dispatchError)
+	errRes := scale.NewResult(invalid, unknown)
+	result := scale.NewResult(okRes, errRes)
+
 	err := scale.Unmarshal(res, &result)
 	if err != nil {
 		return &UnmarshalError{err.Error()}

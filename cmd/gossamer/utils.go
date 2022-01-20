@@ -7,14 +7,13 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 	terminal "golang.org/x/term"
 )
@@ -68,7 +67,7 @@ func confirmMessage(msg string) bool {
 
 // newTestConfig returns a new test configuration using the provided basepath
 func newTestConfig(t *testing.T) *dot.Config {
-	dir := utils.NewTestDir(t)
+	dir := t.TempDir()
 
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{
@@ -84,6 +83,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
 			SyncLvl:           log.Info,
 			NetworkLvl:        log.Info,
 			RPCLvl:            log.Info,
@@ -108,10 +108,9 @@ func newTestConfig(t *testing.T) *dot.Config {
 func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	cfg := newTestConfig(t)
 
-	file, err := os.CreateTemp(cfg.Global.BasePath, "config-")
-	require.NoError(t, err)
+	filename := filepath.Join(cfg.Global.BasePath, "config.toml")
 
 	tomlCfg := dotConfigToToml(cfg)
-	cfgFile := exportConfig(tomlCfg, file.Name())
+	cfgFile := exportConfig(tomlCfg, filename)
 	return cfg, cfgFile
 }

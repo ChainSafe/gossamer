@@ -4,8 +4,6 @@
 package rpc
 
 import (
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -16,7 +14,7 @@ import (
 
 func TestSystemRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		t.Log("Going to skip RPC suite tests")
 		return
 	}
 
@@ -45,7 +43,6 @@ func TestSystemRPC(t *testing.T) {
 			description: "test system_health",
 			method:      "system_health",
 			expected: modules.SystemHealthResponse{
-
 				Peers:           2,
 				IsSyncing:       true,
 				ShouldHavePeers: true,

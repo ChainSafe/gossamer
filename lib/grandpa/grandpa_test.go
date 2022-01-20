@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 
@@ -49,7 +50,13 @@ func NewMockDigestHandler() *mocks.DigestHandler {
 	return m
 }
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
 func newTestState(t *testing.T) *state.Service {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	testDatadirPath := t.TempDir()
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)
@@ -58,7 +65,7 @@ func newTestState(t *testing.T) *state.Service {
 	t.Cleanup(func() { db.Close() })
 
 	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
-	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
+	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
@@ -74,8 +81,9 @@ func newTestState(t *testing.T) *state.Service {
 	require.NoError(t, err)
 
 	return &state.Service{
-		Block:   block,
-		Grandpa: grandpa,
+		Block:     block,
+		Grandpa:   grandpa,
+		Telemetry: telemetryMock,
 	}
 }
 
@@ -95,6 +103,10 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
@@ -104,6 +116,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 		Authority:     true,
 		Network:       net,
 		Interval:      time.Second,
+		Telemetry:     telemetryMock,
 	}
 
 	gs, err := NewService(cfg)
