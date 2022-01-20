@@ -1,5 +1,8 @@
 on:
   pull_request:
+    types:
+      - opened
+      - edited
     paths:
       - .github/workflows/checks.yml
       - .github/PULL_REQUEST/pull_request.go
