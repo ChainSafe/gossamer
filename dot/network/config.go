@@ -126,10 +126,6 @@ func (c *Config) build() error {
 		c.Roles = DefaultRoles
 	}
 
-	// if c.Port == 0 {
-	// 	c.Port = DefaultPort
-	// }
-
 	// build identity configuration
 	err = c.buildIdentity()
 	if err != nil {
