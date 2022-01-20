@@ -51,9 +51,22 @@ var (
 
 func newNetworkService(t *testing.T) *network.Service {
 	ctrl := gomock.NewController(t)
+
 	blockStateMock := NewMockBlockState(ctrl)
+	blockStateMock.EXPECT().
+		BestBlockHeader().
+		Return(types.NewEmptyHeader(), nil).AnyTimes()
+	blockStateMock.EXPECT().
+		GetHighestFinalisedHeader().
+		Return(types.NewEmptyHeader(), nil).AnyTimes()
+
 	syncerMock := NewMockSyncer(ctrl)
+
 	transactionHandlerMock := NewMockTransactionHandler(ctrl)
+	transactionHandlerMock.EXPECT().TransactionsCount().Return(0).AnyTimes()
+
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &network.Config{
 		BasePath:           t.TempDir(),
@@ -62,6 +75,7 @@ func newNetworkService(t *testing.T) *network.Service {
 		Port:               0,
 		Syncer:             syncerMock,
 		TransactionHandler: transactionHandlerMock,
+		Telemetry:          telemetryMock,
 	}
 
 	srv, err := network.NewService(cfg)
@@ -338,6 +352,10 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		rt.Stop()
 	})
 
+	if srvc != nil {
+		srvc.Block.StoreRuntime(srvc.Block.BestBlockHash(), rt)
+	}
+
 	// insert alice key for testing
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -350,6 +368,8 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	mocknet := new(coremocks.Network)
 	mocknet.On("GossipMessage", mock.AnythingOfType("network.NotificationsMessage"))
 
+	digestHandlerMock := NewMockDigestHandler(nil)
+
 	cfg := &core.Config{
 		Runtime:              rt,
 		Keystore:             ks,
@@ -359,6 +379,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		EpochState:           srvc.Epoch,
 		Network:              mocknet,
 		CodeSubstitutedState: srvc.Base,
+		DigestHandler:        digestHandlerMock,
 	}
 
 	s, err := core.NewService(cfg)
