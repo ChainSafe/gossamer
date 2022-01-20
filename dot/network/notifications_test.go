@@ -267,13 +267,20 @@ func Test_HandshakeTimeout(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	// clear handshake data from connection handler
+	time.Sleep(time.Millisecond * 100)
+	info.outboundHandshakeData.Delete(nodeB.host.id())
+	connAToB := nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	for _, stream := range connAToB[0].GetStreams() {
+		_ = stream.Close()
+	}
+
 	testHandshakeMsg := &BlockAnnounceHandshake{
 		Roles:           4,
 		BestBlockNumber: 77,
 		BestBlockHash:   common.Hash{1},
 		GenesisHash:     common.Hash{2},
 	}
-	nodeA.GossipMessage(testHandshakeMsg)
 
 	info.outboundHandshakeMutexes.Store(nodeB.host.id(), new(sync.Mutex))
 	go nodeA.sendData(nodeB.host.id(), testHandshakeMsg, info, nil)
@@ -285,7 +292,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	require.False(t, ok)
 
 	// a stream should be open until timeout
-	connAToB := nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	connAToB = nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
 	require.Len(t, connAToB, 1)
 	require.Len(t, connAToB[0].GetStreams(), 1)
 

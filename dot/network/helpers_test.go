@@ -44,6 +44,7 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Message) error {
 	msgs := s.messages[stream.Conn().RemotePeer()]
 	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
+
 	announceHandshake := &BlockAnnounceHandshake{
 		BestBlockNumber: 0,
 	}
