@@ -59,6 +59,22 @@ type mockTxnState struct {
 	hash  common.Hash
 }
 
+type mockSetContextStorage struct {
+	trieState *storage.TrieState
+}
+
+type mockValidateTxn struct {
+	input    types.Extrinsic
+	validity *transaction.Validity
+	err      error
+}
+
+type mockRuntime struct {
+	runtime           *mocksruntime.Instance
+	setContextStorage *mockSetContextStorage
+	validateTxn       *mockValidateTxn
+}
+
 func TestService_TransactionsCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockTxnStateEmpty := NewMockTransactionState(ctrl)
@@ -98,20 +114,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	testEmptyHeader := types.NewEmptyHeader()
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
-	ctrl := gomock.NewController(t)
 	runtimeMock := new(mocksruntime.Instance)
 	runtimeMock2 := new(mocksruntime.Instance)
 	runtimeMock3 := new(mocksruntime.Instance)
-
-	runtimeMock2.On("SetContextStorage", &storage.TrieState{})
-	runtimeMock2.On("ValidateTransaction",
-		types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...))).
-		Return(nil, runtime.ErrInvalidTransaction)
-
-	runtimeMock3.On("SetContextStorage", &storage.TrieState{})
-	runtimeMock3.On("ValidateTransaction",
-		types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...))).
-		Return(&transaction.Validity{Propagate: true}, nil)
 
 	type args struct {
 		peerID peer.ID
@@ -124,10 +129,12 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 		exp              bool
 		expErr           error
 		expErrMsg        string
+		ctrl             *gomock.Controller
 		mockNetwork      *mockNetwork
 		mockBlockState   *mockBlockState
 		mockStorageState *mockStorageState
 		mockTxnState     *mockTxnState
+		mockRuntime      *mockRuntime
 	}{
 		{
 			name: "not synced",
@@ -218,8 +225,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				},
 			},
 			expErr: errDummyErr,
-			expErrMsg: "cannot get trie state from storage for root " +
-				"0x0000000000000000000000000000000000000000000000000000000000000000: dummy error for testing",
+			expErrMsg: "failed validating transaction for peerID D1KeRhQ: cannot get trie state from storage" +
+				" for root 0x0000000000000000000000000000000000000000000000000000000000000000: dummy error for testing",
 		},
 		{
 			name: "runtime.ErrInvalidTransaction",
@@ -244,6 +251,14 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
 				trieState: &storage.TrieState{},
+			},
+			mockRuntime: &mockRuntime{
+				runtime:           runtimeMock2,
+				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
+				validateTxn: &mockValidateTxn{
+					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
+					err:   runtime.ErrInvalidTransaction,
+				},
 			},
 			args: args{
 				peerID: peer.ID("jimbo"),
@@ -284,6 +299,14 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 					}),
 				hash: common.Hash{},
 			},
+			mockRuntime: &mockRuntime{
+				runtime:           runtimeMock3,
+				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
+				validateTxn: &mockValidateTxn{
+					input:    types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
+					validity: &transaction.Validity{Propagate: true},
+				},
+			},
 			args: args{
 				peerID: peer.ID("jimbo"),
 				msg: &network.TransactionMessage{
@@ -296,6 +319,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{}
+			ctrl := gomock.NewController(t)
 			if tt.mockNetwork != nil {
 				mockNet := NewMockNetwork(ctrl)
 				mockNet.EXPECT().IsSynced().Return(tt.mockNetwork.IsSynced)
@@ -330,6 +354,12 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				txnState := NewMockTransactionState(ctrl)
 				txnState.EXPECT().AddToPool(tt.mockTxnState.input).Return(tt.mockTxnState.hash)
 				s.transactionState = txnState
+			}
+			if tt.mockRuntime != nil {
+				rt := tt.mockRuntime.runtime
+				rt.On("SetContextStorage", tt.mockRuntime.setContextStorage.trieState)
+				rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
+					Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
 			}
 
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)

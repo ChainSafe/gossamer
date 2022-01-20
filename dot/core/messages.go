@@ -82,7 +82,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 	for _, tx := range txs {
 		validity, isValidTxn, err := s.validateTransaction(peerID, head, rt, tx)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("failed validating transaction for peerID %s: %w", peerID, err)
 		}
 
 		if !isValidTxn {
