@@ -213,6 +213,8 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 		return ErrInvalidCatchUpRound
 	}
 
+	// We don't necessarily have to reply with the round asked in the request, we can reply
+	// with our latest round.
 	resp, err := h.grandpa.newCatchUpResponse(h.grandpa.state.round, h.grandpa.state.setID)
 	if err != nil {
 		return err
@@ -230,7 +232,7 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 
 	logger.Debugf(
 		"successfully sent catch up response with hash %s for round %d and set id %d, to %s",
-		resp.Hash, msg.Round, msg.SetID, from)
+		resp.Hash, h.grandpa.state.round, h.grandpa.state.setID, from)
 
 	return nil
 }
