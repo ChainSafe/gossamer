@@ -72,5 +72,5 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Run unit tests
-        run: go test ${{ matrix.go-version }} -timeout=30m -tags integration
+        run: go test ${{ matrix.packages }} -timeout=30m -tags integration
 
