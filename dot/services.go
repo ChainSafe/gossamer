@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/ChainSafe/chaindb"
 
@@ -49,10 +48,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Log.StateLvl,
-		Metrics: metrics.IntervalConfig{
-			Publish:  cfg.Global.PublishMetrics,
-			Interval: 10 * time.Second,
-		},
+		Metrics:  metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	stateSrvc := state.NewService(config)
@@ -404,6 +400,7 @@ func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
 		Network:       net,
 		Interval:      cfg.Core.GrandpaInterval,
 		Telemetry:     telemetryMailer,
+		Metrics:       metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	if cfg.Core.GrandpaAuthority {

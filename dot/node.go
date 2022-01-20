@@ -87,10 +87,7 @@ func InitNode(cfg *Config) error {
 			RetainedBlocks: cfg.Global.RetainBlocks,
 		},
 		Telemetry: telemetryMailer,
-		Metrics: metrics.IntervalConfig{
-			Publish:  cfg.Global.PublishMetrics,
-			Interval: 10 * time.Second,
-		},
+		Metrics:   metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	// create new state service

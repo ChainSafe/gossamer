@@ -41,7 +41,7 @@ var (
 	leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_block",
 		Name:      "leaves_total",
-		Help:      "total number of blocktree leaves ",
+		Help:      "total number of blocktree leaves",
 	})
 )
 

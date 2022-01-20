@@ -17,23 +17,28 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
-	finalityGrandpaRoundMetrics = "gossamer/finality/grandpa/round"
-	defaultGrandpaInterval      = time.Second
+	defaultGrandpaInterval = time.Second
 )
 
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
-)
 
-var (
 	ErrUnsupportedSubround = errors.New("unsupported subround")
+	transactionPoolGauge   = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_grandpa",
+		Name:      "round",
+		Help:      "current grandpa round",
+	})
 )
 
 // Service represents the current state of the grandpa protocol
@@ -76,6 +81,7 @@ type Service struct {
 	neighbourMessage *NeighbourMessage // cached neighbour message
 
 	telemetry telemetry.Client
+	Metrics   metrics.IntervalConfig
 }
 
 // Config represents a GRANDPA service configuration
@@ -90,6 +96,7 @@ type Config struct {
 	Authority     bool
 	Interval      time.Duration
 	Telemetry     telemetry.Client
+	Metrics       metrics.IntervalConfig
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -170,6 +177,7 @@ func NewService(cfg *Config) (*Service, error) {
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
 		telemetry:          cfg.Telemetry,
+		Metrics:            cfg.Metrics,
 	}
 
 	if err := s.registerProtocol(); err != nil {
@@ -199,6 +207,10 @@ func (s *Service) Start() error {
 	}()
 
 	go s.sendNeighbourMessage()
+
+	if s.Metrics.Publish {
+		go s.updateMetrics()
+	}
 	return nil
 }
 
@@ -231,13 +243,15 @@ func (s *Service) authorities() []*types.Authority {
 	return ad
 }
 
-// CollectGauge returns the map between metrics label and value
-func (s *Service) CollectGauge() map[string]int64 {
-	s.roundLock.Lock()
-	defer s.roundLock.Unlock()
-
-	return map[string]int64{
-		finalityGrandpaRoundMetrics: int64(s.state.round),
+func (s *Service) updateMetrics() {
+	ticker := time.NewTicker(s.Metrics.Interval)
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-ticker.C:
+			transactionPoolGauge.Set(float64(s.state.round))
+		}
 	}
 }
 
@@ -1310,9 +1324,8 @@ func (s *Service) GetSetID() uint64 {
 
 // GetRound return the current round number
 func (s *Service) GetRound() uint64 {
-	s.roundLock.Lock()
-	defer s.roundLock.Unlock()
-
+	// s.roundLock.Lock()
+	// defer s.roundLock.Unlock()
 	return s.state.round
 }
 
