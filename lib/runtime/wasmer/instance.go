@@ -99,17 +99,17 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 
 	// Substrate Wasm compression
 	// https://github.com/paritytech/substrate/blob/master/primitives/maybe-compressed-blob/src/lib.rs
-	compressionFlag := []byte{82, 188, 83, 118, 70, 219, 142, 5}
+	const compressionFlag = []byte{82, 188, 83, 118, 70, 219, 142, 5}
 	if bytes.HasPrefix(code, compressionFlag) {
 		logger.Debug("Decompressing Wasm runtime code")
-		var decoder, err = zstd.NewReader(nil)
+		decoder, err := zstd.NewReader(nil)
 		if err != nil {
-			return nil, errors.New("failed to create zstd decoder")
+			return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
 		}
 
 		code, err = decoder.DecodeAll(code[len(compressionFlag):], nil)
 		if err != nil {
-			return nil, errors.New("failed to decompress Wasm")
+			return nil, fmt.Errorf("failed to decompress compressed wasm code: %w", err)
 		}
 	}
 
