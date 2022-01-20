@@ -101,16 +101,17 @@ func CreateTestGenesisJSONFile(t *testing.T, asRaw bool) (filename string) {
 	return filename
 }
 
-func getAbsolutePath(t *testing.T, p string) string {
+// getAbsolutePath returns the absolute path concatenated with pathFromRoot
+func getAbsolutePath(t *testing.T, pathFromRoot string) string {
 	t.Helper()
 
 	_, fullpath, _, _ := runtime.Caller(0)
 	finderPath := path.Dir(fullpath)
 
-	const sarchingFor = "go.mod"
+	const searchingFor = "go.mod"
 
 	for {
-		filepathToCheck := path.Join(finderPath, sarchingFor)
+		filepathToCheck := path.Join(finderPath, searchingFor)
 		_, err := os.Stat(filepathToCheck)
 
 		if errors.Is(err, os.ErrNotExist) {
@@ -122,7 +123,7 @@ func getAbsolutePath(t *testing.T, p string) string {
 		break
 	}
 
-	return path.Join(finderPath, p)
+	return path.Join(finderPath, pathFromRoot)
 }
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
