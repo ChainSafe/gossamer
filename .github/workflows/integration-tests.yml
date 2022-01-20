@@ -12,7 +12,6 @@ on:
       - "tests/**"
       - go.mod
       - go.sum
-      - Makefile
 name: integration-tests
 
 jobs:
