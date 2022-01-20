@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         packages: [
-          github.com/ChainSafe/gossamer/dot/rpc/modules
+          github.com/ChainSafe/gossamer/dot/rpc/modules,
           github.com/ChainSafe/gossamer/lib/babe
         ]
     runs-on: ubuntu-latest
