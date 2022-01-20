@@ -4,25 +4,21 @@
 package state
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/chaindb"
-	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
 
@@ -423,56 +419,56 @@ func TestService_Import(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestStateServiceMetrics(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+// func TestStateServiceMetrics(t *testing.T) {
+// 	ctrl := gomock.NewController(t)
+// 	telemetryMock := NewMockClient(ctrl)
+// 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-	}
+// 	config := Config{
+// 		Path:      t.TempDir(),
+// 		LogLevel:  log.Info,
+// 		Telemetry: telemetryMock,
+// 	}
 
-	ethmetrics.Enabled = true
-	serv := NewService(config)
-	serv.Transaction = NewTransactionState(telemetryMock)
-	serv.Block = newTestBlockState(t, testGenesisHeader)
+// 	ethmetrics.Enabled = true
+// 	serv := NewService(config)
+// 	serv.Transaction = NewTransactionState(telemetryMock)
+// 	serv.Block = newTestBlockState(t, testGenesisHeader)
 
-	m := metrics.NewCollector(context.Background())
-	m.AddGauge(serv)
-	go m.Start()
+// 	m := metrics.NewCollector(context.Background())
+// 	m.AddGauge(serv)
+// 	go m.Start()
 
-	vtxs := []*transaction.ValidTransaction{
-		{
-			Extrinsic: []byte("a"),
-			Validity:  &transaction.Validity{Priority: 1},
-		},
-		{
-			Extrinsic: []byte("b"),
-			Validity:  &transaction.Validity{Priority: 4},
-		},
-	}
+// 	vtxs := []*transaction.ValidTransaction{
+// 		{
+// 			Extrinsic: []byte("a"),
+// 			Validity:  &transaction.Validity{Priority: 1},
+// 		},
+// 		{
+// 			Extrinsic: []byte("b"),
+// 			Validity:  &transaction.Validity{Priority: 4},
+// 		},
+// 	}
 
-	hashes := make([]common.Hash, len(vtxs))
-	for i, v := range vtxs {
-		h := serv.Transaction.pool.Insert(v)
-		serv.Transaction.queue.Push(v)
+// 	hashes := make([]common.Hash, len(vtxs))
+// 	for i, v := range vtxs {
+// 		h := serv.Transaction.pool.Insert(v)
+// 		serv.Transaction.queue.Push(v)
 
-		hashes[i] = h
-	}
+// 		hashes[i] = h
+// 	}
 
-	time.Sleep(time.Second + metrics.RefreshInterval)
-	gpool := ethmetrics.GetOrRegisterGauge(readyPoolTransactionsMetrics, nil)
-	gqueue := ethmetrics.GetOrRegisterGauge(readyPriorityQueueTransactions, nil)
+// 	time.Sleep(time.Second + metrics.RefreshInterval)
+// 	gpool := ethmetrics.GetOrRegisterGauge(readyPoolTransactionsMetrics, nil)
+// 	gqueue := ethmetrics.GetOrRegisterGauge(readyPriorityQueueTransactions, nil)
 
-	require.Equal(t, int64(2), gpool.Value())
-	require.Equal(t, int64(2), gqueue.Value())
+// 	require.Equal(t, int64(2), gpool.Value())
+// 	require.Equal(t, int64(2), gqueue.Value())
 
-	serv.Transaction.pool.Remove(hashes[0])
-	serv.Transaction.queue.Pop()
+// 	serv.Transaction.pool.Remove(hashes[0])
+// 	serv.Transaction.queue.Pop()
 
-	time.Sleep(time.Second + metrics.RefreshInterval)
-	require.Equal(t, int64(1), gpool.Value())
-	require.Equal(t, int64(1), gqueue.Value())
-}
+// 	time.Sleep(time.Second + metrics.RefreshInterval)
+// 	require.Equal(t, int64(1), gpool.Value())
+// 	require.Equal(t, int64(1), gqueue.Value())
+// }

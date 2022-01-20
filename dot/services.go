@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -47,6 +49,10 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Log.StateLvl,
+		Metrics: metrics.IntervalConfig{
+			Publish:  cfg.Global.PublishMetrics,
+			Interval: 10 * time.Second,
+		},
 	}
 
 	stateSrvc := state.NewService(config)

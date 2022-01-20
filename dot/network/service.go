@@ -44,57 +44,57 @@ var (
 	maxReads                  = 256
 
 	isSyncedGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_sync",
+		Namespace: "gossamer_network_sync",
 		Name:      "is_synced",
 		Help:      "bool representing whether the node is synced to the head of the chain",
 	})
 	peerCountGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_node",
+		Namespace: "gossamer_network_node",
 		Name:      "peer_count_total",
 		Help:      "total peer count",
 	})
 	connectionsGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_node",
+		Namespace: "gossamer_network_node",
 		Name:      "connections_total",
 		Help:      "total number of connections",
 	})
 	nodeLatencyGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_node",
+		Namespace: "gossamer_network_node",
 		Name:      "latency_ms",
 		Help:      "average node latency in milliseconds",
 	})
 	syncedBlocksGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_sync",
+		Namespace: "gossamer_network_sync",
 		Name:      "blocks_synced_total",
 		Help:      "total number of blocks synced",
 	})
 	inboundBlockAnnounceStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_streams_block_announce",
+		Namespace: "gossamer_network_streams_block_announce",
 		Name:      "inbound_total",
 		Help:      "total number of inbound block announce streams",
 	})
 	outboundBlockAnnounceStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_streams_block_announce",
+		Namespace: "gossamer_network_streams_block_announce",
 		Name:      "outbound_total",
 		Help:      "total number of outbound block announce streams",
 	})
 	inboundGrandpaStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_streams_grandpa",
+		Namespace: "gossamer_network_streams_grandpa",
 		Name:      "inbound_total",
 		Help:      "total number of inbound grandpa streams",
 	})
 	outboundGrandpaStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_streams_grandpa",
+		Namespace: "gossamer_network_streams_grandpa",
 		Name:      "outbound_total",
 		Help:      "total number of outbound grandpa streams",
 	})
 	inboundStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_streams",
+		Namespace: "gossamer_network_streams",
 		Name:      "inbound_total",
 		Help:      "total number of inbound streams",
 	})
 	outboundStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "network_streams",
+		Namespace: "gossamer_network_streams",
 		Name:      "outbound_total",
 		Help:      "total number of outbound streams",
 	})

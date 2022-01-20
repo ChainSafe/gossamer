@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -22,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -87,6 +87,10 @@ func InitNode(cfg *Config) error {
 			RetainedBlocks: cfg.Global.RetainBlocks,
 		},
 		Telemetry: telemetryMailer,
+		Metrics: metrics.IntervalConfig{
+			Publish:  cfg.Global.PublishMetrics,
+			Interval: 10 * time.Second,
+		},
 	}
 
 	// create new state service
@@ -341,16 +345,17 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 
 	if cfg.Global.PublishMetrics {
-		c := metrics.NewCollector(context.Background())
-		c.AddGauge(fg)
-		c.AddGauge(stateSrvc)
+		// c := metrics.NewCollector(context.Background())
+		// c.AddGauge(fg)
+		// c.AddGauge(stateSrvc)
 		// c.AddGauge(networkSrvc)
 
-		go c.Start()
+		// go c.Start()
 
 		address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
 		logger.Info("Enabling stand-alone metrics HTTP endpoint at address " + address)
-		metrics.PublishMetrics(address)
+		// metrics.PublishMetrics(address)
+		metrics.Start(address)
 	}
 
 	return node, nil

@@ -7,26 +7,42 @@ import (
 	"fmt"
 	"math/big"
 	"path/filepath"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/ChainSafe/chaindb"
 )
 
-const (
-	readyPoolTransactionsMetrics   = "gossamer/ready/pool/transaction/metrics"
-	readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
-	substrateNumberLeaves          = "gossamer/substrate_number_leaves/metrics"
-)
-
 var logger = log.NewFromGlobal(
 	log.AddContext("pkg", "state"),
+)
+
+var (
+	transactionPoolGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_state_transaction",
+		Name:      "pool_total",
+		Help:      "total number of transactions in ready pool",
+	})
+	transactionQueueGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_state_transaction",
+		Name:      "queue_total",
+		Help:      "total number of transactions in ready queue",
+	})
+	leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_block",
+		Name:      "leaves_total",
+		Help:      "total number of blocktree leaves ",
+	})
 )
 
 // Service is the struct that holds storage, block and network states
@@ -43,14 +59,13 @@ type Service struct {
 	Grandpa     *GrandpaState
 	closeCh     chan interface{}
 
+	PrunerCfg pruner.Config
+	Telemetry telemetry.Client
+	Metrics   metrics.IntervalConfig
+
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
-
-	// Below are for state trie online pruner
-	PrunerCfg pruner.Config
-
-	Telemetry telemetry.Client
 }
 
 // Config is the default configuration used by state service.
@@ -59,6 +74,7 @@ type Config struct {
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
 	Telemetry telemetry.Client
+	Metrics   metrics.IntervalConfig
 }
 
 // NewService create a new instance of Service
@@ -75,6 +91,7 @@ func NewService(config Config) *Service {
 		closeCh:   make(chan interface{}),
 		PrunerCfg: config.PrunerCfg,
 		Telemetry: config.Telemetry,
+		Metrics:   config.Metrics,
 	}
 }
 
@@ -175,7 +192,25 @@ func (s *Service) Start() error {
 
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
+
+	if s.Metrics.Publish {
+		go s.updateMetrics()
+	}
 	return nil
+}
+
+func (s *Service) updateMetrics() {
+	ticker := time.NewTicker(s.Metrics.Interval)
+	for {
+		select {
+		case <-s.closeCh:
+			return
+		case <-ticker.C:
+			transactionPoolGauge.Set(float64(s.Transaction.pool.Len()))
+			transactionQueueGauge.Set(float64(s.Transaction.queue.Len()))
+			leavesGauge.Set(float64(len(s.Block.Leaves())))
+		}
+	}
 }
 
 // Rewind rewinds the chain to the given block number.
@@ -358,11 +393,11 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	return s.db.Close()
 }
 
-// CollectGauge exports 2 metrics related to valid transaction pool and queue
-func (s *Service) CollectGauge() map[string]int64 {
-	return map[string]int64{
-		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
-		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
-		substrateNumberLeaves:          int64(len(s.Block.Leaves())),
-	}
-}
+// // CollectGauge exports 2 metrics related to valid transaction pool and queue
+// func (s *Service) CollectGauge() map[string]int64 {
+// 	return map[string]int64{
+// 		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
+// 		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
+// 		substrateNumberLeaves:          int64(len(s.Block.Leaves())),
+// 	}
+// }
