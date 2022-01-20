@@ -1324,8 +1324,10 @@ func (s *Service) GetSetID() uint64 {
 
 // GetRound return the current round number
 func (s *Service) GetRound() uint64 {
-	// s.roundLock.Lock()
-	// defer s.roundLock.Unlock()
+	// Tim: I don't think we need to lock in these case.  Reading an int will
+	// not produce a concurrent read/write panic
+	s.roundLock.Lock()
+	defer s.roundLock.Unlock()
 	return s.state.round
 }
 

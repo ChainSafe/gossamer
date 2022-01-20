@@ -392,12 +392,3 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 
 	return s.db.Close()
 }
-
-// // CollectGauge exports 2 metrics related to valid transaction pool and queue
-// func (s *Service) CollectGauge() map[string]int64 {
-// 	return map[string]int64{
-// 		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
-// 		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
-// 		substrateNumberLeaves:          int64(len(s.Block.Leaves())),
-// 	}
-// }

@@ -1257,24 +1257,6 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	require.Equal(t, block, pv)
 }
 
-// func TestFinalRoundGaugeMetric(t *testing.T) {
-// 	gs, _ := newTestService(t)
-// 	ethmetrics.Enabled = true
-
-// 	gs.state.round = uint64(180)
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	defer cancel()
-
-// 	coll := metrics.NewCollector(ctx)
-// 	coll.AddGauge(gs)
-
-// 	go coll.Start()
-
-// 	time.Sleep(metrics.RefreshInterval + time.Second)
-// 	gauge := ethmetrics.GetOrRegisterGauge(finalityGrandpaRoundMetrics, nil)
-// 	require.Equal(t, gauge.Value(), int64(180))
-// }
-
 func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testing.T) {
 	// setup granpda service
 	gs, st := newTestService(t)

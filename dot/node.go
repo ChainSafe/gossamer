@@ -342,16 +342,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 
 	if cfg.Global.PublishMetrics {
-		// c := metrics.NewCollector(context.Background())
-		// c.AddGauge(fg)
-		// c.AddGauge(stateSrvc)
-		// c.AddGauge(networkSrvc)
-
-		// go c.Start()
-
 		address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
 		logger.Info("Enabling stand-alone metrics HTTP endpoint at address " + address)
-		// metrics.PublishMetrics(address)
 		metrics.Start(address)
 	}
 

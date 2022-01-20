@@ -35,8 +35,6 @@ const (
 	transactionsID  = "/transactions/1"
 
 	maxMessageSize = 1024 * 63 // 63kb for now
-
-	// gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )
 
 var (

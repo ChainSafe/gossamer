@@ -12,25 +12,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "peerset"))
-	// peerScoreGauge = metrics.NewRegisteredGauge("peerset.reputation", nil)
-	reputationGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "peerset_reputation",
-		Help: "peer reputation",
-	}, []string{"peer_id"})
-	banCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "peerset_ban",
-		Help: "peer ban",
-	}, []string{"peer_id"})
 )
-
-func init() {
-	// metrics.DefaultRegistry.Register()
-}
 
 const (
 	// disconnectReputationChange Reputation change value for a node when we get disconnected from it.
