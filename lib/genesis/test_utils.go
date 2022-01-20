@@ -115,8 +115,7 @@ func getAbsolutePath(t *testing.T, pathFromRoot string) string {
 
 		fileNotFound := errors.Is(err, os.ErrNotExist)
 		if fileNotFound && finderPath == "/" {
-			require.FailNow(t, "cannot found project root")
-			break
+			t.Fatal(t, "cannot find project root")
 		}
 
 		if fileNotFound {
