@@ -61,10 +61,6 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case *CatchUpRequest:
 		return nil, h.handleCatchUpRequest(msg, from)
 	case *CatchUpResponse:
-		logger.Debugf(
-			"received catch up response with hash %s for round %d and set id %d, from %s",
-			msg.Hash, msg.Round, msg.SetID, from)
-
 		err := h.handleCatchUpResponse(msg)
 		if errors.Is(err, blocktree.ErrNodeNotFound) || errors.Is(err, chaindb.ErrKeyNotFound) {
 			// TODO: revisit if we need to add these message in synchronous manner
@@ -116,9 +112,10 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 		return err
 	}
 
-	logger.Debugf("msg.Round %d - highestRound %d lagging behind by %d", msg.Round, highestRound, int(msg.Round)-int(highestRound))
 	// catch up only if we are behind by more than catchup threshold
 	if (int(msg.Round) - int(highestRound)) > catchupThreshold {
+		logger.Debugf("lagging behind by %d rounds", int(msg.Round)-int(highestRound))
+
 		if err := h.sendCatchUpRequest(
 			from, newCatchUpRequest(msg.Round, setID),
 		); err != nil {
@@ -126,7 +123,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 			return err
 		}
 
-		logger.Debugf("sent a catch up request to node %s", from)
+		logger.Debugf("successfully sent a catch up request to node %s, for round number %d and set ID %d", from, msg.Round, setID)
 	}
 
 	return nil
@@ -138,26 +135,13 @@ func (h *MessageHandler) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) err
 		return err
 	}
 
-	// TODO: Uncomment if gossipping do not work
 	err = h.grandpa.network.SendMessage(to, cm)
 	if err != nil {
 		return err
 	}
 
-	// h.grandpa.network.GossipMessage(cm)
-
 	h.grandpa.paused.Store(true)
 
-	// timer := time.NewTimer(time.Second * 10)
-	// defer timer.Stop()
-
-	// select {
-	// case resp := <-h.grandpa.catchUpResponseCh:
-	// 	fmt.Println("got a response, this is awesome")
-	// 	return resp, nil
-	// case <-timer.C:
-	// 	return nil, errors.New("timeout")
-	// }
 	return nil
 }
 
@@ -244,10 +228,8 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 		return err
 	}
 
-	// h.grandpa.network.GossipMessage(cm)
-
 	logger.Debugf(
-		"sent catch up response with hash %s for round %d and set id %d, to %s",
+		"successfully sent catch up response with hash %s for round %d and set id %d, to %s",
 		resp.Hash, msg.Round, msg.SetID, from)
 
 	return nil
@@ -258,9 +240,9 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		return nil
 	}
 
-	// logger.Debugf(
-	// 	"received catch up response with hash %s for round %d and set id %d",
-	// 	msg.Hash, msg.Round, msg.SetID)
+	logger.Debugf(
+		"processing catch up response with hash %s for round %d and set id %d",
+		msg.Hash, msg.Round, msg.SetID)
 
 	// if we aren't currently expecting a catch up response, return
 	if !h.grandpa.paused.Load().(bool) {
@@ -275,10 +257,6 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	if msg.Round <= h.grandpa.state.round {
 		return ErrInvalidCatchUpResponseRound
 	}
-
-	// TODO: confirm if we should add the message to the channel after or before
-	// checking set id and round.
-	// h.grandpa.catchUpResponseCh <- msg
 
 	prevote, err := h.verifyPreVoteJustification(msg)
 	if err != nil {
@@ -309,7 +287,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	// update state and signal to grandpa we are ready to initiate
 	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
 	if err != nil {
-		logger.Debugf("couldn not catch up to round %d, storing the catch up response to retry", msg.Round)
+		logger.Debugf("failed to process catch up response for round %d, storing the catch up response to retry", msg.Round)
 		return err
 	}
 

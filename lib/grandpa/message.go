@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
@@ -234,7 +233,6 @@ type CatchUpResponse struct {
 	PreCommitJustification []SignedVote
 	Hash                   common.Hash
 	Number                 uint32
-	From                   peer.ID
 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, error) {

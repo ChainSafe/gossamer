@@ -74,12 +74,6 @@ type Service struct {
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
 	neighbourMessage *NeighbourMessage // cached neighbour message
-
-	// catchUpResponseCh chan *CatchUpResponse
-
-	// CatchUpResponseCacheLock sync.Mutex
-	// round number is used as key
-	// CatchUpResponseCache map[uint64]CatchUpResponse
 }
 
 // Config represents a GRANDPA service configuration
