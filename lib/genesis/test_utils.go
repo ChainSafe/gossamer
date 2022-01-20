@@ -5,6 +5,7 @@ package genesis
 
 import (
 	"encoding/json"
+	"errors"
 	"math/big"
 	"os"
 	"path"
@@ -100,12 +101,33 @@ func CreateTestGenesisJSONFile(t *testing.T, asRaw bool) (filename string) {
 	return filename
 }
 
+func getAbsolutePath(t *testing.T, p string) string {
+	t.Helper()
+
+	_, fullpath, _, _ := runtime.Caller(0)
+	finderPath := path.Dir(fullpath)
+
+	const sarchingFor = "go.mod"
+
+	for {
+		filepathToCheck := path.Join(finderPath, sarchingFor)
+		_, err := os.Stat(filepathToCheck)
+
+		if errors.Is(err, os.ErrNotExist) {
+			finderPath = path.Dir(finderPath)
+			continue
+		}
+
+		require.NoError(t, err)
+		break
+	}
+
+	return path.Join(finderPath, p)
+}
+
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	_, fullpath, _, _ := runtime.Caller(0)
-	rootDir := path.Dir(path.Dir(path.Dir(fullpath))) // same as ../../..
-	genesisPath := path.Join(rootDir, "chain/gssmr/genesis.json")
-
+	genesisPath := getAbsolutePath(t, "chain/gssmr/genesis.json")
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
@@ -115,9 +137,7 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 
 // NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	_, fullpath, _, _ := runtime.Caller(0)
-	rootDir := path.Dir(path.Dir(path.Dir(fullpath))) // same as ../../..
-	genesisPath := path.Join(rootDir, "chain/dev/genesis.json")
+	genesisPath := getAbsolutePath(t, "chain/dev/genesis.json")
 
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
