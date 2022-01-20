@@ -26,6 +26,7 @@ jobs:
         platform: [ubuntu-latest]
         packages: [
           github.com/ChainSafe/gossamer/dot/rpc/modules
+          github.com/ChainSafe/gossamer/lib/babe
         ]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -55,22 +56,6 @@ jobs:
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-mod
 
-      - name: Install Subkey
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
-            mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0-macos
-            mv $HOME/.local/bin/subkey-v2.0.0-macos $HOME/.local/bin/subkey
-          else
-            echo "Subkey for $RUNNER_OS is not supported"
-            exit 1
-          fi
-
-          chmod +x $HOME/.local/bin/subkey
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
       - name: Run unit tests
-        run: go test ${{ matrix.packages }} -timeout=30m -tags integration
+        run: go test -timeout=30m -tags integration ./...
 

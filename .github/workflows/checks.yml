@@ -3,6 +3,7 @@ on:
     types:
       - opened
       - edited
+      - reopened
     paths:
       - .github/workflows/checks.yml
       - .github/PULL_REQUEST/pull_request.go
