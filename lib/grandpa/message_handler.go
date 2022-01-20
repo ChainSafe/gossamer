@@ -40,6 +40,8 @@ func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer 
 	}
 }
 
+//nolint
+// TODO: NotificationMessage is used at places. But NotificationMessage we return is always nil.
 // HandleMessage handles a GRANDPA consensus message
 // if it is a CommitMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
@@ -106,7 +108,8 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	// 	return nil
 	// }
 
-	logger.Debugf("got neighbour message with number %d, set id %d and round %d, from: %s ", msg.Number, msg.SetID, msg.Round, from)
+	logger.Debugf("got neighbour message with number %d, set id %d and round %d, from: %s ",
+		msg.Number, msg.SetID, msg.Round, from)
 	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
 
 	highestRound, setID, err := h.blockState.GetHighestRoundAndSetID()
@@ -125,7 +128,8 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 			return err
 		}
 
-		logger.Debugf("successfully sent a catch up request to node %s, for round number %d and set ID %d", from, msg.Round, setID)
+		logger.Debugf("successfully sent a catch up request to node %s, for round number %d and set ID %d",
+			from, msg.Round, setID)
 	}
 
 	return nil
