@@ -77,7 +77,7 @@ func TestBuild(t *testing.T) {
 	require.Equal(t, testBlockState, cfg.BlockState)
 	require.Equal(t, testBasePath, cfg.BasePath)
 	require.Equal(t, DefaultRoles, cfg.Roles)
-	require.Equal(t, 0, cfg.Port)
+	require.Equal(t, uint16(0), cfg.Port)
 	require.Equal(t, testRandSeed, cfg.RandSeed)
 	require.Equal(t, DefaultBootnodes, cfg.Bootnodes)
 	require.Equal(t, DefaultProtocolID, cfg.ProtocolID)
