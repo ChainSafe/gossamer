@@ -114,12 +114,14 @@ func getAbsolutePath(t *testing.T, pathFromRoot string) string {
 		_, err := os.Stat(filepathToCheck)
 
 		fileNotFound := errors.Is(err, os.ErrNotExist)
-		if fileNotFound && finderPath == "/" {
-			t.Fatal(t, "cannot find project root")
-		}
-
 		if fileNotFound {
+			previousFinderPath := finderPath
 			finderPath = path.Dir(finderPath)
+
+			if finderPath == previousFinderPath {
+				t.Fatal(t, "cannot find project root")
+			}
+
 			continue
 		}
 
@@ -127,7 +129,7 @@ func getAbsolutePath(t *testing.T, pathFromRoot string) string {
 		break
 	}
 
-	return path.Join(finderPath, pathFromRoot)
+	return filepath.Join(finderPath, pathFromRoot)
 }
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
