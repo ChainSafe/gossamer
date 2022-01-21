@@ -59,7 +59,7 @@ var ss58Prefix = []byte("SS58PRE")
 // also see: https://github.com/paritytech/substrate/blob/master/primitives/core/src/crypto.rs#L275
 func PublicKeyToAddress(pub PublicKey) common.Address {
 	enc := append([]byte{42}, pub.Encode()...)
-	return PublicKeyBytesToAddress(enc)
+	return publicKeyBytesToAddress(enc)
 }
 
 func publicKeyBytesToAddress(b []byte) common.Address {
