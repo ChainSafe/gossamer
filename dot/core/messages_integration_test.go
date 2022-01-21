@@ -48,7 +48,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	require.NoError(t, err)
 
 	ext := ctypes.NewExtrinsic(c)
-	o := ctypes.SignatureOptions{
+	options := ctypes.SignatureOptions{
 		BlockHash:          ctypes.Hash(genHash),
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
@@ -59,7 +59,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	}
 
 	// Sign the transaction using Alice's key
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	err = ext.Sign(signature.TestKeyringPairAlice, options)
 	require.NoError(t, err)
 
 	extEnc, err := ctypes.EncodeToHexString(ext)
@@ -78,7 +78,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 
 	s := NewTestService(t, cfg)
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// simulate block sent from BABE session
 	digest := types.NewDigest()
@@ -156,17 +156,17 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	extBytes := createExtrinsic(t, rt, genHash, 0)
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	b, err := s.HandleTransactionMessage(peer1, msg)
+	shouldPropagate, err := s.HandleTransactionMessage(peer1, msg)
 	require.NoError(t, err)
-	require.True(t, b)
+	require.True(t, shouldPropagate)
 
 	pending := s.transactionState.(*state.TransactionState).Pending()
-	require.NotEqual(t, 0, len(pending))
+	require.NotEmpty(t, pending)
 	require.Equal(t, extBytes, pending[0].Extrinsic)
 
 	extBytes = []byte(`bogus extrinsic`)
 	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	b, err = s.HandleTransactionMessage(peer1, msg)
+	shouldPropagate, err = s.HandleTransactionMessage(peer1, msg)
 	require.NoError(t, err)
-	require.False(t, b)
+	require.False(t, shouldPropagate)
 }

@@ -19,9 +19,9 @@ import (
 func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance,
 	tx types.Extrinsic) (validity *transaction.Validity, valid bool, err error) {
 	s.storageState.Lock()
-	defer s.storageState.Unlock()
 
 	ts, err := s.storageState.TrieState(&head.StateRoot)
+	s.storageState.Unlock()
 	if err != nil {
 		return nil, false, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
 	}
@@ -30,7 +30,7 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt run
 
 	// validate each transaction
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
-	val, err := rt.ValidateTransaction(externalExt)
+	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
 		if errors.Is(err, runtime.ErrInvalidTransaction) {
 			s.net.ReportPeer(peerset.ReputationChange{
@@ -43,13 +43,13 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt run
 		return nil, false, nil
 	}
 
-	vtx := transaction.NewValidTransaction(tx, val)
+	vtx := transaction.NewValidTransaction(tx, validity)
 
 	// push to the transaction queue of BABE session
 	hash := s.transactionState.AddToPool(vtx)
 	logger.Tracef("added transaction with hash %s to pool", hash)
 
-	return val, true, nil
+	return validity, true, nil
 }
 
 // HandleTransactionMessage validates each transaction in the message and
