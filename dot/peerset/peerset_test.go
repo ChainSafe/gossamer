@@ -29,22 +29,19 @@ func TestPeerSetBanned(t *testing.T) {
 	handler.ReportPeer(rpc, peer1)
 	time.Sleep(time.Millisecond * 100)
 
-	// TODO: re-add after #2098
-	// checkMessageStatus(t, <-ps.resultMsgCh, Drop)
+	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 
 	// check that an incoming connection from that node gets refused.
 	handler.Incoming(0, peer1)
+	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
 
-	// TODO: re-add after #2098
-	// checkMessageStatus(t, <-ps.resultMsgCh, Reject)
+	// wait a bit for the node's reputation to go above the threshold.
+	time.Sleep(time.Millisecond * 1200)
 
-	// // wait a bit for the node's reputation to go above the threshold.
-	// time.Sleep(time.Millisecond * 1200)
-
-	// // try again. This time the node should be accepted.
-	// handler.Incoming(0, peer1)
-	// require.NoError(t, err)
-	// checkMessageStatus(t, <-ps.resultMsgCh, Accept)
+	// try again. This time the node should be accepted.
+	handler.Incoming(0, peer1)
+	require.NoError(t, err)
+	checkMessageStatus(t, <-ps.resultMsgCh, Accept)
 }
 
 func TestAddReservedPeers(t *testing.T) {
@@ -133,16 +130,15 @@ func TestReAllocAfterBanned(t *testing.T) {
 	handler.ReportPeer(rep, peer1)
 	time.Sleep(time.Millisecond * 100)
 
-	// TODO: re-add after #2098
-	// checkMessageStatus(t, <-ps.resultMsgCh, Drop)
+	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 
 	// Check that an incoming connection from that node gets refused.
 
 	handler.Incoming(0, peer1)
-	// TODO: re-add after #2098
-	// checkMessageStatus(t, <-ps.resultMsgCh, Reject)
-	// time.Sleep(time.Millisecond * 100)
-	// checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
+
+	time.Sleep(time.Millisecond * 100)
+	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
 }
 
 func TestRemovePeer(t *testing.T) {

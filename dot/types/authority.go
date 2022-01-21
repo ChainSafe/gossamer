@@ -95,7 +95,7 @@ type AuthorityRaw struct {
 }
 
 func (a *AuthorityRaw) String() string {
-	return fmt.Sprintf("Key=0x%x Weight=%d", a.Key, a.Weight)
+	return fmt.Sprintf("AuthorityRaw Key=0x%x Weight=%d", a.Key, a.Weight)
 }
 
 // AuthoritiesToRaw converts an array of Authority in an array of AuthorityRaw

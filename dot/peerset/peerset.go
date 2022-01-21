@@ -111,8 +111,6 @@ const (
 	Accept
 	// Reject incoming connect request.
 	Reject
-	// Noop does nothing.
-	Noop
 )
 
 // Message that will be sent by the peerSet.
@@ -342,9 +340,8 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 					return err
 				}
 
-				// TODO: change Noop to Drop once #2098 is fixed
 				ps.resultMsgCh <- Message{
-					Status: Noop,
+					Status: Drop,
 					setID:  uint64(i),
 					PeerID: pid,
 				}
@@ -354,7 +351,6 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 			}
 		}
 	}
-
 	return nil
 }
 

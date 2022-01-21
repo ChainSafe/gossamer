@@ -90,12 +90,12 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	slotDuration, err := cfg.EpochState.GetSlotDuration()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot get slot duration: %w", err)
 	}
 
 	epochLength, err := cfg.EpochState.GetEpochLength()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot get epoch length: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -121,7 +121,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	}
 
 	logger.Debugf(
-		"created service with block producer ID=%t, slot duration %s, epoch length (slots) %d",
+		"created service with block producer ID=%v, slot duration %s, epoch length (slots) %d",
 		cfg.Authority, babeService.constants.slotDuration, babeService.constants.epochLength,
 	)
 
@@ -152,7 +152,7 @@ func (b *Service) Start() error {
 func (b *Service) waitForFirstBlock() error {
 	head, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get best block header: %w", err)
 	}
 
 	if head.Number.Uint64() > 0 {
@@ -262,7 +262,9 @@ func (b *Service) Stop() error {
 
 // Authorities returns the current BABE authorities
 func (b *Service) Authorities() []types.Authority {
-	return b.epochHandler.epochData.authorities
+	auths := make([]types.Authority, len(b.epochHandler.epochData.authorities))
+	copy(auths, b.epochHandler.epochData.authorities)
+	return auths
 }
 
 // IsStopped returns true if the service is stopped (ie not producing blocks)
@@ -305,15 +307,14 @@ func (b *Service) initiate() {
 	// retry to run the engine at some point (maybe the next epoch) if
 	// there's an error.
 	if err := b.runEngine(); err != nil {
-		logger.Criticalf("failed to run block production engine: %s", err)
+		panic(fmt.Sprintf("failed to run block production engine: %s", err))
 	}
 }
 
 func (b *Service) initiateAndGetEpochHandler(ctx context.Context, epoch uint64) (*epochHandler, error) {
 	epochData, err := b.initiateEpoch(epoch)
 	if err != nil {
-		logger.Errorf("failed to initiate epoch %d: %s", epoch, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to initiate epoch %d: %s", epoch, err)
 	}
 
 	logger.Debugf("initiated epoch with threshold %s, randomness 0x%x and authorities %v",
@@ -321,8 +322,7 @@ func (b *Service) initiateAndGetEpochHandler(ctx context.Context, epoch uint64) 
 
 	epochStartSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
 	if err != nil {
-		logger.Errorf("failed to get start slot for current epoch %d: %s", epoch, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to get start slot for current epoch %d: %s", epoch, err)
 	}
 
 	return newEpochHandler(ctx,
@@ -398,8 +398,6 @@ func (b *Service) runEngine() error {
 			return err
 		}
 	}
-
-	return nil
 }
 
 func (b *Service) handleSlot(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof) error {
