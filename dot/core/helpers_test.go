@@ -25,12 +25,16 @@ import (
 
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
+	t.Helper()
+
 	if cfg == nil {
 		cfg = &Config{}
 	}
 
-	cfg.DigestHandler = new(coremocks.DigestHandler)
-	cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
+	if cfg.DigestHandler == nil {
+		cfg.DigestHandler = new(coremocks.DigestHandler)
+		cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
+	}
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
