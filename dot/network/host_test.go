@@ -638,16 +638,15 @@ func TestBannedPeer(t *testing.T) {
 		Reason: peerset.BannedReason,
 	}, addrInfoB.ID)
 
-	// TODO: re-add after #2098
-	// time.Sleep(100 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
-	// require.Equal(t, 0, nodeA.host.peerCount())
-	// require.Equal(t, 0, nodeB.host.peerCount())
+	require.Equal(t, 0, nodeA.host.peerCount())
+	require.Equal(t, 0, nodeB.host.peerCount())
 
-	// time.Sleep(3 * time.Second)
+	time.Sleep(3 * time.Second)
 
-	// require.Equal(t, 1, nodeA.host.peerCount())
-	// require.Equal(t, 1, nodeB.host.peerCount())
+	require.Equal(t, 1, nodeA.host.peerCount())
+	require.Equal(t, 1, nodeB.host.peerCount())
 }
 
 // Test to check reputation updated by peer set manager
