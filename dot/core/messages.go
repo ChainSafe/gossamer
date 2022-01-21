@@ -87,11 +87,9 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 
 		if !isValidTxn {
 			allTxsAreValid = false
-		} else {
+		} else if validity.Propagate {
 			// find tx(s) that should propagate
-			if validity.Propagate {
-				toPropagate = append(toPropagate, tx)
-			}
+			toPropagate = append(toPropagate, tx)
 		}
 	}
 
