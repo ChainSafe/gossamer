@@ -97,20 +97,10 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, errors.New("code is empty")
 	}
 
-	// Substrate Wasm compression
-	// https://github.com/paritytech/substrate/blob/master/primitives/maybe-compressed-blob/src/lib.rs
-	const compressionFlag = []byte{82, 188, 83, 118, 70, 219, 142, 5}
-	if bytes.HasPrefix(code, compressionFlag) {
-		logger.Debug("Decompressing Wasm runtime code")
-		decoder, err := zstd.NewReader(nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
-		}
-
-		code, err = decoder.DecodeAll(code[len(compressionFlag):], nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decompress compressed wasm code: %w", err)
-		}
+	var err error
+	code, err = decompressWasm(code)
+	if err != nil {
+		return nil, err
 	}
 
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
@@ -174,6 +164,22 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 
 	inst.version, _ = inst.Version()
 	return inst, nil
+}
+
+// decompressWasm decompresses a Wasm blob that may or may not be compressed with zstd
+// ref: https://github.com/paritytech/substrate/blob/master/primitives/maybe-compressed-blob/src/lib.rs
+func decompressWasm(code []byte) ([]byte, error) {
+	compressionFlag := []byte{82, 188, 83, 118, 70, 219, 142, 5}
+	if !bytes.HasPrefix(code, compressionFlag) {
+		return code, nil
+	}
+
+	decoder, err := zstd.NewReader(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
+	}
+
+	return decoder.DecodeAll(code[len(compressionFlag):], nil)
 }
 
 // GetCodeHash returns the code of the instance
