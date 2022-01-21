@@ -20,11 +20,11 @@ func TestExportConfig(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	file := ExportConfig(cfg, cfgFile.Name())
+	file := exportConfig(cfg, cfgFile.Name())
 	require.NotNil(t, file)
 }

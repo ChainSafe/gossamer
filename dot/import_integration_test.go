@@ -15,7 +15,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -104,9 +103,7 @@ func TestImportState(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	cfg.Global.BasePath = basepath
 	err := InitNode(cfg)

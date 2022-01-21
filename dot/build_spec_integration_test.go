@@ -20,9 +20,8 @@ import (
 func TestBuildFromGenesis(t *testing.T) {
 	t.Parallel()
 
-	file, err := genesis.CreateTestGenesisJSONFile(false)
+	file := genesis.CreateTestGenesisJSONFile(t, false)
 	defer os.Remove(file)
-	require.NoError(t, err)
 	bs, err := BuildFromGenesis(file, 0)
 
 	const expectedChainType = "TESTCHAINTYPE"

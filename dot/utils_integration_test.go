@@ -15,21 +15,18 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
 // TestNewConfig tests the NewTestConfig method
 func TestNewConfig(t *testing.T) {
 	cfg := NewTestConfig(t)
-	defer utils.RemoveTestDir(t)
 	require.NotNil(t, cfg)
 }
 
 // TestNewConfigAndFile tests the NewTestConfigWithFile method
 func TestNewConfigAndFile(t *testing.T) {
 	testCfg, testCfgFile := NewTestConfigWithFile(t)
-	defer utils.RemoveTestDir(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 }
@@ -42,26 +39,24 @@ func TestNewTestGenesis(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
-	defer utils.RemoveTestDir(t)
-
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 }
 
 func TestNewTestGenesisFile(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genHRFile := NewTestGenesisFile(t, cfg)
+	genHRFile := newTestGenesisFile(t, cfg)
 	require.NotNil(t, genHRFile)
-	defer os.Remove(genHRFile.Name())
+	defer os.Remove(genHRFile)
 
 	genRawFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genRawFile)
-	defer os.Remove(genRawFile.Name())
+	defer os.Remove(genRawFile)
 
-	genHR, err := genesis.NewGenesisFromJSON(genHRFile.Name(), 0)
+	genHR, err := genesis.NewGenesisFromJSON(genHRFile, 0)
 	require.NoError(t, err)
-	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile.Name())
+	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
 	// values from raw genesis file should equal values generated from human readable genesis file
@@ -75,9 +70,9 @@ func TestDeepCopyVsSnapshot(t *testing.T) {
 	genRawFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genRawFile)
 
-	defer os.Remove(genRawFile.Name())
+	defer os.Remove(genRawFile)
 
-	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile.Name())
+	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
 	tri := trie.NewEmptyTrie()
@@ -93,7 +88,7 @@ func TestDeepCopyVsSnapshot(t *testing.T) {
 		fn   func(tri *trie.Trie) (*trie.Trie, error)
 	}{
 		{"DeepCopy", func(tri *trie.Trie) (*trie.Trie, error) {
-			return tri.DeepCopy()
+			return tri.DeepCopy(), nil
 		}},
 		{"Snapshot", func(tri *trie.Trie) (*trie.Trie, error) {
 			return tri.Snapshot(), nil
@@ -129,9 +124,9 @@ func TestTrieSnapshot(t *testing.T) {
 	genRawFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genRawFile)
 
-	defer os.Remove(genRawFile.Name())
+	defer os.Remove(genRawFile)
 
-	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile.Name())
+	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
 	tri := trie.NewEmptyTrie()
@@ -144,8 +139,7 @@ func TestTrieSnapshot(t *testing.T) {
 	}
 
 	// DeepCopy the trie.
-	dcTrie, err := tri.DeepCopy()
-	require.NoError(t, err)
+	dcTrie := tri.DeepCopy()
 
 	// Take Snapshot of the trie.
 	newTrie := tri.Snapshot()
