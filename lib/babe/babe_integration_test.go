@@ -20,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -37,10 +36,7 @@ var (
 	defaultTestLogLvl = log.Info
 	emptyHash         = trie.EmptyHash
 	testEpochIndex    = uint64(0)
-
-	keyring, _ = keystore.NewSr25519Keyring() //nolint:typecheck
-
-	maxThreshold = scale.MaxUint128
+	maxThreshold      = scale.MaxUint128
 
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{

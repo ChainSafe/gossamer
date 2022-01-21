@@ -77,7 +77,7 @@ func TestCalculateThreshold(t *testing.T) {
 }
 
 func Test_checkPrimaryThreshold(t *testing.T) {
-	keyring, _ := keystore.NewSr25519Keyring()
+	keyring, _ := keystore.NewSr25519Keyring() //nolint:govet
 	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
 	type args struct {
 		randomness Randomness
@@ -119,7 +119,6 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 }
 
 func Test_claimPrimarySlot(t *testing.T) {
-	keyring, _ := keystore.NewSr25519Keyring()
 	type args struct {
 		randomness Randomness
 		slot       uint64
