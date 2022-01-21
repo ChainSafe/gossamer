@@ -42,11 +42,6 @@ var (
 	logger                    = log.NewFromGlobal(log.AddContext("pkg", "network"))
 	maxReads                  = 256
 
-	isSyncedGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "gossamer_network_sync",
-		Name:      "is_synced",
-		Help:      "bool representing whether the node is synced to the head of the chain",
-	})
 	peerCountGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_node",
 		Name:      "peer_count_total",
@@ -61,11 +56,6 @@ var (
 		Namespace: "gossamer_network_node",
 		Name:      "latency_ms",
 		Help:      "average node latency in milliseconds",
-	})
-	syncedBlocksGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "gossamer_network_sync",
-		Name:      "blocks_synced_total",
-		Help:      "total number of blocks synced",
 	})
 	inboundBlockAnnounceStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_streams_block_announce",
@@ -348,29 +338,15 @@ func (s *Service) Start() error {
 
 func (s *Service) updateMetrics() {
 	ticker := time.NewTicker(s.Metrics.Interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
-			switch s.syncer.IsSynced() {
-			case true:
-				isSyncedGauge.Set(0)
-			case false:
-				isSyncedGauge.Set(1)
-			}
-
 			peerCountGauge.Set(float64(s.host.peerCount()))
 			connectionsGauge.Set(float64(len(s.host.h.Network().Conns())))
 			nodeLatencyGauge.Set(float64(s.host.h.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
-
-			num, err := s.blockState.BestBlockNumber()
-			if err != nil {
-				syncedBlocksGauge.Set(0)
-			} else {
-				syncedBlocksGauge.Set(float64(num.Int64()))
-			}
-
 			inboundBlockAnnounceStreamsGauge.Set(float64(s.getNumStreams(BlockAnnounceMsgType, true)))
 			outboundBlockAnnounceStreamsGauge.Set(float64(s.getNumStreams(BlockAnnounceMsgType, false)))
 			inboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, true)))

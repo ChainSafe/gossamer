@@ -400,7 +400,6 @@ func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
 		Network:       net,
 		Interval:      cfg.Core.GrandpaInterval,
 		Telemetry:     telemetryMailer,
-		Metrics:       metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	if cfg.Core.GrandpaAuthority {

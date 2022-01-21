@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -34,7 +33,7 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
 
 	ErrUnsupportedSubround = errors.New("unsupported subround")
-	transactionPoolGauge   = promauto.NewGauge(prometheus.GaugeOpts{
+	roundGauge             = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_grandpa",
 		Name:      "round",
 		Help:      "current grandpa round",
@@ -81,7 +80,6 @@ type Service struct {
 	neighbourMessage *NeighbourMessage // cached neighbour message
 
 	telemetry telemetry.Client
-	Metrics   metrics.IntervalConfig
 }
 
 // Config represents a GRANDPA service configuration
@@ -96,7 +94,6 @@ type Config struct {
 	Authority     bool
 	Interval      time.Duration
 	Telemetry     telemetry.Client
-	Metrics       metrics.IntervalConfig
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -177,7 +174,6 @@ func NewService(cfg *Config) (*Service, error) {
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
 		telemetry:          cfg.Telemetry,
-		Metrics:            cfg.Metrics,
 	}
 
 	if err := s.registerProtocol(); err != nil {
@@ -208,9 +204,6 @@ func (s *Service) Start() error {
 
 	go s.sendNeighbourMessage()
 
-	if s.Metrics.Publish {
-		go s.updateMetrics()
-	}
 	return nil
 }
 
@@ -243,18 +236,6 @@ func (s *Service) authorities() []*types.Authority {
 	return ad
 }
 
-func (s *Service) updateMetrics() {
-	ticker := time.NewTicker(s.Metrics.Interval)
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-ticker.C:
-			transactionPoolGauge.Set(float64(s.state.round))
-		}
-	}
-}
-
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
 func (s *Service) updateAuthorities() error {
 	currSetID, err := s.grandpaState.GetCurrentSetID()
@@ -278,6 +259,7 @@ func (s *Service) updateAuthorities() error {
 	// setting to 0 before incrementing indicates
 	// the setID has been increased
 	s.state.round = 0
+	roundGauge.Set(float64(s.state.round))
 
 	s.sendTelemetryAuthoritySet()
 
@@ -327,6 +309,7 @@ func (s *Service) initiateRound() error {
 			"found block finalised in higher round, updating our round to be %d...",
 			round)
 		s.state.round = round
+		roundGauge.Set(float64(s.state.round))
 		err = s.grandpaState.SetLatestRound(round)
 		if err != nil {
 			return err

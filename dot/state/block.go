@@ -19,6 +19,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -39,6 +41,12 @@ var (
 	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
 
 	errNilBlockBody = errors.New("block body is nil")
+
+	syncedBlocksGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_syncer",
+		Name:      "blocks_synced_total",
+		Help:      "total number of blocks synced",
+	})
 )
 
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
@@ -480,12 +488,16 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 
 // BestBlockHeader returns the block header of the current head of the chain
 func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
-	return bs.GetHeader(bs.BestBlockHash())
+	header, err := bs.GetHeader(bs.BestBlockHash())
+	if err == nil {
+		syncedBlocksGauge.Set(float64(header.Number.Int64()))
+	}
+	return header, err
 }
 
 // BestBlockStateRoot returns the state root of the current head of the chain
 func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
-	header, err := bs.GetHeader(bs.BestBlockHash())
+	header, err := bs.BestBlockHeader()
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -506,7 +518,7 @@ func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (
 
 // BestBlockNumber returns the block number of the current head of the chain
 func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
-	header, err := bs.GetHeader(bs.BestBlockHash())
+	header, err := bs.BestBlockHeader()
 	if err != nil {
 		return nil, err
 	}
