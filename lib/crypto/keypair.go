@@ -62,7 +62,7 @@ func PublicKeyToAddress(pub PublicKey) common.Address {
 	return PublicKeyBytesToAddress(enc)
 }
 
-func PublicKeyBytesToAddress(b []byte) common.Address {
+func publicKeyBytesToAddress(b []byte) common.Address {
 	hasher, err := blake2b.New(64, nil)
 	if err != nil {
 		return ""
