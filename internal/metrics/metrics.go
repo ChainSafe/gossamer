@@ -4,9 +4,12 @@
 package metrics
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/httpserver"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -34,13 +37,56 @@ func NewIntervalConfig(publish bool) IntervalConfig {
 	}
 }
 
+type Server struct {
+	cancel context.CancelFunc
+	server *httpserver.Server
+	done   chan error
+}
+
+// NewServer is a constructor for metrics server
+func NewServer(address string) (s *Server) {
+	m := http.NewServeMux()
+	m.Handle("/metrics", promhttp.Handler())
+	s = &Server{
+		server: httpserver.New("metrics", address, m, logger),
+	}
+	return
+}
+
 // Start will start a dedicated metrics server at the given address.
-func Start(address string) {
+func (s *Server) Start(address string) (err error) {
 	logger.Info("Starting metrics server at http://" + address + "/metrics")
-	http.Handle("/metrics", promhttp.Handler())
-	go func() {
-		if err := http.ListenAndServe(address, nil); err != nil {
-			log.Errorf("Metrics HTTP server crashed: %s", err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancel = cancel
+	ready := make(chan struct{})
+	s.done = make(chan error)
+
+	go s.server.Run(ctx, ready, s.done)
+
+	select {
+	case <-ready:
+		return nil
+	case err := <-s.done:
+		close(s.done)
+		if err != nil {
+			return err
 		}
-	}()
+		return fmt.Errorf("metrics server exited unexpectedly")
+	}
+}
+
+// Stop will stop the metrics server
+func (s *Server) Stop() (err error) {
+	s.cancel()
+	select {
+	case err := <-s.done:
+		close(s.done)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("metrics server exited unexpectedly")
+	case <-time.NewTimer(30 * time.Second).C:
+		return fmt.Errorf("metrics server exit timeout")
+	}
 }
