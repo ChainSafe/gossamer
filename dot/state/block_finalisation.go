@@ -152,10 +152,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		}
 
 		logger.Tracef("pruned block number %s with hash %s", block.Header.Number, hash)
-
-		go func(header *types.Header) {
-			bs.pruneKeyCh <- header
-		}(&block.Header)
+		bs.pruneKeyCh <- &block.Header
 	}
 
 	// if nothing was previously finalised, set the first slot of the network to the
@@ -235,8 +232,14 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			return err
 		}
 
-		// the block will be deleted from the unfinalisedBlockMap in the pruning loop
-		// in `SetFinalisedHash()`, which calls this function
+		// delete from the unfinalisedBlockMap and delete reference to in-memory trie
+		block, has = bs.getAndDeleteUnfinalisedBlock(hash)
+		if !has {
+			continue
+		}
+
+		logger.Tracef("cleaned out finalised block from memory; block number %s with hash %s", block.Header.Number, hash)
+		bs.pruneKeyCh <- &block.Header
 	}
 
 	return batch.Flush()

@@ -93,7 +93,7 @@ func TestChildStateGetStorageSize(t *testing.T) {
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
-			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			err:      fmt.Errorf("child trie does not exist at key 0x%x%x", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
@@ -115,8 +115,7 @@ func TestChildStateGetStorageSize(t *testing.T) {
 		err := mod.GetStorageSize(nil, &req, &res)
 
 		if test.err != nil {
-			require.Error(t, err)
-			require.Equal(t, err, test.err)
+			require.EqualError(t, err, test.err.Error())
 		} else {
 			require.NoError(t, err)
 		}
@@ -151,7 +150,8 @@ func TestGetStorageHash(t *testing.T) {
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
-			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			err: fmt.Errorf("child trie does not exist at key 0x%x%x",
+				string(trie.ChildStorageKeyPrefix), []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
@@ -173,8 +173,7 @@ func TestGetStorageHash(t *testing.T) {
 		err := mod.GetStorageHash(nil, &req, &res)
 
 		if test.err != nil {
-			require.Error(t, err)
-			require.Equal(t, err, test.err)
+			require.EqualError(t, err, test.err.Error())
 		} else {
 			require.NoError(t, err)
 		}

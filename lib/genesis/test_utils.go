@@ -5,6 +5,7 @@ package genesis
 
 import (
 	"encoding/json"
+	"errors"
 	"math/big"
 	"os"
 	"path"
@@ -100,12 +101,40 @@ func CreateTestGenesisJSONFile(t *testing.T, asRaw bool) (filename string) {
 	return filename
 }
 
+// getAbsolutePath returns the absolute path concatenated with pathFromRoot
+func getAbsolutePath(t *testing.T, pathFromRoot string) string {
+	t.Helper()
+
+	_, fullpath, _, _ := runtime.Caller(0)
+	finderPath := path.Dir(fullpath)
+
+	const searchingFor = "go.mod"
+	for {
+		filepathToCheck := path.Join(finderPath, searchingFor)
+		_, err := os.Stat(filepathToCheck)
+
+		fileNotFound := errors.Is(err, os.ErrNotExist)
+		if fileNotFound {
+			previousFinderPath := finderPath
+			finderPath = path.Dir(finderPath)
+
+			if finderPath == previousFinderPath {
+				t.Fatal(t, "cannot find project root")
+			}
+
+			continue
+		}
+
+		require.NoError(t, err)
+		break
+	}
+
+	return filepath.Join(finderPath, pathFromRoot)
+}
+
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	_, fullpath, _, _ := runtime.Caller(0)
-	rootDir := path.Dir(path.Dir(path.Dir(fullpath))) // same as ../../..
-	genesisPath := path.Join(rootDir, "chain/gssmr/genesis.json")
-
+	genesisPath := getAbsolutePath(t, "chain/gssmr/genesis.json")
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
@@ -115,9 +144,7 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 
 // NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	_, fullpath, _, _ := runtime.Caller(0)
-	rootDir := path.Dir(path.Dir(path.Dir(fullpath))) // same as ../../..
-	genesisPath := path.Join(rootDir, "chain/dev/genesis.json")
+	genesisPath := getAbsolutePath(t, "chain/dev/genesis.json")
 
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
