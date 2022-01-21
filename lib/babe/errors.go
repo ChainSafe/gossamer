@@ -79,6 +79,7 @@ var (
 	errSkipVerify               = errors.New("skipVerify error")
 	errMissingDigestItems       = errors.New("block header is missing digest items")
 	errDescendant               = errors.New("descendant err")
+	errServicePaused            = errors.New("service paused")
 
 	other         Other
 	invalidCustom InvalidCustom

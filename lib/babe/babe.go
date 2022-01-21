@@ -338,8 +338,7 @@ func (b *Service) initiateAndGetEpochHandler(ctx context.Context, epoch uint64) 
 func (b *Service) runEngine() error {
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
-		logger.Errorf("failed to get current epoch: %s", err)
-		return err
+		return fmt.Errorf("failed to get current epoch: %s", err)
 	}
 
 	for {
@@ -354,8 +353,7 @@ func (b *Service) runEngine() error {
 			// get start slot for current epoch
 			nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
 			if err != nil {
-				logger.Errorf("failed to get start slot for next epoch %d: %s", epoch+1, err)
-				return err
+				return fmt.Errorf("failed to get start slot for next epoch %d: %s", epoch+1, err)
 			}
 
 			nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
@@ -372,10 +370,10 @@ func (b *Service) runEngine() error {
 			select {
 			case <-b.ctx.Done():
 				cleanup()
-				return nil
+				return b.ctx.Err()
 			case <-b.pause:
 				cleanup()
-				return nil
+				return errServicePaused
 			case <-epochTimer.C:
 				// stop current epoch handler
 				cancel()
@@ -386,8 +384,7 @@ func (b *Service) runEngine() error {
 			// setup next epoch, re-invoke block authoring
 			next, err := b.incrementEpoch()
 			if err != nil {
-				logger.Errorf("failed to increment epoch: %s", err)
-				return err
+				return fmt.Errorf("failed to increment epoch: %s", err)
 			}
 
 			logger.Infof("epoch %d complete, upcoming epoch: %d", epoch, next)
@@ -395,6 +392,10 @@ func (b *Service) runEngine() error {
 			return nil
 		}()
 		if err != nil {
+			if errors.Is(err, errServicePaused) || errors.Is(err, context.Canceled) {
+				return nil
+			}
+
 			return err
 		}
 	}
