@@ -100,7 +100,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	var err error
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot decompress WASM code: %w", err)
 	}
 
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))

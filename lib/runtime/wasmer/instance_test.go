@@ -67,7 +67,9 @@ func TestInstance_CheckRuntimeVersion(t *testing.T) {
 }
 
 func TestDecompressWasm(t *testing.T) {
-	encoder, _ := zstd.NewWriter(nil)
+	encoder, err := zstd.NewWriter(nil)
+	require.NoError(t, err)
+
 	cases := []struct {
 		in       []byte
 		expected []byte
@@ -89,7 +91,7 @@ func TestDecompressWasm(t *testing.T) {
 			"wrong compression flag with data",
 		},
 		{
-			append([]byte{82, 188, 83, 118, 70, 219, 142, 5}, encoder.EncodeAll([]byte("compressed"), make([]byte, 0))...),
+			append([]byte{82, 188, 83, 118, 70, 219, 142, 5}, encoder.EncodeAll([]byte("compressed"), nil)...),
 			[]byte("compressed"),
 			"compressed data",
 		},
