@@ -52,7 +52,8 @@ authority set and randomness for the _next_ epoch.
 ### Disabled
 
 A message of this type will contain the ID of an authority; this authority should cease all authority functionality and
-all other authorities should ignore any authority-related messages from the identified authority.
+all other authorities should ignore any authority-related messages from the identified authority. _Note: Gossamer has
+not implemented supported for messages of this type._
 
 ### Next Config
 
@@ -86,8 +87,8 @@ not implemented supported for messages of this type._
 
 ### Pause
 
-This messages specifies as a delay after which the current authority set should be paused.
+This messages specifies a delay after which the current authority set should be paused.
 
 ### Resume
 
-This messages specifies as a delay after which the current authority set should be resumed.
+This messages specifies a delay after which the current authority set should be resumed.
