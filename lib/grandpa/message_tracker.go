@@ -105,7 +105,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 	if vms, has := t.voteMessages[h]; has {
 		for _, v := range vms {
 			// handleMessage would never error for vote message
-			_, err := t.handler.handleMessage(v.from, v.msg)
+			err := t.handler.handleMessage(v.from, v.msg)
 			if err != nil {
 				logger.Warnf("failed to handle vote message %v: %s", v, err)
 			}
@@ -117,7 +117,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 	}
 
 	if cm, has := t.commitMessages[h]; has {
-		_, err := t.handler.handleMessage("", cm)
+		err := t.handler.handleMessage("", cm)
 		if err != nil {
 			logger.Warnf("failed to handle commit message %v: %s", cm, err)
 		} else {
@@ -127,7 +127,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 
 	// TODO: Can I use the same mapLock or do I need to use catchUpResponseLock?
 	if cr, has := t.catchUpResponseMessages[h]; has {
-		_, err := t.handler.handleMessage(cr.from, cr.msg)
+		err := t.handler.handleMessage(cr.from, cr.msg)
 		if err != nil {
 			logger.Warnf("failed to handle catch up response message %v: %s", cr, err)
 		} else {

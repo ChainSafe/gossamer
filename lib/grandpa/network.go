@@ -135,28 +135,14 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, err
 	}
 
-	resp, err := s.messageHandler.handleMessage(from, m)
+	err = s.messageHandler.handleMessage(from, m)
 	if err != nil {
 		return false, err
 	}
 
-	switch r := resp.(type) {
-	case *ConsensusMessage:
-		if r != nil {
-			s.network.GossipMessage(resp)
-		}
-	case nil:
-	default:
-		logger.Warnf(
-			"unexpected type %T returned from message handler: %v",
-			resp, resp)
-	}
-
-	switch m.(type) {
-	case *NeighbourMessage:
-		return false, nil
-	case *CatchUpResponse:
-		return false, nil
+	switch m.Type() {
+	case VoteMessageType, CommitMessageType:
+		s.network.GossipMessage(msg)
 	}
 
 	return true, nil

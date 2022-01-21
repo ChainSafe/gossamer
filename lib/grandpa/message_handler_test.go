@@ -173,9 +173,8 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", vm)
+	err = h.handleMessage("", vm)
 	require.NoError(t, err)
-	require.Nil(t, out)
 
 	select {
 	case vote := <-gs.in:
@@ -200,7 +199,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		SetID:   3,
 		Number:  1,
 	}
-	_, err := h.handleMessage("", msg)
+	err := h.handleMessage("", msg)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
@@ -224,9 +223,8 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	out, err := h.handleMessage("", msg)
+	err = h.handleMessage("", msg)
 	require.NoError(t, err)
-	require.Nil(t, out)
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
@@ -283,9 +281,8 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", fm)
+	err = h.handleMessage("", fm)
 	require.NoError(t, err)
-	require.Nil(t, out)
 
 	hash, err := st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
 	require.NoError(t, err)
@@ -310,9 +307,8 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", fm)
+	err = h.handleMessage("", fm)
 	require.EqualError(t, err, ErrMinVotesNotMet.Error())
-	require.Nil(t, out)
 }
 
 func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
@@ -338,7 +334,7 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	_, err = h.handleMessage("", fm)
+	err = h.handleMessage("", fm)
 	require.NoError(t, err)
 }
 
@@ -351,7 +347,7 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	_, err := h.handleMessage("", req)
+	err := h.handleMessage("", req)
 	require.Equal(t, ErrInvalidCatchUpRound, err)
 }
 
@@ -364,11 +360,11 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	_, err := h.handleMessage("", req)
+	err := h.handleMessage("", req)
 	require.Equal(t, ErrSetIDMismatch, err)
 }
 
-func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
+func TestMessageHandler_CatchUpResponse(t *testing.T) {
 	gs, st := newTestService(t)
 
 	// set up needed info for response
@@ -419,23 +415,36 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err = gs.grandpaState.SetPrecommits(round, setID, pcj)
 	require.NoError(t, err)
 
-	resp, err := gs.newCatchUpResponse(round, setID)
-	require.NoError(t, err)
-
-	expected, err := resp.ToConsensusMessage()
-	require.NoError(t, err)
-
-	// create and handle request
-	req := newCatchUpRequest(round, setID)
-
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", req)
-	require.NoError(t, err)
-	require.Equal(t, expected, out)
+
+	h.grandpa.paused.Store(true)
+
+	// If catching up to a previous round, throw an error
+	err = h.handleMessage("", &CatchUpResponse{
+		SetID: setID,
+		Round: 1,
+		PreVoteJustification: []types.GrandpaSignedVote{
+			{
+				Vote:        *testVote,
+				Signature:   testSignature,
+				AuthorityID: testAuthorityID,
+			},
+		},
+		PreCommitJustification: []types.GrandpaSignedVote{
+			{
+				Vote:        *testVote,
+				Signature:   testSignature,
+				AuthorityID: testAuthorityID,
+			},
+		},
+		Hash:   common.Hash{},
+		Number: 1,
+	})
+	require.ErrorIs(t, err, ErrInvalidCatchUpResponseRound)
 }
 
 func TestVerifyJustification(t *testing.T) {
@@ -568,9 +577,8 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 		Number:                 uint32(round),
 	}
 
-	out, err := h.handleMessage("", msg)
+	err = h.handleMessage("", msg)
 	require.NoError(t, err)
-	require.Nil(t, out)
 	require.Equal(t, round+1, gs.state.round)
 }
 

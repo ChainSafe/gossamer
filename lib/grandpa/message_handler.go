@@ -11,7 +11,6 @@ import (
 	"reflect"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -45,7 +44,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer 
 // HandleMessage handles a GRANDPA consensus message
 // if it is a CommitMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
-func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.NotificationsMessage, error) {
+func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) error {
 	logger.Tracef("handling grandpa message: %v", m)
 
 	switch msg := m.(type) {
@@ -56,14 +55,14 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 			msg:  msg,
 		}
 
-		return nil, nil
+		return nil
 	case *CommitMessage:
-		return nil, h.handleCommitMessage(msg)
+		return h.handleCommitMessage(msg)
 	case *NeighbourMessage:
 		// we can afford to not retry handling neighbour message, if it errors.
-		return nil, h.handleNeighbourMessage(msg, from)
+		return h.handleNeighbourMessage(msg, from)
 	case *CatchUpRequest:
-		return nil, h.handleCatchUpRequest(msg, from)
+		return h.handleCatchUpRequest(msg, from)
 	case *CatchUpResponse:
 		err := h.handleCatchUpResponse(msg)
 		if errors.Is(err, blocktree.ErrNodeNotFound) || errors.Is(err, chaindb.ErrKeyNotFound) {
@@ -77,9 +76,9 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 			logger.Debugf("could not catchup: %s", err)
 		}
 
-		return nil, err
+		return err
 	default:
-		return nil, ErrInvalidMessageType
+		return ErrInvalidMessageType
 	}
 }
 
