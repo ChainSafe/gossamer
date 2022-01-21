@@ -72,46 +72,6 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
-func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
-	t.Helper()
-	rawMeta, err := rt.Metadata()
-	require.NoError(t, err)
-
-	var decoded []byte
-	err = scale.Unmarshal(rawMeta, &decoded)
-	require.NoError(t, err)
-
-	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
-	require.NoError(t, err)
-
-	rv, err := rt.Version()
-	require.NoError(t, err)
-
-	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
-	require.NoError(t, err)
-
-	ext := ctypes.NewExtrinsic(c)
-	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(genHash),
-		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
-		GenesisHash:        ctypes.Hash(genHash),
-		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
-		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
-	}
-
-	// Sign the transaction using Alice's key
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
-	require.NoError(t, err)
-
-	extEnc, err := ctypes.EncodeToHexString(ext)
-	require.NoError(t, err)
-
-	return types.Extrinsic(common.MustHexToBytes(extEnc))
-}
-
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	exts [][]byte, slotNumber, epoch uint64, epochData *epochData) *types.Block {
 	for _, ext := range exts {
@@ -160,8 +120,9 @@ func TestBuildBlock_ok(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	ext := createTestExtrinsic(t, rt, parentHash, 0)
-	block := createTestBlock(t, babeService, emptyHeader, [][]byte{ext}, 1, testEpochIndex, epochData)
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		1, testEpochIndex, epochData)
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
@@ -247,8 +208,9 @@ func TestApplyExtrinsic(t *testing.T) {
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	ext := createTestExtrinsic(t, rt, parentHash, 0)
-	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+	extHex := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	extBytes := common.MustHexToBytes(extHex)
+	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, extBytes...))
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
@@ -262,7 +224,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	_, err = builder.buildBlockInherents(slot, rt)
 	require.NoError(t, err)
 
-	res, err := rt.ApplyExtrinsic(ext)
+	res, err := rt.ApplyExtrinsic(extBytes)
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 

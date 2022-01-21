@@ -78,6 +78,8 @@ For coding style, you may refer to the [code style](CODE_STYLE.md) document whic
 
     ⚠️ We are still using `mockery` instead of `gomock` for older mocks, so you need to run `go generate -run "mockery|mockgen" ./...` to update all the existing mocks. We are slowly migrating our mocks and test code to use `gomock`.
 
+    > To execute `//go:generate` commands that are placed at files with `// +build integration` remember to add `-tags integration` in the `go generate` command eg. `go generate -tags integration ...`
+
 9. **Lint your changes.**
 
     Before opening a pull request be sure to run the linter

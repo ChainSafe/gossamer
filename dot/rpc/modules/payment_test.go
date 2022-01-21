@@ -108,7 +108,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Ext: "0x0",
 				},
 			},
-			expErr: errors.New("cannot decode an odd length string"),
+			expErr: errors.New("encoding/hex: odd length hex string: 0x0"),
 		},
 		{
 			name: "Invalid Ext",

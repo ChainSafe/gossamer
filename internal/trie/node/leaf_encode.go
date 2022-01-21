@@ -19,8 +19,8 @@ import (
 // NodeHeader | Extra partial key length | Partial Key | Value
 func (l *Leaf) Encode(buffer Buffer) (err error) {
 	l.encodingMu.RLock()
-	if !l.dirty && l.encoding != nil {
-		_, err = buffer.Write(l.encoding)
+	if !l.Dirty && l.Encoding != nil {
+		_, err = buffer.Write(l.Encoding)
 		l.encodingMu.RUnlock()
 		if err != nil {
 			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
@@ -54,8 +54,8 @@ func (l *Leaf) Encode(buffer Buffer) (err error) {
 	// and the sync.Pool.
 	l.encodingMu.Lock()
 	defer l.encodingMu.Unlock()
-	l.encoding = make([]byte, buffer.Len())
-	copy(l.encoding, buffer.Bytes())
+	l.Encoding = make([]byte, buffer.Len())
+	copy(l.Encoding, buffer.Bytes())
 	return nil
 }
 

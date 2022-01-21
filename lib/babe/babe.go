@@ -307,7 +307,7 @@ func (b *Service) initiate() {
 	// retry to run the engine at some point (maybe the next epoch) if
 	// there's an error.
 	if err := b.runEngine(); err != nil {
-		panic(fmt.Sprintf("failed to run block production engine: %s", err))
+		logger.Criticalf("failed to run block production engine: %s", err)
 	}
 }
 

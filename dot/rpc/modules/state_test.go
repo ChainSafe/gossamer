@@ -256,7 +256,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 					AfterKey: "0x01",
 				},
 			},
-			expErr: errors.New("invalid string"),
+			expErr: errors.New("could not byteify non 0x prefixed string: a"),
 		},
 	}
 	for _, tt := range tests {

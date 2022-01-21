@@ -1,21 +1,9 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 //go:build integration
 // +build integration
 
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package modules
 
 import (
@@ -105,7 +93,7 @@ func TestChildStateGetStorageSize(t *testing.T) {
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
-			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			err:      fmt.Errorf("child trie does not exist at key 0x%x%x", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
@@ -127,8 +115,7 @@ func TestChildStateGetStorageSize(t *testing.T) {
 		err := mod.GetStorageSize(nil, &req, &res)
 
 		if test.err != nil {
-			require.Error(t, err)
-			require.Equal(t, err, test.err)
+			require.EqualError(t, err, test.err.Error())
 		} else {
 			require.NoError(t, err)
 		}
@@ -163,7 +150,8 @@ func TestGetStorageHash(t *testing.T) {
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
-			err:      fmt.Errorf("child trie does not exist at key %s%s", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			err: fmt.Errorf("child trie does not exist at key 0x%x%x",
+				string(trie.ChildStorageKeyPrefix), []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
@@ -185,8 +173,7 @@ func TestGetStorageHash(t *testing.T) {
 		err := mod.GetStorageHash(nil, &req, &res)
 
 		if test.err != nil {
-			require.Error(t, err)
-			require.Equal(t, err, test.err)
+			require.EqualError(t, err, test.err.Error())
 		} else {
 			require.NoError(t, err)
 		}

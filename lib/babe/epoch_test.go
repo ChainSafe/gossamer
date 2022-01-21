@@ -9,13 +9,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
+	//"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
-var keyring, _ = keystore.NewSr25519Keyring() //nolint:typecheck
+// var keyring, _ = keystore.NewSr25519Keyring() //nolint:typecheck
 
 func TestBabeService_checkAndSetFirstSlot(t *testing.T) {
 	ctrl := gomock.NewController(t)
