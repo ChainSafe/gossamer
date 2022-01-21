@@ -78,7 +78,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
-	isValid := true
+	allTxsAreValid := true
 	for _, tx := range txs {
 		validity, isValidTxn, err := s.validateTransaction(peerID, head, rt, tx)
 		if err != nil {
@@ -86,7 +86,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		}
 
 		if !isValidTxn {
-			isValid = false
+			allTxsAreValid = false
 		} else {
 			// find tx(s) that should propagate
 			if validity.Propagate {
@@ -95,7 +95,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		}
 	}
 
-	if isValid {
+	if allTxsAreValid {
 		s.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GoodTransactionValue,
 			Reason: peerset.GoodTransactionReason,
