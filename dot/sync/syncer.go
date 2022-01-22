@@ -140,7 +140,7 @@ func (s *Service) IsSynced() bool {
 func (s *Service) HighestBlock() int64 {
 	highestBlock, err := s.chainSync.getHighestBlock()
 	if err != nil {
-		logger.Errorf("failed to get the highest block: %s", err)
+		logger.Warnf("failed to get the highest block: %s", err)
 		return 0
 	}
 	return highestBlock
