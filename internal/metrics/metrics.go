@@ -18,21 +18,16 @@ const defaultInterval = 10 * time.Second
 
 var logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
 
-// Config is base config for metrics
-type Config struct {
-	Publish bool
-}
-
 // IntervalConfig for interval collection
 type IntervalConfig struct {
-	Config
+	Publish  bool
 	Interval time.Duration
 }
 
 // NewIntervalConfig is constructor for IntervalConfig, and uses default metrics interval
 func NewIntervalConfig(publish bool) IntervalConfig {
 	return IntervalConfig{
-		Config:   Config{publish},
+		Publish:  publish,
 		Interval: defaultInterval,
 	}
 }

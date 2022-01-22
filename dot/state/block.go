@@ -489,10 +489,11 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 // BestBlockHeader returns the block header of the current head of the chain
 func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
 	header, err := bs.GetHeader(bs.BestBlockHash())
-	if err == nil {
-		syncedBlocksGauge.Set(float64(header.Number.Int64()))
+	if err != nil {
+		return nil, err
 	}
-	return header, err
+	syncedBlocksGauge.Set(float64(header.Number.Int64()))
+	return header, nil
 }
 
 // BestBlockStateRoot returns the state root of the current head of the chain

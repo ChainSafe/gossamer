@@ -346,9 +346,12 @@ func (s *Service) updateMetrics() {
 		case <-ticker.C:
 			peerCountGauge.Set(float64(s.host.peerCount()))
 			connectionsGauge.Set(float64(len(s.host.h.Network().Conns())))
-			nodeLatencyGauge.Set(float64(s.host.h.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
-			inboundBlockAnnounceStreamsGauge.Set(float64(s.getNumStreams(BlockAnnounceMsgType, true)))
-			outboundBlockAnnounceStreamsGauge.Set(float64(s.getNumStreams(BlockAnnounceMsgType, false)))
+			nodeLatencyGauge.Set(float64(
+				s.host.h.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
+			inboundBlockAnnounceStreamsGauge.Set(float64(
+				s.getNumStreams(BlockAnnounceMsgType, true)))
+			outboundBlockAnnounceStreamsGauge.Set(float64(
+				s.getNumStreams(BlockAnnounceMsgType, false)))
 			inboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, true)))
 			outboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, false)))
 			inboundStreamsGauge.Set(float64(s.getTotalStreams(true)))

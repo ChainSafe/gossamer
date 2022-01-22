@@ -40,7 +40,6 @@ type Service struct {
 
 	PrunerCfg pruner.Config
 	Telemetry telemetry.Client
-	// Metrics   metrics.IntervalConfig
 
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
