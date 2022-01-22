@@ -184,7 +184,7 @@ func TestHighestBlock(t *testing.T) {
 	}
 	tests := []test{
 		{
-			name: "when *chainSync.getHighestBlock() returns error should return 0",
+			name: "when *chainSync.getHighestBlock() returns 0, error should return 0",
 			in: input{
 				highestBlock: 0,
 				err:          errors.New("fake error"),
@@ -194,7 +194,7 @@ func TestHighestBlock(t *testing.T) {
 			},
 		},
 		{
-			name: "when *chainSync.getHighestBlock() returns 0 should return 0",
+			name: "when *chainSync.getHighestBlock() returns 0, nil should return 0",
 			in: input{
 				highestBlock: 0,
 				err:          nil,
@@ -204,7 +204,7 @@ func TestHighestBlock(t *testing.T) {
 			},
 		},
 		{
-			name: "when *chainSync.getHighestBlock() returns 50 should return 50",
+			name: "when *chainSync.getHighestBlock() returns 50, nil should return 50",
 			in: input{
 				highestBlock: 50,
 				err:          nil,
@@ -225,7 +225,7 @@ func TestHighestBlock(t *testing.T) {
 			s.chainSync = chainSync
 
 			result := s.HighestBlock()
-			require.Equal(t, result, ts.out.highestBlock, ts.name)
+			require.Equal(t, result, ts.out.highestBlock)
 		})
 	}
 }

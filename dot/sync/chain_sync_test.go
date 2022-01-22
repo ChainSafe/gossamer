@@ -866,11 +866,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has only one peer with number 90 should return 90, nil",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest": {
-						who:    "idtest#1",
-						hash:   common.BytesToHash([]byte("hash#1")),
-						number: big.NewInt(90),
-					},
+					"idtest": {number: big.NewInt(90)},
 				},
 			},
 			out: output{
@@ -882,11 +878,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has only one peer with number nil should return 0, errNilBlockData",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest": {
-						who:    "idtest#1",
-						hash:   common.BytesToHash([]byte("hash#1")),
-						number: nil,
-					},
+					"idtest": {number: nil},
 				},
 			},
 			out: output{
@@ -898,16 +890,8 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has two peers (p1, p2) with p1.number 90 and p2.number 190 should return 190, nil",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest#1": {
-						who:    "idtest#1",
-						hash:   common.BytesToHash([]byte("hash#1")),
-						number: big.NewInt(90),
-					},
-					"idtest#2": {
-						who:    "idtest#2",
-						hash:   common.BytesToHash([]byte("hash#2")),
-						number: big.NewInt(190),
-					},
+					"idtest#1": {number: big.NewInt(90)},
+					"idtest#2": {number: big.NewInt(190)},
 				},
 			},
 			out: output{
@@ -919,16 +903,8 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has two peers (p1, p2) with p1.number 190 and p2.number 90 should return 190, nil",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest#1": {
-						who:    "idtest#1",
-						hash:   common.BytesToHash([]byte("hash#1")),
-						number: big.NewInt(190),
-					},
-					"idtest#2": {
-						who:    "idtest#2",
-						hash:   common.BytesToHash([]byte("hash#2")),
-						number: big.NewInt(90),
-					},
+					"idtest#1": {number: big.NewInt(190)},
+					"idtest#2": {number: big.NewInt(90)},
 				},
 			},
 			out: output{
@@ -940,16 +916,8 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has two peers (p1, p2) with p1.number nil and p2.number 90 should return 90, nil",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest#1": {
-						who:    "idtest#1",
-						hash:   common.BytesToHash([]byte("hash#1")),
-						number: nil,
-					},
-					"idtest#2": {
-						who:    "idtest#2",
-						hash:   common.BytesToHash([]byte("hash#2")),
-						number: big.NewInt(90),
-					},
+					"idtest#1": {number: nil},
+					"idtest#2": {number: big.NewInt(90)},
 				},
 			},
 			out: output{
@@ -961,16 +929,8 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has two peers (p1, p2) with p1.number 90 and p2.number nil should return 90, nil",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest#1": {
-						who:    "idtest#1",
-						hash:   common.BytesToHash([]byte("hash#1")),
-						number: big.NewInt(90),
-					},
-					"idtest#2": {
-						who:    "idtest#2",
-						hash:   common.BytesToHash([]byte("hash#2")),
-						number: nil,
-					},
+					"idtest#1": {number: big.NewInt(90)},
+					"idtest#2": {number: nil},
 				},
 			},
 			out: output{
@@ -982,16 +942,8 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has two peers (p1, p2) with p1.number nil and p2.number nil should return 0, errNilBlockData",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest#1": {
-						who:    "idtest#1",
-						hash:   common.BytesToHash([]byte("hash#1")),
-						number: nil,
-					},
-					"idtest#2": {
-						who:    "idtest#2",
-						hash:   common.BytesToHash([]byte("hash#2")),
-						number: nil,
-					},
+					"idtest#1": {number: nil},
+					"idtest#2": {number: nil},
 				},
 			},
 			out: output{
@@ -1007,8 +959,8 @@ func TestChainSync_highestBlock(t *testing.T) {
 			cs.peerState = ts.in.peerState
 
 			highestBlock, err := cs.getHighestBlock()
-			require.ErrorIs(t, err, ts.out.err, ts.name)
-			require.Equal(t, highestBlock, ts.out.highestBlock, ts.name)
+			require.ErrorIs(t, err, ts.out.err)
+			require.Equal(t, highestBlock, ts.out.highestBlock)
 		})
 	}
 }
