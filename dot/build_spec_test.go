@@ -5,9 +5,9 @@ package dot
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -15,9 +15,7 @@ import (
 )
 
 func TestBuildFromGenesis(t *testing.T) {
-	file, err := genesis.CreateTestGenesisJSONFile(false)
-	defer os.Remove(file)
-	require.NoError(t, err)
+	file := genesis.CreateTestGenesisJSONFile(t, false)
 	bs, err := BuildFromGenesis(file, 0)
 
 	expectedChainType := "TESTCHAINTYPE"
@@ -62,15 +60,16 @@ func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
 }
 
 func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
-	f, err := os.CreateTemp("", "existing file data")
+	filename := filepath.Join(t.TempDir(), "existing.json")
+	file, err := os.Create(filename)
 	require.NoError(t, err)
-	defer os.Remove(f.Name())
+	err = file.Close()
+	require.NoError(t, err)
 
 	someBytes := []byte("Testing some bytes")
-	err = WriteGenesisSpecFile(someBytes, f.Name())
+	err = WriteGenesisSpecFile(someBytes, filename)
 
-	require.Error(t, err,
-		fmt.Sprintf("file %s already exists, rename to avoid overwritten", f.Name()))
+	require.Error(t, err)
 }
 
 func TestWriteGenesisSpecFile(t *testing.T) {

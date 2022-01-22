@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-//go:generate mockery --name BlockState --structname BlockState --case underscore --keeptree
+//go:generate mockgen -destination=mock_core_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,EpochState,CodeSubstitutedState,DigestHandler
 
 // BlockState interface for block state methods
 type BlockState interface {
@@ -47,8 +47,6 @@ type BlockState interface {
 	StoreRuntime(common.Hash, runtime.Instance)
 }
 
-//go:generate mockery --name StorageState --structname StorageState --case underscore --keeptree
-
 // StorageState interface for storage state methods
 type StorageState interface {
 	LoadCode(root *common.Hash) ([]byte, error)
@@ -70,8 +68,6 @@ type TransactionState interface {
 	PendingInPool() []*transaction.ValidTransaction
 }
 
-//go:generate mockery --name Network --structname Network --case underscore --keeptree
-
 // Network is the interface for the network service
 type Network interface {
 	GossipMessage(network.NotificationsMessage)
@@ -91,8 +87,6 @@ type CodeSubstitutedState interface {
 	LoadCodeSubstitutedBlockHash() common.Hash
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
 }
-
-//go:generate mockery --name DigestHandler --structname DigestHandler --case underscore --keeptree
 
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {

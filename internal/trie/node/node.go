@@ -18,6 +18,6 @@ type Node interface {
 	GetValue() (value []byte)
 	GetGeneration() (generation uint64)
 	SetGeneration(generation uint64)
-	Copy() Node
+	Copy(copyChildren bool) Node
 	Type() Type
 }

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -21,10 +20,9 @@ func TestGossip(t *testing.T) {
 	}
 
 	t.Parallel()
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
-		BasePath:    basePathA,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -34,9 +32,8 @@ func TestGossip(t *testing.T) {
 	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeA.host.registerStreamHandler(nodeA.host.protocolID, handlerA.handleStream)
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:    basePathB,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -55,9 +52,8 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	basePathC := utils.NewTestBasePath(t, "nodeC")
 	configC := &Config{
-		BasePath:    basePathC,
+		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,

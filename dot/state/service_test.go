@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/chaindb"
@@ -33,9 +32,8 @@ func newTestService(t *testing.T) (state *Service) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	testDir := utils.NewTestDir(t)
 	config := Config{
-		Path:      testDir,
+		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -61,7 +59,6 @@ func newTestMemDBService(t *testing.T) *Service {
 
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
-	defer utils.RemoveTestDir(t)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
@@ -79,7 +76,6 @@ func TestService_Start(t *testing.T) {
 
 func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
-	defer utils.RemoveTestDir(t)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
@@ -120,11 +116,6 @@ func TestMemDB_Start(t *testing.T) {
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func TestService_BlockTree(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().
@@ -132,7 +123,7 @@ func TestService_BlockTree(t *testing.T) {
 		MaxTimes(2)
 
 	config := Config{
-		Path:      testDir,
+		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -173,16 +164,13 @@ func TestService_BlockTree(t *testing.T) {
 }
 
 func TestService_StorageTriePruning(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	retainBlocks := 2
 	config := Config{
-		Path:     testDir,
+		Path:     t.TempDir(),
 		LogLevel: log.Info,
 		PrunerCfg: pruner.Config{
 			Mode:           pruner.Full,
@@ -230,15 +218,12 @@ func TestService_StorageTriePruning(t *testing.T) {
 }
 
 func TestService_PruneStorage(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:      testDir,
+		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -292,12 +277,10 @@ func TestService_PruneStorage(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
-		var trieVal *trie.Trie
-		trieVal, err = trieState.Trie().DeepCopy()
-		require.NoError(t, err)
+		copiedTrie := trieState.Trie().DeepCopy()
 
 		var rootHash common.Hash
-		rootHash, err = trieVal.Hash()
+		rootHash, err = copiedTrie.Hash()
 		require.NoError(t, err)
 
 		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
@@ -316,15 +299,12 @@ func TestService_PruneStorage(t *testing.T) {
 }
 
 func TestService_Rewind(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:      testDir,
+		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -377,15 +357,12 @@ func TestService_Rewind(t *testing.T) {
 }
 
 func TestService_Import(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:      testDir,
+		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -447,15 +424,12 @@ func TestService_Import(t *testing.T) {
 }
 
 func TestStateServiceMetrics(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:      testDir,
+		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}

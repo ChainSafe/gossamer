@@ -22,7 +22,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			branchToEncode: new(Branch),
 			branchDecoded: &Branch{
 				Key:   []byte{},
-				dirty: true,
+				Dirty: true,
 			},
 		},
 		"branch with key 5": {
@@ -31,7 +31,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			},
 			branchDecoded: &Branch{
 				Key:   []byte{5},
-				dirty: true,
+				Dirty: true,
 			},
 		},
 		"branch with two bytes key": {
@@ -40,7 +40,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			},
 			branchDecoded: &Branch{
 				Key:   []byte{0xf, 0xa},
-				dirty: true,
+				Dirty: true,
 			},
 		},
 		"branch with child": {
@@ -60,7 +60,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 						hashDigest: []byte{0x41, 0x9, 0x4, 0xa},
 					},
 				},
-				dirty: true,
+				Dirty: true,
 			},
 		},
 	}

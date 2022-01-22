@@ -103,7 +103,7 @@ var (
 		Name:  "basepath",
 		Usage: "Data directory for the node",
 	}
-	PprofServerFlag = cli.StringFlag{
+	PprofServerFlag = cli.BoolFlag{
 		Name:  "pprofserver",
 		Usage: "enable or disable the pprof HTTP server",
 	}

@@ -1,6 +1,9 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+//go:build integration
+// +build integration
+
 package babe
 
 import (
@@ -39,7 +42,6 @@ var (
 	keyring, _ = keystore.NewSr25519Keyring()
 
 	maxThreshold = scale.MaxUint128
-	minThreshold = &scale.Uint128{}
 
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{

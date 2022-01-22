@@ -152,7 +152,7 @@ func Test_Branch_Encode(t *testing.T) {
 	}{
 		"clean branch with encoding": {
 			branch: &Branch{
-				encoding: []byte{1, 2, 3},
+				Encoding: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
 				{ // stored encoding
@@ -162,7 +162,7 @@ func Test_Branch_Encode(t *testing.T) {
 		},
 		"write error for clean branch with encoding": {
 			branch: &Branch{
-				encoding: []byte{1, 2, 3},
+				Encoding: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
 				{ // stored encoding

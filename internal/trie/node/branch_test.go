@@ -22,8 +22,8 @@ func Test_NewBranch(t *testing.T) {
 	expectedBranch := &Branch{
 		Key:        key,
 		Value:      value,
-		dirty:      dirty,
-		generation: generation,
+		Dirty:      dirty,
+		Generation: generation,
 	}
 	assert.Equal(t, expectedBranch, branch)
 
@@ -83,7 +83,7 @@ func Test_Branch_String(t *testing.T) {
 			branch: &Branch{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
-				dirty: true,
+				Dirty: true,
 				Children: [16]Node{
 					nil, nil, nil,
 					&Leaf{},
@@ -100,7 +100,7 @@ func Test_Branch_String(t *testing.T) {
 			branch: &Branch{
 				Key:   []byte{1, 2},
 				Value: make([]byte, 1025),
-				dirty: true,
+				Dirty: true,
 				Children: [16]Node{
 					nil, nil, nil,
 					&Leaf{},

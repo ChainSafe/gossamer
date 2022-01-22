@@ -14,4 +14,6 @@ const (
 	BranchType
 	// BranchWithValueType type is 3
 	BranchWithValueType
+	// InvalidType is used in tests only
+	InvalidType
 )

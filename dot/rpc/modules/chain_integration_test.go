@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	database "github.com/ChainSafe/chaindb"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -342,9 +343,14 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 func newTestStateService(t *testing.T) *state.Service {
 	testDatadirPath := t.TempDir()
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
