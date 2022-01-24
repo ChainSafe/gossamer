@@ -15,9 +15,7 @@ import (
 
 func TestNewSr25519Keyring(t *testing.T) {
 	kr, err := NewSr25519Keyring()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	v := reflect.ValueOf(kr).Elem()
 	for i := 0; i < v.NumField()-1; i++ {
@@ -48,16 +46,11 @@ func TestNewSr25519Keyring(t *testing.T) {
 
 func TestNewEd25519Keyring(t *testing.T) {
 	kr, err := NewEd25519Keyring()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	v := reflect.ValueOf(kr).Elem()
 	for i := 0; i < v.NumField()-1; i++ {
 		key := v.Field(i).Interface().(*ed25519.Keypair).Private().Hex()
-		// ed25519 private keys are stored in uncompressed format
-		if key[:66] != ed25519PrivateKeys[i] {
-			t.Fatalf("Fail: got %s expected %s", key[:66], ed25519PrivateKeys[i])
-		}
+		require.Equal(t, ed25519PrivateKeys[i], key[:66])
 	}
 }
