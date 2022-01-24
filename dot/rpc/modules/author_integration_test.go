@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -33,12 +34,50 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstace func(*testing.T, *wasmer.Config) (runtime.Instance, error)
+type useRuntimeInstace func(*testing.T, *storage.TrieState) (runtime.Instance, error)
 
 // useInstanceFromGenesis creates a new runtime instance given a genesis file
-func useInstanceFromGenesis(t *testing.T, cfg *wasmer.Config) (instance runtime.Instance, err error) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance, err error) {
 	t.Helper()
+
+	cfg := &wasmer.Config{} // nolint
+	cfg.Role = 0
+	cfg.LogLvl = log.Warn
+	cfg.Storage = rtStorage
+	cfg.Keystore = keystore.NewGlobalKeystore()
+	cfg.NodeStorage = runtime.NodeStorage{
+		LocalStorage:      runtime.NewInMemoryDB(t),
+		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+	}
+
 	return wasmer.NewRuntimeFromGenesis(cfg)
+}
+
+func useInstanceFromRuntimeV098(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance, err error) {
+	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(runtime.POLKADOT_RUNTIME_FP_v0910)
+	err = runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := os.ReadFile(testRuntimeFilePath)
+	require.NoError(t, err)
+
+	rtStorage.Set(common.CodeKey, bytes)
+
+	cfg := &wasmer.Config{} // nolint
+	cfg.Role = 0
+	cfg.LogLvl = log.Warn
+	cfg.Storage = rtStorage
+	cfg.Keystore = keystore.NewGlobalKeystore()
+	cfg.NodeStorage = runtime.NodeStorage{
+		LocalStorage:      runtime.NewInMemoryDB(t),
+		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+	}
+
+	return wasmer.NewInstanceFromTrie(rtStorage.Trie(), cfg)
 }
 
 func TestMain(m *testing.M) {
@@ -67,7 +106,7 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 		SendMessage(gomock.Any()).
 		AnyTimes()
 
-	itc := setupStateAndRuntime(t, tmpdir, nil)
+	itc := setupStateAndRuntime(t, tmpdir, telemetryMock, nil)
 	itc.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	auth := newAuthorModule(t, itc)
@@ -102,8 +141,15 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
 		)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewNotifyFinalized(
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				"0",
+			),
+		)
 
-	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, useInstanceFromGenesis)
+	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := intCtrl.genesisHeader.Hash()
@@ -155,8 +201,15 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewNotifyFinalized(
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				"0",
+			),
+		)
 
-	intCtrl := setupStateAndRuntime(t, tmpbasepath, useInstanceFromGenesis)
+	intCtrl := setupStateAndRuntime(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := intCtrl.genesisHeader.Hash()
@@ -187,9 +240,19 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	t.Parallel()
 	tmppath := t.TempDir()
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewNotifyFinalized(
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				"0",
+			),
+		)
+
 	// setup service
 	// setup auth module
-	intctrl := setupStateAndRuntime(t, tmppath, useInstanceFromGenesis)
+	intctrl := setupStateAndRuntime(t, tmppath, telemetryMock, useInstanceFromGenesis)
 	auth := newAuthorModule(t, intctrl)
 
 	// create and submit extrinsic
@@ -210,8 +273,16 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 			telemetry.NewTxpoolImport(0, 1),
 		)
 
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewNotifyFinalized(
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				"0",
+			),
+		)
+
 	tmpbasepath := t.TempDir()
-	intCtrl := setupStateAndRuntime(t, tmpbasepath, useInstanceFromGenesis)
+	intCtrl := setupStateAndRuntime(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := intCtrl.genesisHeader.Hash()
@@ -261,7 +332,17 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 	tmppath := t.TempDir()
 
-	intctrl := setupStateAndRuntime(t, tmppath, nil)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewNotifyFinalized(
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				"0",
+			),
+		)
+
+	intctrl := setupStateAndRuntime(t, tmppath, telemetryMock, nil)
 	auth := newAuthorModule(t, intctrl)
 
 	const seed = "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
@@ -344,7 +425,17 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 func TestAuthorModule_HasKey_Integration(t *testing.T) {
 	tmppath := t.TempDir()
 
-	intctrl := setupStateAndRuntime(t, tmppath, useInstanceFromGenesis)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewNotifyFinalized(
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				"0",
+			),
+		)
+
+	intctrl := setupStateAndRuntime(t, tmppath, telemetryMock, useInstanceFromGenesis)
 
 	ks := keystore.NewGlobalKeystore()
 
@@ -413,8 +504,18 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	tmpdir := t.TempDir()
 
-	intCtrl := setupStateAndRuntime(t, tmpdir, useInstanceFromGenesis)
-	intCtrl.stateSrv.Transaction = state.NewTransactionState(nil)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewNotifyFinalized(
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				"0",
+			),
+		)
+
+	intCtrl := setupStateAndRuntime(t, tmpdir, telemetryMock, useInstanceFromGenesis)
+	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 	intCtrl.keystore = keystore.NewGlobalKeystore()
 
 	auth := newAuthorModule(t, intCtrl)
@@ -513,6 +614,68 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	}
 }
 
+func TestAuthorModule_SubmitExtrinsic_WithVersion_V098(t *testing.T) {
+	t.Parallel()
+	tmpbasepath := t.TempDir()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewNotifyFinalized(
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"), "0"),
+		)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewTxpoolImport(0, 1),
+		)
+
+	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, telemetryMock, useInstanceFromRuntimeV098)
+	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+
+	genesisHash := intCtrl.genesisHeader.Hash()
+	blockHash := intCtrl.stateSrv.Block.BestBlockHash()
+
+	// creating an extrisinc to the System.remark call using a sample argument
+	extHex := runtime.NewTestExtrinsic(t,
+		intCtrl.runtime, genesisHash, blockHash, 0, "System.remark", []byte{0xab, 0xcd})
+
+	extBytes := common.MustHexToBytes(extHex)
+
+	net2test := coremocks.NewMockNetwork(ctrl)
+	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
+	intCtrl.network = net2test
+
+	// setup auth module
+	auth := newAuthorModule(t, intCtrl)
+
+	ext := Extrinsic{extHex}
+
+	res := new(ExtrinsicHashResponse)
+	err := auth.SubmitExtrinsic(nil, &ext, res)
+	require.Nil(t, err)
+
+	expectedExtrinsic := types.NewExtrinsic(extBytes)
+	expected := &transaction.ValidTransaction{
+		Extrinsic: expectedExtrinsic,
+		Validity: &transaction.Validity{
+			Priority:  39325217770730704,
+			Requires:  nil,
+			Provides:  [][]byte{{212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 0, 0, 0, 0}}, // nolint:lll
+			Longevity: 18446744073709551614,
+			Propagate: true,
+		},
+	}
+
+	expectedHash := ExtrinsicHashResponse(expectedExtrinsic.Hash().String())
+	txOnPool := intCtrl.stateSrv.Transaction.PendingInPool()
+
+	// compare results
+	require.Len(t, txOnPool, 1)
+	require.Equal(t, expected, txOnPool[0])
+	require.Equal(t, expectedHash, *res)
+}
+
 type integrationTestController struct {
 	genesis       *genesis.Genesis
 	genesisTrie   *trie.Trie
@@ -524,27 +687,18 @@ type integrationTestController struct {
 	keystore      *keystore.GlobalKeystore
 }
 
-func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
+func setupStateAndRuntime(t *testing.T, basepath string,
+	telemetryClient telemetry.Client, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
-
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().
-		SendMessage(
-			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
-				"0",
-			),
-		)
 
 	state2test := state.NewService(state.Config{
 		LogLevel:  log.DoNotChange,
 		Path:      basepath,
-		Telemetry: telemetryMock,
+		Telemetry: telemetryClient,
 	})
 	state2test.UseMemDB()
 
-	state2test.Transaction = state.NewTransactionState(telemetryMock)
+	state2test.Transaction = state.NewTransactionState(telemetryClient)
 
 	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
@@ -574,15 +728,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 		rtStorage, err := state2test.Storage.TrieState(nil)
 		require.NoError(t, err)
 
-		cfg := &wasmer.Config{}
-		cfg.Storage = rtStorage
-		cfg.LogLvl = 4
-		nodeStorage := runtime.NodeStorage{}
-		nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
-		cfg.NodeStorage = nodeStorage
-		cfg.Keystore = ks
-
-		rt, err := useInstance(t, cfg)
+		rt, err := useInstance(t, rtStorage)
 		require.NoError(t, err)
 
 		genesisHash := genesisHeader.Hash()
@@ -594,29 +740,19 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 }
 
 func setupStateAndPopulateTrieState(t *testing.T, basepath string,
-	useInstance useRuntimeInstace) *integrationTestController {
+	telemetryClient telemetry.Client, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
-
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().
-		SendMessage(
-			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
-				"0",
-			),
-		)
 
 	state2test := state.NewService(state.Config{
 		LogLevel:  log.DoNotChange,
 		Path:      basepath,
-		Telemetry: telemetryMock,
+		Telemetry: telemetryClient,
 	})
 	state2test.UseMemDB()
 
-	state2test.Transaction = state.NewTransactionState(telemetryMock)
+	state2test.Transaction = state.NewTransactionState(telemetryClient)
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genesisHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
 
 	err := state2test.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
@@ -642,21 +778,8 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	if useInstance != nil {
 		rtStorage, err := state2test.Storage.TrieState(nil)
-		require.NoError(t, err)
 
-		cfg := &wasmer.Config{}
-		cfg.Role = 0
-		cfg.LogLvl = log.Warn
-		cfg.Storage = rtStorage
-		cfg.Keystore = ks
-		cfg.Network = new(runtime.TestRuntimeNetwork)
-		cfg.NodeStorage = runtime.NodeStorage{
-			LocalStorage:      runtime.NewInMemoryDB(t),
-			PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
-			BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
-		}
-
-		rt, err := useInstance(t, cfg)
+		rt, err := useInstance(t, rtStorage)
 		require.NoError(t, err)
 
 		itc.runtime = rt
