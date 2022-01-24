@@ -68,13 +68,13 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
 	bs BlockState, proof *VrfOutputAndProof,
 	authidx uint32) (*BlockBuilder, error) {
 	if ts == nil {
-		return nil, errors.New("cannot create block builder; transaction state is nil")
+		return nil, ErrNilTransactionState
 	}
 	if bs == nil {
-		return nil, errors.New("cannot create block builder; block state is nil")
+		return nil, ErrNilBlockState
 	}
 	if proof == nil {
-		return nil, errors.New("cannot create block builder; slot VRF proof is nil")
+		return nil, ErrNilVRFProof
 	}
 
 	bb := &BlockBuilder{
@@ -197,7 +197,7 @@ func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, 
 	babeHeader := types.NewBabeDigest()
 	data := b.buildBlockBABEPrimaryPreDigest(slot)
 	if err := babeHeader.Set(*data); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot set babe header: %w", err)
 	}
 
 	encBABEPrimaryPreDigest, err := scale.Marshal(babeHeader)

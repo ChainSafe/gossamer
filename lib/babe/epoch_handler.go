@@ -33,10 +33,7 @@ var (
 )
 
 type epochHandler struct {
-	ctx context.Context
-
 	epochNumber uint64
-	startTime   time.Time
 	firstSlot   uint64
 
 	constants *constants
@@ -48,11 +45,8 @@ type epochHandler struct {
 	handleSlot handleSlotFunc
 }
 
-func newEpochHandler(ctx context.Context, epochNumber, firstSlot uint64, epochData *epochData, constants *constants,
+func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants *constants,
 	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
-
-	startTime := getSlotStartTime(firstSlot, constants.slotDuration)
-
 	// determine which slots we'll be authoring in by pre-calculating VRF output
 	slotToProof := make(map[uint64]*VrfOutputAndProof)
 	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
@@ -75,10 +69,8 @@ func newEpochHandler(ctx context.Context, epochNumber, firstSlot uint64, epochDa
 	}
 
 	return &epochHandler{
-		ctx:         ctx,
 		epochNumber: epochNumber,
 		firstSlot:   firstSlot,
-		startTime:   startTime,
 		constants:   constants,
 		epochData:   epochData,
 		slotToProof: slotToProof,
@@ -86,7 +78,7 @@ func newEpochHandler(ctx context.Context, epochNumber, firstSlot uint64, epochDa
 	}, nil
 }
 
-func (h *epochHandler) run(errCh chan<- error) {
+func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 	currSlot := getCurrentSlot(h.constants.slotDuration)
 
 	// if currSlot < h.firstSlot, it means we're at genesis and waiting for the first slot to arrive.
@@ -129,7 +121,7 @@ func (h *epochHandler) run(errCh chan<- error) {
 		logger.Debugf("waiting for next authoring slot %d", swt.slotNum)
 
 		select {
-		case <-h.ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-swt.timer:
 			if _, has := h.slotToProof[swt.slotNum]; !has {

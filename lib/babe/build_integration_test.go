@@ -38,7 +38,7 @@ func TestSeal(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
-	babeService.epochHandler, err = babeService.initiateAndGetEpochHandler(babeService.ctx, 0)
+	babeService.epochHandler, err = babeService.initiateAndGetEpochHandler(0)
 	require.NoError(t, err)
 
 	authoringSlots := getAuthoringSlots(babeService.epochHandler.slotToProof)
@@ -151,13 +151,14 @@ func TestApplyExtrinsic(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
+	const authorityIndex = 0
 
 	builder, _ := NewBlockBuilder(
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
 		&VrfOutputAndProof{},
-		0,
+		authorityIndex,
 	)
 
 	duration, err := time.ParseDuration("1s")

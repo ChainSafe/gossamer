@@ -75,7 +75,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	}
 
 	if cfg.BlockState == nil {
-		return nil, errNilBlockState
+		return nil, ErrNilBlockState
 	}
 
 	if cfg.EpochState == nil {
@@ -294,7 +294,7 @@ func (b *Service) getSlotDuration() time.Duration {
 
 func (b *Service) initiate() {
 	if b.blockState == nil {
-		logger.Errorf("block authoring: %s", errNilBlockState)
+		logger.Errorf("block authoring: %s", ErrNilBlockState)
 		return
 	}
 
@@ -311,7 +311,7 @@ func (b *Service) initiate() {
 	}
 }
 
-func (b *Service) initiateAndGetEpochHandler(ctx context.Context, epoch uint64) (*epochHandler, error) {
+func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error) {
 	epochData, err := b.initiateEpoch(epoch)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiate epoch %d: %s", epoch, err)
@@ -325,8 +325,7 @@ func (b *Service) initiateAndGetEpochHandler(ctx context.Context, epoch uint64) 
 		return nil, fmt.Errorf("failed to get start slot for current epoch %d: %s", epoch, err)
 	}
 
-	return newEpochHandler(ctx,
-		epoch,
+	return newEpochHandler(epoch,
 		epochStartSlot,
 		epochData,
 		b.constants,
@@ -343,9 +342,9 @@ func (b *Service) runEngine() error {
 
 	for {
 		err = func() error {
-			ctx, cancel := context.WithCancel(b.ctx)
+			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			b.epochHandler, err = b.initiateAndGetEpochHandler(ctx, epoch)
+			b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
 			if err != nil {
 				return err
 			}
@@ -365,10 +364,11 @@ func (b *Service) runEngine() error {
 			}
 
 			errCh := make(chan error)
-			go b.epochHandler.run(errCh)
+			go b.epochHandler.run(ctx, errCh)
 
 			select {
 			case <-b.ctx.Done():
+				cancel()
 				cleanup()
 				return b.ctx.Err()
 			case <-b.pause:
