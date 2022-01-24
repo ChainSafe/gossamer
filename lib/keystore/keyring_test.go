@@ -56,8 +56,8 @@ func TestNewEd25519Keyring(t *testing.T) {
 	for i := 0; i < v.NumField()-1; i++ {
 		key := v.Field(i).Interface().(*ed25519.Keypair).Private().Hex()
 		// ed25519 private keys are stored in uncompressed format
-		if key[:66] != privateKeys[i] {
-			t.Fatalf("Fail: got %s expected %s", key[:66], privateKeys[i])
+		if key[:66] != ed25519PrivateKeys[i] {
+			t.Fatalf("Fail: got %s expected %s", key[:66], ed25519PrivateKeys[i])
 		}
 	}
 }
