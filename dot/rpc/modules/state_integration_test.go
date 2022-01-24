@@ -220,7 +220,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
-	hashOfNil := common.NewHash(common.MustHexToBytes("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8"))
+	hashOfNil := common.NewHash(common.MustHexToBytes("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")) //nolint:lll
 	hash1 := common.MustBlake2bHash([]byte("value1"))
 
 	testCases := []struct {
