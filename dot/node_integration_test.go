@@ -50,7 +50,6 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestNodeInitialized
 func TestNodeInitialized(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -70,7 +69,6 @@ func TestNodeInitialized(t *testing.T) {
 	require.Equal(t, expected, true)
 }
 
-// TestNewNode
 func TestNewNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -131,7 +129,6 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NotNil(t, fg)
 }
 
-// TestStartNode
 func TestStartNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -165,7 +162,6 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestInitNode_LoadGenesisData
 func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -228,7 +224,6 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.Equal(t, expectedHeader.Hash(), genesisHeader.Hash())
 }
 
-// TestInitNode_LoadStorageRoot
 func TestInitNode_LoadStorageRoot(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)

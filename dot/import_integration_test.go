@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -53,7 +54,7 @@ func setupHeaderFile(t *testing.T) string {
 		"\"extrinsicsRoot\":\"0xda26dc8c1455f8f81cae12e4fc59e23ce961b2c837f6d3f664283af906d344e0\"," +
 		"\"number\":\"0x169d12\",\"parentHash\":\"0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975" +
 		"\", \"stateRoot\":\"0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb\"}"
-	const fp = "./test_data/header.json"
+	fp := filepath.Join(t.TempDir(), "header.json")
 	err := ioutil.WriteFile(fp, []byte(headerStr), 0777)
 	require.NoError(t, err)
 	return fp
@@ -81,7 +82,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 	digest := types.NewDigest()
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(digest.Types))
+	require.Len(t, digest.Types, 2)
 
 	expected := &types.Header{
 		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),

@@ -143,8 +143,8 @@ func NewTestConfig(t *testing.T) *Config {
 	return cfg
 }
 
-// NewTestConfigWithFile returns a new test configuration and a temporary configuration file
-func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
+// newTestConfigWithFile returns a new test configuration and a temporary configuration file
+func newTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 	cfg := NewTestConfig(t)
 
 	configPath := filepath.Join(cfg.Global.BasePath, "config.toml")

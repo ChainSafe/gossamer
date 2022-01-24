@@ -14,7 +14,7 @@ import (
 
 // TestExportConfig tests exporting a toml configuration file
 func TestExportConfig(t *testing.T) {
-	cfg, cfgFile := NewTestConfigWithFile(t)
+	cfg, cfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)

@@ -21,7 +21,6 @@ func TestBuildFromGenesis(t *testing.T) {
 	t.Parallel()
 
 	file := genesis.CreateTestGenesisJSONFile(t, false)
-	defer os.Remove(file)
 	bs, err := BuildFromGenesis(file, 0)
 
 	const expectedChainType = "TESTCHAINTYPE"
@@ -64,7 +63,7 @@ func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
 
 	bs, err := BuildFromGenesis("/not/exists/genesis.json", 0)
 	require.Nil(t, bs)
-	require.Error(t, err, os.ErrNotExist)
+	require.ErrorIs(t, err, os.ErrNotExist)
 }
 
 func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
