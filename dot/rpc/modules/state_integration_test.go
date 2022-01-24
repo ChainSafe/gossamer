@@ -220,14 +220,17 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
+	hashOfNil := common.NewHash(common.MustHexToBytes("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8"))
+	hash1 := common.MustBlake2bHash([]byte("value1"))
+
 	testCases := []struct {
 		params   []string
-		expected []byte
+		expected common.Hash
 		errMsg   string
 	}{
-		{params: []string{""}, expected: nil},
-		{params: []string{":key1"}, expected: []byte("value1")},
-		{params: []string{":key1", hash.String()}, expected: []byte("value1")},
+		{params: []string{""}, expected: hashOfNil},
+		{params: []string{":key1"}, expected: hash1},
+		{params: []string{":key1", hash.String()}, expected: hash1},
 		{params: []string{"0x", randomHash.String()}, errMsg: "Key not found"},
 	}
 
@@ -255,14 +258,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			if test.expected == nil {
-				require.Empty(t, res)
-				return
-			}
-
-			// Convert human-readable result value to hex.
-			expectedVal := common.BytesToHash(test.expected)
-			require.Equal(t, StateStorageHashResponse(expectedVal.String()), res)
+			require.Equal(t, StateStorageHashResponse(test.expected.String()), res)
 		})
 	}
 }
