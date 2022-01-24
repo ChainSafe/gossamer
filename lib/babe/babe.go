@@ -288,10 +288,6 @@ func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, erro
 	return 0, fmt.Errorf("key not in BABE authority data")
 }
 
-func (b *Service) getSlotDuration() time.Duration {
-	return b.constants.slotDuration
-}
-
 func (b *Service) initiate() {
 	if b.blockState == nil {
 		logger.Errorf("block authoring: %s", ErrNilBlockState)
@@ -368,7 +364,6 @@ func (b *Service) runEngine() error {
 
 			select {
 			case <-b.ctx.Done():
-				cancel()
 				cleanup()
 				return b.ctx.Err()
 			case <-b.pause:

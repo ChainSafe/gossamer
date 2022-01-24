@@ -223,7 +223,7 @@ func TestService_SlotDuration(t *testing.T) {
 		},
 	}
 
-	dur := bs.getSlotDuration()
+	dur := bs.constants.slotDuration
 	require.Equal(t, dur.Milliseconds(), int64(1000))
 }
 

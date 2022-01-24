@@ -57,11 +57,10 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			epochData.threshold,
 			keypair,
 		)
-		if err != nil {
-			if errors.Is(err, errOverPrimarySlotThreshold) {
-				continue
-			}
-			return nil, fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
+		if errors.Is(err, errOverPrimarySlotThreshold) {
+			continue
+		} else if err != nil {
+			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
 		}
 
 		slotToProof[i] = proof
