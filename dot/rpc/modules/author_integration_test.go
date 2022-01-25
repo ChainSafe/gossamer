@@ -109,10 +109,10 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 		SendMessage(gomock.Any()).
 		AnyTimes()
 
-	itc := setupStateAndRuntime(t, tmpdir, telemetryMock, nil)
-	itc.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+	integrationTestController := setupStateAndRuntime(t, tmpdir, telemetryMock, nil)
+	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
-	auth := newAuthorModule(t, itc)
+	auth := newAuthorModule(t, integrationTestController)
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
 
@@ -124,7 +124,7 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 		Validity:  new(transaction.Validity),
 	}
 
-	_, err = itc.stateSrv.Transaction.Push(vtx)
+	_, err = integrationTestController.stateSrv.Transaction.Push(vtx)
 	require.NoError(t, err)
 
 	err = auth.PendingExtrinsics(nil, nil, res)
@@ -726,7 +726,7 @@ func setupStateAndRuntime(t *testing.T, basepath string,
 
 	ks := keystore.NewGlobalKeystore()
 	net2test := coremocks.NewMockNetwork(nil)
-	itc := &integrationTestController{
+	integrationTestController := &integrationTestController{
 		genesis:       gen,
 		genesisTrie:   genTrie,
 		genesisHeader: genesisHeader,
@@ -744,10 +744,10 @@ func setupStateAndRuntime(t *testing.T, basepath string,
 
 		genesisHash := genesisHeader.Hash()
 		state2test.Block.StoreRuntime(genesisHash, rt)
-		itc.runtime = rt
+		integrationTestController.runtime = rt
 	}
 
-	return itc
+	return integrationTestController
 }
 
 func setupStateAndPopulateTrieState(t *testing.T, basepath string,
@@ -777,7 +777,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	net2test := coremocks.NewMockNetwork(nil)
 	ks := keystore.NewGlobalKeystore()
-	itc := &integrationTestController{
+	integrationTestController := &integrationTestController{
 		genesis:       gen,
 		genesisTrie:   genTrie,
 		genesisHeader: genesisHeader,
@@ -793,7 +793,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 		rt := useInstance(t, rtStorage)
 
-		itc.runtime = rt
+		integrationTestController.runtime = rt
 
 		genesisHash := genesisHeader.Hash()
 		state2test.Block.StoreRuntime(genesisHash, rt)
@@ -809,7 +809,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 		state2test.Block.StoreRuntime(b.Header.Hash(), rt)
 	}
 
-	return itc
+	return integrationTestController
 }
 
 //go:generate mockgen -destination=mock_code_substituted_state_test.go -package modules github.com/ChainSafe/gossamer/dot/core CodeSubstitutedState
