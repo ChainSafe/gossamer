@@ -61,6 +61,9 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 	bytes, err := os.ReadFile(testRuntimeFilePath)
 	require.NoError(t, err)
 
+	err = runtime.RemoveFiles([]string{testRuntimeFilePath})
+	require.NoError(t, err)
+
 	rtStorage.Set(common.CodeKey, bytes)
 
 	cfg := &wasmer.Config{} // nolint
