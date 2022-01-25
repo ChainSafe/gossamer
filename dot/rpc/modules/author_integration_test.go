@@ -682,8 +682,6 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	expectedHash := ExtrinsicHashResponse(expectedExtrinsic.Hash().String())
 	txOnPool := intCtrl.stateSrv.Transaction.PendingInPool()
 
-	fmt.Println(txOnPool[0].Validity.Requires)
-
 	// compare results
 	require.Len(t, txOnPool, 1)
 	require.Equal(t, expected, txOnPool[0])
