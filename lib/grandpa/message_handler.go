@@ -95,25 +95,29 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 
 	// TODO; determine if there is some reason we don't receive justifications in responses near the head (usually),
 	// and remove the following code if it's fixed. (#1815)
-	// head, err := h.blockState.BestBlockNumber()
-	// if err != nil {
-	// 	return err
-	// }
+	head, err := h.blockState.BestBlockNumber()
+	if err != nil {
+		return err
+	}
 
-	// TODO: Why are we ignoring these? Isn't
-	// msg.Number likely to be higher if we are lagging behind?
-	// ignore neighbour messages that are above our head
-	// if int64(msg.Number) > head.Int64() {
-	// 	return nil
-	// }
+	// we shouldn't send a catch up request for blocks we haven't synced yet
+	// as we won't be able to process them. We also receive neighbour messages
+	// each time a new block is finalized, so we get them very often.
+	if int64(msg.Number) > head.Int64() {
+		logger.Debug("ignoring neighbour message, because we have not synced to this block number")
+		return nil
+	}
 
 	logger.Debugf("got neighbour message with number %d, set id %d and round %d, from: %s ",
 		msg.Number, msg.SetID, msg.Round, from)
-	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
 
 	highestRound, setID, err := h.blockState.GetHighestRoundAndSetID()
 	if err != nil {
 		return err
+	}
+
+	if msg.SetID != setID {
+		return ErrSetIDMismatch
 	}
 
 	// catch up only if we are behind by more than catchup threshold
