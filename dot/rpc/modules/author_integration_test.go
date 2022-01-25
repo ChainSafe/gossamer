@@ -40,15 +40,11 @@ type useRuntimeInstace func(*testing.T, *storage.TrieState) runtime.Instance
 func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
-	cfg := &wasmer.Config{} // nolint
-	cfg.Role = 0
-	cfg.LogLvl = log.Warn
+	cfg := &wasmer.Config{}
 	cfg.Storage = rtStorage
-	cfg.Keystore = keystore.NewGlobalKeystore()
+	cfg.LogLvl = log.Warn
 	cfg.NodeStorage = runtime.NodeStorage{
-		LocalStorage:      runtime.NewInMemoryDB(t),
-		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
-		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+		BaseDB: runtime.NewInMemoryDB(t),
 	}
 
 	runtimeInstance, err := wasmer.NewRuntimeFromGenesis(cfg)
@@ -148,7 +144,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
@@ -207,7 +203,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
@@ -248,7 +244,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
@@ -279,7 +275,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
@@ -340,7 +336,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
@@ -433,7 +429,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
@@ -512,7 +508,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
+				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
