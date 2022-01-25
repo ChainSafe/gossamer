@@ -5,7 +5,9 @@ package core
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"os"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -86,12 +88,23 @@ func TestService_handleCodeSubstitution(t *testing.T) {
 		blockHash: common.BytesToHex(testRuntime),
 	}
 
-	//testCodeSubstitute := map[common.Hash]string{}
-	//testCodeSubstitute[common.MustHexToHash("0x01")] = "0x1111"
+	runtimeMock := new(mocksruntime.Instance)
+	runtimeMock.On("Keystore").Return(&keystore.GlobalKeystore{})
+	runtimeMock.On("NodeStorage").Return(runtime.NodeStorage{})
+	// Nil, might need to return something real but have to learn how
+	runtimeMock.On("NetworkService").Return(new(runtime.TestRuntimeNetwork))
+	runtimeMock.On("Validator").Return(true)
 
 	ctrl := gomock.NewController(t)
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().GetRuntime(gomock.Any()).Return(nil, testDummyError)
+	mockBlockStateGetRtErr := NewMockBlockState(ctrl)
+	mockBlockStateGetRtErr.EXPECT().GetRuntime(gomock.Any()).Return(nil, testDummyError)
+
+	mockBlockStateGetRtOk := NewMockBlockState(ctrl)
+	mockBlockStateGetRtOk.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
+
+	mockCodeSubState := NewMockCodeSubstitutedState(ctrl)
+	mockCodeSubState.EXPECT().StoreCodeSubstitutedBlockHash(blockHash).Return(testDummyError)
+
 	type args struct {
 		hash  common.Hash
 		state *rtstorage.TrieState
@@ -114,7 +127,7 @@ func TestService_handleCodeSubstitution(t *testing.T) {
 			name: "getRuntime error",
 			service: &Service{
 				codeSubstitute: testCodeSubstitute,
-				blockState: mockBlockState,
+				blockState: mockBlockStateGetRtErr,
 			},
 			args: args{
 				hash: blockHash,
@@ -122,6 +135,20 @@ func TestService_handleCodeSubstitution(t *testing.T) {
 			expErr: testDummyError,
 			expErrMsg: testDummyError.Error(),
 		},
+		{
+			name: "code substitute error",
+			service: &Service{
+				codeSubstitute: testCodeSubstitute,
+				blockState: mockBlockStateGetRtOk,
+				codeSubstitutedState: mockCodeSubState,
+			},
+			args: args{
+				hash: blockHash,
+			},
+			expErr: testDummyError,
+			expErrMsg: testDummyError.Error(),
+		},
+		// TODO: cases for new wasmer instance error, then okay case (similar to above)
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
