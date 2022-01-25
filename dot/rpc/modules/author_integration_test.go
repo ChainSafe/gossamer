@@ -148,7 +148,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
 				"0",
 			),
 		)
@@ -157,11 +157,10 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := intCtrl.genesisHeader.Hash()
-	blockHash := intCtrl.stateSrv.Block.BestBlockHash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		intCtrl.runtime, genesisHash, blockHash, 0, "System.remark", []byte{0xab, 0xcd})
+		intCtrl.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{0xab, 0xcd})
 
 	extBytes := common.MustHexToBytes(extHex)
 
@@ -208,7 +207,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
 				"0",
 			),
 		)
@@ -249,7 +248,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
 				"0",
 			),
 		)
@@ -280,7 +279,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
 				"0",
 			),
 		)
@@ -341,7 +340,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
 				"0",
 			),
 		)
@@ -434,7 +433,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
 				"0",
 			),
 		)
@@ -513,7 +512,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
+				common.MustHexToHash("0xf821e003d6d95e21b8a65e3988d7b4f6da060441171fa00311bc149844291038"),
 				"0",
 			),
 		)
@@ -635,10 +634,12 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	extHex := runtime.NewTestExtrinsic(t,
 		intCtrl.runtime, genesisHash, genesisHash, 1, "System.remark", []byte{0xab, 0xcd})
 
-	blockHash := intCtrl.stateSrv.Block.BestBlockHash()
-	hashBytes := blockHash.ToBytes()
-
+	// to extrinsic works with a runtime version 0910 we need to
+	// append the block hash bytes at the end of the extrinsics
+	hashBytes := genesisHash.ToBytes()
 	extBytes := append(common.MustHexToBytes(extHex), hashBytes...)
+
+	extHex = common.BytesToHex(extBytes)
 
 	net2test := coremocks.NewMockNetwork(ctrl)
 	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
