@@ -62,7 +62,7 @@ func (s *TransactionState) PendingInPool() []*transaction.ValidTransaction {
 	return s.pool.Transactions()
 }
 
-// Exists returs true if a extrinsic is already in the pool or queue, false otherwise
+// Exists returns true if an extrinsic is already in the pool or queue, false otherwise
 func (s *TransactionState) Exists(ext types.Extrinsic) bool {
 	hash := ext.Hash()
 
