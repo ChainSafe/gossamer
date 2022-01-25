@@ -75,6 +75,16 @@ func (a *Authority) ToRaw() *AuthorityRaw {
 	return raw
 }
 
+// DeepCopy creates a deep copy of the Authority
+func (a *Authority) DeepCopy() *Authority {
+	pk := a.Key.Encode()
+	pkCopy, _ := sr25519.NewPublicKey(pk[:])
+	return &Authority{
+		Key:    pkCopy,
+		Weight: a.Weight,
+	}
+}
+
 // FromRawSr25519 sets the Authority given AuthorityRaw. It converts the byte representations of
 // the authority public keys into a sr25519.PublicKey.
 func (a *Authority) FromRawSr25519(raw *AuthorityRaw) error {

@@ -31,7 +31,7 @@ type Service struct {
 	// the "lead" node is the node that is designated to build block 1, after which the rest of the nodes
 	// will sync block 1 and determine the first slot of the network based on it
 	lead         bool
-	constants    *constants
+	constants    constants
 	epochHandler *epochHandler
 
 	// Storage interfaces
@@ -113,7 +113,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
 		lead:               cfg.Lead,
-		constants: &constants{
+		constants: constants{
 			slotDuration: slotDuration,
 			epochLength:  epochLength,
 		},
@@ -263,7 +263,9 @@ func (b *Service) Stop() error {
 // Authorities returns the current BABE authorities
 func (b *Service) Authorities() []types.Authority {
 	auths := make([]types.Authority, len(b.epochHandler.epochData.authorities))
-	copy(auths, b.epochHandler.epochData.authorities)
+	for i, auth := range b.epochHandler.epochData.authorities {
+		auths[i] = *(auth.DeepCopy())
+	}
 	return auths
 }
 
@@ -290,12 +292,12 @@ func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, erro
 
 func (b *Service) initiate() {
 	if b.blockState == nil {
-		logger.Errorf("block authoring: %s", ErrNilBlockState)
+		logger.Errorf("block authoring: %w", ErrNilBlockState)
 		return
 	}
 
 	if b.storageState == nil {
-		logger.Errorf("block authoring: %s", errNilStorageState)
+		logger.Errorf("block authoring: %w", errNilStorageState)
 		return
 	}
 
@@ -303,14 +305,14 @@ func (b *Service) initiate() {
 	// retry to run the engine at some point (maybe the next epoch) if
 	// there's an error.
 	if err := b.runEngine(); err != nil {
-		logger.Criticalf("failed to run block production engine: %s", err)
+		logger.Criticalf("failed to run block production engine: %w", err)
 	}
 }
 
 func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error) {
 	epochData, err := b.initiateEpoch(epoch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initiate epoch %d: %s", epoch, err)
+		return nil, fmt.Errorf("failed to initiate epoch %d: %w", epoch, err)
 	}
 
 	logger.Debugf("initiated epoch with threshold %s, randomness 0x%x and authorities %v",
@@ -318,7 +320,7 @@ func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error
 
 	epochStartSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get start slot for current epoch %d: %s", epoch, err)
+		return nil, fmt.Errorf("failed to get start slot for current epoch %d: %w", epoch, err)
 	}
 
 	return newEpochHandler(epoch,
@@ -337,56 +339,7 @@ func (b *Service) runEngine() error {
 	}
 
 	for {
-		err = func() error {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
-			if err != nil {
-				return err
-			}
-
-			// get start slot for current epoch
-			nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
-			if err != nil {
-				return fmt.Errorf("failed to get start slot for next epoch %d: %s", epoch+1, err)
-			}
-
-			nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
-			epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
-			cleanup := func() {
-				if !epochTimer.Stop() {
-					<-epochTimer.C
-				}
-			}
-
-			errCh := make(chan error)
-			go b.epochHandler.run(ctx, errCh)
-
-			select {
-			case <-b.ctx.Done():
-				cleanup()
-				return b.ctx.Err()
-			case <-b.pause:
-				cleanup()
-				return errServicePaused
-			case <-epochTimer.C:
-				// stop current epoch handler
-				cancel()
-			case err := <-errCh:
-				logger.Errorf("error from epochHandler: %s", err)
-			}
-
-			// setup next epoch, re-invoke block authoring
-			next, err := b.incrementEpoch()
-			if err != nil {
-				return fmt.Errorf("failed to increment epoch: %s", err)
-			}
-
-			logger.Infof("epoch %d complete, upcoming epoch: %d", epoch, next)
-			epoch = next
-			return nil
-		}()
-		if err != nil {
+		if err = b.handleEpoch(epoch); err != nil {
 			if errors.Is(err, errServicePaused) || errors.Is(err, context.Canceled) {
 				return nil
 			}
@@ -396,15 +349,63 @@ func (b *Service) runEngine() error {
 	}
 }
 
+func (b *Service) handleEpoch(epoch uint64) (err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
+	if err != nil {
+		return err
+	}
+
+	// get start slot for current epoch
+	nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
+	if err != nil {
+		return fmt.Errorf("failed to get start slot for next epoch %d: %w", epoch+1, err)
+	}
+
+	nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
+	epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
+	cleanup := func() {
+		if !epochTimer.Stop() {
+			<-epochTimer.C
+		}
+	}
+
+	errCh := make(chan error)
+	go b.epochHandler.run(ctx, errCh)
+
+	select {
+	case <-b.ctx.Done():
+		cleanup()
+		return b.ctx.Err()
+	case <-b.pause:
+		cleanup()
+		return errServicePaused
+	case <-epochTimer.C:
+		// stop current epoch handler
+		cancel()
+	case err := <-errCh:
+		logger.Errorf("error from epochHandler: %w", err)
+	}
+
+	// setup next epoch, re-invoke block authoring
+	next, err := b.incrementEpoch()
+	if err != nil {
+		return fmt.Errorf("failed to increment epoch: %w", err)
+	}
+
+	logger.Infof("epoch %d complete, upcoming epoch: %d", epoch, next)
+	epoch = next
+	return nil
+}
+
 func (b *Service) handleSlot(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof) error {
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		logger.Errorf("block authoring: %s", err)
 		return err
 	}
 
 	if parentHeader == nil {
-		logger.Errorf("block authoring: %s", errNilParentHeader)
 		return errNilParentHeader
 	}
 

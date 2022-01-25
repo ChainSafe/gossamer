@@ -230,7 +230,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
-	t.Skip() // no idea why it's complaining it can't find the epoch data. fix later
+	t.Skip() // TODO: no idea why it's complaining it can't find the epoch data. fix later
 	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
@@ -336,7 +336,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	epochData.threshold = maxThreshold
 	epochData.authorityIndex = 0
 
-	var slotNumber uint64 = 1
+	const slotNumber uint64 = 1
 
 	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex, epochData)
 	require.NoError(t, err)
@@ -413,9 +413,10 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	epochData.threshold = maxThreshold
-	epochData.authorities = make([]types.Authority, 1)
-	epochData.authorities[0] = types.Authority{
-		Key: kp.Public().(*sr25519.PublicKey),
+	epochData.authorities = []types.Authority{
+		{
+			Key: kp.Public().(*sr25519.PublicKey),
+		},
 	}
 
 	// create and add first block

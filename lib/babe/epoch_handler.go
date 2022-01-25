@@ -36,7 +36,7 @@ type epochHandler struct {
 	epochNumber uint64
 	firstSlot   uint64
 
-	constants *constants
+	constants constants
 	epochData *epochData
 
 	// for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
@@ -45,7 +45,7 @@ type epochHandler struct {
 	handleSlot handleSlotFunc
 }
 
-func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants *constants,
+func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
 	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
 	// determine which slots we'll be authoring in by pre-calculating VRF output
 	slotToProof := make(map[uint64]*VrfOutputAndProof)

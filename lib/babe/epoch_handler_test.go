@@ -26,7 +26,7 @@ func TestNewEpochHandler(t *testing.T) {
 	sd, err := time.ParseDuration("6s")
 	require.NoError(t, err)
 
-	constants := &constants{
+	constants := constants{
 		slotDuration: sd,
 		epochLength:  200,
 	}
@@ -66,7 +66,7 @@ func TestEpochHandler_run(t *testing.T) {
 		threshold: scale.MaxUint128,
 	}
 
-	constants := &constants{
+	constants := constants{
 		slotDuration: sd,
 		epochLength:  100,
 	}
