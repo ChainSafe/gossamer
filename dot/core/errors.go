@@ -46,6 +46,8 @@ var (
 	ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
 
 	errNilCodeSubstitutedState = errors.New("cannot have nil CodeSubstitutedStat")
+
+	errNilBlockHandlerParameter = errors.New("unable to handle block due to nil parameter")
 )
 
 // ErrNilChannel is returned if a channel is nil

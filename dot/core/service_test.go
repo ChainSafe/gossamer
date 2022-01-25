@@ -4,18 +4,21 @@
 package core
 
 import (
+	"context"
 	"errors"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
-	"os"
-
-	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"math/big"
+	"os"
 
 	"testing"
 )
@@ -170,7 +173,173 @@ func TestService_handleCodeSubstitution(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := tt.service
-			err := s.handleCodeSubstitution(tt.args.hash, tt.args.state)
+			err = s.handleCodeSubstitution(tt.args.hash, tt.args.state)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+		})
+	}
+}
+
+func TestService_handleBlock(t *testing.T) {
+	emptyTrie := trie.NewEmptyTrie()
+	trieState, err := rtstorage.NewTrieState(emptyTrie)
+	require.NoError(t, err)
+
+	testHeader := types.NewEmptyHeader()
+	block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+	block.Header.Number = big.NewInt(21)
+
+	ctrl := gomock.NewController(t)
+
+	//Store trie error
+	mockStorageStateErr := NewMockStorageState(ctrl)
+	mockStorageStateErr.EXPECT().StoreTrie(trieState, &block.Header).Return(testDummyError)
+
+	// add block error
+	mockStorageStateOk1 := NewMockStorageState(ctrl)
+	mockStorageStateOk1.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+	mockBlockStateErrNotFine := NewMockBlockState(ctrl)
+	mockBlockStateErrNotFine.EXPECT().AddBlock(&block).Return(testDummyError)
+
+	//add block prent not found error
+	mockStorageStateOk2 := NewMockStorageState(ctrl)
+	mockStorageStateOk2.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+	mockBlockStateErrNotFine2 := NewMockBlockState(ctrl)
+	mockBlockStateErrNotFine2.EXPECT().AddBlock(&block).Return(blocktree.ErrParentNotFound)
+
+	//add block cont err
+	//runtimeMock := new(mocksruntime.Instance)
+	mockStorageStateOk3 := NewMockStorageState(ctrl)
+	mockStorageStateOk3.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+	mockBlockStateErrFine := NewMockBlockState(ctrl)
+	mockBlockStateErrFine.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
+	mockBlockStateErrFine.EXPECT().GetRuntime(&block.Header.ParentHash).Return(nil, testDummyError)
+	mockDigestHandler := NewMockDigestHandler(ctrl)
+	mockDigestHandler.EXPECT().HandleDigests(&block.Header)
+
+	//handle runtime changes error
+	runtimeMock := new(mocksruntime.Instance)
+	mockStorageStateOk4 := NewMockStorageState(ctrl)
+	mockStorageStateOk4.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+	mockBlockStateRuntimeChangeErr := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeChangeErr.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
+	mockBlockStateRuntimeChangeErr.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock, nil)
+	mockBlockStateRuntimeChangeErr.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(testDummyError)
+	mockDigestHandler1 := NewMockDigestHandler(ctrl)
+	mockDigestHandler1.EXPECT().HandleDigests(&block.Header)
+
+	//code sub error
+	runtimeMock2 := new(mocksruntime.Instance)
+	mockStorageStateOk5 := NewMockStorageState(ctrl)
+	mockStorageStateOk5.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+	mockBlockStateOk := NewMockBlockState(ctrl)
+	mockBlockStateOk.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
+	mockBlockStateOk.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock2, nil)
+	mockBlockStateOk.EXPECT().HandleRuntimeChanges(trieState, runtimeMock2, block.Header.Hash()).Return(nil)
+	mockDigestHandler2 := NewMockDigestHandler(ctrl)
+	mockDigestHandler2.EXPECT().HandleDigests(&block.Header)
+
+	type args struct {
+		block *types.Block
+		state *rtstorage.TrieState
+	}
+	tests := []struct {
+		name    string
+		service  *Service
+		args    args
+		expErr error
+		expErrMsg string
+	}{
+		{
+			name: "nil input",
+			service: &Service{},
+			expErr: errNilBlockHandlerParameter,
+			expErrMsg: errNilBlockHandlerParameter.Error(),
+		},
+		{
+			name: "storeTrie error",
+			service: &Service{storageState: mockStorageStateErr},
+			args: args{
+				block: &block,
+				state: trieState,
+			},
+			expErr: testDummyError,
+			expErrMsg: testDummyError.Error(),
+		},
+		{
+			name: "addBlock quit error",
+			service: &Service{
+				storageState: mockStorageStateOk1,
+				blockState: mockBlockStateErrNotFine,
+			},
+			args: args{
+				block: &block,
+				state: trieState,
+			},
+			expErr: testDummyError,
+			expErrMsg: testDummyError.Error(),
+		},
+		{
+			name: "addBlock parent not found error",
+			service: &Service{
+				storageState: mockStorageStateOk2,
+				blockState: mockBlockStateErrNotFine2,
+			},
+			args: args{
+				block: &block,
+				state: trieState,
+			},
+			expErr: blocktree.ErrParentNotFound,
+			expErrMsg: blocktree.ErrParentNotFound.Error(),
+		},
+		{
+			name: "addBlock error continue",
+			service: &Service{
+				storageState: mockStorageStateOk3,
+				blockState: mockBlockStateErrFine,
+				digestHandler: mockDigestHandler,
+			},
+			args: args{
+				block: &block,
+				state: trieState,
+			},
+			expErr: testDummyError,
+			expErrMsg: testDummyError.Error(),
+		},
+		{
+			name: "handle runtime changes error",
+			service: &Service{
+				storageState: mockStorageStateOk4,
+				blockState: mockBlockStateRuntimeChangeErr,
+				digestHandler: mockDigestHandler1,
+			},
+			args: args{
+				block: &block,
+				state: trieState,
+			},
+			expErr: testDummyError,
+			expErrMsg: testDummyError.Error(),
+		},
+		{
+			name: "code substitution ok",
+			service: &Service{
+				storageState: mockStorageStateOk5,
+				blockState: mockBlockStateOk,
+				digestHandler: mockDigestHandler2,
+				ctx: context.Background(),
+			},
+			args: args{
+				block: &block,
+				state: trieState,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			err := s.handleBlock(tt.args.block, tt.args.state)
 			assert.ErrorIs(t, err, tt.expErr)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErrMsg)
