@@ -99,11 +99,18 @@ func TestService_handleCodeSubstitution(t *testing.T) {
 	mockBlockStateGetRtErr := NewMockBlockState(ctrl)
 	mockBlockStateGetRtErr.EXPECT().GetRuntime(gomock.Any()).Return(nil, testDummyError)
 
-	mockBlockStateGetRtOk := NewMockBlockState(ctrl)
-	mockBlockStateGetRtOk.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
+	mockBlockStateGetRtOk1 := NewMockBlockState(ctrl)
+	mockBlockStateGetRtOk1.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
 
-	mockCodeSubState := NewMockCodeSubstitutedState(ctrl)
-	mockCodeSubState.EXPECT().StoreCodeSubstitutedBlockHash(blockHash).Return(testDummyError)
+	mockBlockStateGetRtOk2 := NewMockBlockState(ctrl)
+	mockBlockStateGetRtOk2.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
+	mockBlockStateGetRtOk2.EXPECT().StoreRuntime(blockHash, gomock.Any())
+
+	mockCodeSubState1 := NewMockCodeSubstitutedState(ctrl)
+	mockCodeSubState1.EXPECT().StoreCodeSubstitutedBlockHash(blockHash).Return(testDummyError)
+
+	mockCodeSubState2 := NewMockCodeSubstitutedState(ctrl)
+	mockCodeSubState2.EXPECT().StoreCodeSubstitutedBlockHash(blockHash).Return(nil)
 
 	type args struct {
 		hash  common.Hash
@@ -139,8 +146,8 @@ func TestService_handleCodeSubstitution(t *testing.T) {
 			name: "code substitute error",
 			service: &Service{
 				codeSubstitute: testCodeSubstitute,
-				blockState: mockBlockStateGetRtOk,
-				codeSubstitutedState: mockCodeSubState,
+				blockState: mockBlockStateGetRtOk1,
+				codeSubstitutedState: mockCodeSubState1,
 			},
 			args: args{
 				hash: blockHash,
@@ -148,7 +155,17 @@ func TestService_handleCodeSubstitution(t *testing.T) {
 			expErr: testDummyError,
 			expErrMsg: testDummyError.Error(),
 		},
-		// TODO: cases for new wasmer instance error, then okay case (similar to above)
+		{
+			name: "happyPath",
+			service: &Service{
+				codeSubstitute: testCodeSubstitute,
+				blockState: mockBlockStateGetRtOk2,
+				codeSubstitutedState: mockCodeSubState2,
+			},
+			args: args{
+				hash: blockHash,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
