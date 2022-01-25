@@ -34,10 +34,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstace func(*testing.T, *storage.TrieState) (runtime.Instance, error)
+type useRuntimeInstace func(*testing.T, *storage.TrieState) runtime.Instance
 
 // useInstanceFromGenesis creates a new runtime instance given a genesis file
-func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance, err error) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
 	cfg := &wasmer.Config{} // nolint
@@ -51,15 +51,16 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 
-	return wasmer.NewRuntimeFromGenesis(cfg)
+	runtimeInstance, err := wasmer.NewRuntimeFromGenesis(cfg)
+	require.NoError(t, err)
+
+	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV098(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance, err error) {
-	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(runtime.POLKADOT_RUNTIME_FP_v0910)
-	err = runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
-	if err != nil {
-		return nil, err
-	}
+func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
+	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(runtime.POLKADOT_RUNTIME_v0910)
+	err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+	require.NoError(t, err)
 
 	bytes, err := os.ReadFile(testRuntimeFilePath)
 	require.NoError(t, err)
@@ -77,7 +78,10 @@ func useInstanceFromRuntimeV098(t *testing.T, rtStorage *storage.TrieState) (ins
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 
-	return wasmer.NewInstanceFromTrie(rtStorage.Trie(), cfg)
+	runtimeInstance, err := wasmer.NewInstanceFromTrie(rtStorage.Trie(), cfg)
+	require.NoError(t, err)
+
+	return runtimeInstance
 }
 
 func TestMain(m *testing.M) {
@@ -614,33 +618,27 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	}
 }
 
-func TestAuthorModule_SubmitExtrinsic_WithVersion_V098(t *testing.T) {
+func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	t.Parallel()
 	tmpbasepath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().
-		SendMessage(
-			telemetry.NewNotifyFinalized(
-				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"), "0"),
-		)
-	telemetryMock.EXPECT().
-		SendMessage(
-			telemetry.NewTxpoolImport(0, 1),
-		)
+		SendMessage(gomock.Any()).AnyTimes()
 
-	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, telemetryMock, useInstanceFromRuntimeV098)
+	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, telemetryMock, useInstanceFromRuntimeV0910)
 	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := intCtrl.genesisHeader.Hash()
-	blockHash := intCtrl.stateSrv.Block.BestBlockHash()
 
-	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		intCtrl.runtime, genesisHash, blockHash, 0, "System.remark", []byte{0xab, 0xcd})
+		intCtrl.runtime, genesisHash, genesisHash, 1, "System.remark", []byte{0xab, 0xcd})
 
-	extBytes := common.MustHexToBytes(extHex)
+	blockHash := intCtrl.stateSrv.Block.BestBlockHash()
+	hashBytes := blockHash.ToBytes()
+
+	extBytes := append(common.MustHexToBytes(extHex), hashBytes...)
 
 	net2test := coremocks.NewMockNetwork(ctrl)
 	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
@@ -659,10 +657,24 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V098(t *testing.T) {
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
-			Priority:  39325217770730704,
-			Requires:  nil,
-			Provides:  [][]byte{{212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 0, 0, 0, 0}}, // nolint:lll
-			Longevity: 18446744073709551614,
+			Priority: 4295664014726,
+			Requires: [][]byte{
+				{
+					212, 53, 147, 199, 21, 253, 211, 28, 97, 20,
+					26, 189, 4, 169, 159, 214, 130, 44, 133,
+					88, 133, 76, 205, 227, 154, 86, 132, 231,
+					165, 109, 162, 125, 0, 0, 0, 0,
+				},
+			},
+			Provides: [][]byte{
+				{
+					212, 53, 147, 199, 21, 253, 211, 28, 97, 20,
+					26, 189, 4, 169, 159, 214, 130, 44, 133, 88,
+					133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162,
+					125, 1, 0, 0, 0,
+				},
+			}, // nolint:lll
+			Longevity: 18446744073709551613,
 			Propagate: true,
 		},
 	}
@@ -670,10 +682,13 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V098(t *testing.T) {
 	expectedHash := ExtrinsicHashResponse(expectedExtrinsic.Hash().String())
 	txOnPool := intCtrl.stateSrv.Transaction.PendingInPool()
 
+	fmt.Println(txOnPool[0].Validity.Requires)
+
 	// compare results
 	require.Len(t, txOnPool, 1)
 	require.Equal(t, expected, txOnPool[0])
 	require.Equal(t, expectedHash, *res)
+
 }
 
 type integrationTestController struct {
@@ -728,8 +743,7 @@ func setupStateAndRuntime(t *testing.T, basepath string,
 		rtStorage, err := state2test.Storage.TrieState(nil)
 		require.NoError(t, err)
 
-		rt, err := useInstance(t, rtStorage)
-		require.NoError(t, err)
+		rt := useInstance(t, rtStorage)
 
 		genesisHash := genesisHeader.Hash()
 		state2test.Block.StoreRuntime(genesisHash, rt)
@@ -752,7 +766,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	state2test.Transaction = state.NewTransactionState(telemetryClient)
 
-	gen, genTrie, genesisHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
+	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
 	err := state2test.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
@@ -779,8 +793,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	if useInstance != nil {
 		rtStorage, err := state2test.Storage.TrieState(nil)
 
-		rt, err := useInstance(t, rtStorage)
-		require.NoError(t, err)
+		rt := useInstance(t, rtStorage)
 
 		itc.runtime = rt
 

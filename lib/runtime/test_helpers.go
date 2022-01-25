@@ -191,7 +191,7 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 
 	ext := ctypes.NewExtrinsic(c)
 	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(genHash),
+		BlockHash:          ctypes.Hash(blockHash),
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
@@ -224,7 +224,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	require.NoError(t, err)
 
 	idata := types.NewInherentsData()
-	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	err = idata.SetInt64Inherent(types.Timstap0, 1)
 	require.NoError(t, err)
 
 	err = idata.SetInt64Inherent(types.Babeslot, 1)
