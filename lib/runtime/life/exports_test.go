@@ -109,6 +109,9 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 
 	kr, _ := keystore.NewEd25519Keyring()
 
+	t.Logf("%x", kr.Alice().Public())
+	t.Logf("%x", auths[0].Key)
+
 	var expected []types.Authority
 
 	for _, kp := range kr.Keys {
