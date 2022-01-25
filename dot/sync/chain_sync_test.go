@@ -848,7 +848,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				peerState: map[peer.ID]*peerState{},
 			},
 			out: output{
-				highestBlock: int64(0),
+				highestBlock: 0,
 				err:          errNoPeers,
 			},
 		},
@@ -858,7 +858,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				peerState: nil,
 			},
 			out: output{
-				highestBlock: int64(0),
+				highestBlock: 0,
 				err:          errNoPeers,
 			},
 		},
@@ -870,7 +870,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				},
 			},
 			out: output{
-				highestBlock: int64(90),
+				highestBlock: 90,
 				err:          nil,
 			},
 		},
@@ -882,7 +882,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				},
 			},
 			out: output{
-				highestBlock: int64(0),
+				highestBlock: 0,
 				err:          errNilBlockData,
 			},
 		},
@@ -895,7 +895,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				},
 			},
 			out: output{
-				highestBlock: int64(190),
+				highestBlock: 190,
 				err:          nil,
 			},
 		},
@@ -908,7 +908,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				},
 			},
 			out: output{
-				highestBlock: int64(190),
+				highestBlock: 190,
 				err:          nil,
 			},
 		},
@@ -921,7 +921,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				},
 			},
 			out: output{
-				highestBlock: int64(90),
+				highestBlock: 90,
 				err:          nil,
 			},
 		},
@@ -934,7 +934,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				},
 			},
 			out: output{
-				highestBlock: int64(90),
+				highestBlock: 90,
 				err:          nil,
 			},
 		},
@@ -947,7 +947,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 				},
 			},
 			out: output{
-				highestBlock: int64(0),
+				highestBlock: 0,
 				err:          errNilBlockData,
 			},
 		},
