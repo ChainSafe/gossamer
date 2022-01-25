@@ -66,7 +66,7 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 
 	rtStorage.Set(common.CodeKey, bytes)
 
-	cfg := &wasmer.Config{} // nolint
+	cfg := &wasmer.Config{}
 	cfg.Role = 0
 	cfg.LogLvl = log.Warn
 	cfg.Storage = rtStorage
@@ -673,7 +673,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 					133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162,
 					125, 1, 0, 0, 0,
 				},
-			}, // nolint:lll
+			},
 			Longevity: 18446744073709551613,
 			Propagate: true,
 		},
@@ -686,7 +686,6 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	require.Len(t, txOnPool, 1)
 	require.Equal(t, expected, txOnPool[0])
 	require.Equal(t, expectedHash, *res)
-
 }
 
 type integrationTestController struct {
@@ -790,6 +789,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	if useInstance != nil {
 		rtStorage, err := state2test.Storage.TrieState(nil)
+		require.NoError(t, err)
 
 		rt := useInstance(t, rtStorage)
 
