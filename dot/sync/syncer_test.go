@@ -269,39 +269,39 @@ func TestService_IsSynced(t *testing.T) {
 	}
 }
 
-func TestService_Start(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockChainProcessor := NewMockChainProcessor(ctrl)
-	type fields struct {
-		chainSync      ChainSync
-		chainProcessor ChainProcessor
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		{
-			name: "working example",
-			fields: fields{
-				chainSync:      newMockChainSync(ctrl),
-				chainProcessor: mockChainProcessor,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Service{
-				chainSync:      tt.fields.chainSync,
-				chainProcessor: tt.fields.chainProcessor,
-			}
-			if err := s.Start(); (err != nil) != tt.wantErr {
-				t.Errorf("Start() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
+//func TestService_Start(t *testing.T) {
+//	ctrl := gomock.NewController(t)
+//	mockChainProcessor := NewMockChainProcessor(ctrl)
+//	type fields struct {
+//		chainSync      ChainSync
+//		chainProcessor ChainProcessor
+//	}
+//	tests := []struct {
+//		name    string
+//		fields  fields
+//		wantErr bool
+//	}{
+//		{
+//			name: "working example",
+//			fields: fields{
+//				chainSync:      newMockChainSync(ctrl),
+//				chainProcessor: mockChainProcessor,
+//			},
+//			wantErr: false,
+//		},
+//	}
+//	for _, tt := range tests {
+//		t.Run(tt.name, func(t *testing.T) {
+//			s := &Service{
+//				chainSync:      tt.fields.chainSync,
+//				chainProcessor: tt.fields.chainProcessor,
+//			}
+//			if err := s.Start(); (err != nil) != tt.wantErr {
+//				t.Errorf("Start() error = %v, wantErr %v", err, tt.wantErr)
+//			}
+//		})
+//	}
+//}
 
 func TestService_Stop(t *testing.T) {
 	ctrl := gomock.NewController(t)

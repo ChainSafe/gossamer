@@ -88,7 +88,7 @@ type workHandler interface {
 	handleTick() ([]*worker, error)
 }
 
-//go:generate mockgen -destination=mock_chain_sync.go -package=$GOPACKAGE . ChainSync
+//go:generate mockgen -source=chain_sync.go -destination=mock_chain_sync.go -package=$GOPACKAGE . ChainSync,workHandler
 
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
