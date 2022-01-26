@@ -386,7 +386,7 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) publishTelemetry(done <-chan struct{}) {
+func (s *Service) publishTelemetry(cancel <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
@@ -399,7 +399,7 @@ func (s *Service) publishTelemetry(done <-chan struct{}) {
 		}
 
 		select {
-		case <-done:
+		case <-cancel:
 			return
 		case <-ticker.C:
 		}
