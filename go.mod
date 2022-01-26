@@ -37,6 +37,7 @@ require (
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
+	github.com/qdm12/gotree v0.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.5
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec

@@ -4,10 +4,9 @@
 package node
 
 import (
-	"fmt"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/qdm12/gotree"
 )
 
 var _ Node = (*Branch)(nil)
@@ -51,10 +50,26 @@ func (b *Branch) Type() Type {
 }
 
 func (b *Branch) String() string {
-	if len(b.Value) > 1024 {
-		return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value (hashed)=0x%x dirty=%t",
-			b.Key, b.ChildrenBitmap(), common.MustBlake2bHash(b.Value), b.Dirty)
+	return b.StringNode().String()
+}
+
+// StringNode returns a gotree compatible node for String methods.
+func (b *Branch) StringNode() (stringNode *gotree.Node) {
+	stringNode = gotree.New("Branch")
+	stringNode.Appendf("Generation: %d", b.Generation)
+	stringNode.Appendf("Dirty: %t", b.Dirty)
+	stringNode.Appendf("Key: " + bytesToString(b.Key))
+	stringNode.Appendf("Value: " + bytesToString(b.Value))
+	stringNode.Appendf("Calculated encoding: " + bytesToString(b.Encoding))
+	stringNode.Appendf("Calculated digest: " + bytesToString(b.hashDigest))
+
+	for i, child := range b.Children {
+		if child == nil {
+			continue
+		}
+		childNode := stringNode.Appendf("Child %d", i)
+		childNode.AppendNode(child.StringNode())
 	}
-	return fmt.Sprintf("branch key=0x%x childrenBitmap=%b value=0x%x dirty=%t",
-		b.Key, b.ChildrenBitmap(), b.Value, b.Dirty)
+
+	return stringNode
 }
