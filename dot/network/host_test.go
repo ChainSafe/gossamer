@@ -275,31 +275,31 @@ func TestExistingStream(t *testing.T) {
 
 	time.Sleep(TestMessageTimeout)
 
-	messages, _ := handlerB.messagesFrom(nodeA.host.id())
+	messages, ok := handlerB.messagesFrom(nodeA.host.id())
+	require.True(t, ok, "node B timed out waiting for message from node A")
 	assert.Len(t, messages, 1)
-	require.NotNil(t, messages, "node B timed out waiting for message from node A")
 
 	// node A uses the stream to send a second message
 	err = nodeA.host.writeToStream(stream, testBlockReqMessage)
 	require.NoError(t, err)
 
-	messages, _ = handlerB.messagesFrom(nodeA.host.id())
-	require.NotNil(t, messages, "node B timed out waiting for message from node A")
+	_, ok = handlerB.messagesFrom(nodeA.host.id())
+	require.True(t, ok, "node B timed out waiting for message from node A")
 
 	// node B opens the stream to send the first message
 	stream, err = nodeB.host.send(addrInfoA.ID, nodeB.host.protocolID, testBlockReqMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
-	messages, _ = handlerA.messagesFrom(nodeB.host.id())
-	require.NotNil(t, messages, "node A timed out waiting for message from node B")
+	_, ok = handlerA.messagesFrom(nodeB.host.id())
+	require.True(t, ok, "node A timed out waiting for message from node B")
 
 	// node B uses the stream to send a second message
 	err = nodeB.host.writeToStream(stream, testBlockReqMessage)
 	require.NoError(t, err)
 
-	messages, _ = handlerA.messagesFrom(nodeB.host.id())
-	require.NotNil(t, messages, "node A timed out waiting for message from node B")
+	_, ok = handlerA.messagesFrom(nodeB.host.id())
+	require.True(t, ok, "node A timed out waiting for message from node B")
 }
 
 func TestStreamCloseMetadataCleanup(t *testing.T) {
