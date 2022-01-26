@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
@@ -96,7 +97,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 			Port:         availablePort(t),
 			NoBootstrap:  true,
 			NoMDNS:       true,
-			LogLvl:       4,
+			LogLvl:       log.Warn,
 			SlotDuration: time.Second,
 		}
 	}
@@ -306,7 +307,7 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 200)
 	messages, _ := handler.messagesFrom(nodeA.host.id())
-	require.Len(t, messages, 5)
+	require.Len(t, messages, 6)
 }
 
 func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
@@ -336,6 +337,7 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
+	// TODO: create a decoder that handles both handshakes and messages
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
@@ -364,15 +366,29 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 		Digest: types.NewDigest(),
 	}
 
+	delete(handler.messages, nodeA.host.id())
+
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
 		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	time.Sleep(time.Millisecond * 200)
-	messages, _ := handler.messagesFrom(nodeA.host.id())
-	require.Len(t, messages, 1)
+	time.Sleep(time.Millisecond * 500)
+
+	nodeAMessages, _ := handler.messagesFrom(nodeA.host.id())
+	require.Equal(t, 2, len(nodeAMessages))
+
+	nodeA.host.messageCache = nil
+
+	// All 5 message will be sent since cache is disabled.
+	for i := 0; i < 5; i++ {
+		nodeA.GossipMessage(announceMessage)
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	nodeAMessages, _ = handler.messagesFrom(nodeA.host.id())
+	require.Equal(t, 7, len(nodeAMessages))
 }
 
 func TestService_NodeRoles(t *testing.T) {

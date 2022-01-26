@@ -1,21 +1,9 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 //go:build integration
 // +build integration
 
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package modules
 
 import (
@@ -57,16 +45,41 @@ var (
 	testPeers []common.PeerInfo
 )
 
+//go:generate mockgen -destination=mock_block_state_test.go -package modules github.com/ChainSafe/gossamer/dot/network BlockState
+//go:generate mockgen -destination=mock_syncer_test.go -package modules github.com/ChainSafe/gossamer/dot/network Syncer
+//go:generate mockgen -destination=mock_transaction_handler_test.go -package modules github.com/ChainSafe/gossamer/dot/network TransactionHandler
+
 func newNetworkService(t *testing.T) *network.Service {
+	ctrl := gomock.NewController(t)
+
+	blockStateMock := NewMockBlockState(ctrl)
+	blockStateMock.EXPECT().
+		BestBlockHeader().
+		Return(types.NewEmptyHeader(), nil).AnyTimes()
+	blockStateMock.EXPECT().
+		GetHighestFinalisedHeader().
+		Return(types.NewEmptyHeader(), nil).AnyTimes()
+
+	syncerMock := NewMockSyncer(ctrl)
+
+	transactionHandlerMock := NewMockTransactionHandler(ctrl)
+	transactionHandlerMock.EXPECT().TransactionsCount().Return(0).AnyTimes()
+
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &network.Config{
-		BasePath:     t.TempDir(),
-		SlotDuration: time.Second,
+		BasePath:           t.TempDir(),
+		SlotDuration:       time.Second,
+		BlockState:         blockStateMock,
+		Port:               0,
+		Syncer:             syncerMock,
+		TransactionHandler: transactionHandlerMock,
+		Telemetry:          telemetryMock,
 	}
 
 	srv, err := network.NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = srv.Start()
 	require.NoError(t, err)
@@ -339,6 +352,10 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		rt.Stop()
 	})
 
+	if srvc != nil {
+		srvc.Block.StoreRuntime(srvc.Block.BestBlockHash(), rt)
+	}
+
 	// insert alice key for testing
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -351,6 +368,8 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	mocknet := new(coremocks.Network)
 	mocknet.On("GossipMessage", mock.AnythingOfType("network.NotificationsMessage"))
 
+	digestHandlerMock := NewMockDigestHandler(nil)
+
 	cfg := &core.Config{
 		Runtime:              rt,
 		Keystore:             ks,
@@ -360,6 +379,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		EpochState:           srvc.Epoch,
 		Network:              mocknet,
 		CodeSubstitutedState: srvc.Base,
+		DigestHandler:        digestHandlerMock,
 	}
 
 	s, err := core.NewService(cfg)

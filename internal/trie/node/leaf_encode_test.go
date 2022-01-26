@@ -26,7 +26,7 @@ func Test_Leaf_Encode(t *testing.T) {
 	}{
 		"clean leaf with encoding": {
 			leaf: &Leaf{
-				encoding: []byte{1, 2, 3},
+				Encoding: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
 				{
@@ -37,7 +37,7 @@ func Test_Leaf_Encode(t *testing.T) {
 		},
 		"write error for clean leaf with encoding": {
 			leaf: &Leaf{
-				encoding: []byte{1, 2, 3},
+				Encoding: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
 				{
@@ -153,7 +153,7 @@ func Test_Leaf_Encode(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			assert.Equal(t, testCase.expectedEncoding, testCase.leaf.encoding)
+			assert.Equal(t, testCase.expectedEncoding, testCase.leaf.Encoding)
 		})
 	}
 }
@@ -204,7 +204,7 @@ func Test_Leaf_hash(t *testing.T) {
 	}{
 		"small leaf buffer write error": {
 			leaf: &Leaf{
-				encoding: []byte{1, 2, 3},
+				Encoding: []byte{1, 2, 3},
 			},
 			writeCall: true,
 			write: writeCall{
@@ -217,7 +217,7 @@ func Test_Leaf_hash(t *testing.T) {
 		},
 		"small leaf success": {
 			leaf: &Leaf{
-				encoding: []byte{1, 2, 3},
+				Encoding: []byte{1, 2, 3},
 			},
 			writeCall: true,
 			write: writeCall{
@@ -226,7 +226,7 @@ func Test_Leaf_hash(t *testing.T) {
 		},
 		"leaf hash sum buffer write error": {
 			leaf: &Leaf{
-				encoding: []byte{
+				Encoding: []byte{
 					1, 2, 3, 4, 5, 6, 7, 8,
 					1, 2, 3, 4, 5, 6, 7, 8,
 					1, 2, 3, 4, 5, 6, 7, 8,
@@ -250,7 +250,7 @@ func Test_Leaf_hash(t *testing.T) {
 		},
 		"leaf hash sum success": {
 			leaf: &Leaf{
-				encoding: []byte{
+				Encoding: []byte{
 					1, 2, 3, 4, 5, 6, 7, 8,
 					1, 2, 3, 4, 5, 6, 7, 8,
 					1, 2, 3, 4, 5, 6, 7, 8,

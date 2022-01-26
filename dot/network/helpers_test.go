@@ -24,8 +24,7 @@ type testStreamHandler struct {
 	messages map[peer.ID][]Message
 	decoder  messageDecoder
 
-	// exitChan is a notify chan that the readStream
-	// works and sucessfuly returns
+	// readStream closes exitChan when it returns
 	exitChan chan struct{}
 }
 
@@ -54,6 +53,7 @@ func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Messa
 
 	msgs := s.messages[stream.Conn().RemotePeer()]
 	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
+
 	announceHandshake := &BlockAnnounceHandshake{
 		BestBlockNumber: 0,
 	}
@@ -78,9 +78,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 	peer peer.ID, decoder messageDecoder, handler messageHandler) {
 	msgBytes := make([]byte, maxBlockResponseSize)
 
-	defer func() {
-		close(s.exitChan)
-	}()
+	defer close(s.exitChan)
 
 	for {
 		tot, err := readStream(stream, msgBytes)
