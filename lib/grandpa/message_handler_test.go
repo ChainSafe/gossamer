@@ -242,7 +242,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
+	err := verifyJustification(h.grandpa, just, gs.state.round, gs.state.setID, precommit)
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -462,7 +462,7 @@ func TestVerifyJustification(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := verifyJustification(h.grandpa, just, 77, gs.state.setID, precommit)
 	require.NoError(t, err)
 }
 
@@ -482,7 +482,7 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := verifyJustification(h.grandpa, just, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrInvalidSignature.Error())
 }
 
@@ -505,7 +505,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err = verifyJustification(h.grandpa, just, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrVoterNotFound.Error())
 }
 
@@ -524,7 +524,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 		PreVoteJustification: just,
 	}
 
-	prevote, err := h.verifyPreVoteJustification(msg)
+	prevote, err := h.catchUp.verifyPreVoteJustification(msg)
 	require.NoError(t, err)
 	require.Equal(t, testHash, prevote)
 }
@@ -547,7 +547,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 		Number:                 uint32(round),
 	}
 
-	err := h.verifyPreCommitJustification(msg)
+	err := h.catchUp.verifyPreCommitJustification(msg)
 	require.NoError(t, err)
 }
 
@@ -949,7 +949,7 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 		Number:               uint32(bfcNumber),
 	}
 
-	hash, err := h.verifyPreVoteJustification(testCatchUpResponse)
+	hash, err := h.catchUp.verifyPreVoteJustification(testCatchUpResponse)
 	require.NoError(t, err)
 	require.Equal(t, hash, bfcHash)
 }
@@ -1022,7 +1022,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 		Number:                 uint32(bfcNumber),
 	}
 
-	err = h.verifyPreCommitJustification(testCatchUpResponse)
+	err = h.catchUp.verifyPreCommitJustification(testCatchUpResponse)
 	require.NoError(t, err)
 }
 
