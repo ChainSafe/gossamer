@@ -25,7 +25,7 @@ type testStreamHandler struct {
 	decoder  messageDecoder
 
 	// exitChan is a notify chan that the readStream
-	// works and sucessfuly returns
+	// works and sucessfully returns
 	exitChan chan struct{}
 }
 
