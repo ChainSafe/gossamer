@@ -560,10 +560,15 @@ func TestStreamCloseEOF(t *testing.T) {
 	err = stream.Close()
 	require.NoError(t, err)
 
+	timeout := time.NewTimer(time.Millisecond * 500)
+
 	select {
-	case <-time.After(time.Millisecond * 500):
-		require.Fail(t, "stream handler does not exit after stream closed")
+	case <-timeout.C:
+		t.Fatal("stream handler does not exit after stream closed")
 	case <-handler.exitChan:
+		if !timeout.Stop() {
+			<-timeout.C
+		}
 	}
 }
 
