@@ -87,8 +87,8 @@ not implemented support for messages of this type._
 
 ### Pause
 
-Messages of this type specifies a delay after which the current authority set should be paused.
+Messages of this type specify a delay after which the current authority set should be paused.
 
 ### Resume
 
-This messages specifies a delay after which the current authority set should be resumed.
+Messages of this type specify a delay after which the current authority set should be resumed.
