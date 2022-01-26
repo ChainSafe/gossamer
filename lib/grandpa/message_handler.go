@@ -75,7 +75,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) error {
 				from: from,
 				msg:  msg,
 			})
-			h.catchUp.bestResponse = msg
+			h.catchUp.bestResponse.Store(msg)
 		} else if err != nil {
 			logger.Debugf("could not catchup: %s", err)
 		}
@@ -129,7 +129,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 		logger.Debugf("lagging behind by %d rounds", int(msg.Round)-int(highestRound))
 		return h.catchUp.do(from, msg.Round, msg.SetID)
 	} else {
-		logger.Debugf("not lagging behind by more than threshold rounds")
+		logger.Debugf("not lagging behind by more than threshold rounds, msg.Round: %d, highestRound: %d", int(msg.Round), int(highestRound))
 	}
 
 	return nil

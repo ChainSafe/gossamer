@@ -5,7 +5,8 @@ package grandpa
 
 import (
 	"errors"
-	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -16,20 +17,27 @@ import (
 const catchUpResponseTimeout = time.Second * 5
 
 type catchUp struct {
-	requestsSent      map[peer.ID]CatchUpRequest
-	bestResponse      *CatchUpResponse
+	lock sync.Mutex // applied on requestsSent and bestResponse
+
+	requestsSent map[peer.ID]CatchUpRequest
+	bestResponse *atomic.Value // *CatchUpResponse
+
 	catchUpResponseCh chan *CatchUpResponse
+	waitingOnResponse *atomic.Value
 	grandpa           *Service
 }
 
 func newCatchUp(grandpa *Service) *catchUp {
 	return &catchUp{
-		requestsSent: make(map[peer.ID]CatchUpRequest),
-		grandpa:      grandpa,
+		requestsSent:      make(map[peer.ID]CatchUpRequest),
+		grandpa:           grandpa,
+		catchUpResponseCh: make(chan *CatchUpResponse),
 	}
 }
 
 func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
+	defer c.waitingOnResponse.Store(false)
+
 	if err := c.sendCatchUpRequest(
 		to, newCatchUpRequest(round, setID),
 	); err != nil {
@@ -47,7 +55,6 @@ func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
 
 	select {
 	case <-c.catchUpResponseCh:
-		fmt.Println("got a response, this is awesome")
 		return nil
 	case <-timer.C:
 		return errors.New("timeout")
@@ -55,17 +62,21 @@ func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
 }
 
 func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
-	if c.bestResponse != nil {
+	if c.bestResponse.Load() != nil {
 		logger.Debugf("ignoring neighbour message since we are already processing a catch response")
 		return nil
 	}
 
 	// TODO: Clean up all request sent before 5 min / (neighbour message interval)
+	c.lock.Lock()
 	_, ok := c.requestsSent[to]
+	c.lock.Unlock()
 	if ok {
 		logger.Debugf("ignoring neighbour message since we already sent a catch request to this peer: %s", to)
 		return nil
 	}
+
+	c.waitingOnResponse.Store(true)
 
 	cm, err := req.ToConsensusMessage()
 	if err != nil {
@@ -77,7 +88,9 @@ func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 		return err
 	}
 
+	c.lock.Lock()
 	c.requestsSent[to] = *req
+	c.lock.Unlock()
 	c.grandpa.paused.Store(true)
 
 	return nil
@@ -106,7 +119,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 		return ErrInvalidCatchUpResponseRound
 	}
 
-	if c.bestResponse.Round >= msg.Round {
+	if c.bestResponse.Load().(*CatchUpResponse).Round >= msg.Round {
 		logger.Debug("ignoring catch up response, since we are already processing one with a higher round")
 	}
 
@@ -147,9 +160,17 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	c.grandpa.state.round = msg.Round
 	close(c.grandpa.resumed)
 	c.grandpa.resumed = make(chan struct{})
-	c.catchUpResponseCh <- msg
+	if c.waitingOnResponse.Load().(bool) {
+		c.catchUpResponseCh <- msg
+	}
+
 	c.grandpa.paused.Store(false)
-	c.bestResponse = nil
+
+	// resetting both response and requests
+	c.bestResponse.Store(nil)
+	c.lock.Lock()
+	c.requestsSent = make(map[peer.ID]CatchUpRequest)
+	c.lock.Unlock()
 
 	logger.Debugf("caught up to round; unpaused service and grandpa state round is %d", c.grandpa.state.round)
 	return nil

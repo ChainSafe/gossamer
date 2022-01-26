@@ -125,7 +125,6 @@ func (t *tracker) handleBlock(b *types.Block) {
 		}
 	}
 
-	// TODO: Can I use the same mapLock or do I need to use catchUpResponseLock?
 	if cr, has := t.catchUpResponseMessages[h]; has {
 		err := t.handler.handleMessage(cr.from, cr.msg)
 		if err != nil {
