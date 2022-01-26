@@ -42,7 +42,7 @@ digests and the actions Gossamer takes when it receives them.
 assigns block authorship rights over periods of time referred to as "slots", which are a subdivision of an "epoch". One
 of the benefits of BABE is that it is able to provide a blockchain runtime with secure, decentralized randomness.
 Furthermore, BABE seeks to ensure the liveness of a blockchain by defining multiple tiers of potential block producers
-for each epoch. BABE digests may contain 1 of 3 messages, each of which are described below.
+for each epoch. BABE digests may contain one of the three message types described below.
 
 ### Next Epoch
 
@@ -57,7 +57,7 @@ not implemented supported for messages of this type._
 
 ### Next Config
 
-Messages of this type may only be issued in the first block of an epoch. These types of messages supply configuration
+Messages of this type may only be issued in the first block of an epoch. This message type supplies configuration
 parameters that should be applied from the _next_ epoch onwards. The parameters in this configuration relate to how
 backup authorities are selected.
 
@@ -76,18 +76,18 @@ the change should be applied.
 
 ### Forced Change
 
-This message is like that for scheduled changes, however the delay is calculated using _imported_ blocks (as opposed to
+This message is similar to the scheduled changes message type, however the delay is calculated using _imported_ blocks (as opposed to
 finalised blocks), which means that the change is valid for multiple candidate chains.
 
 ### Disabled
 
 A message of this type will contain the ID of an authority; this authority should cease all authority functionality and
 all other authorities should ignore any authority-related messages from the identified authority. _Note: Gossamer has
-not implemented supported for messages of this type._
+not implemented support for messages of this type._
 
 ### Pause
 
-This messages specifies a delay after which the current authority set should be paused.
+Messages of this type specifies a delay after which the current authority set should be paused.
 
 ### Resume
 
