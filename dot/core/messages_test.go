@@ -4,166 +4,370 @@
 package core
 
 import (
-	"math/big"
+	"errors"
 	"testing"
-	"time"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/sync"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	"github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/assert"
 )
 
-func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
-	t.Helper()
-	rawMeta, err := rt.Metadata()
-	require.NoError(t, err)
+var errDummyErr = errors.New("dummy error for testing")
 
-	var decoded []byte
-	err = scale.Unmarshal(rawMeta, &decoded)
-	require.NoError(t, err)
-
-	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
-	require.NoError(t, err)
-
-	rv, err := rt.Version()
-	require.NoError(t, err)
-
-	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
-	require.NoError(t, err)
-
-	ext := ctypes.NewExtrinsic(c)
-	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(genHash),
-		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
-		GenesisHash:        ctypes.Hash(genHash),
-		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
-		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
-	}
-
-	// Sign the transaction using Alice's key
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
-	require.NoError(t, err)
-
-	extEnc, err := ctypes.EncodeToHexString(ext)
-	require.NoError(t, err)
-
-	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
-	return extBytes
+type mockReportPeer struct {
+	change peerset.ReputationChange
+	id     peer.ID
 }
 
-func TestService_HandleBlockProduced(t *testing.T) {
-	net := new(mocks.Network)
-	cfg := &Config{
-		Network:  net,
-		Keystore: keystore.NewGlobalKeystore(),
-	}
-
-	s := NewTestService(t, cfg)
-	err := s.Start()
-	require.Nil(t, err)
-
-	// simulate block sent from BABE session
-	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	err = digest.Add(*prd)
-	require.NoError(t, err)
-
-	newBlock := types.Block{
-		Header: types.Header{
-			Number:     big.NewInt(1),
-			ParentHash: s.blockState.BestBlockHash(),
-			Digest:     digest,
-		},
-		Body: *types.NewBody([]types.Extrinsic{}),
-	}
-
-	expected := &network.BlockAnnounceMessage{
-		ParentHash:     newBlock.Header.ParentHash,
-		Number:         newBlock.Header.Number,
-		StateRoot:      newBlock.Header.StateRoot,
-		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
-		Digest:         digest,
-		BestBlock:      true,
-	}
-
-	net.On("GossipMessage", expected)
-
-	state, err := s.storageState.TrieState(nil)
-	require.NoError(t, err)
-
-	err = s.HandleBlockProduced(&newBlock, state)
-	require.NoError(t, err)
-
-	time.Sleep(time.Second)
-	net.AssertCalled(t, "GossipMessage", expected)
+type mockNetwork struct {
+	IsSynced   bool
+	ReportPeer *mockReportPeer
 }
 
-func TestService_HandleTransactionMessage(t *testing.T) {
-	t.Parallel()
+type mockBestHeader struct {
+	header *types.Header
+	err    error
+}
 
-	const peer1 = "testPeer1"
+type mockGetRuntime struct {
+	runtime runtime.Instance
+	err     error
+}
 
-	kp, err := sr25519.GenerateKeypair()
-	require.NoError(t, err)
+type mockBlockState struct {
+	bestHeader *mockBestHeader
+	getRuntime *mockGetRuntime
+}
 
-	ks := keystore.NewGlobalKeystore()
-	ks.Acco.Insert(kp)
+type mockStorageState struct {
+	input     *common.Hash
+	trieState *storage.TrieState
+	err       error
+}
 
+type mockTxnState struct {
+	input *transaction.ValidTransaction
+	hash  common.Hash
+}
+
+type mockSetContextStorage struct {
+	trieState *storage.TrieState
+}
+
+type mockValidateTxn struct {
+	input    types.Extrinsic
+	validity *transaction.Validity
+	err      error
+}
+
+type mockRuntime struct {
+	runtime           *mocksruntime.Instance
+	setContextStorage *mockSetContextStorage
+	validateTxn       *mockValidateTxn
+}
+
+func TestService_TransactionsCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	mockTxnStateEmpty := NewMockTransactionState(ctrl)
+	mockTxnState := NewMockTransactionState(ctrl)
 
-	cfg := &Config{
-		Keystore:         ks,
-		TransactionState: state.NewTransactionState(telemetryMock),
+	txs := []*transaction.ValidTransaction{nil, nil}
+
+	mockTxnStateEmpty.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{})
+	mockTxnState.EXPECT().PendingInPool().Return(txs)
+
+	tests := []struct {
+		name    string
+		service *Service
+		exp     int
+	}{
+		{
+			name:    "empty",
+			service: &Service{transactionState: mockTxnStateEmpty},
+			exp:     0,
+		},
+		{
+			name:    "not empty",
+			service: &Service{transactionState: mockTxnState},
+			exp:     2,
+		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			res := s.TransactionsCount()
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
 
-	s := NewTestService(t, cfg)
-	genHash := s.blockState.GenesisHash()
-	genHeader, err := s.blockState.BestBlockHeader()
-	require.NoError(t, err)
+func TestServiceHandleTransactionMessage(t *testing.T) {
+	testEmptyHeader := types.NewEmptyHeader()
+	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
-	rt, err := s.blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	runtimeMock := new(mocksruntime.Instance)
+	runtimeMock2 := new(mocksruntime.Instance)
+	runtimeMock3 := new(mocksruntime.Instance)
 
-	ts, err := s.storageState.TrieState(nil)
-	require.NoError(t, err)
-	rt.SetContextStorage(ts)
+	type args struct {
+		peerID peer.ID
+		msg    *network.TransactionMessage
+	}
+	tests := []struct {
+		name             string
+		service          *Service
+		args             args
+		exp              bool
+		expErr           error
+		expErrMsg        string
+		ctrl             *gomock.Controller
+		mockNetwork      *mockNetwork
+		mockBlockState   *mockBlockState
+		mockStorageState *mockStorageState
+		mockTxnState     *mockTxnState
+		mockRuntime      *mockRuntime
+	}{
+		{
+			name: "not synced",
+			mockNetwork: &mockNetwork{
+				IsSynced: false,
+			},
+		},
+		{
+			name: "best block header error",
+			mockNetwork: &mockNetwork{
+				IsSynced: true,
+			},
+			mockBlockState: &mockBlockState{
+				bestHeader: &mockBestHeader{
+					err: errDummyErr,
+				},
+			},
+			args: args{
+				msg: &network.TransactionMessage{Extrinsics: []types.Extrinsic{}},
+			},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "get runtime error",
+			mockNetwork: &mockNetwork{
+				IsSynced: true,
+			},
+			mockBlockState: &mockBlockState{
+				bestHeader: &mockBestHeader{
+					header: testEmptyHeader,
+				},
+				getRuntime: &mockGetRuntime{
+					err: errDummyErr,
+				},
+			},
+			args: args{
+				msg: &network.TransactionMessage{Extrinsics: []types.Extrinsic{}},
+			},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "happy path no loop",
+			mockNetwork: &mockNetwork{
+				IsSynced: true,
+				ReportPeer: &mockReportPeer{
+					change: peerset.ReputationChange{
+						Value:  peerset.GoodTransactionValue,
+						Reason: peerset.GoodTransactionReason,
+					},
+				},
+			},
+			mockBlockState: &mockBlockState{
+				bestHeader: &mockBestHeader{
+					header: testEmptyHeader,
+				},
+				getRuntime: &mockGetRuntime{
+					runtime: runtimeMock,
+				},
+			},
+			args: args{
+				peerID: peer.ID("jimbo"),
+				msg:    &network.TransactionMessage{Extrinsics: []types.Extrinsic{}},
+			},
+		},
+		{
+			name: "trie state error",
+			mockNetwork: &mockNetwork{
+				IsSynced: true,
+			},
+			mockBlockState: &mockBlockState{
+				bestHeader: &mockBestHeader{
+					header: testEmptyHeader,
+				},
+				getRuntime: &mockGetRuntime{
+					runtime: runtimeMock,
+				},
+			},
+			mockStorageState: &mockStorageState{
+				input: &common.Hash{},
+				err:   errDummyErr,
+			},
+			args: args{
+				peerID: peer.ID("jimbo"),
+				msg: &network.TransactionMessage{
+					Extrinsics: []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}},
+				},
+			},
+			expErr: errDummyErr,
+			expErrMsg: "failed validating transaction for peerID D1KeRhQ: cannot get trie state from storage" +
+				" for root 0x0000000000000000000000000000000000000000000000000000000000000000: dummy error for testing",
+		},
+		{
+			name: "runtime.ErrInvalidTransaction",
+			mockNetwork: &mockNetwork{
+				IsSynced: true,
+				ReportPeer: &mockReportPeer{
+					change: peerset.ReputationChange{
+						Value:  peerset.BadTransactionValue,
+						Reason: peerset.BadTransactionReason,
+					},
+					id: peer.ID("jimbo"),
+				},
+			},
+			mockBlockState: &mockBlockState{
+				bestHeader: &mockBestHeader{
+					header: testEmptyHeader,
+				},
+				getRuntime: &mockGetRuntime{
+					runtime: runtimeMock2,
+				},
+			},
+			mockStorageState: &mockStorageState{
+				input:     &common.Hash{},
+				trieState: &storage.TrieState{},
+			},
+			mockRuntime: &mockRuntime{
+				runtime:           runtimeMock2,
+				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
+				validateTxn: &mockValidateTxn{
+					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
+					err:   runtime.ErrInvalidTransaction,
+				},
+			},
+			args: args{
+				peerID: peer.ID("jimbo"),
+				msg: &network.TransactionMessage{
+					Extrinsics: []types.Extrinsic{{1, 2, 3}},
+				},
+			},
+		},
+		{
+			name: "validTransaction",
+			mockNetwork: &mockNetwork{
+				IsSynced: true,
+				ReportPeer: &mockReportPeer{
+					change: peerset.ReputationChange{
+						Value:  peerset.GoodTransactionValue,
+						Reason: peerset.GoodTransactionReason,
+					},
+					id: peer.ID("jimbo"),
+				},
+			},
+			mockBlockState: &mockBlockState{
+				bestHeader: &mockBestHeader{
+					header: testEmptyHeader,
+				},
+				getRuntime: &mockGetRuntime{
+					runtime: runtimeMock3,
+				},
+			},
+			mockStorageState: &mockStorageState{
+				input:     &common.Hash{},
+				trieState: &storage.TrieState{},
+			},
+			mockTxnState: &mockTxnState{
+				input: transaction.NewValidTransaction(
+					types.Extrinsic{1, 2, 3},
+					&transaction.Validity{
+						Propagate: true,
+					}),
+				hash: common.Hash{},
+			},
+			mockRuntime: &mockRuntime{
+				runtime:           runtimeMock3,
+				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
+				validateTxn: &mockValidateTxn{
+					input:    types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
+					validity: &transaction.Validity{Propagate: true},
+				},
+			},
+			args: args{
+				peerID: peer.ID("jimbo"),
+				msg: &network.TransactionMessage{
+					Extrinsics: []types.Extrinsic{{1, 2, 3}},
+				},
+			},
+			exp: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{}
+			ctrl := gomock.NewController(t)
+			if tt.mockNetwork != nil {
+				mockNet := NewMockNetwork(ctrl)
+				mockNet.EXPECT().IsSynced().Return(tt.mockNetwork.IsSynced)
+				if tt.mockNetwork.ReportPeer != nil {
+					mockNet.EXPECT().ReportPeer(tt.mockNetwork.ReportPeer.change, tt.args.peerID)
+				}
+				s.net = mockNet
+			}
+			if tt.mockBlockState != nil {
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().BestBlockHeader().Return(
+					tt.mockBlockState.bestHeader.header,
+					tt.mockBlockState.bestHeader.err)
 
-	block := sync.BuildBlock(t, rt, genHeader, nil)
+				if tt.mockBlockState.getRuntime != nil {
+					blockState.EXPECT().GetRuntime(gomock.Any()).Return(
+						tt.mockBlockState.getRuntime.runtime,
+						tt.mockBlockState.getRuntime.err)
+				}
+				s.blockState = blockState
+			}
+			if tt.mockStorageState != nil {
+				storageState := NewMockStorageState(ctrl)
+				storageState.EXPECT().Lock()
+				storageState.EXPECT().Unlock()
+				storageState.EXPECT().TrieState(tt.mockStorageState.input).Return(
+					tt.mockStorageState.trieState,
+					tt.mockStorageState.err)
+				s.storageState = storageState
+			}
+			if tt.mockTxnState != nil {
+				txnState := NewMockTransactionState(ctrl)
+				txnState.EXPECT().AddToPool(tt.mockTxnState.input).Return(tt.mockTxnState.hash)
+				s.transactionState = txnState
+			}
+			if tt.mockRuntime != nil {
+				rt := tt.mockRuntime.runtime
+				rt.On("SetContextStorage", tt.mockRuntime.setContextStorage.trieState)
+				rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
+					Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
+			}
 
-	err = s.handleBlock(block, ts)
-	require.NoError(t, err)
-
-	extBytes := createExtrinsic(t, rt, genHash, 0)
-	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	b, err := s.HandleTransactionMessage(peer1, msg)
-	require.NoError(t, err)
-	require.True(t, b)
-
-	pending := s.transactionState.(*state.TransactionState).Pending()
-	require.NotEqual(t, 0, len(pending))
-	require.Equal(t, extBytes, pending[0].Extrinsic)
-
-	extBytes = []byte(`bogus extrinsic`)
-	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	b, err = s.HandleTransactionMessage(peer1, msg)
-	require.NoError(t, err)
-	require.False(t, b)
+			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
 }
