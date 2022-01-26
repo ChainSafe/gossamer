@@ -32,6 +32,7 @@ func NewIntervalConfig(publish bool) IntervalConfig {
 	}
 }
 
+// Server is a metrics http server
 type Server struct {
 	cancel context.CancelFunc
 	server *httpserver.Server
