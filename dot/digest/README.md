@@ -76,8 +76,8 @@ the change should be applied.
 
 ### Forced Change
 
-This message is similar to the scheduled changes message type, however the delay is calculated using _imported_ blocks (as opposed to
-finalised blocks), which means that the change is valid for multiple candidate chains.
+This message is similar to the scheduled changes message type, however the delay is calculated using _imported_ blocks
+(as opposed to finalised blocks), which means that the change is valid for multiple candidate chains.
 
 ### Disabled
 
