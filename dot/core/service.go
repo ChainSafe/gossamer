@@ -410,22 +410,23 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		// TODO: re-add this, need to update tests (#904)
-		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
-		// if err != nil {
-		// 	// failed to validate tx, remove it from the pool or queue
-		// 	s.transactionState.RemoveExtrinsic(tx.Extrinsic)
-		// 	continue
-		// }
-
-		// tx = transaction.NewValidTransaction(tx.Extrinsic, val)
-
-		h, err := s.transactionState.Push(tx)
-		if err != nil && err == transaction.ErrTransactionExists {
-			// transaction is already in queue, remove it from the pool
-			s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
+		rt, err := s.blockState.GetRuntime(nil)
+		if err != nil {
+			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
 			continue
 		}
+
+		val, err := rt.ValidateTransaction(tx.Extrinsic)
+		if err != nil {
+			// failed to validate tx, remove it from the pool or queue
+			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
+			continue
+		}
+
+		tx = transaction.NewValidTransaction(tx.Extrinsic, val)
+
+		// Err is only thrown if tx is already in pool, in which case it still gets removed
+		h, _ := s.transactionState.Push(tx)
 
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
 		logger.Tracef("moved transaction %s to queue", h)

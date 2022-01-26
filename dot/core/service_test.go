@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -428,6 +429,86 @@ func TestService_HandleBlockProduced(t *testing.T) {
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErrMsg)
 			}
+		})
+	}
+}
+
+func TestService_maintainTransactionPool(t *testing.T) {
+	validity := &transaction.Validity{
+		Priority:  0x3e8,
+		Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
+		Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
+		Longevity: 0x40,
+		Propagate: true,
+	}
+
+	extrinsic := types.Extrinsic{21}
+
+	vt := transaction.NewValidTransaction(extrinsic, validity)
+
+
+	testHeader := types.NewEmptyHeader()
+	block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+	block.Header.Number = big.NewInt(21)
+
+	ctrl := gomock.NewController(t)
+	runtimeMockErr := new(mocksruntime.Instance)
+	mockTxnStateErr := NewMockTransactionState(ctrl)
+	mockTxnStateErr.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).MaxTimes(2)
+	mockTxnStateErr.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
+
+	mockBlockStateOk := NewMockBlockState(ctrl)
+	mockBlockStateOk.EXPECT().GetRuntime(nil).Return(runtimeMockErr, nil)
+
+	runtimeMockErr.On("ValidateTransaction", types.Extrinsic{21}).Return(nil, testDummyError)
+
+
+	tx := transaction.NewValidTransaction(types.Extrinsic{21}, &transaction.Validity{Propagate: true})
+	runtimeMockOk := new(mocksruntime.Instance)
+	mockTxnStateOk := NewMockTransactionState(ctrl)
+	mockTxnStateOk.EXPECT().RemoveExtrinsic(types.Extrinsic{21})
+	mockTxnStateOk.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
+	mockTxnStateOk.EXPECT().Push(tx).Return(common.Hash{}, nil)
+	mockTxnStateOk.EXPECT().RemoveExtrinsicFromPool(types.Extrinsic{21})
+
+	mockBlockStateOk2 := NewMockBlockState(ctrl)
+	mockBlockStateOk2.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
+
+	runtimeMockOk.On("ValidateTransaction", types.Extrinsic{21}).Return(&transaction.Validity{Propagate: true}, nil)
+
+	type args struct {
+		block *types.Block
+	}
+	tests := []struct {
+		name   string
+		service  *Service
+		args   args
+	}{
+		{
+			name: "Validate Transaction err",
+			service: &Service{
+				transactionState: mockTxnStateErr,
+				blockState: mockBlockStateOk,
+			},
+			args: args{
+				block: &block,
+			},
+		},
+		{
+			name: "Validate Transaction ok",
+			service: &Service{
+				transactionState: mockTxnStateOk,
+				blockState: mockBlockStateOk2,
+			},
+			args: args{
+				block: &block,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			s.maintainTransactionPool(tt.args.block)
 		})
 	}
 }
