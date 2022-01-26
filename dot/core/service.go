@@ -5,6 +5,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -310,12 +311,14 @@ func (s *Service) handleBlocksAsync() {
 			}
 
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
+				fmt.Println("reorg error")
 				logger.Warnf("failed to re-add transactions to chain upon re-org: %s", err)
 			}
 
 			s.maintainTransactionPool(block)
 		case <-s.ctx.Done():
 			return
+
 		}
 	}
 }

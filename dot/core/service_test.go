@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"os"
 	"testing"
+	"time"
 )
 
 var testDummyError = errors.New("test dummy error")
@@ -509,6 +510,109 @@ func TestService_maintainTransactionPool(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := tt.service
 			s.maintainTransactionPool(tt.args.block)
+		})
+	}
+}
+
+func TestService_handleBlocksAsync(t *testing.T) {
+	validity := &transaction.Validity{
+		Priority:  0x3e8,
+		Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
+		Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
+		Longevity: 0x40,
+		Propagate: true,
+	}
+
+	extrinsic := types.Extrinsic{21}
+
+	vt := transaction.NewValidTransaction(extrinsic, validity)
+
+	testHeader := types.NewEmptyHeader()
+	block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+	block.Header.Number = big.NewInt(21)
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{}).MaxTimes(4)
+
+	runtimeMockOk := new(mocksruntime.Instance)
+	mockBlockStateReorgErr := NewMockBlockState(ctrl)
+	mockBlockStateReorgErr.EXPECT().BestBlockHash().Return(common.Hash{}).MaxTimes(2)
+	mockBlockStateReorgErr.EXPECT().HighestCommonAncestor(common.Hash{}, block.Header.Hash()).
+		Return(common.Hash{}, testDummyError)
+	mockBlockStateReorgErr.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
+
+	mockTxnStateErr := NewMockTransactionState(ctrl)
+	mockTxnStateErr.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).MaxTimes(2)
+	mockTxnStateErr.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
+
+	runtimeMockOk.On("ValidateTransaction", types.Extrinsic{21}).Return(nil, testDummyError)
+
+
+	blockAddChan := make(chan *types.Block)
+
+	blockAddChan2 := make(chan *types.Block)
+	close(blockAddChan2)
+
+	blockAddChan3 := make(chan *types.Block)
+	go func() {
+		time.Sleep(1 * time.Second)
+		blockAddChan3<-nil
+		close(blockAddChan3)
+	}()
+
+	blockAddChan4 := make(chan *types.Block)
+	go func() {
+		time.Sleep(1 * time.Second)
+		blockAddChan4<-&block
+		close(blockAddChan4)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1)*time.Millisecond)
+	cancel()
+
+	tests := []struct {
+		name   string
+		service  *Service
+	}{
+		{
+			name: "closed context",
+			service: &Service{
+				blockState: mockBlockState,
+				blockAddCh: blockAddChan,
+				ctx: ctx,
+			},
+		},
+		{
+			name: "channel not ok",
+			service: &Service{
+				blockState: mockBlockState,
+				blockAddCh: blockAddChan2,
+				ctx: context.TODO(),
+			},
+		},
+		{
+			name: "nil block",
+			service: &Service{
+				blockState: mockBlockState,
+				blockAddCh: blockAddChan3,
+				ctx: context.TODO(),
+			},
+		},
+		{
+			name: "handleChainReorg error",
+			service: &Service{
+				blockState: mockBlockStateReorgErr,
+				transactionState: mockTxnStateErr,
+				blockAddCh: blockAddChan4,
+				ctx: context.TODO(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			s.handleBlocksAsync()
 		})
 	}
 }
