@@ -127,16 +127,9 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	// catch up only if we are behind by more than catchup threshold
 	if (int(msg.Round) - int(highestRound)) > catchupThreshold {
 		logger.Debugf("lagging behind by %d rounds", int(msg.Round)-int(highestRound))
-
-		if err := h.catchUp.sendCatchUpRequest(
-			from, newCatchUpRequest(msg.Round, setID),
-		); err != nil {
-			logger.Debugf("failed to send catch up request: %s", err.Error())
-			return err
-		}
-
-		logger.Debugf("successfully sent a catch up request to node %s, for round number %d and set ID %d",
-			from, msg.Round, setID)
+		return h.catchUp.do(from, msg.Round, msg.SetID)
+	} else {
+		logger.Debugf("not lagging behind by more than threshold rounds")
 	}
 
 	return nil

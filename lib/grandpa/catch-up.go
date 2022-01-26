@@ -4,21 +4,53 @@
 package grandpa
 
 import (
+	"errors"
+	"fmt"
+	"time"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+const catchUpResponseTimeout = time.Second * 5
+
 type catchUp struct {
-	requestsSent map[peer.ID]CatchUpRequest
-	bestResponse *CatchUpResponse
-	grandpa      *Service
+	requestsSent      map[peer.ID]CatchUpRequest
+	bestResponse      *CatchUpResponse
+	catchUpResponseCh chan *CatchUpResponse
+	grandpa           *Service
 }
 
 func newCatchUp(grandpa *Service) *catchUp {
 	return &catchUp{
 		requestsSent: make(map[peer.ID]CatchUpRequest),
 		grandpa:      grandpa,
+	}
+}
+
+func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
+	if err := c.sendCatchUpRequest(
+		to, newCatchUpRequest(round, setID),
+	); err != nil {
+		logger.Debugf("failed to send catch up request: %s", err.Error())
+		return err
+	}
+
+	logger.Debugf("successfully sent a catch up request to node %s, for round number %d and set ID %d",
+		to, round, setID)
+
+	c.grandpa.paused.Store(true)
+
+	timer := time.NewTimer(catchUpResponseTimeout)
+	defer timer.Stop()
+
+	select {
+	case <-c.catchUpResponseCh:
+		fmt.Println("got a response, this is awesome")
+		return nil
+	case <-timer.C:
+		return errors.New("timeout")
 	}
 }
 
@@ -115,6 +147,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	c.grandpa.state.round = msg.Round
 	close(c.grandpa.resumed)
 	c.grandpa.resumed = make(chan struct{})
+	c.catchUpResponseCh <- msg
 	c.grandpa.paused.Store(false)
 	c.bestResponse = nil
 
