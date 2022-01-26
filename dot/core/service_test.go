@@ -6,6 +6,7 @@ package core
 import (
 	"context"
 	"errors"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -19,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"math/big"
 	"os"
-
 	"testing"
 )
 
@@ -230,7 +230,6 @@ func TestService_handleBlock(t *testing.T) {
 	mockDigestHandler1 := NewMockDigestHandler(ctrl)
 	mockDigestHandler1.EXPECT().HandleDigests(&block.Header)
 
-	//code sub error
 	runtimeMock2 := new(mocksruntime.Instance)
 	mockStorageStateOk5 := NewMockStorageState(ctrl)
 	mockStorageStateOk5.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
@@ -328,7 +327,7 @@ func TestService_handleBlock(t *testing.T) {
 				storageState: mockStorageStateOk5,
 				blockState: mockBlockStateOk,
 				digestHandler: mockDigestHandler2,
-				ctx: context.Background(),
+				ctx: context.TODO(),
 			},
 			args: args{
 				block: &block,
@@ -340,6 +339,91 @@ func TestService_handleBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := tt.service
 			err := s.handleBlock(tt.args.block, tt.args.state)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+		})
+	}
+}
+
+func TestService_HandleBlockProduced(t *testing.T) {
+	emptyTrie := trie.NewEmptyTrie()
+	trieState, err := rtstorage.NewTrieState(emptyTrie)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(
+		types.PreRuntimeDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		})
+	require.NoError(t, err)
+
+	testHeader := types.NewEmptyHeader()
+	block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+	block.Header.Number = big.NewInt(21)
+	block.Header.Digest = digest
+
+	msg := &network.BlockAnnounceMessage{
+		ParentHash:     block.Header.ParentHash,
+		Number:         block.Header.Number,
+		StateRoot:      block.Header.StateRoot,
+		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+		Digest:         digest,
+		BestBlock:      true,
+	}
+
+	ctrl := gomock.NewController(t)
+
+	runtimeMock := new(mocksruntime.Instance)
+	mockStorageStateOk := NewMockStorageState(ctrl)
+	mockStorageStateOk.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
+	mockBlockState.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock, nil)
+	mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
+	mockDigestHandler := NewMockDigestHandler(ctrl)
+	mockDigestHandler.EXPECT().HandleDigests(&block.Header)
+	mockNetwork := NewMockNetwork(ctrl)
+	mockNetwork.EXPECT().GossipMessage(msg)
+
+	type args struct {
+		block *types.Block
+		state *rtstorage.TrieState
+	}
+	tests := []struct {
+		name    string
+		service  *Service
+		args    args
+		expErr error
+		expErrMsg string
+	}{
+		{
+			name: "nil input",
+			service: &Service{},
+			expErr: errNilBlockHandlerParameter,
+			expErrMsg: errNilBlockHandlerParameter.Error(),
+		},
+		{
+			name: "happy path",
+			service: &Service{
+				storageState: mockStorageStateOk,
+				blockState: mockBlockState,
+				digestHandler: mockDigestHandler,
+				net: mockNetwork,
+				ctx: context.TODO(),
+			},
+			args: args{
+				block: &block,
+				state: trieState,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			err := s.HandleBlockProduced(tt.args.block, tt.args.state)
 			assert.ErrorIs(t, err, tt.expErr)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErrMsg)

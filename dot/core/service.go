@@ -243,7 +243,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 		s.blockAddCh <- block
 	}()
-	
+
 	return nil
 }
 
