@@ -213,7 +213,6 @@ func TestService_handleBlock(t *testing.T) {
 	mockBlockStateErrNotFine2.EXPECT().AddBlock(&block).Return(blocktree.ErrParentNotFound)
 
 	//add block cont err
-	//runtimeMock := new(mocksruntime.Instance)
 	mockStorageStateOk3 := NewMockStorageState(ctrl)
 	mockStorageStateOk3.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 	mockBlockStateErrFine := NewMockBlockState(ctrl)
