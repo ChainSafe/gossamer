@@ -296,7 +296,7 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 		Digest: types.NewDigest(),
 	}
 
-	// disable message cache before sent the messages
+	// disable message cache before sending the messages
 	nodeA.host.messageCache = nil
 
 	// All 5 message will be sent since cache is disabled.

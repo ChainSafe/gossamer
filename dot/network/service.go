@@ -6,6 +6,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -414,14 +415,14 @@ func (s *Service) sentBandwidthTelemetry() {
 func (s *Service) sendBlockIntervalTelemetry() (err error) {
 	best, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get best block header: %w", err)
 	}
 
 	bestHash := best.Hash()
 
 	finalised, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get highehst finalised header: %w", err)
 	}
 
 	finalizedHash := finalised.Hash()
