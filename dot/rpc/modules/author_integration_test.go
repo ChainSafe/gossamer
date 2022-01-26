@@ -142,33 +142,34 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
-			telemetry.NewTxpoolImport(0, 1),
-		)
-	telemetryMock.EXPECT().
-		SendMessage(
 			telemetry.NewNotifyFinalized(
 				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
 
-	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
-	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewTxpoolImport(0, 1),
+		)
 
-	genesisHash := intCtrl.genesisHeader.Hash()
+	integrationTestController := setupStateAndPopulateTrieState(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
+	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+
+	genesisHash := integrationTestController.genesisHeader.Hash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		intCtrl.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{0xab, 0xcd})
+		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{0xab, 0xcd})
 
 	extBytes := common.MustHexToBytes(extHex)
 
 	net2test := coremocks.NewMockNetwork(ctrl)
 	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
-	intCtrl.network = net2test
+	integrationTestController.network = net2test
 
 	// setup auth module
-	auth := newAuthorModule(t, intCtrl)
+	auth := newAuthorModule(t, integrationTestController)
 
 	ext := Extrinsic{extHex}
 
@@ -189,7 +190,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	}
 
 	expectedHash := ExtrinsicHashResponse(expectedExtrinsic.Hash().String())
-	txOnPool := intCtrl.stateSrv.Transaction.PendingInPool()
+	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 
 	// compare results
 	require.Len(t, txOnPool, 1)
@@ -211,22 +212,22 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 			),
 		)
 
-	intCtrl := setupStateAndRuntime(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
-	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+	integrationTestController := setupStateAndRuntime(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
+	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
-	genesisHash := intCtrl.genesisHeader.Hash()
+	genesisHash := integrationTestController.genesisHeader.Hash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		intCtrl.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
 
 	net2test := coremocks.NewMockNetwork(ctrl)
 	net2test.EXPECT().GossipMessage(nil).MaxTimes(0)
 
-	intCtrl.network = net2test
+	integrationTestController.network = net2test
 
 	// setup auth module
-	auth := newAuthorModule(t, intCtrl)
+	auth := newAuthorModule(t, integrationTestController)
 
 	ext := Extrinsic{extHex}
 
@@ -234,7 +235,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	err := auth.SubmitExtrinsic(nil, &ext, res)
 	require.EqualError(t, err, runtime.ErrInvalidTransaction.Message)
 
-	txOnPool := intCtrl.stateSrv.Transaction.PendingInPool()
+	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)
 }
 
@@ -254,8 +255,8 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 	// setup service
 	// setup auth module
-	intctrl := setupStateAndRuntime(t, tmppath, telemetryMock, useInstanceFromGenesis)
-	auth := newAuthorModule(t, intctrl)
+	integrationTestController := setupStateAndRuntime(t, tmppath, telemetryMock, useInstanceFromGenesis)
+	auth := newAuthorModule(t, integrationTestController)
 
 	// create and submit extrinsic
 	ext := Extrinsic{fmt.Sprintf("%x", "1")}
@@ -272,40 +273,40 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
-			telemetry.NewTxpoolImport(0, 1),
-		)
-
-	telemetryMock.EXPECT().
-		SendMessage(
 			telemetry.NewNotifyFinalized(
 				common.MustHexToHash("0x26a30534b82025609b198c292634b7faacc95574ecc7a87f9f9b244d7d65e819"),
 				"0",
 			),
 		)
 
-	tmpbasepath := t.TempDir()
-	intCtrl := setupStateAndRuntime(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
-	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+	telemetryMock.EXPECT().
+		SendMessage(
+			telemetry.NewTxpoolImport(0, 1),
+		)
 
-	genesisHash := intCtrl.genesisHeader.Hash()
+	tmpbasepath := t.TempDir()
+	integrationTestController := setupStateAndRuntime(t, tmpbasepath, telemetryMock, useInstanceFromGenesis)
+	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+
+	genesisHash := integrationTestController.genesisHeader.Hash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		intCtrl.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
 	extBytes := common.MustHexToBytes(extHex)
 
 	storageState := coremocks.NewMockStorageState(ctrl)
 	// should not call storage.TrieState
 	storageState.EXPECT().TrieState(nil).MaxTimes(0)
-	intCtrl.storageState = storageState
+	integrationTestController.storageState = storageState
 
 	net2test := coremocks.NewMockNetwork(ctrl)
 	// should not call network.GossipMessage
 	net2test.EXPECT().GossipMessage(nil).MaxTimes(0)
-	intCtrl.network = net2test
+	integrationTestController.network = net2test
 
 	// setup auth module
-	auth := newAuthorModule(t, intCtrl)
+	auth := newAuthorModule(t, integrationTestController)
 
 	// create and submit extrinsic
 	ext := Extrinsic{extHex}
@@ -324,7 +325,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 		},
 	}
 
-	intCtrl.stateSrv.Transaction.AddToPool(expected)
+	integrationTestController.stateSrv.Transaction.AddToPool(expected)
 
 	// should not cause error, since a transaction
 	err := auth.SubmitExtrinsic(nil, &ext, res)
@@ -344,8 +345,8 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 			),
 		)
 
-	intctrl := setupStateAndRuntime(t, tmppath, telemetryMock, nil)
-	auth := newAuthorModule(t, intctrl)
+	integrationTestController := setupStateAndRuntime(t, tmppath, telemetryMock, useInstanceFromGenesis)
+	auth := newAuthorModule(t, integrationTestController)
 
 	const seed = "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
 
@@ -413,7 +414,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 
 			require.Nil(t, err)
 
-			ks, err := intctrl.keystore.GetKeystore([]byte(tt.ksType))
+			ks, err := integrationTestController.keystore.GetKeystore([]byte(tt.ksType))
 			require.NoError(t, err)
 
 			foundKp := ks.GetKeypairFromAddress(expectedKp.Public().Address())
@@ -437,7 +438,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 			),
 		)
 
-	intctrl := setupStateAndRuntime(t, tmppath, telemetryMock, useInstanceFromGenesis)
+	integrationTestController := setupStateAndRuntime(t, tmppath, telemetryMock, useInstanceFromGenesis)
 
 	ks := keystore.NewGlobalKeystore()
 
@@ -446,9 +447,9 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 
 	ks.Babe.Insert(kr.Alice())
 
-	intctrl.keystore = ks
+	integrationTestController.keystore = ks
 
-	auth := newAuthorModule(t, intctrl)
+	auth := newAuthorModule(t, integrationTestController)
 
 	testcases := map[string]struct {
 		pub, keytype string
@@ -516,11 +517,11 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 			),
 		)
 
-	intCtrl := setupStateAndRuntime(t, tmpdir, telemetryMock, useInstanceFromGenesis)
-	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
-	intCtrl.keystore = keystore.NewGlobalKeystore()
+	integrationTestController := setupStateAndRuntime(t, tmpdir, telemetryMock, useInstanceFromGenesis)
+	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+	integrationTestController.keystore = keystore.NewGlobalKeystore()
 
-	auth := newAuthorModule(t, intCtrl)
+	auth := newAuthorModule(t, integrationTestController)
 
 	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
 	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
@@ -625,13 +626,13 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	telemetryMock.EXPECT().
 		SendMessage(gomock.Any()).AnyTimes()
 
-	intCtrl := setupStateAndPopulateTrieState(t, tmpbasepath, telemetryMock, useInstanceFromRuntimeV0910)
-	intCtrl.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
+	integrationTestController := setupStateAndPopulateTrieState(t, tmpbasepath, telemetryMock, useInstanceFromRuntimeV0910)
+	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
-	genesisHash := intCtrl.genesisHeader.Hash()
+	genesisHash := integrationTestController.genesisHeader.Hash()
 
 	extHex := runtime.NewTestExtrinsic(t,
-		intCtrl.runtime, genesisHash, genesisHash, 1, "System.remark", []byte{0xab, 0xcd})
+		integrationTestController.runtime, genesisHash, genesisHash, 1, "System.remark", []byte{0xab, 0xcd})
 
 	// to extrinsic works with a runtime version 0910 we need to
 	// append the block hash bytes at the end of the extrinsics
@@ -642,10 +643,10 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 
 	net2test := coremocks.NewMockNetwork(ctrl)
 	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
-	intCtrl.network = net2test
+	integrationTestController.network = net2test
 
 	// setup auth module
-	auth := newAuthorModule(t, intCtrl)
+	auth := newAuthorModule(t, integrationTestController)
 
 	ext := Extrinsic{extHex}
 
@@ -680,7 +681,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	}
 
 	expectedHash := ExtrinsicHashResponse(expectedExtrinsic.Hash().String())
-	txOnPool := intCtrl.stateSrv.Transaction.PendingInPool()
+	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 
 	// compare results
 	require.Len(t, txOnPool, 1)
@@ -815,23 +816,23 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 //go:generate mockgen -destination=mock_code_substituted_state_test.go -package modules github.com/ChainSafe/gossamer/dot/core CodeSubstitutedState
 //go:generate mockgen -destination=mock_digest_handler_test.go -package modules github.com/ChainSafe/gossamer/dot/core DigestHandler
 
-func newAuthorModule(t *testing.T, intCtrl *integrationTestController) *AuthorModule {
+func newAuthorModule(t *testing.T, integrationTestController *integrationTestController) *AuthorModule {
 	t.Helper()
 
 	codeSubstitutedStateMock := NewMockCodeSubstitutedState(nil)
 	digestHandlerMock := NewMockDigestHandler(nil)
 
 	cfg := &core.Config{
-		TransactionState:     intCtrl.stateSrv.Transaction,
-		BlockState:           intCtrl.stateSrv.Block,
-		StorageState:         intCtrl.storageState,
-		Network:              intCtrl.network,
-		Keystore:             intCtrl.keystore,
+		TransactionState:     integrationTestController.stateSrv.Transaction,
+		BlockState:           integrationTestController.stateSrv.Block,
+		StorageState:         integrationTestController.storageState,
+		Network:              integrationTestController.network,
+		Keystore:             integrationTestController.keystore,
 		CodeSubstitutedState: codeSubstitutedStateMock,
 		DigestHandler:        digestHandlerMock,
 	}
 
 	core2test, err := core.NewService(cfg)
 	require.NoError(t, err)
-	return NewAuthorModule(log.New(log.SetLevel(log.Debug)), core2test, intCtrl.stateSrv.Transaction)
+	return NewAuthorModule(log.New(log.SetLevel(log.Debug)), core2test, integrationTestController.stateSrv.Transaction)
 }
