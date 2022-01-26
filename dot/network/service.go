@@ -392,7 +392,7 @@ func (s *Service) publishTelemetry(cancel <-chan struct{}) {
 
 	for {
 		s.sentBandwidthTelemetry()
-		err := s.sentBlockIntervalTelemetry()
+		err := s.sendBlockIntervalTelemetry()
 		if err != nil {
 			logger.Warnf("failed to sent block interval telemetry: %s", err)
 			continue
@@ -411,7 +411,7 @@ func (s *Service) sentBandwidthTelemetry() {
 	s.telemetry.SendMessage(telemetry.NewBandwidth(o.RateIn, o.RateOut, s.host.peerCount()))
 }
 
-func (s *Service) sentBlockIntervalTelemetry() (err error) {
+func (s *Service) sendBlockIntervalTelemetry() (err error) {
 	best, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		return err
