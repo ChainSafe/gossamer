@@ -426,7 +426,7 @@ func (n *Node) Stop() {
 	if n.metricsServer != nil {
 		err := n.metricsServer.Stop()
 		if err != nil {
-			log.Errorf("%v", err)
+			log.Errorf("cannot stop metrics server: %s", err)
 		}
 	}
 }
