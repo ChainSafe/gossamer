@@ -490,7 +490,7 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
 	header, err := bs.GetHeader(bs.BestBlockHash())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot get header of best block: %w", err)
 	}
 	syncedBlocksGauge.Set(float64(header.Number.Int64()))
 	return header, nil
