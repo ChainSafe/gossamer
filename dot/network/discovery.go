@@ -62,11 +62,13 @@ func newDiscovery(ctx context.Context, h libp2phost.Host,
 
 func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 	// get all currently connected peers and use them to bootstrap the DHT
-	currentPeers := d.h.Network().Peers()
-	t := time.NewTicker(startDHTTimeout)
 
+	currentPeers := d.h.Network().Peers()
+
+	t := time.NewTicker(startDHTTimeout)
 	defer t.Stop()
-	for len(currentPeers) > 0 {
+
+	for len(currentPeers) == 0 {
 		select {
 		case <-t.C:
 			logger.Debug("no peers yet, waiting to start DHT...")
@@ -79,9 +81,9 @@ func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 		currentPeers = d.h.Network().Peers()
 	}
 
-	peers = make([]peer.AddrInfo, 0)
-	for _, p := range currentPeers {
-		peers = append(d.bootnodes, d.h.Peerstore().PeerInfo(p))
+	peers = make([]peer.AddrInfo, len(currentPeers))
+	for idx, p := range currentPeers {
+		peers[idx] = d.h.Peerstore().PeerInfo(p)
 	}
 
 	return peers, nil
@@ -149,13 +151,15 @@ func (d *discovery) advertise() {
 	ttl := initialAdvertisementTimeout
 
 	for {
+		wait := time.NewTimer(ttl)
+
 		select {
 		case <-d.ctx.Done():
+			if !wait.Stop() {
+				<-wait.C
+			}
 			return
-		default:
-			wait := time.NewTimer(ttl)
-			<-wait.C
-
+		case <-wait.C:
 			logger.Debug("advertising ourselves in the DHT...")
 			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
@@ -210,12 +214,9 @@ func (d *discovery) findPeers() {
 				continue
 			}
 
-			// d.handler.AddPeer can be blocked while writing to the action queue channel
-			go func() {
-				logger.Tracef("found new peer %s via DHT", peer.ID)
-				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
-				d.handler.AddPeer(0, peer.ID)
-			}()
+			logger.Tracef("found new peer %s via DHT", peer.ID)
+			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+			d.handler.AddPeer(0, peer.ID)
 		}
 	}
 }
