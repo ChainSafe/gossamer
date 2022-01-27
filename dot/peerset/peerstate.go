@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -21,6 +23,14 @@ const (
 	// unknownPeer peerStatus is unknown
 	unknownPeer = "unknownPeer"
 )
+
+var reputationGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	Namespace: "gossamer_peerset",
+	Name:      "reputation",
+	Help:      "reputation for a specific peer id",
+}, []string{
+	"peer_id",
+})
 
 // MembershipState represent the state of node ingoing the set.
 type MembershipState int
@@ -223,6 +233,7 @@ func (ps *PeersState) addReputation(pid peer.ID, change ReputationChange) (
 	newReputation = n.addReputation(change.Value)
 	ps.nodes[pid] = n
 
+	reputationGauge.WithLabelValues(pid.Pretty()).Set(float64(newReputation))
 	return newReputation, nil
 }
 

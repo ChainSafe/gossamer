@@ -12,10 +12,19 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	logger = log.NewFromGlobal(log.AddContext("pkg", "peerset"))
+	logger        = log.NewFromGlobal(log.AddContext("pkg", "peerset"))
+	bannedCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "gossamer_peerset",
+		Name:      "banned_total",
+		Help:      "total number of peer bans",
+	}, []string{
+		"peer_id",
+	})
 )
 
 const (
@@ -282,6 +291,7 @@ func (ps *PeerSet) updateTime() error {
 			after := reputationTick(before)
 			n.setReputation(after)
 			ps.peerState.nodes[peerID] = n
+			reputationGauge.WithLabelValues(peerID.Pretty()).Set(float64(after))
 
 			if after != 0 {
 				continue
@@ -334,6 +344,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 		for i := 0; i < setLen; i++ {
 			if ps.peerState.peerStatus(i, pid) == connectedPeer {
 				// disconnect peer
+				bannedCounter.WithLabelValues(pid.Pretty()).Inc()
 				err = ps.peerState.disconnect(i, pid)
 				if err != nil {
 					return err
