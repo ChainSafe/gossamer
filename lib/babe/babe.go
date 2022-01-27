@@ -292,12 +292,12 @@ func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, erro
 
 func (b *Service) initiate() {
 	if b.blockState == nil {
-		logger.Errorf("block authoring: %w", ErrNilBlockState)
+		logger.Errorf("block authoring: %s", ErrNilBlockState)
 		return
 	}
 
 	if b.storageState == nil {
-		logger.Errorf("block authoring: %w", errNilStorageState)
+		logger.Errorf("block authoring: %s", errNilStorageState)
 		return
 	}
 
@@ -305,7 +305,7 @@ func (b *Service) initiate() {
 	// retry to run the engine at some point (maybe the next epoch) if
 	// there's an error.
 	if err := b.runEngine(); err != nil {
-		logger.Criticalf("failed to run block production engine: %w", err)
+		logger.Criticalf("failed to run block production engine: %s", err)
 	}
 }
 
@@ -353,6 +353,10 @@ func (b *Service) runEngine() error {
 func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
+	if err != nil {
+		return 0, fmt.Errorf("cannot initiate and get epoch handler for epoch %d: %w", epoch, err)
+	}
 
 	// get start slot for current epoch
 	nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
@@ -366,11 +370,6 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 		if !epochTimer.Stop() {
 			<-epochTimer.C
 		}
-	}
-
-	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
-	if err != nil {
-		return 0, fmt.Errorf("cannot initiate and get epoch handler for epoch %d: %w", epoch, err)
 	}
 
 	errCh := make(chan error)
