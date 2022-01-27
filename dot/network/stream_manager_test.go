@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -30,12 +29,9 @@ func setupStreamManagerTest(t *testing.T, cleanupStreamInterval time.Duration) (
 	smA := newStreamManager(ctx, cleanupStreamInterval)
 	smB := newStreamManager(ctx, cleanupStreamInterval)
 
-	portA := availablePort(t)
-	portB := availablePort(t)
-
-	addrA, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", portA))
+	addrA, err := ma.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
 	require.NoError(t, err)
-	addrB, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", portB))
+	addrB, err := ma.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
 	require.NoError(t, err)
 
 	ha, err := libp2p.New(

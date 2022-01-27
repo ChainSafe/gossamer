@@ -23,7 +23,7 @@ func TestMinPeers(t *testing.T) {
 	for i := range nodes {
 		config := &Config{
 			BasePath:    t.TempDir(),
-			Port:        availablePort(t),
+			Port:        0,
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -36,7 +36,7 @@ func TestMinPeers(t *testing.T) {
 
 	configB := &Config{
 		BasePath:  t.TempDir(),
-		Port:      availablePort(t),
+		Port:      0,
 		Bootnodes: []string{addrs.String(), addrs1.String()},
 		NoMDNS:    true,
 		MinPeers:  min,
@@ -63,7 +63,7 @@ func TestMaxPeers(t *testing.T) {
 	for i := range nodes {
 		config := &Config{
 			BasePath:    t.TempDir(),
-			Port:        availablePort(t),
+			Port:        0,
 			NoBootstrap: true,
 			NoMDNS:      true,
 			MaxPeers:    max,
@@ -134,7 +134,7 @@ func TestPersistentPeers(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -143,7 +143,7 @@ func TestPersistentPeers(t *testing.T) {
 
 	configB := &Config{
 		BasePath:        t.TempDir(),
-		Port:            availablePort(t),
+		Port:            0,
 		NoMDNS:          true,
 		PersistentPeers: []string{addrs[0].String()},
 	}
@@ -173,7 +173,7 @@ func TestRemovePeer(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -185,7 +185,7 @@ func TestRemovePeer(t *testing.T) {
 
 	configB := &Config{
 		BasePath:  t.TempDir(),
-		Port:      availablePort(t),
+		Port:      0,
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
 	}
@@ -214,7 +214,7 @@ func TestSetReservedPeer(t *testing.T) {
 	for i := range nodes {
 		config := &Config{
 			BasePath:    t.TempDir(),
-			Port:        availablePort(t),
+			Port:        0,
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -228,7 +228,7 @@ func TestSetReservedPeer(t *testing.T) {
 
 	config := &Config{
 		BasePath:        t.TempDir(),
-		Port:            availablePort(t),
+		Port:            0,
 		NoMDNS:          true,
 		PersistentPeers: []string{addrA.String(), addrB.String()},
 	}

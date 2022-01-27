@@ -23,7 +23,7 @@ func TestGossip(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -34,7 +34,7 @@ func TestGossip(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -54,7 +54,7 @@ func TestGossip(t *testing.T) {
 
 	configC := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

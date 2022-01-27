@@ -19,7 +19,7 @@ func TestMDNS(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 	}
 
@@ -28,7 +28,7 @@ func TestMDNS(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 	}
 

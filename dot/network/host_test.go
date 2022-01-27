@@ -4,7 +4,6 @@
 package network
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ func TestExternalAddrs(t *testing.T) {
 
 	config := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -50,11 +49,10 @@ func mustNewMultiAddr(s string) (a ma.Multiaddr) {
 func TestExternalAddrsPublicIP(t *testing.T) {
 	t.Parallel()
 
-	port := availablePort(t)
 	config := &Config{
 		BasePath:    t.TempDir(),
 		PublicIP:    "10.0.5.2",
-		Port:        port,
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -76,8 +74,8 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 	}
 
 	expected := []ma.Multiaddr{
-		mustNewMultiAddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)),
-		mustNewMultiAddr(fmt.Sprintf("/ip4/10.0.5.2/tcp/%d", port)),
+		mustNewMultiAddr("/ip4/127.0.0.1/tcp/0"),
+		mustNewMultiAddr("/ip4/10.0.5.2/tcp/0"),
 	}
 	assert.Equal(t, addrInfo.Addrs, expected)
 }
@@ -109,7 +107,7 @@ func TestConnect(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -119,7 +117,7 @@ func TestConnect(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -149,7 +147,7 @@ func TestBootstrap(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -161,7 +159,7 @@ func TestBootstrap(t *testing.T) {
 
 	configB := &Config{
 		BasePath:  t.TempDir(),
-		Port:      availablePort(t),
+		Port:      0,
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
 	}
@@ -188,7 +186,7 @@ func TestSend(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -198,7 +196,7 @@ func TestSend(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -235,7 +233,7 @@ func TestExistingStream(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -248,7 +246,7 @@ func TestExistingStream(t *testing.T) {
 	addrInfoA := nodeA.host.addrInfo()
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -307,7 +305,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -319,7 +317,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -382,7 +380,7 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -391,7 +389,7 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -446,7 +444,7 @@ func Test_AddReservedPeers(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -456,7 +454,7 @@ func Test_AddReservedPeers(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -478,7 +476,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -488,7 +486,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -523,7 +521,7 @@ func TestStreamCloseEOF(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -533,7 +531,7 @@ func TestStreamCloseEOF(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -578,7 +576,7 @@ func TestPeerConnect(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -590,7 +588,7 @@ func TestPeerConnect(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -616,7 +614,7 @@ func TestBannedPeer(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -628,7 +626,7 @@ func TestBannedPeer(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -669,7 +667,7 @@ func TestPeerReputation(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,
@@ -681,7 +679,7 @@ func TestPeerReputation(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		MinPeers:    1,

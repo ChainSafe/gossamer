@@ -25,7 +25,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	config := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -87,7 +87,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	config := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -96,7 +96,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -148,7 +148,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	config := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -167,7 +167,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -227,7 +227,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -237,7 +237,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
@@ -315,7 +315,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	const batchSize = 5
 	config := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		batchSize:   batchSize,
@@ -325,7 +325,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
+		Port:        0,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
