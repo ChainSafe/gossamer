@@ -30,7 +30,7 @@ func errTrieDoesNotExist(hash common.Hash) error {
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	blockState *BlockState
-	tries      *sync.Map // map[common.Hash]*trie.Trie // map of root -> trie
+	tries      *tries
 
 	db chaindb.Database
 	sync.RWMutex
@@ -52,8 +52,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 		return nil, fmt.Errorf("cannot have nil trie")
 	}
 
-	tries := new(sync.Map)
-	tries.Store(t.MustHash(), t)
+	tries := newTries(t)
 
 	storageTable := chaindb.NewTable(db, storagePrefix)
 
@@ -79,14 +78,14 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 
 func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	logger.Tracef("pruning trie, number=%d hash=%s", keyHeader.Number, keyHeader.Hash())
-	s.tries.Delete(keyHeader.StateRoot)
+	s.tries.delete(keyHeader.StateRoot)
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
 
-	_, _ = s.tries.LoadOrStore(root, ts.Trie())
+	s.tries.softSet(root, ts.Trie())
 
 	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
 		return fmt.Errorf("block cannot be empty for Full node pruner")
@@ -127,20 +126,16 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		root = &sr
 	}
 
-	st, has := s.tries.Load(*root)
-	if !has {
+	t := s.tries.get(*root)
+	if t == nil {
 		var err error
-		st, err = s.LoadFromDB(*root)
+		t, err = s.LoadFromDB(*root)
 		if err != nil {
 			return nil, err
 		}
 
-		_, _ = s.tries.LoadOrStore(*root, st)
-	}
-
-	t := st.(*trie.Trie)
-
-	if has && t.MustHash() != *root {
+		s.tries.softSet(*root, t)
+	} else if t.MustHash() != *root {
 		panic("trie does not have expected root")
 	}
 
@@ -162,7 +157,7 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 		return nil, err
 	}
 
-	_, _ = s.tries.LoadOrStore(t.MustHash(), t)
+	s.tries.softSet(t.MustHash(), t)
 	return t, nil
 }
 
@@ -175,8 +170,9 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 		root = &sr
 	}
 
-	if t, has := s.tries.Load(*root); has && t != nil {
-		return t.(*trie.Trie), nil
+	t := s.tries.get(*root)
+	if t != nil {
+		return t, nil
 	}
 
 	tr, err := s.LoadFromDB(*root)
@@ -205,8 +201,9 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 		root = &sr
 	}
 
-	if t, has := s.tries.Load(*root); has {
-		val := t.(*trie.Trie).Get(key)
+	t := s.tries.get(*root)
+	if t != nil {
+		val := t.Get(key)
 		return val, nil
 	}
 

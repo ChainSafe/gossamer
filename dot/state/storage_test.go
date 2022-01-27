@@ -5,7 +5,6 @@ package state
 
 import (
 	"math/big"
-	"sync"
 	"testing"
 	"time"
 
@@ -99,7 +98,7 @@ func TestStorage_TrieState(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 
 	// get trie from db
-	storage.tries.Delete(root)
+	storage.tries.delete(root)
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
 	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
@@ -131,32 +130,23 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.tries.Delete(root)
+	storage.tries.delete(root)
 
 	data, err := storage.GetStorage(&root, trieKV[0].key)
 	require.NoError(t, err)
 	require.Equal(t, trieKV[0].value, data)
 
-	storage.tries.Delete(root)
+	storage.tries.delete(root)
 
 	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(prefixKeys))
 
-	storage.tries.Delete(root)
+	storage.tries.delete(root)
 
 	entries, err := storage.Entries(&root)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(entries))
-}
-
-func syncMapLen(m *sync.Map) int {
-	l := 0
-	m.Range(func(_, _ interface{}) bool {
-		l++
-		return true
-	})
-	return l
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
@@ -170,7 +160,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
-	require.Equal(t, 2, syncMapLen(storage.tries))
+	require.Equal(t, 2, storage.tries.len())
 }
 
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
@@ -217,7 +207,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.tries.Delete(rootHash)
+	storage.tries.delete(rootHash)
 
 	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
