@@ -16,7 +16,11 @@ import (
 
 const defaultInterval = 10 * time.Second
 
-var logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
+var (
+	logger                     log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
+	ErrServerEndedUnexpectedly                   = fmt.Errorf("metrics server exited unexpectedly")
+	ErrServerStopTimeout                         = fmt.Errorf("metrics server exit timeout")
+)
 
 // IntervalConfig for interval collection
 type IntervalConfig struct {
@@ -68,21 +72,25 @@ func (s *Server) Start(address string) (err error) {
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("metrics server exited unexpectedly")
+		return ErrServerEndedUnexpectedly
 	}
 }
 
 // Stop will stop the metrics server
 func (s *Server) Stop() (err error) {
 	s.cancel()
+	timeout := time.NewTimer(30 * time.Second)
 	select {
 	case err := <-s.done:
 		close(s.done)
+		if !timeout.Stop() {
+			<-timeout.C
+		}
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("metrics server exited unexpectedly")
-	case <-time.NewTimer(30 * time.Second).C:
-		return fmt.Errorf("metrics server exit timeout")
+		return ErrServerEndedUnexpectedly
+	case <-timeout.C:
+		return ErrServerStopTimeout
 	}
 }
