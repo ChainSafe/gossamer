@@ -43,10 +43,9 @@ type Server struct {
 func NewServer(address string) (s *Server) {
 	m := http.NewServeMux()
 	m.Handle("/metrics", promhttp.Handler())
-	s = &Server{
+	return &Server{
 		server: httpserver.New("metrics", address, m, logger),
 	}
-	return
 }
 
 // Start will start a dedicated metrics server at the given address.
