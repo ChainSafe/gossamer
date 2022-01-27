@@ -256,15 +256,11 @@ func (bt *BlockTree) BestBlockHash() Hash {
 		return Hash{}
 	}
 
-	best := bt.leaves.bestBlock()
-	return best.hash
+	if len(bt.root.children) == 0 {
+		return bt.root.hash
+	}
 
-	// deepest := bt.leaves.deepestLeaf()
-	// if deepest == nil {
-	// 	return Hash{}
-	// }
-
-	// return deepest.hash
+	return bt.best().hash
 }
 
 // IsDescendantOf returns true if the child is a descendant of parent, false otherwise.

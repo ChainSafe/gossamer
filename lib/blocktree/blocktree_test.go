@@ -477,7 +477,7 @@ func TestBlockTree_GetHashByNumber(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_BestBlockHash(t *testing.T) {
+func TestBlockTree_BestBlockHash_AllChainsEqual(t *testing.T) {
 	bt := NewBlockTreeFromRoot(testHeader)
 	previousHash := testHeader.Hash()
 
@@ -627,4 +627,30 @@ func equalLeaves(lm *leafMap, lmCopy *leafMap) bool {
 		return equalNodeValue(val, lmCopyVal)
 	}
 	return true
+}
+
+func TestBlockTree_best(t *testing.T) {
+	bt := NewEmptyBlockTree()
+	bt.root = &node{
+		hash: common.Hash{0},
+	}
+
+	bt.root.children = []*node{
+		{
+			hash:      common.Hash{1},
+			parent:    bt.root,
+			isPrimary: true,
+		},
+		{
+			hash:      common.Hash{2},
+			parent:    bt.root,
+			isPrimary: false,
+		},
+	}
+
+	bt.leaves = newEmptyLeafMap()
+	bt.leaves.store(bt.root.children[0].hash, bt.root.children[0])
+	bt.leaves.store(bt.root.children[1].hash, bt.root.children[1])
+
+	require.Equal(t, bt.root.children[0].hash, bt.BestBlockHash())
 }

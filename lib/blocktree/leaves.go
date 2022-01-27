@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"sync"
 
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -145,6 +147,7 @@ func (lm *leafMap) bestBlock() *node {
 		n := nn.(*node)
 		count := n.primaryAncestorCount(0)
 
+		fmt.Println(n, count)
 		nodesWithCount, has := counts[count]
 		if !has {
 			counts[count] = []*node{n}
