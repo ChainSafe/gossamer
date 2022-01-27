@@ -4,6 +4,7 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -72,6 +73,10 @@ func (t *tries) deleteTrieFromMemory(root common.Hash) {
 	delete(t.rootToTrie, root)
 }
 
+var (
+	ErrTrieUnexpectedRootHash = errors.New("trie has an unexpected root hash")
+)
+
 // getTrie retrieves the trie corresponding by the root hash given,
 // by first trying from memory and then from the persistent database.
 // If it is absent from memory but found in the database,
@@ -94,6 +99,12 @@ func (t *tries) getTrie(root common.Hash) (tr *trie.Trie, err error) {
 	err = tr.Load(t.db, root)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load root from database: %w", err)
+	}
+
+	calculatedRootHash := tr.MustHash()
+	if !calculatedRootHash.Equal(root) {
+		return nil, fmt.Errorf("%w: expected %s but calculated hash is %s",
+			ErrTrieUnexpectedRootHash, root, calculatedRootHash)
 	}
 
 	t.rootToTrie[root] = tr
