@@ -348,7 +348,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		node.metricsServer = metrics.NewServer(address)
 		err := node.metricsServer.Start(address)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot start metrics server: %w", err)
 		}
 	}
 
