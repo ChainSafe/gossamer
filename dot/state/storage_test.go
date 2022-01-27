@@ -159,21 +159,6 @@ func syncMapLen(m *sync.Map) int {
 	return l
 }
 
-func TestStorage_StoreTrie_Syncing(t *testing.T) {
-	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
-	require.NoError(t, err)
-
-	key := []byte("testkey")
-	value := []byte("testvalue")
-	ts.Set(key, value)
-
-	storage.SetSyncing(true)
-	err = storage.StoreTrie(ts, nil)
-	require.NoError(t, err)
-	require.Equal(t, 1, syncMapLen(storage.tries))
-}
-
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
@@ -183,7 +168,6 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	value := []byte("testvalue")
 	ts.Set(key, value)
 
-	storage.SetSyncing(false)
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	require.Equal(t, 2, syncMapLen(storage.tries))

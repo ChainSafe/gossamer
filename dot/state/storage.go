@@ -39,7 +39,6 @@ type StorageState struct {
 	changedLock  sync.RWMutex
 	observerList []Observer
 	pruner       pruner.Pruner
-	syncing      bool
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
@@ -78,11 +77,6 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 	}, nil
 }
 
-// SetSyncing sets whether the node is currently syncing or not
-func (s *StorageState) SetSyncing(syncing bool) {
-	s.syncing = syncing
-}
-
 func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	logger.Tracef("pruning trie, number=%d hash=%s", keyHeader.Number, keyHeader.Hash())
 	s.tries.Delete(keyHeader.StateRoot)
@@ -91,15 +85,6 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
-
-	if s.syncing {
-		// keep only the trie at the head of the chain when syncing
-		// TODO: probably remove this when memory usage improves (#1494)
-		s.tries.Range(func(k, _ interface{}) bool {
-			s.tries.Delete(k)
-			return true
-		})
-	}
 
 	_, _ = s.tries.LoadOrStore(root, ts.Trie())
 
