@@ -20,7 +20,7 @@ type Branch struct {
 	// Dirty is true when the branch differs
 	// from the node stored in the database.
 	Dirty      bool
-	hashDigest []byte
+	HashDigest []byte
 	Encoding   []byte
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
@@ -61,7 +61,7 @@ func (b *Branch) StringNode() (stringNode *gotree.Node) {
 	stringNode.Appendf("Key: " + bytesToString(b.Key))
 	stringNode.Appendf("Value: " + bytesToString(b.Value))
 	stringNode.Appendf("Calculated encoding: " + bytesToString(b.Encoding))
-	stringNode.Appendf("Calculated digest: " + bytesToString(b.hashDigest))
+	stringNode.Appendf("Calculated digest: " + bytesToString(b.HashDigest))
 
 	for i, child := range b.Children {
 		if child == nil {
