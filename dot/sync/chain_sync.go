@@ -160,6 +160,7 @@ type chainSyncConfig struct {
 
 func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
+	const syncSamplesToKeep = 30
 	return &chainSync{
 		ctx:              ctx,
 		cancel:           cancel,
@@ -174,7 +175,7 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 		pendingBlocks:    cfg.pendingBlocks,
 		state:            bootstrap,
 		handler:          newBootstrapSyncer(cfg.bs),
-		benchmarker:      newSyncBenchmarker(),
+		benchmarker:      newSyncBenchmarker(syncSamplesToKeep),
 		finalisedCh:      cfg.bs.GetFinalisedNotifierChannel(),
 		minPeers:         cfg.minPeers,
 		maxWorkerRetries: uint16(cfg.maxPeers),
@@ -321,7 +322,7 @@ func (cs *chainSync) logSyncSpeed() {
 		}
 
 		if cs.state == bootstrap {
-			cs.benchmarker.begin(before.Number.Uint64())
+			cs.benchmarker.begin(time.Now(), before.Number.Uint64())
 		}
 
 		select {
@@ -345,7 +346,7 @@ func (cs *chainSync) logSyncSpeed() {
 
 		switch cs.state {
 		case bootstrap:
-			cs.benchmarker.end(after.Number.Uint64())
+			cs.benchmarker.end(time.Now(), after.Number.Uint64())
 			target := cs.getTarget()
 
 			logger.Infof(
