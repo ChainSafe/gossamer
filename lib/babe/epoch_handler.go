@@ -1,19 +1,6 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-
 package babe
 
 import (
@@ -48,7 +35,7 @@ type epochHandler struct {
 func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
 	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
 	// determine which slots we'll be authoring in by pre-calculating VRF output
-	slotToProof := make(map[uint64]*VrfOutputAndProof)
+	slotToProof := make(map[uint64]*VrfOutputAndProof, constants.epochLength)
 	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
 		proof, err := claimPrimarySlot(
 			epochData.randomness,
@@ -95,24 +82,33 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 	authoringSlots := getAuthoringSlots(h.slotToProof)
 
 	type slotWithTimer struct {
-		timer   <-chan time.Time
+		timer   *time.Timer
 		slotNum uint64
 	}
 
-	slotTimeTimers := []*slotWithTimer{}
+	slotTimeTimers := make([]*slotWithTimer, 0, len(authoringSlots))
 	for _, authoringSlot := range authoringSlots {
-		// ignore slots already passed
 		if authoringSlot < currSlot {
+			// ignore slots already passed
 			continue
 		}
 
 		startTime := getSlotStartTime(authoringSlot, h.constants.slotDuration)
 		slotTimeTimers = append(slotTimeTimers, &slotWithTimer{
-			timer:   time.After(time.Until(startTime)),
+			timer:   time.NewTimer(time.Until(startTime)),
 			slotNum: authoringSlot,
 		})
 		logger.Debugf("start time of slot %d: %v", authoringSlot, startTime)
 	}
+
+	defer func() {
+		// cleanup timers if ctx was cancelled
+		for _, swt := range slotTimeTimers {
+			if !swt.timer.Stop() {
+				<-swt.timer.C
+			}
+		}
+	}()
 
 	logger.Debugf("authoring in %d slots in epoch %d", len(slotTimeTimers), h.epochNumber)
 
@@ -122,14 +118,14 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-swt.timer:
+		case <-swt.timer.C:
 			if _, has := h.slotToProof[swt.slotNum]; !has {
 				// this should never happen
-				logger.Errorf("no VRF proof for authoring slot! slot=%d", swt.slotNum)
-				continue
+				panic(fmt.Sprintf("no VRF proof for authoring slot! slot=%d", swt.slotNum))
 			}
 
-			if err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToProof[swt.slotNum]); err != nil { //nolint:lll
+			err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToProof[swt.slotNum])
+			if err != nil {
 				logger.Warnf("failed to handle slot %d: %s", swt.slotNum, err)
 				continue
 			}
@@ -140,11 +136,9 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 // getAuthoringSlots returns an ordered slice of slot numbers where we can author blocks,
 // based on the given VRF output and proof map.
 func getAuthoringSlots(slotToProof map[uint64]*VrfOutputAndProof) []uint64 {
-	authoringSlots := make([]uint64, len(slotToProof))
-	i := 0
+	authoringSlots := make([]uint64, 0, len(slotToProof))
 	for authoringSlot := range slotToProof {
-		authoringSlots[i] = authoringSlot
-		i++
+		authoringSlots = append(authoringSlots, authoringSlot)
 	}
 
 	sort.Slice(authoringSlots, func(i, j int) bool {

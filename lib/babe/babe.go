@@ -264,7 +264,7 @@ func (b *Service) Stop() error {
 func (b *Service) Authorities() []types.Authority {
 	auths := make([]types.Authority, len(b.epochHandler.epochData.authorities))
 	for i, auth := range b.epochHandler.epochData.authorities {
-		auths[i] = *(auth.DeepCopy())
+		auths[i] = *auth.DeepCopy()
 	}
 	return auths
 }
@@ -339,28 +339,25 @@ func (b *Service) runEngine() error {
 	}
 
 	for {
-		if err = b.handleEpoch(epoch); err != nil {
-			if errors.Is(err, errServicePaused) || errors.Is(err, context.Canceled) {
-				return nil
-			}
-
+		next, err := b.handleEpoch(epoch)
+		if errors.Is(err, errServicePaused) || errors.Is(err, context.Canceled) {
+			return nil
+		} else if err != nil {
 			return err
 		}
+
+		epoch = next
 	}
 }
 
-func (b *Service) handleEpoch(epoch uint64) (err error) {
+func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
-	if err != nil {
-		return err
-	}
 
 	// get start slot for current epoch
 	nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
 	if err != nil {
-		return fmt.Errorf("failed to get start slot for next epoch %d: %w", epoch+1, err)
+		return 0, fmt.Errorf("failed to get start slot for next epoch %d: %w", epoch+1, err)
 	}
 
 	nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
@@ -371,32 +368,37 @@ func (b *Service) handleEpoch(epoch uint64) (err error) {
 		}
 	}
 
+	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
+	if err != nil {
+		return 0, fmt.Errorf("cannot initiate and get epoch handler for epoch %d: %w", epoch, err)
+	}
+
 	errCh := make(chan error)
 	go b.epochHandler.run(ctx, errCh)
 
 	select {
 	case <-b.ctx.Done():
 		cleanup()
-		return b.ctx.Err()
+		return 0, b.ctx.Err()
 	case <-b.pause:
 		cleanup()
-		return errServicePaused
+		return 0, errServicePaused
 	case <-epochTimer.C:
 		// stop current epoch handler
 		cancel()
 	case err := <-errCh:
-		logger.Errorf("error from epochHandler: %w", err)
+		cleanup()
+		logger.Errorf("error from epochHandler: %s", err)
 	}
 
 	// setup next epoch, re-invoke block authoring
-	next, err := b.incrementEpoch()
+	next, err = b.incrementEpoch()
 	if err != nil {
-		return fmt.Errorf("failed to increment epoch: %w", err)
+		return 0, fmt.Errorf("failed to increment epoch: %w", err)
 	}
 
 	logger.Infof("epoch %d complete, upcoming epoch: %d", epoch, next)
-	epoch = next
-	return nil
+	return next, nil
 }
 
 func (b *Service) handleSlot(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof) error {

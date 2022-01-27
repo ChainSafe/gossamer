@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 
@@ -77,7 +76,6 @@ func TestCalculateThreshold(t *testing.T) {
 }
 
 func Test_checkPrimaryThreshold(t *testing.T) {
-	keyring, _ := keystore.NewSr25519Keyring() //nolint:govet
 	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
 	type args struct {
 		randomness Randomness

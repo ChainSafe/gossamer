@@ -42,6 +42,7 @@ func TestSeal(t *testing.T) {
 	require.NoError(t, err)
 
 	authoringSlots := getAuthoringSlots(babeService.epochHandler.slotToProof)
+	require.NotEmpty(t, authoringSlots)
 
 	builder, _ := NewBlockBuilder(
 		babeService.keypair,
@@ -379,10 +380,9 @@ func TestBuildBlock_failing(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	_, err = babeService.buildBlock(parentHeader, slot, rt, 0, &VrfOutputAndProof{})
-	if err == nil {
-		t.Fatal("should error when attempting to include invalid tx")
-	}
+	const authorityIndex uint32 = 0
+	_, err = babeService.buildBlock(parentHeader, slot, rt, authorityIndex, &VrfOutputAndProof{})
+	require.NotNil(t, err)
 	require.Equal(t, "cannot build extrinsics: error applying extrinsic: Apply error, type: Payment",
 		err.Error(), "Did not receive expected error text")
 

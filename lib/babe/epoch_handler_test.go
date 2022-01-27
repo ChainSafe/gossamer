@@ -26,7 +26,7 @@ func TestNewEpochHandler(t *testing.T) {
 	sd, err := time.ParseDuration("6s")
 	require.NoError(t, err)
 
-	constants := constants{
+	constants := constants{ //nolint:govet
 		slotDuration: sd,
 		epochLength:  200,
 	}
@@ -66,26 +66,30 @@ func TestEpochHandler_run(t *testing.T) {
 		threshold: scale.MaxUint128,
 	}
 
-	constants := constants{
+	const epochLength uint64 = 100
+	constants := constants{ //nolint:govet
 		slotDuration: sd,
-		epochLength:  100,
+		epochLength:  epochLength,
 	}
 
 	keypair := keyring.Alice().(*sr25519.Keypair)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	eh, err := newEpochHandler(1, startSlot, epochData, constants, testHandleSlotFunc, keypair)
+	epochHandler, err := newEpochHandler(1, startSlot, epochData, constants, testHandleSlotFunc, keypair)
 	require.NoError(t, err)
-	require.Equal(t, 100, len(eh.slotToProof))
+	require.Equal(t, epochLength, uint64(len(epochHandler.slotToProof)))
 
 	errCh := make(chan error)
-	go eh.run(ctx, errCh)
-	timer := time.After(sd * 100)
+	go epochHandler.run(ctx, errCh)
+	timer := time.NewTimer(sd * time.Duration(epochLength))
 	select {
-	case <-timer:
-		require.Equal(t, 100-(firstExecutedSlot-startSlot), callsToHandleSlot)
+	case <-timer.C:
+		require.Equal(t, epochLength-(firstExecutedSlot-startSlot), callsToHandleSlot)
 	case err := <-errCh:
+		if !timer.Stop() {
+			<-timer.C
+		}
 		require.NoError(t, err)
 	}
 }

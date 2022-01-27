@@ -218,7 +218,7 @@ func TestService_SlotDuration(t *testing.T) {
 	require.NoError(t, err)
 
 	bs := &Service{
-		constants: &constants{
+		constants: constants{
 			slotDuration: duration,
 		},
 	}
