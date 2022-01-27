@@ -116,6 +116,8 @@ func (*Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 	return msg, err
 }
 
+// handleNetworkMessage processes notification messages and return true if we should
+// propagate this message, false if otherwise.
 func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (bool, error) {
 	if msg == nil {
 		return false, nil
@@ -143,9 +145,12 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	switch m.Type() {
 	case VoteMessageType, CommitMessageType:
 		s.network.GossipMessage(msg)
+		return true, nil
+	case NeighborMessageType, CatchUpRequestMessageType, CatchUpResponseMessageType:
+		return false, nil
 	}
 
-	return true, nil
+	return false, nil
 }
 
 // sendMessage sends a vote message to be gossiped to the network
