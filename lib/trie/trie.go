@@ -273,13 +273,12 @@ func nextKey(curr Node, prefix, key []byte) []byte {
 
 // Put inserts a key with value into the trie
 func (t *Trie) Put(key, value []byte) {
-	t.tryPut(key, value)
+	nibblesKey := codec.KeyLEToNibbles(key)
+	t.tryPut(nibblesKey, value)
 }
 
 func (t *Trie) tryPut(key, value []byte) {
-	k := codec.KeyLEToNibbles(key)
-
-	t.root = t.insert(t.root, k, node.NewLeaf(nil, value, true, t.generation))
+	t.root = t.insert(t.root, key, node.NewLeaf(nil, value, true, t.generation))
 }
 
 // insert attempts to insert a key with value into the trie
@@ -303,7 +302,7 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 		p := newParent.(*node.Leaf)
 		// if a value already exists in the trie at this key, overwrite it with the new value
 		// if the values are the same, don't mark node dirty
-		if p.Value != nil && bytes.Equal(p.Key, key) {
+		if bytes.Equal(p.Key, key) {
 			if !bytes.Equal(value.(*node.Leaf).Value, p.Value) {
 				p.Value = value.(*node.Leaf).Value
 				p.SetDirty(true)
@@ -559,6 +558,12 @@ func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bo
 
 		if len(prefix) == len(c.Key)+1 && length == len(prefix)-1 {
 			i := prefix[len(c.Key)]
+
+			if c.Children[i] == nil {
+				// child is already nil at the child index
+				return c, false, true
+			}
+
 			c.Children[i] = t.deleteNodes(c.Children[i], []byte{}, limit)
 
 			c.SetDirty(true)
@@ -677,6 +682,12 @@ func (t *Trie) clearPrefix(cn Node, prefix []byte) (Node, bool) {
 		if len(prefix) == len(c.Key)+1 && length == len(prefix)-1 {
 			// found prefix at child index, delete child
 			i := prefix[len(c.Key)]
+
+			if c.Children[i] == nil {
+				// child is already nil at the child index
+				return c, false
+			}
+
 			c.Children[i] = nil
 			c.SetDirty(true)
 			curr = handleDeletion(c, prefix)
@@ -733,7 +744,8 @@ func (t *Trie) delete(parent Node, key []byte) (Node, bool) {
 		n, del := t.delete(p.Children[key[length]], key[length+1:])
 		if !del {
 			// If nothing was deleted then don't copy the path.
-			return p, false
+			// Return the parent without its generation updated.
+			return parent, false
 		}
 
 		p.Children[key[length]] = n
