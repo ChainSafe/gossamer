@@ -4,19 +4,24 @@
 package sync
 
 import (
+	"container/ring"
 	"time"
 )
 
 type syncBenchmarker struct {
 	start           time.Time
 	startBlock      uint64
-	blocksPerSecond []float64
+	blocksPerSecond *ring.Ring
 	samplesToKeep   int
 }
 
 func newSyncBenchmarker(samplesToKeep int) *syncBenchmarker {
+	if samplesToKeep == 0 {
+		panic("cannot have 0 samples to keep")
+	}
+
 	return &syncBenchmarker{
-		blocksPerSecond: make([]float64, 0, samplesToKeep),
+		blocksPerSecond: ring.New(samplesToKeep),
 		samplesToKeep:   samplesToKeep,
 	}
 }
@@ -30,22 +35,33 @@ func (b *syncBenchmarker) end(now time.Time, block uint64) {
 	duration := now.Sub(b.start)
 	blocks := block - b.startBlock
 	bps := float64(blocks) / duration.Seconds()
-
-	if len(b.blocksPerSecond) == b.samplesToKeep {
-		b.blocksPerSecond = b.blocksPerSecond[1:]
-	}
-
-	b.blocksPerSecond = append(b.blocksPerSecond, bps)
+	b.blocksPerSecond.Value = bps
+	b.blocksPerSecond = b.blocksPerSecond.Next()
 }
 
 func (b *syncBenchmarker) average() float64 {
 	var sum float64
-	for _, bps := range b.blocksPerSecond {
+	var elementsSet int
+	b.blocksPerSecond.Do(func(x interface{}) {
+		if x == nil {
+			return
+		}
+		bps := x.(float64)
 		sum += bps
+		elementsSet++
+	})
+
+	if elementsSet == 0 {
+		return 0
 	}
-	return sum / float64(len(b.blocksPerSecond))
+
+	return sum / float64(elementsSet)
 }
 
 func (b *syncBenchmarker) mostRecentAverage() float64 {
-	return b.blocksPerSecond[len(b.blocksPerSecond)-1]
+	value := b.blocksPerSecond.Prev().Value
+	if value == nil {
+		return 0
+	}
+	return value.(float64)
 }
