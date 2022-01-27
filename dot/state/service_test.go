@@ -208,7 +208,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	for _, b := range blocks {
-		_, err := serv.Storage.LoadFromDB(b.Header.StateRoot)
+		_, err := serv.Storage.tries.getTrie(b.Header.StateRoot)
 		if b.Header.Number.Int64() >= int64(totalBlock-retainBlocks-1) {
 			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number.Int64()))
 			continue
@@ -293,8 +293,8 @@ func TestService_PruneStorage(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	for _, v := range prunedArr {
-		tr := serv.Storage.tries.get(v.hash)
-		require.Nil(t, tr)
+		_, has := serv.Storage.tries.rootToTrie[v.hash]
+		require.False(t, has)
 	}
 }
 

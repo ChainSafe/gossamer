@@ -148,7 +148,7 @@ func (s *Service) Start() error {
 	}
 
 	// load current storage state trie into memory
-	_, err = s.Storage.LoadFromDB(stateRoot)
+	_, err = s.Storage.tries.getTrie(stateRoot)
 	if err != nil {
 		return fmt.Errorf("failed to load storage trie from database: %w", err)
 	}

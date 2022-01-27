@@ -42,7 +42,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 100)
 
-	trie, err := storage.LoadFromDB(root)
+	trie, err := storage.tries.getTrie(root)
 	require.NoError(t, err)
 	ts2, err := runtime.NewTrieState(trie)
 	require.NoError(t, err)
@@ -98,7 +98,7 @@ func TestStorage_TrieState(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 
 	// get trie from db
-	storage.tries.delete(root)
+	storage.tries.deleteTrieFromMemory(root)
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
 	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
@@ -130,19 +130,15 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.tries.delete(root)
+	storage.tries.deleteTrieFromMemory(root)
 
 	data, err := storage.GetStorage(&root, trieKV[0].key)
 	require.NoError(t, err)
 	require.Equal(t, trieKV[0].value, data)
 
-	storage.tries.delete(root)
-
-	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
 	require.NoError(t, err)
-	require.Equal(t, 2, len(prefixKeys))
 
-	storage.tries.delete(root)
+	storage.tries.deleteTrieFromMemory(root)
 
 	entries, err := storage.Entries(&root)
 	require.NoError(t, err)
@@ -160,7 +156,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
-	require.Equal(t, 2, storage.tries.len())
+	require.Equal(t, 2, storage.tries.triesInMemory())
 }
 
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
@@ -207,7 +203,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.tries.delete(rootHash)
+	storage.tries.deleteTrieFromMemory(rootHash)
 
 	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
