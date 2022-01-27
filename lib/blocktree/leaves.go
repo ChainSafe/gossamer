@@ -13,7 +13,7 @@ import (
 
 // leafMap provides quick lookup for existing leaves
 type leafMap struct {
-	currentDeepestLeaf *node
+	currHighestLeaf *node
 	sync.RWMutex
 	smap *sync.Map // map[common.Hash]*node
 }
@@ -56,9 +56,9 @@ func (lm *leafMap) replace(oldNode, newNode *node) {
 	lm.store(newNode.hash, newNode)
 }
 
-// DeepestLeaf searches the stored leaves to the find the one with the greatest number.
+// highestLeaf searches the stored leaves to the find the one with the greatest number.
 // If there are two leaves with the same number, choose the one with the earliest arrival time.
-func (lm *leafMap) deepestLeaf() *node {
+func (lm *leafMap) highestLeaf() *node {
 	lm.RLock()
 	defer lm.RUnlock()
 
@@ -82,25 +82,25 @@ func (lm *leafMap) deepestLeaf() *node {
 		return true
 	})
 
-	if lm.currentDeepestLeaf != nil {
-		if lm.currentDeepestLeaf.hash == deepest.hash {
-			return lm.currentDeepestLeaf
+	if lm.currHighestLeaf != nil {
+		if lm.currHighestLeaf.hash == deepest.hash {
+			return lm.currHighestLeaf
 		}
 
 		// update the current deepest leaf if the found deepest has a greater number or
 		// if the current and the found deepest has the same number however the current
 		// arrived later then the found deepest
-		if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 1 {
-			lm.currentDeepestLeaf = deepest
-		} else if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 0 &&
-			deepest.arrivalTime.Before(lm.currentDeepestLeaf.arrivalTime) {
-			lm.currentDeepestLeaf = deepest
+		if deepest.number.Cmp(lm.currHighestLeaf.number) == 1 {
+			lm.currHighestLeaf = deepest
+		} else if deepest.number.Cmp(lm.currHighestLeaf.number) == 0 &&
+			deepest.arrivalTime.Before(lm.currHighestLeaf.arrivalTime) {
+			lm.currHighestLeaf = deepest
 		}
 	} else {
-		lm.currentDeepestLeaf = deepest
+		lm.currHighestLeaf = deepest
 	}
 
-	return lm.currentDeepestLeaf
+	return lm.currHighestLeaf
 }
 
 func (lm *leafMap) toMap() map[common.Hash]*node {
@@ -132,4 +132,48 @@ func (lm *leafMap) nodes() []*node {
 	})
 
 	return nodes
+}
+
+func (lm *leafMap) bestBlock() *node {
+	lm.RLock()
+	defer lm.RUnlock()
+
+	// map of primary ancestor count -> *node
+	counts := make(map[int][]*node)
+
+	lm.smap.Range(func(_, nn interface{}) bool {
+		n := nn.(*node)
+		count := n.primaryAncestorCount(0)
+
+		nodesWithCount, has := counts[count]
+		if !has {
+			counts[count] = []*node{n}
+		} else {
+			counts[count] = append(nodesWithCount, n)
+		}
+
+		return true
+	})
+
+	// get highest count
+	highest := 0
+	for count := range counts {
+		if count > highest {
+			highest = count
+		}
+	}
+
+	// there's just one node with the highest amount of primary ancestors,
+	// so let's return it
+	if len(counts[highest]) == 1 {
+		return counts[highest][0]
+	}
+
+	// there are multple with the highest count, run them through `highestLeaf`
+	lm2 := newEmptyLeafMap()
+	for _, node := range counts[highest] {
+		lm2.store(node.hash, node)
+	}
+
+	return lm2.highestLeaf()
 }
