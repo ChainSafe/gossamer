@@ -236,10 +236,10 @@ func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 
 }
 
-// // deepestLeaf returns the deepest leaf in the block tree.
-// func (bt *BlockTree) deepestLeaf() *node {
-// 	return bt.leaves.deepestLeaf()
-// }
+// best returns the best node in the block tree using the fork choice rule.
+func (bt *BlockTree) best() *node {
+	return bt.leaves.bestBlock()
+}
 
 // BestBlockHash returns the hash of the block that is considered "best" based on the
 // fork-choice rule. It returns the head of the chain with the most primary blocks.

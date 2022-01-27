@@ -243,7 +243,9 @@ func (n *node) primaryAncestorCount(count int) int {
 		return count
 	}
 
-	if n.isPrimary {
+	if n.isPrimary && n.parent != nil {
+		// if parent is nil, we're at the root node
+		// we don't need to count it, as all blocks have the root as an ancestor
 		count++
 	}
 
