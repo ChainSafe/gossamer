@@ -41,8 +41,6 @@ func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer 
 	}
 }
 
-//nolint
-// TODO: NotificationMessage is used at places. But NotificationMessage we return is always nil.
 // HandleMessage handles a GRANDPA consensus message
 // if it is a CommitMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
@@ -69,8 +67,6 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) error {
 		// err := h.handleCatchUpResponse(msg)
 		err := h.catchUp.handleCatchUpResponse(msg)
 		if errors.Is(err, blocktree.ErrNodeNotFound) || errors.Is(err, chaindb.ErrKeyNotFound) {
-			// TODO: revisit if we need to add these message in synchronous manner
-			// or not. If not, change catchUpResponseMessages to a normal map.  #1531
 			h.grandpa.tracker.addCatchUpResponse(&networkCatchUpResponseMessage{
 				from: from,
 				msg:  msg,

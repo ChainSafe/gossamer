@@ -74,9 +74,7 @@ type Service struct {
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
 	neighbourMessage *NeighbourMessage // cached neighbour message
-	// requestsSent     map[peer.ID]CatchUpRequest
-	// bestResponse     *CatchUpResponse
-	telemetry telemetry.Client
+	telemetry        telemetry.Client
 }
 
 // Config represents a GRANDPA service configuration
