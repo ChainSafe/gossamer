@@ -695,7 +695,7 @@ func (t *Trie) clearPrefixLimit(parent Node, prefix []byte, limit *uint32) (
 	if newParent.Type() == node.LeafType {
 		leaf := newParent.(*node.Leaf)
 		// if prefix is not found, it's also all deleted.
-		// TODO check this is the same behavior as in substrate
+		// TODO check this is the same behaviour as in substrate
 		const allDeleted = true
 		if bytes.HasPrefix(leaf.Key, prefix) {
 			*limit--
@@ -767,7 +767,7 @@ func (t *Trie) clearPrefixLimitChild(branch *node.Branch, prefix []byte, limit *
 	child := branch.Children[childIndex]
 
 	if child == nil {
-		// TODO ensure this is the same behavior as in substrate
+		// TODO ensure this is the same behaviour as in substrate
 		updated, allDeleted = false, true
 		return newParent, updated, allDeleted
 	}
