@@ -82,8 +82,8 @@ func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 	}
 
 	peers = make([]peer.AddrInfo, len(currentPeers))
-	for idx, p := range currentPeers {
-		peers[idx] = d.h.Peerstore().PeerInfo(p)
+	for idx, peer := range currentPeers {
+		peers[idx] = d.h.Peerstore().PeerInfo(peer)
 	}
 
 	return peers, nil
@@ -151,15 +151,15 @@ func (d *discovery) advertise() {
 	ttl := initialAdvertisementTimeout
 
 	for {
-		wait := time.NewTimer(ttl)
+		timer := time.NewTimer(ttl)
 
 		select {
 		case <-d.ctx.Done():
-			if !wait.Stop() {
-				<-wait.C
+			if !timer.Stop() {
+				<-timer.C
 			}
 			return
-		case <-wait.C:
+		case <-timer.C:
 			logger.Debug("advertising ourselves in the DHT...")
 			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
@@ -177,14 +177,14 @@ func (d *discovery) advertise() {
 }
 
 func (d *discovery) checkPeerCount() {
-	t := time.NewTicker(connectToPeersTimeout)
-	defer t.Stop()
+	timer := time.NewTicker(connectToPeersTimeout)
+	defer timer.Stop()
 
 	for {
 		select {
 		case <-d.ctx.Done():
 			return
-		case <-t.C:
+		case <-timer.C:
 			if len(d.h.Network().Peers()) > d.minPeers {
 				continue
 			}
@@ -202,12 +202,12 @@ func (d *discovery) findPeers() {
 		return
 	}
 
-	timeout := time.NewTimer(findPeersTimeout)
-	defer timeout.Stop()
+	timer := time.NewTimer(findPeersTimeout)
+	defer timer.Stop()
 
 	for {
 		select {
-		case <-timeout.C:
+		case <-timer.C:
 			return
 		case peer := <-peerCh:
 			if peer.ID == d.h.ID() || peer.ID == "" {
