@@ -18,34 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const blockRequestSize uint32 = 128
-
-func testBlockResponseMessage() *BlockResponseMessage {
-	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
-	}
-
-	for i := 0; i < int(blockRequestSize); i++ {
-		testHeader := &types.Header{
-			Number: big.NewInt(int64(77 + i)),
-			Digest: types.NewDigest(),
-		}
-
-		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
-
-		msg.BlockData = append(msg.BlockData, &types.BlockData{
-			Hash:          testHeader.Hash(),
-			Header:        testHeader,
-			Body:          body,
-			MessageQueue:  nil,
-			Receipt:       nil,
-			Justification: nil,
-		})
-	}
-
-	return msg
-}
-
 type testStreamHandler struct {
 	sync.Mutex
 
