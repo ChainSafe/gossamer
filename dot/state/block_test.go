@@ -40,6 +40,23 @@ func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
 	return bs
 }
 
+func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
+	babeDigest := types.NewBabeDigest()
+	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	require.NoError(t, err)
+
+	bdEnc, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              bdEnc,
+	})
+	require.NoError(t, err)
+	return digest
+}
+
 func TestSetAndGetHeader(t *testing.T) {
 	bs := newTestBlockState(t, nil)
 
@@ -80,7 +97,7 @@ func TestGetBlockByNumber(t *testing.T) {
 	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 	}
 
 	block := &types.Block{
@@ -102,7 +119,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 	// Create blockHash
@@ -119,7 +136,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header & blockData for block 2
 	header1 := &types.Header{
 		Number:     big.NewInt(2),
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 		ParentHash: blockHash0,
 	}
 	blockHash1 := header1.Hash()
@@ -244,6 +261,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		Header: types.Header{
 			ParentHash: bestHash,
 			Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
+			Digest:     createPrimaryBABEDigest(t),
 		},
 		Body: types.Body{},
 	}
@@ -324,7 +342,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 	header := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
@@ -347,7 +365,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header1a := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
@@ -366,7 +384,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header1b := &types.Header{
 		Number:         big.NewInt(1),
-		Digest:         types.NewDigest(),
+		Digest:         createPrimaryBABEDigest(t),
 		ParentHash:     testGenesisHeader.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
 	}
@@ -386,7 +404,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header2b := &types.Header{
 		Number:         big.NewInt(2),
-		Digest:         types.NewDigest(),
+		Digest:         createPrimaryBABEDigest(t),
 		ParentHash:     header1b.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
 	}
@@ -410,7 +428,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header2a := &types.Header{
 		Number:     big.NewInt(2),
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 		ParentHash: header1a.Hash(),
 	}
 
@@ -424,7 +442,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header3a := &types.Header{
 		Number:     big.NewInt(3),
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 		ParentHash: header2a.Hash(),
 	}
 
@@ -456,7 +474,7 @@ func TestAddBlockToBlockTree(t *testing.T) {
 
 	header := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 

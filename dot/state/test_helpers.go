@@ -244,6 +244,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 			ParentHash: *parent,
 			Number:     big.NewInt(bNum),
 			StateRoot:  trieStateRoot,
+			Digest:     createPrimaryBABEDigest(t),
 		},
 		Body: *body,
 	}

@@ -55,7 +55,7 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
-func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error {
+func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err error) {
 	bt.Lock()
 	defer bt.Unlock()
 
@@ -76,9 +76,12 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 		return errUnexpectedNumber
 	}
 
-	isPrimary, err := types.IsPrimary(header)
-	if err != nil {
-		return fmt.Errorf("failed to check if block was primary: %w", err)
+	var isPrimary bool
+	if header.Number.Uint64() != 0 {
+		isPrimary, err = types.IsPrimary(header)
+		if err != nil {
+			return fmt.Errorf("failed to check if block was primary: %w", err)
+		}
 	}
 
 	n := &node{

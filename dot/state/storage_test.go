@@ -73,6 +73,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
 			StateRoot:  root,
+			Digest:     createPrimaryBABEDigest(t),
 		},
 		Body: *body,
 	}
