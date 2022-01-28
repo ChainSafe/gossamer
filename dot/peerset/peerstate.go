@@ -110,18 +110,19 @@ type PeersState struct {
 	// since, single Info can also manage the flow.
 	sets []Info
 
-	mu sync.Mutex
+	mu sync.RWMutex
 }
 
 func (ps *PeersState) getNode(p peer.ID) (*node, error) {
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
+	ps.mu.RLock()
+	defer ps.mu.RUnlock()
 
-	if n, ok := ps.nodes[p]; ok {
-		return n, nil
+	n, has := ps.nodes[p]
+	if !has {
+		return nil, ErrPeerDoesNotExist
 	}
 
-	return nil, ErrPeerDoesNotExist
+	return n, nil
 }
 
 // NewPeerState initiates a new PeersState
@@ -174,6 +175,9 @@ func (ps *PeersState) peerStatus(set int, peerID peer.ID) string {
 
 // peers return the list of all the peers we know of.
 func (ps *PeersState) peers() []peer.ID {
+	ps.mu.RLock()
+	defer ps.mu.RUnlock()
+
 	peerIDs := make([]peer.ID, 0, len(ps.nodes))
 	for k := range ps.nodes {
 		peerIDs = append(peerIDs, k)
@@ -215,15 +219,15 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 
 func (ps *PeersState) addReputation(pid peer.ID, change ReputationChange) (
 	newReputation Reputation, err error) {
-	n, err := ps.getNode(pid)
-	if err != nil {
-		return 0, err
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	n, has := ps.nodes[pid]
+	if !has {
+		return 0, ErrPeerDoesNotExist
 	}
 
 	newReputation = n.addReputation(change.Value)
-
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
 
 	ps.nodes[pid] = n
 
