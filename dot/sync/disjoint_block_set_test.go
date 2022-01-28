@@ -4,77 +4,82 @@
 package sync
 
 import (
-	"fmt"
+	"errors"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"math/big"
-	"reflect"
-	"sync"
-	"testing"
+	"github.com/stretchr/testify/assert"
+)
+
+var (
+	testBlock1 = &pendingBlock{
+		hash:   common.Hash{1},
+		number: big.NewInt(1),
+	}
+	testBlock10 = &pendingBlock{
+		hash:   common.Hash{10},
+		number: big.NewInt(10),
+	}
 )
 
 func Test_disjointBlockSet_addBlock(t *testing.T) {
 	type fields struct {
-		RWMutex          sync.RWMutex
 		limit            int
 		blocks           map[common.Hash]*pendingBlock
 		parentToChildren map[common.Hash]map[common.Hash]struct{}
+		timeNow          func() time.Time
 	}
 	type args struct {
 		block *types.Block
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		err    error
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "add block beyond capacity",
+			fields: fields{},
+			args: args{block: &types.Block{
+				Header: types.Header{
+					Number: big.NewInt(1),
+				},
+			}},
+			err: errors.New("cannot add block; set is at capacity"),
+		},
+		{
+			name: "add block",
+			fields: fields{
+				limit:            1,
+				blocks:           make(map[common.Hash]*pendingBlock),
+				timeNow:          time.Now,
+				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+			},
+			args: args{block: &types.Block{
+				Header: types.Header{
+					Number: big.NewInt(1),
+				},
+			}},
+			err: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
 				limit:            tt.fields.limit,
 				blocks:           tt.fields.blocks,
 				parentToChildren: tt.fields.parentToChildren,
+				timeNow:          tt.fields.timeNow,
 			}
-			if err := s.addBlock(tt.args.block); (err != nil) != tt.wantErr {
-				t.Errorf("addBlock() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_disjointBlockSet_addHashAndNumber(t *testing.T) {
-	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-	}
-	type args struct {
-		hash   common.Hash
-		number *big.Int
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-			}
-			if err := s.addHashAndNumber(tt.args.hash, tt.args.number); (err != nil) != tt.wantErr {
-				t.Errorf("addHashAndNumber() error = %v, wantErr %v", err, tt.wantErr)
+			err := s.addBlock(tt.args.block)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -82,400 +87,240 @@ func Test_disjointBlockSet_addHashAndNumber(t *testing.T) {
 
 func Test_disjointBlockSet_addHeader(t *testing.T) {
 	type fields struct {
-		RWMutex          sync.RWMutex
 		limit            int
 		blocks           map[common.Hash]*pendingBlock
 		parentToChildren map[common.Hash]map[common.Hash]struct{}
+		timeNow          func() time.Time
 	}
 	type args struct {
 		header *types.Header
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-			}
-			if err := s.addHeader(tt.args.header); (err != nil) != tt.wantErr {
-				t.Errorf("addHeader() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_disjointBlockSet_addJustification(t *testing.T) {
-	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-	}
-	type args struct {
-		hash common.Hash
-		just []byte
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-			}
-			if err := s.addJustification(tt.args.hash, tt.args.just); (err != nil) != tt.wantErr {
-				t.Errorf("addJustification() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_disjointBlockSet_addToParentMap(t *testing.T) {
-	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-	}
-	type args struct {
-		parent common.Hash
-		child  common.Hash
-	}
-	tests := []struct {
 		name   string
 		fields fields
 		args   args
+		err    error
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "add header beyond capactiy",
+			fields: fields{},
+			args: args{header: &types.Header{
+				Number: big.NewInt(1),
+			}},
+			err: errors.New("cannot add block; set is at capacity"),
+		},
+		{
+			name: "add header",
+			fields: fields{
+				blocks:           make(map[common.Hash]*pendingBlock),
+				limit:            1,
+				timeNow:          time.Now,
+				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+			},
+			args: args{header: &types.Header{
+				Number: big.NewInt(1),
+			}},
+			err: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
 				limit:            tt.fields.limit,
 				blocks:           tt.fields.blocks,
 				parentToChildren: tt.fields.parentToChildren,
+				timeNow:          tt.fields.timeNow,
 			}
-			fmt.Printf("s %v\n", s)
+			err := s.addHeader(tt.args.header)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
 
-func Test_disjointBlockSet_getBlock(t *testing.T) {
+func Test_disjointBlockSet_clearBlocks(t *testing.T) {
+	testBlock := &pendingBlock{
+		clearAt: time.Now(),
+	}
 	type fields struct {
-		RWMutex          sync.RWMutex
 		limit            int
 		blocks           map[common.Hash]*pendingBlock
 		parentToChildren map[common.Hash]map[common.Hash]struct{}
-	}
-	type args struct {
-		hash common.Hash
+		timeNow          func() time.Time
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   *pendingBlock
+		name      string
+		fields    fields
+		remaining int
 	}{
-		// TODO: Add test cases.
+		{
+			name: "base case",
+			fields: fields{
+				limit: 0,
+				blocks: map[common.Hash]*pendingBlock{
+					common.Hash{}: testBlock,
+				},
+				timeNow: time.Now,
+			},
+			remaining: 0,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
 				limit:            tt.fields.limit,
 				blocks:           tt.fields.blocks,
 				parentToChildren: tt.fields.parentToChildren,
+				timeNow:          tt.fields.timeNow,
 			}
-			if got := s.getBlock(tt.args.hash); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getBlock() = %v, want %v", got, tt.want)
-			}
+			s.clearBlocks()
+			assert.Equal(t, tt.remaining, len(tt.fields.blocks))
 		})
 	}
 }
 
 func Test_disjointBlockSet_getBlocks(t *testing.T) {
+	testBlock := &pendingBlock{}
 	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
+		blocks map[common.Hash]*pendingBlock
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   []*pendingBlock
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "no blocks",
+			fields: fields{},
+			want:   []*pendingBlock{},
+		},
+		{
+			name: "base case",
+			fields: fields{
+				blocks: map[common.Hash]*pendingBlock{
+					common.Hash{}: testBlock,
+				},
+			},
+			want: []*pendingBlock{testBlock},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
+				blocks: tt.fields.blocks,
 			}
-			if got := s.getBlocks(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getBlocks() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_disjointBlockSet_getChildren(t *testing.T) {
-	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-	}
-	type args struct {
-		hash common.Hash
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   map[common.Hash]struct{}
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-			}
-			if got := s.getChildren(tt.args.hash); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getChildren() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_disjointBlockSet_getReadyDescendants(t *testing.T) {
-	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-	}
-	type args struct {
-		curr  common.Hash
-		ready []*types.BlockData
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   []*types.BlockData
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-			}
-			if got := s.getReadyDescendants(tt.args.curr, tt.args.ready); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getReadyDescendants() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_disjointBlockSet_hasBlock(t *testing.T) {
-	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-	}
-	type args struct {
-		hash common.Hash
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-			}
-			if got := s.hasBlock(tt.args.hash); got != tt.want {
-				t.Errorf("hasBlock() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_disjointBlockSet_removeBlock(t *testing.T) {
-	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-	}
-	type args struct {
-		hash common.Hash
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-			}
-			fmt.Printf("s %v\n", s)
+			blocks := s.getBlocks()
+			assert.Equalf(t, tt.want, blocks, "getBlocks()")
 		})
 	}
 }
 
 func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
+	t.Parallel()
 	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
+		blocks map[common.Hash]*pendingBlock
 	}
 	type args struct {
 		num *big.Int
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
+		name      string
+		fields    fields
+		args      args
+		remaining int
 	}{
-		// TODO: Add test cases.
+		{
+			name: "number 0",
+			fields: fields{
+				blocks: map[common.Hash]*pendingBlock{
+					common.Hash{1}:  testBlock1,
+					common.Hash{10}: testBlock10,
+				},
+			},
+			args:      args{big.NewInt(0)},
+			remaining: 2,
+		},
+		{
+			name: "number 1",
+			fields: fields{
+				blocks: map[common.Hash]*pendingBlock{
+					common.Hash{1}:  testBlock1,
+					common.Hash{10}: testBlock10,
+				},
+			},
+			args:      args{big.NewInt(1)},
+			remaining: 1,
+		},
+		{
+			name: "number 11",
+			fields: fields{
+				blocks: map[common.Hash]*pendingBlock{
+					common.Hash{1}:  testBlock1,
+					common.Hash{10}: testBlock10,
+				},
+			},
+			args:      args{big.NewInt(11)},
+			remaining: 0,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
+				blocks: tt.fields.blocks,
 			}
-			fmt.Printf("s %v\n", s)
+			s.removeLowerBlocks(tt.args.num)
+			assert.Equal(t, tt.remaining, len(s.blocks))
 		})
 	}
 }
 
 func Test_disjointBlockSet_size(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
-		RWMutex          sync.RWMutex
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
+		blocks map[common.Hash]*pendingBlock
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   int
 	}{
-		// TODO: Add test cases.
+		{
+			name: "expect 0",
+			fields: fields{
+				blocks: map[common.Hash]*pendingBlock{},
+			},
+			want: 0,
+		},
+		{
+			name: "expect 1",
+			fields: fields{
+				blocks: map[common.Hash]*pendingBlock{
+					testBlock1.hash: testBlock1,
+				},
+			},
+			want: 1,
+		},
+		{
+			name: "expect 2",
+			fields: fields{
+				blocks: map[common.Hash]*pendingBlock{
+					testBlock1.hash:  testBlock1,
+					testBlock10.hash: testBlock10,
+				},
+			},
+			want: 2,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &disjointBlockSet{
-				RWMutex:          tt.fields.RWMutex,
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
+				blocks: tt.fields.blocks,
 			}
-			if got := s.size(); got != tt.want {
-				t.Errorf("size() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_newDisjointBlockSet(t *testing.T) {
-	type args struct {
-		limit int
-	}
-	tests := []struct {
-		name string
-		args args
-		want *disjointBlockSet
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := newDisjointBlockSet(tt.args.limit); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newDisjointBlockSet() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_pendingBlock_toBlockData(t *testing.T) {
-	type fields struct {
-		hash          common.Hash
-		number        *big.Int
-		header        *types.Header
-		body          *types.Body
-		justification []byte
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   *types.BlockData
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			b := &pendingBlock{
-				hash:          tt.fields.hash,
-				number:        tt.fields.number,
-				header:        tt.fields.header,
-				body:          tt.fields.body,
-				justification: tt.fields.justification,
-			}
-			if got := b.toBlockData(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("toBlockData() = %v, want %v", got, tt.want)
-			}
+			assert.Equalf(t, tt.want, s.size(), "size()")
 		})
 	}
 }

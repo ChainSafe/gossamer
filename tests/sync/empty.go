@@ -4,12 +4,13 @@
 package sync
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_bootstrapSyncer_handleNewPeerState(t *testing.T) {

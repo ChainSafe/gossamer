@@ -7,6 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -17,10 +21,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"sync"
-	"testing"
-	"time"
 )
 
 func Test_chainSyncState_String(t *testing.T) {
@@ -62,7 +62,8 @@ const (
 )
 
 func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0),
+		types.NewDigest())
 	require.NoError(t, err)
 
 	bs := new(syncmocks.BlockState)
@@ -71,7 +72,8 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	net := new(syncmocks.Network)
-	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
+	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).
+		Return(nil, nil)
 	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 
 	readyBlocks := newBlockQueue(maxResponseSize)
@@ -110,10 +112,12 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 
 	// test case where peer has a lower head than us, but they are on the same chain as us
 	cs.blockState = new(syncmocks.BlockState)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000),
+		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(998), types.NewDigest())
+	fin, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(998),
+		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
 	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(hash, nil)
@@ -136,7 +140,8 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	// test case where peer has a lower head than us, and they are on an invalid fork
 	cs.blockState = new(syncmocks.BlockState)
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
+	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000),
+		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
 	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
@@ -159,10 +164,12 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	// test case where peer has a lower head than us, but they are on a valid fork (that is not our chain)
 	cs.blockState = new(syncmocks.BlockState)
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(998), types.NewDigest())
+	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(998),
+		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.
+		Hash{}, nil)
 	cs.blockState.(*syncmocks.BlockState).On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	number = big.NewInt(999)
@@ -211,7 +218,8 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 func TestChainSync_sync_tip(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 	cs.blockState = new(syncmocks.BlockState)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000),
+		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
@@ -234,7 +242,8 @@ func TestChainSync_sync_resultQueue(t *testing.T) {
 	defer ctrl.Finish()
 	cs, _ := newTestChainSync(t)
 	cs.blockState = new(syncmocks.BlockState)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000),
+		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
@@ -709,7 +718,8 @@ func TestChainSync_doSync(t *testing.T) {
 	}
 
 	cs.network = new(syncmocks.Network)
-	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
+	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
@@ -741,7 +751,8 @@ func TestChainSync_doSync(t *testing.T) {
 	// test to see if descending blocks get reversed
 	req.Direction = network.Descending
 	cs.network = new(syncmocks.Network)
-	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
+	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 
@@ -881,7 +892,6 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 		network            Network
 		workQueue          chan *peerState
 		resultQueue        chan *worker
-		RWMutex            sync.RWMutex
 		peerState          map[peer.ID]*peerState
 		ignorePeers        map[peer.ID]struct{}
 		workerState        *workerState
@@ -930,7 +940,6 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 				network:            tt.fields.network,
 				workQueue:          tt.fields.workQueue,
 				resultQueue:        tt.fields.resultQueue,
-				RWMutex:            tt.fields.RWMutex,
 				peerState:          tt.fields.peerState,
 				ignorePeers:        tt.fields.ignorePeers,
 				workerState:        tt.fields.workerState,

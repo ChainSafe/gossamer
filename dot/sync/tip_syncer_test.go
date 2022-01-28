@@ -23,7 +23,8 @@ func Test_newTipSyncer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := newTipSyncer(tt.args.blockState, tt.args.pendingBlocks, tt.args.readyBlocks); !reflect.DeepEqual(got, tt.want) {
+			if got := newTipSyncer(tt.args.blockState, tt.args.pendingBlocks,
+				tt.args.readyBlocks); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("newTipSyncer() = %v, want %v", got, tt.want)
 			}
 		})

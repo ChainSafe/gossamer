@@ -4,12 +4,13 @@
 package sync
 
 import (
-	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 func TestService_CreateBlockResponse(t *testing.T) {
@@ -283,7 +284,8 @@ func TestService_handleChainByHash(t *testing.T) {
 				chainProcessor: tt.fields.chainProcessor,
 				network:        tt.fields.network,
 			}
-			got, err := s.handleChainByHash(tt.args.ancestor, tt.args.descendant, tt.args.max, tt.args.requestedData, tt.args.direction)
+			got, err := s.handleChainByHash(tt.args.ancestor, tt.args.descendant, tt.args.max, tt.args.requestedData,
+				tt.args.direction)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("handleChainByHash() error = %v, wantErr %v", err, tt.wantErr)
 				return
