@@ -317,7 +317,18 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.isRPCEnabled() || cfg.RPC.isWSEnabled(); enabled {
 		var rpcSrvc *rpc.HTTPServer
-		rpcSrvc, err = createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
+		cRPCParams := rpcServiceSettings{
+			config:        cfg,
+			nodeStorage:   ns,
+			state:         stateSrvc,
+			core:          coreSrvc,
+			network:       networkSrvc,
+			blockProducer: bp,
+			system:        sysSrvc,
+			blockFinality: fg,
+			syncer:        syncer,
+		}
+		rpcSrvc, err = createRPCService(cRPCParams)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create rpc service: %s", err)
 		}

@@ -101,7 +101,7 @@ func TestSystemModule_Health(t *testing.T) {
 	networkMock := new(mocks.NetworkAPI)
 	networkMock.On("Health").Return(testHealth)
 
-	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil)
+	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
@@ -112,7 +112,7 @@ func TestSystemModule_Health(t *testing.T) {
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil, nil)
 
 	res := &SystemNetworkStateResponse{}
 	err := sys.NetworkState(nil, nil, res)
@@ -129,7 +129,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 func TestSystemModule_Peers(t *testing.T) {
 	net := newNetworkService(t)
 	net.Stop()
-	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil, nil)
 
 	res := &SystemPeersResponse{}
 	err := sys.Peers(nil, nil, res)
@@ -142,7 +142,7 @@ func TestSystemModule_Peers(t *testing.T) {
 
 func TestSystemModule_NodeRoles(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil, nil)
 	expected := []interface{}{"Full"}
 
 	var res []interface{}
@@ -174,7 +174,7 @@ func newMockSystemAPI() *mocks.SystemAPI {
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -185,14 +185,14 @@ func TestSystemModule_Chain(t *testing.T) {
 func TestSystemModule_ChainType(t *testing.T) {
 	api := newMockSystemAPI()
 
-	sys := NewSystemModule(nil, api, nil, nil, nil, nil)
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
 	sys.ChainType(nil, nil, res)
 	require.Equal(t, testGenesisData.ChainType, *res)
 }
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -201,7 +201,7 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -210,7 +210,7 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
 
 	expected := map[string]interface{}(nil)
 
@@ -340,7 +340,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 		AnyTimes()
 
 	txQueue := state.NewTransactionState(telemetryMock)
-	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil)
+	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil, nil)
 }
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
@@ -399,12 +399,16 @@ func TestSyncState(t *testing.T) {
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
 
 	netapiMock := new(mocks.NetworkAPI)
-	netapiMock.On("HighestBlock").Return(int64(90))
 	netapiMock.On("StartingBlock").Return(int64(10))
+
+	syncapiCtrl := gomock.NewController(t)
+	syncapiMock := NewMockSyncAPI(syncapiCtrl)
+	syncapiMock.EXPECT().HighestBlock().Return(int64(90))
 
 	sysmodule := new(SystemModule)
 	sysmodule.blockAPI = blockapiMock
 	sysmodule.networkAPI = netapiMock
+	sysmodule.syncAPI = syncapiMock
 
 	var res SyncStateResponse
 	err := sysmodule.SyncState(nil, nil, &res)

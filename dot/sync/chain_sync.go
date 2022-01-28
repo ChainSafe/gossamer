@@ -79,6 +79,8 @@ type workHandler interface {
 	handleTick() ([]*worker, error)
 }
 
+//go:generate mockgen -destination=mock_chain_sync_test.go -package $GOPACKAGE . ChainSync
+
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
 	start()
@@ -92,6 +94,9 @@ type ChainSync interface {
 
 	// syncState returns the current syncing state
 	syncState() chainSyncState
+
+	// getHighestBlock returns the highest block or an error
+	getHighestBlock() (int64, error)
 }
 
 type chainSync struct {
@@ -931,6 +936,30 @@ func (cs *chainSync) validateJustification(bd *types.BlockData) error {
 	}
 
 	return nil
+}
+
+func (cs *chainSync) getHighestBlock() (int64, error) {
+	cs.RLock()
+	defer cs.RUnlock()
+
+	if len(cs.peerState) == 0 {
+		return 0, errNoPeers
+	}
+
+	highestBlock := big.NewInt(-1)
+
+	for _, ps := range cs.peerState {
+		if ps.number == nil || ps.number.Cmp(highestBlock) < 0 {
+			continue
+		}
+		highestBlock = ps.number
+	}
+
+	if highestBlock.Cmp(big.NewInt(-1)) == 0 {
+		return 0, errNilBlockData
+	}
+
+	return highestBlock.Int64(), nil
 }
 
 func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {

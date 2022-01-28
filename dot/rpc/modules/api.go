@@ -67,7 +67,6 @@ type NetworkAPI interface {
 	Stop() error
 	Start() error
 	IsStopped() bool
-	HighestBlock() int64
 	StartingBlock() int64
 	AddReservedPeers(addrs ...string) error
 	RemoveReservedPeers(addrs ...string) error
@@ -152,4 +151,11 @@ type RuntimeStorageAPI interface {
 // SyncStateAPI is the interface to interact with sync state.
 type SyncStateAPI interface {
 	GenSyncSpec(raw bool) (*genesis.Genesis, error)
+}
+
+//go:generate mockgen -destination=mock_sync_api_test.go -package $GOPACKAGE . SyncAPI
+
+// SyncAPI is the interface to interact with the sync service
+type SyncAPI interface {
+	HighestBlock() int64
 }
