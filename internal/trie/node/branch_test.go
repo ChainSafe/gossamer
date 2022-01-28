@@ -77,7 +77,13 @@ func Test_Branch_String(t *testing.T) {
 	}{
 		"empty branch": {
 			branch: &Branch{},
-			s:      "branch key=0x childrenBitmap=0 value=0x dirty=false",
+			s: `Branch
+├── Generation: 0
+├── Dirty: false
+├── Key: nil
+├── Value: nil
+├── Calculated encoding: nil
+└── Calculated digest: nil`,
 		},
 		"branch with value smaller than 1024": {
 			branch: &Branch{
@@ -94,7 +100,37 @@ func Test_Branch_String(t *testing.T) {
 					nil, nil, nil, nil,
 				},
 			},
-			s: "branch key=0x0102 childrenBitmap=100010001000 value=0x0304 dirty=true",
+			s: `Branch
+├── Generation: 0
+├── Dirty: true
+├── Key: 0x0102
+├── Value: 0x0304
+├── Calculated encoding: nil
+├── Calculated digest: nil
+├── Child 3
+|   └── Leaf
+|       ├── Generation: 0
+|       ├── Dirty: false
+|       ├── Key: nil
+|       ├── Value: nil
+|       ├── Calculated encoding: nil
+|       └── Calculated digest: nil
+├── Child 7
+|   └── Branch
+|       ├── Generation: 0
+|       ├── Dirty: false
+|       ├── Key: nil
+|       ├── Value: nil
+|       ├── Calculated encoding: nil
+|       └── Calculated digest: nil
+└── Child 11
+    └── Leaf
+        ├── Generation: 0
+        ├── Dirty: false
+        ├── Key: nil
+        ├── Value: nil
+        ├── Calculated encoding: nil
+        └── Calculated digest: nil`,
 		},
 		"branch with value higher than 1024": {
 			branch: &Branch{
@@ -111,9 +147,37 @@ func Test_Branch_String(t *testing.T) {
 					nil, nil, nil, nil,
 				},
 			},
-			s: "branch key=0x0102 childrenBitmap=100010001000 " +
-				"value (hashed)=0x307861663233363133353361303538646238383034626337353735323831663131663735313265326331346336373032393864306232336630396538386266333066 " + //nolint:lll
-				"dirty=true",
+			s: `Branch
+├── Generation: 0
+├── Dirty: true
+├── Key: 0x0102
+├── Value: 0x0000000000000000...0000000000000000
+├── Calculated encoding: nil
+├── Calculated digest: nil
+├── Child 3
+|   └── Leaf
+|       ├── Generation: 0
+|       ├── Dirty: false
+|       ├── Key: nil
+|       ├── Value: nil
+|       ├── Calculated encoding: nil
+|       └── Calculated digest: nil
+├── Child 7
+|   └── Branch
+|       ├── Generation: 0
+|       ├── Dirty: false
+|       ├── Key: nil
+|       ├── Value: nil
+|       ├── Calculated encoding: nil
+|       └── Calculated digest: nil
+└── Child 11
+    └── Leaf
+        ├── Generation: 0
+        ├── Dirty: false
+        ├── Key: nil
+        ├── Value: nil
+        ├── Calculated encoding: nil
+        └── Calculated digest: nil`,
 		},
 	}
 

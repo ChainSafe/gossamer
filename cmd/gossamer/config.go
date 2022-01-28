@@ -123,7 +123,7 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 
 	// TODO: log this better.
 	// See https://github.com/ChainSafe/gossamer/issues/1945
-	logger.Infof("loaded package log configuration: %#v", cfg.Log)
+	logger.Infof("loaded package log configuration: %s", cfg.Log)
 
 	// set global configuration values
 	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {

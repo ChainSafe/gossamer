@@ -21,19 +21,23 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
-	finalityGrandpaRoundMetrics = "gossamer/finality/grandpa/round"
-	defaultGrandpaInterval      = time.Second
+	defaultGrandpaInterval = time.Second
 )
 
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
-)
 
-var (
 	ErrUnsupportedSubround = errors.New("unsupported subround")
+	roundGauge             = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_grandpa",
+		Name:      "round",
+		Help:      "current grandpa round",
+	})
 )
 
 // Service represents the current state of the grandpa protocol
@@ -199,6 +203,7 @@ func (s *Service) Start() error {
 	}()
 
 	go s.sendNeighbourMessage()
+
 	return nil
 }
 
@@ -231,16 +236,6 @@ func (s *Service) authorities() []*types.Authority {
 	return ad
 }
 
-// CollectGauge returns the map between metrics label and value
-func (s *Service) CollectGauge() map[string]int64 {
-	s.roundLock.Lock()
-	defer s.roundLock.Unlock()
-
-	return map[string]int64{
-		finalityGrandpaRoundMetrics: int64(s.state.round),
-	}
-}
-
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
 func (s *Service) updateAuthorities() error {
 	currSetID, err := s.grandpaState.GetCurrentSetID()
@@ -264,6 +259,7 @@ func (s *Service) updateAuthorities() error {
 	// setting to 0 before incrementing indicates
 	// the setID has been increased
 	s.state.round = 0
+	roundGauge.Set(float64(s.state.round))
 
 	s.sendTelemetryAuthoritySet()
 
@@ -313,6 +309,7 @@ func (s *Service) initiateRound() error {
 			"found block finalised in higher round, updating our round to be %d...",
 			round)
 		s.state.round = round
+		roundGauge.Set(float64(s.state.round))
 		err = s.grandpaState.SetLatestRound(round)
 		if err != nil {
 			return err
@@ -1310,9 +1307,10 @@ func (s *Service) GetSetID() uint64 {
 
 // GetRound return the current round number
 func (s *Service) GetRound() uint64 {
+	// Tim: I don't think we need to lock in this case.  Reading an int will
+	// not produce a concurrent read/write panic
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
-
 	return s.state.round
 }
 

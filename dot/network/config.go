@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 )
 
 const (
@@ -93,9 +94,6 @@ type Config struct {
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
 
-	// PublishMetrics enables collection of network metrics
-	PublishMetrics bool
-
 	// telemetryInterval how often to send telemetry metrics
 	telemetryInterval time.Duration
 
@@ -109,6 +107,7 @@ type Config struct {
 	Telemetry telemetry.Client
 
 	MessageCacheTTL time.Duration
+	Metrics         metrics.IntervalConfig
 }
 
 // build checks the configuration, sets up the private key for the network service,
