@@ -972,16 +972,8 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 	reqs := make([]*network.BlockRequestMessage, numRequests)
 
 	for i := 0; i < numRequests; i++ {
-		// check if we want to specify a size
-		var max uint32 = maxResponseSize
-		if i == numRequests-1 {
-			size := numBlocks % maxResponseSize
-			if size == 0 {
-				size = maxResponseSize
-			}
-			max = uint32(size)
-		}
-
+		max := uint32(maxResponseSize)
+		
 		var start *variadic.Uint64OrHash
 		if w.startHash.IsEmpty() {
 			// worker startHash is unspecified if we are in bootstrap mode
