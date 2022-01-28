@@ -158,7 +158,7 @@ func TestBootstrap(t *testing.T) {
 
 	configB := &Config{
 		BasePath:  t.TempDir(),
-		Port:      0,
+		Port:      availablePort(t),
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
 	}

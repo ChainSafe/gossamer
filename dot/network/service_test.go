@@ -93,7 +93,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg == nil {
 		cfg = &Config{
 			BasePath:     t.TempDir(),
-			Port:         0,
+			Port:         availablePort(t),
 			NoBootstrap:  true,
 			NoMDNS:       true,
 			LogLvl:       log.Warn,
@@ -247,7 +247,7 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 
 	configA := &Config{
 		BasePath:        t.TempDir(),
-		Port:            0,
+		Port:            availablePort(t),
 		NoBootstrap:     true,
 		NoMDNS:          true,
 		MessageCacheTTL: 2 * time.Second,
@@ -258,7 +258,7 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 
 	configB := &Config{
 		BasePath:        t.TempDir(),
-		Port:            0,
+		Port:            availablePort(t),
 		NoBootstrap:     true,
 		NoMDNS:          true,
 		MessageCacheTTL: 2 * time.Second,
@@ -313,7 +313,7 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 
 	configA := &Config{
 		BasePath:        t.TempDir(),
-		Port:            0,
+		Port:            availablePort(t),
 		NoBootstrap:     true,
 		NoMDNS:          true,
 		MessageCacheTTL: 2 * time.Second,
@@ -324,7 +324,7 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 
 	configB := &Config{
 		BasePath:        t.TempDir(),
-		Port:            0,
+		Port:            availablePort(t),
 		NoBootstrap:     true,
 		NoMDNS:          true,
 		MessageCacheTTL: 2 * time.Second,
@@ -378,7 +378,7 @@ func TestService_NodeRoles(t *testing.T) {
 	cfg := &Config{
 		BasePath: t.TempDir(),
 		Roles:    1,
-		Port:     0,
+		Port:     availablePort(t),
 	}
 	svc := createTestService(t, cfg)
 

@@ -36,7 +36,7 @@ func TestMinPeers(t *testing.T) {
 
 	configB := &Config{
 		BasePath:  t.TempDir(),
-		Port:      0,
+		Port:      availablePort(t),
 		Bootnodes: []string{addrs.String(), addrs1.String()},
 		NoMDNS:    true,
 		MinPeers:  min,
@@ -143,7 +143,7 @@ func TestPersistentPeers(t *testing.T) {
 
 	configB := &Config{
 		BasePath:        t.TempDir(),
-		Port:            0,
+		Port:            availablePort(t),
 		NoMDNS:          true,
 		PersistentPeers: []string{addrs[0].String()},
 	}
@@ -185,7 +185,7 @@ func TestRemovePeer(t *testing.T) {
 
 	configB := &Config{
 		BasePath:  t.TempDir(),
-		Port:      0,
+		Port:      availablePort(t),
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
 	}
@@ -228,7 +228,7 @@ func TestSetReservedPeer(t *testing.T) {
 
 	config := &Config{
 		BasePath:        t.TempDir(),
-		Port:            0,
+		Port:            availablePort(t),
 		NoMDNS:          true,
 		PersistentPeers: []string{addrA.String(), addrB.String()},
 	}

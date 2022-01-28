@@ -72,7 +72,7 @@ func newNetworkService(t *testing.T) *network.Service {
 		BasePath:           t.TempDir(),
 		SlotDuration:       time.Second,
 		BlockState:         blockStateMock,
-		Port:               0,
+		Port:\s+availablePort(t),
 		Syncer:             syncerMock,
 		TransactionHandler: transactionHandlerMock,
 		Telemetry:          telemetryMock,
