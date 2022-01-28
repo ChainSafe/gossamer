@@ -55,10 +55,10 @@ func TestAddReservedPeers(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 200)
 
-	expectedMsgs := []Message{
-		{Status: Connect, setID: 0, PeerID: bootNode},
-		{Status: Connect, setID: 0, PeerID: reservedPeer},
-		{Status: Connect, setID: 0, PeerID: reservedPeer2},
+	expectedMsgs := map[peer.ID]Message{
+		bootNode:      {Status: Connect, setID: 0, PeerID: bootNode},
+		reservedPeer:  {Status: Connect, setID: 0, PeerID: reservedPeer},
+		reservedPeer2: {Status: Connect, setID: 0, PeerID: reservedPeer2},
 	}
 
 	require.Equal(t, uint32(1), ps.peerState.sets[0].numOut)
@@ -68,8 +68,11 @@ func TestAddReservedPeers(t *testing.T) {
 		if len(ps.resultMsgCh) == 0 {
 			break
 		}
+
 		msg := <-ps.resultMsgCh
-		require.Equal(t, expectedMsgs[i], msg)
+		expected, has := expectedMsgs[msg.PeerID]
+		require.True(t, has)
+		require.Equal(t, expected, msg)
 	}
 }
 
