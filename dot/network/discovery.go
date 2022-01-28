@@ -217,6 +217,10 @@ func (d *discovery) findPeers() {
 			logger.Tracef("found new peer %s via DHT", peer.ID)
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
+
+			if !timer.Stop() {
+				<-timer.C
+			}
 		}
 	}
 }
