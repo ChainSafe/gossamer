@@ -101,7 +101,6 @@ func Test_Trie_maybeUpdateGeneration(t *testing.T) {
 		copied       bool
 		expectedTrie *Trie
 	}{
-		"nil node": {},
 		"same generation": {
 			trie: &Trie{
 				generation: 1,
@@ -863,7 +862,7 @@ func Test_nextKey(t *testing.T) {
 
 			originalTrie := testCase.trie.DeepCopy()
 
-			nextKey := nextKey(testCase.trie.root, nil, testCase.key)
+			nextKey := findNextKey(testCase.trie.root, nil, testCase.key)
 
 			assert.Equal(t, testCase.nextKey, nextKey)
 			assert.Equal(t, *originalTrie, testCase.trie) // ensure no mutation
@@ -928,7 +927,7 @@ func Test_Trie_Put(t *testing.T) {
 	}
 }
 
-func Test_Trie_tryPut(t *testing.T) {
+func Test_Trie_put(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -1020,7 +1019,7 @@ func Test_Trie_tryPut(t *testing.T) {
 			t.Parallel()
 
 			trie := testCase.trie
-			trie.tryPut(testCase.key, testCase.value)
+			trie.put(testCase.key, testCase.value)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
 		})
@@ -1074,6 +1073,7 @@ func Test_Trie_insert(t *testing.T) {
 						Key:        []byte{},
 						Value:      []byte("leaf"),
 						Generation: 1,
+						Dirty:      true,
 					},
 					&node.Leaf{Key: []byte{2}},
 				},
@@ -1309,6 +1309,7 @@ func Test_Trie_updateBranch(t *testing.T) {
 					&node.Leaf{
 						Key:   []byte{4, 5},
 						Value: []byte{6},
+						Dirty: true,
 					},
 				},
 			},
@@ -1346,6 +1347,7 @@ func Test_Trie_updateBranch(t *testing.T) {
 							&node.Leaf{
 								Key:   []byte{6},
 								Value: []byte{6},
+								Dirty: true,
 							},
 						},
 					},
@@ -1478,14 +1480,14 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 				"0xa": "0x01",
 			},
 			errWrapped: hex.ErrLength,
-			errMessage: "encoding/hex: odd length hex string: 0xa",
+			errMessage: "cannot convert key hex to bytes: encoding/hex: odd length hex string: 0xa",
 		},
 		"bad value": {
 			data: map[string]string{
 				"0x01": "0xa",
 			},
 			errWrapped: hex.ErrLength,
-			errMessage: "encoding/hex: odd length hex string: 0xa",
+			errMessage: "cannot convert value hex to bytes: encoding/hex: odd length hex string: 0xa",
 		},
 		"load into empty trie": {
 			data: map[string]string{
