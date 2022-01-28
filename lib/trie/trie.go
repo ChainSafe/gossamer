@@ -603,36 +603,50 @@ func makeChildPrefix(branchPrefix, branchKey []byte,
 	return childPrefix
 }
 
-// Get returns the value for key stored in the trie at the corresponding key
-func (t *Trie) Get(key []byte) []byte {
-	keyNibbles := codec.KeyLEToNibbles(key)
+// Get returns the value in the node of the trie
+// which matches its key with the key given.
+// Note the key argument is given in little Endian format.
+func (t *Trie) Get(keyLE []byte) (value []byte) {
+	keyNibbles := codec.KeyLEToNibbles(keyLE)
 	return retrieve(t.root, keyNibbles)
 }
 
 func retrieve(parent Node, key []byte) (value []byte) {
-	switch p := parent.(type) {
-	case *node.Branch:
-		length := lenCommonPrefix(p.Key, key)
-
-		// found the value at this node
-		if bytes.Equal(p.Key, key) || len(key) == 0 {
-			return p.Value
-		}
-
-		// did not find value
-		if bytes.Equal(p.Key[:length], key) && len(key) < len(p.Key) {
-			return nil
-		}
-
-		value = retrieve(p.Children[key[length]], key[length+1:])
-	case *node.Leaf:
-		if bytes.Equal(p.Key, key) {
-			value = p.Value
-		}
-	case nil:
+	if parent == nil {
 		return nil
 	}
-	return value // TODO remove
+
+	if parent.Type() == node.LeafType {
+		leaf := parent.(*node.Leaf)
+		return retrieveFromLeaf(leaf, key)
+	}
+
+	// Branches
+	branch := parent.(*node.Branch)
+	return retrieveFromBranch(branch, key)
+}
+
+func retrieveFromLeaf(leaf *node.Leaf, key []byte) (value []byte) {
+	if bytes.Equal(leaf.Key, key) {
+		return leaf.Value
+	}
+	return nil
+}
+
+func retrieveFromBranch(branch *node.Branch, key []byte) (value []byte) {
+	if len(key) == 0 || bytes.Equal(branch.Key, key) {
+		return branch.Value
+	}
+
+	if len(branch.Key) > len(key) && bytes.HasPrefix(branch.Key, key) {
+		return nil
+	}
+
+	commonPrefixLength := lenCommonPrefix(branch.Key, key)
+	childIndex := key[commonPrefixLength]
+	childKey := key[commonPrefixLength+1:]
+	child := branch.Children[childIndex]
+	return retrieve(child, childKey)
 }
 
 // ClearPrefixLimit deletes the keys having the prefix till limit reached
