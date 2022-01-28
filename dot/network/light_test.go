@@ -90,7 +90,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	config := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -98,7 +98,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

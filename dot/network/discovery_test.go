@@ -21,7 +21,7 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    t.TempDir(),
-			Port:        0,
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -103,7 +103,7 @@ func TestBeginDiscovery(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -113,7 +113,7 @@ func TestBeginDiscovery(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -141,7 +141,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -151,7 +151,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -161,7 +161,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 
 	configC := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

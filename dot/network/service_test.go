@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var TestProtocolID = "/gossamer/test/0"
@@ -42,7 +41,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	for i := 0; i < num; i++ {
 		config := &Config{
 			BasePath:    t.TempDir(),
-			Port:        0,
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -201,7 +200,7 @@ func TestBroadcastMessages(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -211,7 +210,7 @@ func TestBroadcastMessages(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -305,7 +304,6 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	time.Sleep(time.Millisecond * 200)
 	messages, _ := handler.messagesFrom(nodeA.host.id())
 	require.Len(t, messages, 6)
 }
@@ -313,9 +311,8 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 	t.Parallel()
 
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
-		BasePath:        basePathA,
+		BasePath:        t.TempDir(),
 		Port:            0,
 		NoBootstrap:     true,
 		NoMDNS:          true,
@@ -325,9 +322,8 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 
-	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
-		BasePath:        basePathB,
+		BasePath:        t.TempDir(),
 		Port:            0,
 		NoBootstrap:     true,
 		NoMDNS:          true,
@@ -337,7 +333,6 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	// TODO: create a decoder that handles both handshakes and messages
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
@@ -366,29 +361,15 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 		Digest: types.NewDigest(),
 	}
 
-	delete(handler.messages, nodeA.host.id())
-
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
 		nodeA.GossipMessage(announceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	time.Sleep(time.Millisecond * 500)
-
-	nodeAMessages, _ := handler.messagesFrom(nodeA.host.id())
-	require.Equal(t, 2, len(nodeAMessages))
-
-	nodeA.host.messageCache = nil
-
-	// All 5 message will be sent since cache is disabled.
-	for i := 0; i < 5; i++ {
-		nodeA.GossipMessage(announceMessage)
-		time.Sleep(time.Millisecond * 10)
-	}
-
-	nodeAMessages, _ = handler.messagesFrom(nodeA.host.id())
-	require.Equal(t, 7, len(nodeAMessages))
+	time.Sleep(time.Millisecond * 200)
+	messages, _ := handler.messagesFrom(nodeA.host.id())
+	require.Len(t, messages, 2)
 }
 
 func TestService_NodeRoles(t *testing.T) {
@@ -411,7 +392,7 @@ func TestService_Health(t *testing.T) {
 
 	config := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -461,7 +442,7 @@ func TestHandleConn(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -470,7 +451,7 @@ func TestHandleConn(t *testing.T) {
 
 	configB := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

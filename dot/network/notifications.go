@@ -264,6 +264,7 @@ func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream lib
 	)
 
 	info.outboundHandshakeData.Delete(peerID)
+	fmt.Println(">>>>>> closed outbound stream")
 	_ = stream.Close()
 }
 
@@ -289,12 +290,12 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if s.host.messageCache != nil && s.host.messageCache.exists(peer, msg) {
-		logger.Tracef("message has already been sent, ignoring: peer=%s msg=%s", peer, msg)
+		logger.Debugf("message has already been sent, ignoring: peer=%s msg=%s", peer, msg)
 		return
 	}
 
 	// we've completed the handshake with the peer, send message directly
-	logger.Tracef("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
+	logger.Debugf("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
 	if err := s.host.writeToStream(stream, msg); err != nil {
 		logger.Debugf("failed to send message to peer %s: %s", peer, err)
 
@@ -310,7 +311,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		}
 	}
 
-	logger.Tracef("successfully sent message on protocol %s to peer %s: message=", info.protocolID, peer, msg)
+	logger.Debugf("successfully sent message on protocol %s to peer %s: message=", info.protocolID, peer, msg)
 	s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 		Value:  peerset.GossipSuccessValue,
 		Reason: peerset.GossipSuccessReason,

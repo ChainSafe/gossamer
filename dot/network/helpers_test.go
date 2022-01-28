@@ -18,21 +18,48 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+const blockRequestSize uint32 = 128
+
+func testBlockResponseMessage() *BlockResponseMessage {
+	msg := &BlockResponseMessage{
+		BlockData: []*types.BlockData{},
+	}
+
+	for i := 0; i < int(blockRequestSize); i++ {
+		testHeader := &types.Header{
+			Number: big.NewInt(int64(77 + i)),
+			Digest: types.NewDigest(),
+		}
+
+		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
+
+		msg.BlockData = append(msg.BlockData, &types.BlockData{
+			Hash:          testHeader.Hash(),
+			Header:        testHeader,
+			Body:          body,
+			MessageQueue:  nil,
+			Receipt:       nil,
+			Justification: nil,
+		})
+	}
+
+	return msg
+}
+
 type testStreamHandler struct {
 	sync.Mutex
 
 	messages map[peer.ID][]Message
 	decoder  messageDecoder
 
-	// readStream closes exitChan when it returns
-	exitChan chan struct{}
+	eofCh chan struct{}
 }
 
 func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
 	return &testStreamHandler{
 		messages: make(map[peer.ID][]Message),
 		decoder:  decoder,
-		exitChan: make(chan struct{}),
+		eofCh:    make(chan struct{}),
 	}
 }
 
@@ -48,12 +75,11 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 }
 
 func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Message) error {
+
 	s.Lock()
 	defer s.Unlock()
-
 	msgs := s.messages[stream.Conn().RemotePeer()]
 	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
-
 	announceHandshake := &BlockAnnounceHandshake{
 		BestBlockNumber: 0,
 	}
@@ -78,11 +104,10 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 	peer peer.ID, decoder messageDecoder, handler messageHandler) {
 	msgBytes := make([]byte, maxBlockResponseSize)
 
-	defer close(s.exitChan)
-
 	for {
 		tot, err := readStream(stream, msgBytes)
 		if errors.Is(err, io.EOF) {
+			s.eofCh <- struct{}{}
 			return
 		} else if err != nil {
 			logger.Debugf("failed to read from stream using protocol %s: %s", stream.Protocol(), err)

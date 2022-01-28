@@ -5,15 +5,19 @@ package peerset
 
 import (
 	"context"
+	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // Handler manages peerSet.
 type Handler struct {
-	actionQueue chan<- action
-	peerSet     *PeerSet
-	closeCh     chan struct{}
+	actionQueue   chan<- action
+	closeCh       chan struct{}
+	writersWG     sync.WaitGroup
+	writerWGMutex sync.Mutex
+
+	peerSet *PeerSet
 
 	cancelCtx context.CancelFunc
 }
@@ -31,10 +35,25 @@ func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
 }
 
 func (h *Handler) setActionQueue(act action) {
-	select {
-	case <-h.closeCh:
-	case h.actionQueue <- act:
-	}
+	go func(data action) {
+		h.writerWGMutex.Lock()
+		h.writersWG.Add(1)
+		h.writerWGMutex.Unlock()
+
+		defer h.writersWG.Done()
+
+		select {
+		case <-h.closeCh:
+			return
+		default:
+		}
+
+		select {
+		case <-h.closeCh:
+		case h.actionQueue <- data:
+		}
+	}(act)
+
 }
 
 // AddReservedPeer adds reserved peer into peerSet.
@@ -84,11 +103,11 @@ func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
 
 // ReportPeer reports ReputationChange according to the peer behaviour.
 func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
-	h.actionQueue <- action{
+	h.setActionQueue(action{
 		actionCall: reportPeer,
 		reputation: rep,
 		peers:      peers,
-	}
+	})
 }
 
 // Incoming calls when we have an incoming connection from peer.
@@ -152,9 +171,13 @@ func (h *Handler) Stop() {
 	select {
 	case <-h.closeCh:
 	default:
-		close(h.closeCh)
-		close(h.actionQueue)
 		h.cancelCtx()
+		close(h.closeCh)
 
+		h.writerWGMutex.Lock()
+		h.writersWG.Wait()
+		h.writerWGMutex.Unlock()
+
+		close(h.actionQueue)
 	}
 }

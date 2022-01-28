@@ -23,7 +23,7 @@ func TestMinPeers(t *testing.T) {
 	for i := range nodes {
 		config := &Config{
 			BasePath:    t.TempDir(),
-			Port:        0,
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -63,7 +63,7 @@ func TestMaxPeers(t *testing.T) {
 	for i := range nodes {
 		config := &Config{
 			BasePath:    t.TempDir(),
-			Port:        0,
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 			MaxPeers:    max,
@@ -134,7 +134,7 @@ func TestPersistentPeers(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -173,7 +173,7 @@ func TestRemovePeer(t *testing.T) {
 
 	configA := &Config{
 		BasePath:    t.TempDir(),
-		Port:        0,
+		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -214,7 +214,7 @@ func TestSetReservedPeer(t *testing.T) {
 	for i := range nodes {
 		config := &Config{
 			BasePath:    t.TempDir(),
-			Port:        0,
+			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
