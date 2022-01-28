@@ -66,11 +66,11 @@ func (lm *leafMap) highestLeaf() *node {
 
 	var deepest *node
 	lm.smap.Range(func(h, n interface{}) bool {
-		if n == nil {
+		node := n.(*node)
+		if node == nil {
+			// this should never happen
 			return true
 		}
-
-		node := n.(*node)
 
 		if max.Cmp(node.number) < 0 {
 			max = node.number

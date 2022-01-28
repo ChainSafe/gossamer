@@ -617,6 +617,7 @@ func equalLeaves(lm *leafMap, lmCopy *leafMap) bool {
 }
 
 func TestBlockTree_best(t *testing.T) {
+	// test basic case where two chains have different amount of primaries
 	bt := NewEmptyBlockTree()
 	bt.root = &node{
 		hash: common.Hash{0},
@@ -638,6 +639,75 @@ func TestBlockTree_best(t *testing.T) {
 	bt.leaves = newEmptyLeafMap()
 	bt.leaves.store(bt.root.children[0].hash, bt.root.children[0])
 	bt.leaves.store(bt.root.children[1].hash, bt.root.children[1])
-
 	require.Equal(t, bt.root.children[0].hash, bt.BestBlockHash())
+
+	// test case where two chains have the same amount of primaries
+	// and the head numbers are also equal
+	// should pick the chain with the lowest arrival time or block hash
+	bt = NewEmptyBlockTree()
+	bt.root = &node{
+		hash: common.Hash{0},
+	}
+
+	bt.root.children = []*node{
+		{
+			hash:      common.Hash{1},
+			parent:    bt.root,
+			number:    big.NewInt(1),
+			isPrimary: true,
+		},
+		{
+			hash:      common.Hash{2},
+			parent:    bt.root,
+			isPrimary: false,
+		},
+	}
+
+	bt.root.children[1].children = []*node{
+		{
+			hash:      common.Hash{3},
+			parent:    bt.root.children[1],
+			number:    big.NewInt(1),
+			isPrimary: true,
+		},
+	}
+
+	bt.leaves = newEmptyLeafMap()
+	bt.leaves.store(bt.root.children[0].hash, bt.root.children[0])
+	bt.leaves.store(bt.root.children[1].children[0].hash, bt.root.children[1].children[0])
+	require.Equal(t, bt.root.children[0].hash, bt.BestBlockHash())
+
+	// test case where three chains have the same amount of primaries
+	// and the head numbers are also equal
+	// should pick the chain with the lowest arrival time or block hash
+	bt = NewEmptyBlockTree()
+	bt.root = &node{
+		hash: common.Hash{0},
+	}
+
+	bt.root.children = []*node{
+		{
+			hash:      common.Hash{3},
+			parent:    bt.root,
+			number:    big.NewInt(1),
+			isPrimary: true,
+		},
+		{
+			hash:      common.Hash{2},
+			parent:    bt.root,
+			isPrimary: false,
+		},
+		{
+			hash:      common.Hash{1},
+			parent:    bt.root,
+			number:    big.NewInt(1),
+			isPrimary: true,
+		},
+	}
+
+	bt.leaves = newEmptyLeafMap()
+	bt.leaves.store(bt.root.children[0].hash, bt.root.children[0])
+	bt.leaves.store(bt.root.children[1].hash, bt.root.children[1])
+	bt.leaves.store(bt.root.children[2].hash, bt.root.children[2])
+	require.Equal(t, bt.root.children[2].hash, bt.BestBlockHash())
 }
