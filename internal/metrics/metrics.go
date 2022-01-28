@@ -14,7 +14,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-const defaultInterval = 10 * time.Second
+const (
+	defaultInterval        = 10 * time.Second
+	defaultTimeoutInterval = 30 * time.Second
+)
 
 var (
 	logger                     log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
@@ -78,7 +81,7 @@ func (s *Server) Start(address string) (err error) {
 // Stop will stop the metrics server
 func (s *Server) Stop() (err error) {
 	s.cancel()
-	timeout := time.NewTimer(30 * time.Second)
+	timeout := time.NewTimer(defaultTimeoutInterval)
 	select {
 	case err := <-s.done:
 		close(s.done)
@@ -88,7 +91,7 @@ func (s *Server) Stop() (err error) {
 		if err != nil {
 			return err
 		}
-		return ErrServerEndedUnexpectedly
+		return nil
 	case <-timeout.C:
 		return ErrServerStopTimeout
 	}
