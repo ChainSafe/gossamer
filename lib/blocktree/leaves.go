@@ -4,18 +4,16 @@
 package blocktree
 
 import (
+	"bytes"
 	"errors"
 	"math/big"
 	"sync"
-
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // leafMap provides quick lookup for existing leaves
 type leafMap struct {
-	currHighestLeaf *node
 	sync.RWMutex
 	smap *sync.Map // map[common.Hash]*node
 }
@@ -79,30 +77,19 @@ func (lm *leafMap) highestLeaf() *node {
 			deepest = node
 		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(deepest.arrivalTime) {
 			deepest = node
+		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Equal(deepest.arrivalTime) {
+			// there are two leaf nodes with the same number *and* arrival time, just pick the one
+			// with the lower hash in lexicographical order.
+			// practically, this is very unlikely to happen.
+			if bytes.Compare(node.hash[:], deepest.hash[:]) < 0 {
+				deepest = node
+			}
 		}
 
 		return true
 	})
 
-	if lm.currHighestLeaf != nil {
-		if lm.currHighestLeaf.hash == deepest.hash {
-			return lm.currHighestLeaf
-		}
-
-		// update the current deepest leaf if the found deepest has a greater number or
-		// if the current and the found deepest has the same number however the current
-		// arrived later then the found deepest
-		if deepest.number.Cmp(lm.currHighestLeaf.number) == 1 {
-			lm.currHighestLeaf = deepest
-		} else if deepest.number.Cmp(lm.currHighestLeaf.number) == 0 &&
-			deepest.arrivalTime.Before(lm.currHighestLeaf.arrivalTime) {
-			lm.currHighestLeaf = deepest
-		}
-	} else {
-		lm.currHighestLeaf = deepest
-	}
-
-	return lm.currHighestLeaf
+	return deepest
 }
 
 func (lm *leafMap) toMap() map[common.Hash]*node {
@@ -146,8 +133,6 @@ func (lm *leafMap) bestBlock() *node {
 	lm.smap.Range(func(_, nn interface{}) bool {
 		n := nn.(*node)
 		count := n.primaryAncestorCount(0)
-
-		fmt.Println(n, count)
 		nodesWithCount, has := counts[count]
 		if !has {
 			counts[count] = []*node{n}

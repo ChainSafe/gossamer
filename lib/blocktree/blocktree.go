@@ -194,18 +194,6 @@ func (bt *BlockTree) String() string {
 	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
 }
 
-// // longestPath returns the path from the root to the deepest leaf in the blocktree
-// func (bt *BlockTree) longestPath() []*node {
-// 	dl := bt.deepestLeaf()
-// 	var path []*node
-// 	for curr := dl; ; curr = curr.parent {
-// 		path = append([]*node{curr}, path...)
-// 		if curr.parent == nil {
-// 			return path
-// 		}
-// 	}
-// }
-
 // subChain returns the path from the node with Hash start to the node with Hash end
 func (bt *BlockTree) subChain(start, end Hash) ([]*node, error) {
 	sn := bt.getNode(start)
