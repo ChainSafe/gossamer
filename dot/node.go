@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -22,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -34,10 +34,11 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
 
 // Node is a container for all the components of a node.
 type Node struct {
-	Name     string
-	Services *services.ServiceRegistry // registry of all node services
-	wg       sync.WaitGroup
-	started  chan struct{}
+	Name          string
+	Services      *services.ServiceRegistry // registry of all node services
+	wg            sync.WaitGroup
+	started       chan struct{}
+	metricsServer *metrics.Server
 }
 
 // InitNode initialises a new dot node from the provided dot node configuration
@@ -87,6 +88,7 @@ func InitNode(cfg *Config) error {
 			RetainedBlocks: cfg.Global.RetainBlocks,
 		},
 		Telemetry: telemetryMailer,
+		Metrics:   metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	// create new state service
@@ -352,16 +354,13 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 
 	if cfg.Global.PublishMetrics {
-		c := metrics.NewCollector(context.Background())
-		c.AddGauge(fg)
-		c.AddGauge(stateSrvc)
-		c.AddGauge(networkSrvc)
-
-		go c.Start()
-
 		address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
 		logger.Info("Enabling stand-alone metrics HTTP endpoint at address " + address)
-		metrics.PublishMetrics(address)
+		node.metricsServer = metrics.NewServer(address)
+		err := node.metricsServer.Start(address)
+		if err != nil {
+			return nil, fmt.Errorf("cannot start metrics server: %w", err)
+		}
 	}
 
 	return node, nil
@@ -435,6 +434,12 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 	n.wg.Done()
+	if n.metricsServer != nil {
+		err := n.metricsServer.Stop()
+		if err != nil {
+			log.Errorf("cannot stop metrics server: %s", err)
+		}
+	}
 }
 
 func loadRuntime(cfg *Config, ns *runtime.NodeStorage,

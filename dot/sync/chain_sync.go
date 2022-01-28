@@ -15,6 +15,8 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -48,7 +50,14 @@ func (s chainSyncState) String() string {
 	}
 }
 
-var pendingBlocksLimit = maxResponseSize * 32
+var (
+	pendingBlocksLimit = maxResponseSize * 32
+	isSyncedGauge      = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_syncer",
+		Name:      "is_synced",
+		Help:      "bool representing whether the node is synced to the head of the chain",
+	})
+)
 
 // peerState tracks our peers's best reported blocks
 type peerState struct {
@@ -199,6 +208,8 @@ func (cs *chainSync) start() {
 		}
 		time.Sleep(time.Millisecond * 100)
 	}
+
+	isSyncedGauge.Set(float64(cs.state))
 
 	pendingBlockDoneCh := make(chan struct{})
 	cs.pendingBlockDoneCh = pendingBlockDoneCh
@@ -533,6 +544,7 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 	}
 
 	cs.state = mode
+	isSyncedGauge.Set(float64(cs.state))
 	logger.Debugf("switched sync mode to %d", mode)
 }
 
