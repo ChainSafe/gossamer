@@ -183,7 +183,10 @@ func entries(parent Node, prefix []byte, kv map[string][]byte) map[string][]byte
 	}
 
 	if parent.Type() == node.LeafType {
-		fullKeyNibbles := append(prefix, parent.GetKey()...)
+		parentKey := parent.GetKey()
+		fullKeyNibbles := make([]byte, 0, len(prefix)+len(parentKey))
+		fullKeyNibbles = append(fullKeyNibbles, prefix...)
+		fullKeyNibbles = append(fullKeyNibbles, parentKey...)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
 		kv[keyLE] = parent.GetValue()
 		return kv
@@ -193,7 +196,9 @@ func entries(parent Node, prefix []byte, kv map[string][]byte) map[string][]byte
 	branch := parent.(*node.Branch)
 
 	if branch.Value != nil {
-		fullKeyNibbles := append(prefix, branch.Key...)
+		fullKeyNibbles := make([]byte, 0, len(prefix)+len(branch.Key))
+		fullKeyNibbles = append(fullKeyNibbles, prefix...)
+		fullKeyNibbles = append(fullKeyNibbles, branch.Key...)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
 		kv[keyLE] = branch.Value
 	}
@@ -241,7 +246,9 @@ func findNextKey(parent Node, prefix, searchKey []byte) (nextKey []byte) {
 
 func findNextKeyLeaf(leaf *node.Leaf, prefix, searchKey []byte) (nextKey []byte) {
 	parentLeafKey := leaf.Key
-	fullKey := append(prefix, parentLeafKey...)
+	fullKey := make([]byte, 0, len(prefix)+len(parentLeafKey))
+	fullKey = append(fullKey, prefix...)
+	fullKey = append(fullKey, parentLeafKey...)
 
 	searchKeyBigger :=
 		(len(searchKey) < len(fullKey) &&
@@ -252,12 +259,13 @@ func findNextKeyLeaf(leaf *node.Leaf, prefix, searchKey []byte) (nextKey []byte)
 		return nil
 	}
 
-	nextKey = append(prefix, parentLeafKey...)
-	return nextKey
+	return fullKey
 }
 
 func findNextKeyBranch(parentBranch *node.Branch, prefix, searchKey []byte) (nextKey []byte) {
-	fullKey := append(prefix, parentBranch.Key...)
+	fullKey := make([]byte, 0, len(prefix)+len(parentBranch.Key))
+	fullKey = append(fullKey, prefix...)
+	fullKey = append(fullKey, parentBranch.Key...)
 
 	if bytes.Equal(searchKey, fullKey) {
 		const startChildIndex = 0
@@ -288,7 +296,8 @@ func findNextKeyBranch(parentBranch *node.Branch, prefix, searchKey []byte) (nex
 		return fullKey
 	}
 	const startChildIndex = 0
-	return findNextKeyChild(parentBranch.Children, startChildIndex, fullKey, searchKey)
+	return findNextKeyChild(parentBranch.Children, startChildIndex,
+		fullKey, searchKey)
 }
 
 // findNextKeyChild searches for a next key in the children
@@ -301,7 +310,9 @@ func findNextKeyChild(children [16]node.Node, startIndex byte,
 			continue
 		}
 
-		childFullKey := append(fullKey, i)
+		childFullKey := make([]byte, 0, len(fullKey)+1)
+		childFullKey = append(childFullKey, fullKey...)
+		childFullKey = append(childFullKey, i)
 		next := findNextKey(child, childFullKey, key)
 		if len(next) > 0 {
 			return next
@@ -569,7 +580,8 @@ func addAllKeys(parent Node, prefix []byte, keysLE [][]byte) (newKeysLE [][]byte
 	}
 
 	if parent.Type() == node.LeafType {
-		keysLE = append(keysLE, codec.NibblesToKeyLE(append(prefix, parent.GetKey()...)))
+		keyLE := makeFullKeyLE(prefix, parent.GetKey())
+		keysLE = append(keysLE, keyLE)
 		return keysLE
 	}
 
@@ -589,7 +601,9 @@ func addAllKeys(parent Node, prefix []byte, keysLE [][]byte) (newKeysLE [][]byte
 }
 
 func makeFullKeyLE(prefix, nodeKey []byte) (fullKeyLE []byte) {
-	fullKey := append(prefix, nodeKey...)
+	fullKey := make([]byte, 0, len(prefix)+len(nodeKey))
+	fullKey = append(fullKey, prefix...)
+	fullKey = append(fullKey, nodeKey...)
 	fullKeyLE = codec.NibblesToKeyLE(fullKey)
 	return fullKeyLE
 }
@@ -786,7 +800,10 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newP
 	}
 
 	branch := newParent.(*node.Branch)
-	prefix = append(prefix, branch.Key...)
+
+	fullKey := make([]byte, 0, len(prefix)+len(branch.Key))
+	fullKey = append(fullKey, prefix...)
+	fullKey = append(fullKey, branch.Key...)
 
 	nilChildren := len(branch.Children) - branch.NumChildren()
 
@@ -795,13 +812,13 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newP
 			continue
 		}
 
-		branch.Children[i] = t.deleteNodesLimit(child, prefix, limit)
+		branch.Children[i] = t.deleteNodesLimit(child, fullKey, limit)
 		if branch.Children[i] == nil {
 			nilChildren++
 		}
 
 		branch.SetDirty(true)
-		newParent = handleDeletion(branch, prefix)
+		newParent = handleDeletion(branch, fullKey)
 		if nilChildren == len(branch.Children) &&
 			branch.Value == nil {
 			return nil
@@ -900,122 +917,155 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 	return newParent, true
 }
 
-// Delete removes any existing value for key from the trie.
-func (t *Trie) Delete(key []byte) {
-	k := codec.KeyLEToNibbles(key)
-	t.root, _ = t.delete(t.root, k)
+// Delete removes the node of the trie with the key
+// matching the key given in little Endian format.
+// If no node is found at this key, nothing is deleted.
+func (t *Trie) Delete(keyLE []byte) {
+	key := codec.KeyLEToNibbles(keyLE)
+	t.root, _ = t.delete(t.root, key)
 }
 
-func (t *Trie) delete(parent Node, key []byte) (Node, bool) {
+func (t *Trie) delete(parent Node, key []byte) (newParent Node, deleted bool) {
 	if parent == nil {
 		return nil, false
 	}
 
-	// Store the current node and return it, if the trie is not updated.
-	switch p := t.maybeUpdateGeneration(parent).(type) {
-	case *node.Branch:
+	newParent = t.maybeUpdateGeneration(parent)
 
-		length := lenCommonPrefix(p.Key, key)
-		if bytes.Equal(p.Key, key) || len(key) == 0 {
-			// found the value at this node
-			p.Value = nil
-			p.SetDirty(true)
-			return handleDeletion(p, key), true
-		}
-
-		n, del := t.delete(p.Children[key[length]], key[length+1:])
-		if !del {
-			// If nothing was deleted then don't copy the path.
-			// Return the parent without its generation updated.
-			return parent, false
-		}
-
-		p.Children[key[length]] = n
-		p.SetDirty(true)
-		n = handleDeletion(p, key)
-		return n, true
-	case *node.Leaf:
-		if bytes.Equal(key, p.Key) || len(key) == 0 {
-			// Key exists. Delete it.
+	if newParent.Type() == node.LeafType {
+		newParent = deleteLeaf(newParent, key)
+		if newParent == nil {
 			return nil, true
 		}
-		// Key doesn't exist, return parent
-		// without its generation changed
+		// The leaf was not deleted so return the original
+		// parent without its generation updated.
+		// The copied newParent will be garbage collected.
 		return parent, false
+	}
+
+	branch := newParent.(*node.Branch)
+	newParent, deleted = t.deleteBranch(branch, key)
+	if !deleted {
+		// Nothing was deleted so return the original
+		// parent without its generation updated.
+		// The copied newParent will be garbage collected.
+		return parent, false
+	}
+
+	return newParent, true
+}
+
+func deleteLeaf(parent Node, key []byte) (newParent Node) {
+	if len(key) == 0 || bytes.Equal(key, parent.GetKey()) {
+		return nil
+	}
+	return parent
+}
+
+func (t *Trie) deleteBranch(branch *node.Branch, key []byte) (newParent Node, deleted bool) {
+	if len(key) == 0 || bytes.Equal(branch.Key, key) {
+		branch.Value = nil
+		branch.SetDirty(true)
+		return handleDeletion(branch, key), true
+	}
+
+	commonPrefixLength := lenCommonPrefix(branch.Key, key)
+	childIndex := key[commonPrefixLength]
+	childKey := key[commonPrefixLength+1:]
+	child := branch.Children[childIndex]
+
+	newChild, deleted := t.delete(child, childKey)
+	if !deleted {
+		return branch, false
+	}
+
+	branch.Children[childIndex] = newChild
+	branch.SetDirty(true)
+	newParent = handleDeletion(branch, key)
+	return newParent, true
+}
+
+// handleDeletion is called when a value is deleted from a branch to handle
+// the eventual mutation of the branch depending on its children.
+// If the branch has no value and a single child, it will be combined with this child.
+// If the branch has a value and no child, it will be changed into a leaf.
+func handleDeletion(branch *node.Branch, key []byte) (newNode Node) {
+	// TODO try to remove key argument just use branch.Key instead?
+	childrenCount := 0
+	firstChildIndex := -1
+	for i, child := range branch.Children {
+		if child == nil {
+			continue
+		}
+		if firstChildIndex == -1 {
+			firstChildIndex = i
+		}
+		childrenCount++
+	}
+
+	switch {
 	default:
-		panic(fmt.Sprintf("%T: invalid node: %v (%v)", p, p, key))
-	}
-}
+		return branch
+	case childrenCount == 0 && branch.Value != nil:
+		commonPrefixLength := lenCommonPrefix(branch.Key, key)
+		return &node.Leaf{
+			Key:        key[:commonPrefixLength],
+			Value:      branch.Value,
+			Dirty:      true,
+			Generation: branch.Generation,
+		}
+	case childrenCount == 1 && branch.Value == nil:
+		childIndex := firstChildIndex
+		child := branch.Children[firstChildIndex]
 
-// handleDeletion is called when a value is deleted from a branch
-// if the updated branch only has 1 child, it should be combined with that child
-// if the updated branch only has a value, it should be turned into a leaf
-func handleDeletion(p *node.Branch, key []byte) Node {
-	// TODO try to remove key argument just use p.Key instead?
-	var n Node = p
-	length := lenCommonPrefix(p.Key, key)
-	bitmap := p.ChildrenBitmap()
-
-	// if branch has no children, just a value, turn it into a leaf
-	if bitmap == 0 && p.Value != nil {
-		n = node.NewLeaf(key[:length], p.Value, true, p.Generation)
-	} else if p.NumChildren() == 1 && p.Value == nil {
-		// there is only 1 child and no value, combine the child branch with this branch
-		// find index of child
-		var i int
-		for i = 0; i < 16; i++ {
-			bitmap = bitmap >> 1
-			if bitmap == 0 {
-				break
+		if child.Type() == node.LeafType {
+			childLeafKey := child.GetKey()
+			newLeafKey := make([]byte, 0, len(branch.Key)+1+len(childLeafKey))
+			newLeafKey = append(newLeafKey, branch.Key...)
+			newLeafKey = append(newLeafKey, byte(childIndex))
+			newLeafKey = append(newLeafKey, childLeafKey...)
+			return &node.Leaf{
+				Key:        newLeafKey,
+				Value:      child.GetValue(),
+				Dirty:      true,
+				Generation: branch.Generation,
 			}
 		}
 
-		child := p.Children[i]
-		switch c := child.(type) {
-		case *node.Leaf:
-			key = append(append(p.Key, []byte{byte(i)}...), c.Key...)
-			const dirty = true
-			n = node.NewLeaf(
-				key,
-				c.Value,
-				dirty,
-				p.Generation,
-			)
-		case *node.Branch:
-			br := new(node.Branch)
-			br.Key = append(p.Key, append([]byte{byte(i)}, c.Key...)...)
-
-			// adopt the grandchildren
-			for i, grandchild := range c.Children {
-				if grandchild != nil {
-					br.Children[i] = grandchild
-					// No need to copy and update the generation
-					// of the grand children since they are not modified.
-				}
-			}
-
-			br.Value = c.Value
-			br.Generation = p.Generation
-			n = br
-		default:
-			// TODO remove
-			// do nothing
+		childBranch := child.(*node.Branch)
+		newBranchKey := make([]byte, 0, len(branch.Key)+1+len(childBranch.Key))
+		newBranchKey = append(newBranchKey, branch.Key...)
+		newBranchKey = append(newBranchKey, byte(childIndex))
+		newBranchKey = append(newBranchKey, childBranch.Key...)
+		newBranch := &node.Branch{
+			Key:        newBranchKey,
+			Value:      childBranch.Value,
+			Generation: branch.Generation,
+			Dirty:      true,
 		}
-		n.SetDirty(true)
 
+		// Adopt the grand-children
+		for i, grandChild := range childBranch.Children {
+			if grandChild != nil {
+				newBranch.Children[i] = grandChild
+				// No need to copy and update the generation
+				// of the grand children since they are not modified.
+			}
+		}
+
+		return newBranch
 	}
-	return n
 }
 
-// lenCommonPrefix returns the length of the common prefix between two keys
-func lenCommonPrefix(a, b []byte) int {
-	var length, min = 0, len(a)
-
-	if len(a) > len(b) {
+// lenCommonPrefix returns the length of the
+// common prefix between two byte slices.
+func lenCommonPrefix(a, b []byte) (length int) {
+	min := len(a)
+	if len(b) < min {
 		min = len(b)
 	}
 
-	for ; length < min; length++ {
+	for length = 0; length < min; length++ {
 		if a[length] != b[length] {
 			break
 		}
