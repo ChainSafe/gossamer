@@ -5,20 +5,18 @@ package network
 
 import (
 	"io"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 )
 
-// test buildIdentity method
 func TestBuildIdentity(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	t.Parallel()
+
+	testDir := t.TempDir()
 
 	configA := &Config{
 		logger:   log.New(log.SetWriter(io.Discard)),
@@ -26,9 +24,7 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	err := configA.buildIdentity()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	configB := &Config{
 		logger:   log.New(log.SetWriter(io.Discard)),
@@ -36,13 +32,9 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	err = configB.buildIdentity()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if !reflect.DeepEqual(configA.privateKey, configB.privateKey) {
-		t.Error("Private keys should match")
-	}
+	require.Equal(t, configA.privateKey, configB.privateKey)
 
 	configC := &Config{
 		logger:   log.New(log.SetWriter(io.Discard)),
@@ -50,9 +42,7 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	err = configC.buildIdentity()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	configD := &Config{
 		logger:   log.New(log.SetWriter(io.Discard)),
@@ -60,19 +50,16 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	err = configD.buildIdentity()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if reflect.DeepEqual(configC.privateKey, configD.privateKey) {
-		t.Error("Private keys should not match")
-	}
+	require.NotEqual(t, configC.privateKey, configD.privateKey)
 }
 
 // test build configuration method
 func TestBuild(t *testing.T) {
-	testBasePath := utils.NewTestBasePath(t, "node")
-	defer utils.RemoveTestDir(t)
+	t.Parallel()
+
+	testBasePath := t.TempDir()
 
 	testBlockState := &state.BlockState{}
 	testRandSeed := int64(1)
@@ -85,14 +72,12 @@ func TestBuild(t *testing.T) {
 	}
 
 	err := cfg.build()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	require.Equal(t, testBlockState, cfg.BlockState)
 	require.Equal(t, testBasePath, cfg.BasePath)
 	require.Equal(t, DefaultRoles, cfg.Roles)
-	require.Equal(t, DefaultPort, cfg.Port)
+	require.Equal(t, uint16(0), cfg.Port)
 	require.Equal(t, testRandSeed, cfg.RandSeed)
 	require.Equal(t, DefaultBootnodes, cfg.Bootnodes)
 	require.Equal(t, DefaultProtocolID, cfg.ProtocolID)

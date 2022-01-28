@@ -80,8 +80,6 @@ func TestInitConfigFromFlags(t *testing.T) {
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
-	defer utils.RemoveTestDir(t)
-
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
 
@@ -118,8 +116,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -277,8 +273,6 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
-	defer utils.RemoveTestDir(t)
-
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
 
@@ -331,8 +325,6 @@ func TestAccountConfigFromFlags(t *testing.T) {
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
-	defer utils.RemoveTestDir(t)
-
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
 
@@ -379,8 +371,6 @@ func TestCoreConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -435,8 +425,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
-	defer utils.RemoveTestDir(t)
-
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
 
@@ -458,6 +446,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -472,6 +461,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -486,6 +476,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -500,6 +491,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            testCfg.Network.NoMDNS,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -514,6 +506,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            true,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 			},
 		},
 		{
@@ -528,7 +521,24 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				NoMDNS:            false,
 				DiscoveryInterval: time.Second * 10,
 				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
 				PublicIP:          "10.0.5.2",
+			},
+		},
+		{
+			"Test gossamer --pubdns",
+			[]string{"config", "pubdns"},
+			[]interface{}{testCfgFile.Name(), "alice"},
+			dot.NetworkConfig{
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            false,
+				DiscoveryInterval: time.Second * 10,
+				MinPeers:          testCfg.Network.MinPeers,
+				MaxPeers:          testCfg.Network.MaxPeers,
+				PublicDNS:         "alice",
 			},
 		},
 	}
@@ -550,8 +560,6 @@ func TestRPCConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -761,12 +769,10 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
-	defer utils.RemoveTestDir(t)
-
 	ctx, err := newTestContext(
 		t.Name(),
 		[]string{"config", "genesis", "name"},
-		[]interface{}{testCfgFile.Name(), genFile.Name(), testCfg.Global.Name},
+		[]interface{}{testCfgFile.Name(), genFile, testCfg.Global.Name},
 	)
 	require.Nil(t, err)
 
@@ -782,6 +788,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
 			SyncLvl:           log.Info,
 			NetworkLvl:        log.Info,
 			RPCLvl:            log.Info,
@@ -791,7 +798,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 			FinalityGadgetLvl: log.Info,
 		},
 		Init: dot.InitConfig{
-			Genesis: genFile.Name(),
+			Genesis: genFile,
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
@@ -804,7 +811,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
 	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
@@ -815,8 +822,6 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 // genesis value provided in the toml configuration file or with --genesis "")
 func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-
-	defer utils.RemoveTestDir(t)
 
 	ctx, err := newTestContext(
 		t.Name(),
@@ -837,6 +842,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
 			SyncLvl:           log.Info,
 			NetworkLvl:        log.Info,
 			RPCLvl:            log.Info,
@@ -867,12 +873,10 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
-	defer utils.RemoveTestDir(t)
-
 	ctx, err := newTestContext(
 		t.Name(),
 		[]string{"config", "genesis", "name"},
-		[]interface{}{testCfgFile.Name(), genFile.Name(), testCfg.Global.Name},
+		[]interface{}{testCfgFile.Name(), genFile, testCfg.Global.Name},
 	)
 	require.Nil(t, err)
 
@@ -888,6 +892,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
 			SyncLvl:           log.Info,
 			NetworkLvl:        log.Info,
 			RPCLvl:            log.Info,
@@ -897,7 +902,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			FinalityGadgetLvl: log.Info,
 		},
 		Init: dot.InitConfig{
-			Genesis: genFile.Name(),
+			Genesis: genFile,
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
@@ -909,6 +914,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			NoMDNS:            testCfg.Network.NoMDNS,
 			DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 			MinPeers:          testCfg.Network.MinPeers,
+			MaxPeers:          testCfg.Network.MaxPeers,
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,
@@ -918,12 +924,12 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile
 
 	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
 	require.Nil(t, err)
 
-	gen, err := genesis.NewGenesisFromJSONRaw(genFile.Name())
+	gen, err := genesis.NewGenesisFromJSONRaw(genFile)
 	require.Nil(t, err)
 
 	err = state.NewBaseState(db).StoreGenesisData(gen.GenesisData())
@@ -948,8 +954,6 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 
 	genPath := dot.NewTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
-
-	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -999,8 +1003,6 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 	cfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, cfg)
 	require.NotNil(t, testCfgFile)
-
-	defer utils.RemoveTestDir(t)
 
 	// call another command and test the name
 	testApp := cli.NewApp()
@@ -1234,6 +1236,7 @@ func Test_setLogConfig(t *testing.T) {
 			},
 			expectedLogCfg: dot.LogConfig{
 				CoreLvl:           log.Info,
+				DigestLvl:         log.Info,
 				SyncLvl:           log.Info,
 				NetworkLvl:        log.Info,
 				RPCLvl:            log.Info,
@@ -1267,6 +1270,7 @@ func Test_setLogConfig(t *testing.T) {
 			},
 			expectedLogCfg: dot.LogConfig{
 				CoreLvl:           log.Error,
+				DigestLvl:         log.Info,
 				SyncLvl:           log.Debug,
 				NetworkLvl:        log.Info,
 				RPCLvl:            log.Info,

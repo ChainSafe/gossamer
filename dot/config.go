@@ -53,6 +53,7 @@ type GlobalConfig struct {
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
 	CoreLvl           log.Level
+	DigestLvl         log.Level
 	SyncLvl           log.Level
 	NetworkLvl        log.Level
 	RPCLvl            log.Level
@@ -60,6 +61,21 @@ type LogConfig struct {
 	RuntimeLvl        log.Level
 	BlockProducerLvl  log.Level
 	FinalityGadgetLvl log.Level
+}
+
+func (l LogConfig) String() string {
+	entries := []string{
+		fmt.Sprintf("core: %s", l.CoreLvl),
+		fmt.Sprintf("digest: %s", l.DigestLvl),
+		fmt.Sprintf("sync: %s", l.SyncLvl),
+		fmt.Sprintf("network: %s", l.NetworkLvl),
+		fmt.Sprintf("rpc: %s", l.RPCLvl),
+		fmt.Sprintf("state: %s", l.StateLvl),
+		fmt.Sprintf("runtime: %s", l.RuntimeLvl),
+		fmt.Sprintf("block producer: %s", l.BlockProducerLvl),
+		fmt.Sprintf("finality gadget: %s", l.FinalityGadgetLvl),
+	}
+	return strings.Join(entries, ", ")
 }
 
 // InitConfig is the configuration for the node initialization
@@ -85,6 +101,7 @@ type NetworkConfig struct {
 	PersistentPeers   []string
 	DiscoveryInterval time.Duration
 	PublicIP          string
+	PublicDNS         string
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -178,6 +195,7 @@ func GssmrConfig() *Config {
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
+			DigestLvl:         gssmr.DefaultLvl,
 			SyncLvl:           gssmr.DefaultLvl,
 			NetworkLvl:        gssmr.DefaultLvl,
 			RPCLvl:            gssmr.DefaultLvl,
@@ -207,6 +225,7 @@ func GssmrConfig() *Config {
 			NoMDNS:            gssmr.DefaultNoMDNS,
 			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
 			MinPeers:          gssmr.DefaultMinPeers,
+			MaxPeers:          gssmr.DefaultMaxPeers,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,
@@ -240,6 +259,7 @@ func KusamaConfig() *Config {
 		},
 		Log: LogConfig{
 			CoreLvl:           kusama.DefaultLvl,
+			DigestLvl:         kusama.DefaultLvl,
 			SyncLvl:           kusama.DefaultLvl,
 			NetworkLvl:        kusama.DefaultLvl,
 			RPCLvl:            kusama.DefaultLvl,
@@ -297,6 +317,7 @@ func PolkadotConfig() *Config {
 		},
 		Log: LogConfig{
 			CoreLvl:           polkadot.DefaultLvl,
+			DigestLvl:         polkadot.DefaultLvl,
 			SyncLvl:           polkadot.DefaultLvl,
 			NetworkLvl:        polkadot.DefaultLvl,
 			RPCLvl:            polkadot.DefaultLvl,
@@ -354,6 +375,7 @@ func DevConfig() *Config {
 		},
 		Log: LogConfig{
 			CoreLvl:           dev.DefaultLvl,
+			DigestLvl:         dev.DefaultLvl,
 			SyncLvl:           dev.DefaultLvl,
 			NetworkLvl:        dev.DefaultLvl,
 			RPCLvl:            dev.DefaultLvl,

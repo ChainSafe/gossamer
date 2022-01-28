@@ -11,6 +11,7 @@ import (
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -24,13 +25,15 @@ import (
 type MessageHandler struct {
 	grandpa    *Service
 	blockState BlockState
+	telemetry  telemetry.Client
 }
 
 // NewMessageHandler returns a new MessageHandler
-func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler {
+func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer telemetry.Client) *MessageHandler {
 	return &MessageHandler{
 		grandpa:    grandpa,
 		blockState: blockState,
+		telemetry:  telemetryMailer,
 	}
 }
 
@@ -52,11 +55,20 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case *CommitMessage:
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourMessage:
+		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg)
 	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
-		return nil, h.handleCatchUpResponse(msg)
+		err := h.handleCatchUpResponse(msg)
+		if errors.Is(err, blocktree.ErrNodeNotFound) {
+			// TODO: we are adding these messages to reprocess them again, but we
+			// haven't added code to reprocess them. Do that.
+			// Also, revisit if we need to add these message in synchronous manner
+			// or not. If not, change catchUpResponseMessages to a normal map.  #1531
+			h.grandpa.tracker.addCatchUpResponse(msg)
+		}
+		return nil, err
 	default:
 		return nil, ErrInvalidMessageType
 	}
@@ -91,7 +103,21 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
-	logger.Debugf("received commit message %v", msg)
+	logger.Debugf("received commit message, msg: %+v", msg)
+
+	containsPrecommitsSignedBy := make([]string, len(msg.AuthData))
+	for i, authData := range msg.AuthData {
+		containsPrecommitsSignedBy[i] = authData.AuthorityID.String()
+	}
+
+	h.telemetry.SendMessage(
+		telemetry.NewAfgReceivedCommit(
+			msg.Vote.Hash,
+			fmt.Sprint(msg.Vote.Number),
+			containsPrecommitsSignedBy,
+		),
+	)
+
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil
 	}
@@ -125,7 +151,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 
 func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMessage, error) {
 	if !h.grandpa.authority {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	logger.Debugf("received catch up request for round %d and set id %d",

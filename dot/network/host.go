@@ -6,8 +6,10 @@ package network
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,13 +28,36 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-var privateCIDRs = []string{
-	"10.0.0.0/8",
-	"172.16.0.0/12",
-	"192.168.0.0/16",
-	"100.64.0.0/10",
-	"198.18.0.0/15",
-	"169.254.0.0/16",
+func newPrivateIPFilters() (privateIPs *ma.Filters, err error) {
+	privateCIDRs := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"100.64.0.0/10",
+		"198.18.0.0/15",
+		"169.254.0.0/16",
+	}
+	privateIPs = ma.NewFilters()
+	for _, cidr := range privateCIDRs {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return privateIPs, err
+		}
+		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
+	}
+	return
+}
+
+var (
+	privateIPs *ma.Filters
+)
+
+func init() {
+	var err error
+	privateIPs, err = newPrivateIPFilters()
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 const (
@@ -63,7 +88,9 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	var externalAddr ma.Multiaddr
-	if cfg.PublicIP != "" {
+
+	switch {
+	case strings.TrimSpace(cfg.PublicIP) != "":
 		ip := net.ParseIP(cfg.PublicIP)
 		if ip == nil {
 			return nil, fmt.Errorf("invalid public ip: %s", cfg.PublicIP)
@@ -73,12 +100,18 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	case strings.TrimSpace(cfg.PublicDNS) != "":
+		logger.Debugf("using config PublicDNS: %s", cfg.PublicDNS)
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/dns/%s/tcp/%d", cfg.PublicDNS, cfg.Port))
+		if err != nil {
+			return nil, err
+		}
+	default:
 		ip, err := pubip.Get()
 		if err != nil {
 			logger.Errorf("failed to get public IP error: %v", err)
 		} else {
-			logger.Debugf("got public IP", "IP", ip)
+			logger.Debugf("got public IP address %s", ip)
 			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
 			if err != nil {
 				return nil, err
@@ -98,12 +131,16 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
+	// We have tried to set maxInPeers and maxOutPeers such that number of peer
+	// connections remain between min peers and max peers
 	const reservedOnly = false
 	peerCfgSet := peerset.NewConfigSet(
 		uint32(cfg.MaxPeers-cfg.MinPeers),
-		uint32(cfg.MinPeers),
+		uint32(cfg.MaxPeers/2),
 		reservedOnly,
-		peerSetSlotAllocTime)
+		peerSetSlotAllocTime,
+	)
+
 	// create connection manager
 	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 	if err != nil {
@@ -120,15 +157,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
 	if err != nil {
 		return nil, err
-	}
-
-	privateIPs := ma.NewFilters()
-	for _, cidr := range privateCIDRs {
-		_, ipnet, err := net.ParseCIDR(cidr)
-		if err != nil {
-			return nil, err
-		}
-		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
 	}
 
 	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())

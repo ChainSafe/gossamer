@@ -4,43 +4,49 @@
 package state
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/chaindb"
-	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
 
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
-	testDir := utils.NewTestDir(t)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	config := Config{
-		Path:     testDir,
-		LogLevel: log.Info,
+		Path:      t.TempDir(),
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	state = NewService(config)
 	return state
 }
 
 func newTestMemDBService(t *testing.T) *Service {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	testDatadirPath := t.TempDir()
 	config := Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	state := NewService(config)
 	state.UseMemDB()
@@ -49,10 +55,12 @@ func newTestMemDBService(t *testing.T) *Service {
 
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
-	defer utils.RemoveTestDir(t)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = state.SetupBase()
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -64,7 +72,6 @@ func TestService_Start(t *testing.T) {
 
 func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
-	defer utils.RemoveTestDir(t)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
@@ -75,6 +82,9 @@ func TestService_Initialise(t *testing.T) {
 	require.NoError(t, err)
 
 	err = state.Initialise(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = state.SetupBase()
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -99,20 +109,28 @@ func TestMemDB_Start(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestService_BlockTree(t *testing.T) {
-	testDir := utils.NewTestDir(t)
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
+func TestService_BlockTree(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().
+		SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{})).
+		MaxTimes(2)
 
 	config := Config{
-		Path:     testDir,
-		LogLevel: log.Info,
+		Path:      t.TempDir(),
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
+
 	stateA := NewService(config)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateA.SetupBase()
 	require.NoError(t, err)
 
 	err = stateA.Start()
@@ -130,6 +148,9 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateB := NewService(config)
 
+	err = stateB.SetupBase()
+	require.NoError(t, err)
+
 	err = stateB.Start()
 	require.NoError(t, err)
 
@@ -139,17 +160,19 @@ func TestService_BlockTree(t *testing.T) {
 }
 
 func TestService_StorageTriePruning(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	retainBlocks := 2
 	config := Config{
-		Path:     testDir,
+		Path:     t.TempDir(),
 		LogLevel: log.Info,
 		PrunerCfg: pruner.Config{
 			Mode:           pruner.Full,
 			RetainedBlocks: int64(retainBlocks),
 		},
+		Telemetry: telemetryMock,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -191,12 +214,14 @@ func TestService_StorageTriePruning(t *testing.T) {
 }
 
 func TestService_PruneStorage(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:     testDir,
-		LogLevel: log.Info,
+		Path:      t.TempDir(),
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -248,12 +273,10 @@ func TestService_PruneStorage(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
-		var trieVal *trie.Trie
-		trieVal, err = trieState.Trie().DeepCopy()
-		require.NoError(t, err)
+		copiedTrie := trieState.Trie().DeepCopy()
 
 		var rootHash common.Hash
-		rootHash, err = trieVal.Hash()
+		rootHash, err = copiedTrie.Hash()
 		require.NoError(t, err)
 
 		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
@@ -266,18 +289,20 @@ func TestService_PruneStorage(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	for _, v := range prunedArr {
-		_, has := serv.Storage.tries.Load(v.hash)
-		require.Equal(t, false, has)
+		tr := serv.Storage.tries.get(v.hash)
+		require.Nil(t, tr)
 	}
 }
 
 func TestService_Rewind(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:     testDir,
-		LogLevel: log.Info,
+		Path:      t.TempDir(),
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -328,12 +353,14 @@ func TestService_Rewind(t *testing.T) {
 }
 
 func TestService_Import(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:     testDir,
-		LogLevel: log.Info,
+		Path:      t.TempDir(),
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -390,55 +417,4 @@ func TestService_Import(t *testing.T) {
 
 	err = serv.Stop()
 	require.NoError(t, err)
-}
-
-func TestStateServiceMetrics(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-
-	config := Config{
-		Path:     testDir,
-		LogLevel: log.Info,
-	}
-	ethmetrics.Enabled = true
-	serv := NewService(config)
-	serv.Transaction = NewTransactionState()
-	serv.Block = newTestBlockState(t, testGenesisHeader)
-
-	m := metrics.NewCollector(context.Background())
-	m.AddGauge(serv)
-	go m.Start()
-
-	vtxs := []*transaction.ValidTransaction{
-		{
-			Extrinsic: []byte("a"),
-			Validity:  &transaction.Validity{Priority: 1},
-		},
-		{
-			Extrinsic: []byte("b"),
-			Validity:  &transaction.Validity{Priority: 4},
-		},
-	}
-
-	hashes := make([]common.Hash, len(vtxs))
-	for i, v := range vtxs {
-		h := serv.Transaction.pool.Insert(v)
-		serv.Transaction.queue.Push(v)
-
-		hashes[i] = h
-	}
-
-	time.Sleep(time.Second + metrics.RefreshInterval)
-	gpool := ethmetrics.GetOrRegisterGauge(readyPoolTransactionsMetrics, nil)
-	gqueue := ethmetrics.GetOrRegisterGauge(readyPriorityQueueTransactions, nil)
-
-	require.Equal(t, int64(2), gpool.Value())
-	require.Equal(t, int64(2), gqueue.Value())
-
-	serv.Transaction.pool.Remove(hashes[0])
-	serv.Transaction.queue.Pop()
-
-	time.Sleep(time.Second + metrics.RefreshInterval)
-	require.Equal(t, int64(1), gpool.Value())
-	require.Equal(t, int64(1), gqueue.Value())
 }

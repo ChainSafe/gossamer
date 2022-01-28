@@ -4,12 +4,14 @@
 package dot
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -76,7 +78,7 @@ func WriteGenesisSpecFile(data []byte, fp string) error {
 		return err
 	}
 
-	WriteConfig(data, fp)
+	writeConfig(data, fp)
 	return nil
 }
 
@@ -94,33 +96,43 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen.Genesis.Raw = make(map[string]map[string]string)
 	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
-	config := state.Config{
-		Path:     path,
-		LogLevel: log.Info,
+	// BootstrapMailer should not return an error here since there is no URLs to connect to
+	disabledTelemetry, err := telemetry.BootstrapMailer(context.TODO(), nil, false, nil)
+	if err != nil {
+		panic("telemetry should not fail at BuildFromDB function: " + err.Error())
 	}
+
+	config := state.Config{
+		Path:      path,
+		LogLevel:  log.Info,
+		Telemetry: disabledTelemetry,
+	}
+
 	stateSrvc := state.NewService(config)
 
-	// start state service (initialise state database)
-	err := stateSrvc.Start()
+	err = stateSrvc.SetupBase()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot setup state database: %w", err)
 	}
 
+	// start state service (initialise state database)
+	err = stateSrvc.Start()
+	if err != nil {
+		return nil, fmt.Errorf("cannot start state service: %w", err)
+	}
 	// set genesis fields data
 	ent, err := stateSrvc.Storage.Entries(nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get storage trie entries: %w", err)
 	}
-
 	err = genesis.BuildFromMap(ent, tmpGen)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build from map: %w", err)
 	}
-
 	// set genesisData
 	gd, err := stateSrvc.DB().Get(common.GenesisDataKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve genesis data: %w", err)
 	}
 	gData := &genesis.Data{}
 	err = json.Unmarshal(gd, gData)

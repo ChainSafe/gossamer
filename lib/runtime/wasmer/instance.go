@@ -4,6 +4,7 @@
 package wasmer
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -15,7 +16,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
+	"github.com/ChainSafe/gossamer/lib/crypto"
+
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 // Name represents the name of the interpreter
@@ -92,6 +97,12 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, errors.New("code is empty")
 	}
 
+	var err error
+	code, err = decompressWasm(code)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decompress WASM code: %w", err)
+	}
+
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	imports, err := cfg.Imports()
@@ -137,7 +148,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		NodeStorage:     cfg.NodeStorage,
 		Network:         cfg.Network,
 		Transaction:     cfg.Transaction,
-		SigVerifier:     runtime.NewSignatureVerifier(logger),
+		SigVerifier:     crypto.NewSignatureVerifier(logger),
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 
@@ -153,6 +164,22 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 
 	inst.version, _ = inst.Version()
 	return inst, nil
+}
+
+// decompressWasm decompresses a Wasm blob that may or may not be compressed with zstd
+// ref: https://github.com/paritytech/substrate/blob/master/primitives/maybe-compressed-blob/src/lib.rs
+func decompressWasm(code []byte) ([]byte, error) {
+	compressionFlag := []byte{82, 188, 83, 118, 70, 219, 142, 5}
+	if !bytes.HasPrefix(code, compressionFlag) {
+		return code, nil
+	}
+
+	decoder, err := zstd.NewReader(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
+	}
+
+	return decoder.DecodeAll(code[len(compressionFlag):], nil)
 }
 
 // GetCodeHash returns the code of the instance

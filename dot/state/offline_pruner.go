@@ -42,7 +42,8 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 	}
 
 	// create blockState state
-	blockState, err := NewBlockState(db)
+	// NewBlockState on pruner execution does not use telemetry
+	blockState, err := NewBlockState(db, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -117,10 +118,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 			return err
 		}
 
-		err = tr.GetNodeHashes(tr.RootNode(), keys)
-		if err != nil {
-			return err
-		}
+		tr.PopulateNodeHashes(tr.RootNode(), keys)
 
 		// get parent header of current block
 		header, err = p.blockState.GetHeader(header.ParentHash)

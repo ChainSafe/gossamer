@@ -76,8 +76,8 @@ type decodedKey struct {
 type ExtrinsicStatus struct {
 	IsFuture    bool
 	IsReady     bool
-	Isfinalised bool
-	Asfinalised common.Hash
+	IsFinalized bool
+	AsFinalized common.Hash
 	IsUsurped   bool
 	AsUsurped   common.Hash
 	IsBroadcast bool
@@ -143,7 +143,7 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 }
 
 // InsertKey inserts a key into the keystore
-func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
+func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, _ *KeyInsertResponse) error {
 	keyReq := *req
 
 	keyBytes, err := common.HexToBytes(req.Seed)
@@ -191,7 +191,7 @@ func (am *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, re
 }
 
 // RemoveExtrinsic Remove given extrinsic from the pool and temporarily ban it to prevent reimporting
-func (am *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *RemoveExtrinsicsResponse) error {
+func (am *AuthorModule) RemoveExtrinsic(r *http.Request, _ *ExtrinsicOrHashRequest, _ *RemoveExtrinsicsResponse) error {
 	return nil
 }
 
@@ -212,7 +212,6 @@ func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		return err
 	}
 	ext := types.Extrinsic(extBytes)
-	am.logger.Criticalf("[rpc] extrinsic is %s", ext)
 
 	*res = ExtrinsicHashResponse(ext.Hash().String())
 	err = am.coreAPI.HandleSubmittedExtrinsic(ext)

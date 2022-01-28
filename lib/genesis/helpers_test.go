@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -16,13 +17,6 @@ import (
 )
 
 func TestNewGenesisRawFromJSON(t *testing.T) {
-	// Create temp file
-	file, err := os.CreateTemp("", "genesis-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(file.Name())
-
 	testRaw := map[string]map[string]string{}
 	testRaw["top"] = map[string]string{"0x3a636f6465": "0x0102"}
 
@@ -35,12 +29,11 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Write to temp file
-	_, err = file.Write(bz)
-	if err != nil {
-		t.Fatal(err)
-	}
+	filename := filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(filename, bz, os.ModePerm)
+	require.NoError(t, err)
 
-	genesis, err := NewGenesisFromJSONRaw(file.Name())
+	genesis, err := NewGenesisFromJSONRaw(filename)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,12 +77,6 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	expectedGenesis.Genesis = Fields{
 		Raw: expRaw,
 	}
-
-	// Create temp file
-	file, err := os.CreateTemp("", "genesis_hr-test")
-	require.NoError(t, err)
-
-	defer os.Remove(file.Name())
 
 	// create human readable test genesis
 	testGenesis := &Genesis{}
@@ -287,12 +274,14 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	// Grab json encoded bytes
 	bz, err := json.Marshal(testGenesis)
 	require.NoError(t, err)
+
 	// Write to temp file
-	_, err = file.Write(bz)
+	filename := filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(filename, bz, os.ModePerm)
 	require.NoError(t, err)
 
 	// create genesis based on file just created, this will fill Raw field of genesis
-	testGenesisProcessed, err := NewGenesisFromJSON(file.Name(), 2)
+	testGenesisProcessed, err := NewGenesisFromJSON(filename, 2)
 	require.NoError(t, err)
 
 	require.Equal(t, expectedGenesis.Genesis.Raw, testGenesisProcessed.Genesis.Raw)

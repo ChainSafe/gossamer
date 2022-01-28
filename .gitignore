@@ -9,12 +9,14 @@
 
 # Output of go coverage tool when used with LiteIDE
 *.out
+*.log
 
 /bin
 
 *.key
 !test-key.key
 !test-key-password.key
+!devnet/alice.node.key
 *.wasm
 
 test_data

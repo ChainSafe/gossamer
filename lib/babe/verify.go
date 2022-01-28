@@ -4,7 +4,6 @@
 package babe
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -48,7 +47,7 @@ type VerificationManager struct {
 // NewVerificationManager returns a new NewVerificationManager
 func NewVerificationManager(blockState BlockState, epochState EpochState) (*VerificationManager, error) {
 	if blockState == nil {
-		return nil, errNilBlockState
+		return nil, ErrNilBlockState
 	}
 
 	if epochState == nil {
@@ -139,6 +138,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	// special case for block 1 - the network doesn't necessarily start in epoch 1.
 	// if this happens, the database will be missing info for epochs before the first block.
 	if header.Number.Cmp(big.NewInt(1)) == 0 {
+
 		block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
 		if err != nil {
 			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
@@ -172,9 +172,9 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 			v.lock.Unlock()
 			// SkipVerify is set to true only in the case where we have imported a state at a given height,
 			// thus missing the epoch data for previous epochs.
-			skip, err2 := v.epochState.SkipVerify(header)
-			if err2 != nil {
-				return fmt.Errorf("failed to check if verification can be skipped: %w", err)
+			skip, skipErr := v.epochState.SkipVerify(header)
+			if skipErr != nil {
+				return fmt.Errorf("failed to check if verification can be skipped: %w", skipErr)
 			}
 
 			if skip {
@@ -233,7 +233,7 @@ func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, er
 		}
 	}
 
-	return nil, errors.New("cannot find ConfigData for epoch")
+	return nil, errNoConfigData
 }
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
@@ -249,7 +249,7 @@ type verifier struct {
 // newVerifier returns a Verifier for the epoch described by the given descriptor
 func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*verifier, error) {
 	if blockState == nil {
-		return nil, errNilBlockState
+		return nil, ErrNilBlockState
 	}
 
 	return &verifier{
@@ -267,7 +267,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest.Types) < 2 {
-		return fmt.Errorf("block header is missing digest items")
+		return errMissingDigestItems
 	}
 
 	logger.Tracef("beginning BABE authorship right verification for block %s", header.Hash())
@@ -283,7 +283,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	seal, ok := sealItem.Value().(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("first digest item is not pre-digest")
+		return fmt.Errorf("last digest item is not seal")
 	}
 
 	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)

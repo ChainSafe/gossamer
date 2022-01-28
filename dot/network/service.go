@@ -6,23 +6,22 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
-
-	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -36,14 +35,58 @@ const (
 	transactionsID  = "/transactions/1"
 
 	maxMessageSize = 1024 * 63 // 63kb for now
-
-	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )
 
 var (
 	_        services.Service = &Service{}
 	logger                    = log.NewFromGlobal(log.AddContext("pkg", "network"))
 	maxReads                  = 256
+
+	peerCountGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_node",
+		Name:      "peer_count_total",
+		Help:      "total peer count",
+	})
+	connectionsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_node",
+		Name:      "connections_total",
+		Help:      "total number of connections",
+	})
+	nodeLatencyGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_node",
+		Name:      "latency_ms",
+		Help:      "average node latency in milliseconds",
+	})
+	inboundBlockAnnounceStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams_block_announce",
+		Name:      "inbound_total",
+		Help:      "total number of inbound block announce streams",
+	})
+	outboundBlockAnnounceStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams_block_announce",
+		Name:      "outbound_total",
+		Help:      "total number of outbound block announce streams",
+	})
+	inboundGrandpaStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams_grandpa",
+		Name:      "inbound_total",
+		Help:      "total number of inbound grandpa streams",
+	})
+	outboundGrandpaStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams_grandpa",
+		Name:      "outbound_total",
+		Help:      "total number of outbound grandpa streams",
+	})
+	inboundStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams",
+		Name:      "inbound_total",
+		Help:      "total number of inbound streams",
+	})
+	outboundStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams",
+		Name:      "outbound_total",
+		Help:      "total number of outbound streams",
+	})
 )
 
 type (
@@ -84,12 +127,16 @@ type Service struct {
 	noMDNS      bool
 	noGossip    bool // internal option
 
+	Metrics metrics.IntervalConfig
+
 	// telemetry
 	telemetryInterval time.Duration
 	closeCh           chan struct{}
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
+
+	telemetry telemetry.Client
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -164,6 +211,8 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
+		telemetry:              cfg.Telemetry,
+		Metrics:                cfg.Metrics,
 	}
 
 	return network, err
@@ -275,8 +324,8 @@ func (s *Service) Start() error {
 
 	logger.Info("started network service with supported protocols " + strings.Join(s.host.protocols(), ", "))
 
-	if s.cfg.PublishMetrics {
-		go s.collectNetworkMetrics()
+	if s.Metrics.Publish {
+		go s.updateMetrics()
 	}
 
 	go s.logPeerCount()
@@ -287,44 +336,27 @@ func (s *Service) Start() error {
 	return nil
 }
 
-func (s *Service) collectNetworkMetrics() {
+func (s *Service) updateMetrics() {
+	ticker := time.NewTicker(s.Metrics.Interval)
+	defer ticker.Stop()
 	for {
-		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
-		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
-		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
-		syncedBlocks := metrics.GetOrRegisterGauge(
-			"service/blocks/sync",
-			metrics.DefaultRegistry)
-		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
-			"network/streams/block_announce/inbound",
-			metrics.DefaultRegistry)
-		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
-			"network/streams/block_announce/outbound",
-			metrics.DefaultRegistry)
-		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
-		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
-		totalInboundStreams := metrics.GetOrRegisterGauge("network/streams/total/inbound", metrics.DefaultRegistry)
-		totalOutboundStreams := metrics.GetOrRegisterGauge("network/streams/total/outbound", metrics.DefaultRegistry)
-
-		peerCount.Update(int64(s.host.peerCount()))
-		totalConn.Update(int64(len(s.host.h.Network().Conns())))
-		networkLatency.Update(int64(s.host.h.Peerstore().LatencyEWMA(s.host.id())))
-
-		numInboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, true))
-		numOutboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, false))
-		numInboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, true))
-		numOutboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, false))
-		totalInboundStreams.Update(s.getTotalStreams(true))
-		totalOutboundStreams.Update(s.getTotalStreams(false))
-
-		num, err := s.blockState.BestBlockNumber()
-		if err != nil {
-			syncedBlocks.Update(0)
-		} else {
-			syncedBlocks.Update(num.Int64())
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-ticker.C:
+			peerCountGauge.Set(float64(s.host.peerCount()))
+			connectionsGauge.Set(float64(len(s.host.h.Network().Conns())))
+			nodeLatencyGauge.Set(float64(
+				s.host.h.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
+			inboundBlockAnnounceStreamsGauge.Set(float64(
+				s.getNumStreams(BlockAnnounceMsgType, true)))
+			outboundBlockAnnounceStreamsGauge.Set(float64(
+				s.getNumStreams(BlockAnnounceMsgType, false)))
+			inboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, true)))
+			outboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, false)))
+			inboundStreamsGauge.Set(float64(s.getTotalStreams(true)))
+			outboundStreamsGauge.Set(float64(s.getTotalStreams(false)))
 		}
-
-		time.Sleep(gssmrmetrics.RefreshInterval)
 	}
 }
 
@@ -386,23 +418,14 @@ func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
-main:
 	for {
 		select {
 		case <-done:
-			break main
+			return
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
-			if err != nil {
-				logger.Debugf("problem sending system.interval telemetry message: %s", err)
-			}
-
-			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
-			if err != nil {
-				logger.Debugf("problem sending system.interval telemetry message: %s", err)
-			}
+			s.telemetry.SendMessage(telemetry.NewBandwidth(o.RateIn, o.RateOut, s.host.peerCount()))
 		}
 	}
 }
@@ -421,7 +444,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		finalizedHash := finalised.Hash()
 
-		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
+		s.telemetry.SendMessage(telemetry.NewBlockInterval(
 			&bestHash,
 			best.Number,
 			&finalizedHash,
@@ -429,9 +452,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
 			big.NewInt(0), // TODO: (ed) determine where to get used_state_cache_size (#1501)
 		))
-		if err != nil {
-			logger.Debugf("problem sending system.interval telemetry message: %s", err)
-		}
+
 		time.Sleep(s.telemetryInterval)
 	}
 }
@@ -439,6 +460,33 @@ func (s *Service) sentBlockIntervalTelemetry() {
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
 	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
+
+	// exchange BlockAnnounceHandshake with peer so we can start to
+	// sync if necessary.
+	prtl, has := s.notificationsProtocols[BlockAnnounceMsgType]
+	if !has {
+		return
+	}
+
+	hs, err := prtl.getHandshake()
+	if err != nil {
+		logger.Warnf("failed to get handshake for protocol %s: %s",
+			prtl.protocolID,
+			err,
+		)
+		return
+	}
+
+	_, err = s.sendHandshake(conn.RemotePeer(), hs, prtl)
+	if err != nil {
+		logger.Debugf("failed to send handshake to peer %s on connection: %s",
+			conn.RemotePeer(),
+			err,
+		)
+		return
+	}
+
+	// leave stream open if there's no error
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -624,18 +672,6 @@ func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
 }
 
-// CollectGauge will be used to collect countable metrics from network service
-func (s *Service) CollectGauge() map[string]int64 {
-	var isSynced int64
-	if !s.syncer.IsSynced() {
-		isSynced = 1
-	}
-
-	return map[string]int64{
-		gssmrIsMajorSyncMetric: isSynced,
-	}
-}
-
 // HighestBlock returns the highest known block number
 func (*Service) HighestBlock() int64 {
 	// TODO: refactor this to get the data from the sync service (#1857)
@@ -659,7 +695,7 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 }
 
 func (s *Service) startPeerSetHandler() {
-	s.host.cm.peerSetHandler.Start()
+	s.host.cm.peerSetHandler.Start(s.ctx)
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()
@@ -670,6 +706,10 @@ func (s *Service) startPeerSetHandler() {
 
 func (s *Service) processMessage(msg peerset.Message) {
 	peerID := msg.PeerID
+	if peerID == "" {
+		logger.Errorf("found empty peer id in peerset message")
+		return
+	}
 	switch msg.Status {
 	case peerset.Connect:
 		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
@@ -677,21 +717,21 @@ func (s *Service) processMessage(msg peerset.Message) {
 			var err error
 			addrInfo, err = s.host.discovery.findPeer(peerID)
 			if err != nil {
-				logger.Debugf("failed to find peer id %s: %s", peerID, err)
+				logger.Warnf("failed to find peer id %s: %s", peerID, err)
 				return
 			}
 		}
 
 		err := s.host.connect(addrInfo)
 		if err != nil {
-			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
+			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
-			logger.Debugf("failed to close connection with peer %s: %s", peerID, err)
+			logger.Warnf("failed to close connection with peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
@@ -704,12 +744,11 @@ func (s *Service) startProcessingMsg() {
 		select {
 		case <-s.ctx.Done():
 			return
-		case m := <-msgCh:
-			msg, ok := m.(peerset.Message)
+		case msg, ok := <-msgCh:
 			if !ok {
-				logger.Error(fmt.Sprintf("failed to get message from peerSet: type is %T instead of peerset.Message", m))
-				continue
+				return
 			}
+
 			s.processMessage(msg)
 		}
 	}

@@ -4,11 +4,13 @@
 package sync
 
 import (
+	"errors"
 	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -61,15 +63,24 @@ func newMockNetwork() *mocks.Network {
 	return m
 }
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
 func newTestSyncer(t *testing.T) *Service {
 	wasmer.DefaultTestLogLvl = 3
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	cfg := &Config{}
+	cfg := &Config{
+		Telemetry: telemetryMock,
+	}
+
 	testDatadirPath := t.TempDir()
 
 	scfg := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
@@ -156,4 +167,65 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
+}
+
+func TestHighestBlock(t *testing.T) {
+	type input struct {
+		highestBlock int64
+		err          error
+	}
+	type output struct {
+		highestBlock int64
+	}
+	type test struct {
+		name string
+		in   input
+		out  output
+	}
+	tests := []test{
+		{
+			name: "when *chainSync.getHighestBlock() returns 0, error should return 0",
+			in: input{
+				highestBlock: 0,
+				err:          errors.New("fake error"),
+			},
+			out: output{
+				highestBlock: 0,
+			},
+		},
+		{
+			name: "when *chainSync.getHighestBlock() returns 0, nil should return 0",
+			in: input{
+				highestBlock: 0,
+				err:          nil,
+			},
+			out: output{
+				highestBlock: 0,
+			},
+		},
+		{
+			name: "when *chainSync.getHighestBlock() returns 50, nil should return 50",
+			in: input{
+				highestBlock: 50,
+				err:          nil,
+			},
+			out: output{
+				highestBlock: 50,
+			},
+		},
+	}
+	for _, ts := range tests {
+		t.Run(ts.name, func(t *testing.T) {
+			s := newTestSyncer(t)
+
+			ctrl := gomock.NewController(t)
+			chainSync := NewMockChainSync(ctrl)
+			chainSync.EXPECT().getHighestBlock().Return(ts.in.highestBlock, ts.in.err)
+
+			s.chainSync = chainSync
+
+			result := s.HighestBlock()
+			require.Equal(t, result, ts.out.highestBlock)
+		})
+	}
 }

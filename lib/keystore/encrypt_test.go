@@ -6,7 +6,6 @@ package keystore
 import (
 	"bytes"
 	"crypto/rand"
-	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -64,27 +63,10 @@ func TestEncryptAndDecryptPrivateKey(t *testing.T) {
 	}
 }
 
-func createTestFile(t *testing.T) (*os.File, string) {
-	filename := "./test_key"
-
-	fp, err := filepath.Abs(filename)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	file, err := os.Create(fp)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return file, fp
-}
-
 func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 	password := []byte("noot")
 
-	file, fp := createTestFile(t)
-	defer os.Remove(fp)
+	path := filepath.Join(t.TempDir(), "test_key")
 
 	kp, err := ed25519.GenerateKeypair()
 	if err != nil {
@@ -92,12 +74,12 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 	}
 	priv := kp.Private()
 
-	err = EncryptAndWriteToFile(file, priv, password)
+	err = EncryptAndWriteToFile(path, priv, password)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := ReadFromFileAndDecrypt(fp, password)
+	res, err := ReadFromFileAndDecrypt(path, password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,8 +91,7 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 
 func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 	password := []byte("noot")
-	file, fp := createTestFile(t)
-	defer os.Remove(fp)
+	path := filepath.Join(t.TempDir(), "test_key")
 
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
@@ -118,12 +99,12 @@ func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 	}
 	priv := kp.Private()
 
-	err = EncryptAndWriteToFile(file, priv, password)
+	err = EncryptAndWriteToFile(path, priv, password)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := ReadFromFileAndDecrypt(fp, password)
+	res, err := ReadFromFileAndDecrypt(path, password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,8 +116,7 @@ func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 
 func TestEncryptAndDecryptFromFile_Secp256k1(t *testing.T) {
 	password := []byte("noot")
-	file, fp := createTestFile(t)
-	defer os.Remove(fp)
+	path := filepath.Join(t.TempDir(), "test_key")
 
 	kp, err := secp256k1.GenerateKeypair()
 	if err != nil {
@@ -144,12 +124,12 @@ func TestEncryptAndDecryptFromFile_Secp256k1(t *testing.T) {
 	}
 	priv := kp.Private()
 
-	err = EncryptAndWriteToFile(file, priv, password)
+	err = EncryptAndWriteToFile(path, priv, password)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := ReadFromFileAndDecrypt(fp, password)
+	res, err := ReadFromFileAndDecrypt(path, password)
 	if err != nil {
 		t.Fatal(err)
 	}

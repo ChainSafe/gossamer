@@ -17,16 +17,23 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
 func newTestHandler(t *testing.T) *Handler {
 	testDatadirPath := t.TempDir()
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Warn,
+		Path:      testDatadirPath,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
@@ -35,11 +42,13 @@ func newTestHandler(t *testing.T) *Handler {
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
+	err = stateSrvc.SetupBase()
+	require.NoError(t, err)
+
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	logger := log.NewFromGlobal(log.SetLevel(log.Critical))
-	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, logger)
+	dh, err := NewHandler(log.Critical, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
 	return dh
 }
@@ -177,6 +186,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 	nextPause, err := handler.grandpaState.(*state.GrandpaState).GetNextPause()
 	require.NoError(t, err)
+	require.NotNil(t, nextPause) // ensure pause was found
 	require.Equal(t, big.NewInt(int64(p.Delay)), nextPause)
 
 	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
@@ -212,6 +222,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	nextResume, err := handler.grandpaState.(*state.GrandpaState).GetNextResume()
 	require.NoError(t, err)
+	require.NotNil(t, nextResume) // ensure resume was found
 	require.Equal(t, big.NewInt(int64(r.Delay)+int64(p.Delay)), nextResume)
 }
 

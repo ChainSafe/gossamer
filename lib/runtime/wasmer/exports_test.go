@@ -10,10 +10,8 @@ import (
 	"math/big"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -23,50 +21,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/stretchr/testify/require"
 )
-
-func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
-	t.Helper()
-	rawMeta, err := rt.Metadata()
-	require.NoError(t, err)
-
-	var decoded []byte
-	err = scale.Unmarshal(rawMeta, &decoded)
-	require.NoError(t, err)
-
-	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
-	require.NoError(t, err)
-
-	rv, err := rt.Version()
-	require.NoError(t, err)
-
-	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
-	require.NoError(t, err)
-
-	ext := ctypes.NewExtrinsic(c)
-	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(genHash),
-		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
-		GenesisHash:        ctypes.Hash(genHash),
-		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
-		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
-	}
-
-	// Sign the transaction using Alice's key
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
-	require.NoError(t, err)
-
-	extEnc, err := ctypes.EncodeToHexString(ext)
-	require.NoError(t, err)
-
-	return types.Extrinsic(common.MustHexToBytes(extEnc))
-}
 
 func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
 	expected := runtime.NewVersionData(
@@ -338,11 +294,14 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 		StateRoot: genTrie.MustHash(),
 	}
 
-	ext := createTestExtrinsic(t, rt, genesisHeader.Hash(), 0)
-	ext = append([]byte{byte(types.TxnExternal)}, ext...)
+	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
+		0, "System.remark", []byte{0xab, 0xcd})
 
-	_ = buildBlockVdt(t, rt, genesisHeader.Hash())
-	_, err = rt.ValidateTransaction(ext)
+	extBytes := common.MustHexToBytes(extHex)
+	extBytes = append([]byte{byte(types.TxnExternal)}, extBytes...)
+
+	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
+	_, err = rt.ValidateTransaction(extBytes)
 	require.NoError(t, err)
 }
 
@@ -354,7 +313,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 
 	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.Info)
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -381,7 +340,7 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 
 	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt, log.Info)
+	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -448,7 +407,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 
 	tt.Put(runtime.BABEAuthoritiesKey(), avalue)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.Info)
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -498,89 +457,14 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Hash) *types.Block {
-	header := &types.Header{
-		ParentHash: parentHash,
-		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
-	}
-
-	err := instance.InitializeBlock(header)
-	require.NoError(t, err)
-
-	idata := types.NewInherentsData()
-	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
-	require.NoError(t, err)
-
-	err = idata.SetInt64Inherent(types.Babeslot, 1)
-	require.NoError(t, err)
-
-	ienc, err := idata.Encode()
-	require.NoError(t, err)
-
-	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
-	inherentExts, err := instance.InherentExtrinsics(ienc)
-	require.NoError(t, err)
-
-	// decode inherent extrinsics
-	var exts [][]byte
-	err = scale.Unmarshal(inherentExts, &exts)
-	require.NoError(t, err)
-
-	// apply each inherent extrinsic
-	for _, ext := range exts {
-		in, err := scale.Marshal(ext)
-		require.NoError(t, err)
-
-		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
-		require.NoError(t, err, in)
-		require.Equal(t, ret, []byte{0, 0})
-	}
-
-	res, err := instance.FinalizeBlock()
-	require.NoError(t, err)
-
-	res.Number = header.Number
-
-	babeDigest := types.NewBabeDigest()
-	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
-	require.NoError(t, err)
-	data, err := scale.Marshal(babeDigest)
-	require.NoError(t, err)
-	preDigest := types.NewBABEPreRuntimeDigest(data)
-
-	digest := types.NewDigest()
-	err = digest.Add(preDigest)
-	require.NoError(t, err)
-	res.Digest = digest
-
-	expected := &types.Header{
-		ParentHash: header.ParentHash,
-		Number:     big.NewInt(1),
-		Digest:     digest,
-	}
-
-	require.Equal(t, expected.ParentHash, res.ParentHash)
-	require.Equal(t, expected.Number, res.Number)
-	require.Equal(t, expected.Digest, res.Digest)
-	require.False(t, res.StateRoot.IsEmpty())
-	require.False(t, res.ExtrinsicsRoot.IsEmpty())
-	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
-
-	return &types.Block{
-		Header: *res,
-		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
-	}
-}
-
 func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	buildBlockVdt(t, instance, common.Hash{})
+	runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 }
 
 func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	block := buildBlockVdt(t, instance, common.Hash{})
+	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
 	parentState, err := storage.NewTrieState(nil)
@@ -610,7 +494,8 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
-	block := buildBlockVdt(t, instance, common.Hash{})
+
+	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
 	parentState, err := storage.NewTrieState(genTrie)
@@ -651,8 +536,11 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	ext := createTestExtrinsic(t, instance, parentHash, 0)
-	enc, err := scale.Marshal(ext)
+	extHex := runtime.NewTestExtrinsic(t, instance, parentHash, parentHash,
+		0, "System.remark", []byte{0xab, 0xcd})
+
+	extBytes := common.MustHexToBytes(extHex)
+	enc, err := scale.Marshal(extBytes)
 	require.NoError(t, err)
 
 	res, err := instance.ApplyExtrinsic(enc)
@@ -664,7 +552,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	DefaultTestLogLvl = 0
 
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
-	block := buildBlockVdt(t, instance, common.Hash{})
+
+	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
 	parentState, err := storage.NewTrieState(nil)

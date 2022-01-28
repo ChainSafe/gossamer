@@ -13,11 +13,14 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -38,6 +41,12 @@ var (
 	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
 
 	errNilBlockBody = errors.New("block body is nil")
+
+	syncedBlocksGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_syncer",
+		Name:      "blocks_synced_total",
+		Help:      "total number of blocks synced",
+	})
 )
 
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
@@ -61,10 +70,12 @@ type BlockState struct {
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
 	pruneKeyCh chan *types.Header
+
+	telemetry telemetry.Client
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, telemetry telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
@@ -74,6 +85,7 @@ func NewBlockState(db chaindb.Database) (*BlockState, error) {
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		telemetry:                  telemetry,
 	}
 
 	gh, err := bs.db.Get(headerHashKey(0))
@@ -95,7 +107,8 @@ func NewBlockState(db chaindb.Database) (*BlockState, error) {
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
+func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header,
+	telemetryMailer telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
@@ -107,6 +120,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),
+		telemetry:                  telemetryMailer,
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
@@ -474,12 +488,17 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 
 // BestBlockHeader returns the block header of the current head of the chain
 func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
-	return bs.GetHeader(bs.BestBlockHash())
+	header, err := bs.GetHeader(bs.BestBlockHash())
+	if err != nil {
+		return nil, fmt.Errorf("cannot get header of best block: %w", err)
+	}
+	syncedBlocksGauge.Set(float64(header.Number.Int64()))
+	return header, nil
 }
 
 // BestBlockStateRoot returns the state root of the current head of the chain
 func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
-	header, err := bs.GetHeader(bs.BestBlockHash())
+	header, err := bs.BestBlockHeader()
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -500,7 +519,7 @@ func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (
 
 // BestBlockNumber returns the block number of the current head of the chain
 func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
-	header, err := bs.GetHeader(bs.BestBlockHash())
+	header, err := bs.BestBlockHeader()
 	if err != nil {
 		return nil, err
 	}

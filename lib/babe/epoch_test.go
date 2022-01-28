@@ -4,159 +4,198 @@
 package babe
 
 import (
+	"math/big"
 	"testing"
-	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestInitiateEpoch_Epoch0(t *testing.T) {
-	bs := createTestService(t, nil)
-	bs.epochLength = 20
-	startSlot := uint64(1000)
+var keyring, _ = keystore.NewSr25519Keyring()
 
-	err := bs.epochState.SetFirstSlot(startSlot)
-	require.NoError(t, err)
-	err = bs.initiateEpoch(0)
-	require.NoError(t, err)
+func TestBabeService_checkAndSetFirstSlot(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockEpochState0 := NewMockEpochState(ctrl)
+	mockEpochState1 := NewMockEpochState(ctrl)
 
-	startSlot, err = bs.epochState.GetStartSlotForEpoch(0)
-	require.NoError(t, err)
+	mockEpochState0.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(0))).Return(uint64(1), nil)
+	mockEpochState1.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(0))).Return(uint64(99), nil)
+	mockEpochState1.EXPECT().SetFirstSlot(gomock.Eq(uint64(1))).Return(nil)
 
-	count := 0
-	for i := startSlot; i < startSlot+bs.epochLength; i++ {
-		_, has := bs.slotToProof[i]
-		if has {
-			count++
-		}
+	testBabeSecondaryPlainPreDigest := types.BabeSecondaryPlainPreDigest{
+		SlotNumber: 1,
 	}
-	require.GreaterOrEqual(t, count, 1)
+
+	encDigest := newEncodedBabeDigest(t, testBabeSecondaryPlainPreDigest)
+	header := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encDigest))
+
+	block := &types.Block{
+		Header: *header,
+	}
+
+	mockBlockState.EXPECT().GetBlockByNumber(gomock.Eq(big.NewInt(1))).Return(block, nil)
+	mockBlockState.EXPECT().GetBlockByNumber(gomock.Eq(big.NewInt(1))).Return(block, nil)
+
+	bs0 := &Service{
+		epochState: mockEpochState0,
+		blockState: mockBlockState,
+	}
+
+	bs1 := &Service{
+		epochState: mockEpochState1,
+		blockState: mockBlockState,
+	}
+
+	cases := []struct {
+		name    string
+		service *Service
+	}{
+		{
+			name:    "should not set first slot, as it's already set correctly",
+			service: bs0,
+		},
+		{
+			name:    "should update first slot, as it's set incorrectly",
+			service: bs1,
+		},
+	}
+
+	for _, tc := range cases {
+		err := tc.service.checkAndSetFirstSlot()
+		require.NoError(t, err)
+	}
 }
 
-func TestInitiateEpoch_Epoch1(t *testing.T) {
-	bs := createTestService(t, nil)
-	bs.epochLength = 10
+func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockEpochState0 := NewMockEpochState(ctrl)
+	mockEpochState1 := NewMockEpochState(ctrl)
+	mockEpochState2 := NewMockEpochState(ctrl)
 
-	err := bs.initiateEpoch(0)
-	require.NoError(t, err)
+	mockEpochState0.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(0))).Return(uint64(1), nil)
+	mockEpochState1.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(1))).Return(uint64(201), nil)
+	mockEpochState2.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(1))).Return(uint64(201), nil)
 
-	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1, false)
+	mockEpochState1.EXPECT().HasEpochData(gomock.Eq(uint64(1))).Return(true, nil)
+	mockEpochState2.EXPECT().HasEpochData(gomock.Eq(uint64(1))).Return(true, nil)
 
-	// epoch 1, check that genesis EpochData and ConfigData was properly set
-	threshold := bs.epochData.threshold
-
-	auth := types.Authority{
-		Key:    bs.keypair.Public().(*sr25519.PublicKey),
-		Weight: 1,
+	kp := keyring.Alice().(*sr25519.Keypair)
+	authority := types.NewAuthority(kp.Public(), uint64(1))
+	testEpochData := &types.EpochData{
+		Randomness:  [32]byte{1},
+		Authorities: []types.Authority{*authority},
 	}
 
-	data, err := bs.epochState.GetEpochData(0)
-	require.NoError(t, err)
-	data.Authorities = []types.Authority{auth}
-	err = bs.epochState.SetEpochData(1, data)
-	require.NoError(t, err)
+	mockEpochState1.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(testEpochData, nil)
+	mockEpochState2.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(testEpochData, nil)
 
-	err = bs.initiateEpoch(1)
-	require.NoError(t, err)
+	mockEpochState1.EXPECT().HasConfigData(gomock.Eq(uint64(1))).Return(true, nil)
+	mockEpochState2.EXPECT().HasConfigData(gomock.Eq(uint64(1))).Return(false, nil)
 
-	expected := &epochData{
-		randomness:     genesisBABEConfig.Randomness,
-		authorities:    []types.Authority{auth},
-		authorityIndex: 0,
-		threshold:      threshold,
-	}
-	require.Equal(t, expected.randomness, bs.epochData.randomness)
-	require.Equal(t, expected.authorityIndex, bs.epochData.authorityIndex)
-	require.Equal(t, expected.threshold, bs.epochData.threshold)
-	require.GreaterOrEqual(t, len(bs.slotToProof), 1)
-
-	for i, auth := range bs.epochData.authorities {
-		expAuth, err := expected.authorities[i].Encode()
-		require.NoError(t, err)
-		res, err := auth.Encode()
-		require.NoError(t, err)
-		require.Equal(t, expAuth, res)
-	}
-
-	// for epoch 2, set EpochData but not ConfigData
-	edata := &types.EpochData{
-		Authorities: bs.epochData.authorities,
-		Randomness:  [32]byte{9},
-	}
-
-	err = bs.epochState.(*state.EpochState).SetEpochData(2, edata)
-	require.NoError(t, err)
-
-	expected = &epochData{
-		randomness:     edata.Randomness,
-		authorities:    edata.Authorities,
-		authorityIndex: 0,
-		threshold:      bs.epochData.threshold,
-	}
-	err = bs.initiateEpoch(2)
-	require.NoError(t, err)
-	require.Equal(t, expected.randomness, bs.epochData.randomness)
-	require.Equal(t, expected.authorityIndex, bs.epochData.authorityIndex)
-	require.Equal(t, expected.threshold, bs.epochData.threshold)
-	require.GreaterOrEqual(t, len(bs.slotToProof), 1)
-
-	for i, auth := range bs.epochData.authorities {
-		expAuth, err := expected.authorities[i].Encode()
-		require.NoError(t, err)
-		res, err := auth.Encode()
-		require.NoError(t, err)
-		require.Equal(t, expAuth, res)
-	}
-
-	// for epoch 3, set EpochData and ConfigData
-	edata = &types.EpochData{
-		Authorities: bs.epochData.authorities,
-		Randomness:  [32]byte{9},
-	}
-
-	err = bs.epochState.(*state.EpochState).SetEpochData(3, edata)
-	require.NoError(t, err)
-
-	cdata := &types.ConfigData{
+	testConfigData := &types.ConfigData{
 		C1: 1,
-		C2: 99,
+		C2: 1,
 	}
 
-	err = bs.epochState.(*state.EpochState).SetConfigData(3, cdata)
-	require.NoError(t, err)
+	mockEpochState1.EXPECT().GetConfigData(gomock.Eq(uint64(1))).Return(testConfigData, nil)
 
-	threshold, err = CalculateThreshold(cdata.C1, cdata.C2, 1)
-	require.NoError(t, err)
-
-	expected = &epochData{
-		randomness:     edata.Randomness,
-		authorities:    edata.Authorities,
-		authorityIndex: 0,
-		threshold:      threshold,
+	testLatestConfigData := &types.ConfigData{
+		C1: 1,
+		C2: 2,
 	}
-	err = bs.initiateEpoch(3)
-	require.NoError(t, err)
-	require.Equal(t, expected, bs.epochData)
 
-	time.Sleep(time.Second)
-	require.GreaterOrEqual(t, len(bs.slotToProof), 1)
-}
+	mockEpochState2.EXPECT().GetLatestConfigData().Return(testLatestConfigData, nil)
 
-func TestIncrementEpoch(t *testing.T) {
-	bs := createTestService(t, nil)
-	next, err := bs.incrementEpoch()
-	require.NoError(t, err)
-	require.Equal(t, uint64(1), next)
+	testEpochDataEpoch0 := &types.EpochData{
+		Randomness:  [32]byte{9},
+		Authorities: []types.Authority{*authority},
+	}
 
-	next, err = bs.incrementEpoch()
-	require.NoError(t, err)
-	require.Equal(t, uint64(2), next)
+	mockEpochState0.EXPECT().GetLatestEpochData().Return(testEpochDataEpoch0, nil)
+	mockEpochState0.EXPECT().GetLatestConfigData().Return(testConfigData, nil)
 
-	epoch, err := bs.epochState.GetCurrentEpoch()
+	bs0 := &Service{
+		authority:  true,
+		keypair:    kp,
+		epochState: mockEpochState0,
+		blockState: mockBlockState,
+	}
+
+	bs1 := &Service{
+		authority:  true,
+		keypair:    kp,
+		epochState: mockEpochState1,
+		blockState: mockBlockState,
+	}
+
+	bs2 := &Service{
+		authority:  true,
+		keypair:    kp,
+		epochState: mockEpochState2,
+		blockState: mockBlockState,
+	}
+
+	threshold0, err := CalculateThreshold(testConfigData.C1, testConfigData.C2, 1)
 	require.NoError(t, err)
-	require.Equal(t, uint64(2), epoch)
+
+	threshold1, err := CalculateThreshold(testLatestConfigData.C1, testLatestConfigData.C2, 1)
+	require.NoError(t, err)
+
+	cases := []struct {
+		name              string
+		service           *Service
+		epoch             uint64
+		expected          *epochData
+		expectedStartSlot uint64
+	}{
+		{
+			name:    "should get epoch data for epoch 0",
+			service: bs0,
+			epoch:   0,
+			expected: &epochData{
+				randomness:     testEpochDataEpoch0.Randomness,
+				authorities:    testEpochDataEpoch0.Authorities,
+				authorityIndex: 0,
+				threshold:      threshold0,
+			},
+			expectedStartSlot: 1,
+		},
+		{
+			name:    "should get epoch data for epoch 1 with config data from epoch 1",
+			service: bs1,
+			epoch:   1,
+			expected: &epochData{
+				randomness:     testEpochData.Randomness,
+				authorities:    testEpochData.Authorities,
+				authorityIndex: 0,
+				threshold:      threshold0,
+			},
+			expectedStartSlot: 201,
+		},
+		{
+			name:    "should get epoch data for epoch 1 and config data for epoch 0",
+			service: bs2,
+			epoch:   1,
+			expected: &epochData{
+				randomness:     testEpochData.Randomness,
+				authorities:    testEpochData.Authorities,
+				authorityIndex: 0,
+				threshold:      threshold1,
+			},
+			expectedStartSlot: 201,
+		},
+	}
+
+	for _, tc := range cases {
+		res, startSlot, err := tc.service.getEpochDataAndStartSlot(tc.epoch)
+		require.NoError(t, err)
+		require.Equal(t, tc.expected, res)
+		require.Equal(t, tc.expectedStartSlot, startSlot)
+	}
 }

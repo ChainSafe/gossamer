@@ -13,7 +13,7 @@ import (
 )
 
 // private keys generated using `subkey inspect //Name`
-var privateKeys = []string{
+var sr25519PrivateKeys = []string{
 	"0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a",
 	"0x398f0c28f98885e046333d4a41c19cee4c37368a9832c6502f6cfd182e2aef89",
 	"0xbc1ede780f784bb6991a585e4f6e61522c14e1cae6ad0895fb57b9a205a8f938",
@@ -61,7 +61,7 @@ func NewSr25519Keyring() (*Sr25519Keyring, error) {
 
 	for i := 0; i < v.NumField()-1; i++ {
 		who := v.Field(i)
-		h, err := common.HexToBytes(privateKeys[i])
+		h, err := common.HexToBytes(sr25519PrivateKeys[i])
 		if err != nil {
 			return nil, err
 		}
@@ -124,6 +124,18 @@ func (kr *Sr25519Keyring) Ian() crypto.Keypair {
 	return kr.KeyIan
 }
 
+var ed25519PrivateKeys = []string{
+	"0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115",
+	"0x3b7b60af2abcd57ba401ab398f84f4ca54bd6b2140d2503fbcf3286535fe3ff1",
+	"0x072c02fa1409dc37e03a4ed01703d4a9e6bba9c228a49a00366e9630a97cba7c",
+	"0x771f47d3caf8a2ee40b0719e1c1ecbc01d73ada220cf08df12a00453ab703738",
+	"0xbef5a3cd63dd36ab9792364536140e5a0cce6925969940c431934de056398556",
+	"0x1441e38eb309b66e9286867a5cd05902b05413eb9723a685d4d77753d73d0a1d",
+	"0x583b887078cbae4b6ac6fbee324c3d2c16f3a1f8bf18f0d234de3ac33baa4470",
+	"0xb8f3de627932e28914f3bc4bc3d7d2fc95c1f95c7915343d79df68d8250de180",
+	"0xfd9f15cac5ffd14ed08914c200b1744ab00bdddf45e86cd13ccf9585ffa0e3ce",
+}
+
 // Ed25519Keyring represents a test ed25519 keyring
 type Ed25519Keyring struct {
 	KeyAlice   *ed25519.Keypair
@@ -147,7 +159,7 @@ func NewEd25519Keyring() (*Ed25519Keyring, error) {
 
 	for i := 0; i < v.NumField()-1; i++ {
 		who := v.Field(i)
-		kp, err := ed25519.NewKeypairFromPrivateKeyString(privateKeys[i])
+		kp, err := ed25519.NewKeypairFromPrivateKeyString(ed25519PrivateKeys[i])
 		if err != nil {
 			return nil, err
 		}

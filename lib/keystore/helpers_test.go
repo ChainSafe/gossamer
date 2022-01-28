@@ -55,8 +55,7 @@ func TestDetermineKeyType(t *testing.T) {
 }
 
 func TestGenerateKey_Sr25519(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := GenerateKeypair("sr25519", nil, testdir, testPassword)
 	if err != nil {
@@ -78,8 +77,7 @@ func TestGenerateKey_Sr25519(t *testing.T) {
 }
 
 func TestGenerateKey_Ed25519(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := GenerateKeypair("ed25519", nil, testdir, testPassword)
 	if err != nil {
@@ -116,8 +114,7 @@ func TestGenerateKey_Ed25519(t *testing.T) {
 }
 
 func TestGenerateKey_Secp256k1(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := GenerateKeypair("secp256k1", nil, testdir, testPassword)
 	if err != nil {
@@ -154,8 +151,7 @@ func TestGenerateKey_Secp256k1(t *testing.T) {
 }
 
 func TestGenerateKey_NoType(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := GenerateKeypair("", nil, testdir, testPassword)
 	if err != nil {
@@ -179,8 +175,7 @@ func TestGenerateKey_NoType(t *testing.T) {
 }
 
 func TestImportKey_ShouldFail(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	_, err := ImportKeypair("./notakey.key", testdir)
 	if err == nil {
@@ -189,8 +184,7 @@ func TestImportKey_ShouldFail(t *testing.T) {
 }
 
 func TestImportKey(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "keystore")
-	defer utils.RemoveTestDir(t)
+	basePath := t.TempDir()
 
 	keypath := basePath
 
@@ -221,8 +215,7 @@ func TestImportKey(t *testing.T) {
 }
 
 func TestListKeys(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	expected := []string{}
 
@@ -263,8 +256,7 @@ func TestListKeys(t *testing.T) {
 }
 
 func TestUnlockKeys(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := GenerateKeypair("sr25519", nil, testdir, testPassword)
 	require.Nil(t, err)
@@ -292,8 +284,7 @@ func TestUnlockKeys(t *testing.T) {
 }
 
 func TestImportRawPrivateKey_NoType(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := ImportRawPrivateKey(
 		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
@@ -313,8 +304,7 @@ func TestImportRawPrivateKey_NoType(t *testing.T) {
 }
 
 func TestImportRawPrivateKey_Sr25519(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := ImportRawPrivateKey(
 		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
@@ -334,8 +324,7 @@ func TestImportRawPrivateKey_Sr25519(t *testing.T) {
 }
 
 func TestImportRawPrivateKey_Ed25519(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := ImportRawPrivateKey(
 		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
@@ -355,8 +344,7 @@ func TestImportRawPrivateKey_Ed25519(t *testing.T) {
 }
 
 func TestImportRawPrivateKey_Secp256k1(t *testing.T) {
-	testdir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testdir := t.TempDir()
 
 	keyfile, err := ImportRawPrivateKey(
 		"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",

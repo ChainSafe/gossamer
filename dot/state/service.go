@@ -9,19 +9,15 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
-)
-
-const (
-	readyPoolTransactionsMetrics   = "gossamer/ready/pool/transaction/metrics"
-	readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
-	substrateNumberLeaves          = "gossamer/substrate_number_leaves/metrics"
 )
 
 var logger = log.NewFromGlobal(
@@ -42,12 +38,12 @@ type Service struct {
 	Grandpa     *GrandpaState
 	closeCh     chan interface{}
 
+	PrunerCfg pruner.Config
+	Telemetry telemetry.Client
+
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
-
-	// Below are for state trie online pruner
-	PrunerCfg pruner.Config
 }
 
 // Config is the default configuration used by state service.
@@ -55,6 +51,8 @@ type Config struct {
 	Path      string
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
+	Telemetry telemetry.Client
+	Metrics   metrics.IntervalConfig
 }
 
 // NewService create a new instance of Service
@@ -70,6 +68,7 @@ func NewService(config Config) *Service {
 		Block:     nil,
 		closeCh:   make(chan interface{}),
 		PrunerCfg: config.PrunerCfg,
+		Telemetry: config.Telemetry,
 	}
 }
 
@@ -85,34 +84,39 @@ func (s *Service) DB() chaindb.Database {
 	return s.db
 }
 
+// SetupBase intitializes state.Base property with
+// the instance of a chain.NewBadger database
+func (s *Service) SetupBase() error {
+	if s.isMemDB {
+		return nil
+	}
+
+	basepath, err := filepath.Abs(s.dbPath)
+	if err != nil {
+		return err
+	}
+
+	// initialise database
+	db, err := utils.SetupDatabase(basepath, false)
+	if err != nil {
+		return err
+	}
+
+	s.db = db
+	s.Base = NewBaseState(db)
+
+	return nil
+}
+
 // Start initialises the Storage database and the Block database.
 func (s *Service) Start() error {
 	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
 		return nil
 	}
 
-	db := s.db
-
-	if !s.isMemDB {
-		basepath, err := filepath.Abs(s.dbPath)
-		if err != nil {
-			return err
-		}
-
-		// initialise database
-		db, err = utils.SetupDatabase(basepath, false)
-		if err != nil {
-			return err
-		}
-
-		s.db = db
-		s.Base = NewBaseState(db)
-	}
-
 	var err error
-
 	// create block state
-	s.Block, err = NewBlockState(db)
+	s.Block, err = NewBlockState(s.db, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -132,7 +136,7 @@ func (s *Service) Start() error {
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, trie.NewEmptyTrie(), pr)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
@@ -144,15 +148,15 @@ func (s *Service) Start() error {
 	}
 
 	// create transaction queue
-	s.Transaction = NewTransactionState()
+	s.Transaction = NewTransactionState(s.Telemetry)
 
 	// create epoch state
-	s.Epoch, err = NewEpochState(db, s.Block)
+	s.Epoch, err = NewEpochState(s.db, s.Block)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
 
-	s.Grandpa, err = NewGrandpaState(db)
+	s.Grandpa, err = NewGrandpaState(s.db)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %w", err)
 	}
@@ -165,6 +169,7 @@ func (s *Service) Start() error {
 
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
+
 	return nil
 }
 
@@ -346,13 +351,4 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	return s.db.Close()
-}
-
-// CollectGauge exports 2 metrics related to valid transaction pool and queue
-func (s *Service) CollectGauge() map[string]int64 {
-	return map[string]int64{
-		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
-		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
-		substrateNumberLeaves:          int64(len(s.Block.Leaves())),
-	}
 }

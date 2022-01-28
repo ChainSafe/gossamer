@@ -102,8 +102,8 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	}, nil
 }
 
-// StartGossamer starts given node
-func StartGossamer(t *testing.T, node *Node, websocket bool) error {
+// startGossamer starts given node
+func startGossamer(t *testing.T, node *Node, websocket bool) error {
 	var key string
 	var params = []string{"--port", strconv.Itoa(basePort + node.Idx),
 		"--config", node.config,
@@ -112,6 +112,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpcport", node.RPCPort,
 		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
+		"--no-telemetry",
 		"--log", "info"}
 
 	if node.BABELead {
@@ -193,7 +194,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	var started bool
 	for i := 0; i < maxRetries; i++ {
 		time.Sleep(time.Second * 5)
-		if err = CheckNodeStarted(t, "http://"+HOSTNAME+":"+node.RPCPort); err == nil {
+		if err = checkNodeStarted(t, "http://"+HOSTNAME+":"+node.RPCPort); err == nil {
 			started = true
 			break
 		}
@@ -223,7 +224,7 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 		node.BABELead = true
 	}
 
-	err = StartGossamer(t, node, websocket)
+	err = startGossamer(t, node, websocket)
 	if err != nil {
 		Logger.Criticalf("could not start gossamer: %s", err)
 		os.Exit(1)
@@ -232,8 +233,8 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 	return node, nil
 }
 
-// CheckNodeStarted check if gossamer node is started
-func CheckNodeStarted(t *testing.T, gossamerHost string) error {
+// checkNodeStarted check if gossamer node is started
+func checkNodeStarted(t *testing.T, gossamerHost string) error {
 	method := "system_health"
 
 	respBody, err := PostRPC(method, gossamerHost, "{}")
@@ -254,8 +255,8 @@ func CheckNodeStarted(t *testing.T, gossamerHost string) error {
 	return nil
 }
 
-// KillProcess kills a instance of gossamer
-func KillProcess(t *testing.T, cmd *exec.Cmd) error {
+// killProcess kills a instance of gossamer
+func killProcess(t *testing.T, cmd *exec.Cmd) error {
 	err := cmd.Process.Kill()
 	if err != nil {
 		t.Log("failed to kill process", "cmd", cmd)
@@ -285,10 +286,11 @@ func InitNodes(num int, config string) ([]*Node, error) {
 
 // StartNodes starts given array of nodes
 func StartNodes(t *testing.T, nodes []*Node) error {
-	for _, n := range nodes {
-		err := StartGossamer(t, n, false)
+	for i, n := range nodes {
+		err := startGossamer(t, n, false)
 		if err != nil {
-			return nil
+			return fmt.Errorf("node %d of %d: %w",
+				i+1, len(nodes), err)
 		}
 	}
 	return nil
@@ -357,7 +359,7 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 func StopNodes(t *testing.T, nodes []*Node) (errs []error) {
 	for i := range nodes {
 		cmd := nodes[i].Process
-		err := KillProcess(t, cmd)
+		err := killProcess(t, cmd)
 		if err != nil {
 			Logger.Errorf("failed to kill Gossamer (cmd %s) for node index %d", cmd, i)
 			errs = append(errs, err)
@@ -371,7 +373,7 @@ func StopNodes(t *testing.T, nodes []*Node) (errs []error) {
 func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
 	for i, node := range nodes {
 		cmd := nodes[i].Process
-		err := KillProcess(t, cmd)
+		err := killProcess(t, cmd)
 		if err != nil {
 			Logger.Errorf("failed to kill Gossamer (cmd %s) for node index %d", cmd, i)
 			errorList = append(errorList, err)

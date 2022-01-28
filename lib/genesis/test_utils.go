@@ -5,8 +5,12 @@ package genesis
 
 import (
 	"encoding/json"
+	"errors"
 	"math/big"
 	"os"
+	"path"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -67,13 +71,7 @@ var TestFieldsRaw = Fields{
 }
 
 // CreateTestGenesisJSONFile utility to create mock test genesis JSON file
-func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
-	// Create temp file
-	file, err := os.CreateTemp("", "genesis-test")
-	if err != nil {
-		return "", err
-	}
-
+func CreateTestGenesisJSONFile(t *testing.T, asRaw bool) (filename string) {
 	tGen := &Genesis{
 		Name:       "test",
 		ID:         "",
@@ -96,25 +94,49 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 	}
 
 	bz, err := json.Marshal(tGen)
-	if err != nil {
-		return "", nil
-	}
-	// Write to temp file
-	_, err = file.Write(bz)
-	if err != nil {
-		return "", nil
+	require.NoError(t, err)
+	filename = filepath.Join(t.TempDir(), "genesis-test")
+	err = os.WriteFile(filename, bz, os.ModePerm)
+	require.NoError(t, err)
+	return filename
+}
+
+// getAbsolutePath returns the absolute path concatenated with pathFromRoot
+func getAbsolutePath(t *testing.T, pathFromRoot string) string {
+	t.Helper()
+
+	_, fullpath, _, _ := runtime.Caller(0)
+	finderPath := path.Dir(fullpath)
+
+	const searchingFor = "go.mod"
+	for {
+		filepathToCheck := path.Join(finderPath, searchingFor)
+		_, err := os.Stat(filepathToCheck)
+
+		fileNotFound := errors.Is(err, os.ErrNotExist)
+		if fileNotFound {
+			previousFinderPath := finderPath
+			finderPath = path.Dir(finderPath)
+
+			if finderPath == previousFinderPath {
+				t.Fatal(t, "cannot find project root")
+			}
+
+			continue
+		}
+
+		require.NoError(t, err)
+		break
 	}
 
-	return file.Name(), nil
+	return filepath.Join(finderPath, pathFromRoot)
 }
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	gen, err := NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
-	if err != nil {
-		gen, err = NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
-		require.NoError(t, err)
-	}
+	genesisPath := getAbsolutePath(t, "chain/gssmr/genesis.json")
+	gen, err := NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
 
 	tr, h := newGenesisTrieAndHeader(t, gen)
 	return gen, tr, h
@@ -122,11 +144,10 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 
 // NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	gen, err := NewGenesisFromJSONRaw("../../chain/dev/genesis.json")
-	if err != nil {
-		gen, err = NewGenesisFromJSONRaw("../../../chain/dev/genesis.json")
-		require.NoError(t, err)
-	}
+	genesisPath := getAbsolutePath(t, "chain/dev/genesis.json")
+
+	gen, err := NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
 
 	tr, h := newGenesisTrieAndHeader(t, gen)
 	return gen, tr, h

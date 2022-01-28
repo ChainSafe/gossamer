@@ -6,6 +6,7 @@ package runtime
 import (
 	"context"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"path"
@@ -13,10 +14,15 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -115,9 +121,9 @@ func (*TestRuntimeNetwork) NetworkState() common.NetworkState {
 	}
 }
 
-func generateEd25519Signatures(t *testing.T, n int) []*Signature {
+func generateEd25519Signatures(t *testing.T, n int) []*crypto.SignatureInfo {
 	t.Helper()
-	signs := make([]*Signature, n)
+	signs := make([]*crypto.SignatureInfo, n)
 	for i := 0; i < n; i++ {
 		msg := []byte("Hello")
 		key, err := ed25519.GenerateKeypair()
@@ -126,11 +132,11 @@ func generateEd25519Signatures(t *testing.T, n int) []*Signature {
 		sign, err := key.Private().Sign(msg)
 		require.NoError(t, err)
 
-		signs[i] = &Signature{
-			PubKey:    key.Public().Encode(),
-			Sign:      sign,
-			Msg:       msg,
-			KeyTypeID: crypto.Ed25519Type,
+		signs[i] = &crypto.SignatureInfo{
+			PubKey:     key.Public().Encode(),
+			Sign:       sign,
+			Msg:        msg,
+			VerifyFunc: ed25519.VerifySignature,
 		}
 	}
 	return signs
@@ -160,4 +166,125 @@ func RemoveFiles(files []string) error {
 		}
 	}
 	return nil
+}
+
+// NewTestExtrinsic builds a new extrinsic using centrifuge pkg
+func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
+	nonce uint64, call string, args ...interface{}) string {
+	t.Helper()
+
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	var decoded []byte
+	err = scale.Unmarshal(rawMeta, &decoded)
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded, meta)
+	require.NoError(t, err)
+
+	rv, err := rt.Version()
+	require.NoError(t, err)
+
+	c, err := ctypes.NewCall(meta, call, args...)
+	require.NoError(t, err)
+
+	ext := ctypes.NewExtrinsic(c)
+	o := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's key
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := ctypes.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	return extEnc
+}
+
+// InitializeRuntimeToTest sets a new block using the runtime functions to set initial data into the host
+func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.Hash) *types.Block {
+	t.Helper()
+
+	header := &types.Header{
+		ParentHash: parentHash,
+		Number:     big.NewInt(1),
+		Digest:     types.NewDigest(),
+	}
+
+	err := instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	idata := types.NewInherentsData()
+	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
+
+	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	var exts [][]byte
+	err = scale.Unmarshal(inherentExts, &exts)
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, ext := range exts {
+		in, err := scale.Marshal(ext)
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
+		require.NoError(t, err, in)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	res.Number = header.Number
+
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+	preDigest := types.NewBABEPreRuntimeDigest(data)
+
+	digest := types.NewDigest()
+	err = digest.Add(preDigest)
+	require.NoError(t, err)
+	res.Digest = digest
+
+	expected := &types.Header{
+		ParentHash: header.ParentHash,
+		Number:     big.NewInt(1),
+		Digest:     digest,
+	}
+
+	require.Equal(t, expected.ParentHash, res.ParentHash)
+	require.Equal(t, expected.Number, res.Number)
+	require.Equal(t, expected.Digest, res.Digest)
+	require.False(t, res.StateRoot.IsEmpty())
+	require.False(t, res.ExtrinsicsRoot.IsEmpty())
+	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
+
+	return &types.Block{
+		Header: *res,
+		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
+	}
 }

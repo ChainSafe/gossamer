@@ -152,11 +152,13 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 // createNotificationsMessageHandler returns a function that is called by the handler of *inbound* streams.
-func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
-	messageHandler NotificationsMessageHandler,
-	batchHandler NotificationsMessageBatchHandler) messageHandler {
+func (s *Service) createNotificationsMessageHandler(
+	info *notificationsProtocol,
+	notificationsMessageHandler NotificationsMessageHandler,
+	batchHandler NotificationsMessageBatchHandler,
+) messageHandler {
 	return func(stream libp2pnetwork.Stream, m Message) error {
-		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
+		if m == nil || info == nil || info.handshakeValidator == nil || notificationsMessageHandler == nil {
 			return nil
 		}
 
@@ -214,6 +216,10 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				}
 
 				logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
+
+				if err := stream.CloseWrite(); err != nil {
+					logger.Tracef("failed to close stream for writing: %s", err)
+				}
 			}
 
 			return nil
@@ -227,7 +233,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return nil
 		}
 
-		propagate, err := messageHandler(peer, msg)
+		propagate, err := notificationsMessageHandler(peer, msg)
 		if err != nil {
 			return err
 		}
@@ -282,21 +288,9 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	if s.host.messageCache != nil {
-		added, err := s.host.messageCache.put(peer, msg)
-		if err != nil {
-			logger.Errorf("failed to add message to cache for peer %s: %s", peer, err)
-			return
-		}
-
-		// TODO: ensure grandpa stores *all* previously received votes and discards them
-		// only when they are for already finalised rounds; currently this causes issues
-		// because a vote might be received slightly too early, causing a round mismatch err,
-		// causing grandpa to discard the vote. (#1855)
-		_, isConsensusMsg := msg.(*ConsensusMessage)
-		if !added && !isConsensusMsg {
-			return
-		}
+	if s.host.messageCache != nil && s.host.messageCache.exists(peer, msg) {
+		logger.Tracef("message has already been sent, ignoring: peer=%s msg=%s", peer, msg)
+		return
 	}
 
 	// we've completed the handshake with the peer, send message directly
@@ -309,6 +303,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			closeOutboundStream(info, peer, stream)
 		}
 		return
+	} else if s.host.messageCache != nil {
+		if _, err := s.host.messageCache.put(peer, msg); err != nil {
+			logger.Errorf("failed to add message to cache for peer %s: %w", peer, err)
+			return
+		}
 	}
 
 	logger.Tracef("successfully sent message on protocol %s to peer %s: message=", info.protocolID, peer, msg)
@@ -378,6 +377,10 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 
 		resp = hsResponse.hs
 		hsData.received = true
+	}
+
+	if err := stream.CloseRead(); err != nil {
+		logger.Tracef("failed to close stream for reading: %s", err)
 	}
 
 	if err = info.handshakeValidator(peer, resp); err != nil {

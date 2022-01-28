@@ -4,9 +4,12 @@
 package scale
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
+
+var ErrResultAlreadySet = errors.New("result already has an assigned value")
 
 // ResultMode is the mode the Result is set to
 type ResultMode int
@@ -46,6 +49,10 @@ func NewResult(okIn, errIn interface{}) (res Result) {
 
 // Set takes in a mode (OK/Err) and the associated interface and sets the Result value
 func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
+	if r.mode != Unset {
+		return ErrResultAlreadySet
+	}
+
 	switch mode {
 	case OK:
 		if reflect.TypeOf(r.ok) == reflect.TypeOf(empty{}) && in == nil {
@@ -70,6 +77,7 @@ func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 	default:
 		err = fmt.Errorf("invalid ResultMode %v", mode)
 	}
+
 	return
 }
 

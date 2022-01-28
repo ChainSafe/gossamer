@@ -4,13 +4,19 @@
 package telemetry
 
 import (
+	"encoding/json"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// systemIntervalTM struct to hold system interval telemetry messages
-type systemIntervalTM struct {
+type systemIntervalTM SystemInterval
+
+var _ Message = (*SystemInterval)(nil)
+
+// SystemInterval struct to hold system interval telemetry messages
+type SystemInterval struct {
 	BandwidthDownload  float64      `json:"bandwidth_download,omitempty"`
 	BandwidthUpload    float64      `json:"bandwidth_upload,omitempty"`
 	Peers              int          `json:"peers,omitempty"`
@@ -22,19 +28,19 @@ type systemIntervalTM struct {
 	UsedStateCacheSize *big.Int     `json:"used_state_cache_size,omitempty"`
 }
 
-// NewBandwidthTM function to create new Bandwidth Telemetry Message
-func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) Message {
-	return &systemIntervalTM{
+// NewBandwidth function to create new Bandwidth Telemetry Message
+func NewBandwidth(bandwidthDownload, bandwidthUpload float64, peers int) *SystemInterval {
+	return &SystemInterval{
 		BandwidthDownload: bandwidthDownload,
 		BandwidthUpload:   bandwidthUpload,
 		Peers:             peers,
 	}
 }
 
-// NewBlockIntervalTM function to create new Block Interval Telemetry Message
-func NewBlockIntervalTM(beshHash *common.Hash, bestHeight *big.Int, finalisedHash *common.Hash,
-	finalisedHeight, txCount, usedStateCacheSize *big.Int) Message {
-	return &systemIntervalTM{
+// NewBlockInterval function to create new Block Interval Telemetry Message
+func NewBlockInterval(beshHash *common.Hash, bestHeight *big.Int, finalisedHash *common.Hash,
+	finalisedHeight, txCount, usedStateCacheSize *big.Int) *SystemInterval {
+	return &SystemInterval{
 		BestHash:           beshHash,
 		BestHeight:         bestHeight,
 		FinalisedHash:      finalisedHash,
@@ -44,6 +50,16 @@ func NewBlockIntervalTM(beshHash *common.Hash, bestHeight *big.Int, finalisedHas
 	}
 }
 
-func (systemIntervalTM) messageType() string {
-	return systemIntervalMsg
+func (si SystemInterval) MarshalJSON() ([]byte, error) {
+	telemetryData := struct {
+		systemIntervalTM
+		MessageType string    `json:"msg"`
+		Timestamp   time.Time `json:"ts"`
+	}{
+		Timestamp:        time.Now(),
+		MessageType:      systemIntervalMsg,
+		systemIntervalTM: systemIntervalTM(si),
+	}
+
+	return json.Marshal(telemetryData)
 }

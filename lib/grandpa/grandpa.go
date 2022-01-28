@@ -6,6 +6,7 @@ package grandpa
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,25 +14,30 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
-	finalityGrandpaRoundMetrics = "gossamer/finality/grandpa/round"
-	defaultGrandpaInterval      = time.Second
+	defaultGrandpaInterval = time.Second
 )
 
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
-)
 
-var (
 	ErrUnsupportedSubround = errors.New("unsupported subround")
+	roundGauge             = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_grandpa",
+		Name:      "round",
+		Help:      "current grandpa round",
+	})
 )
 
 // Service represents the current state of the grandpa protocol
@@ -72,6 +78,8 @@ type Service struct {
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
 	neighbourMessage *NeighbourMessage // cached neighbour message
+
+	telemetry telemetry.Client
 }
 
 // Config represents a GRANDPA service configuration
@@ -85,6 +93,7 @@ type Config struct {
 	Keypair       *ed25519.Keypair
 	Authority     bool
 	Interval      time.Duration
+	Telemetry     telemetry.Client
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -164,13 +173,14 @@ func NewService(cfg *Config) (*Service, error) {
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
+		telemetry:          cfg.Telemetry,
 	}
 
 	if err := s.registerProtocol(); err != nil {
 		return nil, err
 	}
 
-	s.messageHandler = NewMessageHandler(s, s.blockState)
+	s.messageHandler = NewMessageHandler(s, s.blockState, cfg.Telemetry)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.paused.Store(false)
 	return s, nil
@@ -187,12 +197,18 @@ func (s *Service) Start() error {
 	s.tracker.start()
 
 	go func() {
-		if err := s.initiate(); err != nil {
-			logger.Criticalf("failed to initiate: %s", err)
+		for {
+			// TODO: sometimes grandpa fails to initiate due to a "Key not found"
+			// error, this shouldn't happen.
+			if err := s.initiate(); err != nil {
+				logger.Criticalf("failed to initiate: %s", err)
+			}
+			time.Sleep(s.interval)
 		}
 	}()
 
 	go s.sendNeighbourMessage()
+
 	return nil
 }
 
@@ -225,16 +241,6 @@ func (s *Service) authorities() []*types.Authority {
 	return ad
 }
 
-// CollectGauge returns the map between metrics label and value
-func (s *Service) CollectGauge() map[string]int64 {
-	s.roundLock.Lock()
-	defer s.roundLock.Unlock()
-
-	return map[string]int64{
-		finalityGrandpaRoundMetrics: int64(s.state.round),
-	}
-}
-
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
 func (s *Service) updateAuthorities() error {
 	currSetID, err := s.grandpaState.GetCurrentSetID()
@@ -258,11 +264,37 @@ func (s *Service) updateAuthorities() error {
 	// setting to 0 before incrementing indicates
 	// the setID has been increased
 	s.state.round = 0
+	roundGauge.Set(float64(s.state.round))
+
+	s.sendTelemetryAuthoritySet()
+
 	return nil
 }
 
 func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 	return s.keypair.Public().(*ed25519.PublicKey).AsBytes()
+}
+
+func (s *Service) sendTelemetryAuthoritySet() {
+	authorityID := s.keypair.Public().Hex()
+	authorities := make([]string, len(s.state.voters))
+	for i, voter := range s.state.voters {
+		authorities[i] = fmt.Sprint(voter.ID)
+	}
+
+	authoritiesBytes, err := json.Marshal(authorities)
+	if err != nil {
+		logger.Warnf("could not marshal authorities: %s", err)
+		return
+	}
+
+	s.telemetry.SendMessage(
+		telemetry.NewAfgAuthoritySet(
+			authorityID,
+			fmt.Sprint(s.state.setID),
+			string(authoritiesBytes),
+		),
+	)
 }
 
 func (s *Service) initiateRound() error {
@@ -282,6 +314,7 @@ func (s *Service) initiateRound() error {
 			"found block finalised in higher round, updating our round to be %d...",
 			round)
 		s.state.round = round
+		roundGauge.Set(float64(s.state.round))
 		err = s.grandpaState.SetLatestRound(round)
 		if err != nil {
 			return err
@@ -453,7 +486,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	logger.Debug("receiving pre-vote messages...")
-	go s.receiveMessages(ctx)
+	go s.receiveVoteMessages(ctx)
 	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
@@ -477,12 +510,16 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
+	// roundComplete is a signal channel which is closed when the round completes
+	// (will receive the default value of channel's type), so we don't need to
+	// explicitly send a value.
 	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
 	go s.sendVoteMessage(prevote, vm, roundComplete)
 
 	logger.Debug("receiving pre-commit messages...")
+	// through goroutine s.receiveMessages(ctx)
 	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
@@ -519,6 +556,8 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
+	// Though this looks like we are sending messages multiple times,
+	// caching would make sure that they are being sent only once.
 	for {
 		if s.paused.Load().(bool) {
 			return
@@ -526,9 +565,10 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 
 		if err := s.sendMessage(msg); err != nil {
 			logger.Warnf("could not send message for stage %s: %s", stage, err)
+		} else {
+			logger.Tracef("sent vote message for stage %s: %s", stage, msg.Message)
 		}
 
-		logger.Tracef("sent vote message for stage %s: %s", stage, msg.Message)
 		select {
 		case <-roundComplete:
 			return
@@ -607,6 +647,12 @@ func (s *Service) attemptToFinalize() error {
 
 		logger.Debugf("sending CommitMessage: %v", cm)
 		s.network.GossipMessage(msg)
+
+		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
+			s.head.Hash(),
+			s.head.Number.String(),
+		))
+
 		return nil
 	}
 }
@@ -1266,9 +1312,10 @@ func (s *Service) GetSetID() uint64 {
 
 // GetRound return the current round number
 func (s *Service) GetRound() uint64 {
+	// Tim: I don't think we need to lock in this case.  Reading an int will
+	// not produce a concurrent read/write panic
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
-
 	return s.state.round
 }
 

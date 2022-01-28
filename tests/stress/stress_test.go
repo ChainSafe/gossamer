@@ -27,7 +27,7 @@ import (
 
 func TestMain(m *testing.M) {
 	if utils.MODE != "stress" {
-		_, _ = fmt.Fprintln(os.Stdout, "Skipping stress test")
+		fmt.Println("Skipping stress test")
 		return
 	}
 
@@ -102,7 +102,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 30)
 
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
@@ -111,7 +111,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	numCmps := 10
 	for i := 0; i < numCmps; i++ {
-		time.Sleep(time.Second)
+		time.Sleep(3 * time.Second)
 		t.Log("comparing...", i)
 		hashes, err := compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
 		if len(hashes) > 1 || len(hashes) == 0 {
@@ -568,4 +568,76 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	require.Contains(t, string(result), `{"jsonrpc":"2.0",`+
 		`"method":"author_extrinsicUpdate","params":{"result":{"inBlock":"`)
 
+}
+
+func TestSync_SubmitExtrinsicLoad(t *testing.T) {
+	t.Skip()
+
+	// Instantiate the API
+	// send tx to non-authority node
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%s", "8546"))
+	require.NoError(t, err)
+
+	meta, err := api.RPC.State.GetMetadataLatest()
+	require.NoError(t, err)
+
+	// Create a call, transferring 12345 units to Bob
+	bob, err := types.NewMultiAddressFromHexAccountID("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48")
+	require.NoError(t, err)
+
+	// 1 unit of transfer
+	bal, ok := new(big.Int).SetString("1000", 10)
+	require.True(t, ok, "failed to convert balance")
+
+	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompact(bal))
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := types.NewExtrinsic(c)
+
+	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
+	require.NoError(t, err)
+
+	rv, err := api.RPC.State.GetRuntimeVersionLatest()
+	require.NoError(t, err)
+
+	alice := signature.TestKeyringPairAlice.PublicKey
+	key, err := types.CreateStorageKey(meta, "System", "Account", alice)
+	require.NoError(t, err)
+
+	var accountInfo types.AccountInfo
+	ok, err = api.RPC.State.GetStorageLatest(key, &accountInfo)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	previous := accountInfo.Data.Free
+	t.Logf("%#x has a balance of %v\n", alice, previous)
+	t.Logf("You may leave this example running and transfer any value to %#x\n", alice)
+
+	nonce := uint32(accountInfo.Nonce)
+	for i := 0; i < 1000; i++ {
+		t.Logf("nonce: %v", nonce)
+		o := types.SignatureOptions{
+			BlockHash:          genesisHash,
+			Era:                types.ExtrinsicEra{IsMortalEra: false},
+			GenesisHash:        genesisHash,
+			Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
+			SpecVersion:        rv.SpecVersion,
+			Tip:                types.NewUCompactFromUInt(0),
+			TransactionVersion: rv.TransactionVersion,
+		}
+
+		nonce++
+		// Sign the transaction using Alice's default account
+		err = ext.Sign(signature.TestKeyringPairAlice, o)
+		require.NoError(t, err)
+
+		// Send the extrinsic
+		hash, err := api.RPC.Author.SubmitExtrinsic(ext)
+		require.NoError(t, err)
+		require.NotEqual(t, types.Hash{}, hash)
+
+		t.Logf("Balance transferred from Alice to Bob: %v\n", bal.String())
+		// Output: Balance transferred from Alice to Bob: 100000000000000
+	}
 }

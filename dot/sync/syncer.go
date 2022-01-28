@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -36,6 +37,7 @@ type Config struct {
 	BabeVerifier       BabeVerifier
 	MinPeers, MaxPeers int
 	SlotDuration       time.Duration
+	Telemetry          telemetry.Client
 }
 
 // NewService returns a new *sync.Service
@@ -86,7 +88,7 @@ func NewService(cfg *Config) (*Service, error) {
 	chainSync := newChainSync(csCfg)
 	chainProcessor := newChainProcessor(readyBlocks, pendingBlocks,
 		cfg.BlockState, cfg.StorageState, cfg.TransactionState,
-		cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler)
+		cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler, cfg.Telemetry)
 
 	return &Service{
 		blockState:     cfg.BlockState,
@@ -132,6 +134,16 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 // IsSynced exposes the synced state
 func (s *Service) IsSynced() bool {
 	return s.chainSync.syncState() == tip
+}
+
+// HighestBlock gets the highest known block number
+func (s *Service) HighestBlock() int64 {
+	highestBlock, err := s.chainSync.getHighestBlock()
+	if err != nil {
+		logger.Warnf("failed to get the highest block: %s", err)
+		return 0
+	}
+	return highestBlock
 }
 
 func reverseBlockData(data []*types.BlockData) {

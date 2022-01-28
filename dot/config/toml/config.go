@@ -29,6 +29,7 @@ type GlobalConfig struct {
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
 	CoreLvl           string `toml:"core,omitempty"`
+	DigestLvl         string `toml:"digest,omitempty"`
 	SyncLvl           string `toml:"sync,omitempty"`
 	NetworkLvl        string `toml:"network,omitempty"`
 	RPCLvl            string `toml:"rpc,omitempty"`
@@ -36,7 +37,6 @@ type LogConfig struct {
 	RuntimeLvl        string `toml:"runtime,omitempty"`
 	BlockProducerLvl  string `toml:"babe,omitempty"`
 	FinalityGadgetLvl string `toml:"grandpa,omitempty"`
-	DigestLvl         string `toml:"digest,omitempty"`
 }
 
 // InitConfig is the configuration for the node initialization
@@ -62,6 +62,7 @@ type NetworkConfig struct {
 	PersistentPeers   []string `toml:"persistent-peers,omitempty"`
 	DiscoveryInterval int      `toml:"discovery-interval,omitempty"`
 	PublicIP          string   `toml:"public-ip,omitempty"`
+	PublicDNS         string   `toml:"public-dns,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

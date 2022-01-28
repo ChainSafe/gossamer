@@ -10,7 +10,9 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 )
 
 const (
@@ -65,6 +67,9 @@ type Config struct {
 
 	// Used to specify the address broadcasted to other peers, and avoids using pubip.Get
 	PublicIP string
+	// Used to specify the dns broadcasted to other peers, and avoids using pubip.Get.
+	// Only PublicIP or PublicDNS will be used
+	PublicDNS string
 	// Port the network port used for listening
 	Port uint16
 	// RandSeed the seed used to generate the network p2p identity (0 = non-deterministic random seed)
@@ -89,9 +94,6 @@ type Config struct {
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
 
-	// PublishMetrics enables collection of network metrics
-	PublishMetrics bool
-
 	// telemetryInterval how often to send telemetry metrics
 	telemetryInterval time.Duration
 
@@ -101,6 +103,9 @@ type Config struct {
 
 	// SlotDuration is the slot duration to produce a block
 	SlotDuration time.Duration
+
+	Telemetry telemetry.Client
+	Metrics   metrics.IntervalConfig
 }
 
 // build checks the configuration, sets up the private key for the network service,
@@ -118,10 +123,6 @@ func (c *Config) build() error {
 
 	if c.Roles == 0 {
 		c.Roles = DefaultRoles
-	}
-
-	if c.Port == 0 {
-		c.Port = DefaultPort
 	}
 
 	// build identity configuration

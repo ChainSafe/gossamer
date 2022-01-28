@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -29,8 +30,8 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNodes, reservedPeers []pee
 	con := &ConfigSet{
 		Set: []*config{
 			{
-				inPeers:           in,
-				outPeers:          out,
+				maxInPeers:        in,
+				maxOutPeers:       out,
 				reservedOnly:      reservedOnly,
 				periodicAllocTime: time.Second * 2,
 			},
@@ -40,7 +41,7 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNodes, reservedPeers []pee
 	handler, err := NewPeerSetHandler(con)
 	require.NoError(t, err)
 
-	handler.Start()
+	handler.Start(context.Background())
 
 	handler.AddPeer(0, bootNodes...)
 	handler.AddReservedPeer(0, reservedPeers...)
@@ -53,8 +54,8 @@ func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState {
 	t.Helper()
 	state, err := NewPeerState([]*config{
 		{
-			inPeers:  maxIn,
-			outPeers: maxOut,
+			maxInPeers:  maxIn,
+			maxOutPeers: maxOut,
 		},
 	})
 	require.NoError(t, err)

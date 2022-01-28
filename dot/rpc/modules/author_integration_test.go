@@ -8,6 +8,7 @@ package modules
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"testing"
@@ -16,15 +17,20 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 // https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
-var testExt = common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670")
+var testExt = common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8e" +
+	"fbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b98" +
+	"2757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670")
 
 // invalid transaction (above tx, with last byte changed)
 //nolint
@@ -33,7 +39,7 @@ var testInvalidExt = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
 	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
+		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
 	}
 
@@ -45,8 +51,15 @@ func TestMain(m *testing.M) {
 }
 
 func TestAuthorModule_Pending(t *testing.T) {
-	txQueue := state.NewTransactionState()
-	auth := NewAuthorModule(nil, nil, nil, txQueue)
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
+	txQueue := state.NewTransactionState(telemetryMock)
+	auth := NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, txQueue)
 
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
@@ -79,8 +92,16 @@ func TestAuthorModule_Pending(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Skip()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	// setup auth module
-	txQueue := state.NewTransactionState()
+	txQueue := state.NewTransactionState(telemetryMock)
 
 	auth := setupAuthModule(t, txQueue)
 
@@ -115,9 +136,17 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Skip()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	// setup service
 	// setup auth module
-	txQueue := state.NewTransactionState()
+	txQueue := state.NewTransactionState(telemetryMock)
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
@@ -130,9 +159,16 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	// setup service
 	// setup auth module
-	txQueue := state.NewTransactionState()
+	txQueue := state.NewTransactionState(telemetryMock)
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
@@ -140,13 +176,21 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &ext, res)
-	require.EqualError(t, err, "could not byteify non 0x prefixed string")
+	require.EqualError(t, err, "could not byteify non 0x prefixed string: 31")
 }
 
 func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 	t.Skip()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.
+		EXPECT().
+		SendMessage(gomock.Any()).
+		AnyTimes()
+
 	// setup auth module
-	txQueue := state.NewTransactionState()
+	txQueue := state.NewTransactionState(telemetryMock)
 
 	auth := setupAuthModule(t, txQueue)
 
@@ -178,19 +222,27 @@ func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_Valid(t *testing.T) {
+	seed := "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
+	kp, err := sr25519.NewKeypairFromSeed(common.MustHexToBytes(seed))
+	require.NoError(t, err)
+
 	auth := setupAuthModule(t, nil)
-	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
+	req := &KeyInsertRequest{"babe", seed, kp.Public().Hex()}
 	res := &KeyInsertResponse{}
-	err := auth.InsertKey(nil, req, res)
+	err = auth.InsertKey(nil, req, res)
 	require.Nil(t, err)
 	require.Len(t, *res, 0) // zero len result on success
 }
 
-func TestAuthorModule_InsertKey_Valid_gran_keytype(t *testing.T) {
+func TestAuthorModule_InsertKey_Valid_Gran_Keytype(t *testing.T) {
+	seed := "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
+	kp, err := ed25519.NewKeypairFromSeed(common.MustHexToBytes(seed))
+	require.NoError(t, err)
+
 	auth := setupAuthModule(t, nil)
-	req := &KeyInsertRequest{"gran", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309b7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"}
+	req := &KeyInsertRequest{"gran", seed, kp.Public().Hex()}
 	res := &KeyInsertResponse{}
-	err := auth.InsertKey(nil, req, res)
+	err = auth.InsertKey(nil, req, res)
 	require.Nil(t, err)
 
 	require.Len(t, *res, 0) // zero len result on success
@@ -198,7 +250,10 @@ func TestAuthorModule_InsertKey_Valid_gran_keytype(t *testing.T) {
 
 func TestAuthorModule_InsertKey_InValid(t *testing.T) {
 	auth := setupAuthModule(t, nil)
-	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x0000000000000000000000000000000000000000000000000000000000000000"}
+	req := &KeyInsertRequest{
+		"babe",
+		"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
+		"0x0000000000000000000000000000000000000000000000000000000000000000"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
 	require.EqualError(t, err, "generated public key does not equal provide public key")
@@ -206,7 +261,9 @@ func TestAuthorModule_InsertKey_InValid(t *testing.T) {
 
 func TestAuthorModule_InsertKey_UnknownKeyType(t *testing.T) {
 	auth := setupAuthModule(t, nil)
-	req := &KeyInsertRequest{"mack", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
+	req := &KeyInsertRequest{"mack",
+		"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
+		"0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
 	require.EqualError(t, err, "cannot decode key: invalid key type")
@@ -219,7 +276,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 	require.Nil(t, err)
 
 	var res bool
-	req := []string{kr.Alice().Public().Hex(), "babe"}
+	req := []string{kr.Alice().Public().Hex(), "acco"}
 	err = auth.HasKey(nil, &req, &res)
 	require.NoError(t, err)
 	require.True(t, res)
@@ -255,17 +312,15 @@ func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
 	var res bool
 	req := []string{kr.Alice().Public().Hex(), "xxxx"}
 	err = auth.HasKey(nil, &req, &res)
-	require.EqualError(t, err, "unknown key type: xxxx")
+	require.EqualError(t, err, "invalid keystore name")
 	require.False(t, res)
 }
 
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
-	fmt.Println("calling setupAuthModule")
 	cs := newCoreService(t, nil)
-	fmt.Println("called newCoreService")
 	rt := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	t.Cleanup(func() {
 		rt.Stop()
 	})
-	return NewAuthorModule(nil, cs, rt, txq)
+	return NewAuthorModule(log.New(log.SetWriter(io.Discard)), cs, txq)
 }

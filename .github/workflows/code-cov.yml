@@ -1,4 +1,18 @@
-on: [pull_request]
+on:
+  pull_request:
+    paths:
+      - .github/workflows/code-cov.yml
+      - "**/*.go"
+      - "chain/**"
+      - "cmd/**"
+      - "dot/**"
+      - "internal/**"
+      - "lib/**"
+      - "pkg/**"
+      - "tests/**"
+      - .codecov.yml
+      - go.mod
+      - go.sum
 name: code-cov
 env:
   GO111MODULE: on

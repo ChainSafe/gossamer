@@ -42,15 +42,18 @@ func TestNoSlotNodeDoesntOccupySlot(t *testing.T) {
 	t.Parallel()
 
 	state := newTestPeerState(t, 1, 1)
+	state.nodes[peer1] = newNode(1)
 
 	// peer1 will not occupy any slot.
-	state.addNoSlotNode(0, peer1)
+	err := state.addNoSlotNode(0, peer1)
+	require.NoError(t, err)
+
 	// initially peer1 state will be unknownPeer.
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer1))
 	// discover peer1
 	state.discover(0, peer1)
 	// peer1 will become an incoming connection.
-	err := state.tryAcceptIncoming(0, peer1)
+	err = state.tryAcceptIncoming(0, peer1)
 	require.NoError(t, err)
 	// peer1 is connected
 	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
@@ -116,12 +119,14 @@ func TestDisconnectNoSlotDoesntPanic(t *testing.T) {
 
 	state := newTestPeerState(t, 1, 1)
 
-	state.addNoSlotNode(0, peer1)
+	state.nodes[peer1] = newNode(1)
+	err := state.addNoSlotNode(0, peer1)
+	require.NoError(t, err)
 
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer1))
 
 	state.discover(0, peer1)
-	err := state.tryOutgoing(0, peer1)
+	err = state.tryOutgoing(0, peer1)
 	require.NoError(t, err)
 
 	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
@@ -197,11 +202,13 @@ func TestSortedPeers(t *testing.T) {
 
 	const msgChanSize = 1
 	state := newTestPeerState(t, 2, 1)
+	state.nodes[peer1] = newNode(1)
 
-	state.addNoSlotNode(0, peer1)
+	err := state.addNoSlotNode(0, peer1)
+	require.NoError(t, err)
 
 	state.discover(0, peer1)
-	err := state.tryAcceptIncoming(0, peer1)
+	err = state.tryAcceptIncoming(0, peer1)
 	require.NoError(t, err)
 
 	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))

@@ -7,9 +7,44 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
+
+const portsAmount = 200
+
+// portQueue is a blocking port queue
+type portQueue chan uint16
+
+func (pq portQueue) put(p uint16) {
+	pq <- p
+}
+
+func (pq portQueue) get() (port uint16) {
+	port = <-pq
+	return port
+}
+
+var availablePorts portQueue
+
+func init() {
+	availablePorts = make(chan uint16, portsAmount)
+	const startAt = uint16(7500)
+	for port := startAt; port < portsAmount+startAt; port++ {
+		availablePorts.put(port)
+	}
+}
+
+// availablePort is test helper function that gets an available port and release the same port after test ends
+func availablePort(t *testing.T) uint16 {
+	t.Helper()
+	port := availablePorts.get()
+
+	t.Cleanup(func() {
+		availablePorts.put(port)
+	})
+
+	return port
+}
 
 // list of IPFS peers, for testing only
 var TestPeers = []string{
@@ -42,8 +77,7 @@ func TestStringsToAddrInfos(t *testing.T) {
 }
 
 func TestGenerateKey(t *testing.T) {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
+	testDir := t.TempDir()
 
 	keyA, err := generateKey(0, testDir)
 	require.NoError(t, err)

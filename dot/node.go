@@ -10,12 +10,10 @@ import (
 	"os/signal"
 	"path"
 	"runtime/debug"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -23,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -35,10 +34,11 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
 
 // Node is a container for all the components of a node.
 type Node struct {
-	Name     string
-	Services *services.ServiceRegistry // registry of all node services
-	wg       sync.WaitGroup
-	started  chan struct{}
+	Name          string
+	Services      *services.ServiceRegistry // registry of all node services
+	wg            sync.WaitGroup
+	started       chan struct{}
+	metricsServer *metrics.Server
 }
 
 // InitNode initialises a new dot node from the provided dot node configuration
@@ -75,6 +75,11 @@ func InitNode(cfg *Config) error {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}
 
+	telemetryMailer, err := setupTelemetry(cfg, nil)
+	if err != nil {
+		return fmt.Errorf("cannot setup telemetry mailer: %w", err)
+	}
+
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Global.LogLvl,
@@ -82,6 +87,8 @@ func InitNode(cfg *Config) error {
 			Mode:           cfg.Global.Pruning,
 			RetainedBlocks: cfg.Global.RetainBlocks,
 		},
+		Telemetry: telemetryMailer,
+		Metrics:   metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	// create new state service
@@ -204,14 +211,55 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
 
+	gd, err := stateSrvc.Base.LoadGenesisData()
+	if err != nil {
+		return nil, fmt.Errorf("cannot load genesis data: %w", err)
+	}
+
+	telemetryMailer, err := setupTelemetry(cfg, gd)
+	if err != nil {
+		return nil, fmt.Errorf("cannot setup telemetry mailer: %w", err)
+	}
+
+	stateSrvc.Telemetry = telemetryMailer
+
+	err = startStateService(cfg, stateSrvc)
+	if err != nil {
+		return nil, fmt.Errorf("cannot start state service: %w", err)
+	}
+
+	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create system service: %s", err)
+	}
+
+	nodeSrvcs = append(nodeSrvcs, sysSrvc)
+
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {
 		// create network service and append network service to node services
-		networkSrvc, err = createNetworkService(cfg, stateSrvc)
+		networkSrvc, err = createNetworkService(cfg, stateSrvc, telemetryMailer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create network service: %s", err)
 		}
 		nodeSrvcs = append(nodeSrvcs, networkSrvc)
+
+		startupTime := fmt.Sprint(time.Now().UnixNano())
+		genesisHash := stateSrvc.Block.GenesisHash()
+		netstate := networkSrvc.NetworkState()
+
+		//sent NewSystemConnectedTM only if networkServiceEnabled
+		connectedMsg := telemetry.NewSystemConnected(
+			cfg.Core.GrandpaAuthority,
+			sysSrvc.ChainName(),
+			&genesisHash,
+			sysSrvc.SystemName(),
+			cfg.Global.Name,
+			netstate.PeerID,
+			startupTime,
+			sysSrvc.SystemVersion())
+
+		telemetryMailer.SendMessage(connectedMsg)
 	} else {
 		// do not create or append network service if network service is not enabled
 		logger.Debugf("network service disabled, roles are %d", cfg.Core.Roles)
@@ -233,7 +281,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		return nil, err
 	}
 
-	dh, err := createDigestHandler(stateSrvc)
+	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	if err != nil {
 		return nil, err
 	}
@@ -245,13 +293,13 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
+	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 
-	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc)
+	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
@@ -262,22 +310,27 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 	nodeSrvcs = append(nodeSrvcs, syncer)
 
-	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
+	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, bp)
 
-	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create system service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, sysSrvc)
-
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.isRPCEnabled() || cfg.RPC.isWSEnabled(); enabled {
 		var rpcSrvc *rpc.HTTPServer
-		rpcSrvc, err = createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
+		cRPCParams := rpcServiceSettings{
+			config:        cfg,
+			nodeStorage:   ns,
+			state:         stateSrvc,
+			core:          coreSrvc,
+			network:       networkSrvc,
+			blockProducer: bp,
+			system:        sysSrvc,
+			blockFinality: fg,
+			syncer:        syncer,
+		}
+		rpcSrvc, err = createRPCService(cRPCParams)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create rpc service: %s", err)
 		}
@@ -301,29 +354,22 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 
 	if cfg.Global.PublishMetrics {
-		c := metrics.NewCollector(context.Background())
-		c.AddGauge(fg)
-		c.AddGauge(stateSrvc)
-		c.AddGauge(networkSrvc)
-
-		go c.Start()
-
 		address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
 		logger.Info("Enabling stand-alone metrics HTTP endpoint at address " + address)
-		metrics.PublishMetrics(address)
+		node.metricsServer = metrics.NewServer(address)
+		err := node.metricsServer.Start(address)
+		if err != nil {
+			return nil, fmt.Errorf("cannot start metrics server: %w", err)
+		}
 	}
 
-	gd, err := stateSrvc.Base.LoadGenesisData()
-	if err != nil {
-		return nil, err
-	}
+	return node, nil
+}
 
-	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
-
+func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer *telemetry.Mailer, err error) {
 	var telemetryEndpoints []*genesis.TelemetryEndpoint
-	if len(cfg.Global.TelemetryURLs) == 0 {
-		telemetryEndpoints = append(telemetryEndpoints, gd.TelemetryEndpoints...)
-
+	if len(cfg.Global.TelemetryURLs) == 0 && genesisData != nil {
+		telemetryEndpoints = append(telemetryEndpoints, genesisData.TelemetryEndpoints...)
 	} else {
 		telemetryURLs := cfg.Global.TelemetryURLs
 		for i := range telemetryURLs {
@@ -331,21 +377,9 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 		}
 	}
 
-	telemetry.GetInstance().AddConnections(telemetryEndpoints)
-	genesisHash := stateSrvc.Block.GenesisHash()
-	err = telemetry.GetInstance().SendMessage(telemetry.NewSystemConnectedTM(
-		cfg.Core.GrandpaAuthority,
-		sysSrvc.ChainName(),
-		&genesisHash,
-		sysSrvc.SystemName(),
-		cfg.Global.Name,
-		networkSrvc.NetworkState().PeerID,
-		strconv.FormatInt(time.Now().UnixNano(), 10),
-		sysSrvc.SystemVersion()))
-	if err != nil {
-		logger.Debugf("problem sending system.connected telemetry message: %s", err)
-	}
-	return node, nil
+	telemetryLogger := log.NewFromGlobal(log.AddContext("pkg", "telemetry"))
+	return telemetry.BootstrapMailer(context.TODO(),
+		telemetryEndpoints, !cfg.Global.NoTelemetry, telemetryLogger)
 }
 
 // stores the global node name to reuse
@@ -400,6 +434,12 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 	n.wg.Done()
+	if n.metricsServer != nil {
+		err := n.metricsServer.Stop()
+		if err != nil {
+			log.Errorf("cannot stop metrics server: %s", err)
+		}
+	}
 }
 
 func loadRuntime(cfg *Config, ns *runtime.NodeStorage,

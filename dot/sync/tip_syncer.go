@@ -8,23 +8,29 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var _ workHandler = &tipSyncer{}
 
+type handleReadyBlockFunc func(*types.BlockData)
+
 // tipSyncer handles workers when syncing at the tip of the chain
 type tipSyncer struct {
-	blockState    BlockState
-	pendingBlocks DisjointBlockSet
-	readyBlocks   *blockQueue
+	blockState       BlockState
+	pendingBlocks    DisjointBlockSet
+	readyBlocks      *blockQueue
+	handleReadyBlock handleReadyBlockFunc
 }
 
-func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue) *tipSyncer {
+func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue,
+	handleReadyBlock handleReadyBlockFunc) *tipSyncer {
 	return &tipSyncer{
-		blockState:    blockState,
-		pendingBlocks: pendingBlocks,
-		readyBlocks:   readyBlocks,
+		blockState:       blockState,
+		pendingBlocks:    pendingBlocks,
+		readyBlocks:      readyBlocks,
+		handleReadyBlock: handleReadyBlock,
 	}
 }
 
@@ -35,7 +41,7 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}
 
 	if ps.number.Cmp(fin.Number) <= 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	return &worker{
@@ -47,7 +53,9 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 	}, nil
 }
 
-func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
+//nolint:nilnil
+func (s *tipSyncer) handleWorkerResult(res *worker) (
+	workerToRetry *worker, err error) {
 	if res.err == nil {
 		return nil, nil
 	}
@@ -208,7 +216,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 		if has || s.readyBlocks.has(block.header.ParentHash) {
 			// block is ready, as parent is known!
 			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
-			handleReadyBlock(block.toBlockData(), s.pendingBlocks, s.readyBlocks)
+			s.handleReadyBlock(block.toBlockData())
 			continue
 		}
 

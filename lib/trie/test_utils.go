@@ -16,7 +16,6 @@ import (
 type Test struct {
 	key   []byte
 	value []byte
-	pk    []byte
 	op    int
 }
 

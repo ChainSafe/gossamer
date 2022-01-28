@@ -294,6 +294,8 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
 	require.NoError(t, err)
 
+	resReqID = scale.NewResult(int16(0), nil)
+
 	err = scale.Unmarshal(ret, &resReqID)
 	require.NoError(t, err)
 
@@ -302,6 +304,7 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	require.Equal(t, int16(2), requestNumber)
 
 	// start request number 2
+	resReqID = scale.NewResult(int16(0), nil)
 	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
 	require.NoError(t, err)
 

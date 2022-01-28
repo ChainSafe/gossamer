@@ -5,6 +5,7 @@ package types
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -74,6 +75,16 @@ func (a *Authority) ToRaw() *AuthorityRaw {
 	return raw
 }
 
+// DeepCopy creates a deep copy of the Authority
+func (a *Authority) DeepCopy() *Authority {
+	pk := a.Key.Encode()
+	pkCopy, _ := sr25519.NewPublicKey(pk[:])
+	return &Authority{
+		Key:    pkCopy,
+		Weight: a.Weight,
+	}
+}
+
 // FromRawSr25519 sets the Authority given AuthorityRaw. It converts the byte representations of
 // the authority public keys into a sr25519.PublicKey.
 func (a *Authority) FromRawSr25519(raw *AuthorityRaw) error {
@@ -91,6 +102,10 @@ func (a *Authority) FromRawSr25519(raw *AuthorityRaw) error {
 type AuthorityRaw struct {
 	Key    [sr25519.PublicKeyLength]byte
 	Weight uint64
+}
+
+func (a *AuthorityRaw) String() string {
+	return fmt.Sprintf("AuthorityRaw Key=0x%x Weight=%d", a.Key, a.Weight)
 }
 
 // AuthoritiesToRaw converts an array of Authority in an array of AuthorityRaw

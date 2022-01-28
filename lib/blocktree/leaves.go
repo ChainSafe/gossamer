@@ -13,6 +13,7 @@ import (
 
 // leafMap provides quick lookup for existing leaves
 type leafMap struct {
+	currentDeepestLeaf *node
 	sync.RWMutex
 	smap *sync.Map // map[common.Hash]*node
 }
@@ -63,7 +64,7 @@ func (lm *leafMap) deepestLeaf() *node {
 
 	max := big.NewInt(-1)
 
-	var dLeaf *node
+	var deepest *node
 	lm.smap.Range(func(h, n interface{}) bool {
 		if n == nil {
 			return true
@@ -73,15 +74,33 @@ func (lm *leafMap) deepestLeaf() *node {
 
 		if max.Cmp(node.number) < 0 {
 			max = node.number
-			dLeaf = node
-		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(dLeaf.arrivalTime) {
-			dLeaf = node
+			deepest = node
+		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(deepest.arrivalTime) {
+			deepest = node
 		}
 
 		return true
 	})
 
-	return dLeaf
+	if lm.currentDeepestLeaf != nil {
+		if lm.currentDeepestLeaf.hash == deepest.hash {
+			return lm.currentDeepestLeaf
+		}
+
+		// update the current deepest leaf if the found deepest has a greater number or
+		// if the current and the found deepest has the same number however the current
+		// arrived later then the found deepest
+		if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 1 {
+			lm.currentDeepestLeaf = deepest
+		} else if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 0 &&
+			deepest.arrivalTime.Before(lm.currentDeepestLeaf.arrivalTime) {
+			lm.currentDeepestLeaf = deepest
+		}
+	} else {
+		lm.currentDeepestLeaf = deepest
+	}
+
+	return lm.currentDeepestLeaf
 }
 
 func (lm *leafMap) toMap() map[common.Hash]*node {

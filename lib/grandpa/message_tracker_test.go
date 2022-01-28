@@ -37,7 +37,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 		msg: msg,
 	}
 
-	_, err = gs.validateMessage("", msg)
+	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
 	require.Equal(t, expected, gs.tracker.voteMessages[fake.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 }
@@ -69,7 +69,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 		msg: msg,
 	}
 
-	_, err = gs.validateMessage("", msg)
+	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
 	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
@@ -115,7 +115,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 		msg: msg,
 	}
 
-	_, err = gs.validateMessage("", msg)
+	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, ErrBlockDoesNotExist, err)
 	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
