@@ -649,202 +649,255 @@ func retrieveFromBranch(branch *node.Branch, key []byte) (value []byte) {
 	return retrieve(child, childKey)
 }
 
-// ClearPrefixLimit deletes the keys having the prefix till limit reached
-func (t *Trie) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
+// ClearPrefixLimit deletes the keys having the prefix given in little
+// Endian format for up to `limit` keys. It returns the number of deleted
+// keys and a boolean indicating if all keys with the prefix were deleted
+// within the limit.
+func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, allDeleted bool) {
 	if limit == 0 {
 		return 0, false
 	}
 
-	p := codec.KeyLEToNibbles(prefix)
-	p = bytes.TrimSuffix(p, []byte{0})
+	prefix := codec.KeyLEToNibbles(prefixLE)
+	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	l := limit
-	var allDeleted bool
-	t.root, _, allDeleted = t.clearPrefixLimit(t.root, p, &limit)
-	return l - limit, allDeleted
+	initialLimit := limit
+	t.root, _, allDeleted = t.clearPrefixLimit(t.root, prefix, &limit)
+	deleted = initialLimit - limit
+	return deleted, allDeleted
 }
 
 // clearPrefixLimit deletes the keys having the prefix till limit reached and returns updated trie root node,
 // true if any node in the trie got updated, and next bool returns true if there is no keys left with prefix.
-func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bool, bool) {
-	if cn == nil {
+// TODO return deleted count and deduce updated from deleted count, do not pass limit as pointer.
+func (t *Trie) clearPrefixLimit(parent Node, prefix []byte, limit *uint32) (
+	newParent Node, updated bool, allDeleted bool) {
+	if parent == nil {
 		return nil, false, true
 	}
 
-	curr := t.maybeUpdateGeneration(cn)
+	newParent = t.maybeUpdateGeneration(parent)
 
-	switch c := curr.(type) {
-	case *node.Branch:
-		length := lenCommonPrefix(c.Key, prefix)
-		if length == len(prefix) {
-			n := t.deleteNodes(c, []byte{}, limit)
-			if n == nil {
-				return nil, true, true
-			}
-			return n, true, false
-		}
-
-		if len(prefix) == len(c.Key)+1 && length == len(prefix)-1 {
-			i := prefix[len(c.Key)]
-
-			if c.Children[i] == nil {
-				// child is already nil at the child index
-				return c, false, true
-			}
-
-			c.Children[i] = t.deleteNodes(c.Children[i], []byte{}, limit)
-
-			c.SetDirty(true)
-			curr = handleDeletion(c, prefix)
-
-			if c.Children[i] == nil {
-				return curr, true, true
-			}
-			return c, true, false
-		}
-
-		if len(prefix) <= len(c.Key) || length < len(c.Key) {
-			// this node doesn't have the prefix, return
-			return c, false, true
-		}
-
-		i := prefix[len(c.Key)]
-
-		var wasUpdated, allDeleted bool
-		c.Children[i], wasUpdated, allDeleted = t.clearPrefixLimit(c.Children[i], prefix[len(c.Key)+1:], limit)
-		if wasUpdated {
-			c.SetDirty(true)
-			curr = handleDeletion(c, prefix)
-		}
-
-		return curr, curr.IsDirty(), allDeleted
-	case *node.Leaf:
-		length := lenCommonPrefix(c.Key, prefix)
-		if length == len(prefix) {
+	if newParent.Type() == node.LeafType {
+		leaf := newParent.(*node.Leaf)
+		// if prefix is not found, it's also all deleted.
+		// TODO check this is the same behavior as in substrate
+		const allDeleted = true
+		if bytes.HasPrefix(leaf.Key, prefix) {
 			*limit--
-			return nil, true, true
+			return nil, true, allDeleted
 		}
-		// Prefix not found might be all deleted
-		return curr, false, true
+		// not modified so return the leaf of the original
+		// trie generation. The copied leaf newParent will be
+		// garbage collected.
+		return parent, false, allDeleted
 	}
 
-	return nil, false, true // TODO remove
+	branch := newParent.(*node.Branch)
+	newParent, updated, allDeleted = t.clearPrefixLimitBranch(branch, prefix, limit)
+	if !updated {
+		// not modified so return the node of the original
+		// trie generation. The copied newParent will be
+		// garbage collected.
+		newParent = parent
+	}
+
+	return newParent, updated, allDeleted
 }
 
-func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (newNode Node) {
-	if *limit == 0 || cn == nil {
-		return cn
+func (t *Trie) clearPrefixLimitBranch(branch *node.Branch, prefix []byte, limit *uint32) (
+	newParent Node, updated, allDeleted bool) {
+	newParent = branch
+
+	if bytes.HasPrefix(branch.Key, prefix) {
+		updated = true // at least one node will be deleted
+		nilPrefix := ([]byte)(nil)
+		// TODO return deleted count to replace updated boolean and update limit
+		newParent = t.deleteNodesLimit(branch, nilPrefix, limit)
+		allDeleted = newParent == nil
+		return newParent, updated, allDeleted
 	}
 
-	curr := t.maybeUpdateGeneration(cn)
+	if len(prefix) == len(branch.Key)+1 &&
+		bytes.HasPrefix(branch.Key, prefix[:len(prefix)-1]) {
+		// Prefix is one the children of the branch
+		return t.clearPrefixLimitChild(branch, prefix, limit)
+	}
 
-	switch c := curr.(type) {
-	case *node.Leaf:
+	noPrefixForNode := len(prefix) <= len(branch.Key) ||
+		lenCommonPrefix(branch.Key, prefix) < len(branch.Key)
+	if noPrefixForNode {
+		updated, allDeleted = false, true
+		return newParent, updated, allDeleted
+	}
+
+	childIndex := prefix[len(branch.Key)]
+	childPrefix := prefix[len(branch.Key)+1:]
+	child := branch.Children[childIndex]
+
+	newParent = branch // mostly just a reminder for the reader
+	branch.Children[childIndex], updated, allDeleted = t.clearPrefixLimit(child, childPrefix, limit)
+	if updated {
+		branch.SetDirty(true)
+		newParent = handleDeletion(branch, prefix)
+	}
+
+	return newParent, newParent.IsDirty(), allDeleted
+}
+
+func (t *Trie) clearPrefixLimitChild(branch *node.Branch, prefix []byte, limit *uint32) (
+	newParent Node, updated, allDeleted bool) {
+	newParent = branch
+
+	childIndex := prefix[len(branch.Key)]
+	child := branch.Children[childIndex]
+
+	if child == nil {
+		// TODO ensure this is the same behavior as in substrate
+		updated, allDeleted = false, true
+		return newParent, updated, allDeleted
+	}
+
+	nilPrefix := ([]byte)(nil)
+	branch.Children[childIndex] = t.deleteNodesLimit(child, nilPrefix, limit)
+	branch.SetDirty(true)
+
+	newParent = handleDeletion(branch, prefix)
+
+	updated = true
+	allDeleted = branch.Children[childIndex] == nil
+	return newParent, updated, allDeleted
+}
+
+func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newParent Node) {
+	if *limit == 0 {
+		return parent
+	}
+
+	if parent == nil {
+		return nil
+	}
+
+	newParent = t.maybeUpdateGeneration(parent)
+
+	if newParent.Type() == node.LeafType {
 		*limit--
 		return nil
-	case *node.Branch:
-		if len(c.Key) != 0 {
-			prefix = append(prefix, c.Key...)
-		}
-
-		for i, child := range c.Children {
-			if child == nil {
-				continue
-			}
-
-			c.Children[i] = t.deleteNodes(child, prefix, limit)
-
-			c.SetDirty(true)
-			curr = handleDeletion(c, prefix)
-			isAllNil := c.NumChildren() == 0
-			if isAllNil && c.Value == nil {
-				curr = nil
-			}
-
-			if *limit == 0 {
-				return curr
-			}
-		}
-
-		// Delete the current node as well
-		if c.Value != nil {
-			*limit--
-		}
-		return nil
 	}
 
-	return curr
+	branch := newParent.(*node.Branch)
+	prefix = append(prefix, branch.Key...)
+
+	nilChildren := len(branch.Children) - branch.NumChildren()
+
+	for i, child := range branch.Children {
+		if child == nil {
+			continue
+		}
+
+		branch.Children[i] = t.deleteNodesLimit(child, prefix, limit)
+		if branch.Children[i] == nil {
+			nilChildren++
+		}
+
+		branch.SetDirty(true)
+		newParent = handleDeletion(branch, prefix)
+		if nilChildren == len(branch.Children) &&
+			branch.Value == nil {
+			return nil
+		}
+
+		if *limit == 0 {
+			return newParent
+		}
+	}
+
+	if branch.Value != nil {
+		*limit--
+	}
+
+	return nil
 }
 
-// ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (t *Trie) ClearPrefix(prefix []byte) {
-	if len(prefix) == 0 {
+// ClearPrefix deletes all nodes in the trie for which the key contains the
+// prefix given in little Endian format.
+func (t *Trie) ClearPrefix(prefixLE []byte) {
+	if len(prefixLE) == 0 {
 		t.root = nil
 		return
 	}
 
-	p := codec.KeyLEToNibbles(prefix)
-	p = bytes.TrimSuffix(p, []byte{0})
+	prefix := codec.KeyLEToNibbles(prefixLE)
+	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, _ = t.clearPrefix(t.root, p)
+	t.root, _ = t.clearPrefix(t.root, prefix)
 }
 
-func (t *Trie) clearPrefix(cn Node, prefix []byte) (Node, bool) {
-	if cn == nil {
+func (t *Trie) clearPrefix(parent Node, prefix []byte) (
+	newParent Node, updated bool) {
+	if parent == nil {
 		return nil, false
 	}
 
-	curr := t.maybeUpdateGeneration(cn)
-	switch c := curr.(type) {
-	case *node.Branch:
-		length := lenCommonPrefix(c.Key, prefix)
+	newParent = t.maybeUpdateGeneration(parent)
 
-		if length == len(prefix) {
-			// found prefix at this branch, delete it
-			return nil, true
-		}
-
-		// Store the current node and return it, if the trie is not updated.
-
-		if len(prefix) == len(c.Key)+1 && length == len(prefix)-1 {
-			// found prefix at child index, delete child
-			i := prefix[len(c.Key)]
-
-			if c.Children[i] == nil {
-				// child is already nil at the child index
-				return c, false
-			}
-
-			c.Children[i] = nil
-			c.SetDirty(true)
-			curr = handleDeletion(c, prefix)
-			return curr, true
-		}
-
-		if len(prefix) <= len(c.Key) || length < len(c.Key) {
-			// this node doesn't have the prefix, return
-			return c, false
-		}
-
-		var wasUpdated bool
-		i := prefix[len(c.Key)]
-
-		c.Children[i], wasUpdated = t.clearPrefix(c.Children[i], prefix[len(c.Key)+1:])
-		if wasUpdated {
-			c.SetDirty(true)
-			curr = handleDeletion(c, prefix)
-		}
-
-		return curr, curr.IsDirty()
-	case *node.Leaf:
-		length := lenCommonPrefix(c.Key, prefix)
-		if length == len(prefix) {
-			return nil, true
-		}
-		return c, false
+	if bytes.HasPrefix(newParent.GetKey(), prefix) {
+		return nil, true
 	}
-	// This should never happen.
-	return nil, false // TODO remove
+
+	if newParent.Type() == node.LeafType {
+		// not modified so return the leaf of the original
+		// trie generation. The copied newParent will be
+		// garbage collected.
+		return parent, false
+	}
+
+	branch := newParent.(*node.Branch)
+
+	if len(prefix) == len(branch.Key)+1 &&
+		bytes.HasPrefix(branch.Key, prefix[:len(prefix)-1]) {
+		// Prefix is one the children of the branch
+		childIndex := prefix[len(branch.Key)]
+		child := branch.Children[childIndex]
+
+		if child == nil {
+			// child is already nil at the child index
+			// node is not modified so return the branch of the original
+			// trie generation. The copied newParent will be
+			// garbage collected.
+			return parent, false
+		}
+
+		branch.Children[childIndex] = nil
+		branch.SetDirty(true)
+		newParent = handleDeletion(branch, prefix)
+		return newParent, true
+	}
+
+	noPrefixForNode := len(prefix) <= len(branch.Key) ||
+		lenCommonPrefix(branch.Key, prefix) < len(branch.Key)
+	if noPrefixForNode {
+		// not modified so return the branch of the original
+		// trie generation. The copied newParent will be
+		// garbage collected.
+		return parent, false
+	}
+
+	childIndex := prefix[len(branch.Key)]
+	childPrefix := prefix[len(branch.Key)+1:]
+	child := branch.Children[childIndex]
+
+	branch.Children[childIndex], updated = t.clearPrefix(child, childPrefix)
+	if !updated {
+		// branch not modified so return the branch of the original
+		// trie generation. The copied newParent will be
+		// garbage collected.
+		return parent, false
+	}
+
+	branch.SetDirty(true)
+	newParent = handleDeletion(branch, prefix)
+	return newParent, true
 }
 
 // Delete removes any existing value for key from the trie.

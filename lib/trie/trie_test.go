@@ -2090,8 +2090,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			limit:         1,
 			expectedLimit: 1,
 			newParent: &node.Leaf{
-				Key:        []byte{1, 2},
-				Generation: 1,
+				Key: []byte{1, 2},
 			},
 			allDeleted: true,
 		},
@@ -2106,8 +2105,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			limit:         1,
 			expectedLimit: 1,
 			newParent: &node.Leaf{
-				Key:        []byte{1},
-				Generation: 1,
+				Key: []byte{1},
 			},
 			allDeleted: true,
 		},
@@ -2154,8 +2152,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			limit:         1,
 			expectedLimit: 1,
 			newParent: &node.Branch{
-				Key:        []byte{1, 2},
-				Generation: 1,
+				Key: []byte{1, 2},
 				Children: [16]node.Node{
 					&node.Leaf{Key: []byte{1}},
 					&node.Leaf{Key: []byte{2}},
@@ -2178,8 +2175,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			limit:         1,
 			expectedLimit: 1,
 			newParent: &node.Branch{
-				Key:        []byte{1},
-				Generation: 1,
+				Key: []byte{1},
 				Children: [16]node.Node{
 					&node.Leaf{Key: []byte{1}},
 					&node.Leaf{Key: []byte{2}},
@@ -2202,8 +2198,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			limit:         1,
 			expectedLimit: 1,
 			newParent: &node.Branch{
-				Key:        []byte{1},
-				Generation: 1,
+				Key: []byte{1},
 				Children: [16]node.Node{
 					&node.Leaf{Key: []byte{1}},
 					&node.Leaf{Key: []byte{2}},
@@ -2252,9 +2247,8 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			limit:         1,
 			expectedLimit: 1,
 			newParent: &node.Branch{
-				Key:        []byte{1, 2},
-				Value:      []byte{1},
-				Generation: 1,
+				Key:   []byte{1, 2},
+				Value: []byte{1},
 				Children: [16]node.Node{
 					&node.Leaf{Key: []byte{1}},
 				},
@@ -2276,9 +2270,8 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			limit:         1,
 			expectedLimit: 1,
 			newParent: &node.Branch{
-				Key:        []byte{1},
-				Value:      []byte{1},
-				Generation: 1,
+				Key:   []byte{1},
+				Value: []byte{1},
 				Children: [16]node.Node{
 					&node.Leaf{Key: []byte{1}},
 				},
@@ -2300,9 +2293,8 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			limit:         1,
 			expectedLimit: 1,
 			newParent: &node.Branch{
-				Key:        []byte{1},
-				Value:      []byte{1},
-				Generation: 1,
+				Key:   []byte{1},
+				Value: []byte{1},
 				Children: [16]node.Node{
 					&node.Leaf{Key: []byte{1}},
 				},
@@ -2625,7 +2617,7 @@ func Test_Trie_deleteNodes(t *testing.T) {
 			trie := testCase.trie
 			expectedTrie := *trie.DeepCopy()
 
-			newNode := trie.deleteNodes(testCase.parent, testCase.prefix, &testCase.limit)
+			newNode := trie.deleteNodesLimit(testCase.parent, testCase.prefix, &testCase.limit)
 
 			assert.Equal(t, testCase.limit, testCase.limit)
 			assert.Equal(t, testCase.newNode, newNode)
@@ -2740,8 +2732,7 @@ func Test_Trie_clearPrefix(t *testing.T) {
 			},
 			prefix: []byte{1, 3},
 			newParent: &node.Leaf{
-				Key:        []byte{1, 2},
-				Generation: 1,
+				Key: []byte{1, 2},
 			},
 		},
 		"leaf parent with key smaller than prefix": {
@@ -2753,8 +2744,7 @@ func Test_Trie_clearPrefix(t *testing.T) {
 			},
 			prefix: []byte{1, 2},
 			newParent: &node.Leaf{
-				Key:        []byte{1},
-				Generation: 1,
+				Key: []byte{1},
 			},
 		},
 		"branch parent with common prefix": {
@@ -2792,9 +2782,8 @@ func Test_Trie_clearPrefix(t *testing.T) {
 			},
 			prefix: []byte{1, 3},
 			newParent: &node.Branch{
-				Key:        []byte{1, 2},
-				Value:      []byte{1},
-				Generation: 1,
+				Key:   []byte{1, 2},
+				Value: []byte{1},
 				Children: [16]node.Node{
 					&node.Leaf{},
 				},
@@ -2813,9 +2802,8 @@ func Test_Trie_clearPrefix(t *testing.T) {
 			},
 			prefix: []byte{1, 2, 3},
 			newParent: &node.Branch{
-				Key:        []byte{1},
-				Value:      []byte{1},
-				Generation: 1,
+				Key:   []byte{1},
+				Value: []byte{1},
 				Children: [16]node.Node{
 					&node.Leaf{},
 				},
@@ -2834,9 +2822,8 @@ func Test_Trie_clearPrefix(t *testing.T) {
 			},
 			prefix: []byte{1, 2},
 			newParent: &node.Branch{
-				Key:        []byte{1},
-				Value:      []byte{1},
-				Generation: 1,
+				Key:   []byte{1},
+				Value: []byte{1},
 				Children: [16]node.Node{
 					&node.Leaf{},
 				},
