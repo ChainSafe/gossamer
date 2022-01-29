@@ -708,8 +708,6 @@ func TestPeerReputation(t *testing.T) {
 
 	rep, err := nodeA.host.cm.peerSetHandler.PeerReputation(addrInfoB.ID)
 
-	const zeroReputation int32 = 0
-
 	require.NoError(t, err)
-	require.Greater(t, rep, zeroReputation)
+	require.Greater(t, rep, 0)
 }

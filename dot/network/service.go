@@ -452,7 +452,7 @@ func (s *Service) sendBlockIntervalTelemetry() (err error) {
 
 	finalised, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
-		return fmt.Errorf("cannot get highehst finalised header: %w", err)
+		return fmt.Errorf("cannot get highest finalised header: %w", err)
 	}
 
 	finalizedHash := finalised.Hash()

@@ -53,7 +53,6 @@ func (h *Handler) setActionQueue(act action) {
 		case h.actionQueue <- data:
 		}
 	}(act)
-
 }
 
 // AddReservedPeer adds reserved peer into peerSet.
