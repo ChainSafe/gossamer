@@ -152,7 +152,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 
 // AddBlocksToStateWithFixedBranches adds blocks to a BlockState up to depth, with fixed branches
 // branches are provided with a map of depth -> # of branches
-func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth int, branches map[int]int, r byte) {
+func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth int, branches map[int]int) {
 	previousHash := blockState.BestBlockHash()
 	tb := []testBranch{}
 	arrivalTime := time.Now()

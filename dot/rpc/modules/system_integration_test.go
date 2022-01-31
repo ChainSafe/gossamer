@@ -319,11 +319,19 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	err = chain.Block.AddBlock(&types.Block{
 		Header: types.Header{
 			Number:     big.NewInt(3),
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
+			Digest:     digest,
 		},
 		Body: types.Body{},
 	})

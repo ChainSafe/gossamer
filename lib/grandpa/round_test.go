@@ -420,7 +420,6 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 
 	done := false
-	r := byte(rand.Intn(256))
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
@@ -434,7 +433,7 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 		// this creates a tree with 2 branches starting at depth 2
 		branches := make(map[int]int)
 		branches[2] = 1
-		state.AddBlocksToStateWithFixedBranches(t, gs.blockState.(*state.BlockState), 4, branches, r)
+		state.AddBlocksToStateWithFixedBranches(t, gs.blockState.(*state.BlockState), 4, branches)
 	}
 
 	// should have blocktree for all nodes

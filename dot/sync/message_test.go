@@ -368,7 +368,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 	branches := map[int]int{
 		8: 1,
 	}
-	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), 16, branches, 1)
+	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), 16, branches)
 
 	// base case
 	ancestor, err := s.blockState.GetHashByNumber(big.NewInt(1))
