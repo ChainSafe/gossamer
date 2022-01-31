@@ -133,14 +133,13 @@ func (t *Trie) loadProof(proofHashToNode map[string]Node, n Node) {
 		}
 
 		proofHash := common.BytesToHex(child.GetHash())
-		node, ok := proofHashToNode[proofHash]
+		childOnMap, ok := proofHashToNode[proofHash]
 		if !ok {
 			continue
 		}
-		delete(proofHashToNode, proofHash)
 
-		branch.Children[i] = node
-		t.loadProof(proofHashToNode, node)
+		branch.Children[i] = childOnMap
+		t.loadProof(proofHashToNode, childOnMap)
 	}
 }
 
