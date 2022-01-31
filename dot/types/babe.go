@@ -117,8 +117,8 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 
 // IsPrimary returns true if the block was authored in a primary slot, false otherwise.
 func IsPrimary(header *Header) (bool, error) {
-	if header == nil || header.Digest == nil {
-		return false, fmt.Errorf("cannot have nil header or digest")
+	if header == nil {
+		return false, fmt.Errorf("cannot have nil header")
 	}
 
 	if len(header.Digest.Types) == 0 {
