@@ -275,7 +275,6 @@ func TestWorkerToRequests(t *testing.T) {
 		max128 = uint32(128)
 		max9   = uint32(9)
 		max64  = uint32(64)
-		max1   = uint32(1)
 	)
 
 	testCases := []testCase{
@@ -333,7 +332,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -374,7 +373,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint64OrHash(1 + maxResponseSize),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
-					Max:           &max64,
+					Max:           &max128,
 				},
 			},
 		},
@@ -392,7 +391,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  &(common.Hash{0xa}),
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -411,7 +410,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint64OrHash(common.Hash{0xb}),
 					EndBlockHash:  &(common.Hash{0xc}),
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -427,7 +426,7 @@ func TestWorkerToRequests(t *testing.T) {
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint64OrHash(10),
 					Direction:     network.Ascending,
-					Max:           &max1,
+					Max:           &max128,
 				},
 			},
 		},
@@ -826,4 +825,141 @@ func TestChainSync_determineSyncPeers(t *testing.T) {
 	peers = cs.determineSyncPeers(req, peersTried)
 	require.Equal(t, 1, len(peers))
 	require.Equal(t, []peer.ID{testPeerB}, peers)
+}
+
+func TestChainSync_highestBlock(t *testing.T) {
+	type input struct {
+		peerState map[peer.ID]*peerState
+	}
+	type output struct {
+		highestBlock int64
+		err          error
+	}
+	type test struct {
+		name string
+		in   input
+		out  output
+	}
+	tests := []test{
+		{
+			name: "when has an empty map should return 0, errNoPeers",
+			in: input{
+				peerState: map[peer.ID]*peerState{},
+			},
+			out: output{
+				highestBlock: 0,
+				err:          errNoPeers,
+			},
+		},
+		{
+			name: "when has a nil map should return 0, errNoPeers",
+			in: input{
+				peerState: nil,
+			},
+			out: output{
+				highestBlock: 0,
+				err:          errNoPeers,
+			},
+		},
+		{
+			name: "when has only one peer with number 90 should return 90, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest": {number: big.NewInt(90)},
+				},
+			},
+			out: output{
+				highestBlock: 90,
+				err:          nil,
+			},
+		},
+		{
+			name: "when has only one peer with number nil should return 0, errNilBlockData",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest": {number: nil},
+				},
+			},
+			out: output{
+				highestBlock: 0,
+				err:          errNilBlockData,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number 90 and p2.number 190 should return 190, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {number: big.NewInt(90)},
+					"idtest#2": {number: big.NewInt(190)},
+				},
+			},
+			out: output{
+				highestBlock: 190,
+				err:          nil,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number 190 and p2.number 90 should return 190, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {number: big.NewInt(190)},
+					"idtest#2": {number: big.NewInt(90)},
+				},
+			},
+			out: output{
+				highestBlock: 190,
+				err:          nil,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number nil and p2.number 90 should return 90, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {number: nil},
+					"idtest#2": {number: big.NewInt(90)},
+				},
+			},
+			out: output{
+				highestBlock: 90,
+				err:          nil,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number 90 and p2.number nil should return 90, nil",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {number: big.NewInt(90)},
+					"idtest#2": {number: nil},
+				},
+			},
+			out: output{
+				highestBlock: 90,
+				err:          nil,
+			},
+		},
+		{
+			name: "when has two peers (p1, p2) with p1.number nil and p2.number nil should return 0, errNilBlockData",
+			in: input{
+				peerState: map[peer.ID]*peerState{
+					"idtest#1": {number: nil},
+					"idtest#2": {number: nil},
+				},
+			},
+			out: output{
+				highestBlock: 0,
+				err:          errNilBlockData,
+			},
+		},
+	}
+
+	for _, ts := range tests {
+		t.Run(ts.name, func(t *testing.T) {
+			cs, _ := newTestChainSync(t)
+			cs.peerState = ts.in.peerState
+
+			highestBlock, err := cs.getHighestBlock()
+			require.ErrorIs(t, err, ts.out.err)
+			require.Equal(t, highestBlock, ts.out.highestBlock)
+		})
+	}
 }

@@ -20,7 +20,7 @@ type Leaf struct {
 	// Dirty is true when the branch differs
 	// from the node stored in the database.
 	Dirty      bool
-	hashDigest []byte
+	HashDigest []byte
 	Encoding   []byte
 	encodingMu sync.RWMutex
 	// Generation is incremented on every trie Snapshot() call.
@@ -58,7 +58,7 @@ func (l *Leaf) StringNode() (stringNode *gotree.Node) {
 	stringNode.Appendf("Key: " + bytesToString(l.Key))
 	stringNode.Appendf("Value: " + bytesToString(l.Value))
 	stringNode.Appendf("Calculated encoding: " + bytesToString(l.Encoding))
-	stringNode.Appendf("Calculated digest: " + bytesToString(l.hashDigest))
+	stringNode.Appendf("Calculated digest: " + bytesToString(l.HashDigest))
 	return stringNode
 }
 

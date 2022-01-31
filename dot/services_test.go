@@ -202,7 +202,15 @@ func TestCreateRPCService(t *testing.T) {
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	paramsRPC := rpcServiceSettings{
+		config:      cfg,
+		nodeStorage: ns,
+		state:       stateSrvc,
+		core:        coreSrvc,
+		network:     networkSrvc,
+		system:      sysSrvc,
+	}
+	rpcSrvc, err := createRPCService(paramsRPC)
 	require.NoError(t, err)
 	require.NotNil(t, rpcSrvc)
 }
@@ -357,7 +365,15 @@ func TestNewWebSocketServer(t *testing.T) {
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	paramsRPC := rpcServiceSettings{
+		config:      cfg,
+		nodeStorage: ns,
+		state:       stateSrvc,
+		core:        coreSrvc,
+		network:     networkSrvc,
+		system:      sysSrvc,
+	}
+	rpcSrvc, err := createRPCService(paramsRPC)
 	require.NoError(t, err)
 	err = rpcSrvc.Start()
 	require.Nil(t, err)

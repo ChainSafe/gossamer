@@ -7,7 +7,6 @@
 package babe
 
 import (
-	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -21,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -38,10 +36,7 @@ var (
 	defaultTestLogLvl = log.Info
 	emptyHash         = trie.EmptyHash
 	testEpochIndex    = uint64(0)
-
-	keyring, _ = keystore.NewSr25519Keyring()
-
-	maxThreshold = scale.MaxUint128
+	maxThreshold      = scale.MaxUint128
 
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{
@@ -132,30 +127,26 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.EpochState = dbSrv.Epoch
 	}
 
-	if cfg.Runtime == nil {
-		rtCfg := &wasmer.Config{}
+	rtCfg := &wasmer.Config{}
+	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+	require.NoError(t, err)
 
-		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
-		require.NoError(t, err)
+	storageState := cfg.StorageState.(core.StorageState)
+	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
+	require.NoError(t, err)
 
-		storageState := cfg.StorageState.(core.StorageState)
-		rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
-		require.NoError(t, err)
-
-		nodeStorage := runtime.NodeStorage{}
-		if dbSrv != nil {
-			nodeStorage.BaseDB = dbSrv.Base
-		} else {
-			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-			require.NoError(t, err)
-		}
-
-		rtCfg.NodeStorage = nodeStorage
-
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+	nodeStorage := runtime.NodeStorage{}
+	if dbSrv != nil {
+		nodeStorage.BaseDB = dbSrv.Base
+	} else {
+		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 		require.NoError(t, err)
 	}
-	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
+
+	rtCfg.NodeStorage = nodeStorage
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), rt)
 
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
@@ -222,104 +213,17 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	return s, dbSrv.Epoch, genCfg
 }
 
-func TestService_setupParameters_genesis(t *testing.T) {
-	s, _, genCfg := newTestServiceSetupParameters(t)
-
-	cfg := &ServiceConfig{}
-	err := s.setupParameters(cfg)
-	require.NoError(t, err)
-	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
-	require.NoError(t, err)
-	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
-	require.NoError(t, err)
-	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(auths))
-	require.NoError(t, err)
-
-	require.Equal(t, slotDuration, s.slotDuration)
-	require.Equal(t, genCfg.EpochLength, s.epochLength)
-	require.Equal(t, auths, s.epochData.authorities)
-	require.Equal(t, threshold, s.epochData.threshold)
-	require.Equal(t, genCfg.Randomness, s.epochData.randomness)
-}
-
-func TestService_setupParameters_epochData(t *testing.T) {
-	s, epochState, genCfg := newTestServiceSetupParameters(t)
-
-	err := epochState.SetCurrentEpoch(1)
-	require.NoError(t, err)
-
-	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
-	require.NoError(t, err)
-
-	data := &types.EpochData{
-		Authorities: auths[:3],
-		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
-	}
-	err = epochState.SetEpochData(1, data)
-	require.NoError(t, err)
-
-	cfg := &ServiceConfig{}
-	err = s.setupParameters(cfg)
-	require.NoError(t, err)
-	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
-	require.NoError(t, err)
-	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(data.Authorities))
-	require.NoError(t, err)
-
-	require.Equal(t, slotDuration, s.slotDuration)
-	require.Equal(t, genCfg.EpochLength, s.epochLength)
-	require.Equal(t, data.Authorities, s.epochData.authorities)
-	require.Equal(t, data.Randomness, s.epochData.randomness)
-	require.Equal(t, threshold, s.epochData.threshold)
-}
-
-func TestService_setupParameters_configData(t *testing.T) {
-	s, epochState, genCfg := newTestServiceSetupParameters(t)
-
-	err := epochState.SetCurrentEpoch(7)
-	require.NoError(t, err)
-
-	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
-	require.NoError(t, err)
-
-	data := &types.EpochData{
-		Authorities: auths[:3],
-		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
-	}
-	err = epochState.SetEpochData(7, data)
-	require.NoError(t, err)
-
-	cfgData := &types.ConfigData{
-		C1: 1,
-		C2: 7,
-	}
-	err = epochState.SetConfigData(1, cfgData) // set config data for a previous epoch, ensure latest config data is used
-	require.NoError(t, err)
-
-	cfg := &ServiceConfig{}
-	err = s.setupParameters(cfg)
-	require.NoError(t, err)
-	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
-	require.NoError(t, err)
-	threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
-	require.NoError(t, err)
-
-	require.Equal(t, slotDuration, s.slotDuration)
-	require.Equal(t, genCfg.EpochLength, s.epochLength)
-	require.Equal(t, data.Authorities, s.epochData.authorities)
-	require.Equal(t, data.Randomness, s.epochData.randomness)
-	require.Equal(t, threshold, s.epochData.threshold)
-}
-
 func TestService_SlotDuration(t *testing.T) {
 	duration, err := time.ParseDuration("1000ms")
 	require.NoError(t, err)
 
 	bs := &Service{
-		slotDuration: duration,
+		constants: constants{
+			slotDuration: duration,
+		},
 	}
 
-	dur := bs.getSlotDuration()
+	dur := bs.constants.slotDuration
 	require.Equal(t, dur.Milliseconds(), int64(1000))
 }
 
@@ -327,22 +231,13 @@ func TestService_ProducesBlocks(t *testing.T) {
 	babeService := createTestService(t, nil)
 	babeService.lead = true
 
-	babeService.epochData.authorityIndex = 0
-	babeService.epochData.authorities = []types.Authority{
-		{Key: nil, Weight: 1},
-		{Key: nil, Weight: 1},
-		{Key: nil, Weight: 1},
-	}
-
-	babeService.epochData.threshold = maxThreshold
-
 	err := babeService.Start()
 	require.NoError(t, err)
 	defer func() {
 		_ = babeService.Stop()
 	}()
 
-	time.Sleep(babeService.slotDuration * 2)
+	time.Sleep(babeService.constants.slotDuration * 2)
 	babeService.blockImportHandler.(*mocks.BlockImportHandler).
 		AssertCalled(t, "HandleBlockProduced",
 			mock.AnythingOfType("*types.Block"),

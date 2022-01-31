@@ -13,7 +13,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/disiqueira/gotree"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+var leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
+	Namespace: "gossamer_block",
+	Name:      "leaves_total",
+	Help:      "total number of blocktree leaves",
+})
 
 // Hash common.Hash
 type Hash = common.Hash
@@ -95,6 +103,8 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err 
 
 	parent.addChild(n)
 	bt.leaves.replace(parent, n)
+
+	leavesGauge.Set(float64(len(bt.leaves.nodes())))
 	return nil
 }
 
@@ -169,6 +179,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		bt.runtime.Delete(hash)
 	}
 
+	leavesGauge.Set(float64(len(bt.leaves.nodes())))
 	return pruned
 }
 
