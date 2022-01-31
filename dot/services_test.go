@@ -11,12 +11,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
@@ -407,23 +404,24 @@ func Test_createPprofService(t *testing.T) {
 }
 
 func Test_createDigestHandler(t *testing.T) {
-	testDatadirPath := t.TempDir()
-	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
-	}
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
 
-	stateSrvc := state.NewService(config)
-	stateSrvc.UseMemDB()
+	genFile := NewTestGenesisRawFile(t, cfg)
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	cfg.Core.Roles = types.AuthorityRole
+	cfg.Init.Genesis = genFile
+
+	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	err = stateSrvc.Start()
+	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(log.Warn, stateSrvc)
+	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
-	require.NotNil(t, dh)
+
+	_, err = createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	require.NoError(t, err)
+
 }
