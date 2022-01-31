@@ -408,16 +408,21 @@ func Test_createPprofService(t *testing.T) {
 
 func Test_createDigestHandler(t *testing.T) {
 	testDatadirPath := t.TempDir()
+
+	disabledTelemetry, err := telemetry.BootstrapMailer(context.TODO(), nil, false, nil)
+	require.NoError(t, err)
+
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: disabledTelemetry,
 	}
 
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	err = stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
