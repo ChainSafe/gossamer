@@ -1,5 +1,6 @@
 services: 
   alice:
+    platform: linux/amd64
     build:
       context: ./..
       dockerfile: devnet/alice.Dockerfile
@@ -13,6 +14,7 @@ services:
       - 9876
 
   bob:
+    platform: linux/amd64
     build:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
@@ -29,6 +31,7 @@ services:
       - alice
 
   charlie:
+    platform: linux/amd64
     build:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
@@ -41,5 +44,18 @@ services:
       - 8546
       - 8540
       - 9876
+    depends_on:
+      - alice
+  
+  substrate:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate.Dockerfile
+    ports:
+      - 30333
+      - 9933
+      - 9944
+      - 9615
     depends_on:
       - alice
