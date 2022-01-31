@@ -65,6 +65,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 				authorities:    data.Authorities,
 				authorityIndex: idx,
 				threshold:      threshold,
+				secondary:      cfgData.SecondarySlots,
 			}
 		} else {
 			b.epochData = &epochData{
@@ -174,11 +175,27 @@ func (b *Service) incrementEpoch() (uint64, error) {
 // if it is not authorised.
 // output = return[0:32]; proof = return[32:96]
 func (b *Service) runLottery(slot, epoch uint64) (*VrfOutputAndProof, error) {
-	return claimPrimarySlot(
+	// here: If we can't claim primary slot, claim secondary slot
+	proof, err := claimPrimarySlot(
 		b.epochData.randomness,
 		slot,
 		epoch,
 		b.epochData.threshold,
 		b.keypair,
 	)
+	if err == nil {
+		b.slotToIfPrimary[slot] = true
+		return proof, nil
+	}
+
+	if b.epochData.secondary != 1 && b.epochData.secondary != 2 {
+		return nil, err
+	}
+
+	if errors.Is(err, errOverPrimarySlotThreshold) {
+		b.slotToIfPrimary[slot] = false
+		return claimSecondarySlot(b.epochData.randomness, slot, epoch, b.epochData.authorities, b.epochData.threshold, b.keypair)
+	}
+
+	return proof, err
 }

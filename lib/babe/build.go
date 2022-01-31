@@ -32,6 +32,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 		b.blockState,
 		b.slotToProof,
 		b.epochData.authorityIndex,
+		b.slotToIfPrimary,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
@@ -62,12 +63,13 @@ type BlockBuilder struct {
 	blockState            BlockState
 	slotToProof           map[uint64]*VrfOutputAndProof
 	currentAuthorityIndex uint32
+	slotToIfPrimary       map[uint64]bool
 }
 
 // NewBlockBuilder creates a new block builder.
 func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
 	bs BlockState, sp map[uint64]*VrfOutputAndProof,
-	authidx uint32) (*BlockBuilder, error) {
+	authidx uint32, slotToIfPrimary map[uint64]bool) (*BlockBuilder, error) {
 	if ts == nil {
 		return nil, errors.New("cannot create block builder; transaction state is nil")
 	}
@@ -195,25 +197,46 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 // buildBlockPreDigest creates the pre-digest for the slot.
 // the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
 func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
+
+	// check if secondary slot
+	isPrimary, ok := b.slotToIfPrimary[slot.number]
+	if !ok {
+		return nil, ErrNotAuthorized
+	}
+
+	// TODO: if author_secondary_vrf enabled, use SecondaryVRF
+	// otherwise BlockBabeSecondaryPlainPreDigest
 	babeHeader := types.NewBabeDigest()
-	data, err := b.buildBlockBABEPrimaryPreDigest(slot)
-	if err != nil {
-		return nil, err
+	if isPrimary {
+		data, err := b.buildBlockBABEPrimaryPreDigest(slot)
+		if err != nil {
+			return nil, err
+		}
+
+		err = babeHeader.Set(*data)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		data, err := b.buildBlockBabeSecondaryPlainPreDigest(slot)
+		if err != nil {
+			return nil, err
+		}
+
+		err = babeHeader.Set(*data)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err = babeHeader.Set(*data)
-	if err != nil {
-		return nil, err
-	}
-
-	encBABEPrimaryPreDigest, err := scale.Marshal(babeHeader)
+	encBABEPreDigest, err := scale.Marshal(babeHeader)
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              encBABEPrimaryPreDigest,
+		Data:              encBABEPreDigest,
 	}, nil
 }
 
@@ -231,6 +254,17 @@ func (b *BlockBuilder) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BabePri
 		outAndProof.output,
 		outAndProof.proof,
 	), nil
+}
+
+func (b *BlockBuilder) buildBlockBabeSecondaryPlainPreDigest(slot Slot) (*types.BabeSecondaryPlainPreDigest, error) {
+	if b.slotToProof[slot.number] == nil {
+		return nil, ErrNotAuthorized
+	}
+
+	return &types.BabeSecondaryPlainPreDigest{
+		AuthorityIndex: b.currentAuthorityIndex,
+		SlotNumber:     slot.number,
+	}, nil
 }
 
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.

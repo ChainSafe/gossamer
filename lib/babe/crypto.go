@@ -4,11 +4,13 @@
 package babe
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -81,6 +83,45 @@ func checkPrimaryThreshold(randomness Randomness,
 		pub.Hex(), randomness, slot, epoch, threshold, output, res)
 
 	return inoutUint.Compare(threshold) < 0, nil
+}
+
+func i32toBytes(val uint32) []byte {
+	r := make([]byte, 4)
+	for i := uint32(0); i < 4; i++ {
+		r[i] = byte((val >> (8 * i)) & 0xff)
+	}
+	return r
+}
+
+func claimSecondarySlot(randomness Randomness,
+	slot, epoch uint64,
+	authorities []types.Authority,
+	threshold *scale.Uint128,
+	keypair *sr25519.Keypair,
+) (*VrfOutputAndProof, error) {
+
+	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, authority := range authorities {
+		if bytes.Equal(authority.ToRaw().Key[:], i32toBytes(secondarySlotAuthor)) {
+			transcript := makeTranscript(randomness, slot, epoch)
+
+			out, proof, err := keypair.VrfSign(transcript)
+			if err != nil {
+				return nil, err
+			}
+
+			return &VrfOutputAndProof{
+				output: out,
+				proof:  proof,
+			}, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // CalculateThreshold calculates the slot lottery threshold

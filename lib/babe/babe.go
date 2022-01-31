@@ -49,7 +49,8 @@ type Service struct {
 	slotDuration time.Duration
 	epochData    *epochData
 	// for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	slotToProof map[uint64]*VrfOutputAndProof
+	slotToProof     map[uint64]*VrfOutputAndProof
+	slotToIfPrimary map[uint64]bool
 
 	// State variables
 	sync.RWMutex
