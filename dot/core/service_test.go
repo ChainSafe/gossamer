@@ -619,7 +619,33 @@ func TestService_handleChainReorg(t *testing.T) {
 	mockBlockStateRuntimeErr.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
 
 	// Get block body error
+	//cExt := ctypes.Extrinsic{
+	//	Version:   1,
+	//	Signature: ctypes.ExtrinsicSignatureV4{},
+	//	Method:    ctypes.Call{},
+	//}
+	//addr, err := ctypes.NewAddressFromHexAccountID("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48")
+	//assert.NoError(t, err)
+	//
+	//c, err := ctypes.NewCall(ctypes.ExamplaryMetadataV4, "balances.transfer", addr, ctypes.NewUCompactFromUInt(6969))
+	//assert.NoError(t, err)
+	//
+	//cExt := ctypes.NewExtrinsic(c)
+	//extData := types.ExtrinsicData{cExt}
+
+
+
+	//keyring, _ := keystore.NewSr25519Keyring()
+	//aliceKeypair := keyring.Alice().(*sr25519.Keypair)
 	testUnencryptedBody := types.NewBody([]types.Extrinsic{{1, 2, 3}})
+	//signedExt, err := aliceKeypair.Sign([]byte{1, 2, 3})
+	//require.NoError(t, err)
+	//testExt := types.Body{extData}
+	//cExt := ctypes.Extrinsic{
+	//	Version:   1,
+	//	Signature: ctypes.ExtrinsicSignatureV4{},
+	//	Method:    ctypes.Call{},
+	//}
 	runtimeMockOk := new(mocksruntime.Instance)
 	mockBlockStateBlockBodyErr := NewMockBlockState(ctrl)
 	mockBlockStateBlockBodyErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
@@ -627,7 +653,7 @@ func TestService_handleChainReorg(t *testing.T) {
 	mockBlockStateBlockBodyErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 	mockBlockStateBlockBodyErr.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
 	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
-	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testAncestorHash).Return(testUnencryptedBody, nil) //TODO fill
+	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testAncestorHash).Return(testUnencryptedBody, nil)
 
 	type args struct {
 		prev common.Hash

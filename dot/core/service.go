@@ -384,13 +384,12 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			// decode extrinsic and make sure it's not an inherent.
 			decExt := &types.ExtrinsicData{}
 			if err = decExt.DecodeVersion(encExt); err != nil {
-				fmt.Println("dec")
 				continue
 			}
 
+
 			// Inherent are not signed.
 			if !decExt.IsSigned() {
-				fmt.Println("!signed")
 				continue
 			}
 
