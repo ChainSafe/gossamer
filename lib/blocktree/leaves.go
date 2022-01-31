@@ -129,10 +129,15 @@ func (lm *leafMap) bestBlock() *node {
 
 	// map of primary ancestor count -> *node
 	counts := make(map[int][]*node)
+	highest := 0
 
 	lm.smap.Range(func(_, nn interface{}) bool {
 		n := nn.(*node)
 		count := n.primaryAncestorCount(0)
+		if count > highest {
+			highest = count
+		}
+
 		nodesWithCount, has := counts[count]
 		if !has {
 			counts[count] = []*node{n}
@@ -142,14 +147,6 @@ func (lm *leafMap) bestBlock() *node {
 
 		return true
 	})
-
-	// get highest count
-	highest := 0
-	for count := range counts {
-		if count > highest {
-			highest = count
-		}
-	}
 
 	// there's just one node with the highest amount of primary ancestors,
 	// so let's return it
