@@ -6,6 +6,8 @@ package core
 import (
 	"context"
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"math/big"
 	"testing"
 
@@ -782,6 +784,115 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 //		})
 //	}
 //}
+
+func TestServiceInsertKey(t *testing.T) {
+	keyStore := keystore.GlobalKeystore{
+		Babe: keystore.NewBasicKeystore(keystore.BabeName, crypto.Sr25519Type),
+	}
+
+	keyring, _ := keystore.NewSr25519Keyring()
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	type args struct {
+		kp           crypto.Keypair
+		keystoreType string
+	}
+	tests := []struct {
+		name    string
+		service *Service
+		args    args
+		expErr error
+		expErrMsg string
+	}{
+		{
+			name: "ok case",
+			service: &Service{
+				keys: &keyStore,
+			},
+			args: args{
+				kp: aliceKeypair,
+				keystoreType: (string)(keystore.BabeName),
+			},
+		},
+		{
+			name: "err case",
+			service: &Service{
+				keys: &keyStore,
+			},
+			args: args{
+				kp: aliceKeypair,
+				keystoreType: "jimbo",
+			},
+			expErr: keystore.ErrInvalidKeystoreName,
+			expErrMsg: keystore.ErrInvalidKeystoreName.Error(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			err := s.InsertKey(tt.args.kp, tt.args.keystoreType)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+		})
+	}
+}
+
+func TestServiceHasKey(t *testing.T) {
+	keyStore := keystore.GlobalKeystore{
+		Babe: keystore.NewBasicKeystore(keystore.BabeName, crypto.Sr25519Type),
+	}
+
+	keyring, _ := keystore.NewSr25519Keyring()
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	type args struct {
+		pubKeyStr           string
+		keystoreType string
+	}
+	tests := []struct {
+		name    string
+		service *Service
+		args    args
+		exp bool
+		expErr error
+		expErrMsg string
+	}{
+		{
+			name: "ok case",
+			service: &Service{
+				keys: &keyStore,
+			},
+			args: args{
+				pubKeyStr: aliceKeypair.Public().Hex(),
+				keystoreType: string(keystore.BabeName),
+			},
+
+		},
+		{
+			name: "err case",
+			service: &Service{
+				keys: &keyStore,
+			},
+			args: args{
+				pubKeyStr: aliceKeypair.Public().Hex(),
+				keystoreType: "jimbo",
+			},
+			expErr: keystore.ErrInvalidKeystoreName,
+			expErrMsg: keystore.ErrInvalidKeystoreName.Error(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			res, err := s.HasKey(tt.args.pubKeyStr, tt.args.keystoreType)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
 
 func TestCleanup(t *testing.T) {
 	err := runtime.RemoveFiles(testWasmPaths)
