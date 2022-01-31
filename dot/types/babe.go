@@ -123,7 +123,7 @@ func IsPrimary(header *Header) (bool, error) {
 
 	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
 	if !ok {
-		return false, fmt.Errorf("first digest item is not pre-digest")
+		return false, fmt.Errorf("first digest item is not pre-digest: type=%T", header.Digest.Types[0].Value())
 	}
 
 	digest, err := DecodeBabePreDigest(preDigest.Data)

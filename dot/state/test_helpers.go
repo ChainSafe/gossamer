@@ -16,6 +16,7 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -33,6 +34,23 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	})
 
 	return db
+}
+
+func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
+	babeDigest := types.NewBabeDigest()
+	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	require.NoError(t, err)
+
+	bdEnc, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              bdEnc,
+	})
+	require.NoError(t, err)
+	return digest
 }
 
 // branch tree randomly

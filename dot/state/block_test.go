@@ -40,23 +40,6 @@ func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
 	return bs
 }
 
-func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
-	babeDigest := types.NewBabeDigest()
-	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
-	require.NoError(t, err)
-
-	bdEnc, err := scale.Marshal(babeDigest)
-	require.NoError(t, err)
-
-	digest := types.NewDigest()
-	err = digest.Add(types.PreRuntimeDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              bdEnc,
-	})
-	require.NoError(t, err)
-	return digest
-}
-
 func TestSetAndGetHeader(t *testing.T) {
 	bs := newTestBlockState(t, nil)
 

@@ -21,13 +21,19 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousNum, err := blockState.BestBlockNumber()
 	require.Nil(t, err)
 
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
 				StateRoot:  trie.EmptyHash,
-				Digest:     types.NewDigest(),
+				Digest:     digest,
 			},
 			Body: types.Body{},
 		}
