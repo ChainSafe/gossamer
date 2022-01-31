@@ -208,10 +208,11 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
+			d, err := types.NewBabePrimaryPreDigest(0, uint64(i+j+99), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+			require.NoError(t, err)
+			require.NotNil(t, d)
 			digest := types.NewDigest()
-			_ = digest.Add(types.PreRuntimeDigest{
-				Data: []byte{byte(i), byte(j), r},
-			})
+			_ = digest.Add(*d)
 
 			block := &types.Block{
 				Header: types.Header{
@@ -224,7 +225,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			}
 
 			hash := block.Header.Hash()
-			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+			err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			require.Nil(t, err)
 
 			blockState.StoreRuntime(hash, rt)
