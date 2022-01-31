@@ -530,11 +530,18 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	b := &types.Block{
 		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
 			Number:     big.NewInt(3),
 			StateRoot:  sr1,
+			Digest:     digest,
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte{}}),
 	}
