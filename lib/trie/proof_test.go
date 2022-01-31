@@ -158,7 +158,7 @@ func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDiferentPathsSameKeys_GenerateAndVerifyProof(t *testing.T) {
+func TestBranchNodes_SameHash_DiferentPaths_GenerateAndVerifyProof(t *testing.T) {
 	value := []byte("somevalue")
 	entries := []Pair{
 		{Key: []byte("d"), Value: value},
@@ -185,7 +185,7 @@ func TestDiferentPathsSameKeys_GenerateAndVerifyProof(t *testing.T) {
 	require.True(t, ok)
 }
 
-func TestKeysWithSameValue_GenerateAndVerifyProof(t *testing.T) {
+func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) {
 	tmp := t.TempDir()
 
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
@@ -198,13 +198,11 @@ func TestKeysWithSameValue_GenerateAndVerifyProof(t *testing.T) {
 		value = []byte("somevalue")
 		key1  = []byte("worlda")
 		key2  = []byte("worldb")
-		key3  = []byte("worldc")
 	)
 
 	tt := NewEmptyTrie()
 	tt.Put(key1, value)
 	tt.Put(key2, value)
-	tt.Put(key3, nil)
 
 	err = tt.Store(memdb)
 	require.NoError(t, err)
@@ -212,13 +210,12 @@ func TestKeysWithSameValue_GenerateAndVerifyProof(t *testing.T) {
 	hash, err := tt.Hash()
 	require.NoError(t, err)
 
-	proof, err := GenerateProof(hash.ToBytes(), [][]byte{key1, key2, key3}, memdb)
+	proof, err := GenerateProof(hash.ToBytes(), [][]byte{key1, key2}, memdb)
 	require.NoError(t, err)
 
 	pairs := []Pair{
 		{Key: key1, Value: value},
 		{Key: key2, Value: value},
-		{Key: key3, Value: nil},
 	}
 
 	ok, err := VerifyProof(proof, hash.ToBytes(), pairs)
