@@ -390,8 +390,10 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 			// Inherent are not signed.
 			if !decExt.IsSigned() {
+				fmt.Println("not signed fuckkk")
 				continue
 			}
+			fmt.Println("signed baby yeeeet")
 
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
 			txv, err := rt.ValidateTransaction(externalExt)
