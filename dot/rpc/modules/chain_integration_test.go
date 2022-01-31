@@ -387,9 +387,15 @@ func newTestStateService(t *testing.T) *state.Service {
 }
 
 func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) {
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
+		Digest:     digest,
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -399,15 +405,9 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		Body:   sampleBodyBytes,
 	}
 
-	err := bs.AddBlock(block1)
+	err = bs.AddBlock(block1)
 	require.NoError(t, err)
 	bs.StoreRuntime(header1.Hash(), rt)
-
-	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	err = digest.Add(*prd)
-	require.NoError(t, err)
 
 	header2 := &types.Header{
 		Number:     big.NewInt(2),
