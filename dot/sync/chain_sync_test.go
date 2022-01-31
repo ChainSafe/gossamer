@@ -275,7 +275,6 @@ func TestWorkerToRequests(t *testing.T) {
 		max128 = uint32(128)
 		max9   = uint32(9)
 		max64  = uint32(64)
-		max1   = uint32(1)
 	)
 
 	testCases := []testCase{
@@ -333,7 +332,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -374,7 +373,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint64OrHash(1 + maxResponseSize),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
-					Max:           &max64,
+					Max:           &max128,
 				},
 			},
 		},
@@ -392,7 +391,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  &(common.Hash{0xa}),
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -411,7 +410,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint64OrHash(common.Hash{0xb}),
 					EndBlockHash:  &(common.Hash{0xc}),
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -427,7 +426,7 @@ func TestWorkerToRequests(t *testing.T) {
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint64OrHash(10),
 					Direction:     network.Ascending,
-					Max:           &max1,
+					Max:           &max128,
 				},
 			},
 		},
