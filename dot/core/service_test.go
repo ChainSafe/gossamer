@@ -894,6 +894,57 @@ func TestServiceHasKey(t *testing.T) {
 	}
 }
 
+func TestService_DecodeSessionKeys(t *testing.T) {
+	testEncKeys := []byte{1, 2, 3, 4}
+	ctrl := gomock.NewController(t)
+	mockBlockStateErr := NewMockBlockState(ctrl)
+	mockBlockStateErr.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+
+	runtimeMockOk := new(mocksruntime.Instance)
+	runtimeMockOk.On("DecodeSessionKeys", testEncKeys).Return(testEncKeys, nil)
+	mockBlockStateOk := NewMockBlockState(ctrl)
+	mockBlockStateOk.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
+
+	tests := []struct {
+		name    string
+		service  *Service
+		enc    []byte
+		exp    []byte
+		expErr error
+		expErrMsg string
+	}{
+		{
+			name: "ok case",
+			service: &Service{
+				blockState: mockBlockStateOk,
+			},
+			enc: testEncKeys,
+			exp: testEncKeys,
+
+		},
+		{
+			name: "err case",
+			service: &Service{
+				blockState: mockBlockStateErr,
+			},
+			enc: testEncKeys,
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			res, err := s.DecodeSessionKeys(tt.enc)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
 func TestCleanup(t *testing.T) {
 	err := runtime.RemoveFiles(testWasmPaths)
 	require.NoError(t, err)
