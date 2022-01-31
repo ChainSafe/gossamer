@@ -586,3 +586,142 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		s.handleBlocksAsync()
 	})
 }
+
+func TestService_handleChainReorg(t *testing.T) {
+	testPrevHash := common.MustHexToHash("0x01")
+	testCurrentHash := common.MustHexToHash("0x02")
+	testAncestorHash := common.MustHexToHash("0x03")
+	testSubChain := []common.Hash{testPrevHash, testCurrentHash, testAncestorHash}
+
+	ctrl := gomock.NewController(t)
+	mockBlockStateAncestorErr := NewMockBlockState(ctrl)
+	mockBlockStateAncestorErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(common.Hash{}, errDummyErr)
+
+	mockBlockStateAncestorEqPriv := NewMockBlockState(ctrl)
+	mockBlockStateAncestorEqPriv.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testPrevHash, nil)
+
+	mockBlockStateSubChainErr := NewMockBlockState(ctrl)
+	mockBlockStateSubChainErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateSubChainErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
+
+	mockBlockStateEmptySubChain := NewMockBlockState(ctrl)
+	mockBlockStateEmptySubChain.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateEmptySubChain.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
+
+	mockBlockStateRuntimeErr := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateRuntimeErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+	mockBlockStateRuntimeErr.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+
+	// Get block body error
+	testUnencryptedBody := types.NewBody([]types.Extrinsic{{1, 2, 3}})
+	runtimeMockOk := new(mocksruntime.Instance)
+	mockBlockStateBlockBodyErr := NewMockBlockState(ctrl)
+	mockBlockStateBlockBodyErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateBlockBodyErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+	mockBlockStateBlockBodyErr.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
+	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
+	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testAncestorHash).Return(testUnencryptedBody, nil) //TODO fill
+
+	type args struct {
+		prev common.Hash
+		curr common.Hash
+	}
+	tests := []struct {
+		name      string
+		service   *Service
+		args      args
+		expErr    error
+		expErrMsg string
+	}{
+		{
+			name: "highest common ancestor err",
+			service: &Service{
+				blockState: mockBlockStateAncestorErr,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "ancestor eq priv",
+			service: &Service{
+				blockState: mockBlockStateAncestorEqPriv,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+		},
+		{
+			name: "subchain err",
+			service: &Service{
+				blockState: mockBlockStateSubChainErr,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "empty subchain",
+			service: &Service{
+				blockState: mockBlockStateEmptySubChain,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+		},
+		{
+			name: "get runtime err",
+			service: &Service{
+				blockState: mockBlockStateRuntimeErr,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "lets find out",
+			service: &Service{
+				blockState: mockBlockStateBlockBodyErr,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+			//expErr: errDummyErr,
+			//expErrMsg: errDummyErr.Error(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			err := s.handleChainReorg(tt.args.prev, tt.args.curr)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+		})
+	}
+}
+
+func TestCleanup(t *testing.T) {
+	err := runtime.RemoveFiles(testWasmPaths)
+	require.NoError(t, err)
+}

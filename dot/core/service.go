@@ -5,6 +5,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -370,8 +371,10 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		if err != nil || body == nil {
 			continue
 		}
+		fmt.Println("im here")
 
 		for _, ext := range *body {
+			fmt.Println("im here2")
 			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
 			encExt, err := scale.Marshal(ext)
 			if err != nil {
@@ -381,11 +384,13 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			// decode extrinsic and make sure it's not an inherent.
 			decExt := &types.ExtrinsicData{}
 			if err = decExt.DecodeVersion(encExt); err != nil {
+				fmt.Println("dec")
 				continue
 			}
 
 			// Inherent are not signed.
 			if !decExt.IsSigned() {
+				fmt.Println("!signed")
 				continue
 			}
 
