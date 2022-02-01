@@ -73,7 +73,6 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 	extrinsic := ctypes.NewExtrinsic(call)
 	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	require.NoError(t, err)
-
 	o := ctypes.SignatureOptions{
 		BlockHash:          genHash,
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
@@ -88,6 +87,7 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 	err = extrinsic.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
+	// Encode the signed extrinsic
 	extEnc := bytes.Buffer{}
 	encoder := cscale.NewEncoder(&extEnc)
 	err = extrinsic.Encode(*encoder)
@@ -973,6 +973,100 @@ func TestService_DecodeSessionKeys(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := tt.service
 			res, err := s.DecodeSessionKeys(tt.enc)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
+func TestServiceGetRuntimeVersion(t *testing.T) {
+	testAPIItem := runtime.APIItem{
+		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+		Ver:  99,
+	}
+	rv := runtime.NewVersionData(
+		[]byte("polkadot"),
+		[]byte("parity-polkadot"),
+		0,
+		25,
+		0,
+		[]runtime.APIItem{testAPIItem},
+		5,
+	)
+	emptyTrie := trie.NewEmptyTrie()
+	ts, err := rtstorage.NewTrieState(emptyTrie)
+	require.NoError(t, err)
+
+	ctrl := gomock.NewController(t)
+	mockStorageStateGetRootErr := NewMockStorageState(ctrl)
+	mockStorageStateGetRootErr.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
+
+	mockStorageStateTrieErr := NewMockStorageState(ctrl)
+	mockStorageStateTrieErr.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+	mockStorageStateTrieErr.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
+
+	mockStorageStateOk := NewMockStorageState(ctrl)
+	mockStorageStateOk.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil).MaxTimes(2)
+	mockStorageStateOk.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
+
+	mockBlockStateErr := NewMockBlockState(ctrl)
+	mockBlockStateErr.EXPECT().GetRuntime(&common.Hash{}).Return(nil, errDummyErr)
+
+	runtimeMockOk := new(mocksruntime.Instance)
+	mockBlockStateOk := NewMockBlockState(ctrl)
+	mockBlockStateOk.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMockOk, nil)
+	runtimeMockOk.On("SetContextStorage", ts)
+	runtimeMockOk.On("Version").Return(rv, nil)
+
+	tests := []struct {
+		name      string
+		service   *Service
+		bhash     *common.Hash
+		exp       runtime.Version
+		expErr    error
+		expErrMsg string
+	}{
+		{
+			name: "get state root err",
+			service: &Service{storageState: mockStorageStateGetRootErr},
+			bhash: &common.Hash{},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "trie state err",
+			service: &Service{storageState: mockStorageStateTrieErr},
+			bhash: &common.Hash{},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "get runtime err",
+			service: &Service{
+				storageState: mockStorageStateOk,
+				blockState: mockBlockStateErr,
+			},
+			bhash: &common.Hash{},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "happy path",
+			service: &Service{
+				storageState: mockStorageStateOk,
+				blockState: mockBlockStateOk,
+			},
+			bhash: &common.Hash{},
+			exp: rv,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			res, err := s.GetRuntimeVersion(tt.bhash)
 			assert.ErrorIs(t, err, tt.expErr)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErrMsg)
