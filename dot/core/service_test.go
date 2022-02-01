@@ -4,10 +4,16 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"math/big"
 	"testing"
 
@@ -29,6 +35,75 @@ import (
 )
 
 var errTestDummyError = errors.New("test dummy error")
+var testWasmPaths []string
+
+func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extrinsic, body *types.Body) {
+	rawMeta := common.MustHexToBytes(testdata.NewTestMetadata())
+	var decoded []byte
+	err := scale.Unmarshal(rawMeta, &decoded)
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded, meta)
+	require.NoError(t, err)
+
+	testAPIItem := runtime.APIItem{
+		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+		Ver:  99,
+	}
+	rv := runtime.NewVersionData(
+		[]byte("polkadot"),
+		[]byte("parity-polkadot"),
+		0,
+		25,
+		0,
+		[]runtime.APIItem{testAPIItem},
+		5,
+	)
+	require.NoError(t, err)
+
+	bob, err := ctypes.NewMultiAddressFromHexAccountID(
+		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	require.NoError(t, err)
+
+	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	extrinsic := ctypes.NewExtrinsic(call)
+	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	require.NoError(t, err)
+
+	o := ctypes.SignatureOptions{
+		BlockHash:          genHash,
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genHash,
+		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's default account
+	err = extrinsic.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc := bytes.Buffer{}
+	encoder := cscale.NewEncoder(&extEnc)
+	err = extrinsic.Encode(*encoder)
+	require.NoError(t, err)
+
+	encExt := []types.Extrinsic{extEnc.Bytes()}
+	testExternalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt[0]...))
+	testUnencryptedBody := types.NewBody(encExt)
+	return encExt[0], testExternalExt, testUnencryptedBody
+}
+
+func TestGenerateWasm(t *testing.T) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	require.NoError(t, err)
+	testWasmPaths = wasmFilePaths
+}
 
 func Test_Service_StorageRoot(t *testing.T) {
 	t.Parallel()
@@ -589,201 +664,165 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 	})
 }
 
-//func TestService_handleChainReorg(t *testing.T) {
-//	testPrevHash := common.MustHexToHash("0x01")
-//	testCurrentHash := common.MustHexToHash("0x02")
-//	testAncestorHash := common.MustHexToHash("0x03")
-//	testSubChain := []common.Hash{testPrevHash, testCurrentHash, testAncestorHash}
-//
-//	ctrl := gomock.NewController(t)
-//	mockBlockStateAncestorErr := NewMockBlockState(ctrl)
-//	mockBlockStateAncestorErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
-//		Return(common.Hash{}, errDummyErr)
-//
-//	mockBlockStateAncestorEqPriv := NewMockBlockState(ctrl)
-//	mockBlockStateAncestorEqPriv.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
-//		Return(testPrevHash, nil)
-//
-//	mockBlockStateSubChainErr:= NewMockBlockState(ctrl)
-//	mockBlockStateSubChainErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
-//		Return(testAncestorHash, nil)
-//	mockBlockStateSubChainErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
-//
-//	mockBlockStateEmptySubChain:= NewMockBlockState(ctrl)
-//	mockBlockStateEmptySubChain.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
-//		Return(testAncestorHash, nil)
-//	mockBlockStateEmptySubChain.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
-//
-//	mockBlockStateRuntimeErr:= NewMockBlockState(ctrl)
-//	mockBlockStateRuntimeErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
-//		Return(testAncestorHash, nil)
-//	mockBlockStateRuntimeErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
-//	mockBlockStateRuntimeErr.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
-//
-//	// TODO fix/finish this test. The extrinsic signature isn't being recognized :/
-//	// Get block body error
-//
-//	// build extrinsic
-//	//rawMeta, err := rt.Metadata()
-//	//require.NoError(t, err)
-//	rawMeta := common.MustHexToBytes(testdata.NewTestMetadata())
-//	var decoded []byte
-//	err := scale.Unmarshal(rawMeta, &decoded)
-//	require.NoError(t, err)
-//
-//	meta := &ctypes.Metadata{}
-//	err = ctypes.DecodeFromBytes(decoded, meta)
-//	require.NoError(t, err)
-//
-//	//rv, err := rt.Version()
-//	testAPIItem := runtime.APIItem{
-//		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
-//		Ver:  99,
-//	}
-//	rv := runtime.NewVersionData(
-//		[]byte("polkadot"),
-//		[]byte("parity-polkadot"),
-//		0,
-//		25,
-//		0,
-//		[]runtime.APIItem{testAPIItem},
-//		5,
-//	)
-//	require.NoError(t, err)
-//
-//	bob, err := ctypes.NewMultiAddressFromHexAccountID(
-//		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
-//	require.NoError(t, err)
-//
-//	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
-//	require.NoError(t, err)
-//
-//	// Create the extrinsic
-//	ext := ctypes.NewExtrinsic(call)
-//	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-//	require.NoError(t, err)
-//
-//	o := ctypes.SignatureOptions{
-//		BlockHash:          genHash,
-//		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
-//		GenesisHash:        genHash,
-//		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-//		SpecVersion:        ctypes.U32(rv.SpecVersion()),
-//		Tip:                ctypes.NewUCompactFromUInt(0),
-//		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
-//	}
-//
-//	// Sign the transaction using Alice's default account
-//	err = ext.Sign(signature.TestKeyringPairAlice, o)
-//	require.NoError(t, err)
-//
-//	extEnc := bytes.Buffer{}
-//	encoder := cscale.NewEncoder(&extEnc)
-//	err = ext.Encode(*encoder)
-//	require.NoError(t, err)
-//
-//	testUnencryptedBody := types.NewBody([]types.Extrinsic{extEnc.Bytes()})
-//	runtimeMockOk := new(mocksruntime.Instance)
-//	mockBlockStateBlockBodyErr:= NewMockBlockState(ctrl)
-//	mockBlockStateBlockBodyErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
-//		Return(testAncestorHash, nil)
-//	mockBlockStateBlockBodyErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
-//	mockBlockStateBlockBodyErr.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
-//	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
-//	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testAncestorHash).Return(testUnencryptedBody, nil)
-//
-//
-//	type args struct {
-//		prev common.Hash
-//		curr common.Hash
-//	}
-//	tests := []struct {
-//		name    string
-//		service *Service
-//		args    args
-//		expErr error
-//		expErrMsg string
-//	}{
-//		{
-//			name: "highest common ancestor err",
-//			service: &Service{
-//				blockState: mockBlockStateAncestorErr,
-//			},
-//			args: args{
-//				prev: testPrevHash,
-//				curr: testCurrentHash,
-//			},
-//			expErr: errDummyErr,
-//			expErrMsg: errDummyErr.Error(),
-//		},
-//		{
-//			name: "ancestor eq priv",
-//			service: &Service{
-//				blockState: mockBlockStateAncestorEqPriv,
-//			},
-//			args: args{
-//				prev: testPrevHash,
-//				curr: testCurrentHash,
-//			},
-//		},
-//		{
-//			name: "subchain err",
-//			service: &Service{
-//				blockState: mockBlockStateSubChainErr,
-//			},
-//			args: args{
-//				prev: testPrevHash,
-//				curr: testCurrentHash,
-//			},
-//			expErr: errDummyErr,
-//			expErrMsg: errDummyErr.Error(),
-//		},
-//		{
-//			name: "empty subchain",
-//			service: &Service{
-//				blockState: mockBlockStateEmptySubChain,
-//			},
-//			args: args{
-//				prev: testPrevHash,
-//				curr: testCurrentHash,
-//			},
-//		},
-//		{
-//			name: "get runtime err",
-//			service: &Service{
-//				blockState: mockBlockStateRuntimeErr,
-//			},
-//			args: args{
-//				prev: testPrevHash,
-//				curr: testCurrentHash,
-//			},
-//			expErr: errDummyErr,
-//			expErrMsg: errDummyErr.Error(),
-//		},
-//		{
-//			name: "lets find out",
-//			service: &Service{
-//				blockState: mockBlockStateBlockBodyErr,
-//			},
-//			args: args{
-//				prev: testPrevHash,
-//				curr: testCurrentHash,
-//			},
-//			//expErr: errDummyErr,
-//			//expErrMsg: errDummyErr.Error(),
-//		},
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			s := tt.service
-//			err := s.handleChainReorg(tt.args.prev, tt.args.curr)
-//			assert.ErrorIs(t, err, tt.expErr)
-//			if tt.expErr != nil {
-//				assert.EqualError(t, err, tt.expErrMsg)
-//			}
-//		})
-//	}
-//}
+func TestService_handleChainReorg(t *testing.T) {
+	testPrevHash := common.MustHexToHash("0x01")
+	testCurrentHash := common.MustHexToHash("0x02")
+	testAncestorHash := common.MustHexToHash("0x03")
+	testSubChain := []common.Hash{testPrevHash, testCurrentHash, testAncestorHash}
+	ext, externExt, body := generateExtrinsic(t)
+	testValidity := &transaction.Validity{Propagate: true}
+	vtx := transaction.NewValidTransaction(ext, testValidity)
+
+	ctrl := gomock.NewController(t)
+	mockBlockStateAncestorErr := NewMockBlockState(ctrl)
+	mockBlockStateAncestorErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(common.Hash{}, errDummyErr)
+
+	mockBlockStateAncestorEqPriv := NewMockBlockState(ctrl)
+	mockBlockStateAncestorEqPriv.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testPrevHash, nil)
+
+	mockBlockStateSubChainErr := NewMockBlockState(ctrl)
+	mockBlockStateSubChainErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateSubChainErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
+
+	mockBlockStateEmptySubChain := NewMockBlockState(ctrl)
+	mockBlockStateEmptySubChain.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateEmptySubChain.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
+
+	mockBlockStateRuntimeErr := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateRuntimeErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+	mockBlockStateRuntimeErr.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+
+	// Invalid transaction
+	runtimeMockErr := new(mocksruntime.Instance)
+	mockBlockStateBlockBodyErr := NewMockBlockState(ctrl)
+	mockBlockStateBlockBodyErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateBlockBodyErr.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+	mockBlockStateBlockBodyErr.EXPECT().GetRuntime(nil).Return(runtimeMockErr, nil)
+	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
+	mockBlockStateBlockBodyErr.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
+	runtimeMockErr.On("ValidateTransaction", externExt).Return(nil, errTestDummyError)
+
+	//valid case
+	runtimeMockOk := new(mocksruntime.Instance)
+	mockBlockStateBlockBodyOk := NewMockBlockState(ctrl)
+	mockBlockStateBlockBodyOk.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		Return(testAncestorHash, nil)
+	mockBlockStateBlockBodyOk.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+	mockBlockStateBlockBodyOk.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
+	mockBlockStateBlockBodyOk.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
+	mockBlockStateBlockBodyOk.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
+	runtimeMockOk.On("ValidateTransaction", externExt).
+		Return(testValidity, nil)
+	mockTxnStateOk := NewMockTransactionState(ctrl)
+	mockTxnStateOk.EXPECT().AddToPool(vtx).Return(common.Hash{})
+
+	type args struct {
+		prev common.Hash
+		curr common.Hash
+	}
+	tests := []struct {
+		name      string
+		service   *Service
+		args      args
+		expErr    error
+		expErrMsg string
+	}{
+		{
+			name: "highest common ancestor err",
+			service: &Service{
+				blockState: mockBlockStateAncestorErr,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "ancestor eq priv",
+			service: &Service{
+				blockState: mockBlockStateAncestorEqPriv,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+		},
+		{
+			name: "subchain err",
+			service: &Service{
+				blockState: mockBlockStateSubChainErr,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "empty subchain",
+			service: &Service{
+				blockState: mockBlockStateEmptySubChain,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+		},
+		{
+			name: "get runtime err",
+			service: &Service{
+				blockState: mockBlockStateRuntimeErr,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "invalid transaction",
+			service: &Service{
+				blockState: mockBlockStateBlockBodyErr,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+		},
+		{
+			name: "happy path",
+			service: &Service{
+				blockState:       mockBlockStateBlockBodyOk,
+				transactionState: mockTxnStateOk,
+			},
+			args: args{
+				prev: testPrevHash,
+				curr: testCurrentHash,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			err := s.handleChainReorg(tt.args.prev, tt.args.curr)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+		})
+	}
+}
 
 func TestServiceInsertKey(t *testing.T) {
 	keyStore := keystore.GlobalKeystore{
@@ -797,10 +836,10 @@ func TestServiceInsertKey(t *testing.T) {
 		keystoreType string
 	}
 	tests := []struct {
-		name    string
-		service *Service
-		args    args
-		expErr error
+		name      string
+		service   *Service
+		args      args
+		expErr    error
 		expErrMsg string
 	}{
 		{
@@ -809,7 +848,7 @@ func TestServiceInsertKey(t *testing.T) {
 				keys: &keyStore,
 			},
 			args: args{
-				kp: aliceKeypair,
+				kp:           aliceKeypair,
 				keystoreType: (string)(keystore.BabeName),
 			},
 		},
@@ -819,10 +858,10 @@ func TestServiceInsertKey(t *testing.T) {
 				keys: &keyStore,
 			},
 			args: args{
-				kp: aliceKeypair,
+				kp:           aliceKeypair,
 				keystoreType: "jimbo",
 			},
-			expErr: keystore.ErrInvalidKeystoreName,
+			expErr:    keystore.ErrInvalidKeystoreName,
 			expErrMsg: keystore.ErrInvalidKeystoreName.Error(),
 		},
 	}
@@ -846,15 +885,15 @@ func TestServiceHasKey(t *testing.T) {
 	keyring, _ := keystore.NewSr25519Keyring()
 	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
 	type args struct {
-		pubKeyStr           string
+		pubKeyStr    string
 		keystoreType string
 	}
 	tests := []struct {
-		name    string
-		service *Service
-		args    args
-		exp bool
-		expErr error
+		name      string
+		service   *Service
+		args      args
+		exp       bool
+		expErr    error
 		expErrMsg string
 	}{
 		{
@@ -863,10 +902,9 @@ func TestServiceHasKey(t *testing.T) {
 				keys: &keyStore,
 			},
 			args: args{
-				pubKeyStr: aliceKeypair.Public().Hex(),
+				pubKeyStr:    aliceKeypair.Public().Hex(),
 				keystoreType: string(keystore.BabeName),
 			},
-
 		},
 		{
 			name: "err case",
@@ -874,10 +912,10 @@ func TestServiceHasKey(t *testing.T) {
 				keys: &keyStore,
 			},
 			args: args{
-				pubKeyStr: aliceKeypair.Public().Hex(),
+				pubKeyStr:    aliceKeypair.Public().Hex(),
 				keystoreType: "jimbo",
 			},
-			expErr: keystore.ErrInvalidKeystoreName,
+			expErr:    keystore.ErrInvalidKeystoreName,
 			expErrMsg: keystore.ErrInvalidKeystoreName.Error(),
 		},
 	}
@@ -906,11 +944,11 @@ func TestService_DecodeSessionKeys(t *testing.T) {
 	mockBlockStateOk.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
 
 	tests := []struct {
-		name    string
-		service  *Service
-		enc    []byte
-		exp    []byte
-		expErr error
+		name      string
+		service   *Service
+		enc       []byte
+		exp       []byte
+		expErr    error
 		expErrMsg string
 	}{
 		{
@@ -920,15 +958,14 @@ func TestService_DecodeSessionKeys(t *testing.T) {
 			},
 			enc: testEncKeys,
 			exp: testEncKeys,
-
 		},
 		{
 			name: "err case",
 			service: &Service{
 				blockState: mockBlockStateErr,
 			},
-			enc: testEncKeys,
-			expErr: errDummyErr,
+			enc:       testEncKeys,
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 	}

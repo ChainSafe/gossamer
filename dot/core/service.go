@@ -4,8 +4,10 @@
 package core
 
 import (
+	"bytes"
 	"context"
-	"fmt"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"math/big"
 	"sync"
 
@@ -21,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
@@ -371,38 +372,32 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		if err != nil || body == nil {
 			continue
 		}
-		fmt.Println("im here")
 
 		for _, ext := range *body {
-			fmt.Println("im here2")
 			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
-			encExt, err := scale.Marshal(ext)
+			decExt := &ctypes.Extrinsic{}
+			decoder := cscale.NewDecoder(bytes.NewReader(ext))
+			_, err := decoder.DecodeUintCompact()
 			if err != nil {
 				return err
 			}
 
-			// decode extrinsic and make sure it's not an inherent.
-			decExt := &types.ExtrinsicData{}
-			if err = decExt.DecodeVersion(encExt); err != nil {
+			if err = decoder.Decode(&decExt.Version); err != nil {
 				continue
 			}
-
 
 			// Inherent are not signed.
 			if !decExt.IsSigned() {
-				fmt.Println("not signed fuckkk")
 				continue
 			}
-			fmt.Println("signed baby yeeeet")
 
-			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
+			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
-
-			vtx := transaction.NewValidTransaction(encExt, txv)
+			vtx := transaction.NewValidTransaction(ext, txv)
 			s.transactionState.AddToPool(vtx)
 		}
 	}
