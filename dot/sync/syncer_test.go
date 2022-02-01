@@ -18,6 +18,7 @@ import (
 
 func TestNewService(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
 	type args struct {
 		cfg *Config
