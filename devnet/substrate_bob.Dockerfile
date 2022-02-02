@@ -5,6 +5,10 @@ ARG key
 RUN test -n "$key"
 ENV key=${key}
 
+ARG DD_API_KEY=somekey
+ENV DD_API_KEY=${DD_API_KEY}
+RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
+
 COPY devnet/chain/gssmr/genesis-raw.json genesis-spec.json
 
 ENTRYPOINT /usr/bin/polkadot \
