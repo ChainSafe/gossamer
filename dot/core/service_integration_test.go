@@ -11,10 +11,10 @@ import (
 	"errors"
 	"fmt"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"math/big"
 	"os"
 	"sort"
@@ -511,14 +511,19 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	// This gave valid transactions!
+	// This gave valid transactions! maybe not
 	txs := generateTestValidTxns(t)
+
+	exts := make([]types.Extrinsic, len(txs))
+	for i, tx := range txs {
+		exts[i] = tx.Extrinsic
+	}
 
 	cfg := &Config{
 		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
 	}
 
-	testService := NewTestService(t, cfg)
+	//testService := NewTestService(t, cfg)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -531,11 +536,13 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 		h := ts.AddToPool(tx)
 		hashes[i] = h
 	}
+	s := NewTestService(t, cfg)
+	s.transactionState = ts
 
-	s := &Service{
-		transactionState: ts,
-		blockState: testService.blockState,
-	}
+	//s := &Service{
+	//	transactionState: ts,
+	//	blockState: testService.blockState,
+	//}
 
 	s.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]types.Extrinsic{}),
@@ -544,10 +551,12 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	fmt.Println("maintained txn pool")
 
 	res := make([]*transaction.ValidTransaction, len(txs))
-	for i := range txs {
-		res[i] = ts.Pop()
+	for _ = range txs {
+		//res[i] = ts.Pop()
+		fmt.Println(ts.Pop())
 	}
 	fmt.Println("pop")
+	fmt.Println(res)
 
 	sort.Slice(res, func(i, j int) bool {
 		return res[i].Extrinsic[0] < res[j].Extrinsic[0]

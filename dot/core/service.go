@@ -426,8 +426,12 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			continue
 		}
 
-		txnValidity, err := rt.ValidateTransaction(tx.Extrinsic)
+		fmt.Println("getting ready to validate txn")
+		val, err := rt.ValidateTransaction(tx.Extrinsic)
 		if err != nil {
+			fmt.Println("ERROOORRR")
+			fmt.Println(err)
+			// failed to validate tx, remove it from the pool or queue
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
