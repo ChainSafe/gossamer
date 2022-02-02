@@ -1076,6 +1076,101 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 	}
 }
 
+func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockStorageStateErr := NewMockStorageState(ctrl)
+	mockStorageStateErr.EXPECT().TrieState(nil).Return(nil, errDummyErr)
+
+	mockStorageStateOk := NewMockStorageState(ctrl)
+	mockBlockStateRuntimeErr := NewMockBlockState(ctrl)
+	mockStorageStateOk.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil).MaxTimes(3)
+	mockBlockStateRuntimeErr.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+
+	ext := types.Extrinsic{}
+	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+	runtimeMockErr := new(mocksruntime.Instance)
+	mockBlockStateRuntimeOk := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeOk.EXPECT().GetRuntime(nil).Return(runtimeMockErr, nil).MaxTimes(2)
+	runtimeMockErr.On("SetContextStorage", &rtstorage.TrieState{})
+	runtimeMockErr.On("ValidateTransaction", externalExt).Return(nil, errDummyErr)
+
+	runtimeMockOk := new(mocksruntime.Instance)
+	mockBlockStateRuntimeOk2 := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeOk2.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil).MaxTimes(2)
+	runtimeMockOk.On("SetContextStorage", &rtstorage.TrieState{})
+	runtimeMockOk.On("ValidateTransaction", externalExt).
+		Return(&transaction.Validity{Propagate: true}, nil)
+
+	mockTxnState := NewMockTransactionState(ctrl)
+	mockTxnState.EXPECT().AddToPool(transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true}))
+
+	mockNetState := NewMockNetwork(ctrl)
+	mockNetState.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}})
+	tests := []struct {
+		name    string
+		service   *Service
+		ext types.Extrinsic
+		expErr error
+		expErrMsg string
+	}{
+		{
+			name: "nil network",
+			service: &Service{},
+		},
+		{
+			name: "trie state err",
+			service: &Service{
+				storageState: mockStorageStateErr,
+				net: NewMockNetwork(ctrl),
+			},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "get runtime err",
+			service: &Service{
+				storageState: mockStorageStateOk,
+				blockState: mockBlockStateRuntimeErr,
+				net: NewMockNetwork(ctrl),
+			},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "validate txn err",
+			service: &Service{
+				storageState: mockStorageStateOk,
+				blockState: mockBlockStateRuntimeOk,
+				net: NewMockNetwork(ctrl),
+			},
+			ext: types.Extrinsic{},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "happy path",
+			service: &Service{
+				storageState: mockStorageStateOk,
+				blockState: mockBlockStateRuntimeOk2,
+				transactionState: mockTxnState,
+				net: mockNetState,
+			},
+			ext: types.Extrinsic{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			err := s.HandleSubmittedExtrinsic(tt.ext)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+		})
+	}
+}
+
+// This needs to be last function in this file
 func TestCleanup(t *testing.T) {
 	err := runtime.RemoveFiles(testWasmPaths)
 	require.NoError(t, err)

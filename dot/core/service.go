@@ -540,6 +540,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.GossipMessage(msg)
+	fmt.Println("DONE BABY")
 	return nil
 }
 
