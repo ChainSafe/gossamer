@@ -10,6 +10,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/stretchr/testify/require"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 // test used for ensuring runtime exec calls can me made concurrently
@@ -62,4 +64,42 @@ func TestInstance_CheckRuntimeVersion(t *testing.T) {
 	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
 	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+}
+
+func TestDecompressWasm(t *testing.T) {
+	encoder, err := zstd.NewWriter(nil)
+	require.NoError(t, err)
+
+	cases := []struct {
+		in       []byte
+		expected []byte
+		msg      string
+	}{
+		{
+			[]byte{82, 188, 83, 118, 70, 219, 142},
+			[]byte{82, 188, 83, 118, 70, 219, 142},
+			"partial compression flag",
+		},
+		{
+			[]byte{82, 188, 83, 118, 70, 219, 142, 6},
+			[]byte{82, 188, 83, 118, 70, 219, 142, 6},
+			"wrong compression flag",
+		},
+		{
+			[]byte{82, 188, 83, 118, 70, 219, 142, 6, 221},
+			[]byte{82, 188, 83, 118, 70, 219, 142, 6, 221},
+			"wrong compression flag with data",
+		},
+		{
+			append([]byte{82, 188, 83, 118, 70, 219, 142, 5}, encoder.EncodeAll([]byte("compressed"), nil)...),
+			[]byte("compressed"),
+			"compressed data",
+		},
+	}
+
+	for _, test := range cases {
+		actual, err := decompressWasm(test.in)
+		require.NoError(t, err)
+		require.Equal(t, test.expected, actual)
+	}
 }

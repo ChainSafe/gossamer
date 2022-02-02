@@ -55,9 +55,16 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	next := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(4),
+		Digest:     digest,
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -101,9 +108,16 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	next := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(4),
+		Digest:     digest,
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)

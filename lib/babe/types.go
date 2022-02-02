@@ -70,3 +70,8 @@ func (ed *epochData) String() string {
 		ed.threshold,
 	)
 }
+
+type constants struct {
+	slotDuration time.Duration
+	epochLength  uint64
+}

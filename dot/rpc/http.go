@@ -41,6 +41,7 @@ type HTTPServerConfig struct {
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
 	SyncStateAPI        modules.SyncStateAPI
+	SyncAPI             modules.SyncAPI
 	NodeStorage         *runtime.NodeStorage
 	RPC                 bool
 	RPCExternal         bool
@@ -97,7 +98,8 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		switch mod {
 		case "system":
 			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI, h.serverConfig.SystemAPI,
-				h.serverConfig.CoreAPI, h.serverConfig.StorageAPI, h.serverConfig.TransactionQueueAPI, h.serverConfig.BlockAPI)
+				h.serverConfig.CoreAPI, h.serverConfig.StorageAPI, h.serverConfig.TransactionQueueAPI,
+				h.serverConfig.BlockAPI, h.serverConfig.SyncAPI)
 		case "author":
 			srvc = modules.NewAuthorModule(h.logger, h.serverConfig.CoreAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":

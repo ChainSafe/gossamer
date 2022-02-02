@@ -1,5 +1,9 @@
 on:
   pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
     paths:
       - .github/workflows/checks.yml
       - .github/PULL_REQUEST/pull_request.go
@@ -13,30 +17,22 @@ env:
   GO111MODULE: on
 
 jobs:
-  linter-check:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Run go fmt
-        run: diff -u <(echo -n) <(gofmt -d -s .)
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
-        with:
-          version: v1.43
-          args: -v
-
-  vet-check:
-    runs-on: ubuntu-latest
-    steps:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.17.x"
       - uses: actions/checkout@v2
 
-      - name: Run go vet
-        run: go vet ./...
+      - name: setup golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |
+          sh -s -- -b $(go env GOPATH)/bin v1.43.0
+
+      - run: golangci-lint run --timeout 10m
 
   check-description:
     name: Checks PR has title and body description

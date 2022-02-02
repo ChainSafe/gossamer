@@ -176,7 +176,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &ext, res)
-	require.EqualError(t, err, "could not byteify non 0x prefixed string: 0x31")
+	require.EqualError(t, err, "could not byteify non 0x prefixed string: 31")
 }
 
 func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
@@ -276,7 +276,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 	require.Nil(t, err)
 
 	var res bool
-	req := []string{kr.Alice().Public().Hex(), "babe"}
+	req := []string{kr.Alice().Public().Hex(), "acco"}
 	err = auth.HasKey(nil, &req, &res)
 	require.NoError(t, err)
 	require.True(t, res)
@@ -312,14 +312,12 @@ func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
 	var res bool
 	req := []string{kr.Alice().Public().Hex(), "xxxx"}
 	err = auth.HasKey(nil, &req, &res)
-	require.EqualError(t, err, "unknown key type: xxxx")
+	require.EqualError(t, err, "invalid keystore name")
 	require.False(t, res)
 }
 
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
-	fmt.Println("calling setupAuthModule")
 	cs := newCoreService(t, nil)
-	fmt.Println("called newCoreService")
 	rt := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	t.Cleanup(func() {
 		rt.Stop()

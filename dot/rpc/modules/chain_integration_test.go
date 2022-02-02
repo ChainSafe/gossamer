@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	database "github.com/ChainSafe/chaindb"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -342,9 +343,14 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 func newTestStateService(t *testing.T) *state.Service {
 	testDatadirPath := t.TempDir()
 
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	config := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
@@ -381,9 +387,15 @@ func newTestStateService(t *testing.T) *state.Service {
 }
 
 func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) {
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
+		Digest:     digest,
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -393,15 +405,9 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		Body:   sampleBodyBytes,
 	}
 
-	err := bs.AddBlock(block1)
+	err = bs.AddBlock(block1)
 	require.NoError(t, err)
 	bs.StoreRuntime(header1.Hash(), rt)
-
-	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	err = digest.Add(*prd)
-	require.NoError(t, err)
 
 	header2 := &types.Header{
 		Number:     big.NewInt(2),

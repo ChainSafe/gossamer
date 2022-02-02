@@ -52,7 +52,13 @@ func Test_Leaf_String(t *testing.T) {
 	}{
 		"empty leaf": {
 			leaf: &Leaf{},
-			s:    "leaf key=0x value=0x dirty=false",
+			s: `Leaf
+├── Generation: 0
+├── Dirty: false
+├── Key: nil
+├── Value: nil
+├── Calculated encoding: nil
+└── Calculated digest: nil`,
 		},
 		"leaf with value smaller than 1024": {
 			leaf: &Leaf{
@@ -60,7 +66,13 @@ func Test_Leaf_String(t *testing.T) {
 				Value: []byte{3, 4},
 				Dirty: true,
 			},
-			s: "leaf key=0x0102 value=0x0304 dirty=true",
+			s: `Leaf
+├── Generation: 0
+├── Dirty: true
+├── Key: 0x0102
+├── Value: 0x0304
+├── Calculated encoding: nil
+└── Calculated digest: nil`,
 		},
 		"leaf with value higher than 1024": {
 			leaf: &Leaf{
@@ -68,9 +80,13 @@ func Test_Leaf_String(t *testing.T) {
 				Value: make([]byte, 1025),
 				Dirty: true,
 			},
-			s: "leaf key=0x0102 " +
-				"value (hashed)=0x307861663233363133353361303538646238383034626337353735323831663131663735313265326331346336373032393864306232336630396538386266333066 " + //nolint:lll
-				"dirty=true",
+			s: `Leaf
+├── Generation: 0
+├── Dirty: true
+├── Key: 0x0102
+├── Value: 0x0000000000000000...0000000000000000
+├── Calculated encoding: nil
+└── Calculated digest: nil`,
 		},
 	}
 

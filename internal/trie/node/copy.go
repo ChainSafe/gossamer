@@ -37,9 +37,9 @@ func (b *Branch) Copy(copyChildren bool) Node {
 		copy(cpy.Value, b.Value)
 	}
 
-	if b.hashDigest != nil {
-		cpy.hashDigest = make([]byte, len(b.hashDigest))
-		copy(cpy.hashDigest, b.hashDigest)
+	if b.HashDigest != nil {
+		cpy.HashDigest = make([]byte, len(b.HashDigest))
+		copy(cpy.HashDigest, b.HashDigest)
 	}
 
 	if b.Encoding != nil {
@@ -74,9 +74,9 @@ func (l *Leaf) Copy(_ bool) Node {
 		copy(cpy.Value, l.Value)
 	}
 
-	if l.hashDigest != nil {
-		cpy.hashDigest = make([]byte, len(l.hashDigest))
-		copy(cpy.hashDigest, l.hashDigest)
+	if l.HashDigest != nil {
+		cpy.HashDigest = make([]byte, len(l.HashDigest))
+		copy(cpy.HashDigest, l.HashDigest)
 	}
 
 	if l.Encoding != nil {

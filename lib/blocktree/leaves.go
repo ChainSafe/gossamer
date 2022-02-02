@@ -4,6 +4,7 @@
 package blocktree
 
 import (
+	"bytes"
 	"errors"
 	"math/big"
 	"sync"
@@ -13,7 +14,6 @@ import (
 
 // leafMap provides quick lookup for existing leaves
 type leafMap struct {
-	currentDeepestLeaf *node
 	sync.RWMutex
 	smap *sync.Map // map[common.Hash]*node
 }
@@ -56,9 +56,9 @@ func (lm *leafMap) replace(oldNode, newNode *node) {
 	lm.store(newNode.hash, newNode)
 }
 
-// DeepestLeaf searches the stored leaves to the find the one with the greatest number.
+// highestLeaf searches the stored leaves to the find the one with the greatest number.
 // If there are two leaves with the same number, choose the one with the earliest arrival time.
-func (lm *leafMap) deepestLeaf() *node {
+func (lm *leafMap) highestLeaf() *node {
 	lm.RLock()
 	defer lm.RUnlock()
 
@@ -66,41 +66,30 @@ func (lm *leafMap) deepestLeaf() *node {
 
 	var deepest *node
 	lm.smap.Range(func(h, n interface{}) bool {
-		if n == nil {
+		node := n.(*node)
+		if node == nil {
+			// this should never happen
 			return true
 		}
-
-		node := n.(*node)
 
 		if max.Cmp(node.number) < 0 {
 			max = node.number
 			deepest = node
 		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(deepest.arrivalTime) {
 			deepest = node
+		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Equal(deepest.arrivalTime) {
+			// there are two leaf nodes with the same number *and* arrival time, just pick the one
+			// with the lower hash in lexicographical order.
+			// practically, this is very unlikely to happen.
+			if bytes.Compare(node.hash[:], deepest.hash[:]) < 0 {
+				deepest = node
+			}
 		}
 
 		return true
 	})
 
-	if lm.currentDeepestLeaf != nil {
-		if lm.currentDeepestLeaf.hash == deepest.hash {
-			return lm.currentDeepestLeaf
-		}
-
-		// update the current deepest leaf if the found deepest has a greater number or
-		// if the current and the found deepest has the same number however the current
-		// arrived later then the found deepest
-		if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 1 {
-			lm.currentDeepestLeaf = deepest
-		} else if deepest.number.Cmp(lm.currentDeepestLeaf.number) == 0 &&
-			deepest.arrivalTime.Before(lm.currentDeepestLeaf.arrivalTime) {
-			lm.currentDeepestLeaf = deepest
-		}
-	} else {
-		lm.currentDeepestLeaf = deepest
-	}
-
-	return lm.currentDeepestLeaf
+	return deepest
 }
 
 func (lm *leafMap) toMap() map[common.Hash]*node {
@@ -132,4 +121,44 @@ func (lm *leafMap) nodes() []*node {
 	})
 
 	return nodes
+}
+
+func (lm *leafMap) bestBlock() *node {
+	lm.RLock()
+	defer lm.RUnlock()
+
+	// map of primary ancestor count -> *node
+	counts := make(map[int][]*node)
+	highest := 0
+
+	lm.smap.Range(func(_, nn interface{}) bool {
+		n := nn.(*node)
+		count := n.primaryAncestorCount(0)
+		if count > highest {
+			highest = count
+		}
+
+		nodesWithCount, has := counts[count]
+		if !has {
+			counts[count] = []*node{n}
+		} else {
+			counts[count] = append(nodesWithCount, n)
+		}
+
+		return true
+	})
+
+	// there's just one node with the highest amount of primary ancestors,
+	// so let's return it
+	if len(counts[highest]) == 1 {
+		return counts[highest][0]
+	}
+
+	// there are multple with the highest count, run them through `highestLeaf`
+	lm2 := newEmptyLeafMap()
+	for _, node := range counts[highest] {
+		lm2.store(node.hash, node)
+	}
+
+	return lm2.highestLeaf()
 }

@@ -158,5 +158,23 @@ func TestVerifySignature(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
 
+func TestPublicKeyFromPrivate(t *testing.T) {
+	// subkey inspect //Alice --scheme ed25519
+	priv := common.MustHexToBytes("0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115")
+	pub := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
+
+	sk, err := NewPrivateKey(append(priv, pub...))
+	require.NoError(t, err)
+	pk, err := sk.Public()
+	require.NoError(t, err)
+	require.Equal(t, pub, pk.(*PublicKey).Encode())
+
+	kp, err := NewKeypairFromSeed(priv)
+	require.NoError(t, err)
+	require.Equal(t, pub, kp.public.Encode())
+
+	addr := crypto.PublicKeyToAddress(kp.Public())
+	require.Equal(t, "5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", string(addr))
 }

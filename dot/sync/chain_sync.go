@@ -15,6 +15,8 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -48,7 +50,14 @@ func (s chainSyncState) String() string {
 	}
 }
 
-var pendingBlocksLimit = maxResponseSize * 32
+var (
+	pendingBlocksLimit = maxResponseSize * 32
+	isSyncedGauge      = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_syncer",
+		Name:      "is_synced",
+		Help:      "bool representing whether the node is synced to the head of the chain",
+	})
+)
 
 // peerState tracks our peers's best reported blocks
 type peerState struct {
@@ -79,6 +88,8 @@ type workHandler interface {
 	handleTick() ([]*worker, error)
 }
 
+//go:generate mockgen -destination=mock_chain_sync_test.go -package $GOPACKAGE . ChainSync
+
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
 	start()
@@ -92,6 +103,9 @@ type ChainSync interface {
 
 	// syncState returns the current syncing state
 	syncState() chainSyncState
+
+	// getHighestBlock returns the highest block or an error
+	getHighestBlock() (int64, error)
 }
 
 type chainSync struct {
@@ -160,6 +174,7 @@ type chainSyncConfig struct {
 
 func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
+	const syncSamplesToKeep = 30
 	return &chainSync{
 		ctx:              ctx,
 		cancel:           cancel,
@@ -174,7 +189,7 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 		pendingBlocks:    cfg.pendingBlocks,
 		state:            bootstrap,
 		handler:          newBootstrapSyncer(cfg.bs),
-		benchmarker:      newSyncBenchmarker(),
+		benchmarker:      newSyncBenchmarker(syncSamplesToKeep),
 		finalisedCh:      cfg.bs.GetFinalisedNotifierChannel(),
 		minPeers:         cfg.minPeers,
 		maxWorkerRetries: uint16(cfg.maxPeers),
@@ -193,6 +208,8 @@ func (cs *chainSync) start() {
 		}
 		time.Sleep(time.Millisecond * 100)
 	}
+
+	isSyncedGauge.Set(float64(cs.state))
 
 	pendingBlockDoneCh := make(chan struct{})
 	cs.pendingBlockDoneCh = pendingBlockDoneCh
@@ -321,7 +338,7 @@ func (cs *chainSync) logSyncSpeed() {
 		}
 
 		if cs.state == bootstrap {
-			cs.benchmarker.begin(before.Number.Uint64())
+			cs.benchmarker.begin(time.Now(), before.Number.Uint64())
 		}
 
 		select {
@@ -345,7 +362,7 @@ func (cs *chainSync) logSyncSpeed() {
 
 		switch cs.state {
 		case bootstrap:
-			cs.benchmarker.end(after.Number.Uint64())
+			cs.benchmarker.end(time.Now(), after.Number.Uint64())
 			target := cs.getTarget()
 
 			logger.Infof(
@@ -527,6 +544,7 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 	}
 
 	cs.state = mode
+	isSyncedGauge.Set(float64(cs.state))
 	logger.Debugf("switched sync mode to %d", mode)
 }
 
@@ -932,6 +950,30 @@ func (cs *chainSync) validateJustification(bd *types.BlockData) error {
 	return nil
 }
 
+func (cs *chainSync) getHighestBlock() (int64, error) {
+	cs.RLock()
+	defer cs.RUnlock()
+
+	if len(cs.peerState) == 0 {
+		return 0, errNoPeers
+	}
+
+	highestBlock := big.NewInt(-1)
+
+	for _, ps := range cs.peerState {
+		if ps.number == nil || ps.number.Cmp(highestBlock) < 0 {
+			continue
+		}
+		highestBlock = ps.number
+	}
+
+	if highestBlock.Cmp(big.NewInt(-1)) == 0 {
+		return 0, errNilBlockData
+	}
+
+	return highestBlock.Int64(), nil
+}
+
 func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 	// worker must specify a start number
 	// empty start hash is ok (eg. in the case of bootstrap, start hash is unknown)
@@ -973,8 +1015,9 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 
 	for i := 0; i < numRequests; i++ {
 		// check if we want to specify a size
-		var max uint32 = maxResponseSize
-		if i == numRequests-1 {
+		max := uint32(maxResponseSize)
+
+		if w.direction == network.Descending && i == numRequests-1 {
 			size := numBlocks % maxResponseSize
 			if size == 0 {
 				size = maxResponseSize

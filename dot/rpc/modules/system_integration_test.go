@@ -1,21 +1,9 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 //go:build integration
 // +build integration
 
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package modules
 
 import (
@@ -57,16 +45,41 @@ var (
 	testPeers []common.PeerInfo
 )
 
+//go:generate mockgen -destination=mock_block_state_test.go -package modules github.com/ChainSafe/gossamer/dot/network BlockState
+//go:generate mockgen -destination=mock_syncer_test.go -package modules github.com/ChainSafe/gossamer/dot/network Syncer
+//go:generate mockgen -destination=mock_transaction_handler_test.go -package modules github.com/ChainSafe/gossamer/dot/network TransactionHandler
+
 func newNetworkService(t *testing.T) *network.Service {
+	ctrl := gomock.NewController(t)
+
+	blockStateMock := NewMockBlockState(ctrl)
+	blockStateMock.EXPECT().
+		BestBlockHeader().
+		Return(types.NewEmptyHeader(), nil).AnyTimes()
+	blockStateMock.EXPECT().
+		GetHighestFinalisedHeader().
+		Return(types.NewEmptyHeader(), nil).AnyTimes()
+
+	syncerMock := NewMockSyncer(ctrl)
+
+	transactionHandlerMock := NewMockTransactionHandler(ctrl)
+	transactionHandlerMock.EXPECT().TransactionsCount().Return(0).AnyTimes()
+
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	cfg := &network.Config{
-		BasePath:     t.TempDir(),
-		SlotDuration: time.Second,
+		BasePath:           t.TempDir(),
+		SlotDuration:       time.Second,
+		BlockState:         blockStateMock,
+		Port:               0,
+		Syncer:             syncerMock,
+		TransactionHandler: transactionHandlerMock,
+		Telemetry:          telemetryMock,
 	}
 
 	srv, err := network.NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = srv.Start()
 	require.NoError(t, err)
@@ -88,7 +101,7 @@ func TestSystemModule_Health(t *testing.T) {
 	networkMock := new(mocks.NetworkAPI)
 	networkMock.On("Health").Return(testHealth)
 
-	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil)
+	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
@@ -99,7 +112,7 @@ func TestSystemModule_Health(t *testing.T) {
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil, nil)
 
 	res := &SystemNetworkStateResponse{}
 	err := sys.NetworkState(nil, nil, res)
@@ -116,7 +129,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 func TestSystemModule_Peers(t *testing.T) {
 	net := newNetworkService(t)
 	net.Stop()
-	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil, nil)
 
 	res := &SystemPeersResponse{}
 	err := sys.Peers(nil, nil, res)
@@ -129,7 +142,7 @@ func TestSystemModule_Peers(t *testing.T) {
 
 func TestSystemModule_NodeRoles(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil, nil)
 	expected := []interface{}{"Full"}
 
 	var res []interface{}
@@ -161,7 +174,7 @@ func newMockSystemAPI() *mocks.SystemAPI {
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -172,14 +185,14 @@ func TestSystemModule_Chain(t *testing.T) {
 func TestSystemModule_ChainType(t *testing.T) {
 	api := newMockSystemAPI()
 
-	sys := NewSystemModule(nil, api, nil, nil, nil, nil)
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
 	sys.ChainType(nil, nil, res)
 	require.Equal(t, testGenesisData.ChainType, *res)
 }
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -188,7 +201,7 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -197,7 +210,7 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
 
 	expected := map[string]interface{}(nil)
 
@@ -306,11 +319,19 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	err = chain.Block.AddBlock(&types.Block{
 		Header: types.Header{
 			Number:     big.NewInt(3),
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
+			Digest:     digest,
 		},
 		Body: types.Body{},
 	})
@@ -327,7 +348,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 		AnyTimes()
 
 	txQueue := state.NewTransactionState(telemetryMock)
-	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil)
+	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil, nil)
 }
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
@@ -338,6 +359,10 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	t.Cleanup(func() {
 		rt.Stop()
 	})
+
+	if srvc != nil {
+		srvc.Block.StoreRuntime(srvc.Block.BestBlockHash(), rt)
+	}
 
 	// insert alice key for testing
 	kr, err := keystore.NewSr25519Keyring()
@@ -351,6 +376,8 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	mocknet := new(coremocks.Network)
 	mocknet.On("GossipMessage", mock.AnythingOfType("network.NotificationsMessage"))
 
+	digestHandlerMock := NewMockDigestHandler(nil)
+
 	cfg := &core.Config{
 		Runtime:              rt,
 		Keystore:             ks,
@@ -360,6 +387,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		EpochState:           srvc.Epoch,
 		Network:              mocknet,
 		CodeSubstitutedState: srvc.Base,
+		DigestHandler:        digestHandlerMock,
 	}
 
 	s, err := core.NewService(cfg)
@@ -379,12 +407,16 @@ func TestSyncState(t *testing.T) {
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
 
 	netapiMock := new(mocks.NetworkAPI)
-	netapiMock.On("HighestBlock").Return(int64(90))
 	netapiMock.On("StartingBlock").Return(int64(10))
+
+	syncapiCtrl := gomock.NewController(t)
+	syncapiMock := NewMockSyncAPI(syncapiCtrl)
+	syncapiMock.EXPECT().HighestBlock().Return(int64(90))
 
 	sysmodule := new(SystemModule)
 	sysmodule.blockAPI = blockapiMock
 	sysmodule.networkAPI = netapiMock
+	sysmodule.syncAPI = syncapiMock
 
 	var res SyncStateResponse
 	err := sysmodule.SyncState(nil, nil, &res)

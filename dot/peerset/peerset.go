@@ -255,7 +255,6 @@ func reputationTick(reput Reputation) Reputation {
 	} else if diff == 0 && reput > 0 {
 		diff = 1
 	}
-
 	return reput.sub(diff)
 }
 

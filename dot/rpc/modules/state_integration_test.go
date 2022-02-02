@@ -1,21 +1,9 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 //go:build integration
 // +build integration
 
-// Copyright 2020 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
-// The gossamer library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The gossamer library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package modules
 
 import (
@@ -232,14 +220,17 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
+	hashOfNil := common.NewHash(common.MustHexToBytes("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")) //nolint:lll
+	hash1 := common.MustBlake2bHash([]byte("value1"))
+
 	testCases := []struct {
 		params   []string
-		expected []byte
+		expected common.Hash
 		errMsg   string
 	}{
-		{params: []string{""}, expected: nil},
-		{params: []string{":key1"}, expected: []byte("value1")},
-		{params: []string{":key1", hash.String()}, expected: []byte("value1")},
+		{params: []string{""}, expected: hashOfNil},
+		{params: []string{":key1"}, expected: hash1},
+		{params: []string{":key1", hash.String()}, expected: hash1},
 		{params: []string{"0x", randomHash.String()}, errMsg: "Key not found"},
 	}
 
@@ -267,14 +258,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			if test.expected == nil {
-				require.Empty(t, res)
-				return
-			}
-
-			// Convert human-readable result value to hex.
-			expectedVal := common.BytesToHash(test.expected)
-			require.Equal(t, StateStorageHashResponse(expectedVal.String()), res)
+			require.Equal(t, StateStorageHashResponse(test.expected.String()), res)
 		})
 	}
 }
@@ -546,11 +530,18 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	b := &types.Block{
 		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
 			Number:     big.NewInt(3),
 			StateRoot:  sr1,
+			Digest:     digest,
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte{}}),
 	}

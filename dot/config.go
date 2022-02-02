@@ -63,6 +63,21 @@ type LogConfig struct {
 	FinalityGadgetLvl log.Level
 }
 
+func (l LogConfig) String() string {
+	entries := []string{
+		fmt.Sprintf("core: %s", l.CoreLvl),
+		fmt.Sprintf("digest: %s", l.DigestLvl),
+		fmt.Sprintf("sync: %s", l.SyncLvl),
+		fmt.Sprintf("network: %s", l.NetworkLvl),
+		fmt.Sprintf("rpc: %s", l.RPCLvl),
+		fmt.Sprintf("state: %s", l.StateLvl),
+		fmt.Sprintf("runtime: %s", l.RuntimeLvl),
+		fmt.Sprintf("block producer: %s", l.BlockProducerLvl),
+		fmt.Sprintf("finality gadget: %s", l.FinalityGadgetLvl),
+	}
+	return strings.Join(entries, ", ")
+}
+
 // InitConfig is the configuration for the node initialization
 type InitConfig struct {
 	Genesis string
