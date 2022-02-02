@@ -12,6 +12,7 @@ services:
       - 8546
       - 8540
       - 9876
+      - 6060
 
   bob:
     platform: linux/amd64
@@ -27,6 +28,7 @@ services:
       - 8546
       - 8540
       - 9876
+      - 6060
     depends_on:
       - alice
 
@@ -44,6 +46,8 @@ services:
       - 8546
       - 8540
       - 9876
+    depends_on:
+      - alice
 
   substrate-alice:
     platform: linux/amd64
@@ -68,7 +72,9 @@ services:
       - 9933
       - 9944
       - 9615
-  
+    depends_on:
+      - substrate-alice
+
   substrate-charlie:
     platform: linux/amd64
     build:
@@ -81,3 +87,5 @@ services:
       - 9933
       - 9944
       - 9615
+    depends_on:
+      - substrate-alice
