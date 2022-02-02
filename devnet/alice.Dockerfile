@@ -34,4 +34,4 @@ WORKDIR /gossamer
 
 ENTRYPOINT gossamer --key=alice --babe-lead --publish-metrics --rpc --rpc-external=true --pubdns=alice
 
-EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp
+EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp 6060/tcp

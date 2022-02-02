@@ -33,6 +33,6 @@ WORKDIR /gossamer/devnet
 
 WORKDIR /gossamer
 
-ENTRYPOINT gossamer --key=${key} --bootnodes=/dns/substrate-alice/tcp/30333/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN --publish-metrics --rpc --pubdns=${key}
+ENTRYPOINT gossamer --key=${key} --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN --publish-metrics --rpc --pubdns=${key}
 
-EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp
+EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp 6060/tcp

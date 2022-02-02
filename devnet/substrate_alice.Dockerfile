@@ -5,7 +5,7 @@ COPY devnet/chain/gssmr/genesis-raw.json genesis-spec.json
 
 ENTRYPOINT /usr/bin/polkadot \
     --chain genesis-spec.json \
-	--alice \
+    --alice \
     --node-key 0000000000000000000000000000000000000000000000000000000000000000 \
     --tmp
 
