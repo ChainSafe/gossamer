@@ -78,8 +78,8 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.
-		Hash{}, nil)
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).
+		Return(common.Hash{}, nil)
 
 	number = big.NewInt(999)
 	err = cs.setPeerHead(testPeer, hash, number)
@@ -446,7 +446,7 @@ func TestValidateBlockData(t *testing.T) {
 	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},
 	}, "")
-	require.Equal(t, errNilBodyInResponse, err)
+	require.ErrorIs(t, err, errNilBodyInResponse)
 
 	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},
