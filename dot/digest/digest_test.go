@@ -33,7 +33,6 @@ func newTestHandler(t *testing.T) *Handler {
 
 	config := state.Config{
 		Path:      testDatadirPath,
-		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)

@@ -1015,8 +1015,9 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 
 	for i := 0; i < numRequests; i++ {
 		// check if we want to specify a size
-		var max uint32 = maxResponseSize
-		if i == numRequests-1 {
+		max := uint32(maxResponseSize)
+
+		if w.direction == network.Descending && i == numRequests-1 {
 			size := numBlocks % maxResponseSize
 			if size == 0 {
 				size = maxResponseSize

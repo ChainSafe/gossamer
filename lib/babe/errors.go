@@ -60,8 +60,11 @@ var (
 	// ErrThresholdOneIsZero is returned when one of or both parameters to CalculateThreshold is zero
 	ErrThresholdOneIsZero = errors.New("numerator or denominator cannot be 0")
 
+	ErrNilBlockState       = errors.New("cannot have nil BlockState")
+	ErrNilTransactionState = errors.New("cannot create block builder; transaction state is nil")
+	ErrNilVRFProof         = errors.New("cannot create block builder; slot VRF proof is nil")
+
 	errNilBlockImportHandler    = errors.New("cannot have nil BlockImportHandler")
-	errNilBlockState            = errors.New("cannot have nil BlockState")
 	errNilEpochState            = errors.New("cannot have nil EpochState")
 	errNilStorageState          = errors.New("storage state is nil")
 	errNilParentHeader          = errors.New("parent header is nil")
@@ -79,6 +82,7 @@ var (
 	errSkipVerify               = errors.New("skipVerify error")
 	errMissingDigestItems       = errors.New("block header is missing digest items")
 	errDescendant               = errors.New("descendant err")
+	errServicePaused            = errors.New("service paused")
 
 	other         Other
 	invalidCustom InvalidCustom

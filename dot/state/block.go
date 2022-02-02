@@ -483,7 +483,7 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 		return common.Hash{}
 	}
 
-	return bs.bt.DeepestBlockHash()
+	return bs.bt.BestBlockHash()
 }
 
 // BestBlockHeader returns the block header of the current head of the chain

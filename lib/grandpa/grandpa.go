@@ -197,8 +197,13 @@ func (s *Service) Start() error {
 	s.tracker.start()
 
 	go func() {
-		if err := s.initiate(); err != nil {
-			logger.Criticalf("failed to initiate: %s", err)
+		for {
+			// TODO: sometimes grandpa fails to initiate due to a "Key not found"
+			// error, this shouldn't happen.
+			if err := s.initiate(); err != nil {
+				logger.Criticalf("failed to initiate: %s", err)
+			}
+			time.Sleep(s.interval)
 		}
 	}()
 

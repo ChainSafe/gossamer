@@ -279,7 +279,7 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 	height := 5
 	branch := 3
 	branches := map[int]int{branch: 1}
-	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), height, branches, 0)
+	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), height, branches)
 
 	leaves := s.blockState.(*state.BlockState).Leaves()
 	require.Equal(t, 2, len(leaves))

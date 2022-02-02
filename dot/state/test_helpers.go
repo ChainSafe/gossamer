@@ -16,6 +16,7 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -33,6 +34,23 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	})
 
 	return db
+}
+
+func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
+	babeDigest := types.NewBabeDigest()
+	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	require.NoError(t, err)
+
+	bdEnc, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              bdEnc,
+	})
+	require.NoError(t, err)
+	return digest
 }
 
 // branch tree randomly
@@ -134,7 +152,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 
 // AddBlocksToStateWithFixedBranches adds blocks to a BlockState up to depth, with fixed branches
 // branches are provided with a map of depth -> # of branches
-func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth int, branches map[int]int, r byte) {
+func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth int, branches map[int]int) {
 	previousHash := blockState.BestBlockHash()
 	tb := []testBranch{}
 	arrivalTime := time.Now()
@@ -190,10 +208,11 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
+			d, err := types.NewBabePrimaryPreDigest(0, uint64(i+j+99), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+			require.NoError(t, err)
+			require.NotNil(t, d)
 			digest := types.NewDigest()
-			_ = digest.Add(types.PreRuntimeDigest{
-				Data: []byte{byte(i), byte(j), r},
-			})
+			_ = digest.Add(*d)
 
 			block := &types.Block{
 				Header: types.Header{
@@ -206,7 +225,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			}
 
 			hash := block.Header.Hash()
-			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+			err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			require.Nil(t, err)
 
 			blockState.StoreRuntime(hash, rt)
@@ -244,6 +263,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 			ParentHash: *parent,
 			Number:     big.NewInt(bNum),
 			StateRoot:  trieStateRoot,
+			Digest:     createPrimaryBABEDigest(t),
 		},
 		Body: *body,
 	}

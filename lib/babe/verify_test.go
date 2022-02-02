@@ -1019,7 +1019,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 			name:   "nil blockState error",
 			vm:     vm7,
 			header: testBlockHeaderEmpty,
-			expErr: fmt.Errorf("failed to create new BABE verifier: %w", errNilBlockState),
+			expErr: fmt.Errorf("failed to create new BABE verifier: %w", ErrNilBlockState),
 		},
 		{
 			name:   "verify block authorship err",
