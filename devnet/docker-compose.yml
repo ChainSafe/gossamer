@@ -44,18 +44,40 @@ services:
       - 8546
       - 8540
       - 9876
-    depends_on:
-      - alice
-  
-  substrate:
+
+  substrate-alice:
     platform: linux/amd64
     build:
       context: ./..
-      dockerfile: devnet/substrate.Dockerfile
+      dockerfile: devnet/substrate_alice.Dockerfile
     ports:
       - 30333
       - 9933
       - 9944
       - 9615
-    depends_on:
-      - alice
+
+  substrate-bob:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate_bob.Dockerfile
+      args:
+        key: bob
+    ports:
+      - 30333
+      - 9933
+      - 9944
+      - 9615
+  
+  substrate-charlie:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate_bob.Dockerfile
+      args:
+        key: charlie
+    ports:
+      - 30333
+      - 9933
+      - 9944
+      - 9615
