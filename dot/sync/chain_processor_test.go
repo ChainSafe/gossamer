@@ -50,6 +50,9 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 	mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
 	mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState).Return(nil)
 
+	mockTelemetry := NewMockClient(ctrl)
+	mockTelemetry.EXPECT().SendMessage(gomock.Any())
+
 	type fields struct {
 		blockState         BlockState
 		storageState       StorageState
@@ -91,6 +94,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				blockState:         tt.fields.blockState,
 				storageState:       tt.fields.storageState,
 				blockImportHandler: tt.fields.blockImportHandler,
+				telemetry:          mockTelemetry,
 			}
 			err := s.handleBlock(tt.args.block)
 			if tt.err != nil {
@@ -351,6 +355,9 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 	mockBabeVerifier := NewMockBabeVerifier(ctrl)
 	mockBabeVerifier.EXPECT().VerifyBlock(gomock.AssignableToTypeOf(&types.Header{})).Times(2)
 
+	mockTelemetry := NewMockClient(ctrl)
+	mockTelemetry.EXPECT().SendMessage(gomock.Any()).Times(2)
+
 	mockJustification := []byte{0, 1, 2}
 	mockFinalityGadget := NewMockFinalityGadget(ctrl)
 	mockFinalityGadget.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
@@ -447,6 +454,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				babeVerifier:       tt.fields.babeVerifier,
 				finalityGadget:     tt.fields.finalityGadget,
 				blockImportHandler: tt.fields.blockImportHandler,
+				telemetry:          mockTelemetry,
 			}
 			err := s.processBlockData(tt.args.bd)
 			if tt.err != nil {
@@ -576,7 +584,7 @@ func Test_newChainProcessor(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := newChainProcessor(tt.args.readyBlocks, tt.args.pendingBlocks, tt.args.blockState,
 				tt.args.storageState, tt.args.transactionState, tt.args.babeVerifier, tt.args.finalityGadget,
-				tt.args.blockImportHandler)
+				tt.args.blockImportHandler, nil)
 			assert.NotEmpty(t, got.ctx)
 			assert.NotEmpty(t, got.cancel)
 			assert.Equal(t, tt.want.readyBlocks, got.readyBlocks)

@@ -26,44 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	defaultMinPeers     = 1
-	defaultMaxPeers     = 5
-	testTimeout         = time.Second * 5
-	defaultSlotDuration = time.Second * 6
-)
-
-func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0),
-		types.NewDigest())
-	require.NoError(t, err)
-
-	bs := new(syncmocks.BlockState)
-	bs.On("BestBlockHeader").Return(header, nil)
-	bs.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 128), nil)
-	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
-
-	net := new(syncmocks.Network)
-	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).
-		Return(nil, nil)
-	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
-
-	readyBlocks := newBlockQueue(maxResponseSize)
-
-	cfg := &chainSyncConfig{
-		bs:            bs,
-		net:           net,
-		readyBlocks:   readyBlocks,
-		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
-		minPeers:      defaultMinPeers,
-		maxPeers:      defaultMaxPeers,
-		slotDuration:  defaultSlotDuration,
-	}
-
-	cs := newChainSync(cfg)
-	return cs, readyBlocks
-}
-
 func TestChainSync_SetPeerHead(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 
@@ -161,7 +123,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	}
 }
 
-func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
+func TestChainSync_sync_bootstrap_withWorkerError_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 
 	go cs.sync()
@@ -188,7 +150,7 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	require.Equal(t, bootstrap, cs.state)
 }
 
-func TestChainSync_sync_tip(t *testing.T) {
+func TestChainSync_sync_tip_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 	cs.blockState = new(syncmocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(1000),
@@ -210,7 +172,7 @@ func TestChainSync_sync_tip(t *testing.T) {
 	require.Equal(t, tip, cs.state)
 }
 
-func TestChainSync_getTarget(t *testing.T) {
+func TestChainSync_getTarget_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 	require.Equal(t, big.NewInt(2<<32-1), cs.getTarget())
 
@@ -252,7 +214,7 @@ func TestChainSync_getTarget(t *testing.T) {
 	require.Equal(t, big.NewInt(1500), cs.getTarget())
 }
 
-func TestWorkerToRequests(t *testing.T) {
+func TestWorkerToRequests_Integration(t *testing.T) {
 	_, err := workerToRequests(&worker{})
 	require.Equal(t, errWorkerMissingStartNumber, err)
 
@@ -493,7 +455,7 @@ func TestValidateBlockData(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestChainSync_validateResponse(t *testing.T) {
+func TestChainSync_validateResponse_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 	err := cs.validateResponse(nil, nil, "")
 	require.Equal(t, errEmptyBlockData, err)
@@ -603,7 +565,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 	require.False(t, cs.pendingBlocks.hasBlock(hash))
 }
 
-func TestChainSync_validateResponse_firstBlock(t *testing.T) {
+func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 	bs := new(syncmocks.BlockState)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
@@ -639,7 +601,7 @@ func TestChainSync_validateResponse_firstBlock(t *testing.T) {
 	require.NotNil(t, bd.justification)
 }
 
-func TestChainSync_doSync(t *testing.T) {
+func TestChainSync_doSync_Integration(t *testing.T) {
 	cs, readyBlocks := newTestChainSync(t)
 
 	max := uint32(1)
@@ -722,7 +684,7 @@ func TestChainSync_doSync(t *testing.T) {
 	require.Equal(t, resp.BlockData[1], bd)
 }
 
-func TestHandleReadyBlock(t *testing.T) {
+func TestHandleReadyBlock_Integration(t *testing.T) {
 	cs, readyBlocks := newTestChainSync(t)
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
@@ -764,7 +726,7 @@ func TestHandleReadyBlock(t *testing.T) {
 	}
 	cs.pendingBlocks.addBlock(block2NotDescendant)
 
-	handleReadyBlock(block1.ToBlockData(), cs.pendingBlocks, cs.readyBlocks)
+	cs.handleReadyBlock(block1.ToBlockData())
 
 	require.False(t, cs.pendingBlocks.hasBlock(header1.Hash()))
 	require.False(t, cs.pendingBlocks.hasBlock(header2.Hash()))
@@ -776,7 +738,7 @@ func TestHandleReadyBlock(t *testing.T) {
 	require.Equal(t, block3.ToBlockData(), readyBlocks.pop())
 }
 
-func TestChainSync_determineSyncPeers(t *testing.T) {
+func TestChainSync_determineSyncPeers_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 
 	req := &network.BlockRequestMessage{}

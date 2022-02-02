@@ -92,7 +92,7 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	return cs, readyBlocks
 }
 
-func TestChainSync_SetPeerHead(t *testing.T) {
+func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 
 	testPeer := peer.ID("noot")
@@ -807,7 +807,7 @@ func TestHandleReadyBlock(t *testing.T) {
 	}
 	cs.pendingBlocks.addBlock(block2NotDescendant)
 
-	handleReadyBlock(block1.ToBlockData(), cs.pendingBlocks, cs.readyBlocks)
+	cs.handleReadyBlock(block1.ToBlockData())
 
 	require.False(t, cs.pendingBlocks.hasBlock(header1.Hash()))
 	require.False(t, cs.pendingBlocks.hasBlock(header2.Hash()))
