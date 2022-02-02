@@ -311,7 +311,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 	mockBlockState.EXPECT().GetBlockByHash(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.
 		Hash) (*types.Block, error) {
 		if hash.IsEmpty() {
-			return nil, nil
+			return nil, nil //nolint:nilnil
 		}
 		num := big.NewInt(0)
 		num.SetBytes(hash[0:1])

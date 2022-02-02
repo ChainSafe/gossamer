@@ -161,7 +161,7 @@ func Test_disjointBlockSet_clearBlocks(t *testing.T) {
 			fields: fields{
 				limit: 0,
 				blocks: map[common.Hash]*pendingBlock{
-					common.Hash{}: testBlock,
+					common.Hash{}: testBlock, //nolint:gofmt
 				},
 				timeNow: time.Now,
 			},
@@ -201,7 +201,7 @@ func Test_disjointBlockSet_getBlocks(t *testing.T) {
 			name: "base case",
 			fields: fields{
 				blocks: map[common.Hash]*pendingBlock{
-					common.Hash{}: testBlock,
+					common.Hash{}: testBlock, //nolint:gofmt
 				},
 			},
 			want: []*pendingBlock{testBlock},
@@ -236,7 +236,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			name: "number 0",
 			fields: fields{
 				blocks: map[common.Hash]*pendingBlock{
-					common.Hash{1}:  testBlock1,
+					common.Hash{1}:  testBlock1, //nolint:gofmt
 					common.Hash{10}: testBlock10,
 				},
 			},
@@ -247,7 +247,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			name: "number 1",
 			fields: fields{
 				blocks: map[common.Hash]*pendingBlock{
-					common.Hash{1}:  testBlock1,
+					common.Hash{1}:  testBlock1, //nolint:gofmt
 					common.Hash{10}: testBlock10,
 				},
 			},
@@ -258,7 +258,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			name: "number 11",
 			fields: fields{
 				blocks: map[common.Hash]*pendingBlock{
-					common.Hash{1}:  testBlock1,
+					common.Hash{1}:  testBlock1, //nolint:gofmt
 					common.Hash{10}: testBlock10,
 				},
 			},

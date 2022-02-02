@@ -871,7 +871,7 @@ func TestChainSync_determineSyncPeers(t *testing.T) {
 }
 
 func Test_chainSync_logSyncSpeed(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background()) //nolint:govet
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockBlockState := NewMockBlockState(ctrl)
@@ -959,4 +959,4 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			cancel()
 		})
 	}
-}
+} //nolint:govet
