@@ -1,0 +1,41 @@
+services:
+  substrate-alice:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate_alice.Dockerfile
+    ports:
+      - 30333
+      - 9933
+      - 9944
+      - 9615
+
+  substrate-bob:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate_bob.Dockerfile
+      args:
+        key: bob
+    ports:
+      - 30333
+      - 9933
+      - 9944
+      - 9615
+    depends_on:
+      - substrate-alice
+
+  substrate-charlie:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate_bob.Dockerfile
+      args:
+        key: charlie
+    ports:
+      - 30333
+      - 9933
+      - 9944
+      - 9615
+    depends_on:
+      - substrate-alice
