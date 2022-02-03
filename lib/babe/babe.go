@@ -45,7 +45,6 @@ type Service struct {
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore (#1864)
 
-	epochData *epochData
 	// for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 	slotToIfPrimary map[uint64]bool
 

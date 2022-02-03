@@ -138,6 +138,7 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 		authorities:    data.Authorities,
 		authorityIndex: idx,
 		threshold:      threshold,
+		secondary:      cfgData.SecondarySlots,
 	}
 
 	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
@@ -234,13 +235,13 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*VrfOutp
 		return proof, nil
 	}
 
-	if b.epochData.secondary != 1 && b.epochData.secondary != 2 {
+	if epochData.secondary != 1 && epochData.secondary != 2 {
 		return nil, err
 	}
 
 	if errors.Is(err, errOverPrimarySlotThreshold) {
 		b.slotToIfPrimary[slot] = false
-		return claimSecondarySlot(b.epochData.randomness, slot, epoch, b.epochData.authorities, b.epochData.threshold, b.keypair)
+		return claimSecondarySlot(epochData.randomness, slot, epoch, epochData.authorities, epochData.threshold, b.keypair)
 	}
 
 	return proof, err
