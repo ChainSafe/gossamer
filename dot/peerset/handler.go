@@ -11,8 +11,7 @@ import (
 
 // Handler manages peerSet.
 type Handler struct {
-	peerSet   *PeerSet
-	cancelCtx context.CancelFunc
+	peerSet *PeerSet
 }
 
 // NewPeerSetHandler creates a new *peerset.Handler.
