@@ -11,10 +11,7 @@ import (
 
 // Handler manages peerSet.
 type Handler struct {
-	actionQueue chan<- action
-	peerSet     *PeerSet
-	closeCh     chan struct{}
-
+	peerSet   *PeerSet
 	cancelCtx context.CancelFunc
 }
 
@@ -112,17 +109,10 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 
 // Start starts peerSet processing
 func (h *Handler) Start(ctx context.Context, processMessageFn func(Message)) {
-	ctx, cancel := context.WithCancel(ctx)
-	h.cancelCtx = cancel
 	h.peerSet.start(ctx, processMessageFn)
 }
 
 // SortedPeers return chan for sorted connected peer in the peerSet.
 func (h *Handler) SortedPeers(setIdx int) peer.IDSlice {
 	return h.peerSet.peerState.sortedPeers(setIdx)
-}
-
-// Stop closes the actionQueue and result message chan.
-func (h *Handler) Stop() {
-	h.cancelCtx()
 }

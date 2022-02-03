@@ -48,7 +48,6 @@ type TransactionHandler interface {
 // PeerSetHandler is the interface used by the connection manager to handle peerset.
 type PeerSetHandler interface {
 	Start(context.Context, func(peerset.Message))
-	Stop()
 	ReportPeer(peerset.ReputationChange, ...peer.ID)
 	PeerAdd
 	PeerRemove

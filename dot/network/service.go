@@ -508,8 +508,6 @@ func (s *Service) Stop() error {
 		logger.Errorf("Failed to close host: %s", err)
 	}
 
-	s.host.cm.peerSetHandler.Stop()
-
 	// check if closeCh is closed, if not, close it.
 mainloop:
 	for {
