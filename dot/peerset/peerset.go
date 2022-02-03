@@ -6,7 +6,6 @@ package peerset
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
@@ -120,33 +119,6 @@ type Message struct {
 	setID  uint64
 	// PeerID peer in message.
 	PeerID peer.ID
-}
-
-// Reputation represents reputation value of the node
-type Reputation int32
-
-// add handles overflow and underflow condition while adding two Reputation values.
-func (r Reputation) add(num Reputation) Reputation {
-	if num > 0 {
-		if r > math.MaxInt32-num {
-			return math.MaxInt32
-		}
-	} else if r < math.MinInt32-num {
-		return math.MinInt32
-	}
-	return r + num
-}
-
-// sub handles underflow condition while subtracting two Reputation values.
-func (r Reputation) sub(num Reputation) Reputation {
-	if num < 0 {
-		if r > math.MaxInt32+num {
-			return math.MaxInt32
-		}
-	} else if r < math.MinInt32+num {
-		return math.MinInt32
-	}
-	return r - num
 }
 
 // ReputationChange is description of a reputation adjustment for a node
@@ -294,7 +266,11 @@ func (ps *PeerSet) updateTime() error {
 					continue
 				}
 
-				lastDiscoveredTime := ps.peerState.lastConnectedAndDiscovered(set, peerID)
+				lastDiscoveredTime, err := ps.peerState.lastConnectedAndDiscovered(set, peerID)
+				if err != nil {
+					return err
+				}
+
 				if lastDiscoveredTime.Add(forgetAfterTime).Second() >= currTime.Second() {
 					continue
 				}
