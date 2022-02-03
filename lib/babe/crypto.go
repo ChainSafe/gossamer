@@ -4,7 +4,6 @@
 package babe
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -85,14 +84,6 @@ func checkPrimaryThreshold(randomness Randomness,
 	return inoutUint.Compare(threshold) < 0, nil
 }
 
-func i32toBytes(val uint32) []byte {
-	r := make([]byte, 4)
-	for i := uint32(0); i < 4; i++ {
-		r[i] = byte((val >> (8 * i)) & 0xff)
-	}
-	return r
-}
-
 func claimSecondarySlot(randomness Randomness,
 	slot, epoch uint64,
 	authorities []types.Authority,
@@ -105,14 +96,16 @@ func claimSecondarySlot(randomness Randomness,
 		return nil, err
 	}
 
-	for _, authority := range authorities {
-		if bytes.Equal(authority.ToRaw().Key[:], i32toBytes(secondarySlotAuthor)) {
+	for authority_index := range authorities {
+		if authority_index == int(secondarySlotAuthor) {
 			transcript := makeTranscript(randomness, slot, epoch)
 
 			out, proof, err := keypair.VrfSign(transcript)
 			if err != nil {
 				return nil, err
 			}
+
+			logger.Debugf("claimed secondary slot, for slot number: %d", slot)
 
 			return &VrfOutputAndProof{
 				output: out,
@@ -121,6 +114,7 @@ func claimSecondarySlot(randomness Randomness,
 		}
 	}
 
+	// It is not our turn to propose
 	return nil, nil
 }
 

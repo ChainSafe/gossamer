@@ -26,7 +26,7 @@ const (
 
 // construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance,
-	authorityIndex uint32, proof *VrfOutputAndProof) (*types.Block, error) {
+	authorityIndex uint32, proof *VrfOutputAndProof, ifPrimary bool) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
 		b.keypair,
 		b.transactionState,
@@ -43,7 +43,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 	ethmetrics.Enabled = true
 
 	start := time.Now()
-	block, err := builder.buildBlock(parent, slot, rt)
+	block, err := builder.buildBlock(parent, slot, rt, ifPrimary)
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
 		builderErrors.Inc(1)
@@ -62,7 +62,6 @@ type BlockBuilder struct {
 	blockState            BlockState
 	proof                 *VrfOutputAndProof
 	currentAuthorityIndex uint32
-	slotToIfPrimary       map[uint64]bool
 }
 
 // NewBlockBuilder creates a new block builder.
@@ -90,11 +89,11 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
 	return bb, nil
 }
 
-func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
+func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance, ifPrimary bool) (*types.Block, error) {
 	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
 	// create pre-digest
-	preDigest, err := b.buildBlockPreDigest(slot)
+	preDigest, err := b.buildBlockPreDigest(slot, ifPrimary)
 	if err != nil {
 		return nil, err
 	}
@@ -195,18 +194,14 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 
 // buildBlockPreDigest creates the pre-digest for the slot.
 // the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
-func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
+func (b *BlockBuilder) buildBlockPreDigest(slot Slot, ifPrimary bool) (*types.PreRuntimeDigest, error) {
 
 	// check if secondary slot
-	isPrimary, ok := b.slotToIfPrimary[slot.number]
-	if !ok {
-		return nil, ErrNotAuthorized
-	}
 
 	// TODO: if author_secondary_vrf enabled, use SecondaryVRF
 	// otherwise BlockBabeSecondaryPlainPreDigest
 	babeHeader := types.NewBabeDigest()
-	if isPrimary {
+	if ifPrimary {
 		data := b.buildBlockBABEPrimaryPreDigest(slot)
 		err := babeHeader.Set(*data)
 		if err != nil {

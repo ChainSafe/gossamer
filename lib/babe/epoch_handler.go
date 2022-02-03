@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
-type handleSlotFunc = func(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof) error
+type handleSlotFunc = func(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof, ifPrimary bool) error
 
 var (
 	errEpochPast = errors.New("cannot run epoch that has already passed")
@@ -27,7 +27,8 @@ type epochHandler struct {
 	epochData *epochData
 
 	// for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	slotToProof map[uint64]*VrfOutputAndProof
+	slotToProof     map[uint64]*VrfOutputAndProof
+	slotToIfPrimary map[uint64]bool
 
 	handleSlot handleSlotFunc
 }
@@ -36,6 +37,7 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
 	// determine which slots we'll be authoring in by pre-calculating VRF output
 	slotToProof := make(map[uint64]*VrfOutputAndProof, constants.epochLength)
+	slotToIfPrimary := make(map[uint64]bool)
 	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
 		proof, err := claimPrimarySlot(
 			epochData.randomness,
@@ -44,23 +46,34 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			epochData.threshold,
 			keypair,
 		)
-		if errors.Is(err, errOverPrimarySlotThreshold) {
+		if err == nil {
+			slotToProof[i] = proof
+			slotToIfPrimary[i] = true
+			logger.Debugf("epoch %d: claimed slot %d", epochNumber, i)
 			continue
-		} else if err != nil {
+		}
+		if !errors.Is(err, errOverPrimarySlotThreshold) {
+			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
+		}
+
+		proof, err = claimSecondarySlot(epochData.randomness, i, epochNumber, epochData.authorities, epochData.threshold, keypair)
+		if err != nil {
 			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
 		}
 
 		slotToProof[i] = proof
+		slotToIfPrimary[i] = false
 		logger.Debugf("epoch %d: claimed slot %d", epochNumber, i)
 	}
 
 	return &epochHandler{
-		epochNumber: epochNumber,
-		firstSlot:   firstSlot,
-		constants:   constants,
-		epochData:   epochData,
-		slotToProof: slotToProof,
-		handleSlot:  handleSlot,
+		epochNumber:     epochNumber,
+		firstSlot:       firstSlot,
+		constants:       constants,
+		epochData:       epochData,
+		slotToProof:     slotToProof,
+		handleSlot:      handleSlot,
+		slotToIfPrimary: slotToIfPrimary,
 	}, nil
 }
 
@@ -124,7 +137,7 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 				panic(fmt.Sprintf("no VRF proof for authoring slot! slot=%d", swt.slotNum))
 			}
 
-			err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToProof[swt.slotNum])
+			err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToProof[swt.slotNum], h.slotToIfPrimary[swt.slotNum])
 			if err != nil {
 				logger.Warnf("failed to handle slot %d: %s", swt.slotNum, err)
 				continue

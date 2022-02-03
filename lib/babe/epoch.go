@@ -244,5 +244,5 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*VrfOutp
 		return claimSecondarySlot(epochData.randomness, slot, epoch, epochData.authorities, epochData.threshold, b.keypair)
 	}
 
-	return proof, err
+	return nil, err
 }
