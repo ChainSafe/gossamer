@@ -107,6 +107,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		keypair:            cfg.Keypair,
 		transactionState:   cfg.TransactionState,
 		slotToProof:        make(map[uint64]*VrfOutputAndProof),
+		slotToIfPrimary:    make(map[uint64]bool),
 		pause:              make(chan struct{}),
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
