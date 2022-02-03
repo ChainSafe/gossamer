@@ -1244,6 +1244,73 @@ func TestServiceGetMetadata(t *testing.T) {
 	}
 }
 
+func TestService_tryQueryStorage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockStorageStateRootErr := NewMockStorageState(ctrl)
+	mockStorageStateRootErr.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
+
+	mockStorageStateErr := NewMockStorageState(ctrl)
+	mockStorageStateErr.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+	mockStorageStateErr.EXPECT().GetStorage(&common.Hash{}, common.MustHexToBytes("0x01")).Return(nil, errDummyErr)
+
+	mockStorageStateOk := NewMockStorageState(ctrl)
+	mockStorageStateOk.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+	mockStorageStateOk.EXPECT().GetStorage(&common.Hash{}, common.MustHexToBytes("0x01")).
+		Return([]byte{1, 2, 3}, nil)
+	expChanges := make(QueryKeyValueChanges)
+	expChanges["0x01"] = common.BytesToHex([]byte{1, 2, 3})
+	type args struct {
+		block common.Hash
+		keys  []string
+	}
+	tests := []struct {
+		name    string
+		service *Service
+		args    args
+		exp    QueryKeyValueChanges
+		expErr error
+		expErrMsg string
+	}{
+		{
+			name: "get state root error",
+			service: &Service{storageState: mockStorageStateRootErr},
+			args: args{block: common.Hash{}},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "get storage error",
+			service: &Service{storageState: mockStorageStateErr},
+			args: args{
+				block: common.Hash{},
+				keys: []string{"0x01"},
+			},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "happy path",
+			service: &Service{storageState: mockStorageStateOk},
+			args: args{
+				block: common.Hash{},
+				keys: []string{"0x01"},
+			},
+			exp: expChanges,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			res, err := s.tryQueryStorage(tt.args.block, tt.args.keys...)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
 // This needs to be last function in this file
 func TestCleanup(t *testing.T) {
 	err := runtime.RemoveFiles(testWasmPaths)
