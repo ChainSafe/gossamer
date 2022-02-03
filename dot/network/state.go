@@ -47,7 +47,7 @@ type TransactionHandler interface {
 
 // PeerSetHandler is the interface used by the connection manager to handle peerset.
 type PeerSetHandler interface {
-	Start(context.Context)
+	Start(context.Context, func(peerset.Message))
 	Stop()
 	ReportPeer(peerset.ReputationChange, ...peer.ID)
 	PeerAdd
@@ -73,6 +73,4 @@ type PeerRemove interface {
 // Peer is the interface used by the PeerSetHandler to get the peer data from peerSet.
 type Peer interface {
 	PeerReputation(peer.ID) (peerset.Reputation, error)
-	SortedPeers(idx int) chan peer.IDSlice
-	Messages() chan peerset.Message
 }

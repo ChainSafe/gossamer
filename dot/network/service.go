@@ -174,6 +174,7 @@ func NewService(cfg *Config) (*Service, error) {
 	if cfg.batchSize == 0 {
 		cfg.batchSize = defaultTxnBatchSize
 	}
+
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -695,13 +696,11 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 }
 
 func (s *Service) startPeerSetHandler() {
-	s.host.cm.peerSetHandler.Start(s.ctx)
+	s.host.cm.peerSetHandler.Start(s.ctx, s.processMessage)
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()
 	}
-
-	go s.startProcessingMsg()
 }
 
 func (s *Service) processMessage(msg peerset.Message) {
@@ -735,21 +734,5 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
-	}
-}
-
-func (s *Service) startProcessingMsg() {
-	msgCh := s.host.cm.peerSetHandler.Messages()
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case msg, ok := <-msgCh:
-			if !ok {
-				return
-			}
-
-			s.processMessage(msg)
-		}
 	}
 }

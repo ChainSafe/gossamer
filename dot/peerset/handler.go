@@ -31,79 +31,73 @@ func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
 }
 
 // AddReservedPeer adds reserved peer into peerSet.
+func (h *Handler) SetReservedOnlyPeer(setID int, peers ...peer.ID) {
+	// TODO: not yet implemented (#1888)
+	logger.Errorf("failed to do action %s on peerSet: not implemented yet", setReservedOnly)
+}
+
+// AddReservedPeer adds reserved peer into peerSet.
 func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- action{
-		actionCall: addReservedPeer,
-		setID:      setID,
-		peers:      peers,
+	err := h.peerSet.addReservedPeers(setID, peers...)
+	if err != nil {
+		logger.Errorf("failed to do action %s on peerSet: %s", addReservedPeer, err)
 	}
 }
 
 // RemoveReservedPeer remove reserved peer from peerSet.
 func (h *Handler) RemoveReservedPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- action{
-		actionCall: removeReservedPeer,
-		setID:      setID,
-		peers:      peers,
+	err := h.peerSet.removeReservedPeers(setID, peers...)
+	if err != nil {
+		logger.Errorf("failed to do action %s on peerSet: %s", removeReservedPeer, err)
 	}
 }
 
 // SetReservedPeer set the reserve peer into peerSet
 func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- action{
-		actionCall: setReservedPeers,
-		setID:      setID,
-		peers:      peers,
+	// TODO: this is not used yet, might required to implement RPC Call for this.
+	err := h.peerSet.setReservedPeer(setID, peers...)
+	if err != nil {
+		logger.Errorf("failed to do action %s on peerSet: %s", setReservedPeers, err)
 	}
 }
 
 // AddPeer adds peer to peerSet.
 func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- action{
-		actionCall: addToPeerSet,
-		setID:      setID,
-		peers:      peers,
+	err := h.peerSet.addPeer(setID, peers)
+	if err != nil {
+		logger.Errorf("failed to do action %s on peerSet: %s", addToPeerSet, err)
 	}
 }
 
 // RemovePeer removes peer from peerSet.
 func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- action{
-		actionCall: removeFromPeerSet,
-		setID:      setID,
-		peers:      peers,
+	err := h.peerSet.removePeer(setID, peers...)
+	if err != nil {
+		logger.Errorf("failed to do action %s on peerSet: %s", removeFromPeerSet, err)
 	}
 }
 
 // ReportPeer reports ReputationChange according to the peer behaviour.
 func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
-	h.actionQueue <- action{
-		actionCall: reportPeer,
-		reputation: rep,
-		peers:      peers,
+	err := h.peerSet.reportPeer(rep, peers...)
+	if err != nil {
+		logger.Errorf("failed to do action %s on peerSet: %s", reportPeer, err)
 	}
 }
 
 // Incoming calls when we have an incoming connection from peer.
 func (h *Handler) Incoming(setID int, peers ...peer.ID) {
-	h.actionQueue <- action{
-		actionCall: incoming,
-		peers:      peers,
-		setID:      setID,
+	err := h.peerSet.incoming(setID, peers...)
+	if err != nil {
+		logger.Errorf("failed to do action %s on peerSet: %s", incoming, err)
 	}
-}
-
-// Messages return result message chan.
-func (h *Handler) Messages() chan Message {
-	return h.peerSet.resultMsgCh
 }
 
 // DisconnectPeer calls for disconnecting a connection from peer.
 func (h *Handler) DisconnectPeer(setID int, peers ...peer.ID) {
-	h.actionQueue <- action{
-		actionCall: disconnect,
-		setID:      setID,
-		peers:      peers,
+	err := h.peerSet.disconnect(setID, UnknownDrop, peers...)
+	if err != nil {
+		logger.Errorf("failed to do action %s on peerSet: %s", disconnect, err)
 	}
 }
 
@@ -113,40 +107,22 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 	if err != nil {
 		return 0, err
 	}
-	return n.getReputation(), nil
+	return n.rep, nil
 }
 
 // Start starts peerSet processing
-func (h *Handler) Start(ctx context.Context) {
+func (h *Handler) Start(ctx context.Context, processMessageFn func(Message)) {
 	ctx, cancel := context.WithCancel(ctx)
 	h.cancelCtx = cancel
-
-	actionCh := make(chan action, msgChanSize)
-	h.closeCh = make(chan struct{})
-	h.actionQueue = actionCh
-
-	h.peerSet.start(ctx, actionCh)
+	h.peerSet.start(ctx, processMessageFn)
 }
 
 // SortedPeers return chan for sorted connected peer in the peerSet.
-func (h *Handler) SortedPeers(setIdx int) chan peer.IDSlice {
-	resultPeersCh := make(chan peer.IDSlice)
-	h.actionQueue <- action{
-		actionCall:    sortedPeers,
-		resultPeersCh: resultPeersCh,
-		setID:         setIdx,
-	}
-
-	return resultPeersCh
+func (h *Handler) SortedPeers(setIdx int) peer.IDSlice {
+	return h.peerSet.peerState.sortedPeers(setIdx)
 }
 
 // Stop closes the actionQueue and result message chan.
 func (h *Handler) Stop() {
-	select {
-	case <-h.closeCh:
-	default:
-		h.cancelCtx()
-		close(h.closeCh)
-		close(h.actionQueue)
-	}
+	h.cancelCtx()
 }

@@ -150,33 +150,34 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 	state.discover(0, peer1)
 	n, err := state.getNode(peer1)
 	require.NoError(t, err)
-	n.setReputation(50)
+
+	n.rep = 50
 	state.nodes[peer1] = n
 
-	require.Equal(t, Reputation(50), state.nodes[peer1].getReputation())
+	require.Equal(t, Reputation(50), state.nodes[peer1].rep)
 
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer2))
 
 	state.discover(0, peer2)
 	n, err = state.getNode(peer2)
 	require.NoError(t, err)
-	n.setReputation(25)
+	n.rep = 25
 	state.nodes[peer2] = n
 
 	// peer1 still has the highest reputation
 	require.Equal(t, peer1, state.highestNotConnectedPeer(0))
-	require.Equal(t, Reputation(25), state.nodes[peer2].getReputation())
+	require.Equal(t, Reputation(25), state.nodes[peer2].rep)
 
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 
 	n, err = state.getNode(peer2)
 	require.NoError(t, err)
 
-	n.setReputation(75)
+	n.rep = 75
 	state.nodes[peer2] = n
 
 	require.Equal(t, peer2, state.highestNotConnectedPeer(0))
-	require.Equal(t, Reputation(75), state.nodes[peer2].getReputation())
+	require.Equal(t, Reputation(75), state.nodes[peer2].rep)
 
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 	err = state.tryAcceptIncoming(0, peer2)
@@ -191,7 +192,7 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer1))
 	n, err = state.getNode(peer1)
 	require.NoError(t, err)
-	n.setReputation(100)
+	n.rep = 100
 	state.nodes[peer1] = n
 
 	require.Equal(t, peer1, state.highestNotConnectedPeer(0))

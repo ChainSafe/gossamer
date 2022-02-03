@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -11,10 +12,70 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type assertMessageParam struct {
+	expect interface{}
+	got    interface{}
+}
+
+type mockProcessMessage struct {
+	callCounter      int
+	executionCounter int
+	expects          map[int]assertMessageParam
+	mockMutex        sync.Mutex
+}
+
+func newMockProcessMessage() *mockProcessMessage {
+	return &mockProcessMessage{
+		expects: make(map[int]assertMessageParam),
+	}
+}
+
+func (mock *mockProcessMessage) ExpectByCall(expected interface{}) {
+	mock.mockMutex.Lock()
+	defer mock.mockMutex.Unlock()
+
+	mock.callCounter++
+	mock.expects[mock.callCounter] = assertMessageParam{
+		expect: expected,
+	}
+}
+
+func (mock *mockProcessMessage) ProcessMessage() func(Message) {
+	return func(m Message) {
+		mock.mockMutex.Lock()
+		defer mock.mockMutex.Unlock()
+
+		mock.executionCounter++
+		assert, has := mock.expects[mock.executionCounter]
+		if has {
+			assert.got = m
+			mock.expects[mock.executionCounter] = assert
+		}
+	}
+}
+
+func (mock *mockProcessMessage) Assert(t *testing.T) {
+	mock.mockMutex.Lock()
+	defer mock.mockMutex.Unlock()
+
+	// the number of calls to processMessage should be the same we expect
+	require.Equal(t, mock.callCounter, mock.executionCounter)
+
+	// follow the order we defined
+	for i := 1; i <= mock.callCounter; i++ {
+		assert, has := mock.expects[i]
+		require.True(t, has)
+		require.Equal(t, assert.expect, assert.got)
+	}
+}
+
 func TestPeerSetBanned(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, 25, 25, nil, nil, false)
+	mock := newMockProcessMessage()
+	processMessageFn := mock.ProcessMessage()
+
+	handler := newTestPeerSet(t, 25, 25, nil, nil, false, processMessageFn)
 
 	ps := handler.peerSet
 	require.Equal(t, unknownPeer, ps.peerState.peerStatus(0, peer1))
@@ -25,29 +86,36 @@ func TestPeerSetBanned(t *testing.T) {
 
 	// we ban a node by setting its reputation under the threshold.
 	rpc := newReputationChange(BannedThresholdValue-1, "")
+
+	mock.ExpectByCall(Message{Status: Drop, setID: 0x0, PeerID: "testPeer1"})
 	// we need one for the message to be processed.
 	handler.ReportPeer(rpc, peer1)
 	time.Sleep(time.Millisecond * 100)
 
-	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
-
+	mock.ExpectByCall(Message{Status: Reject, setID: 0x0, PeerID: "testPeer1"})
 	// check that an incoming connection from that node gets refused.
 	handler.Incoming(0, peer1)
-	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
 
 	// wait a bit for the node's reputation to go above the threshold.
 	time.Sleep(time.Millisecond * 1200)
 
+	mock.ExpectByCall(Message{Status: Accept, setID: 0x0, PeerID: "testPeer1"})
 	// try again. This time the node should be accepted.
 	handler.Incoming(0, peer1)
-	require.NoError(t, err)
-	checkMessageStatus(t, <-ps.resultMsgCh, Accept)
+
+	mock.Assert(t)
 }
 
 func TestAddReservedPeers(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{}, false)
+	mock := newMockProcessMessage()
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: bootNode})
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: reservedPeer})
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: reservedPeer2})
+	processMessageFn := mock.ProcessMessage()
+
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{}, false, processMessageFn)
 	ps := handler.peerSet
 
 	handler.AddReservedPeer(0, reservedPeer)
@@ -55,66 +123,61 @@ func TestAddReservedPeers(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 200)
 
-	expectedMsgs := []Message{
-		{Status: Connect, setID: 0, PeerID: bootNode},
-		{Status: Connect, setID: 0, PeerID: reservedPeer},
-		{Status: Connect, setID: 0, PeerID: reservedPeer2},
-	}
-
 	require.Equal(t, uint32(1), ps.peerState.sets[0].numOut)
-	require.Equal(t, 3, len(ps.resultMsgCh))
+	require.Equal(t, 3, mock.executionCounter)
 
-	for i := 0; ; i++ {
-		if len(ps.resultMsgCh) == 0 {
-			break
-		}
-		msg := <-ps.resultMsgCh
-		require.Equal(t, expectedMsgs[i], msg)
-	}
+	mock.Assert(t)
 }
 
 func TestPeerSetIncoming(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode}, []peer.ID{}, false)
-	ps := handler.peerSet
+	mock := newMockProcessMessage()
+	processMessageFn := mock.ProcessMessage()
 
-	// connect message will be added ingoing queue for bootnode.
-	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: bootNode})
+	mock.ExpectByCall(Message{Status: Accept, setID: 0, PeerID: incomingPeer})
+	mock.ExpectByCall(Message{Status: Accept, setID: 0, PeerID: incoming2})
+	mock.ExpectByCall(Message{Status: Reject, setID: 0, PeerID: incoming3})
+
+	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode},
+		[]peer.ID{}, false, processMessageFn)
 
 	handler.Incoming(0, incomingPeer)
-	checkMessageStatus(t, <-ps.resultMsgCh, Accept)
-
 	handler.Incoming(0, incoming2)
-	checkMessageStatus(t, <-ps.resultMsgCh, Accept)
-
 	handler.Incoming(0, incoming3)
-	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
+
+	mock.Assert(t)
 }
 
 func TestPeerSetDiscovered(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false)
+	mock := newMockProcessMessage()
+	processMessageFn := mock.ProcessMessage()
 
-	ps := handler.peerSet
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: reservedPeer})
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: discovered1})
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: discovered2})
+
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false, processMessageFn)
 
 	handler.AddPeer(0, discovered1)
+
 	handler.AddPeer(0, discovered1)
+
 	handler.AddPeer(0, discovered2)
 
-	time.Sleep(200 * time.Millisecond)
-
-	require.Equal(t, 3, len(ps.resultMsgCh))
-	for len(ps.resultMsgCh) == 0 {
-		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
-	}
+	mock.Assert(t)
 }
 
 func TestReAllocAfterBanned(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false)
+	mock := newMockProcessMessage()
+	processMessageFn := mock.ProcessMessage()
+
+	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false, processMessageFn)
 
 	ps := handler.peerSet
 	// adding peer1 with incoming slot.
@@ -126,60 +189,72 @@ func TestReAllocAfterBanned(t *testing.T) {
 
 	// We ban a node by setting its reputation under the threshold.
 	rep := newReputationChange(BannedThresholdValue-1, "")
+
+	mock.ExpectByCall(Message{Status: Drop, setID: 0, PeerID: peer1})
 	// we need one for the message to be processed.
 	handler.ReportPeer(rep, peer1)
 	time.Sleep(time.Millisecond * 100)
 
-	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
-
 	// Check that an incoming connection from that node gets refused.
-
+	mock.ExpectByCall(Message{Status: Reject, setID: 0, PeerID: peer1})
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: peer1})
 	handler.Incoming(0, peer1)
-	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
+	time.Sleep(time.Second * 2)
 
-	time.Sleep(time.Millisecond * 100)
-	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+	mock.Assert(t)
 }
 
 func TestRemovePeer(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2}, nil, false)
+	mock := newMockProcessMessage()
+	processMessageFn := mock.ProcessMessage()
+
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: "testDiscovered1"})
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: "testDiscovered2"})
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2},
+		nil, false, processMessageFn)
+
 	ps := handler.peerSet
+	require.Equal(t, 2, mock.executionCounter)
 
-	require.Equal(t, 2, len(ps.resultMsgCh))
-	for len(ps.resultMsgCh) != 0 {
-		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
-	}
+	time.Sleep(time.Millisecond * 500)
 
+	mock.ExpectByCall(Message{Status: Drop, setID: 0, PeerID: "testDiscovered1"})
+	mock.ExpectByCall(Message{Status: Drop, setID: 0, PeerID: "testDiscovered2"})
 	handler.RemovePeer(0, discovered1, discovered2)
-	time.Sleep(200 * time.Millisecond)
-
-	require.Equal(t, 2, len(ps.resultMsgCh))
-	for len(ps.resultMsgCh) != 0 {
-		checkMessageStatus(t, <-ps.resultMsgCh, Drop)
-	}
 
 	require.Equal(t, 0, len(ps.peerState.nodes))
+
+	mock.Assert(t)
 }
 
 func TestSetReservePeer(t *testing.T) {
 	t.Parallel()
 
-	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2}, true)
+	mock := newMockProcessMessage()
+	processMessageFn := mock.ProcessMessage()
+
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: reservedPeer})
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: reservedPeer2})
+	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2},
+		true, processMessageFn)
+
 	ps := handler.peerSet
 
-	require.Equal(t, 2, len(ps.resultMsgCh))
-	for len(ps.resultMsgCh) != 0 {
-		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
-	}
+	require.Equal(t, 2, mock.executionCounter)
+
+	mock.ExpectByCall(Message{Status: Connect, setID: 0, PeerID: "newRsrPeer"})
+	mock.ExpectByCall(Message{Status: Drop, setID: 0, PeerID: reservedPeer2})
 
 	newRsrPeerSet := peer.IDSlice{reservedPeer, peer.ID("newRsrPeer")}
+	// add newRsrPeer but remove reservedPeer2
 	handler.SetReservedPeer(0, newRsrPeerSet...)
-	time.Sleep(200 * time.Millisecond)
 
 	require.Equal(t, len(newRsrPeerSet), len(ps.reservedNode))
 	for _, p := range newRsrPeerSet {
 		require.Contains(t, ps.reservedNode, p)
 	}
+
+	mock.Assert(t)
 }

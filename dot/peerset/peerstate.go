@@ -88,17 +88,9 @@ func newNode(n int) *node {
 	}
 }
 
-func (n *node) getReputation() Reputation {
-	return n.rep
-}
-
 func (n *node) addReputation(modifier Reputation) Reputation {
 	n.rep = n.rep.add(modifier)
 	return n.rep
-}
-
-func (n *node) setReputation(modifier Reputation) {
-	n.rep = modifier
 }
 
 // PeersState struct contains a list of nodes, where each node
@@ -116,7 +108,6 @@ type PeersState struct {
 func (ps *PeersState) getNode(p peer.ID) (*node, error) {
 	ps.peerStateRWMutex.RLock()
 	defer ps.peerStateRWMutex.RUnlock()
-
 	if n, ok := ps.nodes[p]; ok {
 		return n, nil
 	}
@@ -228,6 +219,23 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 	return peerIDs
 }
 
+func (ps *PeersState) updateReputationByTick(peerID peer.ID) (after Reputation, err error) {
+	ps.peerStateRWMutex.Lock()
+	defer ps.peerStateRWMutex.Unlock()
+
+	node, has := ps.nodes[peerID]
+	if !has {
+		return 0, ErrPeerDoesNotExist
+	}
+
+	after = reputationTick(node.rep)
+
+	node.rep = after
+	ps.nodes[peerID] = node
+
+	return after, nil
+}
+
 func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
 	newReputation Reputation, err error) {
 
@@ -269,18 +277,12 @@ func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 }
 
 func (ps *PeersState) hasFreeOutgoingSlot(set int) bool {
-	ps.peerStateRWMutex.RLock()
-	defer ps.peerStateRWMutex.RUnlock()
-
 	return ps.sets[set].numOut < ps.sets[set].maxOut
 }
 
 // Note: that it is possible for numIn to be strictly superior to the max, in case we were
 // connected to reserved node then marked them as not reserved.
 func (ps *PeersState) hasFreeIncomingSlot(set int) bool {
-	ps.peerStateRWMutex.RLock()
-	defer ps.peerStateRWMutex.RUnlock()
-
 	return ps.sets[set].numIn >= ps.sets[set].maxIn
 }
 
@@ -417,7 +419,7 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 		node.state[set] = notMember
 	}
 
-	if node.getReputation() != 0 {
+	if node.rep != 0 {
 		return nil
 	}
 
