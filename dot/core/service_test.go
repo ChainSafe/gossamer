@@ -1030,37 +1030,37 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		expErrMsg string
 	}{
 		{
-			name: "get state root err",
-			service: &Service{storageState: mockStorageStateGetRootErr},
-			bhash: &common.Hash{},
-			expErr: errDummyErr,
+			name:      "get state root err",
+			service:   &Service{storageState: mockStorageStateGetRootErr},
+			bhash:     &common.Hash{},
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
-			name: "trie state err",
-			service: &Service{storageState: mockStorageStateTrieErr},
-			bhash: &common.Hash{},
-			expErr: errDummyErr,
+			name:      "trie state err",
+			service:   &Service{storageState: mockStorageStateTrieErr},
+			bhash:     &common.Hash{},
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "get runtime err",
 			service: &Service{
 				storageState: mockStorageStateOk,
-				blockState: mockBlockStateErr,
+				blockState:   mockBlockStateErr,
 			},
-			bhash: &common.Hash{},
-			expErr: errDummyErr,
+			bhash:     &common.Hash{},
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "happy path",
 			service: &Service{
 				storageState: mockStorageStateOk,
-				blockState: mockBlockStateOk,
+				blockState:   mockBlockStateOk,
 			},
 			bhash: &common.Hash{},
-			exp: rv,
+			exp:   rv,
 		},
 	}
 	for _, tt := range tests {
@@ -1107,53 +1107,53 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 	mockNetState := NewMockNetwork(ctrl)
 	mockNetState.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}})
 	tests := []struct {
-		name    string
+		name      string
 		service   *Service
-		ext types.Extrinsic
-		expErr error
+		ext       types.Extrinsic
+		expErr    error
 		expErrMsg string
 	}{
 		{
-			name: "nil network",
+			name:    "nil network",
 			service: &Service{},
 		},
 		{
 			name: "trie state err",
 			service: &Service{
 				storageState: mockStorageStateErr,
-				net: NewMockNetwork(ctrl),
+				net:          NewMockNetwork(ctrl),
 			},
-			expErr: errDummyErr,
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "get runtime err",
 			service: &Service{
 				storageState: mockStorageStateOk,
-				blockState: mockBlockStateRuntimeErr,
-				net: NewMockNetwork(ctrl),
+				blockState:   mockBlockStateRuntimeErr,
+				net:          NewMockNetwork(ctrl),
 			},
-			expErr: errDummyErr,
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "validate txn err",
 			service: &Service{
 				storageState: mockStorageStateOk,
-				blockState: mockBlockStateRuntimeOk,
-				net: NewMockNetwork(ctrl),
+				blockState:   mockBlockStateRuntimeOk,
+				net:          NewMockNetwork(ctrl),
 			},
-			ext: types.Extrinsic{},
-			expErr: errDummyErr,
+			ext:       types.Extrinsic{},
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "happy path",
 			service: &Service{
-				storageState: mockStorageStateOk,
-				blockState: mockBlockStateRuntimeOk2,
+				storageState:     mockStorageStateOk,
+				blockState:       mockBlockStateRuntimeOk2,
 				transactionState: mockTxnState,
-				net: mockNetState,
+				net:              mockNetState,
 			},
 			ext: types.Extrinsic{},
 		},
@@ -1189,11 +1189,11 @@ func TestServiceGetMetadata(t *testing.T) {
 	runtimeMockOk.On("SetContextStorage", &rtstorage.TrieState{})
 	runtimeMockOk.On("Metadata").Return([]byte{1, 2, 3}, nil)
 	tests := []struct {
-		name    string
+		name      string
 		service   *Service
-		bhash *common.Hash
-		exp    []byte
-		expErr error
+		bhash     *common.Hash
+		exp       []byte
+		expErr    error
 		expErrMsg string
 	}{
 		{
@@ -1201,8 +1201,8 @@ func TestServiceGetMetadata(t *testing.T) {
 			service: &Service{
 				storageState: mockStorageStateRootErr,
 			},
-			bhash: &common.Hash{},
-			expErr: errDummyErr,
+			bhash:     &common.Hash{},
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
@@ -1210,23 +1210,23 @@ func TestServiceGetMetadata(t *testing.T) {
 			service: &Service{
 				storageState: mockStorageStateTrieErr,
 			},
-			expErr: errDummyErr,
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "get runtime error",
 			service: &Service{
 				storageState: mockStorageStateOk,
-				blockState: mockBlockStateRuntimeErr,
+				blockState:   mockBlockStateRuntimeErr,
 			},
-			expErr: errDummyErr,
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "happy path",
 			service: &Service{
 				storageState: mockStorageStateOk,
-				blockState: mockBlockStateRuntimeOk,
+				blockState:   mockBlockStateRuntimeOk,
 			},
 			exp: []byte{1, 2, 3},
 		},
@@ -1264,36 +1264,36 @@ func TestService_tryQueryStorage(t *testing.T) {
 		keys  []string
 	}
 	tests := []struct {
-		name    string
-		service *Service
-		args    args
-		exp    QueryKeyValueChanges
-		expErr error
+		name      string
+		service   *Service
+		args      args
+		exp       QueryKeyValueChanges
+		expErr    error
 		expErrMsg string
 	}{
 		{
-			name: "get state root error",
-			service: &Service{storageState: mockStorageStateRootErr},
-			args: args{block: common.Hash{}},
-			expErr: errDummyErr,
+			name:      "get state root error",
+			service:   &Service{storageState: mockStorageStateRootErr},
+			args:      args{block: common.Hash{}},
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
-			name: "get storage error",
+			name:    "get storage error",
 			service: &Service{storageState: mockStorageStateErr},
 			args: args{
 				block: common.Hash{},
-				keys: []string{"0x01"},
+				keys:  []string{"0x01"},
 			},
-			expErr: errDummyErr,
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
-			name: "happy path",
+			name:    "happy path",
 			service: &Service{storageState: mockStorageStateOk},
 			args: args{
 				block: common.Hash{},
-				keys: []string{"0x01"},
+				keys:  []string{"0x01"},
 			},
 			exp: expChanges,
 		},
@@ -1328,39 +1328,38 @@ func TestService_QueryStorage(t *testing.T) {
 	expChanges["0x01"] = common.BytesToHex([]byte{1, 2, 3})
 	expQueries := make(map[common.Hash]QueryKeyValueChanges)
 	expQueries[common.Hash{0x01}] = expChanges
-
 	type args struct {
 		from common.Hash
 		to   common.Hash
 		keys []string
 	}
 	tests := []struct {
-		name    string
-		service *Service
-		args    args
-		exp    map[common.Hash]QueryKeyValueChanges
-		expErr error
+		name      string
+		service   *Service
+		args      args
+		exp       map[common.Hash]QueryKeyValueChanges
+		expErr    error
 		expErrMsg string
 	}{
 		{
-			name: "subchain error",
+			name:    "subchain error",
 			service: &Service{blockState: mockBlockStateErr},
 			args: args{
 				from: common.Hash{1},
-				to: common.Hash{},
+				to:   common.Hash{},
 			},
-			expErr: errDummyErr,
+			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
 			name: "happy path",
 			service: &Service{
-				blockState: mockBlockStateOk,
+				blockState:   mockBlockStateOk,
 				storageState: mockStorageStateOk,
 			},
 			args: args{
 				from: common.Hash{1},
-				to: common.Hash{},
+				to:   common.Hash{},
 				keys: []string{"0x01"},
 			},
 			exp: expQueries,
@@ -1375,6 +1374,88 @@ func TestService_QueryStorage(t *testing.T) {
 				assert.EqualError(t, err, tt.expErrMsg)
 			}
 			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
+func TestService_GetReadProofAt(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockBlockStateRootErr := NewMockBlockState(ctrl)
+	mockBlockStateRootErr.EXPECT().BestBlockHash().Return(common.Hash{2})
+	mockBlockStateRootErr.EXPECT().GetBlockStateRoot(common.Hash{2}).Return(common.Hash{}, errDummyErr)
+
+	mockBlockStateOk := NewMockBlockState(ctrl)
+	mockBlockStateOk.EXPECT().BestBlockHash().Return(common.Hash{2}).MaxTimes(2)
+	mockBlockStateOk.EXPECT().GetBlockStateRoot(common.Hash{2}).Return(common.Hash{3}, nil).MaxTimes(2)
+	mockStorageStateErr := NewMockStorageState(ctrl)
+	mockStorageStateErr.EXPECT().GenerateTrieProof(common.Hash{3}, [][]byte{{1}}).
+		Return([][]byte{}, errDummyErr)
+
+	mockStorageStateOk := NewMockStorageState(ctrl)
+	mockStorageStateOk.EXPECT().GenerateTrieProof(common.Hash{3}, [][]byte{{1}}).
+		Return([][]byte{{2}}, nil)
+
+	type args struct {
+		block common.Hash
+		keys  [][]byte
+	}
+	tests := []struct {
+		name            string
+		service         *Service
+		args            args
+		expHash         common.Hash
+		expProofForKeys [][]byte
+		expErr          error
+		expErrMsg       string
+	}{
+		{
+			name:    "get block state root error",
+			service: &Service{blockState: mockBlockStateRootErr},
+			args: args{
+				block: common.Hash{},
+			},
+			expHash:   common.Hash{},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "generate trie proof error",
+			service: &Service{
+				blockState:   mockBlockStateOk,
+				storageState: mockStorageStateErr,
+			},
+			args: args{
+				block: common.Hash{},
+				keys:  [][]byte{{1}},
+			},
+			expHash:   common.Hash{},
+			expErr:    errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "happy path",
+			service: &Service{
+				blockState:   mockBlockStateOk,
+				storageState: mockStorageStateOk,
+			},
+			args: args{
+				block: common.Hash{},
+				keys:  [][]byte{{1}},
+			},
+			expHash:         common.Hash{2},
+			expProofForKeys: [][]byte{{2}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			resHash, resProofForKeys, err := s.GetReadProofAt(tt.args.block, tt.args.keys)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+			assert.Equal(t, tt.expHash, resHash)
+			assert.Equal(t, tt.expProofForKeys, resProofForKeys)
 		})
 	}
 }

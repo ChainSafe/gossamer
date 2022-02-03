@@ -161,7 +161,6 @@ func generateTestValidTxns(t *testing.T) []*transaction.ValidTransaction {
 	//testExternalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt[0]...))
 	//testUnencryptedBody := types.NewBody(encExt)
 
-
 	txs := []*transaction.ValidTransaction{
 		{
 			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[0]...)),
