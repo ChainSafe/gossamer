@@ -28,7 +28,7 @@ func TestService_Methods(t *testing.T) {
 	qtyAuthorMethods := 8
 
 	rpcService := NewService()
-	sysMod := modules.NewSystemModule(nil, nil, nil, nil, nil, nil)
+	sysMod := modules.NewSystemModule(nil, nil, nil, nil, nil, nil, nil)
 	rpcService.BuildMethodNames(sysMod, "system")
 	m := rpcService.Methods()
 	require.Equal(t, qtySystemMethods, len(m)) // check to confirm quantity for methods is correct

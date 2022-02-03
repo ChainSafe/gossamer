@@ -11,17 +11,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
-
-	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -35,14 +35,58 @@ const (
 	transactionsID  = "/transactions/1"
 
 	maxMessageSize = 1024 * 63 // 63kb for now
-
-	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )
 
 var (
 	_        services.Service = &Service{}
 	logger                    = log.NewFromGlobal(log.AddContext("pkg", "network"))
 	maxReads                  = 256
+
+	peerCountGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_node",
+		Name:      "peer_count_total",
+		Help:      "total peer count",
+	})
+	connectionsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_node",
+		Name:      "connections_total",
+		Help:      "total number of connections",
+	})
+	nodeLatencyGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_node",
+		Name:      "latency_ms",
+		Help:      "average node latency in milliseconds",
+	})
+	inboundBlockAnnounceStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams_block_announce",
+		Name:      "inbound_total",
+		Help:      "total number of inbound block announce streams",
+	})
+	outboundBlockAnnounceStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams_block_announce",
+		Name:      "outbound_total",
+		Help:      "total number of outbound block announce streams",
+	})
+	inboundGrandpaStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams_grandpa",
+		Name:      "inbound_total",
+		Help:      "total number of inbound grandpa streams",
+	})
+	outboundGrandpaStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams_grandpa",
+		Name:      "outbound_total",
+		Help:      "total number of outbound grandpa streams",
+	})
+	inboundStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams",
+		Name:      "inbound_total",
+		Help:      "total number of inbound streams",
+	})
+	outboundStreamsGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_streams",
+		Name:      "outbound_total",
+		Help:      "total number of outbound streams",
+	})
 )
 
 type (
@@ -82,6 +126,8 @@ type Service struct {
 	noDiscover  bool
 	noMDNS      bool
 	noGossip    bool // internal option
+
+	Metrics metrics.IntervalConfig
 
 	// telemetry
 	telemetryInterval time.Duration
@@ -166,6 +212,7 @@ func NewService(cfg *Config) (*Service, error) {
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		telemetry:              cfg.Telemetry,
+		Metrics:                cfg.Metrics,
 	}
 
 	return network, err
@@ -277,8 +324,8 @@ func (s *Service) Start() error {
 
 	logger.Info("started network service with supported protocols " + strings.Join(s.host.protocols(), ", "))
 
-	if s.cfg.PublishMetrics {
-		go s.collectNetworkMetrics()
+	if s.Metrics.Publish {
+		go s.updateMetrics()
 	}
 
 	go s.logPeerCount()
@@ -289,44 +336,27 @@ func (s *Service) Start() error {
 	return nil
 }
 
-func (s *Service) collectNetworkMetrics() {
+func (s *Service) updateMetrics() {
+	ticker := time.NewTicker(s.Metrics.Interval)
+	defer ticker.Stop()
 	for {
-		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
-		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
-		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
-		syncedBlocks := metrics.GetOrRegisterGauge(
-			"service/blocks/sync",
-			metrics.DefaultRegistry)
-		numInboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
-			"network/streams/block_announce/inbound",
-			metrics.DefaultRegistry)
-		numOutboundBlockAnnounceStreams := metrics.GetOrRegisterGauge(
-			"network/streams/block_announce/outbound",
-			metrics.DefaultRegistry)
-		numInboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/inbound", metrics.DefaultRegistry)
-		numOutboundGrandpaStreams := metrics.GetOrRegisterGauge("network/streams/grandpa/outbound", metrics.DefaultRegistry)
-		totalInboundStreams := metrics.GetOrRegisterGauge("network/streams/total/inbound", metrics.DefaultRegistry)
-		totalOutboundStreams := metrics.GetOrRegisterGauge("network/streams/total/outbound", metrics.DefaultRegistry)
-
-		peerCount.Update(int64(s.host.peerCount()))
-		totalConn.Update(int64(len(s.host.h.Network().Conns())))
-		networkLatency.Update(int64(s.host.h.Peerstore().LatencyEWMA(s.host.id())))
-
-		numInboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, true))
-		numOutboundBlockAnnounceStreams.Update(s.getNumStreams(BlockAnnounceMsgType, false))
-		numInboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, true))
-		numOutboundGrandpaStreams.Update(s.getNumStreams(ConsensusMsgType, false))
-		totalInboundStreams.Update(s.getTotalStreams(true))
-		totalOutboundStreams.Update(s.getTotalStreams(false))
-
-		num, err := s.blockState.BestBlockNumber()
-		if err != nil {
-			syncedBlocks.Update(0)
-		} else {
-			syncedBlocks.Update(num.Int64())
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-ticker.C:
+			peerCountGauge.Set(float64(s.host.peerCount()))
+			connectionsGauge.Set(float64(len(s.host.h.Network().Conns())))
+			nodeLatencyGauge.Set(float64(
+				s.host.h.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
+			inboundBlockAnnounceStreamsGauge.Set(float64(
+				s.getNumStreams(BlockAnnounceMsgType, true)))
+			outboundBlockAnnounceStreamsGauge.Set(float64(
+				s.getNumStreams(BlockAnnounceMsgType, false)))
+			inboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, true)))
+			outboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, false)))
+			inboundStreamsGauge.Set(float64(s.getTotalStreams(true)))
+			outboundStreamsGauge.Set(float64(s.getTotalStreams(false)))
 		}
-
-		time.Sleep(gssmrmetrics.RefreshInterval)
 	}
 }
 
@@ -640,18 +670,6 @@ func (s *Service) RemoveReservedPeers(addrs ...string) error {
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
-}
-
-// CollectGauge will be used to collect countable metrics from network service
-func (s *Service) CollectGauge() map[string]int64 {
-	var isSynced int64
-	if !s.syncer.IsSynced() {
-		isSynced = 1
-	}
-
-	return map[string]int64{
-		gssmrIsMajorSyncMetric: isSynced,
-	}
 }
 
 // HighestBlock returns the highest known block number

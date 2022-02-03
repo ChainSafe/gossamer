@@ -61,3 +61,18 @@ func TestNode_Prune(t *testing.T) {
 		}
 	}
 }
+
+func TestNode_primaryAncestorCount(t *testing.T) {
+	bt, hashes := createFlatTree(t, 16)
+	require.Equal(t, 0, bt.root.primaryAncestorCount(0))
+	require.Equal(t, 15, bt.getNode(hashes[15]).primaryAncestorCount(0))
+
+	for i, hash := range hashes {
+		n := bt.getNode(hash)
+		if i%2 == 0 {
+			n.isPrimary = false
+		}
+	}
+
+	require.Equal(t, 8, bt.getNode(hashes[15]).primaryAncestorCount(0))
+}

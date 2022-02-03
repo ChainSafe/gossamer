@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func TestSystemModule_ChainTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("ChainName").Return("polkadot", nil)
 	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
 
 	req := &EmptyRequest{}
 	var res string
@@ -37,7 +38,7 @@ func TestSystemModule_NameTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("SystemName").Return("kusama", nil)
 	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
 
 	req := &EmptyRequest{}
 	var res string
@@ -51,7 +52,7 @@ func TestSystemModule_ChainTypeTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("ChainType").Return("testChainType", nil)
 	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
 
 	req := &EmptyRequest{}
 	var res string
@@ -66,7 +67,7 @@ func TestSystemModule_PropertiesTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("Properties").Return(emptyMap)
 	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
 
 	req := &EmptyRequest{}
 	var resMap interface{}
@@ -79,7 +80,7 @@ func TestSystemModule_SystemVersionTest(t *testing.T) {
 	mockSystemAPI := new(mocks.SystemAPI)
 	mockSystemAPI.On("SystemVersion").Return("1.2.1", nil)
 	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
 
 	req := &EmptyRequest{}
 	var res string
@@ -93,7 +94,7 @@ func TestSystemModule_HealthTest(t *testing.T) {
 	mockNetworkAPI := new(mocks.NetworkAPI)
 	mockNetworkAPI.On("Health").Return(common.Health{}, nil)
 	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
 
 	req := &EmptyRequest{}
 	var sysHealthRes SystemHealthResponse
@@ -106,7 +107,7 @@ func TestSystemModule_NetworkStateTest(t *testing.T) {
 	mockNetworkAPI := new(mocks.NetworkAPI)
 	mockNetworkAPI.On("NetworkState").Return(common.NetworkState{}, nil)
 	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
 
 	req := &EmptyRequest{}
 	var networkStateRes SystemNetworkStateResponse
@@ -119,7 +120,7 @@ func TestSystemModule_PeersTest(t *testing.T) {
 	mockNetworkAPI := new(mocks.NetworkAPI)
 	mockNetworkAPI.On("Peers").Return([]common.PeerInfo{}, nil)
 	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI))
+		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
 
 	req := &EmptyRequest{}
 	var sysPeerRes SystemPeersResponse
@@ -154,7 +155,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 	}{
 		{
 			name:      "Full",
-			sysModule: NewSystemModule(mockNetworkAPI1, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI1, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -162,7 +163,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 		},
 		{
 			name:      "LightClient",
-			sysModule: NewSystemModule(mockNetworkAPI2, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI2, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -170,7 +171,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 		},
 		{
 			name:      "Authority",
-			sysModule: NewSystemModule(mockNetworkAPI3, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI3, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -178,7 +179,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 		},
 		{
 			name:      "UnknownRole",
-			sysModule: NewSystemModule(mockNetworkAPI4, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI4, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -246,13 +247,13 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	}{
 		{
 			name:      "Nil Request",
-			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
+			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil, nil),
 			args:      args{},
 			expErr:    errors.New("account address must be valid"),
 		},
 		{
 			name:      "Found",
-			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
+			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil, nil),
 			args: args{
 				req: &StringRequest{String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -260,7 +261,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 		{
 			name:      "Not found",
-			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil),
+			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -268,7 +269,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 		{
 			name:      "GetMetadata Err",
-			sysModule: NewSystemModule(nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil),
+			sysModule: NewSystemModule(nil, nil, mockCoreAPIErr, mockStorageAPI, mockTxStateAPI, nil, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -276,7 +277,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 		{
 			name:      "Magic Number Mismatch",
-			sysModule: NewSystemModule(nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil),
+			sysModule: NewSystemModule(nil, nil, mockCoreAPIMagicNumMismatch, mockStorageAPI, mockTxStateAPI, nil, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -284,7 +285,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		},
 		{
 			name:      "GetStorage Err",
-			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil),
+			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPIErr, mockTxStateAPI, nil, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
@@ -317,8 +318,11 @@ func TestSystemModule_SyncState(t *testing.T) {
 	mockBlockAPIErr.On("GetHeader", hash).Return(nil, errors.New("GetHeader Err"))
 
 	mockNetworkAPI := new(mocks.NetworkAPI)
-	mockNetworkAPI.On("HighestBlock").Return(int64(21))
 	mockNetworkAPI.On("StartingBlock").Return(int64(23))
+
+	ctrlSyncAPI := gomock.NewController(t)
+	mockSyncAPI := NewMockSyncAPI(ctrlSyncAPI)
+	mockSyncAPI.EXPECT().HighestBlock().Return(int64(21))
 
 	type args struct {
 		r   *http.Request
@@ -333,7 +337,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 	}{
 		{
 			name:      "OK",
-			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI),
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPI, mockSyncAPI),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -345,7 +349,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 		},
 		{
 			name:      "Err",
-			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr),
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, mockBlockAPIErr, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -396,7 +400,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 	}{
 		{
 			name:      "OK",
-			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -404,7 +408,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		},
 		{
 			name:      "Empty multiaddress list",
-			sysModule: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -456,7 +460,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 	}{
 		{
 			name:      "OK",
-			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -464,7 +468,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		},
 		{
 			name:      "Empty peerId",
-			sysModule: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPIEmpty, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &EmptyRequest{},
 			},
@@ -506,7 +510,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	}{
 		{
 			name:      "OK",
-			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -514,7 +518,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		},
 		{
 			name:      "AddReservedPeer Error",
-			sysModule: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -522,7 +526,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 		},
 		{
 			name:      "Empty StringRequest Error",
-			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{""},
 			},
@@ -564,7 +568,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	}{
 		{
 			name:      "OK",
-			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -572,7 +576,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		},
 		{
 			name:      "RemoveReservedPeer Error",
-			sysModule: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPIErr, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
@@ -580,7 +584,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 		},
 		{
 			name:      "Empty StringRequest Error",
-			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil),
+			sysModule: NewSystemModule(mockNetworkAPI, nil, nil, nil, nil, nil, nil),
 			args: args{
 				req: &StringRequest{""},
 			},

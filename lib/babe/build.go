@@ -25,34 +25,33 @@ const (
 )
 
 // construct a block for this slot with the given parent
-func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
+func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance,
+	authorityIndex uint32, proof *VrfOutputAndProof) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
 		b.keypair,
 		b.transactionState,
 		b.blockState,
-		b.slotToProof,
-		b.epochData.authorityIndex,
+		proof,
+		authorityIndex,
 		b.slotToIfPrimary,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
 	}
 
-	startBuilt := time.Now()
-	block, err := builder.buildBlock(parent, slot, rt)
-
 	// is necessary to enable ethmetrics to be possible register values
 	ethmetrics.Enabled = true
 
+	start := time.Now()
+	block, err := builder.buildBlock(parent, slot, rt)
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
 		builderErrors.Inc(1)
-
 		return nil, err
 	}
 
 	timerMetrics := ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
-	timerMetrics.Update(time.Since(startBuilt))
+	timerMetrics.Update(time.Since(start))
 	return block, nil
 }
 
@@ -61,30 +60,30 @@ type BlockBuilder struct {
 	keypair               *sr25519.Keypair
 	transactionState      TransactionState
 	blockState            BlockState
-	slotToProof           map[uint64]*VrfOutputAndProof
+	proof                 *VrfOutputAndProof
 	currentAuthorityIndex uint32
 	slotToIfPrimary       map[uint64]bool
 }
 
 // NewBlockBuilder creates a new block builder.
 func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
-	bs BlockState, sp map[uint64]*VrfOutputAndProof,
+	bs BlockState, proof *VrfOutputAndProof,
 	authidx uint32, slotToIfPrimary map[uint64]bool) (*BlockBuilder, error) {
 	if ts == nil {
-		return nil, errors.New("cannot create block builder; transaction state is nil")
+		return nil, ErrNilTransactionState
 	}
 	if bs == nil {
-		return nil, errors.New("cannot create block builder; block state is nil")
+		return nil, ErrNilBlockState
 	}
-	if sp == nil {
-		return nil, errors.New("cannot create block builder; slot to proff is nil")
+	if proof == nil {
+		return nil, ErrNilVRFProof
 	}
 
 	bb := &BlockBuilder{
 		keypair:               kp,
 		transactionState:      ts,
 		blockState:            bs,
-		slotToProof:           sp,
+		proof:                 proof,
 		currentAuthorityIndex: authidx,
 	}
 
@@ -208,24 +207,16 @@ func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, 
 	// otherwise BlockBabeSecondaryPlainPreDigest
 	babeHeader := types.NewBabeDigest()
 	if isPrimary {
-		data, err := b.buildBlockBABEPrimaryPreDigest(slot)
+		data := b.buildBlockBABEPrimaryPreDigest(slot)
+		err := babeHeader.Set(*data)
 		if err != nil {
-			return nil, err
-		}
-
-		err = babeHeader.Set(*data)
-		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot set babe header: %w", err)
 		}
 	} else {
-		data, err := b.buildBlockBabeSecondaryPlainPreDigest(slot)
+		data := b.buildBlockBabeSecondaryPlainPreDigest(slot)
+		err := babeHeader.Set(*data)
 		if err != nil {
-			return nil, err
-		}
-
-		err = babeHeader.Set(*data)
-		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot set babe header: %w", err)
 		}
 	}
 
@@ -242,29 +233,20 @@ func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, 
 
 // buildBlockBABEPrimaryPreDigest creates the BABE header for the slot.
 // the BABE header includes the proof of authorship right for this slot.
-func (b *BlockBuilder) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BabePrimaryPreDigest, error) {
-	if b.slotToProof[slot.number] == nil {
-		return nil, ErrNotAuthorized
-	}
-
-	outAndProof := b.slotToProof[slot.number]
+func (b *BlockBuilder) buildBlockBABEPrimaryPreDigest(slot Slot) *types.BabePrimaryPreDigest {
 	return types.NewBabePrimaryPreDigest(
 		b.currentAuthorityIndex,
 		slot.number,
-		outAndProof.output,
-		outAndProof.proof,
-	), nil
+		b.proof.output,
+		b.proof.proof,
+	)
 }
 
-func (b *BlockBuilder) buildBlockBabeSecondaryPlainPreDigest(slot Slot) (*types.BabeSecondaryPlainPreDigest, error) {
-	if b.slotToProof[slot.number] == nil {
-		return nil, ErrNotAuthorized
-	}
-
+func (b *BlockBuilder) buildBlockBabeSecondaryPlainPreDigest(slot Slot) *types.BabeSecondaryPlainPreDigest {
 	return &types.BabeSecondaryPlainPreDigest{
 		AuthorityIndex: b.currentAuthorityIndex,
 		SlotNumber:     slot.number,
-	}, nil
+	}
 }
 
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.

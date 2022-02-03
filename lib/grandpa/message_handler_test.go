@@ -206,7 +206,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = digest.Add(prd)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -379,7 +379,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = digest.Add(prd)
+	err = digest.Add(*prd)
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{

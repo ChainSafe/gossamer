@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -36,6 +37,18 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
+type rpcServiceSettings struct {
+	config        *Config
+	nodeStorage   *runtime.NodeStorage
+	state         *state.Service
+	core          *core.Service
+	network       *network.Service
+	blockProducer modules.BlockProducerAPI
+	system        *system.Service
+	blockFinality *grandpa.Service
+	syncer        *sync.Service
+}
+
 func newInMemoryDB(path string) (chaindb.Database, error) {
 	return utils.SetupDatabase(filepath.Join(path, "local_storage"), true)
 }
@@ -47,6 +60,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Log.StateLvl,
+		Metrics:  metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	stateSrvc := state.NewService(config)
@@ -283,13 +297,13 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service,
 		NoMDNS:            cfg.Network.NoMDNS,
 		MinPeers:          cfg.Network.MinPeers,
 		MaxPeers:          cfg.Network.MaxPeers,
-		PublishMetrics:    cfg.Global.PublishMetrics,
 		PersistentPeers:   cfg.Network.PersistentPeers,
 		DiscoveryInterval: cfg.Network.DiscoveryInterval,
 		SlotDuration:      slotDuration,
 		PublicIP:          cfg.Network.PublicIP,
 		Telemetry:         telemetryMailer,
 		PublicDNS:         cfg.Network.PublicDNS,
+		Metrics:           metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -304,51 +318,55 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service,
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service,
-	coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI,
-	sysSrvc *system.Service, finSrvc *grandpa.Service) (*rpc.HTTPServer, error) {
+func createRPCService(params rpcServiceSettings) (*rpc.HTTPServer, error) {
 	logger.Infof(
 		"creating rpc service with host %s, external=%t, port %d, modules %s, ws=%t, ws port %d and ws external=%t",
-		cfg.RPC.Host, cfg.RPC.External, cfg.RPC.Port, strings.Join(cfg.RPC.Modules, ","), cfg.RPC.WS,
-		cfg.RPC.WSPort, cfg.RPC.WSExternal,
+		params.config.RPC.Host,
+		params.config.RPC.External,
+		params.config.RPC.Port,
+		strings.Join(params.config.RPC.Modules, ","),
+		params.config.RPC.WS,
+		params.config.RPC.WSPort,
+		params.config.RPC.WSExternal,
 	)
 	rpcService := rpc.NewService()
 
-	genesisData, err := stateSrvc.Base.LoadGenesisData()
+	genesisData, err := params.state.Base.LoadGenesisData()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load genesis data: %s", err)
 	}
 
-	syncStateSrvc, err := modules.NewStateSync(genesisData, stateSrvc.Storage)
+	syncStateSrvc, err := modules.NewStateSync(genesisData, params.state.Storage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sync state service: %s", err)
 	}
 
 	rpcConfig := &rpc.HTTPServerConfig{
-		LogLvl:              cfg.Log.RPCLvl,
-		BlockAPI:            stateSrvc.Block,
-		StorageAPI:          stateSrvc.Storage,
-		NetworkAPI:          networkSrvc,
-		CoreAPI:             coreSrvc,
-		NodeStorage:         ns,
-		BlockProducerAPI:    bp,
-		BlockFinalityAPI:    finSrvc,
-		TransactionQueueAPI: stateSrvc.Transaction,
+		LogLvl:              params.config.Log.RPCLvl,
+		BlockAPI:            params.state.Block,
+		StorageAPI:          params.state.Storage,
+		NetworkAPI:          params.network,
+		CoreAPI:             params.core,
+		NodeStorage:         params.nodeStorage,
+		BlockProducerAPI:    params.blockProducer,
+		BlockFinalityAPI:    params.blockFinality,
+		TransactionQueueAPI: params.state.Transaction,
 		RPCAPI:              rpcService,
 		SyncStateAPI:        syncStateSrvc,
-		SystemAPI:           sysSrvc,
-		RPC:                 cfg.RPC.Enabled,
-		RPCExternal:         cfg.RPC.External,
-		RPCUnsafe:           cfg.RPC.Unsafe,
-		RPCUnsafeExternal:   cfg.RPC.UnsafeExternal,
-		Host:                cfg.RPC.Host,
-		RPCPort:             cfg.RPC.Port,
-		WS:                  cfg.RPC.WS,
-		WSExternal:          cfg.RPC.WSExternal,
-		WSUnsafe:            cfg.RPC.WSUnsafe,
-		WSUnsafeExternal:    cfg.RPC.WSUnsafeExternal,
-		WSPort:              cfg.RPC.WSPort,
-		Modules:             cfg.RPC.Modules,
+		SyncAPI:             params.syncer,
+		SystemAPI:           params.system,
+		RPC:                 params.config.RPC.Enabled,
+		RPCExternal:         params.config.RPC.External,
+		RPCUnsafe:           params.config.RPC.Unsafe,
+		RPCUnsafeExternal:   params.config.RPC.UnsafeExternal,
+		Host:                params.config.RPC.Host,
+		RPCPort:             params.config.RPC.Port,
+		WS:                  params.config.RPC.WS,
+		WSExternal:          params.config.RPC.WSExternal,
+		WSUnsafe:            params.config.RPC.WSUnsafe,
+		WSUnsafeExternal:    params.config.RPC.WSUnsafeExternal,
+		WSPort:              params.config.RPC.WSPort,
+		Modules:             params.config.RPC.Modules,
 	}
 
 	return rpc.NewHTTPServer(rpcConfig), nil
