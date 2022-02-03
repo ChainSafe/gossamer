@@ -1170,6 +1170,80 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 	}
 }
 
+func TestServiceGetMetadata(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockStorageStateRootErr := NewMockStorageState(ctrl)
+	mockStorageStateRootErr.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
+
+	mockStorageStateTrieErr := NewMockStorageState(ctrl)
+	mockStorageStateTrieErr.EXPECT().TrieState(nil).Return(nil, errDummyErr)
+
+	mockStorageStateOk := NewMockStorageState(ctrl)
+	mockStorageStateOk.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil).MaxTimes(2)
+	mockBlockStateRuntimeErr := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeErr.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+
+	runtimeMockOk := new(mocksruntime.Instance)
+	mockBlockStateRuntimeOk := NewMockBlockState(ctrl)
+	mockBlockStateRuntimeOk.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
+	runtimeMockOk.On("SetContextStorage", &rtstorage.TrieState{})
+	runtimeMockOk.On("Metadata").Return([]byte{1, 2, 3}, nil)
+	tests := []struct {
+		name    string
+		service   *Service
+		bhash *common.Hash
+		exp    []byte
+		expErr error
+		expErrMsg string
+	}{
+		{
+			name: "get state root error",
+			service: &Service{
+				storageState: mockStorageStateRootErr,
+			},
+			bhash: &common.Hash{},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "trie state error",
+			service: &Service{
+				storageState: mockStorageStateTrieErr,
+			},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "get runtime error",
+			service: &Service{
+				storageState: mockStorageStateOk,
+				blockState: mockBlockStateRuntimeErr,
+			},
+			expErr: errDummyErr,
+			expErrMsg: errDummyErr.Error(),
+		},
+		{
+			name: "happy path",
+			service: &Service{
+				storageState: mockStorageStateOk,
+				blockState: mockBlockStateRuntimeOk,
+			},
+			exp: []byte{1, 2, 3},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.service
+			res, err := s.GetMetadata(tt.bhash)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
 // This needs to be last function in this file
 func TestCleanup(t *testing.T) {
 	err := runtime.RemoveFiles(testWasmPaths)
