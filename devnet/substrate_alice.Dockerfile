@@ -24,7 +24,9 @@ ENTRYPOINT ./polkadot \
     --node-key 0000000000000000000000000000000000000000000000000000000000000000 \
     --tmp \
     --prometheus-external \
-    --prometheus-port 9876
+    --prometheus-port 9876 \
+    --unsafe-rpc-external \
+    --unsafe-ws-external
 
 
 EXPOSE 7001 8545 8546 9876
