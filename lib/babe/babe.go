@@ -45,9 +45,6 @@ type Service struct {
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore (#1864)
 
-	// for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	slotToIfPrimary map[uint64]bool
-
 	// State variables
 	sync.RWMutex
 	pause chan struct{}
@@ -111,7 +108,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		epochState:         cfg.EpochState,
 		keypair:            cfg.Keypair,
 		transactionState:   cfg.TransactionState,
-		slotToIfPrimary:    make(map[uint64]bool),
 		pause:              make(chan struct{}),
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,

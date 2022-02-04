@@ -33,7 +33,6 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 		b.blockState,
 		proof,
 		authorityIndex,
-		b.slotToIfPrimary,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
@@ -67,7 +66,7 @@ type BlockBuilder struct {
 // NewBlockBuilder creates a new block builder.
 func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
 	bs BlockState, proof *VrfOutputAndProof,
-	authidx uint32, slotToIfPrimary map[uint64]bool) (*BlockBuilder, error) {
+	authidx uint32) (*BlockBuilder, error) {
 	if ts == nil {
 		return nil, ErrNilTransactionState
 	}

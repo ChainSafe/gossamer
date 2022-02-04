@@ -103,15 +103,24 @@ func (s *chainProcessor) processReadyBlocks() {
 }
 
 // processBlockData processes the BlockData from a BlockResponse and
-// eturns the index of the last BlockData it handled on success,
+// returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if bd == nil {
 		return ErrNilBlockData
 	}
 
-	hasHeader, _ := s.blockState.HasHeader(bd.Hash)
-	hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
+	hasHeader, err := s.blockState.HasHeader(bd.Hash)
+	if err != nil {
+		logger.Debugf("failed to check if block state has header for hash %s: %s", bd.Hash, err)
+		return err
+	}
+	hasBody, err := s.blockState.HasBlockBody(bd.Hash)
+	if err != nil {
+		logger.Debugf("failed to check block state has body for hash %s: %s", bd.Hash, err)
+		return err
+	}
+
 	if hasHeader && hasBody {
 		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync

@@ -56,7 +56,7 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
 		}
 
-		proof, err = claimSecondarySlot(epochData.randomness, i, epochNumber, epochData.authorities, epochData.threshold, keypair)
+		proof, err = claimSecondarySlot(epochData.randomness, i, epochNumber, epochData.authorities, epochData.threshold, keypair, epochData.authorityIndex)
 		if err != nil {
 			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
 		}

@@ -223,6 +223,7 @@ func (b *Service) incrementEpoch() (uint64, error) {
 // if it is not authorised.
 // output = return[0:32]; proof = return[32:96]
 func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*VrfOutputAndProof, error) {
+	// TODO: Check if whether to store if a primary slot was claimed? How?
 	proof, err := claimPrimarySlot(
 		epochData.randomness,
 		slot,
@@ -231,17 +232,15 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*VrfOutp
 		b.keypair,
 	)
 	if err == nil {
-		b.slotToIfPrimary[slot] = true
 		return proof, nil
 	}
 
-	if epochData.secondary != 1 && epochData.secondary != 2 {
+	if epochData.secondary == 0 {
 		return nil, err
 	}
 
 	if errors.Is(err, errOverPrimarySlotThreshold) {
-		b.slotToIfPrimary[slot] = false
-		return claimSecondarySlot(epochData.randomness, slot, epoch, epochData.authorities, epochData.threshold, b.keypair)
+		return claimSecondarySlot(epochData.randomness, slot, epoch, epochData.authorities, epochData.threshold, b.keypair, epochData.authorityIndex)
 	}
 
 	return nil, err

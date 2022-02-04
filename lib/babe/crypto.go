@@ -89,6 +89,7 @@ func claimSecondarySlot(randomness Randomness,
 	authorities []types.Authority,
 	threshold *scale.Uint128,
 	keypair *sr25519.Keypair,
+	authorityIndex uint32,
 ) (*VrfOutputAndProof, error) {
 
 	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
@@ -96,22 +97,20 @@ func claimSecondarySlot(randomness Randomness,
 		return nil, err
 	}
 
-	for authority_index := range authorities {
-		if authority_index == int(secondarySlotAuthor) {
-			transcript := makeTranscript(randomness, slot, epoch)
+	if int(authorityIndex) == int(secondarySlotAuthor) {
+		transcript := makeTranscript(randomness, slot, epoch)
 
-			out, proof, err := keypair.VrfSign(transcript)
-			if err != nil {
-				return nil, err
-			}
-
-			logger.Debugf("claimed secondary slot, for slot number: %d", slot)
-
-			return &VrfOutputAndProof{
-				output: out,
-				proof:  proof,
-			}, nil
+		out, proof, err := keypair.VrfSign(transcript)
+		if err != nil {
+			return nil, err
 		}
+
+		logger.Debugf("claimed secondary slot, for slot number: %d", slot)
+
+		return &VrfOutputAndProof{
+			output: out,
+			proof:  proof,
+		}, nil
 	}
 
 	// It is not our turn to propose
