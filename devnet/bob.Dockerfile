@@ -33,8 +33,7 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${ke
 
 WORKDIR /gossamer
 
-ENTRYPOINT service datadog-agent start && \
-    gossamer --key=${key} \
+ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --publish-metrics \
     --rpc \
