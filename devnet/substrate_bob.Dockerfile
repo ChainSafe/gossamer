@@ -18,10 +18,14 @@ COPY devnet/chain/gssmr/genesis-raw.json genesis-spec.json
 RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 
 ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
-    --bootnodes=/dns/substrate-alice/tcp/30333/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN \
+    --bootnodes=/dns/substrate-alice/tcp/7001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN \
     --chain genesis-spec.json \
+    --port 7001 \
+    --rpc-port 8545 \
+    --ws-port 8546 \
     --${key} \
     --tmp \
-    --prometheus-external
+    --prometheus-external \
+    --prometheus-port 9876
 
-EXPOSE 30333 9933 9944 9615
+EXPOSE 7001 8545 8546 9876
