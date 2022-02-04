@@ -1,6 +1,6 @@
 # This is the build stage for Substrate. Here we create the binary.
-FROM parity/polkadot:v0.9.10
-FROM docker.io/library/ubuntu:20.04
+FROM parity/polkadot:v0.9.10 as polkadot
+FROM golang:1.17
 
 ARG key
 ARG DD_API_KEY=somekey
@@ -18,7 +18,7 @@ COPY devnet/chain/gssmr/genesis-raw.json genesis-spec.json
 RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 
 ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
-    --bootnodes=/dns/substrate-alice/tcp/7001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN \
+    --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --chain genesis-spec.json \
     --port 7001 \
     --rpc-port 8545 \
