@@ -485,18 +485,6 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lock", reflect.TypeOf((*MockStorageState)(nil).Lock))
 }
 
-// SetSyncing mocks base method.
-func (m *MockStorageState) SetSyncing(arg0 bool) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetSyncing", arg0)
-}
-
-// SetSyncing indicates an expected call of SetSyncing.
-func (mr *MockStorageStateMockRecorder) SetSyncing(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSyncing", reflect.TypeOf((*MockStorageState)(nil).SetSyncing), arg0)
-}
-
 // TrieState mocks base method.
 func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
 	m.ctrl.T.Helper()

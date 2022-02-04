@@ -119,6 +119,21 @@ func (m *MockChainSync) EXPECT() *MockChainSyncMockRecorder {
 	return m.recorder
 }
 
+// getHighestBlock mocks base method.
+func (m *MockChainSync) getHighestBlock() (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "getHighestBlock")
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// getHighestBlock indicates an expected call of getHighestBlock.
+func (mr *MockChainSyncMockRecorder) getHighestBlock() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getHighestBlock", reflect.TypeOf((*MockChainSync)(nil).getHighestBlock))
+}
+
 // setBlockAnnounce mocks base method.
 func (m *MockChainSync) setBlockAnnounce(from peer.ID, header *types.Header) error {
 	m.ctrl.T.Helper()
