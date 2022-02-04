@@ -30,7 +30,7 @@ func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
 	}, nil
 }
 
-// AddReservedPeer adds reserved peer into peerSet.
+// SetReservedOnlyPeer not yet implemented
 func (h *Handler) SetReservedOnlyPeer(setID int, peers ...peer.ID) {
 	// TODO: not yet implemented (#1888)
 	logger.Errorf("failed to do action %s on peerSet: not implemented yet", setReservedOnly)
