@@ -5,9 +5,13 @@ package peerset
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+const logStringPattern = "call=%s, set-id=%d, reputation change %v, peers=[%s]"
 
 // Handler manages peerSet.
 type Handler struct {
@@ -36,7 +40,8 @@ func (h *Handler) SetReservedOnlyPeer(setID int, peers ...peer.ID) {
 func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.addReservedPeers(setID, peers...)
 	if err != nil {
-		logger.Errorf("failed to do action %s on peerSet: %s", addReservedPeer, err)
+		msg := fmt.Sprintf(logStringPattern, addReservedPeer, setID, nil, stringfyPeers(peers))
+		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
@@ -44,7 +49,8 @@ func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
 func (h *Handler) RemoveReservedPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.removeReservedPeers(setID, peers...)
 	if err != nil {
-		logger.Errorf("failed to do action %s on peerSet: %s", removeReservedPeer, err)
+		msg := fmt.Sprintf(logStringPattern, removeReservedPeer, setID, nil, stringfyPeers(peers))
+		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
@@ -53,7 +59,8 @@ func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
 	// TODO: this is not used yet, might required to implement RPC Call for this.
 	err := h.peerSet.setReservedPeer(setID, peers...)
 	if err != nil {
-		logger.Errorf("failed to do action %s on peerSet: %s", setReservedPeers, err)
+		msg := fmt.Sprintf(logStringPattern, setReservedPeers, setID, nil, stringfyPeers(peers))
+		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
@@ -61,7 +68,8 @@ func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
 func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.addPeer(setID, peers)
 	if err != nil {
-		logger.Errorf("failed to do action %s on peerSet: %s", addToPeerSet, err)
+		msg := fmt.Sprintf(logStringPattern, addToPeerSet, setID, nil, stringfyPeers(peers))
+		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
@@ -69,7 +77,8 @@ func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
 func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.removePeer(setID, peers...)
 	if err != nil {
-		logger.Errorf("failed to do action %s on peerSet: %s", removeFromPeerSet, err)
+		msg := fmt.Sprintf(logStringPattern, removeFromPeerSet, setID, nil, stringfyPeers(peers))
+		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
@@ -77,7 +86,8 @@ func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
 func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
 	err := h.peerSet.reportPeer(rep, peers...)
 	if err != nil {
-		logger.Errorf("failed to do action %s on peerSet: %s", reportPeer, err)
+		msg := fmt.Sprintf(logStringPattern, reportPeer, 0, rep, stringfyPeers(peers))
+		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
@@ -85,7 +95,8 @@ func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
 func (h *Handler) Incoming(setID int, peers ...peer.ID) {
 	err := h.peerSet.incoming(setID, peers...)
 	if err != nil {
-		logger.Errorf("failed to do action %s on peerSet: %s", incoming, err)
+		msg := fmt.Sprintf(logStringPattern, incoming, setID, nil, stringfyPeers(peers))
+		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
@@ -93,7 +104,8 @@ func (h *Handler) Incoming(setID int, peers ...peer.ID) {
 func (h *Handler) DisconnectPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.disconnect(setID, UnknownDrop, peers...)
 	if err != nil {
-		logger.Errorf("failed to do action %s on peerSet: %s", disconnect, err)
+		msg := fmt.Sprintf(logStringPattern, disconnect, setID, nil, stringfyPeers(peers))
+		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
@@ -114,4 +126,13 @@ func (h *Handler) Start(ctx context.Context, processMessageFn func(Message)) {
 // SortedPeers return chan for sorted connected peer in the peerSet.
 func (h *Handler) SortedPeers(setIdx int) peer.IDSlice {
 	return h.peerSet.peerState.sortedPeers(setIdx)
+}
+
+func stringfyPeers(peers peer.IDSlice) string {
+	peersStrings := make([]string, len(peers))
+	for i := range peers {
+		peersStrings[i] = peers[i].String()
+	}
+
+	return strings.Join(peersStrings, ", ")
 }

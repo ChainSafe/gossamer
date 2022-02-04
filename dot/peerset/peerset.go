@@ -6,7 +6,6 @@ package peerset
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -24,8 +23,6 @@ const (
 	// forgetAfterTime amount of time between the moment we disconnect
 	// from a node and the moment we remove it from the list.
 	forgetAfterTime = time.Second * 3600 // one hour
-	// default channel size for peerSet.
-	msgChanSize = 100
 )
 
 // ActionReceiver represents the enum value for action to be performed on peerSet
@@ -79,24 +76,6 @@ func (a ActionReceiver) String() string {
 	default:
 		return "invalid action"
 	}
-}
-
-// action struct stores the action type and required parameters to perform action
-type action struct {
-	actionCall    ActionReceiver
-	setID         int
-	reputation    ReputationChange
-	peers         peer.IDSlice
-	resultPeersCh chan peer.IDSlice
-}
-
-func (a action) String() string {
-	peersStrings := make([]string, len(a.peers))
-	for i := range a.peers {
-		peersStrings[i] = a.peers[i].String()
-	}
-	return fmt.Sprintf("call=%s, set-id=%d, reputation change %v, peers=[%s]",
-		a.actionCall.String(), a.setID, a.reputation, strings.Join(peersStrings, ", "))
 }
 
 // Status represents the enum value for Message

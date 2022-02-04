@@ -63,10 +63,3 @@ func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState {
 
 	return state
 }
-
-func checkMessageStatus(t *testing.T, m interface{}, expectedStatus Status) {
-	t.Helper()
-	msg, ok := m.(Message)
-	require.True(t, ok)
-	require.Equal(t, expectedStatus, msg.Status)
-}
