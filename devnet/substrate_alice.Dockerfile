@@ -18,9 +18,13 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 ENTRYPOINT ./polkadot \
     --chain genesis-spec.json \
     --alice \
+    --port 7001 \
+    --rpc-port 8545 \
+    --ws-port 8546 \
     --node-key 0000000000000000000000000000000000000000000000000000000000000000 \
     --tmp \
-    --prometheus-external
+    --prometheus-external \
+    --prometheus-port 9876
 
 
-EXPOSE 30333 9933 9944 9615
+EXPOSE 7001 8545 8546 9876
