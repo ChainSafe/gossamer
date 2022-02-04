@@ -284,6 +284,8 @@ func (t *Trie) tryPut(key, value []byte) {
 // insert attempts to insert a key with value into the trie
 func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 	newParent := t.maybeUpdateGeneration(parent)
+	value.SetGeneration(t.generation)
+
 	if newParent == nil {
 		value.SetKey(key)
 		return value
@@ -607,11 +609,11 @@ func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bo
 }
 
 func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (newNode Node) {
-	curr := t.maybeUpdateGeneration(cn)
-
 	if *limit == 0 {
-		return curr
+		return cn
 	}
+
+	curr := t.maybeUpdateGeneration(cn)
 
 	switch c := curr.(type) {
 	case *node.Leaf:
@@ -757,8 +759,9 @@ func (t *Trie) delete(parent Node, key []byte) (Node, bool) {
 			// Key exists. Delete it.
 			return nil, true
 		}
-		// Key doesn't exist.
-		return p, false
+		// Key doesn't exist, return parent
+		// without its generation changed
+		return parent, false
 	case nil:
 		return nil, false
 	default:
@@ -807,6 +810,8 @@ func handleDeletion(p *node.Branch, key []byte) Node {
 			for i, grandchild := range c.Children {
 				if grandchild != nil {
 					br.Children[i] = grandchild
+					// No need to copy and update the generation
+					// of the grand children since they are not modified.
 				}
 			}
 
