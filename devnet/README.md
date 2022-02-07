@@ -45,7 +45,7 @@ There are four Docker files used in the devnet.
 
 - `alice.Dockerfile` is the lead node and is initiated with the `babe-lead` flag to build the first block.  
 - `bob.Dockerfile` is used for both `bob` and `charlie` and shares the same genesis as alice docker file.
-- `substrate_alice.Dockerfile` is the alice node initiated with the all 0s node key to keep an deterministic peer id
+- `substrate_alice.Dockerfile` is the alice node initiated with explicit node key to keep an deterministic peer id (the same used by gossamer alice node)
 - `substrate_bob.Dockerfile` is used for `bob` and `charlie` and shares the same genesis as alice docker file.
 
 > **_NOTE:_**: It is possible to use substrate alice node with bob and charlie gossamer nodes or any combination since the nodes in the network contains different keys
