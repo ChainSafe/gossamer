@@ -179,11 +179,6 @@ func (ps *PeersState) peers() []peer.ID {
 	return peerIDs
 }
 
-type connectedPeerReputation struct {
-	peerID     peer.ID
-	reputation Reputation
-}
-
 // sortedPeers returns the list of peers we are connected to of a specific set.
 func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 	ps.peerStateRWMutex.RLock()
@@ -192,6 +187,11 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 	if len(ps.sets) == 0 || len(ps.sets) < idx {
 		logger.Debug("peer state doesn't have info for the provided index")
 		return nil
+	}
+
+	type connectedPeerReputation struct {
+		peerID     peer.ID
+		reputation Reputation
 	}
 
 	connectedPeersReps := make([]connectedPeerReputation, 0)
