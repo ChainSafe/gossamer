@@ -1,4 +1,3 @@
-# This is the build stage for Substrate. Here we create the binary.
 FROM parity/polkadot:v0.9.10 as polkadot
 FROM golang:1.17
 
@@ -42,4 +41,4 @@ ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
     --unsafe-rpc-external \
     --unsafe-ws-external
 
-EXPOSE 7001 8545 8546 9876
+EXPOSE 7001/tcp 8545/tcp 8546/tcp 9876/tcp

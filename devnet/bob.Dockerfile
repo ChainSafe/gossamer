@@ -43,4 +43,4 @@ ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
     --rpc \
     --pubdns=${key}
 
-EXPOSE 7001 8545 8546 8540 9876 6060/tcp
+EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp 6060/tcp
