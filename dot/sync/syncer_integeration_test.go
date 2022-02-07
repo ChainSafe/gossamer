@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -9,10 +12,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -20,11 +23,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
-	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
 func TestMain(m *testing.M) {
@@ -56,19 +57,27 @@ func newMockBabeVerifier() *mocks.BabeVerifier {
 
 func newMockNetwork() *mocks.Network {
 	m := new(mocks.Network)
-	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
+	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).
+		Return(nil, nil)
 	return m
 }
 
 func newTestSyncer(t *testing.T) *Service {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTelemetryClient := NewMockClient(ctrl)
+	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
+
 	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
 	testDatadirPath := t.TempDir()
 
 	scfg := state.Config{
-		Path:     testDatadirPath,
-		LogLevel: log.Info,
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: mockTelemetryClient,
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
@@ -89,7 +98,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	// initialise runtime
-	genState, err := rtstorage.NewTrieState(genTrie) //nolint
+	genState, err := rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
@@ -113,7 +122,8 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 
 	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
+	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"),
+		mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
 		// store updates state trie nodes in database
 		if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
 			logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)

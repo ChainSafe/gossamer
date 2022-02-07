@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -5,6 +8,7 @@ package sync
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -193,4 +197,25 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 	require.Equal(t, 2, len(ready))
 	require.Equal(t, block1.ToBlockData(), ready[0])
 	require.Equal(t, block2.ToBlockData(), ready[1])
+}
+
+func TestDisjointBlockSet_ClearBlocks(t *testing.T) {
+	s := newDisjointBlockSet(pendingBlocksLimit)
+
+	testHashA := common.Hash{0}
+	testHashB := common.Hash{1}
+
+	s.blocks[testHashA] = &pendingBlock{
+		hash:    testHashA,
+		clearAt: time.Unix(1000, 0),
+	}
+	s.blocks[testHashB] = &pendingBlock{
+		hash:    testHashB,
+		clearAt: time.Now().Add(ttl * 2),
+	}
+
+	s.clearBlocks()
+	require.Equal(t, 1, len(s.blocks))
+	_, has := s.blocks[testHashB]
+	require.True(t, has)
 }
