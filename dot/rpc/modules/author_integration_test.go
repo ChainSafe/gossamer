@@ -269,7 +269,6 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 
 	integrationTestController.stateSrv.Transaction.AddToPool(expected)
 
-	// should not cause error, since a transaction
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.NoError(t, err)
 }
