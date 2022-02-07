@@ -6,8 +6,6 @@ ARG CHAIN=cross-client
 ARG DD_API_KEY=somekey
 ARG METRICS_NAMESPACE=substrate.local.devnet
 
-ENV key=${key}
-ENV CHAIN=${CHAIN}
 ENV DD_API_KEY=${DD_API_KEY}
 
 RUN test -n "$key"
@@ -22,19 +20,17 @@ RUN go mod download
 
 COPY . . 
 
-ARG METRICS_NAMESPACE=substrate.local.devnet
-
 WORKDIR /gossamer/devnet
 
-RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:$key > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 
 ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
     --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
-    --chain chain/${CHAIN}/genesis-raw.json \
+    --chain chain/$CHAIN/genesis-raw.json \
     --port 7001 \
     --rpc-port 8545 \
     --ws-port 8546 \
-    --${key} \
+    --$key \
     --tmp \
     --prometheus-external \
     --prometheus-port 9876 \
