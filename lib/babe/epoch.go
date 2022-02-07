@@ -222,7 +222,7 @@ func (b *Service) incrementEpoch() (uint64, error) {
 // It returns the wrapped error errOverPrimarySlotThreshold
 // if it is not authorised.
 // output = return[0:32]; proof = return[32:96]
-func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*VrfOutputAndProof, error) {
+func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*types.PreRuntimeDigest, error) {
 	// TODO: Check if whether to store if a primary slot was claimed? How?
 	proof, err := claimPrimarySlot(
 		epochData.randomness,
@@ -232,7 +232,9 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*VrfOutp
 		b.keypair,
 	)
 	if err == nil {
-		return proof, nil
+		preRuntimeDigest := types.NewBabePrimaryPreDigest(epochData.authorityIndex, slot, proof.output, proof.proof)
+
+		return preRuntimeDigest.ToPreRuntimeDigest()
 	}
 
 	if epochData.secondary == 0 {
@@ -240,7 +242,14 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*VrfOutp
 	}
 
 	if errors.Is(err, errOverPrimarySlotThreshold) {
-		return claimSecondarySlot(epochData.randomness, slot, epoch, epochData.authorities, epochData.threshold, b.keypair, epochData.authorityIndex)
+		proof, err = claimSecondarySlot(epochData.randomness, slot, epoch, epochData.authorities, epochData.threshold, b.keypair, epochData.authorityIndex)
+		if err != nil {
+			return nil, err
+		}
+		if proof != nil {
+			preRuntimeDigest := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, slot)
+			return preRuntimeDigest.ToPreRuntimeDigest()
+		}
 	}
 
 	return nil, err

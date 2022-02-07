@@ -400,7 +400,7 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	return next, nil
 }
 
-func (b *Service) handleSlot(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof, ifPrimary bool) error {
+func (b *Service) handleSlot(epoch, slotNum uint64, authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) error {
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		return err
@@ -442,7 +442,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64, authorityIndex uint32, proof
 
 	rt.SetContextStorage(ts)
 
-	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, proof, ifPrimary)
+	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
 	if err != nil {
 		return err
 	}

@@ -10,10 +10,11 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
-type handleSlotFunc = func(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof, ifPrimary bool) error
+type handleSlotFunc = func(epoch, slotNum uint64, authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) error
 
 var (
 	errEpochPast = errors.New("cannot run epoch that has already passed")
@@ -26,9 +27,7 @@ type epochHandler struct {
 	constants constants
 	epochData *epochData
 
-	// for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	slotToProof     map[uint64]*VrfOutputAndProof
-	slotToIfPrimary map[uint64]bool
+	slotToPreRuntimeDigest map[uint64]*types.PreRuntimeDigest
 
 	handleSlot handleSlotFunc
 }
@@ -36,8 +35,7 @@ type epochHandler struct {
 func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
 	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
 	// determine which slots we'll be authoring in by pre-calculating VRF output
-	slotToProof := make(map[uint64]*VrfOutputAndProof, constants.epochLength)
-	slotToIfPrimary := make(map[uint64]bool)
+	slotToPreRuntimeDigest := make(map[uint64]*types.PreRuntimeDigest)
 	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
 		proof, err := claimPrimarySlot(
 			epochData.randomness,
@@ -47,8 +45,8 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			keypair,
 		)
 		if err == nil {
-			slotToProof[i] = proof
-			slotToIfPrimary[i] = true
+			preRuntimeDigest, _ := types.NewBabePrimaryPreDigest(epochData.authorityIndex, i, proof.output, proof.proof).ToPreRuntimeDigest()
+			slotToPreRuntimeDigest[i] = preRuntimeDigest
 			logger.Debugf("epoch %d: claimed slot %d", epochNumber, i)
 			continue
 		}
@@ -61,19 +59,21 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
 		}
 
-		slotToProof[i] = proof
-		slotToIfPrimary[i] = false
-		logger.Debugf("epoch %d: claimed slot %d", epochNumber, i)
+		if proof != nil {
+			preRuntimeDigest, _ := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, i).ToPreRuntimeDigest()
+			slotToPreRuntimeDigest[i] = preRuntimeDigest
+			logger.Debugf("epoch %d: claimed slot %d", epochNumber, i)
+		}
+
 	}
 
 	return &epochHandler{
-		epochNumber:     epochNumber,
-		firstSlot:       firstSlot,
-		constants:       constants,
-		epochData:       epochData,
-		slotToProof:     slotToProof,
-		handleSlot:      handleSlot,
-		slotToIfPrimary: slotToIfPrimary,
+		epochNumber:            epochNumber,
+		firstSlot:              firstSlot,
+		constants:              constants,
+		epochData:              epochData,
+		handleSlot:             handleSlot,
+		slotToPreRuntimeDigest: slotToPreRuntimeDigest,
 	}, nil
 }
 
@@ -92,7 +92,7 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 
 	// for each slot we're handling, create a timer that will fire when it starts
 	// we create timers only for slots where we're authoring
-	authoringSlots := getAuthoringSlots(h.slotToProof)
+	authoringSlots := getAuthoringSlots(h.slotToPreRuntimeDigest)
 
 	type slotWithTimer struct {
 		timer   *time.Timer
@@ -132,12 +132,12 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		case <-ctx.Done():
 			return
 		case <-swt.timer.C:
-			if _, has := h.slotToProof[swt.slotNum]; !has {
+			if _, has := h.slotToPreRuntimeDigest[swt.slotNum]; !has {
 				// this should never happen
 				panic(fmt.Sprintf("no VRF proof for authoring slot! slot=%d", swt.slotNum))
 			}
 
-			err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToProof[swt.slotNum], h.slotToIfPrimary[swt.slotNum])
+			err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToPreRuntimeDigest[swt.slotNum])
 			if err != nil {
 				logger.Warnf("failed to handle slot %d: %s", swt.slotNum, err)
 				continue
@@ -148,9 +148,9 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 
 // getAuthoringSlots returns an ordered slice of slot numbers where we can author blocks,
 // based on the given VRF output and proof map.
-func getAuthoringSlots(slotToProof map[uint64]*VrfOutputAndProof) []uint64 {
-	authoringSlots := make([]uint64, 0, len(slotToProof))
-	for authoringSlot := range slotToProof {
+func getAuthoringSlots(slotToPreRuntimeDigest map[uint64]*types.PreRuntimeDigest) []uint64 {
+	authoringSlots := make([]uint64, 0, len(slotToPreRuntimeDigest))
+	for authoringSlot := range slotToPreRuntimeDigest {
 		authoringSlots = append(authoringSlots, authoringSlot)
 	}
 
