@@ -241,7 +241,7 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*types.P
 	}
 
 	if errors.Is(err, errOverPrimarySlotThreshold) {
-		proof, err = claimSecondarySlot(epochData.randomness, slot, epoch, epochData.authorities, epochData.threshold, b.keypair, epochData.authorityIndex)
+		proof, err = claimSecondarySlot(epochData.randomness, slot, epoch, epochData.authorities, b.keypair, epochData.authorityIndex)
 		if err != nil {
 			return nil, err
 		}

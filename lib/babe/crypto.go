@@ -87,7 +87,6 @@ func checkPrimaryThreshold(randomness Randomness,
 func claimSecondarySlot(randomness Randomness,
 	slot, epoch uint64,
 	authorities []types.Authority,
-	threshold *scale.Uint128,
 	keypair *sr25519.Keypair,
 	authorityIndex uint32,
 ) (*VrfOutputAndProof, error) {
