@@ -36,7 +36,7 @@ import (
 
 type useRuntimeInstace func(*testing.T, *storage.TrieState) runtime.Instance
 
-// useInstanceFromGenesis creates a new runtime instance given a genesis file
+// useInstanceFromGenesis creates a new runtime instance given a trie state
 func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
