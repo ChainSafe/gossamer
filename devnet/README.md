@@ -48,7 +48,7 @@ There are four Docker files used in the devnet.
 - `substrate_alice.Dockerfile` is the alice node initiated with explicit node key to keep a deterministic peer id (the same used by gossamer alice node)
 - `substrate_bob.Dockerfile` is used for `bob` and `charlie` and shares the same genesis as alice docker file.
 
-> **_NOTE:_**: It is possible to use substrate alice node with bob and charlie gossamer nodes or any combination since the nodes in the network contains different keys
+> **_NOTE:_**: It is possible to use the substrate alice node with the bob and charlie gossamer nodes or any combination of these since the nodes in the network contain different keys
 
 ### cmd/update-dd-agent-confd
 
