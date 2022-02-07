@@ -427,11 +427,11 @@ func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDe
 	hsC := make(chan *handshakeReader)
 
 	go func() {
-		msgBytes := s.bufPool.get()
-		defer func() {
-			s.bufPool.put(msgBytes)
-			close(hsC)
-		}()
+		defer close(hsC)
+
+		buffer := s.bufPool.Get().(*[]byte)
+		defer s.bufPool.Put(buffer)
+		msgBytes := *buffer
 
 		tot, err := readStream(stream, msgBytes[:])
 		if err != nil {

@@ -137,7 +137,6 @@ func (t *Trie) loadProof(proofHashToNode map[string]Node, n Node) {
 		if !ok {
 			continue
 		}
-		delete(proofHashToNode, proofHash)
 
 		branch.Children[i] = node
 		t.loadProof(proofHashToNode, node)
