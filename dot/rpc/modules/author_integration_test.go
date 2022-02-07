@@ -73,8 +73,8 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 	cfg.Keystore = keystore.NewGlobalKeystore()
 	cfg.NodeStorage = runtime.NodeStorage{
 		LocalStorage:      runtime.NewInMemoryDB(t),
-		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
-		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+		PersistentStorage: runtime.NewInMemoryDB(t),
+		BaseDB:            runtime.NewInMemoryDB(t),
 	}
 
 	runtimeInstance, err := wasmer.NewInstanceFromTrie(rtStorage.Trie(), cfg)
@@ -151,19 +151,19 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	// setup auth module
 	auth := newAuthorModule(t, integrationTestController)
 
-	ext := Extrinsic{extHex}
-
 	res := new(ExtrinsicHashResponse)
-	err := auth.SubmitExtrinsic(nil, &ext, res)
+	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.Nil(t, err)
 
 	expectedExtrinsic := types.NewExtrinsic(extBytes)
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
-			Priority:  39325240425794630,
-			Requires:  nil,
-			Provides:  [][]byte{{212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 0, 0, 0, 0}}, // nolint:lll
+			Priority: 39325240425794630,
+			Requires: nil,
+			Provides: [][]byte{
+				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
+			},
 			Longevity: 18446744073709551614,
 			Propagate: true,
 		},
@@ -197,10 +197,8 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	// setup auth module
 	auth := newAuthorModule(t, integrationTestController)
 
-	ext := Extrinsic{extHex}
-
 	res := new(ExtrinsicHashResponse)
-	err := auth.SubmitExtrinsic(nil, &ext, res)
+	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.EqualError(t, err, runtime.ErrInvalidTransaction.Message)
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
@@ -215,11 +213,8 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 	auth := newAuthorModule(t, integrationTestController)
 
-	// create and submit extrinsic
-	ext := Extrinsic{fmt.Sprintf("%x", "1")}
-
 	res := new(ExtrinsicHashResponse)
-	err := auth.SubmitExtrinsic(nil, &ext, res)
+	err := auth.SubmitExtrinsic(nil, &Extrinsic{fmt.Sprintf("%x", "1")}, res)
 	require.EqualError(t, err, "could not byteify non 0x prefixed string: 31")
 }
 
@@ -256,18 +251,17 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	// setup auth module
 	auth := newAuthorModule(t, integrationTestController)
 
-	// create and submit extrinsic
-	ext := Extrinsic{extHex}
-
 	res := new(ExtrinsicHashResponse)
 
 	expectedExtrinsic := types.NewExtrinsic(extBytes)
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
-			Priority:  39325240425794630,
-			Requires:  nil,
-			Provides:  [][]byte{{212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 0, 0, 0, 0}}, // nolint:lll
+			Priority: 39325240425794630,
+			Requires: nil,
+			Provides: [][]byte{
+				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
+			},
 			Longevity: 18446744073709551614,
 			Propagate: true,
 		},
@@ -276,7 +270,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	integrationTestController.stateSrv.Transaction.AddToPool(expected)
 
 	// should not cause error, since a transaction
-	err := auth.SubmitExtrinsic(nil, &ext, res)
+	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.NoError(t, err)
 }
 
@@ -512,7 +506,6 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 			}
 
 			var res HasSessionKeyResponse
-
 			err := auth.HasSessionKeys(nil, &req, &res)
 
 			if tt.waitErr != nil {
@@ -558,10 +551,8 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	// setup auth module
 	auth := newAuthorModule(t, integrationTestController)
 
-	ext := Extrinsic{extHex}
-
 	res := new(ExtrinsicHashResponse)
-	err := auth.SubmitExtrinsic(nil, &ext, res)
+	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.Nil(t, err)
 
 	expectedExtrinsic := types.NewExtrinsic(extBytes)
@@ -570,20 +561,10 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 		Validity: &transaction.Validity{
 			Priority: 4295664014726,
 			Requires: [][]byte{
-				{
-					212, 53, 147, 199, 21, 253, 211, 28, 97, 20,
-					26, 189, 4, 169, 159, 214, 130, 44, 133,
-					88, 133, 76, 205, 227, 154, 86, 132, 231,
-					165, 109, 162, 125, 0, 0, 0, 0,
-				},
+				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
 			},
 			Provides: [][]byte{
-				{
-					212, 53, 147, 199, 21, 253, 211, 28, 97, 20,
-					26, 189, 4, 169, 159, 214, 130, 44, 133, 88,
-					133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162,
-					125, 1, 0, 0, 0,
-				},
+				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000"),
 			},
 			Longevity: 18446744073709551613,
 			Propagate: true,

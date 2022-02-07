@@ -263,7 +263,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeDigest)
 	require.NoError(t, err)
-	preDigest := types.NewBABEPreRuntimeDigest(data)
+	preDigest := *types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()
 	err = digest.Add(preDigest)
