@@ -873,7 +873,7 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 
 	if len(prefix) == len(branch.Key)+1 &&
 		bytes.HasPrefix(branch.Key, prefix[:len(prefix)-1]) {
-		// Prefix is one the children of the branch
+		// Prefix is one of the children of the branch
 		childIndex := prefix[len(branch.Key)]
 		child := branch.Children[childIndex]
 
