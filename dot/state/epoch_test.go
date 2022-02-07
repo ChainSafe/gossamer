@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -29,7 +28,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := NewInMemoryDB(t)
-	blockState := newTestBlockState(t, nil, NewTries(trie.NewEmptyTrie()))
+	blockState := newTestBlockState(t, nil, newTriesEmpty())
 	s, err := NewEpochStateFromGenesis(db, blockState, genesisBABEConfig)
 	require.NoError(t, err)
 	return s
@@ -186,7 +185,7 @@ func TestEpochState_SetAndGetSlotDuration(t *testing.T) {
 
 func TestEpochState_GetEpochFromTime(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
-	s.blockState = newTestBlockState(t, testGenesisHeader, NewTries(trie.NewEmptyTrie()))
+	s.blockState = newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	epochDuration, err := time.ParseDuration(
 		fmt.Sprintf("%dms",

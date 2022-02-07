@@ -262,7 +262,16 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 }
 
 func TestFinalization_DeleteBlock(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	ctrl := gomock.NewController(t)
+
+	triesGauge := NewMockGauge(ctrl)
+	triesGauge.EXPECT().Set(0.00).Times(5)
+	tries := &Tries{
+		rootToTrie: make(map[common.Hash]*trie.Trie),
+		triesGauge: triesGauge,
+	}
+
+	bs := newTestBlockState(t, testGenesisHeader, tries)
 	AddBlocksToState(t, bs, 5, false)
 
 	btBefore := bs.bt.DeepCopy()
@@ -473,7 +482,16 @@ func TestAddBlockToBlockTree(t *testing.T) {
 }
 
 func TestNumberIsFinalised(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	ctrl := gomock.NewController(t)
+
+	triesGauge := NewMockGauge(ctrl)
+	triesGauge.EXPECT().Set(0.00).Times(2)
+	tries := &Tries{
+		rootToTrie: make(map[common.Hash]*trie.Trie),
+		triesGauge: triesGauge,
+	}
+
+	bs := newTestBlockState(t, testGenesisHeader, tries)
 	fin, err := bs.NumberIsFinalised(big.NewInt(0))
 	require.NoError(t, err)
 	require.True(t, fin)
