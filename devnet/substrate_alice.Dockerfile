@@ -7,8 +7,6 @@ ARG DD_API_KEY=somekey
 ARG METRICS_NAMESPACE=substrate.local.devnet
 ARG NODE_KEY="93ce444331ced4d2f7bfb8296267544e20c2591dbf310c7ea3af672f2879cf8f"
 
-ENV CHAIN=${CHAIN}
-ENV NODE_KEY=${NODE_KEY}
 ENV DD_API_KEY=${DD_API_KEY}
 
 RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
@@ -22,19 +20,17 @@ RUN go mod download
 
 COPY . .
 
-ARG METRICS_NAMESPACE=substrate.local.devnet
-
 WORKDIR /gossamer/devnet
 
-RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 
 ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
-    --chain chain/${CHAIN}/genesis-raw.json \
+    --chain chain/$CHAIN/genesis-raw.json \
     --alice \
     --port 7001 \
     --rpc-port 8545 \
     --ws-port 8546 \
-    --node-key ${NODE_KEY} \ 
+    --node-key $NODE_KEY \ 
     --tmp \
     --prometheus-external \
     --prometheus-port 9876 \

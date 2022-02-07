@@ -6,7 +6,6 @@ FROM golang:1.17
 ARG CHAIN=gssmr
 ARG DD_API_KEY=somekey
 
-ENV CHAIN=${CHAIN}
 ENV DD_API_KEY=${DD_API_KEY}
 
 RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
@@ -21,7 +20,7 @@ COPY . .
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
 # use modified genesis-spec.json with only 3 authority nodes
-RUN cp -f devnet/chain/${CHAIN}/genesis-raw.json chain/gssmr/genesis-spec.json
+RUN cp -f devnet/chain/$CHAIN/genesis-raw.json chain/gssmr/genesis-spec.json
 
 ARG key
 RUN test -n "$key"
