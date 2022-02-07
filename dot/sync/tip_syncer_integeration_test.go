@@ -173,6 +173,7 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
+			pendingBlock: s.pendingBlocks.getBlock(common.Hash{0xb}),
 		},
 	}
 	w, err = s.handleTick()
@@ -201,6 +202,7 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 			targetNumber: uintPtr(header.Number),
 			direction:    network.Ascending,
 			requestData:  network.RequestedDataBody + network.RequestedDataJustification,
+			pendingBlock: s.pendingBlocks.getBlock(header.Hash()),
 		},
 	}
 	w, err := s.handleTick()
@@ -252,6 +254,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
+			pendingBlock: s.pendingBlocks.getBlock(header.Hash()),
 		},
 	}
 

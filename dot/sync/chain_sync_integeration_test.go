@@ -44,7 +44,8 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	net := new(syncmocks.Network)
-	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
+	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).
+		Return(nil, nil)
 	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 
 	readyBlocks := newBlockQueue(maxResponseSize)
@@ -264,7 +265,6 @@ func TestWorkerToRequests(t *testing.T) {
 		max128 = uint32(128)
 		max9   = uint32(9)
 		max64  = uint32(64)
-		max1   = uint32(1)
 	)
 
 	testCases := []testCase{
@@ -322,7 +322,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -363,7 +363,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
-					Max:           &max64,
+					Max:           &max128,
 				},
 			},
 		},
@@ -381,7 +381,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  &(common.Hash{0xa}),
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -400,7 +400,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{0xb}),
 					EndBlockHash:  &(common.Hash{0xc}),
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -416,7 +416,7 @@ func TestWorkerToRequests(t *testing.T) {
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(10),
 					Direction:     network.Ascending,
-					Max:           &max1,
+					Max:           &max128,
 				},
 			},
 		},
@@ -469,7 +469,7 @@ func TestValidateBlockData(t *testing.T) {
 	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},
 	}, "")
-	require.Equal(t, errNilBodyInResponse, err)
+	require.ErrorIs(t, err, errNilBodyInResponse)
 
 	err = cs.validateBlockData(req, &types.BlockData{
 		Header: &types.Header{},
@@ -660,7 +660,8 @@ func TestChainSync_doSync(t *testing.T) {
 	}
 
 	cs.network = new(syncmocks.Network)
-	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
+	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
@@ -692,7 +693,8 @@ func TestChainSync_doSync(t *testing.T) {
 	// test to see if descending blocks get reversed
 	req.Direction = network.Descending
 	cs.network = new(syncmocks.Network)
-	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
+	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 
@@ -747,7 +749,7 @@ func TestHandleReadyBlock(t *testing.T) {
 	}
 	cs.pendingBlocks.addBlock(block2NotDescendant)
 
-	handleReadyBlock(block1.ToBlockData(), cs.pendingBlocks, cs.readyBlocks)
+	cs.handleReadyBlock(block1.ToBlockData())
 
 	require.False(t, cs.pendingBlocks.hasBlock(header1.Hash()))
 	require.False(t, cs.pendingBlocks.hasBlock(header2.Hash()))
