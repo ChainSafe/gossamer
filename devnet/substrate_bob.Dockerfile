@@ -1,4 +1,4 @@
-FROM parity/polkadot:v0.9.10 as polkadot
+FROM parity/polkadot:v0.9.10 AS polkadot
 FROM golang:1.17
 
 ARG key
