@@ -21,14 +21,17 @@ func TestProofGeneration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	expectedValue := rand32Bytes()
+	const size = 32
+	generator := newGenerator()
+
+	expectedValue := generateRandBytes(t, size, generator)
 
 	trie := NewEmptyTrie()
-	trie.Put([]byte("cat"), rand32Bytes())
-	trie.Put([]byte("catapulta"), rand32Bytes())
+	trie.Put([]byte("cat"), generateRandBytes(t, size, generator))
+	trie.Put([]byte("catapulta"), generateRandBytes(t, size, generator))
 	trie.Put([]byte("catapora"), expectedValue)
-	trie.Put([]byte("dog"), rand32Bytes())
-	trie.Put([]byte("doguinho"), rand32Bytes())
+	trie.Put([]byte("dog"), generateRandBytes(t, size, generator))
+	trie.Put([]byte("doguinho"), generateRandBytes(t, size, generator))
 
 	err = trie.Store(memdb)
 	require.NoError(t, err)
