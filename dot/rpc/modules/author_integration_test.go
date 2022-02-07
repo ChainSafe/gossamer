@@ -99,10 +99,7 @@ func TestMain(m *testing.M) {
 
 func TestAuthorModule_Pending_Integration(t *testing.T) {
 	t.Parallel()
-
-	tmpdir := t.TempDir()
-
-	integrationTestController := setupStateAndRuntime(t, tmpdir, nil)
+	integrationTestController := setupStateAndRuntime(t, t.TempDir(), nil)
 
 	auth := newAuthorModule(t, integrationTestController)
 	res := new(PendingExtrinsicsResponse)
@@ -128,9 +125,7 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Parallel()
-	tmpbasepath := t.TempDir()
-
-	integrationTestController := setupStateAndPopulateTrieState(t, tmpbasepath, useInstanceFromGenesis)
+	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -185,9 +180,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Parallel()
-	tmpbasepath := t.TempDir()
-
-	integrationTestController := setupStateAndRuntime(t, tmpbasepath, useInstanceFromGenesis)
+	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	genesisHash := integrationTestController.genesisHeader.Hash()
 
@@ -216,11 +209,10 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	t.Parallel()
-	tmppath := t.TempDir()
 
 	// setup service
 	// setup auth module
-	integrationTestController := setupStateAndRuntime(t, tmppath, useInstanceFromGenesis)
+	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 	auth := newAuthorModule(t, integrationTestController)
 
 	// create and submit extrinsic
@@ -233,9 +225,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	t.Parallel()
-
-	tmpbasepath := t.TempDir()
-	integrationTestController := setupStateAndRuntime(t, tmpbasepath, useInstanceFromGenesis)
+	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -291,8 +281,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_Integration(t *testing.T) {
-	tmppath := t.TempDir()
-	integrationTestController := setupStateAndRuntime(t, tmppath, useInstanceFromGenesis)
+	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 	auth := newAuthorModule(t, integrationTestController)
 
 	const seed = "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"
@@ -373,8 +362,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 }
 
 func TestAuthorModule_HasKey_Integration(t *testing.T) {
-	tmppath := t.TempDir()
-	integrationTestController := setupStateAndRuntime(t, tmppath, useInstanceFromGenesis)
+	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	ks := keystore.NewGlobalKeystore()
 
@@ -441,9 +429,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 }
 
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
-	tmpdir := t.TempDir()
-
-	integrationTestController := setupStateAndRuntime(t, tmpdir, useInstanceFromGenesis)
+	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 	auth := newAuthorModule(t, integrationTestController)
 
 	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
@@ -542,9 +528,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	t.Parallel()
-	tmpbasepath := t.TempDir()
-
-	integrationTestController := setupStateAndPopulateTrieState(t, tmpbasepath, useInstanceFromRuntimeV0910)
+	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0910)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
