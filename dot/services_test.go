@@ -202,7 +202,15 @@ func TestCreateRPCService(t *testing.T) {
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	paramsRPC := rpcServiceSettings{
+		config:      cfg,
+		nodeStorage: ns,
+		state:       stateSrvc,
+		core:        coreSrvc,
+		network:     networkSrvc,
+		system:      sysSrvc,
+	}
+	rpcSrvc, err := createRPCService(paramsRPC)
 	require.NoError(t, err)
 	require.NotNil(t, rpcSrvc)
 }
@@ -357,7 +365,15 @@ func TestNewWebSocketServer(t *testing.T) {
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	paramsRPC := rpcServiceSettings{
+		config:      cfg,
+		nodeStorage: ns,
+		state:       stateSrvc,
+		core:        coreSrvc,
+		network:     networkSrvc,
+		system:      sysSrvc,
+	}
+	rpcSrvc, err := createRPCService(paramsRPC)
 	require.NoError(t, err)
 	err = rpcSrvc.Start()
 	require.Nil(t, err)
@@ -382,10 +398,30 @@ func TestNewWebSocketServer(t *testing.T) {
 
 func Test_createPprofService(t *testing.T) {
 	t.Parallel()
-
 	settings := pprof.Settings{}
-
 	service := createPprofService(settings)
-
 	require.NotNil(t, service)
+}
+
+func Test_createDigestHandler(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+
+	cfg.Core.Roles = types.AuthorityRole
+	cfg.Init.Genesis = genFile
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	err = startStateService(cfg, stateSrvc)
+	require.NoError(t, err)
+
+	_, err = createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	require.NoError(t, err)
+
 }

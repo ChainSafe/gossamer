@@ -12,6 +12,7 @@ runtime = ""
 babe = ""
 grandpa = ""
 sync = ""
+digest = ""
 
 [init]
 genesis = "./chain/kusama/genesis.json"

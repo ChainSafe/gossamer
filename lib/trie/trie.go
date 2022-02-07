@@ -273,18 +273,19 @@ func nextKey(curr Node, prefix, key []byte) []byte {
 
 // Put inserts a key with value into the trie
 func (t *Trie) Put(key, value []byte) {
-	t.tryPut(key, value)
+	nibblesKey := codec.KeyLEToNibbles(key)
+	t.tryPut(nibblesKey, value)
 }
 
 func (t *Trie) tryPut(key, value []byte) {
-	k := codec.KeyLEToNibbles(key)
-
-	t.root = t.insert(t.root, k, node.NewLeaf(nil, value, true, t.generation))
+	t.root = t.insert(t.root, key, node.NewLeaf(nil, value, true, t.generation))
 }
 
 // insert attempts to insert a key with value into the trie
 func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 	newParent := t.maybeUpdateGeneration(parent)
+	value.SetGeneration(t.generation)
+
 	if newParent == nil {
 		value.SetKey(key)
 		return value
@@ -303,7 +304,7 @@ func (t *Trie) insert(parent Node, key []byte, value Node) Node {
 		p := newParent.(*node.Leaf)
 		// if a value already exists in the trie at this key, overwrite it with the new value
 		// if the values are the same, don't mark node dirty
-		if p.Value != nil && bytes.Equal(p.Key, key) {
+		if bytes.Equal(p.Key, key) {
 			if !bytes.Equal(value.(*node.Leaf).Value, p.Value) {
 				p.Value = value.(*node.Leaf).Value
 				p.SetDirty(true)
@@ -559,6 +560,12 @@ func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bo
 
 		if len(prefix) == len(c.Key)+1 && length == len(prefix)-1 {
 			i := prefix[len(c.Key)]
+
+			if c.Children[i] == nil {
+				// child is already nil at the child index
+				return c, false, true
+			}
+
 			c.Children[i] = t.deleteNodes(c.Children[i], []byte{}, limit)
 
 			c.SetDirty(true)
@@ -602,11 +609,11 @@ func (t *Trie) clearPrefixLimit(cn Node, prefix []byte, limit *uint32) (Node, bo
 }
 
 func (t *Trie) deleteNodes(cn Node, prefix []byte, limit *uint32) (newNode Node) {
-	curr := t.maybeUpdateGeneration(cn)
-
 	if *limit == 0 {
-		return curr
+		return cn
 	}
+
+	curr := t.maybeUpdateGeneration(cn)
 
 	switch c := curr.(type) {
 	case *node.Leaf:
@@ -677,6 +684,12 @@ func (t *Trie) clearPrefix(cn Node, prefix []byte) (Node, bool) {
 		if len(prefix) == len(c.Key)+1 && length == len(prefix)-1 {
 			// found prefix at child index, delete child
 			i := prefix[len(c.Key)]
+
+			if c.Children[i] == nil {
+				// child is already nil at the child index
+				return c, false
+			}
+
 			c.Children[i] = nil
 			c.SetDirty(true)
 			curr = handleDeletion(c, prefix)
@@ -733,7 +746,8 @@ func (t *Trie) delete(parent Node, key []byte) (Node, bool) {
 		n, del := t.delete(p.Children[key[length]], key[length+1:])
 		if !del {
 			// If nothing was deleted then don't copy the path.
-			return p, false
+			// Return the parent without its generation updated.
+			return parent, false
 		}
 
 		p.Children[key[length]] = n
@@ -745,8 +759,9 @@ func (t *Trie) delete(parent Node, key []byte) (Node, bool) {
 			// Key exists. Delete it.
 			return nil, true
 		}
-		// Key doesn't exist.
-		return p, false
+		// Key doesn't exist, return parent
+		// without its generation changed
+		return parent, false
 	case nil:
 		return nil, false
 	default:
@@ -764,7 +779,7 @@ func handleDeletion(p *node.Branch, key []byte) Node {
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.Value != nil {
-		n = node.NewLeaf(key[:length], p.Value, true, 0)
+		n = node.NewLeaf(key[:length], p.Value, true, p.Generation)
 	} else if p.NumChildren() == 1 && p.Value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
 		// find index of child
@@ -779,7 +794,14 @@ func handleDeletion(p *node.Branch, key []byte) Node {
 		child := p.Children[i]
 		switch c := child.(type) {
 		case *node.Leaf:
-			n = &node.Leaf{Key: append(append(p.Key, []byte{byte(i)}...), c.Key...), Value: c.Value}
+			key = append(append(p.Key, []byte{byte(i)}...), c.Key...)
+			const dirty = true
+			n = node.NewLeaf(
+				key,
+				c.Value,
+				dirty,
+				p.Generation,
+			)
 		case *node.Branch:
 			br := new(node.Branch)
 			br.Key = append(p.Key, append([]byte{byte(i)}, c.Key...)...)
@@ -788,10 +810,13 @@ func handleDeletion(p *node.Branch, key []byte) Node {
 			for i, grandchild := range c.Children {
 				if grandchild != nil {
 					br.Children[i] = grandchild
+					// No need to copy and update the generation
+					// of the grand children since they are not modified.
 				}
 			}
 
 			br.Value = c.Value
+			br.Generation = p.Generation
 			n = br
 		default:
 			// do nothing

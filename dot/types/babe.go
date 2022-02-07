@@ -114,3 +114,31 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 
 	return slotNumber, nil
 }
+
+// IsPrimary returns true if the block was authored in a primary slot, false otherwise.
+func IsPrimary(header *Header) (bool, error) {
+	if header == nil {
+		return false, fmt.Errorf("cannot have nil header")
+	}
+
+	if len(header.Digest.Types) == 0 {
+		return false, fmt.Errorf("chain head missing digest")
+	}
+
+	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
+	if !ok {
+		return false, fmt.Errorf("first digest item is not pre-digest: type=%T", header.Digest.Types[0].Value())
+	}
+
+	digest, err := DecodeBabePreDigest(preDigest.Data)
+	if err != nil {
+		return false, fmt.Errorf("cannot decode BabePreDigest from pre-digest: %s", err)
+	}
+
+	switch digest.(type) {
+	case BabePrimaryPreDigest:
+		return true, nil
+	default:
+		return false, nil
+	}
+}

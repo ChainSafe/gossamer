@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -150,10 +151,11 @@ func TestStateRPCAPI(t *testing.T) {
 		InvalidHashFormat = "invalid hash format"
 		// `:grandpa_authorities` key
 		GrandpaAuthorityKey            = "0x3a6772616e6470615f617574686f726974696573"
-		GrandpaAuthorityValue          = "0x012434602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691010000000000000094a297125bf31bc15e2a2f1d7d44d2c2a99ce3ed81fdc3a7acf4a4cc30480fb7010000000000000041a8d68c449e3afc7e4676827a4b11a0c9ec238542327f2e46a8b70a32501bca01000000000000007d1bfc260fee0dcdd73457c15a3895747d1c2fdc4c097060e34f54c99ea1c6c10100000000000000b1f9449c9dea2baa872a96bf655a6e266888ec4ea55051508d8bb725e936cf0c01000000000000002e4cc1538f2fd132e0396282ad5c1d7a54eba14d9ad0eee3768c3ae656577a6001000000000000009dff473ab4f7b55caa005060053a7b315cedb928cf9f99792753ad3a3b6ae8a401000000000000004e30525ea941dc9ccd21302b195a6312024ad627cbe4814c89473ce03c3a20e301000000000000009a2d335e656481978c39fb571ed37c3e04ac2c4c44d450aefb2e71205e2e1d230100000000000000" //nolint:lll
-		StorageHashGrandpaAuthorityKey = "0x8c39fb571ed37c3e04ac2c4c44d450aefb2e71205e2e1d230100000000000000"
+		GrandpaAuthorityValue          = "0x012488dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee0100000000000000d17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae690100000000000000439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f01000000000000005e639b43e0052c47447dac87d6fd2b6ec50bdd4d0f614e4299c665249bbd09d901000000000000001dfe3e22cc0d45c70779c1095f7489a8ef3cf52d62fbd8c2fa38c9f1723502b50100000000000000568cb4a574c6d178feb39c27dfc8b3f789e5f5423e19c71633c748b9acf086b5010000000000000008ee9f4a5246647ebb938ece750d3d3be5e5f31978460258a1ab850c5d2b698201000000000000005c2c289b817ff4f843447a3346c0f63876acca1b0b93ff65736b4d4f26b8323101000000000000001da77f955bcd0745d2bc7a7e6544a661f4536deabf57fe79737b3e9157e39e420100000000000000" //nolint:lll
 		StorageSizeGrandpaAuthorityKey = "362"
 	)
+	hash := common.MustBlake2bHash(common.MustHexToBytes(GrandpaAuthorityValue))
+	storageHashGrandpaAuthorityKey := common.BytesToHex(hash[:])
 
 	testCases := []*testCase{
 		{
@@ -166,7 +168,7 @@ func TestStateRPCAPI(t *testing.T) {
 			description: "Test valid block hash state_getStorageHash",
 			method:      "state_getStorageHash",
 			params:      fmt.Sprintf(`["%s","%s"]`, GrandpaAuthorityKey, blockHash.String()),
-			expected:    StorageHashGrandpaAuthorityKey,
+			expected:    storageHashGrandpaAuthorityKey,
 		},
 		{
 			description: "Test valid block hash state_getStorageSize",
@@ -220,7 +222,7 @@ func TestStateRPCAPI(t *testing.T) {
 			description: "Test optional params hash state_getStorageHash",
 			method:      "state_getStorageHash",
 			params:      fmt.Sprintf(`["%s"]`, GrandpaAuthorityKey),
-			expected:    StorageHashGrandpaAuthorityKey,
+			expected:    storageHashGrandpaAuthorityKey,
 		},
 		{
 			description: "Test optional params hash state_getStorageSize",

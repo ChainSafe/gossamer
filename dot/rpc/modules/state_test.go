@@ -653,7 +653,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 					Bhash: &hash,
 				},
 			},
-			exp: StateStorageHashResponse("0x0000000000000000000000000000000000000000000000000000000000000015"),
+			exp: StateStorageHashResponse("0x8c272b95141731e2069ed10ad288146965eb76f0a566885323195f4cd7d58f3b"),
 		},
 		{
 			name:   "bHash Nil OK",
@@ -663,7 +663,7 @@ func TestStateModuleGetStorageHash(t *testing.T) {
 					Key: "0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a",
 				},
 			},
-			exp: StateStorageHashResponse("0x0000000000000000000000000000000000000000000000000000000000000015"),
+			exp: StateStorageHashResponse("0x8c272b95141731e2069ed10ad288146965eb76f0a566885323195f4cd7d58f3b"),
 		},
 		{
 			name:   "bHash Not Nil Err",

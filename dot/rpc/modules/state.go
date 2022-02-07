@@ -341,7 +341,7 @@ func (sm *StateModule) GetStorage(
 	return nil
 }
 
-// GetStorageHash returns the hash of a storage entry at a block's state.
+// GetStorageHash returns the blake2b hash of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is returned.
 func (sm *StateModule) GetStorageHash(
 	_ *http.Request, req *StateStorageHashRequest, res *StateStorageHashResponse) error {
@@ -364,10 +364,12 @@ func (sm *StateModule) GetStorageHash(
 		}
 	}
 
-	if len(item) > 0 {
-		*res = StateStorageHashResponse(common.BytesToHash(item).String())
+	hash, err := common.Blake2bHash(item)
+	if err != nil {
+		return err
 	}
 
+	*res = StateStorageHashResponse(hash.String())
 	return nil
 }
 

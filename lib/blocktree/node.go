@@ -19,6 +19,7 @@ type node struct {
 	children    []*node     // Nodes of children blocks
 	number      *big.Int    // block number
 	arrivalTime time.Time   // Arrival time of the block
+	isPrimary   bool        // whether the block was authored in a primary slot or not
 }
 
 // addChild appends Node to n's list of children
@@ -235,4 +236,18 @@ func (n *node) deleteChild(toDelete *node) {
 			return
 		}
 	}
+}
+
+func (n *node) primaryAncestorCount(count int) int {
+	if n == nil {
+		return count
+	}
+
+	if n.isPrimary && n.parent != nil {
+		// if parent is nil, we're at the root node
+		// we don't need to count it, as all blocks have the root as an ancestor
+		count++
+	}
+
+	return n.parent.primaryAncestorCount(count)
 }

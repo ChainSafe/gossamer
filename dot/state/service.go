@@ -12,17 +12,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
-)
-
-const (
-	readyPoolTransactionsMetrics   = "gossamer/ready/pool/transaction/metrics"
-	readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
-	substrateNumberLeaves          = "gossamer/substrate_number_leaves/metrics"
 )
 
 var logger = log.NewFromGlobal(
@@ -43,14 +38,12 @@ type Service struct {
 	Grandpa     *GrandpaState
 	closeCh     chan interface{}
 
+	PrunerCfg pruner.Config
+	Telemetry telemetry.Client
+
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
-
-	// Below are for state trie online pruner
-	PrunerCfg pruner.Config
-
-	Telemetry telemetry.Client
 }
 
 // Config is the default configuration used by state service.
@@ -59,6 +52,7 @@ type Config struct {
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
 	Telemetry telemetry.Client
+	Metrics   metrics.IntervalConfig
 }
 
 // NewService create a new instance of Service
@@ -175,6 +169,7 @@ func (s *Service) Start() error {
 
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
+
 	return nil
 }
 
@@ -356,13 +351,4 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	return s.db.Close()
-}
-
-// CollectGauge exports 2 metrics related to valid transaction pool and queue
-func (s *Service) CollectGauge() map[string]int64 {
-	return map[string]int64{
-		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
-		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
-		substrateNumberLeaves:          int64(len(s.Block.Leaves())),
-	}
 }
