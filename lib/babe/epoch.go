@@ -223,7 +223,6 @@ func (b *Service) incrementEpoch() (uint64, error) {
 // if it is not authorised.
 // output = return[0:32]; proof = return[32:96]
 func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*types.PreRuntimeDigest, error) {
-	// TODO: Check if whether to store if a primary slot was claimed? How?
 	proof, err := claimPrimarySlot(
 		epochData.randomness,
 		slot,

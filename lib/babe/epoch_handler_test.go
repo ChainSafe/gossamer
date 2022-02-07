@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -15,7 +16,7 @@ import (
 )
 
 func TestNewEpochHandler(t *testing.T) {
-	testHandleSlotFunc := func(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof) error {
+	testHandleSlotFunc := func(epoch, slotNum uint64, authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) error {
 		return nil
 	}
 
@@ -35,7 +36,7 @@ func TestNewEpochHandler(t *testing.T) {
 
 	epochHandler, err := newEpochHandler(1, 9999, epochData, constants, testHandleSlotFunc, keypair)
 	require.NoError(t, err)
-	require.Equal(t, 200, len(epochHandler.slotToProof))
+	require.Equal(t, 200, len(epochHandler.slotToPreRuntimeDigest))
 	require.Equal(t, uint64(1), epochHandler.epochNumber)
 	require.Equal(t, uint64(9999), epochHandler.firstSlot)
 	require.Equal(t, constants, epochHandler.constants)
@@ -49,7 +50,7 @@ func TestEpochHandler_run(t *testing.T) {
 	startSlot := getCurrentSlot(sd)
 
 	var callsToHandleSlot, firstExecutedSlot uint64
-	testHandleSlotFunc := func(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof) error {
+	testHandleSlotFunc := func(epoch, slotNum uint64, authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) error {
 		require.Equal(t, uint64(1), epoch)
 		if callsToHandleSlot == 0 {
 			firstExecutedSlot = slotNum
@@ -57,7 +58,7 @@ func TestEpochHandler_run(t *testing.T) {
 			require.Equal(t, firstExecutedSlot+callsToHandleSlot, slotNum)
 		}
 		require.Equal(t, uint32(0), authorityIndex)
-		require.NotNil(t, proof)
+		require.NotNil(t, preRuntimeDigest)
 		callsToHandleSlot++
 		return nil
 	}
@@ -78,7 +79,7 @@ func TestEpochHandler_run(t *testing.T) {
 	defer cancel()
 	epochHandler, err := newEpochHandler(1, startSlot, epochData, constants, testHandleSlotFunc, keypair)
 	require.NoError(t, err)
-	require.Equal(t, epochLength, uint64(len(epochHandler.slotToProof)))
+	require.Equal(t, epochLength, uint64(len(epochHandler.slotToPreRuntimeDigest)))
 
 	errCh := make(chan error)
 	go epochHandler.run(ctx, errCh)

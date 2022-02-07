@@ -10,7 +10,6 @@ import (
 	"errors"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -338,28 +337,45 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 
 	const slotNumber uint64 = 1
 
-	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex, epochData)
+	preRuntimeDigest, err := babeService.runLottery(slotNumber, testEpochIndex, epochData)
 	require.NoError(t, err)
 
-	builder, _ := NewBlockBuilder(
-		babeService.keypair,
-		babeService.transactionState,
-		babeService.blockState,
-		outAndProof,
-		epochData.authorityIndex,
-	)
-
-	duration, err := time.ParseDuration("1s")
+	babePreDigest, err := types.DecodeBabePreDigest(preRuntimeDigest.Data)
 	require.NoError(t, err)
-
-	slot := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   slotNumber,
+	
+	// var slotNumber uint64
+	var authorityIndex uint32
+	var vrfOutput [sr25519.VRFOutputLength]byte
+	var vrfProof [sr25519.VRFProofLength]byte
+	switch d := babePreDigest.(type) {
+	case types.BabePrimaryPreDigest:
+		// slotNumber = d.SlotNumber
+		authorityIndex = d.AuthorityIndex
+		vrfOutput = d.VRFOutput
+		vrfProof = d.VRFProof
+	default:
+		t.Fatal("expect babe primary pre digest")
 	}
 
+	// builder, _ := NewBlockBuilder(
+	// 	babeService.keypair,
+	// 	babeService.transactionState,
+	// 	babeService.blockState,
+	// 	epochData.authorityIndex,
+	// 	preRuntimeDigest,
+	// )
+
+	// duration, err := time.ParseDuration("1s")
+	// require.NoError(t, err)
+
+	// slot := Slot{
+	// 	start:    time.Now(),
+	// 	duration: duration,
+	// 	number:   slotNumber,
+	// }
+
 	// create babe header
-	babeHeader := builder.buildBlockBABEPrimaryPreDigest(slot)
+	// babeHeader := builder.buildBlockBABEPrimaryPreDigest(slot)
 
 	Authorities := make([]types.Authority, 1)
 	Authorities[0] = types.Authority{
@@ -374,9 +390,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ok, err := verifier.verifyPrimarySlotWinner(
-		babeHeader.AuthorityIndex, slot.number,
-		babeHeader.VRFOutput, babeHeader.VRFProof)
+	ok, err := verifier.verifyPrimarySlotWinner(authorityIndex, slotNumber, vrfOutput, vrfProof)
 	require.NoError(t, err)
 	require.True(t, ok)
 }

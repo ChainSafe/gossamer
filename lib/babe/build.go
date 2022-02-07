@@ -111,7 +111,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	logger.Trace("initialised block")
 
 	// add block inherents
-	inherents, err := b.buildBlockInherents(slot, rt)
+	inherents, err := buildBlockInherents(slot, rt)
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
@@ -236,7 +236,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
-func (b *BlockBuilder) buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
+func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
 	timestamp := uint64(time.Now().UnixMilli())
