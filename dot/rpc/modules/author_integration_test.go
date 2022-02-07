@@ -306,7 +306,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 			ksType:  "babe",
 			seed:    seed,
 			kp:      "0x0000000000000000000000000000000000000000000000000000000000000000",
-			waitErr: errors.New("generated public key does not equal provide public key"),
+			waitErr: ErrProvidedKeyDoesNotMatch,
 		},
 
 		"unknown key type": {
