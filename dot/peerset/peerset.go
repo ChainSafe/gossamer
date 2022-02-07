@@ -115,8 +115,8 @@ func newReputationChange(value Reputation, reason string) ReputationChange {
 
 // PeerSet is a container for all the components of a peerSet.
 type PeerSet struct {
-	peerSetMutex sync.Mutex
-	peerState    *PeersState
+	sync.Mutex
+	peerState *PeersState
 
 	reservedNode map[peer.ID]struct{}
 	// TODO: this will be useful for reserved only mode
@@ -213,8 +213,8 @@ func reputationTick(reput Reputation) Reputation {
 // updateTime updates the value of latestTimeUpdate and performs all the updates that
 // happen over time, such as Reputation increases for staying connected.
 func (ps *PeerSet) updateTime() error {
-	ps.peerSetMutex.Lock()
-	defer ps.peerSetMutex.Unlock()
+	ps.Lock()
+	defer ps.Unlock()
 
 	currTime := time.Now()
 	// identify the time difference between current time and last update time for peer reputation in seconds.
@@ -547,14 +547,14 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 
 		var nodeReputation Reputation
 
-		state.peerStateRWMutex.RLock()
+		state.RLock()
 		node, has := state.nodes[pid]
 
 		if has {
 			nodeReputation = node.rep
 		}
 
-		state.peerStateRWMutex.RUnlock()
+		state.RUnlock()
 
 		switch {
 		case nodeReputation < BannedThresholdValue:
