@@ -17,6 +17,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
@@ -640,4 +641,65 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 		t.Logf("Balance transferred from Alice to Bob: %v\n", bal.String())
 		// Output: Balance transferred from Alice to Bob: 100000000000000
 	}
+}
+
+func TestSecondarySlotProducer(t *testing.T) {
+	numNodes := 4
+	utils.Logger.Patch(log.SetLevel(log.Info))
+
+	// start block producing node first
+	node, err := utils.RunGossamer(t, numNodes-1,
+		utils.TestDir(t, utils.KeyList[numNodes-1]),
+		utils.GenesisDev, utils.ConfigNoGrandpa,
+		false, true)
+	require.NoError(t, err)
+
+	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
+	// all nodes vote for different blocks.
+	time.Sleep(time.Second * 15)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDev, utils.ConfigNotAuthority)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+
+	time.Sleep(time.Second * 30)
+
+	defer func() {
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	numCmps := 10
+	secondaryCount := 0
+
+	for i := 0; i < numCmps; i++ {
+		time.Sleep(3 * time.Second)
+		t.Log("comparing...", i)
+		hashes, err := compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
+		if len(hashes) > 1 || len(hashes) == 0 {
+			require.NoError(t, err, i)
+			continue
+		}
+
+		// there will only be one key in the mapping
+		for hash, nodesWithHash := range hashes {
+			// allow 1 node to potentially not have synced. this is due to the need to increase max peer count
+			require.GreaterOrEqual(t, len(nodesWithHash), numNodes-1)
+			for _, nodeWithHash := range nodes {
+				block := utils.GetBlock(t, nodeWithHash, hash)
+				vdt := block.Header.Digest.VaryingDataType.Value()
+
+				switch vdt.(type) {
+				case gosstypes.BabeSecondaryPlainPreDigest:
+					// TODO: verify the block
+					secondaryCount++
+					fmt.Println("gosstypes.BabeSecondaryPlainPreDigest")
+				case gosstypes.BabePrimaryPreDigest:
+					fmt.Println("gosstypes.BabePrimaryPreDigest")
+				default:
+				}
+			}
+		}
+	}
+
+	assert.Greater(t, secondaryCount, 0)
 }
