@@ -171,7 +171,11 @@ func TestApplyExtrinsic(t *testing.T) {
 	}
 	testVRFOutputAndProof := &VrfOutputAndProof{}
 
-	preDigest2, err := types.NewBabePrimaryPreDigest(authorityIndex, slot2.number, testVRFOutputAndProof.output, testVRFOutputAndProof.proof).ToPreRuntimeDigest()
+	preDigest2, err := types.NewBabePrimaryPreDigest(
+		authorityIndex, slot2.number,
+		testVRFOutputAndProof.output,
+		testVRFOutputAndProof.proof,
+	).ToPreRuntimeDigest()
 	require.NoError(t, err)
 
 	parentHash := babeService.blockState.GenesisHash()
@@ -183,7 +187,11 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	preDigest, err := types.NewBabePrimaryPreDigest(authorityIndex, slot.number, testVRFOutputAndProof.output, testVRFOutputAndProof.proof).ToPreRuntimeDigest()
+	preDigest, err := types.NewBabePrimaryPreDigest(
+		authorityIndex, slot.number,
+		testVRFOutputAndProof.output,
+		testVRFOutputAndProof.proof,
+	).ToPreRuntimeDigest()
 	require.NoError(t, err)
 
 	digest := types.NewDigest()

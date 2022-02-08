@@ -342,40 +342,18 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 
 	babePreDigest, err := types.DecodeBabePreDigest(preRuntimeDigest.Data)
 	require.NoError(t, err)
-	
-	// var slotNumber uint64
+
 	var authorityIndex uint32
 	var vrfOutput [sr25519.VRFOutputLength]byte
 	var vrfProof [sr25519.VRFProofLength]byte
 	switch d := babePreDigest.(type) {
 	case types.BabePrimaryPreDigest:
-		// slotNumber = d.SlotNumber
 		authorityIndex = d.AuthorityIndex
 		vrfOutput = d.VRFOutput
 		vrfProof = d.VRFProof
 	default:
 		t.Fatal("expect babe primary pre digest")
 	}
-
-	// builder, _ := NewBlockBuilder(
-	// 	babeService.keypair,
-	// 	babeService.transactionState,
-	// 	babeService.blockState,
-	// 	epochData.authorityIndex,
-	// 	preRuntimeDigest,
-	// )
-
-	// duration, err := time.ParseDuration("1s")
-	// require.NoError(t, err)
-
-	// slot := Slot{
-	// 	start:    time.Now(),
-	// 	duration: duration,
-	// 	number:   slotNumber,
-	// }
-
-	// create babe header
-	// babeHeader := builder.buildBlockBABEPrimaryPreDigest(slot)
 
 	Authorities := make([]types.Authority, 1)
 	Authorities[0] = types.Authority{

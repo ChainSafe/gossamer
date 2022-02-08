@@ -64,9 +64,13 @@ type BlockBuilder struct {
 }
 
 // NewBlockBuilder creates a new block builder.
-func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
+func NewBlockBuilder(
+	kp *sr25519.Keypair,
+	ts TransactionState,
 	bs BlockState,
-	authidx uint32, preRuntimeDigest *types.PreRuntimeDigest) (*BlockBuilder, error) {
+	authidx uint32,
+	preRuntimeDigest *types.PreRuntimeDigest,
+) (*BlockBuilder, error) {
 	if ts == nil {
 		return nil, ErrNilTransactionState
 	}

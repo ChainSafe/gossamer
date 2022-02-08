@@ -692,9 +692,7 @@ func TestSecondarySlotProducer(t *testing.T) {
 				case gosstypes.BabeSecondaryPlainPreDigest:
 					// TODO: verify the block
 					secondaryCount++
-					fmt.Println("gosstypes.BabeSecondaryPlainPreDigest")
 				case gosstypes.BabePrimaryPreDigest:
-					fmt.Println("gosstypes.BabePrimaryPreDigest")
 				default:
 				}
 			}

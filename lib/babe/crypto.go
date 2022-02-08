@@ -90,10 +90,9 @@ func claimSecondarySlot(randomness Randomness,
 	keypair *sr25519.Keypair,
 	authorityIndex uint32,
 ) (*VrfOutputAndProof, error) {
-
 	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot get secondary slot author: %w", err)
 	}
 
 	if int(authorityIndex) == int(secondarySlotAuthor) {
@@ -101,7 +100,7 @@ func claimSecondarySlot(randomness Randomness,
 
 		out, proof, err := keypair.VrfSign(transcript)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot verify transcript: %w", err)
 		}
 
 		logger.Debugf("claimed secondary slot, for slot number: %d", slot)
@@ -112,8 +111,7 @@ func claimSecondarySlot(randomness Randomness,
 		}, nil
 	}
 
-	// It is not our turn to propose
-	return nil, nil
+	return nil, errors.New("not our turn to propose a block")
 }
 
 // CalculateThreshold calculates the slot lottery threshold

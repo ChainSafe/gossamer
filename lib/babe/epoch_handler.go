@@ -35,7 +35,7 @@ type epochHandler struct {
 func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
 	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
 	// determine which slots we'll be authoring in by pre-calculating VRF output
-	slotToPreRuntimeDigest := make(map[uint64]*types.PreRuntimeDigest)
+	slotToPreRuntimeDigest := make(map[uint64]*types.PreRuntimeDigest, constants.epochLength)
 	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
 		proof, err := claimPrimarySlot(
 			epochData.randomness,
@@ -47,7 +47,7 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 		if err == nil {
 			preRuntimeDigest, _ := types.NewBabePrimaryPreDigest(epochData.authorityIndex, i, proof.output, proof.proof).ToPreRuntimeDigest()
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
-			logger.Debugf("epoch %d: claimed slot %d", epochNumber, i)
+			logger.Debugf("epoch %d: claimed primary slot %d", epochNumber, i)
 			continue
 		}
 		if !errors.Is(err, errOverPrimarySlotThreshold) {
@@ -62,7 +62,7 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 		if proof != nil {
 			preRuntimeDigest, _ := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, i).ToPreRuntimeDigest()
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
-			logger.Debugf("epoch %d: claimed slot %d", epochNumber, i)
+			logger.Debugf("epoch %d: claimed secondary slot %d", epochNumber, i)
 		}
 
 	}

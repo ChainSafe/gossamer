@@ -112,13 +112,11 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 	hasHeader, err := s.blockState.HasHeader(bd.Hash)
 	if err != nil {
-		logger.Debugf("failed to check if block state has header for hash %s: %s", bd.Hash, err)
-		return err
+		return fmt.Errorf("failed to check if block state has header for hash %s: %w", bd.Hash, err)
 	}
 	hasBody, err := s.blockState.HasBlockBody(bd.Hash)
 	if err != nil {
-		logger.Debugf("failed to check block state has body for hash %s: %s", bd.Hash, err)
-		return err
+		return fmt.Errorf("failed to check block state has body for hash %s: %w", bd.Hash, err)
 	}
 
 	if hasHeader && hasBody {
