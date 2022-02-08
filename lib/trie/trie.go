@@ -250,12 +250,7 @@ func findNextKeyLeaf(leaf *node.Leaf, prefix, searchKey []byte) (nextKey []byte)
 	fullKey = append(fullKey, prefix...)
 	fullKey = append(fullKey, parentLeafKey...)
 
-	searchKeyBigger :=
-		(len(searchKey) < len(fullKey) &&
-			bytes.Compare(searchKey, fullKey[:len(searchKey)]) == 1) ||
-			(len(searchKey) >= len(fullKey) &&
-				bytes.Compare(searchKey[:len(fullKey)], fullKey) != -1)
-	if searchKeyBigger {
+	if keyIsLexicographicallyBigger(searchKey, fullKey) {
 		return nil
 	}
 
@@ -272,19 +267,10 @@ func findNextKeyBranch(parentBranch *node.Branch, prefix, searchKey []byte) (nex
 		return findNextKeyChild(parentBranch.Children, startChildIndex, fullKey, searchKey)
 	}
 
-	searchKeyShorter := len(searchKey) < len(fullKey)
-	searchKeyLonger := len(searchKey) > len(fullKey)
-
-	searchKeyBigger :=
-		(searchKeyShorter &&
-			bytes.Compare(searchKey, fullKey[:len(searchKey)]) == 1) ||
-			(!searchKeyShorter &&
-				bytes.Compare(searchKey[:len(fullKey)], fullKey) != -1)
-
-	if searchKeyBigger {
-		if searchKeyShorter {
+	if keyIsLexicographicallyBigger(searchKey, fullKey) {
+		if len(searchKey) < len(fullKey) {
 			return nil
-		} else if searchKeyLonger {
+		} else if len(searchKey) > len(fullKey) {
 			startChildIndex := searchKey[len(fullKey)]
 			return findNextKeyChild(parentBranch.Children,
 				startChildIndex, fullKey, searchKey)
@@ -298,6 +284,13 @@ func findNextKeyBranch(parentBranch *node.Branch, prefix, searchKey []byte) (nex
 	const startChildIndex = 0
 	return findNextKeyChild(parentBranch.Children, startChildIndex,
 		fullKey, searchKey)
+}
+
+func keyIsLexicographicallyBigger(key, key2 []byte) (bigger bool) {
+	if len(key) < len(key2) {
+		return bytes.Compare(key, key2[:len(key)]) == 1
+	}
+	return bytes.Compare(key[:len(key2)], key2) != -1
 }
 
 // findNextKeyChild searches for a next key in the children
