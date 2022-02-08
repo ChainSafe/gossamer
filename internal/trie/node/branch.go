@@ -11,6 +11,10 @@ import (
 
 var _ Node = (*Branch)(nil)
 
+const (
+	ChildrenCapacity = 16
+)
+
 // Branch is a branch in the trie.
 type Branch struct {
 	// Partial key bytes in nibbles (0 to f in hexadecimal)

@@ -304,7 +304,7 @@ func findNextKeyBranch(parentBranch *node.Branch, prefix, searchKey []byte) (nex
 // given and returns a next key or nil if no next key is found.
 func findNextKeyChild(children [16]node.Node, startIndex byte,
 	fullKey, key []byte) (nextKey []byte) {
-	for i := startIndex; i < byte(len(children)); i++ {
+	for i := startIndex; i < node.ChildrenCapacity; i++ {
 		child := children[i]
 		if child == nil {
 			continue
@@ -805,7 +805,7 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newP
 	fullKey = append(fullKey, prefix...)
 	fullKey = append(fullKey, branch.Key...)
 
-	nilChildren := len(branch.Children) - branch.NumChildren()
+	nilChildren := node.ChildrenCapacity - branch.NumChildren()
 
 	for i, child := range branch.Children {
 		if child == nil {
@@ -819,7 +819,7 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newP
 
 		branch.SetDirty(true)
 		newParent = handleDeletion(branch, fullKey)
-		if nilChildren == len(branch.Children) &&
+		if nilChildren == node.ChildrenCapacity &&
 			branch.Value == nil {
 			return nil
 		}
