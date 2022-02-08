@@ -161,6 +161,14 @@ func generateTestValidTxns(t *testing.T) []*transaction.ValidTransaction {
 	//testExternalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt[0]...))
 	//testUnencryptedBody := types.NewBody(encExt)
 
+	//validity := &transaction.Validity{
+	//	Priority:  0x3e8,
+	//	Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
+	//	Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
+	//	Longevity: 0x40,
+	//	Propagate: true,
+	//}
+
 	txs := []*transaction.ValidTransaction{
 		{
 			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[0]...)),
@@ -537,6 +545,17 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	}
 	s := NewTestService(t, cfg)
 	s.transactionState = ts
+
+	fmt.Println(s.transactionState.PendingInPool())
+
+	rt, err := s.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+	//fmt.Println(rt)
+
+	// Transaction is not valid for some reason :(
+	val, err := rt.ValidateTransaction(exts[0])
+	require.NoError(t, err)
+	fmt.Println(val)
 
 	//s := &Service{
 	//	transactionState: ts,
