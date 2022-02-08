@@ -1020,7 +1020,6 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 	mockBlockStateOk.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMockOk, nil)
 	runtimeMockOk.On("SetContextStorage", ts)
 	runtimeMockOk.On("Version").Return(rv, nil)
-
 	tests := []struct {
 		name      string
 		service   *Service
