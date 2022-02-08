@@ -459,18 +459,19 @@ var (
 	RootFlags = append(GlobalFlags, StartupFlags...)
 
 	// InitFlags are flags that are valid for use with the init subcommand
-	InitFlags = append([]cli.Flag{
+	InitFlags = []cli.Flag{
+		BasePathFlag,
 		ForceFlag,
 		GenesisFlag,
-		PruningFlag,
-		RetainBlockNumberFlag,
-	}, GlobalFlags...)
+	}
 
-	BuildSpecFlags = append([]cli.Flag{
+	BuildSpecFlags = []cli.Flag{
+		BasePathFlag,
+		LogFlag,
 		RawFlag,
 		GenesisSpecFlag,
 		OutputSpecFlag,
-	}, GlobalFlags...)
+	}
 
 	// ExportFlags are the flags that are valid for use with the export subcommand
 	ExportFlags = append([]cli.Flag{
@@ -479,7 +480,8 @@ var (
 	}, append(GlobalFlags, StartupFlags...)...)
 
 	// AccountFlags are flags that are valid for use with the account subcommand
-	AccountFlags = append([]cli.Flag{
+	AccountFlags = []cli.Flag{
+		BasePathFlag,
 		GenerateFlag,
 		PasswordFlag,
 		ImportFlag,
@@ -488,7 +490,7 @@ var (
 		Ed25519Flag,
 		Sr25519Flag,
 		Secp256k1Flag,
-	}, GlobalFlags...)
+	}
 
 	ImportStateFlags = []cli.Flag{
 		BasePathFlag,

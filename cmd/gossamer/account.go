@@ -20,14 +20,9 @@ import (
 // finally, if the list flag is set, it lists all the keys in the keystore
 func accountAction(ctx *cli.Context) error {
 	// create dot configuration
-	cfg, err := createDotConfig(ctx)
-	if err != nil {
-		logger.Errorf("failed to create dot configuration: %s", err)
-		return err
-	}
-
+	cfg := DefaultCfg()
+	setDotBasepathConfigFromFlags(ctx, &cfg.Global)
 	basepath := cfg.Global.BasePath
-	var file string
 
 	// check if --ed25519, --sr25519, --secp256k1 is set
 	keytype := crypto.Sr25519Type
@@ -43,7 +38,7 @@ func accountAction(ctx *cli.Context) error {
 	if keygen := ctx.Bool(GenerateFlag.Name); keygen {
 		logger.Info("generating keypair...")
 
-		file, err = keystore.GenerateKeypair(keytype, nil, basepath, getKeystorePassword(ctx))
+		file, err := keystore.GenerateKeypair(keytype, nil, basepath, getKeystorePassword(ctx))
 		if err != nil {
 			logger.Errorf("failed to generate keypair: %s", err)
 			return err
@@ -57,7 +52,7 @@ func accountAction(ctx *cli.Context) error {
 		logger.Info("importing keypair...")
 
 		// import keypair
-		_, err = keystore.ImportKeypair(keyimport, basepath)
+		_, err := keystore.ImportKeypair(keyimport, basepath)
 		if err != nil {
 			logger.Errorf("failed to import keypair: %s", err)
 			return err
@@ -66,7 +61,7 @@ func accountAction(ctx *cli.Context) error {
 
 	// check if --list is set
 	if keylist := ctx.Bool(ListFlag.Name); keylist {
-		_, err = utils.KeystoreFilepaths(basepath)
+		_, err := utils.KeystoreFilepaths(basepath)
 		if err != nil {
 			logger.Errorf("failed to list keys: %s", err)
 			return err
@@ -75,7 +70,7 @@ func accountAction(ctx *cli.Context) error {
 
 	// check if --import-raw is set
 	if importraw := ctx.String(ImportRawFlag.Name); importraw != "" {
-		file, err = keystore.ImportRawPrivateKey(importraw, keytype, basepath, getKeystorePassword(ctx))
+		file, err := keystore.ImportRawPrivateKey(importraw, keytype, basepath, getKeystorePassword(ctx))
 		if err != nil {
 			logger.Errorf("failed to import private key: %s", err)
 			return err

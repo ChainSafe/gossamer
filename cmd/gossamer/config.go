@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -157,20 +156,7 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 		return nil, err
 	}
 
-	// set global configuration values
-	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
-	if err != nil {
-		logger.Errorf("failed to set global node configuration: %s", err)
-		return nil, err
-	}
-
-	if !cfg.Global.Pruning.IsValid() {
-		return nil, fmt.Errorf("--%s must be either %s or %s", PruningFlag.Name, pruner.Full, pruner.Archive)
-	}
-
-	if cfg.Global.RetainBlocks < dev.DefaultRetainBlocks {
-		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, dev.DefaultRetainBlocks)
-	}
+	setDotBasepathConfigFromFlags(ctx, &cfg.Global)
 
 	// set log config
 	err = setLogConfig(ctx, tomlCfg, &cfg.Global, &cfg.Log)
@@ -205,30 +191,13 @@ func createImportStateConfig(ctx *cli.Context) (*dot.Config, error) {
 		return nil, err
 	}
 
-	// set global configuration values
-	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
-		logger.Errorf("failed to set global node configuration: %s", err)
-		return nil, err
-	}
-
+	setDotBasepathConfig(ctx, tomlCfg, &cfg.Global)
 	return cfg, nil
 }
 
 func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
-	var tomlCfg *ctoml.Config
 	cfg := &dot.Config{}
-	err := loadConfigFile(ctx, tomlCfg)
-	if err != nil {
-		logger.Errorf("failed to load toml configuration: %s", err)
-		return nil, err
-	}
-
-	// set global configuration values
-	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
-		logger.Errorf("failed to set global node configuration: %s", err)
-		return nil, err
-	}
-
+	setDotBasepathConfigFromFlags(ctx, &cfg.Global)
 	return cfg, nil
 }
 
@@ -462,6 +431,33 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 
 		cfg.RetainBlocks = tomlCfg.Global.RetainBlocks
 		cfg.Pruning = pruner.Mode(tomlCfg.Global.Pruning)
+	}
+}
+
+func setDotBasepathConfig(ctx *cli.Context, tomlConfig *ctoml.Config, cfg *dot.GlobalConfig) {
+	setDotBasepathConfigFromToml(tomlConfig, cfg)
+	setDotBasepathConfigFromFlags(ctx, cfg)
+}
+
+func setDotBasepathConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
+	if tomlCfg == nil {
+		return
+	}
+
+	if tomlCfg.Global.BasePath != "" {
+		cfg.BasePath = tomlCfg.Global.BasePath
+	}
+}
+
+func setDotBasepathConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
+	// check --basepath flag and update node configuration
+	if basepath := ctx.GlobalString(BasePathFlag.Name); basepath != "" {
+		cfg.BasePath = basepath
+	}
+
+	// check if cfg.BasePath his been set, if not set to default
+	if cfg.BasePath == "" {
+		cfg.BasePath = dot.GssmrConfig().Global.BasePath
 	}
 }
 
