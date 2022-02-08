@@ -1,0 +1,70 @@
+services: 
+  alice:
+    platform: linux/amd64
+    build:
+      context: ./../..
+      dockerfile: devnet/alice.Dockerfile
+      args:
+        CHAIN: cross-client
+        DD_API_KEY: ${DD_API_KEY}
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 8540
+      - 9876
+      - 6060
+
+  bob:
+    platform: linux/amd64
+    build:
+      context: ./../..
+      dockerfile: devnet/bob.Dockerfile
+      args:
+        key: bob
+        CHAIN: cross-client
+        DD_API_KEY: ${DD_API_KEY}
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 9876
+    entrypoint: bash -c "
+      sleep 10s && gossamer --key=bob \
+        --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
+        --publish-metrics \
+        --rpc \
+        --port 7001 \
+        --pubdns=bob"
+    depends_on:
+      - alice
+
+  charlie:
+    platform: linux/amd64
+    build:
+      context: ./../..
+      dockerfile: devnet/substrate_bob.Dockerfile
+      args:
+        key: charlie
+        CHAIN: cross-client
+        DD_API_KEY: ${DD_API_KEY}
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 9876
+    entrypoint: bash -c "
+      sleep 60s && /usr/bin/polkadot \
+        --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
+        --chain chain/cross-chain/genesis-raw.json \
+        --port 7001 \
+        --rpc-port 8545 \
+        --ws-port 8546 \
+        --charlie \
+        --tmp \
+        --prometheus-external \
+        --prometheus-port 9876 \
+        --unsafe-rpc-external \
+        --unsafe-ws-external"
+    depends_on:
+      - alice

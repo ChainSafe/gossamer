@@ -8,7 +8,7 @@ ARG DD_API_KEY=somekey
 
 ENV DD_API_KEY=${DD_API_KEY}
 
-RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
+#RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
 
 WORKDIR /gossamer
 
@@ -32,11 +32,11 @@ ARG METRICS_NAMESPACE=gossamer.local.devnet
 
 WORKDIR /gossamer/devnet
 
-RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+#RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 
 WORKDIR /gossamer
 
-ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
+ENTRYPOINT gossamer --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --publish-metrics \
     --rpc \
