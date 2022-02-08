@@ -6,9 +6,11 @@ ARG CHAIN=cross-client
 ARG DD_API_KEY=somekey
 ARG METRICS_NAMESPACE=substrate.local.devnet
 
+ENV key=${key}
+ENV CHAIN=${CHAIN}
 ENV DD_API_KEY=${DD_API_KEY}
 
-RUN test -n "$key"
+RUN test -n "${key}"
 RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
 
 COPY --from=polkadot /usr/bin/polkadot /usr/bin/polkadot
@@ -30,7 +32,7 @@ ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
     --port 7001 \
     --rpc-port 8545 \
     --ws-port 8546 \
-    --$key \
+    --${key} \
     --tmp \
     --prometheus-external \
     --prometheus-port 9876 \
