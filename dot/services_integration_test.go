@@ -228,7 +228,6 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Core.Roles = types.AuthorityRole
 	cfg.Init.Genesis = genFile
