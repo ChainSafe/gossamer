@@ -69,15 +69,12 @@ func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
 func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
 	t.Parallel()
 
-	f, err := ioutil.TempFile("", "existing file data")
-	require.NoError(t, err)
-	defer os.Remove(f.Name())
-
+	filePath := filepath.Join(t.TempDir(), "genesis.raw")
 	someBytes := []byte("Testing some bytes")
-	err = WriteGenesisSpecFile(someBytes, f.Name())
+	err = WriteGenesisSpecFile(someBytes, filePath)
 
 	require.EqualError(t, err,
-		fmt.Sprintf("file %s already exists, rename to avoid overwriting", f.Name()))
+		fmt.Sprintf("file %s already exists, rename to avoid overwriting", filePath))
 }
 
 func TestWriteGenesisSpecFile(t *testing.T) {
