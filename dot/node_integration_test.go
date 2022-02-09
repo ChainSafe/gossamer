@@ -167,7 +167,6 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genPath := NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
 
 	cfg.Init.Genesis = genPath
 	cfg.Core.GrandpaAuthority = false
