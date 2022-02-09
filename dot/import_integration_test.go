@@ -22,6 +22,8 @@ import (
 )
 
 func setupStateFile(t *testing.T) string {
+	t.Helper()
+
 	const filename = "../lib/runtime/test_data/kusama/block1482002.out"
 
 	data, err := ioutil.ReadFile(filename)
