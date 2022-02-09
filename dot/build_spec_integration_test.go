@@ -126,7 +126,7 @@ func TestBuildFromDB(t *testing.T) {
 
 	// setup expected
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
+	cfg.Init.Genesis = getAbsolutePath(t, "chain/gssmr/genesis.json")
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
 	// initialise node (initialise state database and load genesis data)
