@@ -29,13 +29,6 @@ services:
       - 8545
       - 8546
       - 9876
-    entrypoint: bash -c "
-      sleep 10s && gossamer --key=bob \
-        --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
-        --publish-metrics \
-        --rpc \
-        --port 7001 \
-        --pubdns=bob"
     depends_on:
       - alice
 
@@ -53,18 +46,5 @@ services:
       - 8545
       - 8546
       - 9876
-    entrypoint: bash -c "
-      sleep 60s && /usr/bin/polkadot \
-        --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
-        --chain chain/cross-chain/genesis-raw.json \
-        --port 7001 \
-        --rpc-port 8545 \
-        --ws-port 8546 \
-        --charlie \
-        --tmp \
-        --prometheus-external \
-        --prometheus-port 9876 \
-        --unsafe-rpc-external \
-        --unsafe-ws-external"
     depends_on:
       - alice
