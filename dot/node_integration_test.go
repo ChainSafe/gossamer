@@ -311,12 +311,8 @@ func TestInitNode_LoadBalances(t *testing.T) {
 
 	mgr := node.Services.Get(&state.Service{})
 
-	var stateSrv *state.Service
-	var ok bool
-
-	if stateSrv, ok = mgr.(*state.Service); !ok {
-		t.Fatal("could not find core service")
-	}
+	stateSrv, ok := mgr.(*state.Service)
+	require.True(t, ok, "could not find core service")
 	require.NotNil(t, stateSrv)
 
 	kr, _ := keystore.NewSr25519Keyring()
