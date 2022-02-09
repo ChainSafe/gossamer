@@ -29,6 +29,8 @@ func TestNewConfigAndFile(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
+	err :=testCfgFile.Close()
+	require.NoError(t, err)
 }
 
 // TestInitNode
