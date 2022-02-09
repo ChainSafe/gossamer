@@ -122,9 +122,6 @@ func TestTrieSnapshot(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genRawFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genRawFile)
-
-	defer os.Remove(genRawFile)
 
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
