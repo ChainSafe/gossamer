@@ -47,8 +47,6 @@ func TestNewTestGenesisFile(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genHRFile := newTestGenesisFile(t, cfg)
-	require.NotNil(t, genHRFile)
-	defer os.Remove(genHRFile)
 
 	genRawFile := NewTestGenesisRawFile(t, cfg)
 
