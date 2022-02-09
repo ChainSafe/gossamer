@@ -55,12 +55,18 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 		}
 
 		proof, err = claimSecondarySlot(epochData.randomness, i, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
+		if errors.Is(err, errNotOurTurnToPropose) {
+			continue
+		}
 		if err != nil {
 			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
 		}
 
 		if proof != nil {
-			preRuntimeDigest, _ := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, i).ToPreRuntimeDigest()
+			preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, i).ToPreRuntimeDigest()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get pre runtime digest from babe secondary plain predigest for slot %d: %w", i, err)
+			}
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
 			logger.Debugf("epoch %d: claimed secondary slot %d", epochNumber, i)
 		}

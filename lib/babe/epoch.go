@@ -190,6 +190,9 @@ func (b *Service) getFirstAuthoringSlot(epoch uint64, epochData *epochData) (uin
 			if errors.Is(err, errOverPrimarySlotThreshold) {
 				continue
 			}
+			if errors.Is(err, errNotOurTurnToPropose) {
+				continue
+			}
 			return 0, fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 		}
 

@@ -135,6 +135,7 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 
 	node.Key = key
 
+	Logger.Infof("node basepath: %s", node.basePath)
 	// create log file
 	outfile, err := os.Create(filepath.Join(node.basePath, "log.out"))
 	if err != nil {

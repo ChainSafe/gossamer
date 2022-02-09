@@ -111,7 +111,7 @@ func claimSecondarySlot(randomness Randomness,
 		}, nil
 	}
 
-	return nil, errors.New("not our turn to propose a block")
+	return nil, errNotOurTurnToPropose
 }
 
 // CalculateThreshold calculates the slot lottery threshold

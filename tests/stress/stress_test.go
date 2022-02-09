@@ -643,60 +643,42 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 	}
 }
 
-func TestSecondarySlotProducer(t *testing.T) {
-	numNodes := 4
-	utils.Logger.Patch(log.SetLevel(log.Info))
+func TestStress_Grandpa_OneAuthority2(t *testing.T) {
+	numNodes := 3
 
-	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1,
-		utils.TestDir(t, utils.KeyList[numNodes-1]),
-		utils.GenesisDev, utils.ConfigNoGrandpa,
-		false, true)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
 	require.NoError(t, err)
 
-	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
-	// all nodes vote for different blocks.
-	time.Sleep(time.Second * 15)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDev, utils.ConfigNotAuthority)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
-
-	time.Sleep(time.Second * 30)
-
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	numCmps := 10
+	primaryCount := 0
 	secondaryCount := 0
+	otherCount := 0
+	for i := 1; i < 20; i++ {
+		fmt.Printf("%d iteration\n", i)
+		hash, err := utils.GetBlockHash(t, nodes[0], fmt.Sprintf("%d", i))
+		require.NoError(t, err)
 
-	for i := 0; i < numCmps; i++ {
-		time.Sleep(3 * time.Second)
-		t.Log("comparing...", i)
-		hashes, err := compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		if len(hashes) > 1 || len(hashes) == 0 {
-			require.NoError(t, err, i)
-			continue
+		block := utils.GetBlock(t, nodes[0], hash)
+		header := block.Header
+
+		preDigestItem := header.Digest.Types[0]
+
+		preDigest, ok := preDigestItem.Value().(gosstypes.PreRuntimeDigest)
+		require.True(t, ok)
+
+		babePreDigest, err := gosstypes.DecodeBabePreDigest(preDigest.Data)
+		require.NoError(t, err)
+
+		switch babePreDigest.(type) {
+		case gosstypes.BabePrimaryPreDigest:
+			primaryCount++
+		case gosstypes.BabeSecondaryVRFPreDigest:
+			otherCount++
+		case gosstypes.BabeSecondaryPlainPreDigest:
+			secondaryCount++
 		}
+		require.NotEqual(t, babePreDigest, nil)
 
-		// there will only be one key in the mapping
-		for hash, nodesWithHash := range hashes {
-			// allow 1 node to potentially not have synced. this is due to the need to increase max peer count
-			require.GreaterOrEqual(t, len(nodesWithHash), numNodes-1)
-			for _, nodeWithHash := range nodes {
-				block := utils.GetBlock(t, nodeWithHash, hash)
-				vdt := block.Header.Digest.VaryingDataType.Value()
-
-				switch vdt.(type) {
-				case gosstypes.BabeSecondaryPlainPreDigest:
-					// TODO: verify the block
-					secondaryCount++
-				case gosstypes.BabePrimaryPreDigest:
-				default:
-				}
-			}
-		}
+		time.Sleep(10 * time.Second)
 	}
 
 	assert.Greater(t, secondaryCount, 0)
