@@ -122,7 +122,6 @@ func TestCreateSyncService(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestCreateNetworkService tests the createNetworkService method
 func TestCreateNetworkService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
