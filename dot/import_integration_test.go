@@ -35,7 +35,7 @@ func setupStateFile(t *testing.T) string {
 	bz, err := json.Marshal(pairs)
 	require.NoError(t, err)
 
-	fp := "./test_data/state.json"
+	fp := filepath.Join(t.TempDir(), "state.json")
 	err = ioutil.WriteFile(fp, bz, 0777)
 	require.NoError(t, err)
 
