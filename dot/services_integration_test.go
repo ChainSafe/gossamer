@@ -188,7 +188,6 @@ func TestCreateRPCService(t *testing.T) {
 
 func TestCreateBABEService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
