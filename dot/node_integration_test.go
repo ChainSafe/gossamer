@@ -322,7 +322,8 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	require.NoError(t, err)
 
 	const genbal = "0x0000000000000001"
-	expected, _ := common.HexToBytes(genbal)
+	expected, err := common.HexToBytes(genbal)
+	require.NoError(t, err)
 	require.Equal(t, expected, bal)
 }
 
