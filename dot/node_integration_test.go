@@ -321,7 +321,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	bal, err := stateSrv.Storage.GetStorage(nil, balanceKey(t, alice))
 	require.NoError(t, err)
 
-	genbal := "0x0000000000000001"
+	const genbal = "0x0000000000000001"
 	expected, _ := common.HexToBytes(genbal)
 	require.Equal(t, expected, bal)
 }
