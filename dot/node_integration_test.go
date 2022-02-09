@@ -276,9 +276,8 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	require.Equal(t, expectedRoot, stateRoot)
 }
 
-// balanceKey returns the storage trie key for the balance of the account with the given public key
-func balanceKey(t *testing.T, key [32]byte) []byte {
-	accKey := append([]byte("balance:"), key[:]...)
+func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
+	accKey := append([]byte("balance:"), publicKey[:]...)
 	hash, err := common.Blake2bHash(accKey)
 	require.NoError(t, err)
 	return hash[:]
