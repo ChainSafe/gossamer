@@ -37,7 +37,6 @@ func TestNewTestGenesis(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Init.Genesis = genFile
 }
