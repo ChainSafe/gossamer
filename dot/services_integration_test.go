@@ -20,13 +20,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCreateStateService tests the createStateService method
 func TestCreateStateService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Init.Genesis = genFile
 
@@ -38,13 +36,11 @@ func TestCreateStateService(t *testing.T) {
 	require.NotNil(t, stateSrvc)
 }
 
-// TestCreateCoreService tests the createCoreService method
 func TestCreateCoreService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -77,7 +73,6 @@ func TestCreateBlockVerifier(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Init.Genesis = genFile
 
@@ -96,7 +91,6 @@ func TestCreateSyncService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Init.Genesis = genFile
 
@@ -127,7 +121,6 @@ func TestCreateNetworkService(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Init.Genesis = genFile
 
@@ -142,13 +135,11 @@ func TestCreateNetworkService(t *testing.T) {
 	require.NotNil(t, networkSrvc)
 }
 
-// TestCreateRPCService tests the createRPCService method
 func TestCreateRPCService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -190,7 +181,6 @@ func TestCreateBABEService(t *testing.T) {
 	cfg := NewTestConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Init.Genesis = genFile

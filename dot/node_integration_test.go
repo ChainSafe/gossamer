@@ -147,13 +147,10 @@ func TestStartNode(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	go func() {
-		<-node.started
-		node.Stop()
-	}()
-
 	err = node.Start()
 	require.NoError(t, err)
+	<-node.started
+	node.Stop()
 }
 
 func TestInitNode_LoadGenesisData(t *testing.T) {
@@ -222,7 +219,6 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genPath := NewTestGenesisAndRuntime(t)
-	require.NotEmpty(t, genPath)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
