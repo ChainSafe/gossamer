@@ -81,7 +81,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	t.Parallel()
 
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
+	cfg.Init.Genesis = getAbsolutePath(t, "chain/gssmr/genesis.json")
 
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
