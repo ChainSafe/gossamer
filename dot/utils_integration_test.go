@@ -24,7 +24,6 @@ func TestNewConfig(t *testing.T) {
 	require.NotNil(t, cfg)
 }
 
-// TestNewConfigAndFile tests the NewTestConfigWithFile method
 func TestNewConfigAndFile(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
