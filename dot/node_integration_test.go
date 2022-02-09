@@ -263,12 +263,8 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 
 	mgr := node.Services.Get(&core.Service{})
 
-	var coreSrvc *core.Service
-	var ok bool
-
-	if coreSrvc, ok = mgr.(*core.Service); !ok {
-		t.Fatal("could not find core service")
-	}
+	coreSrvc, ok := mgr.(*core.Service)
+	require.True(t, ok, "could not find core service")
 	require.NotNil(t, coreSrvc)
 
 	stateRoot, err := coreSrvc.StorageRoot()
