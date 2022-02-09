@@ -288,7 +288,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genPath := NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
