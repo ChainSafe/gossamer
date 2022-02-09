@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestNewConfig tests the NewTestConfig method
 func TestNewConfig(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
