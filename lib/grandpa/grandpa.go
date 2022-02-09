@@ -61,10 +61,10 @@ type Service struct {
 
 	// current state information
 	state *State // current state
-	// map[ed25519.PublicKeyBytes]*SignedVote - pre-votes for the current round
-	prevotes *sync.Map
-	// map[ed25519.PublicKeyBytes]*SignedVote - pre-commits for the current round
-	precommits      *sync.Map
+	// pre-votes for the current round
+	prevotes *pubKeyToSignedVote
+	// pre-commits for the current round
+	precommits      *pubKeyToSignedVote
 	pvEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-vote stage
 	pcEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-commit stage
 	tracker         *tracker                                 // tracker of vote messages we may need in the future
@@ -161,8 +161,8 @@ func NewService(cfg *Config) (*Service, error) {
 		digestHandler:      cfg.DigestHandler,
 		keypair:            cfg.Keypair,
 		authority:          cfg.Authority,
-		prevotes:           new(sync.Map),
-		precommits:         new(sync.Map),
+		prevotes:           newPubKeyToSignedVote(),
+		precommits:         newPubKeyToSignedVote(),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
 		preVotedBlock:      make(map[uint64]*Vote),
@@ -347,8 +347,8 @@ func (s *Service) initiateRound() error {
 	s.roundLock.Lock()
 	s.state.round++
 	logger.Debugf("incrementing grandpa round, next round will be %d", s.state.round)
-	s.prevotes = new(sync.Map)
-	s.precommits = new(sync.Map)
+	s.prevotes.clear()
+	s.precommits.clear()
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.roundLock.Unlock()
@@ -442,7 +442,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 		return false, fmt.Errorf("failed to create primary proposal message: %w", err)
 	}
 
-	s.prevotes.Store(s.publicKeyBytes(), spv)
+	s.prevotes.set(s.publicKeyBytes(), spv)
 
 	msg, err := primProposal.ToConsensusMessage()
 	if err != nil {
@@ -505,7 +505,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	if !isPrimary {
-		s.prevotes.Store(s.publicKeyBytes(), spv)
+		s.prevotes.set(s.publicKeyBytes(), spv)
 	}
 
 	logger.Debugf("sending pre-vote message %s...", pv)
@@ -537,7 +537,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	s.precommits.Store(s.publicKeyBytes(), spc)
+	s.precommits.set(s.publicKeyBytes(), spc)
 	logger.Debugf("sending pre-commit message %s...", pc)
 
 	// continue to send precommit messages until round is done
@@ -657,32 +657,28 @@ func (s *Service) attemptToFinalize() error {
 	}
 }
 
-func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {
-	var (
-		v   interface{}
-		has bool
-	)
-
+func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (
+	signedVote *SignedVote, has bool) {
 	switch stage {
 	case prevote, primaryProposal:
-		v, has = s.prevotes.Load(key)
+		signedVote = s.prevotes.get(key)
 	case precommit:
-		v, has = s.precommits.Load(key)
+		signedVote = s.precommits.get(key)
 	}
 
-	if !has {
+	if signedVote == nil {
 		return nil, false
 	}
 
-	return v.(*SignedVote), true
+	return signedVote, true
 }
 
 func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
 	switch stage {
 	case prevote, primaryProposal:
-		s.prevotes.Delete(key)
+		s.prevotes.delete(key)
 	case precommit:
-		s.precommits.Delete(key)
+		s.precommits.delete(key)
 	}
 }
 
@@ -857,12 +853,11 @@ func (s *Service) finalise() error {
 // createJustification collects the signed precommits received for this round and turns them into
 // a justification by adding all signed precommits that are for the best finalised candidate or
 // a descendent of the bfc
-func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]SignedVote, error) {
+func (s *Service) createJustification(bfc common.Hash, stage Subround) (
+	just []SignedVote, err error) {
 	var (
-		spc  *sync.Map
-		err  error
-		just []SignedVote
-		eqv  map[ed25519.PublicKeyBytes][]*SignedVote
+		spc *pubKeyToSignedVote
+		eqv map[ed25519.PublicKeyBytes][]*SignedVote
 	)
 
 	switch stage {
@@ -876,25 +871,10 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedSubround, stage)
 	}
 
-	spc.Range(func(_, value interface{}) bool {
-		pc := value.(*SignedVote)
-		var isDescendant bool
-
-		isDescendant, err = s.blockState.IsDescendantOf(bfc, pc.Vote.Hash)
-		if err != nil {
-			return false
-		}
-
-		if !isDescendant {
-			return true
-		}
-
-		just = append(just, *pc)
-		return true
-	})
-
+	just, err = spc.makeJustifications(bfc, s.blockState)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot make justifications from signed votes map for bfc %s: %w",
+			bfc, err)
 	}
 
 	for _, votes := range eqv {
@@ -1246,23 +1226,15 @@ func (s *Service) getVotesForBlock(hash common.Hash, stage Subround) (uint64, er
 }
 
 // getDirectVotes returns a map of Votes to direct vote counts
-func (s *Service) getDirectVotes(stage Subround) map[Vote]uint64 {
-	votes := make(map[Vote]uint64)
-
-	var src *sync.Map
+func (s *Service) getDirectVotes(stage Subround) (votes map[Vote]uint64) {
+	var src *pubKeyToSignedVote
 	if stage == prevote {
 		src = s.prevotes
 	} else {
 		src = s.precommits
 	}
 
-	src.Range(func(_, value interface{}) bool {
-		sv := value.(*SignedVote)
-		votes[sv.Vote]++
-		return true
-	})
-
-	return votes
+	return src.getDirectVotes()
 }
 
 // getVotes returns all the current votes as an array
@@ -1330,13 +1302,7 @@ func (s *Service) PreVotes() []ed25519.PublicKeyBytes {
 	defer s.mapLock.Unlock()
 
 	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(prevote)+len(s.pvEquivocations))
-
-	s.prevotes.Range(func(k interface{}, _ interface{}) bool {
-		b := k.(ed25519.PublicKeyBytes)
-		votes = append(votes, b)
-		return true
-	})
-
+	votes = append(votes, s.prevotes.getPreVotes()...)
 	for v := range s.pvEquivocations {
 		votes = append(votes, v)
 	}
@@ -1350,13 +1316,7 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 	defer s.mapLock.Unlock()
 
 	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(precommit)+len(s.pcEquivocations))
-
-	s.precommits.Range(func(k interface{}, _ interface{}) bool {
-		b := k.(ed25519.PublicKeyBytes)
-		votes = append(votes, b)
-		return true
-	})
-
+	votes = append(votes, s.precommits.getPreVotes()...)
 	for v := range s.pvEquivocations {
 		votes = append(votes, v)
 	}
@@ -1364,21 +1324,13 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 	return votes
 }
 
-func (s *Service) lenVotes(stage Subround) int {
-	var count int
-
+func (s *Service) lenVotes(stage Subround) (count int) {
 	switch stage {
 	case prevote, primaryProposal:
-		s.prevotes.Range(func(_, _ interface{}) bool {
-			count++
-			return true
-		})
+		return s.prevotes.len()
 	case precommit:
-		s.precommits.Range(func(_, _ interface{}) bool {
-			count++
-			return true
-		})
+		return s.precommits.len()
+	default:
+		return count
 	}
-
-	return count
 }

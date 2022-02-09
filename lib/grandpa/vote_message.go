@@ -227,9 +227,9 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 
 	switch m.Message.Stage {
 	case prevote, primaryProposal:
-		s.prevotes.Store(pk.AsBytes(), just)
+		s.prevotes.set(pk.AsBytes(), just)
 	case precommit:
-		s.precommits.Store(pk.AsBytes(), just)
+		s.precommits.set(pk.AsBytes(), just)
 	}
 
 	return vote, nil

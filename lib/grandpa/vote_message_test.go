@@ -80,7 +80,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+	gs.prevotes.set(voter.Key.AsBytes(), &SignedVote{
 		Vote: *vote1,
 	})
 
@@ -127,7 +127,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+	gs.prevotes.set(voter.Key.AsBytes(), &SignedVote{
 		Vote: *vote1,
 	})
 
@@ -289,7 +289,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+	gs.prevotes.set(voter.Key.AsBytes(), &SignedVote{
 		Vote: *voteA,
 	})
 

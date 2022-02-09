@@ -124,8 +124,8 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	prevotes := new(sync.Map)
-	precommits := new(sync.Map)
+	prevotes := newPubKeyToSignedVote()
+	precommits := newPubKeyToSignedVote()
 
 	for i, gs := range gss {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
@@ -133,7 +133,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15, false)
 		pv, err := gs.determinePreVote()
 		require.NoError(t, err)
-		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
+		prevotes.set(gs.publicKeyBytes(), &SignedVote{
 			Vote: *pv,
 		})
 	}
@@ -146,7 +146,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	for _, gs := range gss {
 		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
-		precommits.Store(gs.publicKeyBytes(), &SignedVote{
+		precommits.set(gs.publicKeyBytes(), &SignedVote{
 			Vote: *pc,
 		})
 		err = gs.finalise()
@@ -192,7 +192,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 			pv := prevote.(*SignedVote)
 			err = gs.validateVote(&pv.Vote)
 			if err == nil {
-				gs.prevotes.Store(k, pv)
+				gs.prevotes.set(k, pv)
 			}
 			return true
 		})
