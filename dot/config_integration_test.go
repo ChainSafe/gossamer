@@ -7,6 +7,7 @@
 package dot
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -25,4 +26,5 @@ func TestExportConfig(t *testing.T) {
 
 	file := exportConfig(cfg, cfgFile.Name())
 	require.NotNil(t, file)
+	os.Remove(file.Name())
 }

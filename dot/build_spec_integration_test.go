@@ -9,11 +9,12 @@ package dot
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,7 +72,7 @@ func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
 
 	filePath := filepath.Join(t.TempDir(), "genesis.raw")
 	someBytes := []byte("Testing some bytes")
-	err = WriteGenesisSpecFile(someBytes, filePath)
+	err := WriteGenesisSpecFile(someBytes, filePath)
 
 	require.EqualError(t, err,
 		fmt.Sprintf("file %s already exists, rename to avoid overwriting", filePath))
@@ -81,7 +82,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	t.Parallel()
 
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = getAbsolutePath(t, "chain/gssmr/genesis.json")
+	cfg.Init.Genesis = runtime.GetAbsolutePath("../chain/gssmr/genesis.json")
 
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
@@ -95,30 +96,26 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	data, err := bs.ToJSONRaw()
 	require.NoError(t, err)
 
-	tmpFiles := []string{
-		t.TempDir() + "/unique-raw-genesis.json",
-	}
+	tmpFile := t.TempDir() + "/unique-raw-genesis.json"
+	err = WriteGenesisSpecFile(data, tmpFile)
+	require.NoError(t, err)
+	require.FileExists(t, tmpFile)
 
-	for _, tmpFile := range tmpFiles {
-		err = WriteGenesisSpecFile(data, tmpFile)
-		require.NoError(t, err)
-		require.FileExists(t, tmpFile)
+	defer os.Remove(tmpFile)
 
-		defer os.Remove(tmpFile)
+	file, err := os.Open(tmpFile)
+	require.NoError(t, err)
+	defer file.Close()
 
-		file, err := os.Open(tmpFile)
-		require.NoError(t, err)
-		defer file.Close()
+	gen := new(genesis.Genesis)
 
-		gen := new(genesis.Genesis)
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(gen)
+	require.NoError(t, err)
 
-		decoder := json.NewDecoder(file)
-		err = decoder.Decode(gen)
-		require.NoError(t, err)
+	require.Equal(t, expected.ChainType, gen.ChainType)
+	require.Equal(t, expected.Properties, gen.Properties)
 
-		require.Equal(t, expected.ChainType, gen.ChainType)
-		require.Equal(t, expected.Properties, gen.Properties)
-	}
 }
 
 func TestBuildFromDB(t *testing.T) {
@@ -126,7 +123,7 @@ func TestBuildFromDB(t *testing.T) {
 
 	// setup expected
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = getAbsolutePath(t, "chain/gssmr/genesis.json")
+	cfg.Init.Genesis = runtime.GetAbsolutePath("../chain/gssmr/genesis.json")
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
 	// initialise node (initialise state database and load genesis data)

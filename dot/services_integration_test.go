@@ -172,7 +172,18 @@ func TestCreateRPCService(t *testing.T) {
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	rpcSettings := rpcServiceSettings{
+		config:        cfg,
+		nodeStorage:   ns,
+		state:         stateSrvc,
+		core:          coreSrvc,
+		network:       networkSrvc,
+		blockProducer: nil,
+		system:        sysSrvc,
+		blockFinality: nil,
+		syncer:        nil,
+	}
+	rpcSrvc, err := createRPCService(rpcSettings)
 	require.NoError(t, err)
 	require.NotNil(t, rpcSrvc)
 }
@@ -246,25 +257,25 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NotNil(t, gs)
 }
 
-var addr = flag.String("addr", "localhost:8546", "http service address")
-var testCalls = []struct {
-	call     []byte
-	expected []byte
-}{
-	{[]byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
-		[]byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")}, // working request
-	{[]byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`),
-		[]byte(`{"error":{"code":-32000,"data":null,"message":"rpc error method unknown not found"},"id":2,
-"jsonrpc":"2.0"}` + "\n")}, // unknown method
-	{[]byte{},
-		[]byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n")}, // empty request
-	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`),
-		[]byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
-	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`),
-		[]byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
-}
-
 func TestNewWebSocketServer(t *testing.T) {
+	var addr = flag.String("addr", "localhost:8546", "http service address")
+	var testCalls = []struct {
+		call     []byte
+		expected []byte
+	}{
+		{[]byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
+			[]byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")}, // working request
+		{[]byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`),
+			[]byte(`{"error":{"code":-32000,"data":null,"message":"rpc error method unknown not found"},"id":2,
+"jsonrpc":"2.0"}` + "\n")}, // unknown method
+		{[]byte{},
+			[]byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n")}, // empty request
+		{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`),
+			[]byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
+		{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`),
+			[]byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
+	}
+
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
@@ -305,7 +316,18 @@ func TestNewWebSocketServer(t *testing.T) {
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc, err := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	rpcSettings := rpcServiceSettings{
+		config:        cfg,
+		nodeStorage:   ns,
+		state:         stateSrvc,
+		core:          coreSrvc,
+		network:       networkSrvc,
+		blockProducer: nil,
+		system:        sysSrvc,
+		blockFinality: nil,
+		syncer:        nil,
+	}
+	rpcSrvc, err := createRPCService(rpcSettings)
 	require.NoError(t, err)
 	err = rpcSrvc.Start()
 	require.NoError(t, err)
