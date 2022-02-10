@@ -15,7 +15,6 @@ import (
 
 func TestExportConfig(t *testing.T) {
 	cfg, cfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 

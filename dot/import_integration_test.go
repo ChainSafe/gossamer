@@ -14,10 +14,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,4 +118,17 @@ func TestImportState(t *testing.T) {
 	const firstSlot = uint64(262493679)
 	err = ImportState(basepath, stateFP, headerFP, firstSlot)
 	require.NoError(t, err)
+	// confirm data is imported into db
+	config := state.Config{
+		Path:     basepath,
+		LogLevel: log.Info,
+	}
+	srv := state.NewService(config)
+	srv.SetupBase()
+
+	lookupKey := []byte{98, 108, 111, 99, 107, 104, 100, 114, 88, 127, 109, 161, 191, 167, 26, 103, 95, 16, 223, 160,
+		246, 62, 223, 207, 22, 142, 142, 206, 151, 235, 95, 82, 106, 175, 14, 138, 142, 130, 219, 63}
+	data, err := srv.DB().Get(lookupKey)
+	require.NoError(t, err)
+	require.NotNil(t, data)
 }

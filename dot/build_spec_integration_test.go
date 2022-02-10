@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// hex encoding for ":code", used as key for code is raw genesis files.
 const codeHex = "0x3a636f6465"
 
 func TestBuildFromGenesis(t *testing.T) {
