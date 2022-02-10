@@ -69,7 +69,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	return extBytes
 }
 
-func TestServiceHandleBlockProduced(t *testing.T) {
+func TestService_HandleBlockProduced(t *testing.T) {
 	net := new(mocks.Network)
 	cfg := &Config{
 		Network:  net,
