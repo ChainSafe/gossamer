@@ -203,170 +203,205 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	})
 }
 
-// TODO change test fmt
 func Test_Service_handleBlock(t *testing.T) {
-	emptyTrie := trie.NewEmptyTrie()
-	trieState, err := rtstorage.NewTrieState(emptyTrie)
-	require.NoError(t, err)
+	t.Run("nil input", func(t *testing.T) {
+		t.Parallel()
+		expErr := ErrNilBlockHandlerParameter
+		expErrMsg := ErrNilBlockHandlerParameter.Error()
+		s := &Service{}
+		err := s.handleBlock(nil, nil)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
 
-	testHeader := types.NewEmptyHeader()
-	block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-	block.Header.Number = big.NewInt(21)
+	t.Run("storeTrie error", func(t *testing.T) {
+		t.Parallel()
+		expErr := errTestDummyError
+		expErrMsg := errTestDummyError.Error()
+		emptyTrie := trie.NewEmptyTrie()
+		trieState, err := rtstorage.NewTrieState(emptyTrie)
+		require.NoError(t, err)
 
-	ctrl := gomock.NewController(t)
+		testHeader := types.NewEmptyHeader()
+		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+		block.Header.Number = big.NewInt(21)
 
-	//Store trie error
-	mockStorageStateErr := NewMockStorageState(ctrl)
-	mockStorageStateErr.EXPECT().StoreTrie(trieState, &block.Header).Return(errTestDummyError)
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(errTestDummyError)
 
-	// add block error
-	mockStorageStateOk1 := NewMockStorageState(ctrl)
-	mockStorageStateOk1.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
-	mockBlockStateErrNotFine := NewMockBlockState(ctrl)
-	mockBlockStateErrNotFine.EXPECT().AddBlock(&block).Return(errTestDummyError)
+		s := Service{storageState: mockStorageState}
+		err = s.handleBlock(&block, trieState)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
 
-	//add block prent not found error
-	mockStorageStateOk2 := NewMockStorageState(ctrl)
-	mockStorageStateOk2.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
-	mockBlockStateErrNotFine2 := NewMockBlockState(ctrl)
-	mockBlockStateErrNotFine2.EXPECT().AddBlock(&block).Return(blocktree.ErrParentNotFound)
+	t.Run("addBlock quit error", func(t *testing.T) {
+		t.Parallel()
+		expErr := errTestDummyError
+		expErrMsg := errTestDummyError.Error()
+		emptyTrie := trie.NewEmptyTrie()
+		trieState, err := rtstorage.NewTrieState(emptyTrie)
+		require.NoError(t, err)
 
-	//add block cont err
-	mockStorageStateOk3 := NewMockStorageState(ctrl)
-	mockStorageStateOk3.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
-	mockBlockStateErrFine := NewMockBlockState(ctrl)
-	mockBlockStateErrFine.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
-	mockBlockStateErrFine.EXPECT().GetRuntime(&block.Header.ParentHash).Return(nil, errTestDummyError)
-	mockDigestHandler := NewMockDigestHandler(ctrl)
-	mockDigestHandler.EXPECT().HandleDigests(&block.Header)
+		testHeader := types.NewEmptyHeader()
+		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+		block.Header.Number = big.NewInt(21)
 
-	//handle runtime changes error
-	runtimeMock := new(mocksruntime.Instance)
-	mockStorageStateOk4 := NewMockStorageState(ctrl)
-	mockStorageStateOk4.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
-	mockBlockStateRuntimeChangeErr := NewMockBlockState(ctrl)
-	mockBlockStateRuntimeChangeErr.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
-	mockBlockStateRuntimeChangeErr.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock, nil)
-	mockBlockStateRuntimeChangeErr.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).
-		Return(errTestDummyError)
-	mockDigestHandler1 := NewMockDigestHandler(ctrl)
-	mockDigestHandler1.EXPECT().HandleDigests(&block.Header)
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().AddBlock(&block).Return(errTestDummyError)
 
-	runtimeMock2 := new(mocksruntime.Instance)
-	mockStorageStateOk5 := NewMockStorageState(ctrl)
-	mockStorageStateOk5.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
-	mockBlockStateOk := NewMockBlockState(ctrl)
-	mockBlockStateOk.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
-	mockBlockStateOk.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock2, nil)
-	mockBlockStateOk.EXPECT().HandleRuntimeChanges(trieState, runtimeMock2, block.Header.Hash()).Return(nil)
-	mockDigestHandler2 := NewMockDigestHandler(ctrl)
-	mockDigestHandler2.EXPECT().HandleDigests(&block.Header)
+		s := Service{
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
+		}
+		err = s.handleBlock(&block, trieState)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
 
-	type args struct {
-		block *types.Block
-		state *rtstorage.TrieState
-	}
-	tests := []struct {
-		name      string
-		service   *Service
-		args      args
-		expErr    error
-		expErrMsg string
-	}{
-		{
-			name:      "nil input",
-			service:   &Service{},
-			expErr:    ErrNilBlockHandlerParameter,
-			expErrMsg: ErrNilBlockHandlerParameter.Error(),
-		},
-		{
-			name:    "storeTrie error",
-			service: &Service{storageState: mockStorageStateErr},
-			args: args{
-				block: &block,
-				state: trieState,
-			},
-			expErr:    errTestDummyError,
-			expErrMsg: errTestDummyError.Error(),
-		},
-		{
-			name: "addBlock quit error",
-			service: &Service{
-				storageState: mockStorageStateOk1,
-				blockState:   mockBlockStateErrNotFine,
-			},
-			args: args{
-				block: &block,
-				state: trieState,
-			},
-			expErr:    errTestDummyError,
-			expErrMsg: errTestDummyError.Error(),
-		},
-		{
-			name: "addBlock parent not found error",
-			service: &Service{
-				storageState: mockStorageStateOk2,
-				blockState:   mockBlockStateErrNotFine2,
-			},
-			args: args{
-				block: &block,
-				state: trieState,
-			},
-			expErr:    blocktree.ErrParentNotFound,
-			expErrMsg: blocktree.ErrParentNotFound.Error(),
-		},
-		{
-			name: "addBlock error continue",
-			service: &Service{
-				storageState:  mockStorageStateOk3,
-				blockState:    mockBlockStateErrFine,
-				digestHandler: mockDigestHandler,
-			},
-			args: args{
-				block: &block,
-				state: trieState,
-			},
-			expErr:    errTestDummyError,
-			expErrMsg: errTestDummyError.Error(),
-		},
-		{
-			name: "handle runtime changes error",
-			service: &Service{
-				storageState:  mockStorageStateOk4,
-				blockState:    mockBlockStateRuntimeChangeErr,
-				digestHandler: mockDigestHandler1,
-			},
-			args: args{
-				block: &block,
-				state: trieState,
-			},
-			expErr:    errTestDummyError,
-			expErrMsg: errTestDummyError.Error(),
-		},
-		{
-			name: "code substitution ok",
-			service: &Service{
-				storageState:  mockStorageStateOk5,
-				blockState:    mockBlockStateOk,
-				digestHandler: mockDigestHandler2,
-				ctx:           context.TODO(),
-			},
-			args: args{
-				block: &block,
-				state: trieState,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := tt.service
-			err := s.handleBlock(tt.args.block, tt.args.state)
-			assert.ErrorIs(t, err, tt.expErr)
-			if tt.expErr != nil {
-				assert.EqualError(t, err, tt.expErrMsg)
-			}
-		})
-	}
+	t.Run("addBlock parent not found error", func(t *testing.T) {
+		t.Parallel()
+		expErr := blocktree.ErrParentNotFound
+		expErrMsg := blocktree.ErrParentNotFound.Error()
+		emptyTrie := trie.NewEmptyTrie()
+		trieState, err := rtstorage.NewTrieState(emptyTrie)
+		require.NoError(t, err)
+
+		testHeader := types.NewEmptyHeader()
+		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+		block.Header.Number = big.NewInt(21)
+
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrParentNotFound)
+
+		s := Service{
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
+		}
+		err = s.handleBlock(&block, trieState)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
+
+	t.Run("addBlock error continue", func(t *testing.T) {
+		t.Parallel()
+		expErr := errTestDummyError
+		expErrMsg := errTestDummyError.Error()
+		emptyTrie := trie.NewEmptyTrie()
+		trieState, err := rtstorage.NewTrieState(emptyTrie)
+		require.NoError(t, err)
+
+		testHeader := types.NewEmptyHeader()
+		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+		block.Header.Number = big.NewInt(21)
+
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
+		mockBlockState.EXPECT().GetRuntime(&block.Header.ParentHash).Return(nil, errTestDummyError)
+		mockDigestHandler := NewMockDigestHandler(ctrl)
+		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
+
+		s := Service{
+			storageState:  mockStorageState,
+			blockState:    mockBlockState,
+			digestHandler: mockDigestHandler,
+		}
+		err = s.handleBlock(&block, trieState)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
+
+	t.Run("handle runtime changes error", func(t *testing.T) {
+		t.Parallel()
+		expErr := errTestDummyError
+		expErrMsg := errTestDummyError.Error()
+		emptyTrie := trie.NewEmptyTrie()
+		trieState, err := rtstorage.NewTrieState(emptyTrie)
+		require.NoError(t, err)
+
+		testHeader := types.NewEmptyHeader()
+		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+		block.Header.Number = big.NewInt(21)
+
+		ctrl := gomock.NewController(t)
+		runtimeMock := new(mocksruntime.Instance)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
+		mockBlockState.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock, nil)
+		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).
+			Return(errTestDummyError)
+		mockDigestHandler := NewMockDigestHandler(ctrl)
+		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
+
+		s := Service{
+			storageState:  mockStorageState,
+			blockState:    mockBlockState,
+			digestHandler: mockDigestHandler,
+		}
+		err = s.handleBlock(&block, trieState)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
+
+	t.Run("code substitution ok", func(t *testing.T) {
+		t.Parallel()
+		var expErr error
+		var expErrMsg string
+		emptyTrie := trie.NewEmptyTrie()
+		trieState, err := rtstorage.NewTrieState(emptyTrie)
+		require.NoError(t, err)
+
+		testHeader := types.NewEmptyHeader()
+		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
+		block.Header.Number = big.NewInt(21)
+
+		ctrl := gomock.NewController(t)
+		runtimeMock := new(mocksruntime.Instance)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
+		mockBlockState.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock, nil)
+		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
+		mockDigestHandler := NewMockDigestHandler(ctrl)
+		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
+
+		s := Service{
+			storageState:  mockStorageState,
+			blockState:    mockBlockState,
+			digestHandler: mockDigestHandler,
+			ctx:           context.TODO(),
+		}
+		err = s.handleBlock(&block, trieState)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
 }
 
 // TODO change test fmt
