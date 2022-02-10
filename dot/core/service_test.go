@@ -37,10 +37,11 @@ func TestGenerateWasm(t *testing.T) {
 }
 
 func Test_Service_StorageRoot(t *testing.T) {
+	t.Parallel()
 	emptyTrie := trie.NewEmptyTrie()
 	ts, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
-	
+
 	tests := []struct {
 		name         string
 		service      *Service
@@ -73,6 +74,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := tt.service
 			if tt.name != "nil storage state" {
 				ctrl := gomock.NewController(t)
