@@ -1075,6 +1075,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 	}
 }
 
+// TODO fix this test
 func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorageStateErr := NewMockStorageState(ctrl)
@@ -1101,6 +1102,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		Return(&transaction.Validity{Propagate: true}, nil)
 
 	mockTxnState := NewMockTransactionState(ctrl)
+	mockTxnState.EXPECT().Exists(transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true}))
 	mockTxnState.EXPECT().AddToPool(transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true}))
 
 	mockNetState := NewMockNetwork(ctrl)
