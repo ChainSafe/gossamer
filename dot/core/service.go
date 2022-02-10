@@ -410,20 +410,20 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
+		// get the best block corresponding runtime
 		rt, err := s.blockState.GetRuntime(nil)
 		if err != nil {
 			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
 			continue
 		}
 
-		val, err := rt.ValidateTransaction(tx.Extrinsic)
+		txnValidity, err := rt.ValidateTransaction(tx.Extrinsic)
 		if err != nil {
-			// failed to validate tx, remove it from the pool or queue
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
 
-		tx = transaction.NewValidTransaction(tx.Extrinsic, val)
+		tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
 
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
