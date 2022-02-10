@@ -111,13 +111,13 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	mockBlockStateGetRtErr := NewMockBlockState(ctrl)
-	mockBlockStateGetRtErr.EXPECT().GetRuntime(gomock.Any()).Return(nil, errTestDummyError)
+	mockBlockStateGetRtErr.EXPECT().GetRuntime(&blockHash).Return(nil, errTestDummyError)
 
 	mockBlockStateGetRtOk1 := NewMockBlockState(ctrl)
-	mockBlockStateGetRtOk1.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
+	mockBlockStateGetRtOk1.EXPECT().GetRuntime(&blockHash).Return(runtimeMock, nil)
 
 	mockBlockStateGetRtOk2 := NewMockBlockState(ctrl)
-	mockBlockStateGetRtOk2.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil)
+	mockBlockStateGetRtOk2.EXPECT().GetRuntime(&blockHash).Return(runtimeMock, nil)
 	mockBlockStateGetRtOk2.EXPECT().StoreRuntime(blockHash, gomock.Any())
 
 	mockCodeSubState1 := NewMockCodeSubstitutedState(ctrl)
