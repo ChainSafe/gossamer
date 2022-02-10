@@ -18,6 +18,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const codeHex = "0x3a636f6465"
+
 func TestBuildFromGenesis(t *testing.T) {
 	t.Parallel()
 
@@ -101,8 +103,6 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	require.NoError(t, err)
 	require.FileExists(t, tmpFile)
 
-	defer os.Remove(tmpFile)
-
 	file, err := os.Open(tmpFile)
 	require.NoError(t, err)
 	defer file.Close()
@@ -138,5 +138,5 @@ func TestBuildFromDB(t *testing.T) {
 	err = json.Unmarshal(res, &jGen)
 	require.NoError(t, err)
 
-	require.Equal(t, expected.Genesis.Raw["top"]["0x3a636f6465"], jGen.Genesis.Runtime["system"]["code"])
+	require.Equal(t, expected.Genesis.Raw["top"][codeHex], jGen.Genesis.Runtime["system"]["code"])
 }

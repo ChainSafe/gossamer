@@ -8,7 +8,6 @@ package dot
 
 import (
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -239,9 +238,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
-		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(node), reflect.TypeOf(&Node{}))
-	}
+	require.IsType(t, node, &Node{})
 
 	expected := &trie.Trie{}
 	err = expected.LoadFromMap(gen.GenesisFields().Raw["top"])
@@ -289,9 +286,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
-		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(node), reflect.TypeOf(&Node{}))
-	}
+	require.IsType(t, node, &Node{})
 
 	mgr := node.Services.Get(&state.Service{})
 
