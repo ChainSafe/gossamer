@@ -258,7 +258,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.Trie
 	if len(code) == 0 {
 		return ErrEmptyRuntimeCode
 	}
-	
+
 	rt, err := s.blockState.GetRuntime(&hash)
 	if err != nil {
 		return err
