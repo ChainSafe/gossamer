@@ -36,7 +36,7 @@ func TestGenerateWasm(t *testing.T) {
 	testWasmPaths = wasmFilePaths
 }
 
-func TestService_StorageRoot(t *testing.T) {
+func Test_Service_StorageRoot(t *testing.T) {
 	emptyTrie := trie.NewEmptyTrie()
 	ts, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
@@ -85,7 +85,7 @@ func TestService_StorageRoot(t *testing.T) {
 	}
 }
 
-func TestService_handleCodeSubstitution(t *testing.T) {
+func Test_Service_handleCodeSubstitution(t *testing.T) {
 	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 
@@ -185,7 +185,7 @@ func TestService_handleCodeSubstitution(t *testing.T) {
 	}
 }
 
-func TestService_handleBlock(t *testing.T) {
+func Test_Service_handleBlock(t *testing.T) {
 	emptyTrie := trie.NewEmptyTrie()
 	trieState, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
@@ -257,8 +257,8 @@ func TestService_handleBlock(t *testing.T) {
 		{
 			name:      "nil input",
 			service:   &Service{},
-			expErr:    errNilBlockHandlerParameter,
-			expErrMsg: errNilBlockHandlerParameter.Error(),
+			expErr:    ErrNilBlockHandlerParameter,
+			expErrMsg: ErrNilBlockHandlerParameter.Error(),
 		},
 		{
 			name:    "storeTrie error",
@@ -350,7 +350,7 @@ func TestService_handleBlock(t *testing.T) {
 	}
 }
 
-func TestService_HandleBlockProduced(t *testing.T) {
+func Test_Service_HandleBlockProduced(t *testing.T) {
 	emptyTrie := trie.NewEmptyTrie()
 	trieState, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
@@ -404,8 +404,8 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		{
 			name:      "nil input",
 			service:   &Service{},
-			expErr:    errNilBlockHandlerParameter,
-			expErrMsg: errNilBlockHandlerParameter.Error(),
+			expErr:    ErrNilBlockHandlerParameter,
+			expErrMsg: ErrNilBlockHandlerParameter.Error(),
 		},
 		{
 			name: "happy path",
@@ -434,7 +434,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	}
 }
 
-func TestService_maintainTransactionPool(t *testing.T) {
+func Test_Service_maintainTransactionPool(t *testing.T) {
 	validity := &transaction.Validity{
 		Priority:  0x3e8,
 		Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
@@ -511,7 +511,7 @@ func TestService_maintainTransactionPool(t *testing.T) {
 	}
 }
 
-func TestService_handleBlocksAsync(t *testing.T) {
+func Test_Service_handleBlocksAsync(t *testing.T) {
 	validity := &transaction.Validity{
 		Priority:  0x3e8,
 		Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},

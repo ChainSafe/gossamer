@@ -189,7 +189,7 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
 	if block == nil || state == nil {
-		return errNilBlockHandlerParameter
+		return ErrNilBlockHandlerParameter
 	}
 
 	// store updates state trie nodes in database

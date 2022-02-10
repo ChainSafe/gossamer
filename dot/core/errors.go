@@ -36,6 +36,9 @@ var (
 	// ErrNilConsensusMessageHandler is returned when trying to instantiate a Service without a FinalityMessageHandler
 	ErrNilConsensusMessageHandler = errors.New("cannot have nil ErrNilFinalityMessageHandler")
 
+	// ErrNilBlockHandlerParameter is returned when at least one of the parameters to handle block is nil
+	ErrNilBlockHandlerParameter = errors.New("unable to handle block due to nil parameter")
+
 	// ErrNilNetwork is returned when the Network interface is nil
 	ErrNilNetwork = errors.New("cannot have nil Network")
 
@@ -46,8 +49,6 @@ var (
 	ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
 
 	errNilCodeSubstitutedState = errors.New("cannot have nil CodeSubstitutedStat")
-
-	errNilBlockHandlerParameter = errors.New("unable to handle block due to nil parameter")
 )
 
 // ErrNilChannel is returned if a channel is nil
