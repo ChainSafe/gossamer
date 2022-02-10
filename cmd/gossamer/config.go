@@ -455,7 +455,6 @@ func setDotBasepathConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		cfg.BasePath = basepath
 	}
 
-	// check if cfg.BasePath his been set, if not set to default
 	if cfg.BasePath == "" {
 		cfg.BasePath = dot.GssmrConfig().Global.BasePath
 	}
