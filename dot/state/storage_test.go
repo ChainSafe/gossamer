@@ -23,9 +23,11 @@ import (
 
 func newTestStorageState(t *testing.T) *StorageState {
 	db := NewInMemoryDB(t)
-	bs := newTestBlockState(t, testGenesisHeader)
+	tries := newTriesEmpty()
 
-	s, err := NewStorageState(db, bs, pruner.Config{})
+	bs := newTestBlockState(t, testGenesisHeader, tries)
+
+	s, err := NewStorageState(db, bs, tries, pruner.Config{})
 	require.NoError(t, err)
 	return s
 }
@@ -185,10 +187,12 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
-	blockState, err := NewBlockStateFromGenesis(db, genTrie, genHeader, telemetryMock)
+	tries := NewTries(genTrie)
+
+	blockState, err := NewBlockStateFromGenesis(db, tries, genHeader, telemetryMock)
 	require.NoError(t, err)
 
-	storage, err := NewStorageState(db, blockState, pruner.Config{})
+	storage, err := NewStorageState(db, blockState, tries, pruner.Config{})
 	require.NoError(t, err)
 
 	trieState, err := runtime.NewTrieState(genTrie)

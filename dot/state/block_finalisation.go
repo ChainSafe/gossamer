@@ -144,7 +144,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		bs.notifyFinalized(hash, round, setID)
 	}
 
-	pruned := bs.bt.Prune(hash) // TODO this is always 0
+	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
 		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
 		if !has {

@@ -18,7 +18,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -60,7 +59,7 @@ type BlockState struct {
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
 	unfinalisedBlocks *sync.Map // map[common.Hash]*types.Block
-	tries             *tries
+	tries             *Tries
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
@@ -74,7 +73,7 @@ type BlockState struct {
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, trs *tries, telemetry telemetry.Client) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
@@ -106,14 +105,14 @@ func NewBlockState(db chaindb.Database, trs *tries, telemetry telemetry.Client) 
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db chaindb.Database, trie *trie.Trie, header *types.Header,
-	telemetryMailer telemetry.Client) (*BlockState, error) {
+func NewBlockStateFromGenesis(db chaindb.Database, trs *Tries, header *types.Header,
+	telemetryMailer telemetry.Client) (*BlockState, error) { // TODO CHECKTEST
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          new(sync.Map),
-		tries:                      newTries(trie),
+		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),

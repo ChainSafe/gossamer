@@ -114,7 +114,7 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	tries := newTries(trie.NewEmptyTrie())
+	tries := NewTries(trie.NewEmptyTrie())
 
 	var err error
 	// create block state
@@ -138,7 +138,7 @@ func (s *Service) Start() error {
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}

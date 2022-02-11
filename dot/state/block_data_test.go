@@ -15,7 +15,7 @@ import (
 )
 
 func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
-	s := newTestBlockState(t, nil)
+	s := newTestBlockState(t, nil, newTriesEmpty())
 	require.NotNil(t, s)
 
 	var genesisHeader = &types.Header{

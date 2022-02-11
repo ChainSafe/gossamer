@@ -30,6 +30,7 @@ func errTrieDoesNotExist(hash common.Hash) error {
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	blockState *BlockState
+	tries      *Tries
 
 	db chaindb.Database
 	sync.RWMutex
@@ -43,7 +44,7 @@ type StorageState struct {
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
 func NewStorageState(db chaindb.Database, blockState *BlockState,
-	onlinePruner pruner.Config) (*StorageState, error) {
+	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -63,6 +64,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 
 	return &StorageState{
 		blockState:   blockState,
+		tries:        tries,
 		db:           storageTable,
 		observerList: []Observer{},
 		pruner:       p,
@@ -73,7 +75,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
 
-	s.blockState.tries.softSet(root, ts.Trie())
+	s.tries.softSet(root, ts.Trie())
 
 	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
 		return fmt.Errorf("block cannot be empty for Full node pruner")
@@ -114,7 +116,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		root = &sr
 	}
 
-	t := s.blockState.tries.get(*root)
+	t := s.tries.get(*root)
 	if t == nil {
 		var err error
 		t, err = s.LoadFromDB(*root)
@@ -122,7 +124,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 			return nil, err
 		}
 
-		s.blockState.tries.softSet(*root, t)
+		s.tries.softSet(*root, t)
 	} else if t.MustHash() != *root {
 		panic("trie does not have expected root")
 	}
@@ -145,7 +147,7 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 		return nil, err
 	}
 
-	s.blockState.tries.softSet(t.MustHash(), t)
+	s.tries.softSet(t.MustHash(), t)
 	return t, nil
 }
 
@@ -158,7 +160,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 		root = &sr
 	}
 
-	t := s.blockState.tries.get(*root)
+	t := s.tries.get(*root)
 	if t != nil {
 		return t, nil
 	}
@@ -189,7 +191,7 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 		root = &sr
 	}
 
-	t := s.blockState.tries.get(*root)
+	t := s.tries.get(*root)
 	if t != nil {
 		val := t.Get(key)
 		return val, nil

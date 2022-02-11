@@ -41,7 +41,7 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	tries := newTries(trie.NewEmptyTrie())
+	tries := NewTries(trie.NewEmptyTrie())
 
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry
@@ -62,7 +62,7 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}
