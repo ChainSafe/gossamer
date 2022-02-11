@@ -28,13 +28,15 @@ func TestConcurrencySetHeader(t *testing.T) {
 		dbs[i] = NewInMemoryDB(t)
 	}
 
+	someTrie := trie.NewEmptyTrie() // not used in this test
+
 	pend := new(sync.WaitGroup)
 	pend.Add(threads)
 	for i := 0; i < threads; i++ {
 		go func(index int) {
 			defer pend.Done()
 
-			bs, err := NewBlockStateFromGenesis(dbs[index], testGenesisHeader, telemetryMock)
+			bs, err := NewBlockStateFromGenesis(dbs[index], someTrie, testGenesisHeader, telemetryMock)
 			require.NoError(t, err)
 
 			header := &types.Header{

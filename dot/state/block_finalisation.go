@@ -144,15 +144,16 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		bs.notifyFinalized(hash, round, setID)
 	}
 
-	pruned := bs.bt.Prune(hash)
+	pruned := bs.bt.Prune(hash) // TODO this is always 0
 	for _, hash := range pruned {
 		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
 		if !has {
 			continue
 		}
 
+		bs.tries.delete(block.Header.StateRoot)
+
 		logger.Tracef("pruned block number %s with hash %s", block.Header.Number, hash)
-		bs.pruneKeyCh <- &block.Header
 	}
 
 	// if nothing was previously finalised, set the first slot of the network to the
@@ -238,8 +239,9 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			continue
 		}
 
+		bs.tries.delete(block.Header.StateRoot)
+
 		logger.Tracef("cleaned out finalised block from memory; block number %s with hash %s", block.Header.Number, hash)
-		bs.pruneKeyCh <- &block.Header
 	}
 
 	return batch.Flush()

@@ -114,9 +114,11 @@ func (s *Service) Start() error {
 		return nil
 	}
 
+	tries := newTries(trie.NewEmptyTrie())
+
 	var err error
 	// create block state
-	s.Block, err = NewBlockState(s.db, s.Telemetry)
+	s.Block, err = NewBlockState(s.db, tries, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -136,7 +138,7 @@ func (s *Service) Start() error {
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, trie.NewEmptyTrie(), pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, pr)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
@@ -166,9 +168,6 @@ func (s *Service) Start() error {
 		s.Block.BestBlockHash().String() +
 		", highest number " + num.String() +
 		" and genesis hash " + s.Block.genesisHash.String())
-
-	// Start background goroutine to GC pruned keys.
-	go s.Storage.pruneStorage(s.closeCh)
 
 	return nil
 }

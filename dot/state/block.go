@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -27,8 +28,7 @@ import (
 )
 
 const (
-	pruneKeyBufferSize = 1000
-	blockPrefix        = "block"
+	blockPrefix = "block"
 )
 
 var (
@@ -60,6 +60,7 @@ type BlockState struct {
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
 	unfinalisedBlocks *sync.Map // map[common.Hash]*types.Block
+	tries             *tries
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
@@ -69,21 +70,19 @@ type BlockState struct {
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
-	pruneKeyCh chan *types.Header
-
 	telemetry telemetry.Client
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, telemetry telemetry.Client) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, trs *tries, telemetry telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          new(sync.Map),
+		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
-		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		telemetry:                  telemetry,
 	}
@@ -107,16 +106,16 @@ func NewBlockState(db chaindb.Database, telemetry telemetry.Client) (*BlockState
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header,
+func NewBlockStateFromGenesis(db chaindb.Database, trie *trie.Trie, header *types.Header,
 	telemetryMailer telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          new(sync.Map),
+		tries:                      newTries(trie),
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
-		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),

@@ -35,7 +35,7 @@ func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
 		header = testGenesisHeader
 	}
 
-	bs, err := NewBlockStateFromGenesis(db, header, telemetryMock)
+	bs, err := NewBlockStateFromGenesis(db, trie.NewEmptyTrie(), header, telemetryMock)
 	require.NoError(t, err)
 	return bs
 }

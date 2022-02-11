@@ -42,8 +42,8 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	db := state.NewInMemoryDB(t)
 
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader, telemetryMock)
+	_, genesisTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	bs, err := state.NewBlockStateFromGenesis(db, genesisTrie, genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
 	require.NoError(t, err)
