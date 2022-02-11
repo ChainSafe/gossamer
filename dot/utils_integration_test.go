@@ -14,46 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewConfig(t *testing.T) {
-	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
-}
-
-func TestNewConfigAndFile(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
-	err := testCfgFile.Close()
-	require.NoError(t, err)
-}
-
-// TestInitNode
-func TestNewTestGenesis(t *testing.T) {
-	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
-
-	genFile := NewTestGenesisRawFile(t, cfg)
-
-	cfg.Init.Genesis = genFile
-}
-
-func TestNewTestGenesisFile(t *testing.T) {
-	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
-
-	genHRFile := newTestGenesisFile(t, cfg)
-
-	genRawFile := NewTestGenesisRawFile(t, cfg)
-
-	genHR, err := genesis.NewGenesisFromJSON(genHRFile, 0)
-	require.NoError(t, err)
-	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
-	require.NoError(t, err)
-
-	// values from raw genesis file should equal values generated from human readable genesis file
-	require.Equal(t, genRaw.Genesis.Raw["top"], genHR.Genesis.Raw["top"])
-}
-
 func TestTrieSnapshot(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)

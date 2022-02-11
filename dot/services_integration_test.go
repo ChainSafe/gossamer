@@ -7,7 +7,6 @@
 package dot
 
 import (
-	"flag"
 	"net/url"
 	"testing"
 	"time"
@@ -258,7 +257,7 @@ func TestCreateGrandpaService(t *testing.T) {
 }
 
 func TestNewWebSocketServer(t *testing.T) {
-	var addr = flag.String("addr", "localhost:8546", "http service address")
+	const addr = "localhost:8546"
 	var testCalls = []struct {
 		call     []byte
 		expected []byte
@@ -334,7 +333,7 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	time.Sleep(time.Second) // give server a second to start
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
+	u := url.URL{Scheme: "ws", Host: addr, Path: "/"}
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	require.NoError(t, err)
