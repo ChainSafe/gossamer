@@ -22,7 +22,7 @@ func TestLoadConfig(t *testing.T) {
 	cfg, cfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, cfg)
 
-	genFile := dot.NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 

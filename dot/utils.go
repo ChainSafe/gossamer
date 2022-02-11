@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -66,31 +65,6 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 	return filename
 }
 
-// newTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
-func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
-	fp := utils.GetGssmrGenesisPath()
-
-	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
-	require.Nil(t, err)
-
-	gen := &genesis.Genesis{
-		Name:       cfg.Global.Name,
-		ID:         cfg.Global.ID,
-		Bootnodes:  cfg.Network.Bootnodes,
-		ProtocolID: cfg.Network.ProtocolID,
-		Genesis:    gssmrGen.GenesisFields(),
-	}
-
-	b, err := json.Marshal(gen)
-	require.NoError(t, err)
-
-	filename = filepath.Join(t.TempDir(), "genesis.json")
-	err = os.WriteFile(filename, b, os.ModePerm)
-	require.NoError(t, err)
-
-	return filename
-}
-
 // NewTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
 func NewTestGenesisAndRuntime(t *testing.T) (filename string) {
@@ -118,41 +92,6 @@ func NewTestGenesisAndRuntime(t *testing.T) (filename string) {
 	require.NoError(t, err)
 
 	return filename
-}
-
-// NewTestConfig returns a new test configuration using the provided basepath
-func NewTestConfig(t *testing.T) *Config {
-	dir := t.TempDir()
-
-	cfg := &Config{
-		Global: GlobalConfig{
-			Name:        GssmrConfig().Global.Name,
-			ID:          GssmrConfig().Global.ID,
-			BasePath:    dir,
-			LogLvl:      log.Info,
-			NoTelemetry: true,
-		},
-		Log:     GssmrConfig().Log,
-		Init:    GssmrConfig().Init,
-		Account: GssmrConfig().Account,
-		Core:    GssmrConfig().Core,
-		Network: GssmrConfig().Network,
-		RPC:     GssmrConfig().RPC,
-	}
-
-	return cfg
-}
-
-// newTestConfigWithFile returns a new test configuration and a temporary configuration file
-func newTestConfigWithFile(t *testing.T) (*Config, *os.File) {
-	cfg := NewTestConfig(t)
-
-	configPath := filepath.Join(cfg.Global.BasePath, "config.toml")
-	err := os.WriteFile(configPath, nil, os.ModePerm)
-	require.NoError(t, err)
-
-	cfgFile := exportConfig(cfg, configPath)
-	return cfg, cfgFile
 }
 
 // exportConfig exports a dot configuration to a toml configuration file

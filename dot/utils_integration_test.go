@@ -18,7 +18,7 @@ func TestTrieSnapshot(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genRawFile := NewTestGenesisRawFile(t, cfg)
+	genRawFile := newTestGenesisRawFile(t, cfg)
 
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
@@ -35,7 +35,7 @@ func TestTrieSnapshot(t *testing.T) {
 	deepCopyTrie := tri.DeepCopy()
 
 	// Take Snapshot of the trie.
-	newTrie := tri.Snapshot()
+	snapshotedTrie := tri.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
 	tHash, err := tri.Hash()
@@ -44,7 +44,7 @@ func TestTrieSnapshot(t *testing.T) {
 	dcTrieHash, err := deepCopyTrie.Hash()
 	require.NoError(t, err)
 
-	newTrieHash, err := newTrie.Hash()
+	newTrieHash, err := snapshotedTrie.Hash()
 	require.NoError(t, err)
 
 	// Root hash for the 3 tries should be equal.
@@ -52,8 +52,7 @@ func TestTrieSnapshot(t *testing.T) {
 	require.Equal(t, tHash, newTrieHash)
 
 	// Modify the current trie.
-	value[0] = 'w'
-	newTrie.Put(key, value)
+	snapshotedTrie.Put(key, value)
 
 	// Get the updated root hash of all tries.
 	tHash, err = tri.Hash()
@@ -62,7 +61,7 @@ func TestTrieSnapshot(t *testing.T) {
 	dcTrieHash, err = deepCopyTrie.Hash()
 	require.NoError(t, err)
 
-	newTrieHash, err = newTrie.Hash()
+	newTrieHash, err = snapshotedTrie.Hash()
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.

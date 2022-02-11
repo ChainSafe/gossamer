@@ -7,7 +7,6 @@
 package dot
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -21,29 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
-
-func setupStateFile(t *testing.T) string {
-	t.Helper()
-
-	const filename = "../lib/runtime/test_data/kusama/block1482002.out"
-
-	data, err := ioutil.ReadFile(filename)
-	require.NoError(t, err)
-
-	rpcPairs := make(map[string]interface{})
-	err = json.Unmarshal(data, &rpcPairs)
-	require.NoError(t, err)
-	pairs := rpcPairs["result"].([]interface{})
-
-	bz, err := json.Marshal(pairs)
-	require.NoError(t, err)
-
-	fp := filepath.Join(t.TempDir(), "state.json")
-	err = ioutil.WriteFile(fp, bz, 0777)
-	require.NoError(t, err)
-
-	return fp
-}
 
 func setupHeaderFile(t *testing.T) string {
 	t.Helper()
@@ -94,13 +70,13 @@ func TestNewHeaderFromFile(t *testing.T) {
 	require.Equal(t, expected, header)
 }
 
-func TestImportState(t *testing.T) {
+func TestImportState_Integration(t *testing.T) {
 	basepath := os.TempDir()
 
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 

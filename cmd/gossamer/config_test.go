@@ -4,8 +4,12 @@
 package main
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,8 +21,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -767,7 +772,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 // TestUpdateConfigFromGenesisJSON tests updateDotConfigFromGenesisJSON
 func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	genFile := dot.NewTestGenesisRawFile(t, testCfg)
+	genFile := newTestGenesisRawFile(t, testCfg)
 
 	ctx, err := newTestContext(
 		t.Name(),
@@ -871,7 +876,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 
 func TestUpdateConfigFromGenesisData(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	genFile := dot.NewTestGenesisRawFile(t, testCfg)
+	genFile := newTestGenesisRawFile(t, testCfg)
 
 	ctx, err := newTestContext(
 		t.Name(),
@@ -948,11 +953,11 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	// Initialise a node with a random name
 	globalName := dot.RandomNodeName()
 
-	cfg := dot.NewTestConfig(t)
+	cfg := newTestConfig(t)
 	cfg.Global.Name = globalName
 	require.NotNil(t, cfg)
 
-	genPath := dot.NewTestGenesisAndRuntime(t)
+	genPath := newTestGenesisAndRuntime(t)
 	require.NotNil(t, genPath)
 
 	cfg.Core.Roles = types.FullNodeRole
@@ -1300,5 +1305,76 @@ func Test_setLogConfig(t *testing.T) {
 			assert.Equal(t, testCase.expectedGlobalCfg, testCase.initialGlobalCfg)
 			assert.Equal(t, testCase.expectedLogCfg, testCase.initialLogCfg)
 		})
+	}
+}
+
+// newTestGenesisRawFile returns a test genesis file using "gssmr" raw data
+func newTestGenesisRawFile(t *testing.T, cfg *dot.Config) (filename string) {
+	filename = filepath.Join(t.TempDir(), "genesis.json")
+
+	fp := utils.GetGssmrGenesisRawPath()
+
+	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	require.Nil(t, err)
+
+	gen := &genesis.Genesis{
+		Name:       cfg.Global.Name,
+		ID:         cfg.Global.ID,
+		Bootnodes:  cfg.Network.Bootnodes,
+		ProtocolID: cfg.Network.ProtocolID,
+		Genesis:    gssmrGen.GenesisFields(),
+	}
+
+	b, err := json.Marshal(gen)
+	require.Nil(t, err)
+
+	err = os.WriteFile(filename, b, os.ModePerm)
+	require.NoError(t, err)
+
+	return filename
+}
+
+// newTestGenesisAndRuntime create a new test runtime and a new test genesis
+// file with the test runtime stored in raw data and returns the genesis file
+func newTestGenesisAndRuntime(t *testing.T) (filename string) {
+	_ = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
+
+	runtimeData, err := os.ReadFile(filepath.Clean(runtimeFilePath))
+	require.Nil(t, err)
+
+	gen := newTestGenesis(t)
+	hex := hex.EncodeToString(runtimeData)
+
+	gen.Genesis.Raw = map[string]map[string]string{}
+	if gen.Genesis.Raw["top"] == nil {
+		gen.Genesis.Raw["top"] = make(map[string]string)
+	}
+	gen.Genesis.Raw["top"]["0x3a636f6465"] = "0x" + hex
+	gen.Genesis.Raw["top"]["0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f"] = "0x0000000000000001"
+
+	genData, err := json.Marshal(gen)
+	require.NoError(t, err)
+
+	filename = filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(filename, genData, os.ModePerm)
+	require.NoError(t, err)
+
+	return filename
+}
+
+// NewTestGenesis returns a test genesis instance using "gssmr" raw data
+func newTestGenesis(t *testing.T) *genesis.Genesis {
+	fp := utils.GetGssmrGenesisRawPath()
+
+	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	require.NoError(t, err)
+
+	return &genesis.Genesis{
+		Name:       "test",
+		ID:         "test",
+		Bootnodes:  []string(nil),
+		ProtocolID: "/gossamer/test/0",
+		Genesis:    gssmrGen.GenesisFields(),
 	}
 }

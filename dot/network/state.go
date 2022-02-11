@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+//go:generate mockgen -destination=mock_block_state_interface.go -package $GOPACKAGE . BlockState
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)

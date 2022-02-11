@@ -21,7 +21,7 @@ import (
 // hex encoding for ":code", used as key for code is raw genesis files.
 const codeHex = "0x3a636f6465"
 
-func TestBuildFromGenesis(t *testing.T) {
+func TestBuildFromGenesis_Integration(t *testing.T) {
 	t.Parallel()
 
 	file := genesis.CreateTestGenesisJSONFile(t, false)
@@ -63,8 +63,6 @@ func TestBuildFromGenesis(t *testing.T) {
 }
 
 func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
-	t.Parallel()
-
 	bs, err := BuildFromGenesis("/not/exists/genesis.json", 0)
 	require.Nil(t, bs)
 	require.ErrorIs(t, err, os.ErrNotExist)
@@ -81,9 +79,7 @@ func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
 		fmt.Sprintf("file %s already exists, rename to avoid overwriting", filePath))
 }
 
-func TestWriteGenesisSpecFile(t *testing.T) {
-	t.Parallel()
-
+func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	cfg.Init.Genesis = runtime.GetAbsolutePath("../chain/gssmr/genesis.json")
 
@@ -119,9 +115,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 
 }
 
-func TestBuildFromDB(t *testing.T) {
-	t.Parallel()
-
+func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
 	cfg := NewTestConfig(t)
 	cfg.Init.Genesis = runtime.GetAbsolutePath("../chain/gssmr/genesis.json")

@@ -8,6 +8,7 @@ package dot
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -24,11 +25,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInitNode(t *testing.T) {
+func TestInitNode_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -57,11 +58,11 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	require.NotNil(t, db)
 }
 
-func TestNodeInitialized(t *testing.T) {
+func TestNodeInitializedIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -75,11 +76,11 @@ func TestNodeInitialized(t *testing.T) {
 	require.True(t, result)
 }
 
-func TestNewNode(t *testing.T) {
+func TestNewNodeIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -107,7 +108,7 @@ func TestNewNode_Authority(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -137,7 +138,7 @@ func TestStartNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 	cfg.Core.GrandpaAuthority = false
@@ -166,7 +167,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genPath := NewTestGenesisAndRuntime(t)
+	genPath := newTestGenesisAndRuntime(t)
 
 	cfg.Init.Genesis = genPath
 	cfg.Core.GrandpaAuthority = false
@@ -227,7 +228,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genPath := NewTestGenesisAndRuntime(t)
+	genPath := newTestGenesisAndRuntime(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -277,7 +278,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genPath := NewTestGenesisAndRuntime(t)
+	genPath := newTestGenesisAndRuntime(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -312,6 +313,19 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	require.Equal(t, expected, bal)
 }
 
+func TestNode_StopFunc(t *testing.T) {
+	testvar := "before"
+
+	node := &Node{
+		//Services: &services.ServiceRegistry{},
+		wg: sync.WaitGroup{},
+	}
+	node.wg.Add(1)
+
+	node.Stop()
+	require.Equal(t, testvar, "after")
+}
+
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	globalName := RandomNodeName()
 
@@ -321,7 +335,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = NewTestGenesisAndRuntime(t)
+	cfg.Init.Genesis = newTestGenesisAndRuntime(t)
 
 	err := InitNode(cfg)
 	require.NoError(t, err)

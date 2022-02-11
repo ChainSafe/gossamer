@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -89,7 +90,15 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilStorageState
 	}
 
-	if cfg.Network == nil {
+	// check if interface cfg.Network is nil
+	var isNilNetwork bool
+	switch cfg.Network.(type) {
+	case *network.Service:
+		isNilNetwork = cfg.Network == (*network.Service)(nil)
+	default:
+		isNilNetwork = reflect.ValueOf(cfg.Network).IsNil()
+	}
+	if isNilNetwork {
 		return nil, ErrNilNetwork
 	}
 

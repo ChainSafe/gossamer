@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExportConfig(t *testing.T) {
+func TestExportConfigIntegration(t *testing.T) {
 	cfg, cfgFile := newTestConfigWithFile(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
