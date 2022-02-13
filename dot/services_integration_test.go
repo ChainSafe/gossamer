@@ -402,13 +402,14 @@ func Test_createDigestHandler(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc, err := createStateService(cfg)
+	nodeInstance := nodeBuilder{}
+	stateSrvc, err := nodeInstance.createStateService(cfg)
 	require.NoError(t, err)
 
 	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
-	_, err = createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	_, err = nodeInstance.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 }
