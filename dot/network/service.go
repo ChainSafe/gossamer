@@ -34,7 +34,7 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 100 // 100kb for now
+	maxMessageSize = 1024 * 64 // 64kb for now
 )
 
 var (
