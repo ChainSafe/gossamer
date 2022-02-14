@@ -45,7 +45,11 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			keypair,
 		)
 		if err == nil {
-			preRuntimeDigest, _ := types.NewBabePrimaryPreDigest(epochData.authorityIndex, i, proof.output, proof.proof).ToPreRuntimeDigest()
+			preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+				epochData.authorityIndex, i, proof.output, proof.proof).ToPreRuntimeDigest()
+			if err != nil {
+				return nil, fmt.Errorf("error converting babe primary pre-digest to pre-runtime digest: %w", err)
+			}
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
 			logger.Debugf("epoch %d: claimed primary slot %d", epochNumber, i)
 			continue
@@ -60,7 +64,8 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			continue
 		}
 
-		proof, err = claimSecondarySlot(epochData.randomness, i, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
+		proof, err = claimSecondarySlot(
+			epochData.randomness, i, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
 		if errors.Is(err, errNotOurTurnToPropose) {
 			continue
 		}
@@ -69,9 +74,11 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 		}
 
 		if proof != nil {
-			preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, i).ToPreRuntimeDigest()
+			preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
+				epochData.authorityIndex, i).ToPreRuntimeDigest()
 			if err != nil {
-				return nil, fmt.Errorf("failed to get pre runtime digest from babe secondary plain predigest for slot %d: %w", i, err)
+				return nil, fmt.Errorf(
+					"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", i, err)
 			}
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
 			logger.Debugf("epoch %d: claimed secondary slot %d", epochNumber, i)

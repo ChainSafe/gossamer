@@ -10,14 +10,15 @@ import (
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
 
+// AllowedSlots tells in what ways a slot can be claimed.
 type AllowedSlots byte
 
 const (
-	// Only allow primary slots.
+	// PrimarySlots only allows primary slots.
 	PrimarySlots AllowedSlots = iota
-	// Allow primary and secondary plain slots.
+	// PrimaryAndSecondaryPlainSlots allow primary and secondary plain slots.
 	PrimaryAndSecondaryPlainSlots
-	// Allow primary and secondary VRF slots.
+	// PrimaryAndSecondaryVRFSlots allows primary and secondary VRF slots.
 	PrimaryAndSecondaryVRFSlots
 )
 
