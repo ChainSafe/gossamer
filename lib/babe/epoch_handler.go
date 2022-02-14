@@ -50,8 +50,14 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			logger.Debugf("epoch %d: claimed primary slot %d", epochNumber, i)
 			continue
 		}
+
 		if !errors.Is(err, errOverPrimarySlotThreshold) {
 			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
+		}
+
+		if epochData.secondary == 0 {
+			// return nil, errSecondarySlotProductionDisabled
+			continue
 		}
 
 		proof, err = claimSecondarySlot(epochData.randomness, i, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)

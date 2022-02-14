@@ -10,6 +10,17 @@ import (
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
 
+type AllowedSlots byte
+
+const (
+	// Only allow primary slots.
+	PrimarySlots AllowedSlots = iota
+	// Allow primary and secondary plain slots.
+	PrimaryAndSecondaryPlainSlots
+	// Allow primary and secondary VRF slots.
+	PrimaryAndSecondaryVRFSlots
+)
+
 // BabeConfiguration contains the genesis data for BABE
 //nolint:lll
 // see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132

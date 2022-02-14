@@ -386,6 +386,7 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 		// stop current epoch handler
 		cancel()
 	case err := <-errCh:
+		// TODO: errEpochPast is sent on this channel, but it doesnot get logged here
 		cleanup()
 		logger.Errorf("error from epochHandler: %s", err)
 	}
