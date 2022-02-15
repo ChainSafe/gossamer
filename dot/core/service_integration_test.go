@@ -439,7 +439,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	encExt, rt, _ := generateTestValidTxns(t)
+	encExt, rt := generateTestValidTxns(t)
 	cfg := &Config{
 		Runtime: rt,
 	}
@@ -481,35 +481,45 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
-	txs := []*transaction.ValidTransaction{
-		{
-			Extrinsic: []byte("a"),
-			Validity:  &transaction.Validity{Priority: 1},
-		},
-		{
-			Extrinsic: []byte("b"),
-			Validity:  &transaction.Validity{Priority: 4},
-		},
-	}
+	//txs := []*transaction.ValidTransaction{
+	//	{
+	//		Extrinsic: []byte("a"),
+	//		Validity:  &transaction.Validity{Priority: 1},
+	//	},
+	//	{
+	//		Extrinsic: []byte("b"),
+	//		Validity:  &transaction.Validity{Priority: 4},
+	//	},
+	//}
+
+	encExt, _ := generateTestValidTxns(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	ts := state.NewTransactionState(telemetryMock)
-	hashes := make([]common.Hash, len(txs))
+	//hashes := make([]common.Hash, len(txs))
+	//
+	//for i, tx := range txs {
+	//	h := ts.AddToPool(tx)
+	//	hashes[i] = h
+	//}
 
-	for i, tx := range txs {
-		h := ts.AddToPool(tx)
-		hashes[i] = h
+	// Maybe replace validity
+	tx := &transaction.ValidTransaction{
+		Extrinsic: types.Extrinsic(encExt),
+		Validity:  &transaction.Validity{Priority: 1},
 	}
+
+	ts.AddToPool(tx)
 
 	s := &Service{
 		transactionState: ts,
 	}
 
 	s.maintainTransactionPool(&types.Block{
-		Body: types.Body([]types.Extrinsic{txs[0].Extrinsic}),
+		Body: types.Body([]types.Extrinsic{encExt}),
 	})
 
 	res := []*transaction.ValidTransaction{}
@@ -520,8 +530,9 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		}
 		res = append(res, tx)
 	}
-	require.Equal(t, 1, len(res))
-	require.Equal(t, res[0], txs[1])
+	// Extrinsic is removed. so empty res
+	require.Equal(t, 0, len(res))
+	require.Equal(t, res, []*transaction.ValidTransaction{})
 }
 
 func TestService_GetRuntimeVersion(t *testing.T) {
