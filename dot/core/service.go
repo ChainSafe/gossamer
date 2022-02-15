@@ -6,7 +6,6 @@ package core
 import (
 	"bytes"
 	"context"
-	"fmt"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"math/big"
@@ -426,24 +425,16 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			continue
 		}
 
-		fmt.Println("getting ready to validate txn")
 		val, err := rt.ValidateTransaction(tx.Extrinsic)
 		if err != nil {
-			fmt.Println("ERROOORRR")
-			fmt.Println(err)
 			// failed to validate tx, remove it from the pool or queue
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
-		fmt.Println("validated txn")
-		fmt.Println(val.Provides)
-		r := common.BytesToHex(val.Provides[0])
-		fmt.Println(r)
+
 		tx = transaction.NewValidTransaction(tx.Extrinsic, val)
-		fmt.Println("created new txn")
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
-
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
 		logger.Tracef("moved transaction %s to queue", h)
 	}
