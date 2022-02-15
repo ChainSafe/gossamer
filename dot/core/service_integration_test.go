@@ -38,11 +38,6 @@ import (
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
-// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
-var testExt = common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8e" +
-	"fbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b98" +
-	"2757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670")
-
 func balanceKey(t *testing.T, pub []byte) []byte {
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
@@ -51,6 +46,26 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 	h2, err := common.Blake2b128(pub)
 	require.NoError(t, err)
 	return append(append(append(h0, h1...), h2...), pub...)
+}
+
+func newTestDigest(t *testing.T) scale.VaryingDataTypeSlice {
+	vdts := types.NewDigest()
+	err := vdts.Add(
+		types.PreRuntimeDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		},
+		types.ConsensusDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"), //nolint:lll
+		},
+		types.SealDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"), //nolint:lll
+		},
+	)
+	require.NoError(t, err)
+	return vdts
 }
 
 func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance) {
@@ -481,17 +496,6 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
-	//txs := []*transaction.ValidTransaction{
-	//	{
-	//		Extrinsic: []byte("a"),
-	//		Validity:  &transaction.Validity{Priority: 1},
-	//	},
-	//	{
-	//		Extrinsic: []byte("b"),
-	//		Validity:  &transaction.Validity{Priority: 4},
-	//	},
-	//}
-
 	encExt, _ := generateTestValidTxns(t)
 
 	ctrl := gomock.NewController(t)
@@ -499,12 +503,6 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	ts := state.NewTransactionState(telemetryMock)
-	//hashes := make([]common.Hash, len(txs))
-	//
-	//for i, tx := range txs {
-	//	h := ts.AddToPool(tx)
-	//	hashes[i] = h
-	//}
 
 	// Maybe replace validity
 	tx := &transaction.ValidTransaction{
@@ -743,8 +741,9 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	storageStateTrie.Set(testKey, testValue)
 	require.NoError(t, err)
 
+	digest := newTestDigest(t)
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -773,8 +772,9 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	require.NoError(t, err)
 
+	digest := newTestDigest(t)
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -802,10 +802,11 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
+	digest := newTestDigest(t)
 	header, err := types.NewHeader(
 		s.blockState.GenesisHash(),
 		common.Hash{}, common.Hash{},
-		big.NewInt(1), types.NewDigest())
+		big.NewInt(1), digest)
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -889,8 +890,9 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 
+	digest := newTestDigest(t)
 	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(number), types.NewDigest())
+		common.Hash{}, big.NewInt(number), digest)
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
