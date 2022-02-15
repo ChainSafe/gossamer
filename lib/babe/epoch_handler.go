@@ -44,7 +44,8 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			epochData.threshold,
 			keypair,
 		)
-		if err == nil {
+ 		switch err {
+		case nil:
 			preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
 				epochData.authorityIndex, i, proof.output, proof.proof).ToPreRuntimeDigest()
 			if err != nil {
@@ -53,10 +54,10 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
 			logger.Debugf("epoch %d: claimed primary slot %d", epochNumber, i)
 			continue
-		}
-
-		if !errors.Is(err, errOverPrimarySlotThreshold) {
-			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
+		default:
+			if !errors.Is(err, errOverPrimarySlotThreshold) {
+				return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
+			}
 		}
 
 		if epochData.secondary == 0 {
