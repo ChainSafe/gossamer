@@ -436,6 +436,9 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			continue
 		}
 		fmt.Println("validated txn")
+		fmt.Println(val.Provides)
+		r := common.BytesToHex(val.Provides[0])
+		fmt.Println(r)
 		tx = transaction.NewValidTransaction(tx.Extrinsic, val)
 		fmt.Println("created new txn")
 		// Err is only thrown if tx is already in pool, in which case it still gets removed

@@ -668,15 +668,35 @@ func TestService_handleChainReorg(t *testing.T) {
 	testPrevHash := common.MustHexToHash("0x01")
 	testCurrentHash := common.MustHexToHash("0x02")
 	testAncestorHash := common.MustHexToHash("0x03")
+
+	t.Run("highest common ancestor err", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(common.Hash{}, errDummyErr)
+
+		s := &Service{
+			blockState: mockBlockState,
+		}
+
+		expErr := errDummyErr
+		expErrMsg := errDummyErr.Error()
+		err := s.handleChainReorg(testPrevHash, testCurrentHash)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
+
 	testSubChain := []common.Hash{testPrevHash, testCurrentHash, testAncestorHash}
 	ext, externExt, body := generateExtrinsic(t)
 	testValidity := &transaction.Validity{Propagate: true}
 	vtx := transaction.NewValidTransaction(ext, testValidity)
 
 	ctrl := gomock.NewController(t)
-	mockBlockStateAncestorErr := NewMockBlockState(ctrl)
-	mockBlockStateAncestorErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
-		Return(common.Hash{}, errDummyErr)
+	//mockBlockStateAncestorErr := NewMockBlockState(ctrl)
+	//mockBlockStateAncestorErr.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+	//	Return(common.Hash{}, errDummyErr)
 
 	mockBlockStateAncestorEqPriv := NewMockBlockState(ctrl)
 	mockBlockStateAncestorEqPriv.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
@@ -734,18 +754,18 @@ func TestService_handleChainReorg(t *testing.T) {
 		expErr    error
 		expErrMsg string
 	}{
-		{
-			name: "highest common ancestor err",
-			service: &Service{
-				blockState: mockBlockStateAncestorErr,
-			},
-			args: args{
-				prev: testPrevHash,
-				curr: testCurrentHash,
-			},
-			expErr:    errDummyErr,
-			expErrMsg: errDummyErr.Error(),
-		},
+		//{
+		//	name: "highest common ancestor err",
+		//	service: &Service{
+		//		blockState: mockBlockStateAncestorErr,
+		//	},
+		//	args: args{
+		//		prev: testPrevHash,
+		//		curr: testCurrentHash,
+		//	},
+		//	expErr:    errDummyErr,
+		//	expErrMsg: errDummyErr.Error(),
+		//},
 		{
 			name: "ancestor eq priv",
 			service: &Service{

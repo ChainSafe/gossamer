@@ -7,17 +7,12 @@
 package core
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"math/big"
 	"os"
-	"sort"
 	"testing"
 	"time"
 
@@ -48,151 +43,235 @@ var testExt = common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd68
 	"fbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b98" +
 	"2757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670")
 
-func generateTestValidTxns(t *testing.T) []*transaction.ValidTransaction {
-	rawMeta := common.MustHexToBytes(testdata.NewTestMetadata())
-	var decoded []byte
-	err := scale.Unmarshal(rawMeta, &decoded)
+func balanceKey(t *testing.T, pub []byte) []byte {
+	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
-
-	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
+	h1, err := common.Twox128Hash([]byte("Account"))
 	require.NoError(t, err)
-
-	testAPIItem := runtime.APIItem{
-		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
-		Ver:  99,
-	}
-	rv := runtime.NewVersionData(
-		[]byte("polkadot"),
-		[]byte("parity-polkadot"),
-		0,
-		25,
-		0,
-		[]runtime.APIItem{testAPIItem},
-		5,
-	)
+	h2, err := common.Blake2b128(pub)
 	require.NoError(t, err)
-
-	// Get addresses
-	accounts := [5]string{}
-	var kr, _ = keystore.NewEd25519Keyring()
-	accounts[0] = common.BytesToHex(*kr.Bob().Public().(*ed25519.PublicKey))
-	accounts[1] = common.BytesToHex(*kr.Alice().Public().(*ed25519.PublicKey))
-	accounts[2] = common.BytesToHex(*kr.Charlie().Public().(*ed25519.PublicKey))
-	accounts[3] = common.BytesToHex(*kr.Dave().Public().(*ed25519.PublicKey))
-	accounts[4] = common.BytesToHex(*kr.Eve().Public().(*ed25519.PublicKey))
-
-	// Create extrinsics
-	var encExts [5][]byte
-	for i, account := range accounts {
-		fmt.Println(i)
-		fmt.Println(account)
-		acct, err := ctypes.NewMultiAddressFromHexAccountID(account)
-		require.NoError(t, err)
-
-		call, err := ctypes.NewCall(meta, "Balances.transfer", acct, ctypes.NewUCompactFromUInt(12345))
-		require.NoError(t, err)
-
-		// Create the extrinsic
-		extrinsic := ctypes.NewExtrinsic(call)
-		genHash, err := ctypes.NewHashFromHexString(account)
-		require.NoError(t, err)
-		o := ctypes.SignatureOptions{
-			BlockHash:          genHash,
-			Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
-			GenesisHash:        genHash,
-			Nonce:              ctypes.NewUCompactFromUInt(uint64(i)),
-			SpecVersion:        ctypes.U32(rv.SpecVersion()),
-			Tip:                ctypes.NewUCompactFromUInt(0),
-			TransactionVersion: ctypes.U32(rv.TransactionVersion()),
-		}
-
-		// Sign the transaction using Alice's default account
-		err = extrinsic.Sign(signature.TestKeyringPairAlice, o)
-		require.NoError(t, err)
-
-		// Encode the signed extrinsic
-		extEnc := bytes.Buffer{}
-		encoder := cscale.NewEncoder(&extEnc)
-		err = extrinsic.Encode(*encoder)
-		require.NoError(t, err)
-
-		//encExt := []types.Extrinsic{extEnc.Bytes()}
-		//b := extEnc.Bytes()
-		encExts[i] = extEnc.Bytes()
-	}
-
-	for _, ext := range encExts {
-		fmt.Println(ext)
-	}
-
-	//bob, err := ctypes.NewMultiAddressFromHexAccountID(
-	//	"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
-	//require.NoError(t, err)
-	//
-	//call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
-	//require.NoError(t, err)
-	//
-	//// Create the extrinsic
-	//extrinsic := ctypes.NewExtrinsic(call)
-	//genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	//require.NoError(t, err)
-	//o := ctypes.SignatureOptions{
-	//	BlockHash:          genHash,
-	//	Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
-	//	GenesisHash:        genHash,
-	//	Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-	//	SpecVersion:        ctypes.U32(rv.SpecVersion()),
-	//	Tip:                ctypes.NewUCompactFromUInt(0),
-	//	TransactionVersion: ctypes.U32(rv.TransactionVersion()),
-	//}
-	//
-	//// Sign the transaction using Alice's default account
-	//err = extrinsic.Sign(signature.TestKeyringPairAlice, o)
-	//require.NoError(t, err)
-	//
-	//// Encode the signed extrinsic
-	//extEnc := bytes.Buffer{}
-	//encoder := cscale.NewEncoder(&extEnc)
-	//err = extrinsic.Encode(*encoder)
-	//require.NoError(t, err)
-
-	//encExt := []types.Extrinsic{extEnc.Bytes()}
-	//testExternalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt[0]...))
-	//testUnencryptedBody := types.NewBody(encExt)
-
-	//validity := &transaction.Validity{
-	//	Priority:  0x3e8,
-	//	Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
-	//	Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
-	//	Longevity: 0x40,
-	//	Propagate: true,
-	//}
-
-	txs := []*transaction.ValidTransaction{
-		{
-			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[0]...)),
-			Validity:  &transaction.Validity{Priority: 1},
-		},
-		{
-			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[1]...)),
-			Validity:  &transaction.Validity{Priority: 4},
-		},
-		{
-			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[2]...)),
-			Validity:  &transaction.Validity{Priority: 2},
-		},
-		{
-			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[3]...)),
-			Validity:  &transaction.Validity{Priority: 17},
-		},
-		{
-			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[4]...)),
-			Validity:  &transaction.Validity{Priority: 2},
-		},
-	}
-	return txs
+	return append(append(append(h0, h1...), h2...), pub...)
 }
+
+func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance, *wasmer.Config) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	cfg := &wasmer.Config{}
+	cfg.Storage = genState
+	cfg.LogLvl = 4
+	nodeStorage := runtime.NodeStorage{}
+	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
+	cfg.NodeStorage = nodeStorage
+
+	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
+	require.NoError(t, err)
+
+	alicePub := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+	aliceBalanceKey := balanceKey(t, alicePub)
+
+	accInfo := types.AccountInfo{
+		Nonce: 0,
+		Data: struct {
+			Free       *scale.Uint128
+			Reserved   *scale.Uint128
+			MiscFrozen *scale.Uint128
+			FreeFrozen *scale.Uint128
+		}{
+			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
+			Reserved:   scale.MustNewUint128(big.NewInt(0)),
+			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
+		},
+	}
+
+	encBal, err := scale.Marshal(accInfo)
+	require.NoError(t, err)
+
+	rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
+
+	//rt.(*wasmer.Instance).ctx.Storage.Set(aliceBalanceKey, encBal)
+	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
+	rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+
+	genesisHeader := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: genTrie.MustHash(),
+	}
+
+	// Hash of encrypted centrifuge extrinsic
+	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
+		0, "System.remark", []byte{0xab, 0xcd})
+
+	extBytes := common.MustHexToBytes(extHex)
+	extBytes = append([]byte{byte(types.TxnExternal)}, extBytes...)
+
+	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
+
+	return extBytes, rt, cfg
+	////_, err = rt.ValidateTransaction(extBytes)
+	////require.NoError(t, err)
+	//txs := []*transaction.ValidTransaction{
+	//	{
+	//		Extrinsic: types.Extrinsic(extBytes),
+	//		Validity:  &transaction.Validity{Priority: 1},
+	//	},
+	//}
+	//return txs
+}
+
+//func generateTestValidTxns(t *testing.T) []*transaction.ValidTransaction {
+//	rawMeta := common.MustHexToBytes(testdata.NewTestMetadata())
+//	var decoded []byte
+//	err := scale.Unmarshal(rawMeta, &decoded)
+//	require.NoError(t, err)
+//
+//	meta := &ctypes.Metadata{}
+//	err = ctypes.DecodeFromBytes(decoded, meta)
+//	require.NoError(t, err)
+//
+//	testAPIItem := runtime.APIItem{
+//		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+//		Ver:  99,
+//	}
+//	rv := runtime.NewVersionData(
+//		[]byte("polkadot"),
+//		[]byte("parity-polkadot"),
+//		0,
+//		25,
+//		0,
+//		[]runtime.APIItem{testAPIItem},
+//		5,
+//	)
+//	require.NoError(t, err)
+//
+//	// Get addresses
+//	accounts := [5]string{}
+//	var kr, _ = keystore.NewEd25519Keyring()
+//	accounts[0] = common.BytesToHex(*kr.Bob().Public().(*ed25519.PublicKey))
+//	accounts[1] = common.BytesToHex(*kr.Alice().Public().(*ed25519.PublicKey))
+//	accounts[2] = common.BytesToHex(*kr.Charlie().Public().(*ed25519.PublicKey))
+//	accounts[3] = common.BytesToHex(*kr.Dave().Public().(*ed25519.PublicKey))
+//	accounts[4] = common.BytesToHex(*kr.Eve().Public().(*ed25519.PublicKey))
+//
+//	// Create extrinsics
+//	var encExts [5][]byte
+//	for i, account := range accounts {
+//		fmt.Println(i)
+//		fmt.Println(account)
+//		acct, err := ctypes.NewMultiAddressFromHexAccountID(account)
+//		require.NoError(t, err)
+//
+//		call, err := ctypes.NewCall(meta, "Balances.transfer", acct, ctypes.NewUCompactFromUInt(12345))
+//		require.NoError(t, err)
+//
+//		// Create the extrinsic
+//		extrinsic := ctypes.NewExtrinsic(call)
+//		genHash, err := ctypes.NewHashFromHexString(account)
+//		require.NoError(t, err)
+//		o := ctypes.SignatureOptions{
+//			BlockHash:          genHash,
+//			Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+//			GenesisHash:        genHash,
+//			Nonce:              ctypes.NewUCompactFromUInt(uint64(i)),
+//			SpecVersion:        ctypes.U32(rv.SpecVersion()),
+//			Tip:                ctypes.NewUCompactFromUInt(0),
+//			TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+//		}
+//
+//		// Sign the transaction using Alice's default account
+//		err = extrinsic.Sign(signature.TestKeyringPairAlice, o)
+//		require.NoError(t, err)
+//
+//		// Encode the signed extrinsic
+//		extEnc := bytes.Buffer{}
+//		encoder := cscale.NewEncoder(&extEnc)
+//		err = extrinsic.Encode(*encoder)
+//		require.NoError(t, err)
+//
+//		//encExt := []types.Extrinsic{extEnc.Bytes()}
+//		//b := extEnc.Bytes()
+//		encExts[i] = extEnc.Bytes()
+//	}
+//
+//	for _, ext := range encExts {
+//		fmt.Println(ext)
+//	}
+//
+//	//bob, err := ctypes.NewMultiAddressFromHexAccountID(
+//	//	"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+//	//require.NoError(t, err)
+//	//
+//	//call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
+//	//require.NoError(t, err)
+//	//
+//	//// Create the extrinsic
+//	//extrinsic := ctypes.NewExtrinsic(call)
+//	//genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+//	//require.NoError(t, err)
+//	//o := ctypes.SignatureOptions{
+//	//	BlockHash:          genHash,
+//	//	Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+//	//	GenesisHash:        genHash,
+//	//	Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
+//	//	SpecVersion:        ctypes.U32(rv.SpecVersion()),
+//	//	Tip:                ctypes.NewUCompactFromUInt(0),
+//	//	TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+//	//}
+//	//
+//	//// Sign the transaction using Alice's default account
+//	//err = extrinsic.Sign(signature.TestKeyringPairAlice, o)
+//	//require.NoError(t, err)
+//	//
+//	//// Encode the signed extrinsic
+//	//extEnc := bytes.Buffer{}
+//	//encoder := cscale.NewEncoder(&extEnc)
+//	//err = extrinsic.Encode(*encoder)
+//	//require.NoError(t, err)
+//
+//	//encExt := []types.Extrinsic{extEnc.Bytes()}
+//	//testExternalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt[0]...))
+//	//testUnencryptedBody := types.NewBody(encExt)
+//
+//	//validity := &transaction.Validity{
+//	//	Priority:  0x3e8,
+//	//	Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
+//	//	Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
+//	//	Longevity: 0x40,
+//	//	Propagate: true,
+//	//}
+//
+//	txs := []*transaction.ValidTransaction{
+//		{
+//			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[0]...)),
+//			Validity:  &transaction.Validity{Priority: 1},
+//		},
+//		{
+//			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[1]...)),
+//			Validity:  &transaction.Validity{Priority: 4},
+//		},
+//		{
+//			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[2]...)),
+//			Validity:  &transaction.Validity{Priority: 2},
+//		},
+//		{
+//			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[3]...)),
+//			Validity:  &transaction.Validity{Priority: 17},
+//		},
+//		{
+//			Extrinsic: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExts[4]...)),
+//			Validity:  &transaction.Validity{Priority: 2},
+//		},
+//	}
+//	return txs
+//}
 
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
@@ -518,31 +597,25 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	// This gave valid transactions! maybe not
-	txs := generateTestValidTxns(t)
-
-	exts := make([]types.Extrinsic, len(txs))
-	for i, tx := range txs {
-		exts[i] = tx.Extrinsic
-	}
+	encExt, rt, _ := generateTestValidTxns(t)
 
 	cfg := &Config{
-		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
+		Runtime: rt,
 	}
-
-	//testService := NewTestService(t, cfg)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	ts := state.NewTransactionState(telemetryMock)
-	hashes := make([]common.Hash, len(txs))
 
-	for i, tx := range txs {
-		h := ts.AddToPool(tx)
-		hashes[i] = h
+	tx := &transaction.ValidTransaction{
+		Extrinsic: types.Extrinsic(encExt),
+		// Maybe need more real validity
+		Validity: &transaction.Validity{Priority: 1},
 	}
+	_ = ts.AddToPool(tx)
+
 	s := NewTestService(t, cfg)
 	s.transactionState = ts
 
@@ -550,17 +623,25 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
-	//fmt.Println(rt)
 
-	// Transaction is not valid for some reason :(
-	val, err := rt.ValidateTransaction(exts[0])
-	require.NoError(t, err)
-	fmt.Println(val)
+	//// Transaction is not valid for some reason :(
+	//val, err := rt.ValidateTransaction(encExt)
+	//require.NoError(t, err)
+	//fmt.Println(val)
+	//
 
-	//s := &Service{
-	//	transactionState: ts,
-	//	blockState: testService.blockState,
-	//}
+	//val := &transaction.Validity{39325240425794630, [], [[212 53 147 199 21 253 211 28 97 20 26 189 4 169 159 214 130 44 133 88 133 76 205 227 154 86 132 231 165 109 162 125 0 0 0 0]], 18446744073709551614, true}
+	provides := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000")
+	val := &transaction.Validity{
+		Priority: 39325240425794630,
+		Requires: nil,
+		Provides: [][]byte{provides},
+		//Provides:  [[212 53 147 199 21 253 211 28 97 20 26 189 4 169 159 214 130 44 133 88 133 76 205 227 154 86 132 231 165 109 162 125 0 0 0 0]],
+		Longevity: 18446744073709551614,
+		Propagate: true,
+	}
+
+	expTxn := transaction.NewValidTransaction(tx.Extrinsic, val)
 
 	s.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]types.Extrinsic{}),
@@ -568,22 +649,20 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 
 	fmt.Println("maintained txn pool")
 
-	res := make([]*transaction.ValidTransaction, len(txs))
-	for _ = range txs {
-		//res[i] = ts.Pop()
-		fmt.Println(ts.Pop())
-	}
+	res := ts.Pop()
+
 	fmt.Println("pop")
 	fmt.Println(res)
 
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Extrinsic[0] < res[j].Extrinsic[0]
-	})
-	require.Equal(t, txs, res)
-	fmt.Println("sorted")
-	for _, tx := range txs {
-		ts.RemoveExtrinsic(tx.Extrinsic)
-	}
+	//sort.Slice(res, func(i, j int) bool {
+	//	return res[i].Extrinsic[0] < res[j].Extrinsic[0]
+	//})
+	require.Equal(t, expTxn, res)
+	ts.RemoveExtrinsic(tx.Extrinsic)
+	//fmt.Println("sorted")
+	//for _, tx := range txs {
+	//	ts.RemoveExtrinsic(tx.Extrinsic)
+	//}
 	head := ts.Pop()
 	require.Nil(t, head)
 }
