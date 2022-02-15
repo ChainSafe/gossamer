@@ -44,7 +44,8 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			epochData.threshold,
 			keypair,
 		)
- 		switch err {
+
+		switch err {
 		case nil:
 			preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
 				epochData.authorityIndex, i, proof.output, proof.proof).ToPreRuntimeDigest()

@@ -165,6 +165,8 @@ func (b *Service) getLatestEpochData() (resEpochData *epochData, error error) {
 		return nil, fmt.Errorf("cannot get epoch state latest config data: %w", err)
 	}
 
+	resEpochData.secondary = configData.SecondarySlots
+
 	resEpochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(resEpochData.authorities))
 	if err != nil {
 		return nil, fmt.Errorf("cannot calculate threshold: %w", err)
