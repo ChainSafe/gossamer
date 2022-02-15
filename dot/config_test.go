@@ -12,12 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDevConfig(t *testing.T) {
+func TestConfig(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		want *Config
+		name        string
+		want        *Config
+		configMaker func() *Config
 	}{
 		{
 			name: "dev default",
@@ -78,26 +79,8 @@ func TestDevConfig(t *testing.T) {
 					},
 				},
 			},
+			configMaker: DevConfig,
 		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := DevConfig()
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func TestGssmrConfig(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		want *Config
-	}{
 		{
 			name: "gossamer default",
 			want: &Config{
@@ -157,25 +140,8 @@ func TestGssmrConfig(t *testing.T) {
 					},
 				},
 			},
+			configMaker: GssmrConfig,
 		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := GssmrConfig()
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func TestKusamaConfig(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		want *Config
-	}{
 		{
 			name: "kusama default",
 			want: &Config{
@@ -234,25 +200,8 @@ func TestKusamaConfig(t *testing.T) {
 					},
 				},
 			},
+			configMaker: KusamaConfig,
 		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := KusamaConfig()
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func TestPolkadotConfig(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		want *Config
-	}{
 		{
 			name: "polkadot default",
 			want: &Config{
@@ -297,13 +246,15 @@ func TestPolkadotConfig(t *testing.T) {
 					},
 				},
 			},
+			configMaker: PolkadotConfig,
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := PolkadotConfig()
+
+			got := tt.configMaker()
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -470,34 +421,20 @@ func Test_networkServiceEnabled(t *testing.T) {
 }
 
 func TestRPCConfig_String(t *testing.T) {
-	type fields struct {
-		Enabled          bool
-		External         bool
-		Unsafe           bool
-		UnsafeExternal   bool
-		Port             uint32
-		Host             string
-		Modules          []string
-		WSPort           uint32
-		WS               bool
-		WSExternal       bool
-		WSUnsafe         bool
-		WSUnsafeExternal bool
-	}
 	tests := []struct {
 		name   string
-		fields fields
+		fields RPCConfig
 		want   string
 	}{
 		{
 			name:   "default base case",
-			fields: fields{},
+			fields: RPCConfig{},
 			want: "enabled=false external=false unsafe=false unsafeexternal=false port=0 host= modules= wsport=0 ws" +
 				"=false wsexternal=false wsunsafe=false wsunsafeexternal=false",
 		},
 		{
 			name: "fields changed",
-			fields: fields{
+			fields: RPCConfig{
 				Enabled:          true,
 				External:         true,
 				Unsafe:           true,
@@ -517,51 +454,26 @@ func TestRPCConfig_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &RPCConfig{
-				Enabled:          tt.fields.Enabled,
-				External:         tt.fields.External,
-				Unsafe:           tt.fields.Unsafe,
-				UnsafeExternal:   tt.fields.UnsafeExternal,
-				Port:             tt.fields.Port,
-				Host:             tt.fields.Host,
-				Modules:          tt.fields.Modules,
-				WSPort:           tt.fields.WSPort,
-				WS:               tt.fields.WS,
-				WSExternal:       tt.fields.WSExternal,
-				WSUnsafe:         tt.fields.WSUnsafe,
-				WSUnsafeExternal: tt.fields.WSUnsafeExternal,
-			}
-			assert.Equalf(t, tt.want, r.String(), "String()")
+			assert.Equalf(t, tt.want, tt.fields.String(), "String()")
 		})
 	}
 }
 
 func TestLogConfig_String(t *testing.T) {
-	type fields struct {
-		CoreLvl           log.Level
-		DigestLvl         log.Level
-		SyncLvl           log.Level
-		NetworkLvl        log.Level
-		RPCLvl            log.Level
-		StateLvl          log.Level
-		RuntimeLvl        log.Level
-		BlockProducerLvl  log.Level
-		FinalityGadgetLvl log.Level
-	}
 	tests := []struct {
 		name   string
-		fields fields
+		fields LogConfig
 		want   string
 	}{
 		{
 			name:   "default case",
-			fields: fields{},
+			fields: LogConfig{},
 			want: "core: CRIT, digest: CRIT, sync: CRIT, network: CRIT, rpc: CRIT, state: CRIT, runtime: CRIT, " +
 				"block producer: CRIT, finality gadget: CRIT",
 		},
 		{
 			name: "change fields case",
-			fields: fields{
+			fields: LogConfig{
 				CoreLvl:           log.Debug,
 				DigestLvl:         log.Info,
 				SyncLvl:           log.Warn,
@@ -578,18 +490,7 @@ func TestLogConfig_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			l := LogConfig{
-				CoreLvl:           tt.fields.CoreLvl,
-				DigestLvl:         tt.fields.DigestLvl,
-				SyncLvl:           tt.fields.SyncLvl,
-				NetworkLvl:        tt.fields.NetworkLvl,
-				RPCLvl:            tt.fields.RPCLvl,
-				StateLvl:          tt.fields.StateLvl,
-				RuntimeLvl:        tt.fields.RuntimeLvl,
-				BlockProducerLvl:  tt.fields.BlockProducerLvl,
-				FinalityGadgetLvl: tt.fields.FinalityGadgetLvl,
-			}
-			assert.Equalf(t, tt.want, l.String(), "String()")
+			assert.Equalf(t, tt.want, tt.fields.String(), "String()")
 		})
 	}
 }

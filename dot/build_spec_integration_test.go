@@ -98,11 +98,13 @@ func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 	tmpFile := filepath.Join(t.TempDir(), "unique-raw-genesis.json")
 	err = WriteGenesisSpecFile(data, tmpFile)
 	require.NoError(t, err)
-	require.FileExists(t, tmpFile)
 
 	file, err := os.Open(tmpFile)
 	require.NoError(t, err)
-	defer file.Close()
+	t.Cleanup(func() {
+		err := file.Close()
+		require.NoError(t, err)
+	})
 
 	gen := new(genesis.Genesis)
 

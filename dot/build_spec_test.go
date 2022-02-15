@@ -25,10 +25,20 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 		{
 			name:   "name test",
 			fields: fields{genesis: &genesis.Genesis{Name: "test"}},
-			want: "{\n    \"name\": \"test\",\n    \"id\": \"\",\n    \"chainType\": \"\"," +
-				"\n    \"bootNodes\": null,\n    \"telemetryEndpoints\": null,\n    \"protocolId\": \"\"," +
-				"\n    \"genesis\": {},\n    \"properties\": null,\n    \"forkBlocks\": null," +
-				"\n    \"badBlocks\": null,\n    \"consensusEngine\": \"\",\n    \"codeSubstitutes\": null\n}",
+			want: `{
+    "name": "test",
+    "id": "",
+    "chainType": "",
+    "bootNodes": null,
+    "telemetryEndpoints": null,
+    "protocolId": "",
+    "genesis": {},
+    "properties": null,
+    "forkBlocks": null,
+    "badBlocks": null,
+    "consensusEngine": "",
+    "codeSubstitutes": null
+}`,
 		},
 		{
 			name: "additional parameters test",
@@ -39,10 +49,20 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 				ProtocolID:      "protocol",
 				ConsensusEngine: "babe",
 			}},
-			want: "{\n    \"name\": \"test\",\n    \"id\": \"ID\",\n    \"chainType\": \"chainType\"," +
-				"\n    \"bootNodes\": null,\n    \"telemetryEndpoints\": null,\n    \"protocolId\": \"protocol\"," +
-				"\n    \"genesis\": {},\n    \"properties\": null,\n    \"forkBlocks\": null," +
-				"\n    \"badBlocks\": null,\n    \"consensusEngine\": \"\",\n    \"codeSubstitutes\": null\n}",
+			want: `{
+    "name": "test",
+    "id": "ID",
+    "chainType": "chainType",
+    "bootNodes": null,
+    "telemetryEndpoints": null,
+    "protocolId": "protocol",
+    "genesis": {},
+    "properties": null,
+    "forkBlocks": null,
+    "badBlocks": null,
+    "consensusEngine": "",
+    "codeSubstitutes": null
+}`,
 		},
 		{
 			name: "normal conditions",
@@ -60,11 +80,25 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 				ConsensusEngine:    "babe",
 				CodeSubstitutes:    map[string]string{"key": "value"},
 			}},
-			want: "{\n    \"name\": \"test\",\n    \"id\": \"ID\",\n    \"chainType\": \"chainType\"," +
-				"\n    \"bootNodes\": [\n        \"node1\",\n        \"node2\"\n    ]," +
-				"\n    \"telemetryEndpoints\": null,\n    \"protocolId\": \"protocol\",\n    \"genesis\": {}," +
-				"\n    \"properties\": {\n        \"key\": \"value\"\n    },\n    \"forkBlocks\": null," +
-				"\n    \"badBlocks\": null,\n    \"consensusEngine\": \"\",\n    \"codeSubstitutes\": null\n}",
+			want: `{
+    "name": "test",
+    "id": "ID",
+    "chainType": "chainType",
+    "bootNodes": [
+        "node1",
+        "node2"
+    ],
+    "telemetryEndpoints": null,
+    "protocolId": "protocol",
+    "genesis": {},
+    "properties": {
+        "key": "value"
+    },
+    "forkBlocks": null,
+    "badBlocks": null,
+    "consensusEngine": "",
+    "codeSubstitutes": null
+}`,
 		},
 	}
 	for _, tt := range tests {
@@ -74,7 +108,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 			}
 			got, err := b.ToJSON()
 			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
+				assert.ErrorIs(t, err, tt.err)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -184,10 +218,20 @@ func TestBuildSpec_ToJSONRaw(t *testing.T) {
 		{
 			name:   "normal conditions",
 			fields: fields{genesis: &genesis.Genesis{Name: "test"}},
-			want: "{\n    \"name\": \"test\",\n    \"id\": \"\",\n    \"chainType\": \"\",\n    \"bootNodes\": null," +
-				"\n    \"telemetryEndpoints\": null,\n    \"protocolId\": \"\",\n    \"genesis\": {}," +
-				"\n    \"properties\": null,\n    \"forkBlocks\": null,\n    \"badBlocks\": null," +
-				"\n    \"consensusEngine\": \"\",\n    \"codeSubstitutes\": null\n}",
+			want: `{
+    "name": "test",
+    "id": "",
+    "chainType": "",
+    "bootNodes": null,
+    "telemetryEndpoints": null,
+    "protocolId": "",
+    "genesis": {},
+    "properties": null,
+    "forkBlocks": null,
+    "badBlocks": null,
+    "consensusEngine": "",
+    "codeSubstitutes": null
+}`,
 		},
 	}
 	for _, tt := range tests {

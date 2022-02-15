@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	gsync "github.com/ChainSafe/gossamer/dot/sync"
+	dotsync "github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -64,8 +64,8 @@ type nodeBuilderIface interface {
 		dh *digest.Handler) (*core.Service, error)
 	createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore,
 		net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error)
-	newSyncService(cfg *Config, st *state.Service, fg gsync.FinalityGadget, verifier *babe.VerificationManager,
-		cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (*gsync.Service, error)
+	newSyncService(cfg *Config, st *state.Service, fg dotsync.FinalityGadget, verifier *babe.VerificationManager,
+		cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (*dotsync.Service, error)
 	createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service,
 		telemetryMailer telemetry.Client) (*babe.Service, error)
 	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)
@@ -81,14 +81,13 @@ func NodeInitialized(basepath string) bool {
 	return nodeInstance.nodeInitialised(basepath)
 }
 
-func (nodeBuilder) nodeInitialised(basepath string) bool {
+func (*nodeBuilder) nodeInitialised(basepath string) bool {
 	// check if key registry exists
 	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
 
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
-		logger.Debug("node has not been initialised from base path " + basepath +
-			": failed to locate KEYREGISTRY file in data directory")
+		logger.Debugf("node has not been initialised from base path $s: $s", basepath, err)
 
 		return false
 	}
@@ -101,14 +100,12 @@ func (nodeBuilder) nodeInitialised(basepath string) bool {
 	}
 
 	defer func() {
-		// close database
 		err = db.Close()
 		if err != nil {
 			logger.Errorf("failed to close database: %s", err)
 		}
 	}()
 
-	// load genesis data from initialised node database
 	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
 		logger.Errorf("node has not been initialised from base path %s: %s", basepath, err)
@@ -126,7 +123,7 @@ func InitNode(cfg *Config) error {
 
 // InitNode initialises a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
-func (nodeBuilder) initNode(cfg *Config) error {
+func (*nodeBuilder) initNode(cfg *Config) error {
 	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
 	logger.Infof(
 		"🕸️ initialising node with name %s, id %s, base path %s and genesis %s...",
@@ -200,7 +197,8 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
 	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
-		logger.Debugf("problem initialising telemetry: %s", err)
+		//logger.Debugf("problem initialising telemetry: %s", err)
+		return "", err
 	}
 
 	defer func() {
@@ -219,12 +217,12 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	return nodename, err
 }
 
-// NewNode to create node based on given Config
+// NewNode creates a node based on the given Config and key store.
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
-	return newNode(cfg, ks, nodeBuilder{})
+	return newNode(cfg, ks, &nodeBuilder{})
 }
 
-func newNode(cfg *Config, ks *keystore.GlobalKeystore, nbi nodeBuilderIface) (*Node, error) {
+func newNode(cfg *Config, ks *keystore.GlobalKeystore, builder nodeBuilderIface) (*Node, error) {
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
@@ -232,10 +230,10 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, nbi nodeBuilderIface) (*N
 		debug.SetGCPercent(prev)
 	}
 
-	if !nbi.nodeInitialised(cfg.Global.BasePath) {
-		err := nbi.initNode(cfg)
+	if !builder.nodeInitialised(cfg.Global.BasePath) {
+		err := builder.initNode(cfg)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot initialise node: %w", err)
 		}
 	}
 
@@ -254,7 +252,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, nbi nodeBuilderIface) (*N
 		nodeSrvcs = append(nodeSrvcs, createPprofService(cfg.Pprof.Settings))
 	}
 
-	stateSrvc, err := nbi.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
@@ -276,7 +274,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, nbi nodeBuilderIface) (*N
 		return nil, fmt.Errorf("cannot start state service: %w", err)
 	}
 
-	sysSrvc, err := nbi.createSystemService(&cfg.System, stateSrvc)
+	sysSrvc, err := builder.createSystemService(&cfg.System, stateSrvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create system service: %s", err)
 	}
@@ -286,7 +284,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, nbi nodeBuilderIface) (*N
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {
 		// create network service and append network service to node services
-		networkSrvc, err = nbi.createNetworkService(cfg, stateSrvc, telemetryMailer)
+		networkSrvc, err = builder.createNetworkService(cfg, stateSrvc, telemetryMailer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create network service: %s", err)
 		}
@@ -307,47 +305,46 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, nbi nodeBuilderIface) (*N
 			sysSrvc.SystemVersion())
 
 		telemetryMailer.SendMessage(connectedMsg)
-
 	} else {
 		// do not create or append network service if network service is not enabled
 		logger.Debugf("network service disabled, roles are %d", cfg.Core.Roles)
 	}
 
 	// create runtime
-	ns, err := nbi.createRuntimeStorage(stateSrvc)
+	ns, err := builder.createRuntimeStorage(stateSrvc)
 	if err != nil {
 		return nil, err
 	}
 
-	err = nbi.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
+	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
 
-	ver, err := nbi.createBlockVerifier(stateSrvc)
+	ver, err := builder.createBlockVerifier(stateSrvc)
 	if err != nil {
 		return nil, err
 	}
 
-	dh, err := nbi.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, dh)
 
-	coreSrvc, err := nbi.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	fg, err := nbi.createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, telemetryMailer)
+	fg, err := builder.createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 
-	syncer, err := nbi.newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc, telemetryMailer)
+	syncer, err := builder.newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
@@ -358,7 +355,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, nbi nodeBuilderIface) (*N
 	}
 	nodeSrvcs = append(nodeSrvcs, syncer)
 
-	bp, err := nbi.createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, telemetryMailer)
+	bp, err := builder.createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +375,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, nbi nodeBuilderIface) (*N
 			blockFinality: fg,
 			syncer:        syncer,
 		}
-		rpcSrvc, err = nbi.createRPCService(cRPCParams)
+		rpcSrvc, err = builder.createRPCService(cRPCParams)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create rpc service: %s", err)
 		}
@@ -490,7 +487,7 @@ func (n *Node) Stop() {
 	}
 }
 
-func (nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
+func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
 	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 	net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()

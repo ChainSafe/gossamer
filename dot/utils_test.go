@@ -38,7 +38,7 @@ func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	fp := utils.GetGssmrGenesisPath()
 
 	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
 		Name:       cfg.Global.Name,
@@ -226,10 +226,7 @@ func TestNewTestConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewTestConfig(tt.args.t)
-			if tt.want != nil {
-				assert.Equal(t, tt.want, got)
-				assert.NotNil(t, got)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
