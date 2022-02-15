@@ -12,6 +12,7 @@ import (
 var _ Node = (*Branch)(nil)
 
 const (
+	// ChildrenCapacity is the maximum number of children in a branch node.
 	ChildrenCapacity = 16
 )
 
