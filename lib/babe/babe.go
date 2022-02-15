@@ -465,7 +465,6 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		),
 	)
 
-	// TODO: sometimes this failes with cannot find parent block in blocktree
 	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
 		logger.Warnf("failed to import built block: %s", err)
 		return err

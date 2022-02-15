@@ -95,7 +95,7 @@ func claimSecondarySlot(randomness Randomness,
 		return nil, fmt.Errorf("cannot get secondary slot author: %w", err)
 	}
 
-	if int(authorityIndex) == int(secondarySlotAuthor) {
+	if authorityIndex == secondarySlotAuthor {
 		transcript := makeTranscript(randomness, slot, epoch)
 
 		out, proof, err := keypair.VrfSign(transcript)
