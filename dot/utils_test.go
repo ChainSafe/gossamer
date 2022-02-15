@@ -6,6 +6,7 @@ package dot
 import (
 	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -88,58 +89,154 @@ func TestCreateJSONRawFile(t *testing.T) {
 }
 
 func TestExportConfig(t *testing.T) {
+	filepath := t.TempDir() + "/test.json"
 	type args struct {
 		cfg *Config
 		fp  string
 	}
 	tests := []struct {
-		name string
-		args args
-		want *os.File
+		name          string
+		args          args
+		want          *os.File
+		wantedContent string
 	}{
 		{
 			name: "working example",
 			args: args{
 				cfg: &Config{},
-				fp:  "test_data/test.json",
+				fp:  filepath,
 			},
 			want: &os.File{},
+			wantedContent: `[global]
+name = ""
+id = ""
+base_path = ""
+log_lvl = 0
+publish_metrics = false
+metrics_port = 0
+no_telemetry = false
+telemetry_urls = []
+retain_blocks = 0
+pruning = ""
+
+[log]
+core_lvl = 0
+digest_lvl = 0
+sync_lvl = 0
+network_lvl = 0
+rpc_lvl = 0
+state_lvl = 0
+runtime_lvl = 0
+block_producer_lvl = 0
+finality_gadget_lvl = 0
+
+[init]
+genesis = ""
+
+[account]
+key = ""
+unlock = ""
+
+[core]
+roles = 0
+babe_authority = false
+b_a_b_e_lead = false
+grandpa_authority = false
+wasm_interpreter = ""
+grandpa_interval = 0
+
+[network]
+port = 0
+bootnodes = []
+protocol_id = ""
+no_bootstrap = false
+no_m_dns = false
+min_peers = 0
+max_peers = 0
+persistent_peers = []
+discovery_interval = 0
+public_ip = ""
+public_dns = ""
+
+[rpc]
+enabled = false
+external = false
+unsafe = false
+unsafe_external = false
+port = 0
+host = ""
+modules = []
+w_s_port = 0
+w_s = false
+w_s_external = false
+w_s_unsafe = false
+w_s_unsafe_external = false
+
+[system]
+system_name = ""
+system_version = ""
+
+[state]
+rewind = 0
+
+[pprof]
+enabled = false
+
+[pprof.settings]
+listening_address = ""
+block_profile_rate = 0
+mutex_profile_rate = 0
+`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := exportConfig(tt.args.cfg, tt.args.fp)
 			if tt.want != nil {
-				assert.NotNil(t, got)
+				require.Equal(t, tt.args.fp, got.Name())
+
+				content, err := ioutil.ReadFile(got.Name())
+				require.NoError(t, err)
+				require.Equal(t, tt.wantedContent, string(content))
 			}
 		})
 	}
 }
 
 func TestExportTomlConfig(t *testing.T) {
+	filepath := t.TempDir() + "/test.json"
 	type args struct {
 		cfg *ctoml.Config
 		fp  string
 	}
 	tests := []struct {
-		name string
-		args args
-		want *os.File
+		name          string
+		args          args
+		want          *os.File
+		wantedContent string
 	}{
 		{
 			name: "working example",
 			args: args{
 				cfg: &ctoml.Config{},
-				fp:  "test_data/test.json",
+				fp:  filepath,
 			},
 			want: &os.File{},
+			wantedContent: `[core]
+babe-authority = false
+grandpa-authority = false
+`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ExportTomlConfig(tt.args.cfg, tt.args.fp)
 			if tt.want != nil {
-				assert.NotNil(t, got)
+				require.Equal(t, tt.args.fp, got.Name())
+
+				content, err := ioutil.ReadFile(got.Name())
+				require.NoError(t, err)
+				require.Equal(t, tt.wantedContent, string(content))
 			}
 		})
 	}

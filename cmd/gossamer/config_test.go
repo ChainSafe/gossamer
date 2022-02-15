@@ -1310,12 +1310,14 @@ func Test_setLogConfig(t *testing.T) {
 
 // newTestGenesisRawFile returns a test genesis file using "gssmr" raw data
 func newTestGenesisRawFile(t *testing.T, cfg *dot.Config) (filename string) {
+	t.Helper()
+
 	filename = filepath.Join(t.TempDir(), "genesis.json")
 
 	fp := utils.GetGssmrGenesisRawPath()
 
 	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
 		Name:       cfg.Global.Name,
@@ -1326,7 +1328,7 @@ func newTestGenesisRawFile(t *testing.T, cfg *dot.Config) (filename string) {
 	}
 
 	b, err := json.Marshal(gen)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = os.WriteFile(filename, b, os.ModePerm)
 	require.NoError(t, err)
@@ -1339,18 +1341,16 @@ func newTestGenesisRawFile(t *testing.T, cfg *dot.Config) (filename string) {
 func newTestGenesisAndRuntime(t *testing.T) (filename string) {
 	_ = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
-
-	runtimeData, err := os.ReadFile(filepath.Clean(runtimeFilePath))
-	require.Nil(t, err)
+	runtimeData, err := os.ReadFile(runtimeFilePath)
+	require.NoError(t, err)
 
 	gen := newTestGenesis(t)
-	hex := hex.EncodeToString(runtimeData)
 
 	gen.Genesis.Raw = map[string]map[string]string{}
-	if gen.Genesis.Raw["top"] == nil {
-		gen.Genesis.Raw["top"] = make(map[string]string)
-	}
-	gen.Genesis.Raw["top"]["0x3a636f6465"] = "0x" + hex
+
+	gen.Genesis.Raw["top"] = make(map[string]string)
+
+	gen.Genesis.Raw["top"]["0x3a636f6465"] = "0x" + hex.EncodeToString(runtimeData)
 	gen.Genesis.Raw["top"]["0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f"] = "0x0000000000000001"
 
 	genData, err := json.Marshal(gen)

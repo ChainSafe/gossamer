@@ -107,11 +107,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 				genesis: tt.fields.genesis,
 			}
 			got, err := b.ToJSON()
-			if tt.err != nil {
-				assert.ErrorIs(t, err, tt.err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 			assert.Equal(t, tt.want, string(got))
 		})
 	}

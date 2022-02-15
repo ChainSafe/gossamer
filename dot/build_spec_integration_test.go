@@ -63,6 +63,8 @@ func TestBuildFromGenesis_Integration(t *testing.T) {
 }
 
 func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
+	t.Parallel()
+
 	bs, err := BuildFromGenesis("/not/exists/genesis.json", 0)
 	require.Nil(t, bs)
 	require.ErrorIs(t, err, os.ErrNotExist)
