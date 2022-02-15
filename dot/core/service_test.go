@@ -1121,8 +1121,11 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 	runtimeMockOk.On("ValidateTransaction", externalExt).
 		Return(&transaction.Validity{Propagate: true}, nil)
 
+	mockTxnStateEmpty := NewMockTransactionState(ctrl)
+	mockTxnStateEmpty.EXPECT().Exists(nil).MaxTimes(2)
+
 	mockTxnState := NewMockTransactionState(ctrl)
-	mockTxnState.EXPECT().Exists(transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true}))
+	mockTxnState.EXPECT().Exists(types.Extrinsic{}).MaxTimes(2)
 	mockTxnState.EXPECT().AddToPool(transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true}))
 
 	mockNetState := NewMockNetwork(ctrl)
@@ -1141,8 +1144,9 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		{
 			name: "trie state err",
 			service: &Service{
-				storageState: mockStorageStateErr,
-				net:          NewMockNetwork(ctrl),
+				storageState:     mockStorageStateErr,
+				transactionState: mockTxnStateEmpty,
+				net:              NewMockNetwork(ctrl),
 			},
 			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
@@ -1150,9 +1154,10 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		{
 			name: "get runtime err",
 			service: &Service{
-				storageState: mockStorageStateOk,
-				blockState:   mockBlockStateRuntimeErr,
-				net:          NewMockNetwork(ctrl),
+				storageState:     mockStorageStateOk,
+				transactionState: mockTxnStateEmpty,
+				blockState:       mockBlockStateRuntimeErr,
+				net:              NewMockNetwork(ctrl),
 			},
 			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
@@ -1160,9 +1165,10 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		{
 			name: "validate txn err",
 			service: &Service{
-				storageState: mockStorageStateOk,
-				blockState:   mockBlockStateRuntimeOk,
-				net:          NewMockNetwork(ctrl),
+				storageState:     mockStorageStateOk,
+				transactionState: mockTxnState,
+				blockState:       mockBlockStateRuntimeOk,
+				net:              NewMockNetwork(ctrl),
 			},
 			ext:       types.Extrinsic{},
 			expErr:    errDummyErr,
