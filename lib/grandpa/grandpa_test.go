@@ -132,7 +132,7 @@ func TestUpdateAuthorities(t *testing.T) {
 	err = gs.grandpaState.(*state.GrandpaState).SetNextChange(next, big.NewInt(1))
 	require.NoError(t, err)
 
-	err = gs.grandpaState.(*state.GrandpaState).IncrementSetID()
+	_, err = gs.grandpaState.(*state.GrandpaState).IncrementSetID()
 	require.NoError(t, err)
 
 	err = gs.updateAuthorities()

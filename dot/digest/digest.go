@@ -237,17 +237,12 @@ func (h *Handler) handleGrandpaChangesOnImport(num *big.Int) error {
 
 	fc := h.grandpaForcedChange
 	if fc != nil && num.Cmp(fc.atBlock) > -1 {
-		err := h.grandpaState.IncrementSetID()
+		curr, err := h.grandpaState.IncrementSetID()
 		if err != nil {
 			return err
 		}
 
 		h.grandpaForcedChange = nil
-		curr, err := h.grandpaState.GetCurrentSetID()
-		if err != nil {
-			return err
-		}
-
 		h.logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
@@ -262,17 +257,12 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 
 	sc := h.grandpaScheduledChange
 	if sc != nil && num.Cmp(sc.atBlock) > -1 {
-		err := h.grandpaState.IncrementSetID()
+		curr, err := h.grandpaState.IncrementSetID()
 		if err != nil {
 			return err
 		}
 
 		h.grandpaScheduledChange = nil
-		curr, err := h.grandpaState.GetCurrentSetID()
-		if err != nil {
-			return err
-		}
-
 		h.logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
