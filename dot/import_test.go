@@ -6,7 +6,6 @@ package dot
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
@@ -219,7 +218,6 @@ func Test_newTrieFromPairs(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-			fmt.Printf("tr %v\n", got)
 			if !tt.want.IsEmpty() {
 				assert.Equal(t, tt.want, got.MustHash())
 			}

@@ -117,11 +117,7 @@ func Test_createRuntimeStorage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := nodeInstance.createRuntimeStorage(tt.args.st)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
@@ -167,11 +163,7 @@ func Test_createSystemService(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := nodeInstance.createSystemService(tt.args.cfg, tt.args.stateSrvc)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
@@ -201,11 +193,7 @@ func Test_newInMemoryDB(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := newInMemoryDB(tt.args.path)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 
 			if tt.want {
 				assert.NotNil(t, got)
@@ -256,11 +244,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			no := nodeBuilder{}
 			got, err := no.createBABEService(tt.args.cfg, tt.args.st, tt.args.ks, tt.args.cs, tt.args.telemetryMailer)
 
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 			if tt.want != nil {
 				assert.NotNil(t, got)
 			} else {
@@ -362,11 +346,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 			no := nodeBuilder{}
 			got, err := no.createCoreService(tt.args.cfg, tt.args.ks, tt.args.st, tt.args.net, tt.args.dh)
 
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
@@ -406,11 +386,7 @@ func Test_nodeBuilder_createNetworkService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			no := nodeBuilder{}
 			got, err := no.createNetworkService(tt.args.cfg, tt.args.stateSrvc, tt.args.telemetryMailer)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 			if tt.want != nil {
 				assert.NotNil(t, got)
 			} else {
@@ -453,11 +429,7 @@ func Test_nodeBuilder_createRPCService(t *testing.T) {
 				state:  tt.args.stateSrvc,
 			}
 			got, err := no.createRPCService(rpcParams)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
@@ -513,11 +485,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 			no := nodeBuilder{}
 			got, err := no.createGRANDPAService(tt.args.cfg, tt.args.st, nil, tt.args.ks, tt.args.net,
 				nil)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 			if tt.want != nil {
 				assert.NotNil(t, got)
 			} else {
@@ -575,11 +543,7 @@ func Test_createRuntime(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := createRuntime(tt.args.cfg, tt.args.ns, tt.args.st, nil, nil, tt.args.code)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 			if tt.want != nil {
 				assert.NotNil(t, got)
 			} else {
@@ -629,11 +593,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 			no := nodeBuilder{}
 			got, err := no.newSyncService(tt.args.cfg, tt.args.st, tt.args.fg, tt.args.verifier, tt.args.cs,
 				tt.args.net, tt.args.telemetryMailer)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 			if tt.want != nil {
 				assert.NotNil(t, got)
 			} else {
@@ -668,11 +628,7 @@ func Test_nodeBuilder_createDigestHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			no := nodeBuilder{}
 			got, err := no.createDigestHandler(tt.args.lvl, tt.args.st)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 			if tt.want != nil {
 				assert.NotNil(t, got)
 			} else {

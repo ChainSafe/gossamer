@@ -57,12 +57,7 @@ func TestInitNode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := InitNode(tt.args.cfg)
-
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 		})
 	}
 }
@@ -229,11 +224,7 @@ func TestNewNode(t *testing.T) {
 				gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(testNetwork, nil)
 
 			got, err := newNode(tt.args.cfg, ks, m)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 
 			if tt.want != nil {
 				assert.NotNil(t, got)
@@ -384,12 +375,7 @@ func TestNode_StartStop(t *testing.T) {
 				n.Stop()
 			}()
 			err := n.Start()
-
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 		})
 	}
 }
@@ -427,11 +413,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 			no := nodeBuilder{}
 			err := no.loadRuntime(tt.args.cfg, tt.args.ns, tt.args.stateSrvc, tt.args.ks, tt.args.net)
 
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.err)
 		})
 	}
 }
