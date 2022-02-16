@@ -248,6 +248,13 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 }
 
 func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
+	return s._handleCodeSubstitution(hash, state, wasmer.NewInstance)
+}
+func (s *Service) _handleCodeSubstitution(
+	hash common.Hash,
+	state *rtstorage.TrieState,
+	newInstance func(code []byte, cfg *wasmer.Config) (*wasmer.Instance, error),
+) error {
 	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil
@@ -279,7 +286,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.Trie
 		cfg.Role = 4
 	}
 
-	next, err := wasmer.NewInstance(code, cfg)
+	next, err := newInstance(code, cfg)
 	if err != nil {
 		return err
 	}

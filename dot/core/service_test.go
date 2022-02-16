@@ -14,10 +14,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -27,12 +27,6 @@ import (
 
 var errTestDummyError = errors.New("test dummy error")
 var testWasmPaths []string
-
-func TestGenerateWasm(t *testing.T) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	require.NoError(t, err)
-	testWasmPaths = wasmFilePaths
-}
 
 func Test_Service_StorageRoot(t *testing.T) {
 	emptyTrie := trie.NewEmptyTrie()
@@ -91,14 +85,16 @@ func Test_Service_StorageRoot(t *testing.T) {
 	}
 }
 
-func Test_Service_handleCodeSubstitution(t *testing.T) {
-	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
-	require.NoError(t, err)
+func newTestInstance(code []byte, cfg *wasmer.Config) (*wasmer.Instance, error) {
+	return &wasmer.Instance{}, nil
+}
 
+func Test_Service_handleCodeSubstitution(t *testing.T) {
+	testRuntime := []byte{21}
 	t.Run("nil value", func(t *testing.T) {
 		t.Parallel()
 		s := &Service{codeSubstitute: map[common.Hash]string{}}
-		err := s.handleCodeSubstitution(common.Hash{}, nil)
+		err := s._handleCodeSubstitution(common.Hash{}, nil, newTestInstance)
 		assert.NoError(t, err)
 	})
 
@@ -119,7 +115,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			codeSubstitute: testCodeSubstitute,
 			blockState:     mockBlockState,
 		}
-		err := s.handleCodeSubstitution(blockHash, nil)
+		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, errTestDummyError.Error())
@@ -152,7 +148,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			blockState:           mockBlockState,
 			codeSubstitutedState: mockCodeSubState,
 		}
-		err := s.handleCodeSubstitution(blockHash, nil)
+		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, errTestDummyError.Error())
@@ -184,7 +180,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			blockState:           mockBlockState,
 			codeSubstitutedState: mockCodeSubState,
 		}
-		err := s.handleCodeSubstitution(blockHash, nil)
+		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.NoError(t, err)
 	})
 }
@@ -628,9 +624,4 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		}
 		s.handleBlocksAsync()
 	})
-}
-
-func TestCleanup(t *testing.T) {
-	err := runtime.RemoveFiles(testWasmPaths)
-	require.NoError(t, err)
 }
