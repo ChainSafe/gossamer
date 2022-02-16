@@ -21,6 +21,10 @@
                 {
                     "containerPort": 8540,
                     "protocol": "tcp"
+                },
+                {
+                    "containerPort": 6060,
+                    "protocol": "tcp"
                 }
             ],
             "environment": [],
@@ -35,7 +39,7 @@
             "expression": "attribute:ecs.availability-zone==us-east-2a"
         }
     ],
-    "memory": "16041",
+    "memory": "12000",
     "family": "gossamer-polkadot",
     "networkMode": "host",
     "requiresCompatibilities": [
