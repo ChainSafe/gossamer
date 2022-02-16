@@ -5,11 +5,14 @@ package trie
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -386,4 +389,54 @@ func TestTrie_GetFromDB(t *testing.T) {
 			require.Equal(t, test.value, val)
 		}
 	}
+}
+
+func TestLoadWithChildTriesFails(t *testing.T) {
+	// Use a fake node implementation in which Encode always fails
+	// Make that root of one of the childtries
+	// Run load and check that it fails
+
+	testCase := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0xf2, 0x3}, value: []byte("f")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{0x07}, value: []byte("ramen")},
+		{key: []byte{0}, value: nil},
+	}
+
+	trie := NewEmptyTrie()
+
+	for _, test := range testCase {
+		trie.Put(test.key, test.value)
+	}
+	sampleChildTrie := NewEmptyTrie()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockNode := node.NewMockNode(mockCtrl)
+	mockNode.EXPECT().Encode(gomock.Any()).AnyTimes().Return(nil)
+	// TODO: Mock remaining methods
+
+	sampleChildTrie.root = mockNode
+
+	keyToChild := []byte("test")
+	err := trie.PutChild(keyToChild, sampleChildTrie)
+	require.NoError(t, err)
+
+	db := newTestDB(t)
+	err = trie.Store(db)
+	require.NoError(t, err)
+
+	mockNode.EXPECT().Encode(gomock.Any()).AnyTimes().Return(errors.New("some error"))
+
+	res := NewEmptyTrie()
+	err = res.Load(db, trie.MustHash())
+	require.NoError(t, err)
+	fmt.Printf("expected:\n %s\n", trie.String())
+	fmt.Printf("actual:\n %s\n", res.String())
+
+	require.Equal(t, trie.MustHash(), res.MustHash())
 }

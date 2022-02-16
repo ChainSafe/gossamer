@@ -209,11 +209,13 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
+		// TODO: Tests this error
 		err := childTrie.Load(db, common.NewHash(value))
 		if err != nil {
 			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
 		}
 
+		// TODO: Test this error
 		err = t.PutChild(value, childTrie)
 		if err != nil {
 			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
