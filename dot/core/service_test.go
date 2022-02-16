@@ -688,6 +688,25 @@ func TestService_handleChainReorg(t *testing.T) {
 		}
 	})
 
+	t.Run("highest common ancestor err", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(common.Hash{}, errDummyErr)
+
+		s := &Service{
+			blockState: mockBlockState,
+		}
+
+		expErr := errDummyErr
+		expErrMsg := errDummyErr.Error()
+		err := s.handleChainReorg(testPrevHash, testCurrentHash)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErrMsg)
+		}
+	})
+
 	testSubChain := []common.Hash{testPrevHash, testCurrentHash, testAncestorHash}
 	ext, externExt, body := generateExtrinsic(t)
 	testValidity := &transaction.Validity{Propagate: true}
