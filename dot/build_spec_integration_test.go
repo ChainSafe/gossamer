@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,7 +85,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	t.Parallel()
 
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = runtime.GetAbsolutePath("../chain/gssmr/genesis.json")
+	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
 
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
@@ -124,7 +124,7 @@ func TestBuildFromDB(t *testing.T) {
 
 	// setup expected
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = runtime.GetAbsolutePath("../chain/gssmr/genesis.json")
+	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
 	// initialise node (initialise state database and load genesis data)
