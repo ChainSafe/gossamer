@@ -334,19 +334,6 @@ func (t *Trie) insert(parent Node, key []byte, value Node) (newParent Node) {
 	}
 }
 
-func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte,
-	value Node) (newParent Node) {
-	newParent = t.updateBranch(parentBranch, key, value)
-
-	if newParent.IsDirty() {
-		// the older parent branch might had been pushed down the trie
-		// under the new parent branch, so mark it dirty.
-		parentBranch.SetDirty(true)
-	}
-
-	return newParent
-}
-
 func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
 	value Node) (newParent Node) {
 	newValue := value.(*node.Leaf).Value
@@ -402,7 +389,7 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
 	return newBranchParent
 }
 
-func (t *Trie) updateBranch(parentBranch *node.Branch, key []byte, value Node) (newParent Node) {
+func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node) (newParent Node) {
 	if bytes.Equal(key, parentBranch.Key) {
 		parentBranch.SetDirty(true)
 		parentBranch.Value = value.GetValue()
@@ -441,6 +428,7 @@ func (t *Trie) updateBranch(parentBranch *node.Branch, key []byte, value Node) (
 		Generation: t.generation,
 		Dirty:      true,
 	}
+	parentBranch.SetDirty(true)
 
 	oldParentIndex := parentBranch.Key[commonPrefixLength]
 	remainingOldParentKey := parentBranch.Key[commonPrefixLength+1:]
@@ -454,7 +442,6 @@ func (t *Trie) updateBranch(parentBranch *node.Branch, key []byte, value Node) (
 		newParentBranch.Children[childIndex] = t.insert(nil, remainingKey, value)
 	}
 
-	newParentBranch.SetDirty(true)
 	return newParentBranch
 }
 

@@ -1142,7 +1142,7 @@ func Test_Trie_insert(t *testing.T) {
 	}
 }
 
-func Test_Trie_updateBranch(t *testing.T) {
+func Test_Trie_insertInBranch(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -1280,6 +1280,7 @@ func Test_Trie_updateBranch(t *testing.T) {
 					&node.Branch{
 						Key:   []byte{},
 						Value: []byte{5},
+						Dirty: true,
 						Children: [16]node.Node{
 							&node.Leaf{Key: []byte{1}},
 						},
@@ -1311,6 +1312,7 @@ func Test_Trie_updateBranch(t *testing.T) {
 					&node.Branch{
 						Key:   []byte{3},
 						Value: []byte{5},
+						Dirty: true,
 						Children: [16]node.Node{
 							&node.Leaf{Key: []byte{1}},
 						},
@@ -1343,6 +1345,7 @@ func Test_Trie_updateBranch(t *testing.T) {
 					&node.Branch{
 						Key:   []byte{},
 						Value: []byte{5},
+						Dirty: true,
 						Children: [16]node.Node{
 							&node.Leaf{Key: []byte{1}},
 						},
@@ -1359,7 +1362,7 @@ func Test_Trie_updateBranch(t *testing.T) {
 
 			trie := new(Trie)
 
-			newNode := trie.updateBranch(testCase.parent, testCase.key, testCase.value)
+			newNode := trie.insertInBranch(testCase.parent, testCase.key, testCase.value)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, new(Trie), trie) // check no mutation
