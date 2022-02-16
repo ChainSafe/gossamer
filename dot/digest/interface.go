@@ -29,7 +29,7 @@ type EpochState interface {
 // GrandpaState is the interface for the state.GrandpaState
 type GrandpaState interface {
 	SetNextChange(authorities []grandpa.Voter, number *big.Int) error
-	IncrementSetID() error
+	IncrementSetID() (newSetID uint64, err error)
 	SetNextPause(number *big.Int) error
 	SetNextResume(number *big.Int) error
 	GetCurrentSetID() (uint64, error)
