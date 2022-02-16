@@ -39,7 +39,7 @@
             "expression": "attribute:ecs.availability-zone==us-east-2a"
         }
     ],
-    "memory": "12000",
+    "memory": "12288",
     "family": "gossamer-kusama",
     "networkMode": "host",
     "requiresCompatibilities": [
