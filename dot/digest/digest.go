@@ -122,12 +122,14 @@ func (h *Handler) NextGrandpaAuthorityChange() uint64 {
 func (h *Handler) HandleDigests(header *types.Header) {
 	for i, d := range header.Digest.Types {
 		val, ok := d.Value().(types.ConsensusDigest)
-		if ok {
-			err := h.handleConsensusDigest(&val, header)
-			if err != nil {
-				h.logger.Errorf("cannot handle digests for block number %s, index %d, digest %s: %s",
-					header.Number, i, d.Value(), err)
-			}
+		if !ok {
+			continue
+		}
+
+		err := h.handleConsensusDigest(&val, header)
+		if err != nil {
+			h.logger.Errorf("cannot handle digests for block number %s, index %d, digest %s: %s",
+				header.Number, i, d.Value(), err)
 		}
 	}
 }
