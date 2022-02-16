@@ -62,19 +62,9 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 	}
 }
 
-func (t *Trie) maybeUpdateGeneration(currentNode Node) (newNode Node) {
-	if currentNode.GetGeneration() == t.generation {
-		// No need to update the current node, just return it
-		// since its generation matches the one of the trie.
-		return currentNode
-	}
-
-	// The node is from an older trie generation (snapshot)
-	// so we need to deep copy the node and update the generation
-	// on the newer copy.
-	return updateGeneration(currentNode, t.generation, t.deletedKeys)
-}
-
+// updateGeneration is called when the currentNode is from
+// an older trie generation (snapshot) so we deep copy the
+// node and update the generation on the newer copy.
 func updateGeneration(currentNode Node, trieGeneration uint64,
 	deletedHashes map[common.Hash]struct{}) (newNode Node) {
 	const copyChildren = false
@@ -342,7 +332,10 @@ func (t *Trie) insert(parent Node, key []byte, value Node) (newParent Node) {
 	}
 
 	// TODO ensure all values have dirty set to true
-	newParent = t.maybeUpdateGeneration(parent)
+	newParent = parent
+	if parent.GetGeneration() < t.generation {
+		newParent = updateGeneration(parent, t.generation, t.deletedKeys)
+	}
 
 	switch newParent.Type() {
 	case node.BranchType, node.BranchWithValueType:
@@ -683,7 +676,10 @@ func (t *Trie) clearPrefixLimit(parent Node, prefix []byte, limit *uint32) (
 		return nil, false, true
 	}
 
-	newParent = t.maybeUpdateGeneration(parent)
+	newParent = parent
+	if parent.GetGeneration() < t.generation {
+		newParent = updateGeneration(parent, t.generation, t.deletedKeys)
+	}
 
 	if newParent.Type() == node.LeafType {
 		leaf := newParent.(*node.Leaf)
@@ -785,7 +781,10 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newP
 		return nil
 	}
 
-	newParent = t.maybeUpdateGeneration(parent)
+	newParent = parent
+	if parent.GetGeneration() < t.generation {
+		newParent = updateGeneration(parent, t.generation, t.deletedKeys)
+	}
 
 	if newParent.Type() == node.LeafType {
 		*limit--
@@ -849,7 +848,10 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 		return nil, false
 	}
 
-	newParent = t.maybeUpdateGeneration(parent)
+	newParent = parent
+	if parent.GetGeneration() < t.generation {
+		newParent = updateGeneration(parent, t.generation, t.deletedKeys)
+	}
 
 	if bytes.HasPrefix(newParent.GetKey(), prefix) {
 		return nil, true
@@ -923,7 +925,10 @@ func (t *Trie) delete(parent Node, key []byte) (newParent Node, deleted bool) {
 		return nil, false
 	}
 
-	newParent = t.maybeUpdateGeneration(parent)
+	newParent = parent
+	if parent.GetGeneration() < t.generation {
+		newParent = updateGeneration(parent, t.generation, t.deletedKeys)
+	}
 
 	if newParent.Type() == node.LeafType {
 		newParent = deleteLeaf(newParent, key)
