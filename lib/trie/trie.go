@@ -366,7 +366,7 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key,
 			// Move the current leaf parent as a child to the new branch.
 			childIndex := parentLeafKey[commonPrefixLength]
 			parentLeaf.Key = parentLeaf.Key[commonPrefixLength+1:]
-			parentLeaf.Dirty = true
+			parentLeaf.SetDirty(true)
 			newBranchParent.Children[childIndex] = parentLeaf
 		}
 
@@ -440,7 +440,6 @@ func (t *Trie) insertInBranch(parentBranch *node.Branch, key, value []byte) (new
 	oldParentIndex := parentBranch.Key[commonPrefixLength]
 	remainingOldParentKey := parentBranch.Key[commonPrefixLength+1:]
 
-	parentBranch.Dirty = true
 	parentBranch.Key = remainingOldParentKey
 	parentBranch.Generation = t.generation
 	newParentBranch.Children[oldParentIndex] = parentBranch
