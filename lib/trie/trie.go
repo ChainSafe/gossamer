@@ -174,9 +174,7 @@ func entries(parent Node, prefix []byte, kv map[string][]byte) map[string][]byte
 
 	if parent.Type() == node.LeafType {
 		parentKey := parent.GetKey()
-		fullKeyNibbles := make([]byte, 0, len(prefix)+len(parentKey))
-		fullKeyNibbles = append(fullKeyNibbles, prefix...)
-		fullKeyNibbles = append(fullKeyNibbles, parentKey...)
+		fullKeyNibbles := concatenateSlices(prefix, parentKey)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
 		kv[keyLE] = parent.GetValue()
 		return kv
@@ -186,18 +184,13 @@ func entries(parent Node, prefix []byte, kv map[string][]byte) map[string][]byte
 	branch := parent.(*node.Branch)
 
 	if branch.Value != nil {
-		fullKeyNibbles := make([]byte, 0, len(prefix)+len(branch.Key))
-		fullKeyNibbles = append(fullKeyNibbles, prefix...)
-		fullKeyNibbles = append(fullKeyNibbles, branch.Key...)
+		fullKeyNibbles := concatenateSlices(prefix, branch.Key)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
 		kv[keyLE] = branch.Value
 	}
 
 	for i, child := range branch.Children {
-		childPrefix := make([]byte, 0, len(prefix)+len(branch.Key)+1)
-		childPrefix = append(childPrefix, prefix...)
-		childPrefix = append(childPrefix, branch.Key...)
-		childPrefix = append(childPrefix, byte(i))
+		childPrefix := concatenateSlices(prefix, branch.Key, intToByteSlice(i))
 		entries(child, childPrefix, kv)
 	}
 
@@ -236,9 +229,7 @@ func findNextKey(parent Node, prefix, searchKey []byte) (nextKey []byte) {
 
 func findNextKeyLeaf(leaf *node.Leaf, prefix, searchKey []byte) (nextKey []byte) {
 	parentLeafKey := leaf.Key
-	fullKey := make([]byte, 0, len(prefix)+len(parentLeafKey))
-	fullKey = append(fullKey, prefix...)
-	fullKey = append(fullKey, parentLeafKey...)
+	fullKey := concatenateSlices(prefix, parentLeafKey)
 
 	if keyIsLexicographicallyBigger(searchKey, fullKey) {
 		return nil
@@ -248,9 +239,7 @@ func findNextKeyLeaf(leaf *node.Leaf, prefix, searchKey []byte) (nextKey []byte)
 }
 
 func findNextKeyBranch(parentBranch *node.Branch, prefix, searchKey []byte) (nextKey []byte) {
-	fullKey := make([]byte, 0, len(prefix)+len(parentBranch.Key))
-	fullKey = append(fullKey, prefix...)
-	fullKey = append(fullKey, parentBranch.Key...)
+	fullKey := concatenateSlices(prefix, parentBranch.Key)
 
 	if bytes.Equal(searchKey, fullKey) {
 		const startChildIndex = 0
@@ -293,9 +282,7 @@ func findNextKeyChild(children [16]node.Node, startIndex byte,
 			continue
 		}
 
-		childFullKey := make([]byte, 0, len(fullKey)+1)
-		childFullKey = append(childFullKey, fullKey...)
-		childFullKey = append(childFullKey, i)
+		childFullKey := concatenateSlices(fullKey, []byte{i})
 		next := findNextKey(child, childFullKey, key)
 		if len(next) > 0 {
 			return next
@@ -587,19 +574,14 @@ func addAllKeys(parent Node, prefix []byte, keysLE [][]byte) (newKeysLE [][]byte
 }
 
 func makeFullKeyLE(prefix, nodeKey []byte) (fullKeyLE []byte) {
-	fullKey := make([]byte, 0, len(prefix)+len(nodeKey))
-	fullKey = append(fullKey, prefix...)
-	fullKey = append(fullKey, nodeKey...)
+	fullKey := concatenateSlices(prefix, nodeKey)
 	fullKeyLE = codec.NibblesToKeyLE(fullKey)
 	return fullKeyLE
 }
 
 func makeChildPrefix(branchPrefix, branchKey []byte,
 	childIndex int) (childPrefix []byte) {
-	childPrefix = make([]byte, 0, len(branchPrefix)+len(branchKey)+1)
-	childPrefix = append(childPrefix, branchPrefix...)
-	childPrefix = append(childPrefix, branchKey...)
-	childPrefix = append(childPrefix, byte(childIndex))
+	childPrefix = concatenateSlices(branchPrefix, branchKey, intToByteSlice(childIndex))
 	return childPrefix
 }
 
@@ -793,9 +775,7 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newP
 
 	branch := newParent.(*node.Branch)
 
-	fullKey := make([]byte, 0, len(prefix)+len(branch.Key))
-	fullKey = append(fullKey, prefix...)
-	fullKey = append(fullKey, branch.Key...)
+	fullKey := concatenateSlices(prefix, branch.Key)
 
 	nilChildren := node.ChildrenCapacity - branch.NumChildren()
 
@@ -1018,10 +998,7 @@ func handleDeletion(branch *node.Branch, key []byte) (newNode Node) {
 
 		if child.Type() == node.LeafType {
 			childLeafKey := child.GetKey()
-			newLeafKey := make([]byte, 0, len(branch.Key)+1+len(childLeafKey))
-			newLeafKey = append(newLeafKey, branch.Key...)
-			newLeafKey = append(newLeafKey, byte(childIndex))
-			newLeafKey = append(newLeafKey, childLeafKey...)
+			newLeafKey := concatenateSlices(branch.Key, intToByteSlice(childIndex), childLeafKey)
 			return &node.Leaf{
 				Key:        newLeafKey,
 				Value:      child.GetValue(),
@@ -1031,10 +1008,7 @@ func handleDeletion(branch *node.Branch, key []byte) (newNode Node) {
 		}
 
 		childBranch := child.(*node.Branch)
-		newBranchKey := make([]byte, 0, len(branch.Key)+1+len(childBranch.Key))
-		newBranchKey = append(newBranchKey, branch.Key...)
-		newBranchKey = append(newBranchKey, byte(childIndex))
-		newBranchKey = append(newBranchKey, childBranch.Key...)
+		newBranchKey := concatenateSlices(branch.Key, intToByteSlice(childIndex), childBranch.Key)
 		newBranch := &node.Branch{
 			Key:        newBranchKey,
 			Value:      childBranch.Value,
@@ -1070,4 +1044,34 @@ func lenCommonPrefix(a, b []byte) (length int) {
 	}
 
 	return length
+}
+
+func concatenateSlices(sliceOne, sliceTwo []byte, otherSlices ...[]byte) (concatenated []byte) {
+	allNil := sliceOne == nil && sliceTwo == nil
+	totalLength := len(sliceOne) + len(sliceTwo)
+
+	for _, otherSlice := range otherSlices {
+		allNil = allNil && otherSlice == nil
+		totalLength += len(otherSlice)
+	}
+
+	if allNil {
+		// Return a nil slice instead of an an empty slice
+		// if all slices are nil.
+		return nil
+	}
+
+	concatenated = make([]byte, 0, totalLength)
+
+	concatenated = append(concatenated, sliceOne...)
+	concatenated = append(concatenated, sliceTwo...)
+	for _, otherSlice := range otherSlices {
+		concatenated = append(concatenated, otherSlice...)
+	}
+
+	return concatenated
+}
+
+func intToByteSlice(n int) (slice []byte) {
+	return []byte{byte(n)}
 }

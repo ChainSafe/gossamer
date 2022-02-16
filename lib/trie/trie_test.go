@@ -3288,3 +3288,96 @@ func Test_lenCommonPrefix(t *testing.T) {
 		})
 	}
 }
+
+func Test_concatenateSlices(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		sliceOne     []byte
+		sliceTwo     []byte
+		otherSlices  [][]byte
+		concatenated []byte
+	}{
+		"two nil slices": {},
+		"four nil slices": {
+			otherSlices: [][]byte{nil, nil},
+		},
+		"only fourth slice not nil": {
+			otherSlices: [][]byte{
+				nil,
+				{1},
+			},
+			concatenated: []byte{1},
+		},
+		"two empty slices": {
+			sliceOne:     []byte{},
+			sliceTwo:     []byte{},
+			concatenated: []byte{},
+		},
+		"three empty slices": {
+			sliceOne:     []byte{},
+			sliceTwo:     []byte{},
+			otherSlices:  [][]byte{{}},
+			concatenated: []byte{},
+		},
+		"concatenate two first slices": {
+			sliceOne:     []byte{1, 2},
+			sliceTwo:     []byte{3, 4},
+			concatenated: []byte{1, 2, 3, 4},
+		},
+
+		"concatenate four slices": {
+			sliceOne: []byte{1, 2},
+			sliceTwo: []byte{3, 4},
+			otherSlices: [][]byte{
+				{5, 6},
+				{7, 8},
+			},
+			concatenated: []byte{1, 2, 3, 4, 5, 6, 7, 8},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			concatenated := concatenateSlices(testCase.sliceOne,
+				testCase.sliceTwo, testCase.otherSlices...)
+
+			assert.Equal(t, testCase.concatenated, concatenated)
+		})
+	}
+}
+
+func Benchmark_concatSlices(b *testing.B) {
+	const sliceSize = 100000 // 100KB
+	slice1 := make([]byte, sliceSize)
+	slice2 := make([]byte, sliceSize)
+
+	// 16993 ns/op	  245760 B/op	       1 allocs/op
+	b.Run("direct append", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			concatenated := append(slice1, slice2...)
+			concatenated[0] = 1
+		}
+	})
+
+	// 16340 ns/op	  204800 B/op	       1 allocs/op
+	b.Run("append with pre-allocation", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			concatenated := make([]byte, 0, len(slice1)+len(slice2))
+			concatenated = append(concatenated, slice1...)
+			concatenated = append(concatenated, slice2...)
+			concatenated[0] = 1
+		}
+	})
+
+	// 16453 ns/op	  204800 B/op	       1 allocs/op
+	b.Run("concatenation helper function", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			concatenated := concatenateSlices(slice1, slice2)
+			concatenated[0] = 1
+		}
+	})
+}
