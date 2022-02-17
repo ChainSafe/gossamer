@@ -85,7 +85,6 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
 			logger.Debugf("epoch %d: claimed secondary slot %d", epochNumber, i)
 		}
-
 	}
 
 	return &epochHandler{
