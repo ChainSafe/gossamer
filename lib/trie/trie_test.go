@@ -91,6 +91,86 @@ func Test_Trie_Snapshot(t *testing.T) {
 	assert.Equal(t, expectedTrie, newTrie)
 }
 
+func Test_Trie_updateGeneration(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		trieGeneration        uint64
+		node                  Node
+		newNode               Node
+		copied                bool
+		expectedDeletedHashes map[common.Hash]struct{}
+	}{
+		"same generation": {
+			trieGeneration: 1,
+			node: &node.Leaf{
+				Generation: 1,
+				Key:        []byte{1},
+			},
+			newNode: &node.Leaf{
+				Generation: 1,
+				Key:        []byte{1},
+			},
+			expectedDeletedHashes: map[common.Hash]struct{}{},
+		},
+		"trie generation higher and empty hash": {
+			trieGeneration: 2,
+			node: &node.Leaf{
+				Generation: 1,
+				Key:        []byte{1},
+			},
+			newNode: &node.Leaf{
+				Generation: 2,
+				Key:        []byte{1},
+			},
+			copied:                true,
+			expectedDeletedHashes: map[common.Hash]struct{}{},
+		},
+		"trie generation higher and hash": {
+			trieGeneration: 2,
+			node: &node.Leaf{
+				Generation: 1,
+				Key:        []byte{1},
+				HashDigest: []byte{1, 2, 3},
+			},
+			newNode: &node.Leaf{
+				Generation: 2,
+				Key:        []byte{1},
+				HashDigest: []byte{1, 2, 3},
+			},
+			copied: true,
+			expectedDeletedHashes: map[common.Hash]struct{}{
+				{
+					0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 1, 2, 3,
+				}: {},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			deletedHashes := make(map[common.Hash]struct{})
+
+			newNode := updateGeneration(testCase.node, testCase.trieGeneration, deletedHashes)
+
+			assert.Equal(t, testCase.newNode, newNode)
+			assert.Equal(t, testCase.expectedDeletedHashes, deletedHashes)
+
+			// Check for deep copy
+			if newNode != nil && testCase.copied {
+				newNode.SetDirty(!newNode.IsDirty())
+				assert.NotEqual(t, testCase.node, newNode)
+			}
+		})
+	}
+}
+
 func Test_Trie_RootNode(t *testing.T) {
 	t.Parallel()
 
