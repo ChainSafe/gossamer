@@ -187,7 +187,7 @@ func (in *Instance) GetCodeHash() common.Hash {
 	return in.codeHash
 }
 
-// GetCodeHash returns the code of the instance
+// GetContext returns the context of the instance
 func (in *Instance) GetContext() *runtime.Context {
 	return in.ctx
 }
