@@ -6,6 +6,9 @@ package core
 import (
 	"context"
 	"errors"
+	"math/big"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -17,8 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"math/big"
-	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +29,7 @@ import (
 var errTestDummyError = errors.New("test dummy error")
 
 func Test_Service_StorageRoot(t *testing.T) {
+	t.Parallel()
 	emptyTrie := trie.NewEmptyTrie()
 	ts, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
@@ -66,6 +68,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := tt.service
 			if tt.trieStateCall {
 				ctrl := gomock.NewController(t)
@@ -84,11 +87,12 @@ func Test_Service_StorageRoot(t *testing.T) {
 	}
 }
 
-func newTestInstance(code []byte, cfg *wasmer.Config) (*wasmer.Instance, error) {
-	return &wasmer.Instance{}, nil
-}
-
 func Test_Service_handleCodeSubstitution(t *testing.T) {
+	t.Parallel()
+	newTestInstance := func(code []byte, cfg *wasmer.Config) (*wasmer.Instance, error) {
+		return &wasmer.Instance{}, nil
+	}
+
 	execTest := func(t *testing.T, s *Service, blockHash common.Hash, expErr error) {
 		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.ErrorIs(t, err, expErr)
@@ -180,6 +184,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 }
 
 func Test_Service_handleBlock(t *testing.T) {
+	t.Parallel()
 	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
 		err := s.handleBlock(block, trieState)
 		assert.ErrorIs(t, err, expErr)
@@ -189,14 +194,8 @@ func Test_Service_handleBlock(t *testing.T) {
 	}
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
-		expErr := ErrNilBlockHandlerParameter
-		expErrMsg := ErrNilBlockHandlerParameter.Error()
 		s := &Service{}
-		err := s.handleBlock(nil, nil)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
-		}
+		execTest(t, s, nil, nil, ErrNilBlockHandlerParameter)
 	})
 
 	t.Run("storeTrie error", func(t *testing.T) {
@@ -352,6 +351,7 @@ func Test_Service_handleBlock(t *testing.T) {
 }
 
 func Test_Service_HandleBlockProduced(t *testing.T) {
+	t.Parallel()
 	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
 		err := s.HandleBlockProduced(block, trieState)
 		assert.ErrorIs(t, err, expErr)
@@ -417,6 +417,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 }
 
 func Test_Service_maintainTransactionPool(t *testing.T) {
+	t.Parallel()
 	t.Run("Validate Transaction err", func(t *testing.T) {
 		t.Parallel()
 		testHeader := types.NewEmptyHeader()
@@ -491,6 +492,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 }
 
 func Test_Service_handleBlocksAsync(t *testing.T) {
+	t.Parallel()
 	t.Run("cancelled context", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
