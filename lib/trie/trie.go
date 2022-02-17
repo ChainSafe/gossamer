@@ -67,6 +67,12 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 // node and update the generation on the newer copy.
 func updateGeneration(currentNode Node, trieGeneration uint64,
 	deletedHashes map[common.Hash]struct{}) (newNode Node) {
+	if currentNode.GetGeneration() == trieGeneration {
+		panic(fmt.Sprintf(
+			"current node has the same generation %d as the trie generation, "+
+				"make sure the caller properly checks for the node generation to "+
+				"be smaller than the trie generation.", trieGeneration))
+	}
 	const copyChildren = false
 	newNode = currentNode.Copy(copyChildren)
 	newNode.SetGeneration(trieGeneration)

@@ -101,18 +101,6 @@ func Test_Trie_updateGeneration(t *testing.T) {
 		copied                bool
 		expectedDeletedHashes map[common.Hash]struct{}
 	}{
-		"same generation": {
-			trieGeneration: 1,
-			node: &node.Leaf{
-				Generation: 1,
-				Key:        []byte{1},
-			},
-			newNode: &node.Leaf{
-				Generation: 1,
-				Key:        []byte{1},
-			},
-			expectedDeletedHashes: map[common.Hash]struct{}{},
-		},
 		"trie generation higher and empty hash": {
 			trieGeneration: 2,
 			node: &node.Leaf{
@@ -169,6 +157,19 @@ func Test_Trie_updateGeneration(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("panic on same generation", func(t *testing.T) {
+		t.Parallel()
+		node := &node.Leaf{Generation: 1}
+		const trieGenration = 1
+		assert.PanicsWithValue(t,
+			"current node has the same generation 1 as the trie generation, "+
+				"make sure the caller properly checks for the node generation to "+
+				"be smaller than the trie generation.",
+			func() {
+				updateGeneration(node, trieGenration, nil)
+			})
+	})
 }
 
 func Test_Trie_RootNode(t *testing.T) {
