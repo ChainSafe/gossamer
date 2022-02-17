@@ -26,7 +26,6 @@ import (
 )
 
 var errTestDummyError = errors.New("test dummy error")
-var testWasmPaths []string
 
 func Test_Service_StorageRoot(t *testing.T) {
 	emptyTrie := trie.NewEmptyTrie()
@@ -90,6 +89,13 @@ func newTestInstance(code []byte, cfg *wasmer.Config) (*wasmer.Instance, error) 
 }
 
 func Test_Service_handleCodeSubstitution(t *testing.T) {
+	execTest := func(t *testing.T, s *Service, blockHash common.Hash, expErr error) {
+		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, errTestDummyError.Error())
+		}
+	}
 	testRuntime := []byte{21}
 	t.Run("nil value", func(t *testing.T) {
 		t.Parallel()
@@ -100,8 +106,6 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 
 	t.Run("getRuntime error", func(t *testing.T) {
 		t.Parallel()
-		expErr := errTestDummyError
-
 		// hash for known test code substitution
 		blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
 		testCodeSubstitute := map[common.Hash]string{
@@ -115,17 +119,11 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			codeSubstitute: testCodeSubstitute,
 			blockState:     mockBlockState,
 		}
-		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, errTestDummyError.Error())
-		}
+		execTest(t, s, blockHash, errTestDummyError)
 	})
 
 	t.Run("code substitute error", func(t *testing.T) {
 		t.Parallel()
-		expErr := errTestDummyError
-
 		// hash for known test code substitution
 		blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
 		testCodeSubstitute := map[common.Hash]string{
@@ -148,11 +146,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			blockState:           mockBlockState,
 			codeSubstitutedState: mockCodeSubState,
 		}
-		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, errTestDummyError.Error())
-		}
+		execTest(t, s, blockHash, errTestDummyError)
 	})
 
 	t.Run("happyPath", func(t *testing.T) {
@@ -186,6 +180,13 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 }
 
 func Test_Service_handleBlock(t *testing.T) {
+	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
+		err := s.handleBlock(block, trieState)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+	}
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 		expErr := ErrNilBlockHandlerParameter
@@ -200,8 +201,6 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("storeTrie error", func(t *testing.T) {
 		t.Parallel()
-		expErr := errTestDummyError
-		expErrMsg := errTestDummyError.Error()
 		emptyTrie := trie.NewEmptyTrie()
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
@@ -214,18 +213,12 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(errTestDummyError)
 
-		s := Service{storageState: mockStorageState}
-		err = s.handleBlock(&block, trieState)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
-		}
+		s := &Service{storageState: mockStorageState}
+		execTest(t, s, &block, trieState, errTestDummyError)
 	})
 
 	t.Run("addBlock quit error", func(t *testing.T) {
 		t.Parallel()
-		expErr := errTestDummyError
-		expErrMsg := errTestDummyError.Error()
 		emptyTrie := trie.NewEmptyTrie()
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
@@ -240,21 +233,15 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().AddBlock(&block).Return(errTestDummyError)
 
-		s := Service{
+		s := &Service{
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
 		}
-		err = s.handleBlock(&block, trieState)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
-		}
+		execTest(t, s, &block, trieState, errTestDummyError)
 	})
 
 	t.Run("addBlock parent not found error", func(t *testing.T) {
 		t.Parallel()
-		expErr := blocktree.ErrParentNotFound
-		expErrMsg := blocktree.ErrParentNotFound.Error()
 		emptyTrie := trie.NewEmptyTrie()
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
@@ -269,21 +256,15 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrParentNotFound)
 
-		s := Service{
+		s := &Service{
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
 		}
-		err = s.handleBlock(&block, trieState)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
-		}
+		execTest(t, s, &block, trieState, blocktree.ErrParentNotFound)
 	})
 
 	t.Run("addBlock error continue", func(t *testing.T) {
 		t.Parallel()
-		expErr := errTestDummyError
-		expErrMsg := errTestDummyError.Error()
 		emptyTrie := trie.NewEmptyTrie()
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
@@ -301,22 +282,16 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockDigestHandler := NewMockDigestHandler(ctrl)
 		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
-		s := Service{
+		s := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
 		}
-		err = s.handleBlock(&block, trieState)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
-		}
+		execTest(t, s, &block, trieState, errTestDummyError)
 	})
 
 	t.Run("handle runtime changes error", func(t *testing.T) {
 		t.Parallel()
-		expErr := errTestDummyError
-		expErrMsg := errTestDummyError.Error()
 		emptyTrie := trie.NewEmptyTrie()
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
@@ -337,22 +312,16 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockDigestHandler := NewMockDigestHandler(ctrl)
 		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
-		s := Service{
+		s := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
 		}
-		err = s.handleBlock(&block, trieState)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
-		}
+		execTest(t, s, &block, trieState, errTestDummyError)
 	})
 
 	t.Run("code substitution ok", func(t *testing.T) {
 		t.Parallel()
-		var expErr error
-		var expErrMsg string
 		emptyTrie := trie.NewEmptyTrie()
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
@@ -372,38 +341,32 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockDigestHandler := NewMockDigestHandler(ctrl)
 		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
-		s := Service{
+		s := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
 			ctx:           context.TODO(),
 		}
-		err = s.handleBlock(&block, trieState)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
-		}
+		execTest(t, s, &block, trieState, nil)
 	})
 }
 
 func Test_Service_HandleBlockProduced(t *testing.T) {
-	t.Run("nil input", func(t *testing.T) {
-		t.Parallel()
-		expErr := ErrNilBlockHandlerParameter
-		expErrMsg := ErrNilBlockHandlerParameter.Error()
-		s := &Service{}
-		err := s.HandleBlockProduced(nil, nil)
+	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
+		err := s.HandleBlockProduced(block, trieState)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
+			assert.EqualError(t, err, expErr.Error())
 		}
+	}
+	t.Run("nil input", func(t *testing.T) {
+		t.Parallel()
+		s := &Service{}
+		execTest(t, s, nil, nil, ErrNilBlockHandlerParameter)
 	})
 
 	t.Run("happy path", func(t *testing.T) {
 		t.Parallel()
-		var expErr error
-		var expErrMsg string
-
 		emptyTrie := trie.NewEmptyTrie()
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
@@ -449,11 +412,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 			net:           mockNetwork,
 			ctx:           context.TODO(),
 		}
-		err = s.HandleBlockProduced(&block, trieState)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, expErrMsg)
-		}
+		execTest(t, s, &block, trieState, nil)
 	})
 }
 
