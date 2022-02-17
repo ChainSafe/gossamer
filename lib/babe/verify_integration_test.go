@@ -343,17 +343,11 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	babePreDigest, err := types.DecodeBabePreDigest(preRuntimeDigest.Data)
 	require.NoError(t, err)
 
-	var authorityIndex uint32
-	var vrfOutput [sr25519.VRFOutputLength]byte
-	var vrfProof [sr25519.VRFProofLength]byte
-	switch d := babePreDigest.(type) {
-	case types.BabePrimaryPreDigest:
-		authorityIndex = d.AuthorityIndex
-		vrfOutput = d.VRFOutput
-		vrfProof = d.VRFProof
-	default:
-		t.Fatal("expect babe primary pre digest")
-	}
+	d, ok := babePreDigest.(types.BabePrimaryPreDigest)
+	require.True(t, ok)
+	authorityIndex := d.AuthorityIndex
+	vrfOutput := d.VRFOutput
+	vrfProof := d.VRFProof
 
 	Authorities := make([]types.Authority, 1)
 	Authorities[0] = types.Authority{
