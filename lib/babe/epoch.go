@@ -236,9 +236,8 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*types.P
 		b.keypair,
 	)
 	if err == nil {
-		preRuntimeDigest := types.NewBabePrimaryPreDigest(epochData.authorityIndex, slot, proof.output, proof.proof)
-
-		return preRuntimeDigest.ToPreRuntimeDigest()
+		return types.NewBabePrimaryPreDigest(
+			epochData.authorityIndex, slot, proof.output, proof.proof).ToPreRuntimeDigest()
 	}
 
 	if errors.Is(err, errOverPrimarySlotThreshold) {
@@ -251,9 +250,7 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*types.P
 		if err != nil {
 			return nil, fmt.Errorf("cannot claim secondary slot: %w", err)
 		}
-		preRuntimeDigest := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, slot)
-		return preRuntimeDigest.ToPreRuntimeDigest()
-
+		return types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, slot).ToPreRuntimeDigest()
 	}
 
 	return nil, err

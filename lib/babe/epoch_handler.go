@@ -62,7 +62,6 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 		}
 
 		if epochData.secondary == 0 {
-			// return nil, errSecondarySlotProductionDisabled
 			continue
 		}
 
@@ -75,16 +74,15 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
 		}
 
-		if proof != nil {
-			preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
-				epochData.authorityIndex, i).ToPreRuntimeDigest()
-			if err != nil {
-				return nil, fmt.Errorf(
-					"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", i, err)
-			}
-			slotToPreRuntimeDigest[i] = preRuntimeDigest
-			logger.Debugf("epoch %d: claimed secondary slot %d", epochNumber, i)
+		preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
+			epochData.authorityIndex, i).ToPreRuntimeDigest()
+		if err != nil {
+			return nil, fmt.Errorf(
+				"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", i, err)
 		}
+		slotToPreRuntimeDigest[i] = preRuntimeDigest
+		logger.Debugf("epoch %d: claimed secondary slot %d", epochNumber, i)
+
 	}
 
 	return &epochHandler{
