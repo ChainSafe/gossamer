@@ -676,7 +676,7 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 		case gosstypes.BabeSecondaryPlainPreDigest:
 			secondaryCount++
 		}
-		require.NotEqual(t, babePreDigest, nil)
+		require.NotNil(t, babePreDigest)
 
 		time.Sleep(10 * time.Second)
 	}
