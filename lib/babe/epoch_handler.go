@@ -37,52 +37,17 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 	// determine which slots we'll be authoring in by pre-calculating VRF output
 	slotToPreRuntimeDigest := make(map[uint64]*types.PreRuntimeDigest, constants.epochLength)
 	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
-		proof, err := claimPrimarySlot(
-			epochData.randomness,
-			i,
-			epochNumber,
-			epochData.threshold,
-			keypair,
-		)
-
-		switch err {
-		case nil:
-			preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
-				epochData.authorityIndex, i, proof.output, proof.proof).ToPreRuntimeDigest()
-			if err != nil {
-				return nil, fmt.Errorf("error converting babe primary pre-digest to pre-runtime digest: %w", err)
-			}
+		preRuntimeDigest, err := claimSlot(epochNumber, i, epochData, keypair)
+		if err == nil {
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
-			logger.Debugf("epoch %d: claimed primary slot %d", epochNumber, i)
-			continue
-		default:
-			if !errors.Is(err, errOverPrimarySlotThreshold) {
-				return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
-			}
-		}
-
-		if epochData.secondary == 0 {
 			continue
 		}
 
-		err = claimSecondarySlotPlain(
-			epochData.randomness, i, epochData.authorities, epochData.authorityIndex)
-		if errors.Is(err, errNotOurTurnToPropose) {
+		if errors.Is(err, errNotOurTurnToPropose) || errors.Is(err, errSecondarySlotProductionDisabled) {
 			continue
 		}
-		if err != nil {
-			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", i, err)
-		}
 
-		preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
-			epochData.authorityIndex, i).ToPreRuntimeDigest()
-		if err != nil {
-			return nil, fmt.Errorf(
-				"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", i, err)
-		}
-		slotToPreRuntimeDigest[i] = preRuntimeDigest
-		logger.Debugf("epoch %d: claimed secondary slot %d", epochNumber, i)
-
+		return nil, err
 	}
 
 	return &epochHandler{

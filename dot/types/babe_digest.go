@@ -119,5 +119,19 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32,
 	}
 }
 
+// ToPreRuntimeDigest returns the BabeSecondaryVRFPreDigest as a PreRuntimeDigest
+func (d *BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	digest := NewBabeDigest()
+	err := digest.Set(*d)
+	if err != nil {
+		return nil, err
+	}
+	enc, err := scale.Marshal(digest)
+	if err != nil {
+		return nil, err
+	}
+	return NewBABEPreRuntimeDigest(enc), nil
+}
+
 // Index Returns VDT index
 func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }
