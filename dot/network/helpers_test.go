@@ -86,7 +86,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 	}()
 
 	for {
-		tot, err := readStream(stream, msgBytes)
+		tot, err := readStream(stream, &msgBytes)
 		if errors.Is(err, io.EOF) {
 			return
 		} else if err != nil {
