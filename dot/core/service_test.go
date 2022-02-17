@@ -35,7 +35,6 @@ import (
 )
 
 var errTestDummyError = errors.New("test dummy error")
-var testWasmPaths []string
 
 func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extrinsic, body *types.Body) {
 	rawMeta := common.MustHexToBytes(testdata.NewTestMetadata())
@@ -97,12 +96,6 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 	testExternalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt[0]...))
 	testUnencryptedBody := types.NewBody(encExt)
 	return encExt[0], testExternalExt, testUnencryptedBody
-}
-
-func TestGenerateWasm(t *testing.T) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	require.NoError(t, err)
-	testWasmPaths = wasmFilePaths
 }
 
 func Test_Service_StorageRoot(t *testing.T) {
@@ -1504,10 +1497,4 @@ func TestService_GetReadProofAt(t *testing.T) {
 			assert.Equal(t, tt.expProofForKeys, resProofForKeys)
 		})
 	}
-}
-
-// This needs to be last function in this file
-func TestCleanup(t *testing.T) {
-	err := runtime.RemoveFiles(testWasmPaths)
-	require.NoError(t, err)
 }
