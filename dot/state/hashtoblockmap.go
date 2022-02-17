@@ -68,6 +68,8 @@ func (h *hashToBlockMap) getBlockBody(hash common.Hash) (body *types.Body) {
 // store stores a block and uses its header hash digest as key.
 // Note the block is not deep copied so mutating the passed argument
 // will lead to mutation for the block in the map and returned by this map.
+// Also note this operation sets the hash field on the block header because of
+// the call to block.Header.Hash().
 func (h *hashToBlockMap) store(block *types.Block) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
