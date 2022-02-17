@@ -66,8 +66,8 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			continue
 		}
 
-		proof, err = claimSecondarySlot(
-			epochData.randomness, i, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
+		err = claimSecondarySlotPlain(
+			epochData.randomness, i, epochData.authorities, epochData.authorityIndex)
 		if errors.Is(err, errNotOurTurnToPropose) {
 			continue
 		}

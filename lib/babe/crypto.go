@@ -84,34 +84,22 @@ func checkPrimaryThreshold(randomness Randomness,
 	return inoutUint.Compare(threshold) < 0, nil
 }
 
-func claimSecondarySlot(randomness Randomness,
-	slot, epoch uint64,
+func claimSecondarySlotPlain(randomness Randomness,
+	slot uint64,
 	authorities []types.Authority,
-	keypair *sr25519.Keypair,
 	authorityIndex uint32,
-) (*VrfOutputAndProof, error) {
+) error {
 	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get secondary slot author: %w", err)
+		return fmt.Errorf("cannot get secondary slot author: %w", err)
 	}
 
 	if authorityIndex == secondarySlotAuthor {
-		transcript := makeTranscript(randomness, slot, epoch)
-
-		out, proof, err := keypair.VrfSign(transcript)
-		if err != nil {
-			return nil, fmt.Errorf("cannot verify transcript: %w", err)
-		}
-
 		logger.Debugf("claimed secondary slot, for slot number: %d", slot)
-
-		return &VrfOutputAndProof{
-			output: out,
-			proof:  proof,
-		}, nil
+		return nil
 	}
 
-	return nil, errNotOurTurnToPropose
+	return errNotOurTurnToPropose
 }
 
 // CalculateThreshold calculates the slot lottery threshold

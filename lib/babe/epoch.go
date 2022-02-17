@@ -246,15 +246,14 @@ func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*types.P
 			return nil, errSecondarySlotProductionDisabled
 		}
 
-		proof, err = claimSecondarySlot(epochData.randomness, slot, epoch,
-			epochData.authorities, b.keypair, epochData.authorityIndex)
+		err = claimSecondarySlotPlain(epochData.randomness, slot,
+			epochData.authorities, epochData.authorityIndex)
 		if err != nil {
 			return nil, fmt.Errorf("cannot claim secondary slot: %w", err)
 		}
-		if proof != nil {
-			preRuntimeDigest := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, slot)
-			return preRuntimeDigest.ToPreRuntimeDigest()
-		}
+		preRuntimeDigest := types.NewBabeSecondaryPlainPreDigest(epochData.authorityIndex, slot)
+		return preRuntimeDigest.ToPreRuntimeDigest()
+
 	}
 
 	return nil, err

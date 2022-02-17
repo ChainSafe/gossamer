@@ -362,7 +362,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ok, err := verifier.verifyPrimarySlotWinner(authorityIndex, slotNumber, vrfOutput, vrfProof)
+	ok, err = verifier.verifyPrimarySlotWinner(authorityIndex, slotNumber, vrfOutput, vrfProof)
 	require.NoError(t, err)
 	require.True(t, ok)
 }

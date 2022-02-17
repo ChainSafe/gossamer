@@ -13,6 +13,7 @@ const RandomnessLength = 32
 // AllowedSlots tells in what ways a slot can be claimed.
 type AllowedSlots byte
 
+// https://github.com/paritytech/substrate/blob/ded44948e2d5a398abcb4e342b0513cb690961bb/primitives/consensus/babe/src/lib.rs#L219-L226
 const (
 	// PrimarySlots only allows primary slots.
 	PrimarySlots AllowedSlots = iota
