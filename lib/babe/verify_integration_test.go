@@ -345,9 +345,6 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 
 	d, ok := babePreDigest.(types.BabePrimaryPreDigest)
 	require.True(t, ok)
-	authorityIndex := d.AuthorityIndex
-	vrfOutput := d.VRFOutput
-	vrfProof := d.VRFProof
 
 	Authorities := make([]types.Authority, 1)
 	Authorities[0] = types.Authority{
@@ -362,7 +359,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ok, err = verifier.verifyPrimarySlotWinner(authorityIndex, slotNumber, vrfOutput, vrfProof)
+	ok, err = verifier.verifyPrimarySlotWinner(d.AuthorityIndex, slotNumber, d.VRFOutput, d.VRFProof)
 	require.NoError(t, err)
 	require.True(t, ok)
 }

@@ -644,7 +644,7 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 }
 
 func TestStress_SecondarySlotProduction(t *testing.T) {
-	numNodes := 3
+	const numNodes = 3
 
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
 	require.NoError(t, err)

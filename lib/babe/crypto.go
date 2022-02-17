@@ -84,10 +84,7 @@ func checkPrimaryThreshold(randomness Randomness,
 	return inoutUint.Compare(threshold) < 0, nil
 }
 
-func claimSecondarySlotPlain(randomness Randomness,
-	slot uint64,
-	authorities []types.Authority,
-	authorityIndex uint32,
+func claimSecondarySlotPlain(randomness Randomness, slot uint64, authorities []types.Authority, authorityIndex uint32,
 ) error {
 	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
 	if err != nil {
