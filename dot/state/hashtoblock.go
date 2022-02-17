@@ -26,6 +26,9 @@ func newHashToBlockMap() *hashToBlockMap {
 
 // getBlock returns a pointer to the block stored at the hash given,
 // or nil if not found.
+// Note this returns a pointer to the block so modifying the returned value
+// will modify the block stored in the map, potentially leading to data races
+// or unwanted changes, so be careful.
 func (h *hashToBlockMap) getBlock(hash common.Hash) (block *types.Block) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
@@ -34,6 +37,9 @@ func (h *hashToBlockMap) getBlock(hash common.Hash) (block *types.Block) {
 
 // getBlockHeader returns a pointer to the header of the block stored at the
 // hash given, or nil if not found.
+// Note this returns a pointer to the header of the block so modifying the
+// returned value will modify the header of the block stored in the map,
+// potentially leading to data races or unwanted changes, so be careful.
 func (h *hashToBlockMap) getBlockHeader(hash common.Hash) (header *types.Header) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
@@ -46,6 +52,9 @@ func (h *hashToBlockMap) getBlockHeader(hash common.Hash) (header *types.Header)
 
 // getBlockBody returns a pointer to the body of the block stored at the
 // hash given, or nil if not found.
+// Note this returns a pointer to the body of the block so modifying the
+// returned value will modify the body of the block stored in the map,
+// potentially leading to data races or unwanted changes, so be careful.
 func (h *hashToBlockMap) getBlockBody(hash common.Hash) (body *types.Body) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
@@ -57,6 +66,8 @@ func (h *hashToBlockMap) getBlockBody(hash common.Hash) (body *types.Body) {
 }
 
 // store stores a block and uses its header hash digest as key.
+// Note the block is not deep copied so mutating the passed argument
+// will lead to mutation for the block in the map and returned by this map.
 func (h *hashToBlockMap) store(block *types.Block) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
