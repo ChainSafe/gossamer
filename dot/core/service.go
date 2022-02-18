@@ -31,6 +31,8 @@ var (
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
+type newWasmerInstanceFunc func(code []byte, cfg *wasmer.Config) (instance *wasmer.Instance, err error)
+
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
@@ -248,12 +250,12 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 }
 
 func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
-	return s._handleCodeSubstitution(hash, state, wasmer.NewInstance)
+	return s.handleCodeSubstituionWithWasmerInstance(hash, state, wasmer.NewInstance)
 }
-func (s *Service) _handleCodeSubstitution(
+func (s *Service) handleCodeSubstituionWithWasmerInstance(
 	hash common.Hash,
 	state *rtstorage.TrieState,
-	newInstance func(code []byte, cfg *wasmer.Config) (*wasmer.Instance, error),
+	newInstance newWasmerInstanceFunc,
 ) error {
 	value := s.codeSubstitute[hash]
 	if value == "" {
