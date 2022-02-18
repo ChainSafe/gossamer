@@ -433,14 +433,14 @@ func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDe
 
 		buffer := s.bufPool.Get().(*[]byte)
 		defer s.bufPool.Put(buffer)
-		msgBytes := *buffer
 
-		tot, err := readStream(stream, msgBytes[:])
+		tot, err := readStream(stream, buffer)
 		if err != nil {
 			hsC <- &handshakeReader{hs: nil, err: err}
 			return
 		}
 
+		msgBytes := *buffer
 		hs, err := decoder(msgBytes[:tot])
 		if err != nil {
 			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
