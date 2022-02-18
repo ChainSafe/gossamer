@@ -6,8 +6,8 @@ package dot
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -22,7 +22,7 @@ func setupStateFile(t *testing.T) string {
 
 	const filename = "../lib/runtime/test_data/kusama/block1482002.out"
 
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	require.NoError(t, err)
 
 	rpcPairs := make(map[string]interface{})
@@ -34,7 +34,7 @@ func setupStateFile(t *testing.T) string {
 	require.NoError(t, err)
 
 	fp := filepath.Join(t.TempDir(), "state.json")
-	err = ioutil.WriteFile(fp, bz, 0777)
+	err = os.WriteFile(fp, bz, 0777)
 	require.NoError(t, err)
 
 	return fp
@@ -53,7 +53,7 @@ func setupHeaderFile(t *testing.T) string {
 		`"parentHash":"0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975",` +
 		`"stateRoot":"0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"}`
 	fp := filepath.Join(t.TempDir(), "header.json")
-	err := ioutil.WriteFile(fp, []byte(headerStr), 0777)
+	err := os.WriteFile(fp, []byte(headerStr), 0777)
 	require.NoError(t, err)
 	return fp
 }
@@ -61,12 +61,9 @@ func setupHeaderFile(t *testing.T) string {
 func TestImportState(t *testing.T) {
 	t.Parallel()
 
-	// setup node for test
-	basepath, err := ioutil.TempDir("", "gossamer-test-*")
-	require.NoError(t, err)
+	basepath := t.TempDir()
 
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisRawFile(t, cfg)
 
@@ -74,7 +71,7 @@ func TestImportState(t *testing.T) {
 
 	cfg.Global.BasePath = basepath
 	nodeInstance := nodeBuilder{}
-	err = nodeInstance.initNode(cfg)
+	err := nodeInstance.initNode(cfg)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
@@ -119,6 +116,7 @@ func TestImportState(t *testing.T) {
 
 func Test_newHeaderFromFile(t *testing.T) {
 	t.Parallel()
+
 	digest := types.NewDigest()
 	preRuntimeDigest := types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -146,45 +144,26 @@ func Test_newHeaderFromFile(t *testing.T) {
 	require.NoError(t, err)
 	digest.Add(sealDigestItem.Value())
 
-	type args struct {
-		filename string
+	expectedHeader := &types.Header{
+		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),
+		Number:         big.NewInt(1482002),
+		StateRoot:      common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+		ExtrinsicsRoot: common.MustHexToHash("0xda26dc8c1455f8f81cae12e4fc59e23ce961b2c837f6d3f664283af906d344e0"),
+		Digest:         digest,
 	}
-	tests := []struct {
-		name string
-		args args
-		want *types.Header
-		err  error
-	}{
-		{
-			name: "working example",
-			args: args{filename: setupHeaderFile(t)},
-			want: &types.Header{
-				ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),
-				Number:         big.NewInt(1482002),
-				StateRoot:      common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
-				ExtrinsicsRoot: common.MustHexToHash("0xda26dc8c1455f8f81cae12e4fc59e23ce961b2c837f6d3f664283af906d344e0"),
-				Digest:         digest,
-			},
-		},
-		{
-			name: "no arguments",
-			err:  errors.New("read .: is a directory"),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := newHeaderFromFile(tt.args.filename)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
 
-			if tt.want != nil {
-				assert.Equal(t, tt.want, got)
-			}
-		})
-	}
+	got, err := newHeaderFromFile(setupHeaderFile(t))
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedHeader, got)
+}
+
+func Test_newHeaderFromFileEmptyArgs(t *testing.T) {
+	t.Parallel()
+
+	_, err := newHeaderFromFile("")
+
+	assert.EqualError(t, err, errors.New("read .: is a directory").Error())
 }
 
 func Test_newTrieFromPairs(t *testing.T) {

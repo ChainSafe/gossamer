@@ -90,15 +90,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilStorageState
 	}
 
-	// check if interface cfg.Network is nil
-	var isNilNetwork bool
-	switch cfg.Network.(type) {
-	case *network.Service:
-		isNilNetwork = cfg.Network == (*network.Service)(nil)
-	default:
-		isNilNetwork = reflect.ValueOf(cfg.Network).IsNil()
-	}
-	if isNilNetwork {
+	if reflect.ValueOf(cfg.Network).IsNil() {
 		return nil, ErrNilNetwork
 	}
 

@@ -6,6 +6,7 @@ package dot
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"os"
 	"testing"
 	"time"
@@ -26,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
@@ -37,26 +37,22 @@ import (
 func TestInitNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	genFile := newTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
 
 	cfg.Init.Genesis = genFile
 
-	type args struct {
-		cfg *Config
-	}
 	tests := []struct {
-		name string
-		args args
-		err  error
+		name   string
+		config *Config
+		err    error
 	}{
 		{
-			name: "test config",
-			args: args{cfg: cfg},
+			name:   "test config",
+			config: cfg,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := InitNode(tt.args.cfg)
+			err := InitNode(tt.config)
 			assert.ErrorIs(t, err, tt.err)
 		})
 	}
@@ -114,16 +110,14 @@ func TestLoadGlobalNodeName(t *testing.T) {
 
 func TestNewNode(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockTelemetryClient := NewMockClient(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
 
-	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
+	initConfig := NewTestConfig(t)
 
-	genFile := newTestGenesisRawFile(t, cfg)
-	require.NotNil(t, genFile)
+	genFile := newTestGenesisRawFile(t, initConfig)
+
 	networkConfig := &network.Config{
 		BasePath:    t.TempDir(),
 		NoBootstrap: true,
@@ -132,108 +126,95 @@ func TestNewNode(t *testing.T) {
 	testNetwork := createTestService(t, networkConfig)
 
 	config := state.Config{
-		Path:     cfg.Global.BasePath,
-		LogLevel: cfg.Log.StateLvl,
+		Path:     initConfig.Global.BasePath,
+		LogLevel: initConfig.Log.StateLvl,
 	}
 
-	type args struct {
-		cfg *Config
-	}
-	tests := []struct {
-		name string
-		args args
-		want *Node
-		err  error
-	}{
-		{
-			name: "minimal config",
-			args: args{
-				cfg: &Config{
-					Global:  GlobalConfig{BasePath: cfg.Global.BasePath},
-					Init:    InitConfig{Genesis: genFile},
-					Account: AccountConfig{Key: "alice"},
-					Core: CoreConfig{
-						Roles:           types.FullNodeRole,
-						WasmInterpreter: wasmer.Name,
-					},
-				},
-			},
-			want: &Node{},
+	dotConfig := &Config{
+		Global:  GlobalConfig{BasePath: initConfig.Global.BasePath},
+		Init:    InitConfig{Genesis: genFile},
+		Account: AccountConfig{Key: "alice"},
+		Core: CoreConfig{
+			Roles:           types.FullNodeRole,
+			WasmInterpreter: wasmer.Name,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ks, err := initKeystore(tt.args.cfg)
-			assert.NoError(t, err)
-			m := NewMocknodeBuilderIface(ctrl)
-			m.EXPECT().nodeInitialised(tt.args.cfg.Global.BasePath).Return(true)
-			m.EXPECT().createStateService(tt.args.cfg).DoAndReturn(func(cfg *Config) (*state.Service, error) {
-				stateSrvc := state.NewService(config)
-				// create genesis from configuration file
-				gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
-				if err != nil {
-					return nil, fmt.Errorf("failed to load genesis from file: %w", err)
-				}
-				// create trie from genesis
-				trie, err := genesis.NewTrieFromGenesis(gen)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
-				}
-				// create genesis block from trie
-				header, err := genesis.NewGenesisBlockFromTrie(trie)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
-				}
-				stateSrvc.Telemetry = mockTelemetryClient
-				err = stateSrvc.Initialise(gen, header, trie)
-				if err != nil {
-					return nil, fmt.Errorf("failed to initialise state service: %s", err)
-				}
 
-				err = stateSrvc.SetupBase()
-				if err != nil {
-					return nil, fmt.Errorf("cannot setup base: %w", err)
-				}
-				return stateSrvc, nil
-			})
+	dotConfig.Init = InitConfig{Genesis: genFile}
+	dotConfig.Account = AccountConfig{Key: "alice"}
+	dotConfig.Core.Roles = types.FullNodeRole
+	dotConfig.Core.WasmInterpreter = wasmer.Name
 
-			m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
-				NodeStorage{}, nil)
-			m.EXPECT().loadRuntime(tt.args.cfg, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
-				ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
-			m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).Return(&babe.
-				VerificationManager{}, nil)
-			m.EXPECT().createDigestHandler(log.Critical, gomock.AssignableToTypeOf(&state.Service{})).Return(&digest.
-				Handler{}, nil)
-			m.EXPECT().createCoreService(tt.args.cfg, ks, gomock.AssignableToTypeOf(&state.Service{}),
-				gomock.AssignableToTypeOf(&network.Service{}), &digest.Handler{}).Return(&core.Service{}, nil)
-			m.EXPECT().createGRANDPAService(tt.args.cfg, gomock.AssignableToTypeOf(&state.Service{}),
-				&digest.Handler{}, ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
-				gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&grandpa.Service{}, nil)
-			m.EXPECT().newSyncService(tt.args.cfg, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},
-				&babe.VerificationManager{}, &core.Service{}, gomock.AssignableToTypeOf(&network.Service{}),
-				gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&gsync.Service{}, nil)
-			m.EXPECT().createBABEService(tt.args.cfg, gomock.AssignableToTypeOf(&state.Service{}), ks.Babe,
-				&core.Service{}, gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&babe.Service{}, nil)
-			m.EXPECT().createSystemService(&tt.args.cfg.System, gomock.AssignableToTypeOf(&state.Service{})).
-				DoAndReturn(func(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
-					gd, err := stateSrvc.Base.LoadGenesisData()
-					return system.NewService(cfg, gd), err
-				})
-			m.EXPECT().createNetworkService(tt.args.cfg, gomock.AssignableToTypeOf(&state.Service{}),
-				gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(testNetwork, nil)
+	ks, err := initKeystore(dotConfig)
+	assert.NoError(t, err)
+	m := NewMocknodeBuilderIface(ctrl)
+	m.EXPECT().nodeInitialised(dotConfig.Global.BasePath).Return(true)
+	m.EXPECT().createStateService(dotConfig).DoAndReturn(func(cfg *Config) (*state.Service, error) {
+		stateSrvc := state.NewService(config)
+		// create genesis from configuration file
+		gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
+		}
+		// create trie from genesis
+		trie, err := genesis.NewTrieFromGenesis(gen)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
+		}
+		// create genesis block from trie
+		header, err := genesis.NewGenesisBlockFromTrie(trie)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
+		}
+		stateSrvc.Telemetry = mockTelemetryClient
+		err = stateSrvc.Initialise(gen, header, trie)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialise state service: %s", err)
+		}
 
-			got, err := newNode(tt.args.cfg, ks, m)
-			assert.ErrorIs(t, err, tt.err)
+		err = stateSrvc.SetupBase()
+		if err != nil {
+			return nil, fmt.Errorf("cannot setup base: %w", err)
+		}
+		return stateSrvc, nil
+	})
 
-			if tt.want != nil {
-				assert.NotNil(t, got)
-			} else {
-				assert.Nil(t, got)
-			}
+	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
+		NodeStorage{}, nil)
+	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
+		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
+	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).Return(&babe.
+		VerificationManager{}, nil)
+	m.EXPECT().createDigestHandler(log.Critical, gomock.AssignableToTypeOf(&state.Service{})).Return(&digest.
+		Handler{}, nil)
+	m.EXPECT().createCoreService(dotConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),
+		gomock.AssignableToTypeOf(&network.Service{}), &digest.Handler{}).Return(&core.Service{}, nil)
+	m.EXPECT().createGRANDPAService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}),
+		&digest.Handler{}, ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
+		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&grandpa.Service{}, nil)
+	m.EXPECT().newSyncService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},
+		&babe.VerificationManager{}, &core.Service{}, gomock.AssignableToTypeOf(&network.Service{}),
+		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&gsync.Service{}, nil)
+	m.EXPECT().createBABEService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}), ks.Babe,
+		&core.Service{}, gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&babe.Service{}, nil)
+	m.EXPECT().createSystemService(&dotConfig.System, gomock.AssignableToTypeOf(&state.Service{})).
+		DoAndReturn(func(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
+			gd, err := stateSrvc.Base.LoadGenesisData()
+			return system.NewService(cfg, gd), err
 		})
-	}
+	m.EXPECT().createNetworkService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}),
+		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(testNetwork, nil)
+
+	got, err := newNode(dotConfig, ks, m)
+	assert.NoError(t, err)
+	fmt.Printf("got %v\n", got)
+	expected := &Node{}
+
+	assert.Equal(t, expected, got)
+
 }
+
+//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network BlockState
 
 func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
 	t.Helper()
@@ -249,7 +230,7 @@ func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service
 		}
 	}
 	if cfg.BlockState == nil {
-		blockstate := network.NewMockBlockState(ctrl)
+		blockstate := NewMockBlockState(ctrl)
 
 		cfg.BlockState = blockstate
 	}

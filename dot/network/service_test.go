@@ -75,6 +75,7 @@ func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 }
 
 //go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
+//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {

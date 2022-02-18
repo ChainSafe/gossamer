@@ -263,53 +263,43 @@ func TestConfig(t *testing.T) {
 func TestRPCConfig_isRPCEnabled(t *testing.T) {
 	t.Parallel()
 
-	type fields struct {
-		Enabled        bool
-		External       bool
-		Unsafe         bool
-		UnsafeExternal bool
-	}
 	tests := []struct {
-		name   string
-		fields fields
-		want   bool
+		name      string
+		rpcConfig *RPCConfig
+		want      bool
 	}{
 		{
-			name: "default",
-			want: false,
+			name:      "default",
+			rpcConfig: &RPCConfig{},
+			want:      false,
 		},
 		{
-			name:   "enabled true",
-			fields: fields{Enabled: true},
-			want:   true,
+			name:      "enabled true",
+			rpcConfig: &RPCConfig{Enabled: true},
+			want:      true,
 		},
 		{
-			name:   "external true",
-			fields: fields{External: true},
-			want:   true,
+			name:      "external true",
+			rpcConfig: &RPCConfig{External: true},
+			want:      true,
 		},
 		{
-			name:   "unsafe true",
-			fields: fields{Unsafe: true},
-			want:   true,
+			name:      "unsafe true",
+			rpcConfig: &RPCConfig{Unsafe: true},
+			want:      true,
 		},
 		{
-			name:   "unsafe external true",
-			fields: fields{UnsafeExternal: true},
-			want:   true,
+			name:      "unsafe external true",
+			rpcConfig: &RPCConfig{UnsafeExternal: true},
+			want:      true,
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			r := &RPCConfig{
-				Enabled:        tt.fields.Enabled,
-				External:       tt.fields.External,
-				Unsafe:         tt.fields.Unsafe,
-				UnsafeExternal: tt.fields.UnsafeExternal,
-			}
-			got := r.isRPCEnabled()
+
+			got := tt.rpcConfig.isRPCEnabled()
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -318,53 +308,43 @@ func TestRPCConfig_isRPCEnabled(t *testing.T) {
 func TestRPCConfig_isWSEnabled(t *testing.T) {
 	t.Parallel()
 
-	type fields struct {
-		WS               bool
-		WSExternal       bool
-		WSUnsafe         bool
-		WSUnsafeExternal bool
-	}
 	tests := []struct {
-		name   string
-		fields fields
-		want   bool
+		name      string
+		rpcConfig *RPCConfig
+		want      bool
 	}{
 		{
-			name: "default",
-			want: false,
+			name:      "default",
+			rpcConfig: &RPCConfig{},
+			want:      false,
 		},
 		{
-			name:   "ws true",
-			fields: fields{WS: true},
-			want:   true,
+			name:      "ws true",
+			rpcConfig: &RPCConfig{WS: true},
+			want:      true,
 		},
 		{
-			name:   "ws external true",
-			fields: fields{WSExternal: true},
-			want:   true,
+			name:      "ws external true",
+			rpcConfig: &RPCConfig{WSExternal: true},
+			want:      true,
 		},
 		{
-			name:   "ws unsafe true",
-			fields: fields{WSUnsafe: true},
-			want:   true,
+			name:      "ws unsafe true",
+			rpcConfig: &RPCConfig{WSUnsafe: true},
+			want:      true,
 		},
 		{
-			name:   "ws unsafe external true",
-			fields: fields{WSUnsafeExternal: true},
-			want:   true,
+			name:      "ws unsafe external true",
+			rpcConfig: &RPCConfig{WSUnsafeExternal: true},
+			want:      true,
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			r := &RPCConfig{
-				WS:               tt.fields.WS,
-				WSExternal:       tt.fields.WSExternal,
-				WSUnsafe:         tt.fields.WSUnsafe,
-				WSUnsafeExternal: tt.fields.WSUnsafeExternal,
-			}
-			got := r.isWSEnabled()
+
+			got := tt.rpcConfig.isWSEnabled()
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -377,36 +357,36 @@ func Test_networkServiceEnabled(t *testing.T) {
 		cfg *Config
 	}
 	tests := []struct {
-		name string
-		args args
-		want bool
+		name   string
+		config *Config
+		want   bool
 	}{
 		{
-			name: "dev config",
-			args: args{cfg: DevConfig()},
-			want: true,
+			name:   "dev config",
+			config: DevConfig(),
+			want:   true,
 		},
 		{
-			name: "empty config",
-			args: args{cfg: &Config{}},
-			want: false,
+			name:   "empty config",
+			config: &Config{},
+			want:   false,
 		},
 		{
 			name: "core roles 0",
-			args: args{cfg: &Config{
+			config: &Config{
 				Core: CoreConfig{
 					Roles: 0,
 				},
-			}},
+			},
 			want: false,
 		},
 		{
 			name: "core roles 1",
-			args: args{cfg: &Config{
+			config: &Config{
 				Core: CoreConfig{
 					Roles: 1,
 				},
-			}},
+			},
 			want: true,
 		},
 	}
@@ -414,7 +394,7 @@ func Test_networkServiceEnabled(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := networkServiceEnabled(tt.args.cfg)
+			got := networkServiceEnabled(tt.config)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -422,19 +402,19 @@ func Test_networkServiceEnabled(t *testing.T) {
 
 func TestRPCConfig_String(t *testing.T) {
 	tests := []struct {
-		name   string
-		fields RPCConfig
-		want   string
+		name      string
+		rpcConfig RPCConfig
+		want      string
 	}{
 		{
-			name:   "default base case",
-			fields: RPCConfig{},
+			name:      "default base case",
+			rpcConfig: RPCConfig{},
 			want: "enabled=false external=false unsafe=false unsafeexternal=false port=0 host= modules= wsport=0 ws" +
 				"=false wsexternal=false wsunsafe=false wsunsafeexternal=false",
 		},
 		{
 			name: "fields changed",
-			fields: RPCConfig{
+			rpcConfig: RPCConfig{
 				Enabled:          true,
 				External:         true,
 				Unsafe:           true,
@@ -454,26 +434,26 @@ func TestRPCConfig_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, tt.fields.String(), "String()")
+			assert.Equal(t, tt.want, tt.rpcConfig.String())
 		})
 	}
 }
 
 func TestLogConfig_String(t *testing.T) {
 	tests := []struct {
-		name   string
-		fields LogConfig
-		want   string
+		name      string
+		logConfig LogConfig
+		want      string
 	}{
 		{
-			name:   "default case",
-			fields: LogConfig{},
+			name:      "default case",
+			logConfig: LogConfig{},
 			want: "core: CRIT, digest: CRIT, sync: CRIT, network: CRIT, rpc: CRIT, state: CRIT, runtime: CRIT, " +
 				"block producer: CRIT, finality gadget: CRIT",
 		},
 		{
 			name: "change fields case",
-			fields: LogConfig{
+			logConfig: LogConfig{
 				CoreLvl:           log.Debug,
 				DigestLvl:         log.Info,
 				SyncLvl:           log.Warn,
@@ -490,7 +470,7 @@ func TestLogConfig_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, tt.fields.String(), "String()")
+			assert.Equal(t, tt.want, tt.logConfig.String())
 		})
 	}
 }

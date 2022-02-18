@@ -5,7 +5,9 @@ package dot
 
 import (
 	"errors"
+	"github.com/stretchr/testify/require"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -13,18 +15,15 @@ import (
 )
 
 func TestBuildSpec_ToJSON(t *testing.T) {
-	type fields struct {
-		genesis *genesis.Genesis
-	}
 	tests := []struct {
-		name   string
-		fields fields
-		want   string
-		err    error
+		name    string
+		genesis *genesis.Genesis
+		want    string
+		err     error
 	}{
 		{
-			name:   "name test",
-			fields: fields{genesis: &genesis.Genesis{Name: "test"}},
+			name:    "name test",
+			genesis: &genesis.Genesis{Name: "test"},
 			want: `{
     "name": "test",
     "id": "",
@@ -42,13 +41,13 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 		},
 		{
 			name: "additional parameters test",
-			fields: fields{genesis: &genesis.Genesis{
+			genesis: &genesis.Genesis{
 				Name:            "test",
 				ID:              "ID",
 				ChainType:       "chainType",
 				ProtocolID:      "protocol",
 				ConsensusEngine: "babe",
-			}},
+			},
 			want: `{
     "name": "test",
     "id": "ID",
@@ -66,7 +65,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 		},
 		{
 			name: "normal conditions",
-			fields: fields{genesis: &genesis.Genesis{
+			genesis: &genesis.Genesis{
 				Name:               "test",
 				ID:                 "ID",
 				ChainType:          "chainType",
@@ -79,7 +78,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 				BadBlocks:          []string{"3", "4"},
 				ConsensusEngine:    "babe",
 				CodeSubstitutes:    map[string]string{"key": "value"},
-			}},
+			},
 			want: `{
     "name": "test",
     "id": "ID",
@@ -104,7 +103,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &BuildSpec{
-				genesis: tt.fields.genesis,
+				genesis: tt.genesis,
 			}
 			got, err := b.ToJSON()
 			assert.ErrorIs(t, err, tt.err)
@@ -157,9 +156,7 @@ func TestBuildFromDB(t *testing.T) {
 }
 
 func TestBuildFromGenesis(t *testing.T) {
-	// setup test file
 	file := genesis.CreateTestGenesisJSONFile(t, false)
-	defer os.Remove(file)
 
 	type args struct {
 		path      string
@@ -202,18 +199,15 @@ func TestBuildFromGenesis(t *testing.T) {
 }
 
 func TestBuildSpec_ToJSONRaw(t *testing.T) {
-	type fields struct {
-		genesis *genesis.Genesis
-	}
 	tests := []struct {
-		name   string
-		fields fields
-		want   string
-		err    error
+		name    string
+		genesis *genesis.Genesis
+		want    string
+		err     error
 	}{
 		{
-			name:   "normal conditions",
-			fields: fields{genesis: &genesis.Genesis{Name: "test"}},
+			name:    "normal conditions",
+			genesis: &genesis.Genesis{Name: "test"},
 			want: `{
     "name": "test",
     "id": "",
@@ -233,7 +227,7 @@ func TestBuildSpec_ToJSONRaw(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &BuildSpec{
-				genesis: tt.fields.genesis,
+				genesis: tt.genesis,
 			}
 			got, err := b.ToJSONRaw()
 			assert.ErrorIs(t, err, tt.err)
@@ -243,38 +237,45 @@ func TestBuildSpec_ToJSONRaw(t *testing.T) {
 }
 
 func TestWriteGenesisSpecFile(t *testing.T) {
-	file, err := os.CreateTemp("", "test.txt")
-	assert.NoError(t, err)
-	defer os.Remove(file.Name())
-
 	type args struct {
 		data []byte
 		fp   string
 	}
 	tests := []struct {
-		name string
-		args args
-		err  error
+		name      string
+		args      args
+		err       error
+		touchFile bool
 	}{
-		{name: "normal conditions", args: args{
-			data: []byte{1},
-			fp:   "test.file",
-		}},
-		{name: "existing file", args: args{
-			data: []byte{1},
-			fp:   file.Name(),
-		}, err: errors.New("file " + file.Name() + " already exists, rename to avoid overwriting")},
+		{
+			name: "normal conditions",
+			args: args{
+				data: []byte{1},
+				fp:   filepath.Join(t.TempDir(), "test.file"),
+			},
+		},
+		{
+			name: "existing file",
+			args: args{
+				data: []byte{1},
+			},
+			touchFile: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.touchFile {
+				path := filepath.Join(t.TempDir(), "test.txt")
+				err := os.WriteFile(path, nil, os.ModePerm)
+				require.NoError(t, err)
+				tt.args.fp = path
+				tt.err = errors.New("file " + path + " already exists, rename to avoid overwriting")
+			}
 			err := WriteGenesisSpecFile(tt.args.data, tt.args.fp)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-			}
-			if tt.args.fp != "" {
-				os.Remove(tt.args.fp)
 			}
 		})
 	}
