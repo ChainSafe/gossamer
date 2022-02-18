@@ -1,18 +1,20 @@
 on:
   pull_request:
-    paths:
-      - .github/workflows/unit-tests.yml
-      - "**/*.go"
-      - "chain/**"
-      - "cmd/**"
-      - "dot/**"
-      - "internal/**"
-      - "lib/**"
-      - "pkg/**"
-      - "tests/**"
-      - go.mod
-      - go.sum
-      - Makefile
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/unit-tests.yml
+    #   - "**/*.go"
+    #   - "chain/**"
+    #   - "cmd/**"
+    #   - "dot/**"
+    #   - "internal/**"
+    #   - "lib/**"
+    #   - "pkg/**"
+    #   - "tests/**"
+    #   - go.mod
+    #   - go.sum
+    #   - Makefile
 name: unit-tests
 env:
   GO111MODULE: on
