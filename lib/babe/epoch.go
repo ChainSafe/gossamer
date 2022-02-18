@@ -228,7 +228,8 @@ func (b *Service) incrementEpoch() (uint64, error) {
 // It returns the wrapped error errOverPrimarySlotThreshold
 // if it is not authorised.
 // output = return[0:32]; proof = return[32:96]
-func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keypair *sr25519.Keypair) (*types.PreRuntimeDigest, error) {
+func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keypair *sr25519.Keypair,
+) (*types.PreRuntimeDigest, error) {
 	proof, err := claimPrimarySlot(
 		epochData.randomness,
 		slotNumber,

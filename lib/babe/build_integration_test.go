@@ -92,7 +92,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	preRuntimeDigest, err := babeService.runLottery(slotNumber, epoch, epochData)
+	preRuntimeDigest, err := claimSlot(epoch, slotNumber, epochData, babeService.keypair)
 	require.NoError(t, err)
 
 	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)

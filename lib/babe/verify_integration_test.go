@@ -337,7 +337,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 
 	const slotNumber uint64 = 1
 
-	preRuntimeDigest, err := babeService.runLottery(slotNumber, testEpochIndex, epochData)
+	preRuntimeDigest, err := claimSlot(testEpochIndex, slotNumber, epochData, babeService.keypair)
 	require.NoError(t, err)
 
 	babePreDigest, err := types.DecodeBabePreDigest(preRuntimeDigest.Data)
