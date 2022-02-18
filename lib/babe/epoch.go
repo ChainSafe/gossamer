@@ -258,9 +258,6 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 	case types.PrimaryAndSecondaryVRFSlots:
 		proof, err := claimSecondarySlotVRF(
 			epochData.randomness, slotNumber, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
-		// if errors.Is(err, errNotOurTurnToPropose) {
-		// 	continue
-		// }
 		if err != nil {
 			return nil, fmt.Errorf("error claim secondary vrf slot at %d: %w", slotNumber, err)
 		}
@@ -274,9 +271,6 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 	case types.PrimaryAndSecondaryPlainSlots:
 		err = claimSecondarySlotPlain(
 			epochData.randomness, slotNumber, epochData.authorities, epochData.authorityIndex)
-		// if errors.Is(err, errNotOurTurnToPropose) {
-		// 	continue
-		// }
 		if err != nil {
 			return nil, fmt.Errorf("error claiming secondary plain slot at %d: %w", slotNumber, err)
 		}
