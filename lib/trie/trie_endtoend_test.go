@@ -7,17 +7,17 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
@@ -25,37 +25,36 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-//nolint:revive
 const (
-	PUT          = 0
-	DEL          = 1
-	CLEAR_PREFIX = 2
-	GET          = 3
-	GETLEAF      = 4
+	put = iota
+	del
+	clearPrefix
+	get
+	getLeaf
 )
 
-func hexDecode(in string) []byte {
-	out, _ := hex.DecodeString(in)
-	return out
-}
+// writeFailedData writes key value pairs as hexadecimal to the path
+// given in tab separated values format (TSV).
+func writeFailedData(t *testing.T, kv map[string][]byte, path string) {
+	t.Logf("Writing failed test data (%d key values) to %s", len(kv), path)
 
-func writeToTestFile(tests []Test) error {
-	testString := ""
-	for _, test := range tests {
-		testString = fmt.Sprintf("%s%s\n%s\n", testString, test.key, test.value)
+	lines := make([]string, 0, len(kv))
+	for keyString, value := range kv {
+		key := []byte(keyString)
+		line := fmt.Sprintf("%x\t%x", key, value)
+		lines = append(lines, line)
 	}
 
-	fp, err := filepath.Abs("./failing_test_data")
-	if err != nil {
-		return err
-	}
-	os.Remove(fp)
-	err = os.WriteFile(fp, []byte(testString), 0644)
-	if err != nil {
-		return err
-	}
+	path, err := filepath.Abs(path)
+	require.NoError(t, err)
 
-	return nil
+	err = os.RemoveAll(path)
+	require.NoError(t, err)
+
+	data := []byte(strings.Join(lines, "\n"))
+
+	err = os.WriteFile(path, data, os.ModePerm)
+	require.NoError(t, err)
 }
 
 func buildSmallTrie() *Trie {
@@ -78,27 +77,19 @@ func buildSmallTrie() *Trie {
 }
 
 func runTests(t *testing.T, trie *Trie, tests []Test) {
-	for i, test := range tests {
-		test := test
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			if test.op == PUT {
-				trie.Put(test.key, test.value)
-			} else if test.op == GET {
-				val := trie.Get(test.key)
-				if !bytes.Equal(val, test.value) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-				}
-			} else if test.op == DEL {
-				trie.Delete(test.key)
-			} else if test.op == GETLEAF {
-				value := trie.Get(test.key)
-				if value == nil {
-					t.Errorf("Fail to get key %x: nil leaf", test.key)
-				} else if !bytes.Equal(value, test.value) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, value)
-				}
-			}
-		})
+	for _, test := range tests {
+		switch test.op {
+		case put:
+			trie.Put(test.key, test.value)
+		case get:
+			val := trie.Get(test.key)
+			assert.Equal(t, test.value, val)
+		case del:
+			trie.Delete(test.key)
+		case getLeaf:
+			value := trie.Get(test.key)
+			assert.Equal(t, test.value, value)
+		}
 	}
 }
 
@@ -106,16 +97,16 @@ func TestPutAndGetBranch(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []Test{
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
-		{key: []byte{0x07}, value: []byte("ramen"), op: PUT},
-		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
-		{key: []byte("noot"), value: nil, op: GET},
-		{key: []byte{0}, value: nil, op: GET},
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: GET},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: GET},
-		{key: []byte{0x07}, value: []byte("ramen"), op: GET},
-		{key: []byte{0xf2}, value: []byte("pho"), op: GET},
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
+		{key: []byte{0x07}, value: []byte("ramen"), op: put},
+		{key: []byte{0xf2}, value: []byte("pho"), op: put},
+		{key: []byte("noot"), value: nil, op: get},
+		{key: []byte{0}, value: nil, op: get},
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: get},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: get},
+		{key: []byte{0x07}, value: []byte("ramen"), op: get},
+		{key: []byte{0xf2}, value: []byte("pho"), op: get},
 	}
 
 	runTests(t, trie, tests)
@@ -125,102 +116,93 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []Test{
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: PUT},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: PUT},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: PUT},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: PUT},
-		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: PUT},
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: GET},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: GET},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: GET},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: GET},
-		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: GET},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: put},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: put},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: put},
+		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: put},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: get},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: get},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
+		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: get},
 	}
 
 	runTests(t, trie, tests)
 }
 
-func TestPutAndGet(t *testing.T) {
-	for i := 0; i < 10; i++ {
-		trie := NewEmptyTrie()
-		rt := GenerateRandomTests(t, 10000)
-		for _, test := range rt {
-			trie.Put(test.key, test.value)
+func Test_Trie_PutAndGet(t *testing.T) {
+	generator := newGenerator()
+	const kvSize = 10000
+	kv := generateKeyValues(t, generator, kvSize)
 
-			val := trie.Get(test.key)
-			if !bytes.Equal(val, test.value) {
-				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-			}
-		}
+	testPutAndGetKeyValues(t, kv)
 
-		for _, test := range rt {
-			val := trie.Get(test.key)
-			if !bytes.Equal(val, test.value) {
-				writeToTestFile(rt)
-				t.Fatalf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-			}
+	if t.Failed() {
+		failedDataPath := fmt.Sprintf("./trie_putandget_failed_test_data_%d.tsv", time.Now().Unix())
+		writeFailedData(t, kv, failedDataPath)
+	}
+}
+
+func testPutAndGetKeyValues(t *testing.T, kv map[string][]byte) {
+	t.Helper()
+
+	trie := NewEmptyTrie()
+
+	for keyString, value := range kv {
+		key := []byte(keyString)
+
+		trie.Put(key, value)
+
+		retrievedValue := trie.Get(key)
+		if !assert.Equal(t, value, retrievedValue) {
+			return
 		}
 	}
 }
 
-// this test is used to debug random tests that fail
-// in TestPutAndGet, random tests are generated and if a case fails, it's saved to trie/test_data
-// if the trie/test_data exists, this test runs the case in that file
-// otherwise it's skipped
-func TestFailingTests(t *testing.T) {
-	fp, err := filepath.Abs("./failing_test_data")
-	if err != nil {
-		t.Error(err)
-	}
+// Test_Trie_PutAndGet_FailedData tests random data that failed in Test_Trie_PutAndGet.
+// It checks every file starting with trie_putandget_failed_test_data_ and
+// removes them if the test passes.
+func Test_Trie_PutAndGet_FailedData(t *testing.T) {
+	var failedTestDataPaths []string
+	dirEntries, err := os.ReadDir(".")
+	require.NoError(t, err)
+	for _, dirEntry := range dirEntries {
+		if dirEntry.IsDir() {
+			continue
+		}
 
-	data, err := os.ReadFile(fp)
-	if err != nil {
-		t.SkipNow()
-	}
-
-	slicedData := strings.Split(string(data), "\n")
-	tests := []Test{}
-	for i := 0; i < len(slicedData)-2; i += 2 {
-		test := Test{key: []byte(slicedData[i]), value: []byte(slicedData[i+1])}
-		tests = append(tests, test)
-	}
-
-	trie := NewEmptyTrie()
-
-	hasFailed := false
-	passedFailingTest := false
-	rt := tests
-	for i, test := range rt {
-		if len(test.key) != 0 {
-			trie.Put(test.key, test.value)
-
-			val := trie.Get(test.key)
-			if !bytes.Equal(val, test.value) {
-				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-			}
-
-			failingKey := hexDecode("")
-			failingVal := hexDecode("")
-
-			if bytes.Equal(test.key, failingKey) {
-				passedFailingTest = true
-			}
-
-			val = trie.Get(failingKey)
-			if !bytes.Equal(val, failingVal) && !hasFailed && passedFailingTest {
-				t.Errorf("Fail to get key %x with value %x: got %x", failingKey, failingVal, val)
-				t.Logf("test failed at insertion of key %x index %d", test.key, i)
-				hasFailed = true
-			}
+		path := dirEntry.Name()
+		const targetPrefix = "trie_putandget_failed_test_data_"
+		if strings.HasPrefix(path, targetPrefix) {
+			failedTestDataPaths = append(failedTestDataPaths, path)
 		}
 	}
 
-	for _, test := range rt {
-		if len(test.key) != 0 {
-			val := trie.Get(test.key)
-			if !bytes.Equal(val, test.value) {
-				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-			}
+	for _, path := range failedTestDataPaths {
+		data, err := os.ReadFile(path)
+		require.NoError(t, err)
+
+		kv := make(map[string][]byte)
+
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			parts := strings.Split(line, "\t")
+			key, err := hex.DecodeString(parts[0])
+			require.NoError(t, err)
+
+			value, err := hex.DecodeString(parts[1])
+			require.NoError(t, err)
+
+			kv[string(key)] = value
+		}
+
+		testPutAndGetKeyValues(t, kv)
+
+		if !t.Failed() {
+			err = os.RemoveAll(path)
+			require.NoError(t, err)
 		}
 	}
 }
@@ -229,22 +211,22 @@ func TestGetPartialKey(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []Test{
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: PUT},
-		{key: []byte{}, value: []byte("floof"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GETLEAF},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: DEL},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GETLEAF},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GETLEAF},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: GETLEAF},
-		{key: []byte{0xf2}, value: []byte("pen"), op: PUT},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: PUT},
-		{key: []byte{}, value: []byte("floof"), op: GET},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GETLEAF},
-		{key: []byte{0xf2}, value: []byte("pen"), op: GETLEAF},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: GETLEAF},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: put},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: put},
+		{key: []byte{}, value: []byte("floof"), op: put},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: getLeaf},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: del},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: getLeaf},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: getLeaf},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: put},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: getLeaf},
+		{key: []byte{0xf2}, value: []byte("pen"), op: put},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: put},
+		{key: []byte{}, value: []byte("floof"), op: get},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: getLeaf},
+		{key: []byte{0xf2}, value: []byte("pen"), op: getLeaf},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: getLeaf},
 	}
 
 	runTests(t, trie, tests)
@@ -254,41 +236,41 @@ func TestDeleteSmall(t *testing.T) {
 	trie := buildSmallTrie()
 
 	tests := []Test{
-		{key: []byte{}, value: []byte("floof"), op: DEL},
-		{key: []byte{}, value: nil, op: GET},
-		{key: []byte{}, value: []byte("floof"), op: PUT},
+		{key: []byte{}, value: []byte("floof"), op: del},
+		{key: []byte{}, value: nil, op: get},
+		{key: []byte{}, value: []byte("floof"), op: put},
 
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: DEL},
-		{key: []byte{0x09, 0xd3}, value: nil, op: GET},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GET},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GET},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: PUT},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: del},
+		{key: []byte{0x09, 0xd3}, value: nil, op: get},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: put},
 
-		{key: []byte{0xf2}, value: []byte("feather"), op: DEL},
-		{key: []byte{0xf2}, value: nil, op: GET},
-		{key: []byte{0xf2}, value: []byte("feather"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("feather"), op: del},
+		{key: []byte{0xf2}, value: nil, op: get},
+		{key: []byte{0xf2}, value: []byte("feather"), op: put},
 
-		{key: []byte{}, value: []byte("floof"), op: DEL},
-		{key: []byte{0xf2}, value: []byte("feather"), op: DEL},
-		{key: []byte{}, value: nil, op: GET},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GET},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GET},
-		{key: []byte{}, value: []byte("floof"), op: PUT},
-		{key: []byte{0xf2}, value: []byte("feather"), op: PUT},
+		{key: []byte{}, value: []byte("floof"), op: del},
+		{key: []byte{0xf2}, value: []byte("feather"), op: del},
+		{key: []byte{}, value: nil, op: get},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
+		{key: []byte{}, value: []byte("floof"), op: put},
+		{key: []byte{0xf2}, value: []byte("feather"), op: put},
 
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: DEL},
-		{key: []byte{0x01, 0x35, 0x79}, value: nil, op: GET},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GET},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: del},
+		{key: []byte{0x01, 0x35, 0x79}, value: nil, op: get},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: put},
 
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: DEL},
-		{key: []byte{0x01, 0x35}, value: nil, op: GET},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GET},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: PUT},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: del},
+		{key: []byte{0x01, 0x35}, value: nil, op: get},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
 
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: DEL},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GET},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GET},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: del},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
 	}
 
 	runTests(t, trie, tests)
@@ -298,10 +280,10 @@ func TestDeleteCombineBranch(t *testing.T) {
 	trie := buildSmallTrie()
 
 	tests := []Test{
-		{key: []byte{0x01, 0x35, 0x46}, value: []byte("raccoon"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x46, 0x77}, value: []byte("rat"), op: PUT},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: DEL},
-		{key: []byte{0x09, 0xd3}, value: nil, op: GET},
+		{key: []byte{0x01, 0x35, 0x46}, value: []byte("raccoon"), op: put},
+		{key: []byte{0x01, 0x35, 0x46, 0x77}, value: []byte("rat"), op: put},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: del},
+		{key: []byte{0x09, 0xd3}, value: nil, op: get},
 	}
 
 	runTests(t, trie, tests)
@@ -311,22 +293,22 @@ func TestDeleteFromBranch(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []Test{
-		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: PUT},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: PUT},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: PUT},
-		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: PUT},
-		{key: []byte{0x43, 0x21}, value: []byte("stuffagain"), op: PUT},
-		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: GET},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: GET},
-		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: DEL},
-		{key: []byte{0x06, 0x15, 0xfc}, value: nil, op: GET},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: GET},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: GET},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: DEL},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: GET},
-		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: GET},
-		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: DEL},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: GET},
+		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: put},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: put},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: put},
+		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: put},
+		{key: []byte{0x43, 0x21}, value: []byte("stuffagain"), op: put},
+		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: get},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
+		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: del},
+		{key: []byte{0x06, 0x15, 0xfc}, value: nil, op: get},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: get},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: del},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
+		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: get},
+		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: del},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
 	}
 
 	runTests(t, trie, tests)
@@ -336,39 +318,44 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []Test{
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: PUT},
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: GET},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: PUT},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: GET},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: PUT},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: GET},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: PUT},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: GET},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: DEL},
-		{key: []byte{0x43, 0x0c}, value: nil, op: GET},
-		{key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: PUT},
-		{key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: GET},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: GET},
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: GET},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: put},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: get},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: put},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: get},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: put},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: del},
+		{key: []byte{0x43, 0x0c}, value: nil, op: get},
+		{key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: put},
+		{key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: get},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
 	}
 
 	runTests(t, trie, tests)
 }
 
 func TestTrieDiff(t *testing.T) {
-	testDataDirPath := t.TempDir()
-
 	cfg := &chaindb.Config{
-		DataDir:  testDataDirPath,
-		InMemory: false,
+		DataDir: t.TempDir(),
 	}
 
 	db, err := chaindb.NewBadgerDB(cfg)
 	require.NoError(t, err)
 
-	storageDB := chaindb.NewTable(db, "storage")
+	t.Cleanup(func() {
+		err = db.Close()
+		require.NoError(t, err)
+	})
 
-	defer db.Close()
+	storageDB := chaindb.NewTable(db, "storage")
+	t.Cleanup(func() {
+		err = storageDB.Close()
+		require.NoError(t, err)
+	})
+
 	trie := NewEmptyTrie()
 
 	var testKey = []byte("testKey")
@@ -417,9 +404,13 @@ func TestTrieDiff(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	rt := GenerateRandomTests(t, 100)
-	for _, test := range rt {
-		trie.Put(test.key, test.value)
+	generator := newGenerator()
+	const kvSize = 100
+	kv := generateKeyValues(t, generator, kvSize)
+
+	for keyString, value := range kv {
+		key := []byte(keyString)
+		trie.Put(key, value)
 	}
 
 	dcTrie := trie.DeepCopy()
@@ -441,25 +432,17 @@ func TestDelete(t *testing.T) {
 	require.Equal(t, tHash, dcTrieHash)
 	require.Equal(t, dcTrieHash, ssTrieHash)
 
-	for i, test := range rt {
-		test := test
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			r := rand.Int() % 2
-			var val []byte
-			switch r {
-			case 0:
-				ssTrie.Delete(test.key)
-				val = ssTrie.Get(test.key)
-				if val != nil {
-					t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
-				}
-			case 1:
-				val = ssTrie.Get(test.key)
-				if !bytes.Equal(test.value, val) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-				}
-			}
-		})
+	for keyString, value := range kv {
+		key := []byte(keyString)
+		switch generator.Int31n(2) {
+		case 0:
+			ssTrie.Delete(key)
+			retrievedValue := ssTrie.Get(key)
+			assert.Nil(t, retrievedValue, "for key %x", key)
+		case 1:
+			retrievedValue := ssTrie.Get(key)
+			assert.Equal(t, value, retrievedValue, "for key %x", key)
+		}
 	}
 
 	// Get the updated root hash of all tries.
@@ -480,25 +463,15 @@ func TestDelete(t *testing.T) {
 
 func TestClearPrefix(t *testing.T) {
 	tests := []Test{
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: PUT},
-		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
-		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
-		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
-		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11}, value: []byte("asd"), op: PUT},
-		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xaa, 0x11}, value: []byte("fgh"), op: PUT},
-	}
-
-	buildTrie := func() *Trie {
-		trie := NewEmptyTrie()
-
-		for _, test := range tests {
-			trie.Put(test.key, test.value)
-		}
-
-		return trie
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
+		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: put},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: put},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: put},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: put},
+		{key: []byte{0xf2}, value: []byte("pho"), op: put},
+		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11}, value: []byte("asd"), op: put},
+		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xaa, 0x11}, value: []byte("fgh"), op: put},
 	}
 
 	// prefix to clear cases
@@ -518,7 +491,11 @@ func TestClearPrefix(t *testing.T) {
 	}
 
 	for _, prefix := range testCases {
-		trie := buildTrie()
+		trie := NewEmptyTrie()
+
+		for _, test := range tests {
+			trie.Put(test.key, test.value)
+		}
 
 		dcTrie := trie.DeepCopy()
 
@@ -698,22 +675,20 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 			trieClearPrefix.ClearPrefix(prefix)
 
-			require.Equal(t, trieClearPrefix.MustHash(), trieDelete.MustHash(),
-				fmt.Sprintf("tries not equal! prefix=0x%x\n, %s, %s", prefix, trieClearPrefix, trieDelete),
-			)
+			require.Equal(t, trieClearPrefix.MustHash(), trieDelete.MustHash())
 		}
 	}
 }
 
 func TestSnapshot(t *testing.T) {
 	tests := []Test{
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: PUT},
-		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
-		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
-		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
+		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: put},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: put},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: put},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: put},
+		{key: []byte{0xf2}, value: []byte("pho"), op: put},
 	}
 
 	expectedTrie := NewEmptyTrie()
@@ -737,65 +712,52 @@ func TestSnapshot(t *testing.T) {
 	require.NotEqual(t, parentTrie.MustHash(), newTrie.MustHash())
 }
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+func Test_Trie_NextKey_Random(t *testing.T) {
+	generator := newGenerator()
 
-func RandStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	trie := NewEmptyTrie()
+
+	const minKVSize, maxKVSize = 1000, 10000
+	kvSize := minKVSize + generator.Intn(maxKVSize-minKVSize)
+	kv := generateKeyValues(t, generator, kvSize)
+
+	sortedKeys := make([][]byte, 0, len(kv))
+	for keyString := range kv {
+		key := []byte(keyString)
+		sortedKeys = append(sortedKeys, key)
 	}
-	return string(b)
-}
 
-func TestNextKey_Random(t *testing.T) {
-	for i := 0; i < 100; i++ {
-		trie := NewEmptyTrie()
+	sort.Slice(sortedKeys, func(i, j int) bool {
+		return bytes.Compare(sortedKeys[i], sortedKeys[j]) < 0
+	})
 
-		// Generate random test cases.
-		testCaseMap := make(map[string]struct{}) // ensure no duplicate keys
-		size := 1000 + rand.Intn(10000)
+	for _, key := range sortedKeys {
+		value := []byte{1}
+		trie.Put(key, value)
+	}
 
-		for ii := 0; ii < size; ii++ {
-			str := RandStringBytes(1 + rand.Intn(20))
-			if len(str) == 0 {
-				continue
-			}
-			testCaseMap[str] = struct{}{}
+	for i, key := range sortedKeys {
+
+		nextKey := trie.NextKey(key)
+
+		var expectedNextKey []byte
+		isLastKey := i == len(sortedKeys)-1
+		if !isLastKey {
+			expectedNextKey = sortedKeys[i+1]
 		}
-
-		testCases := make([][]byte, len(testCaseMap))
-		j := 0
-
-		for k := range testCaseMap {
-			testCases[j] = []byte(k)
-			j++
-		}
-
-		sort.Slice(testCases, func(i, j int) bool {
-			return bytes.Compare(testCases[i], testCases[j]) < 0
-		})
-
-		for _, tc := range testCases {
-			trie.Put(tc, tc)
-		}
-
-		for idx, tc := range testCases {
-			next := trie.NextKey(tc)
-			if idx == len(testCases)-1 {
-				require.Nil(t, next)
-			} else {
-				require.Equal(t, testCases[idx+1], next, common.BytesToHex(tc))
-			}
-		}
+		require.Equal(t, expectedNextKey, nextKey)
 	}
 }
 
 func Benchmark_Trie_Hash(b *testing.B) {
-	rt := GenerateRandomTests(b, 1000000)
+	generator := newGenerator()
+	const kvSize = 1000000
+	kv := generateKeyValues(b, generator, kvSize)
+
 	trie := NewEmptyTrie()
-	for i := range rt {
-		test := &rt[i]
-		trie.Put(test.key, test.value)
+	for keyString, value := range kv {
+		key := []byte(keyString)
+		trie.Put(key, value)
 	}
 
 	b.StartTimer()
@@ -818,92 +780,72 @@ func bToMb(b uint64) uint64 {
 }
 
 func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
-	base := buildSmallTrie()
-	size := 65536
+	generator := newGenerator()
+	const size = 1000
+	const workers = 4
 
-	testCasesA := make([]Test, size)
-	expectedA := buildSmallTrie()
-	for i := 0; i < size; i++ {
-		k := make([]byte, 2)
-		_, err := rand.Read(k)
-		require.NoError(t, err)
-		op := rand.Intn(3)
+	testCases := make([][]Test, workers)
+	expectedTries := make([]*Trie, workers)
 
-		switch op {
-		case PUT:
-			expectedA.Put(k, k)
-		case DEL:
-			expectedA.Delete(k)
-		case CLEAR_PREFIX:
-			expectedA.ClearPrefix(k)
-		}
+	for i := 0; i < workers; i++ {
+		testCases[i] = make([]Test, size)
+		expectedTries[i] = buildSmallTrie()
+		for j := 0; j < size; j++ {
+			k := make([]byte, 2)
+			_, err := generator.Read(k)
+			require.NoError(t, err)
+			op := generator.Intn(3)
 
-		testCasesA[i] = Test{
-			key: k,
-			op:  op,
+			switch op {
+			case put:
+				expectedTries[i].Put(k, k)
+			case del:
+				expectedTries[i].Delete(k)
+			case clearPrefix:
+				expectedTries[i].ClearPrefix(k)
+			}
+
+			testCases[i][j] = Test{
+				key: k,
+				op:  op,
+			}
 		}
 	}
 
-	testCasesB := make([]Test, size)
-	expectedB := buildSmallTrie()
-	for i := 0; i < size; i++ {
-		k := make([]byte, 2)
-		_, err := rand.Read(k)
-		require.NoError(t, err)
-		op := rand.Intn(3)
+	startWg := new(sync.WaitGroup)
+	finishWg := new(sync.WaitGroup)
+	startWg.Add(workers)
+	finishWg.Add(workers)
+	snapshotedTries := make([]*Trie, workers)
 
-		switch op {
-		case PUT:
-			expectedB.Put(k, k)
-		case DEL:
-			expectedB.Delete(k)
-		case CLEAR_PREFIX:
-			expectedB.ClearPrefix(k)
-		}
+	for i := 0; i < workers; i++ {
+		snapshotedTries[i] = buildSmallTrie().Snapshot()
 
-		testCasesB[i] = Test{
-			key: k,
-			op:  op,
-		}
+		go func(trie *Trie, operations []Test,
+			startWg, finishWg *sync.WaitGroup) {
+			defer finishWg.Done()
+			startWg.Done()
+			startWg.Wait()
+			for _, operation := range operations {
+				switch operation.op {
+				case put:
+					trie.Put(operation.key, operation.key)
+				case del:
+					trie.Delete(operation.key)
+				case clearPrefix:
+					trie.ClearPrefix(operation.key)
+				}
+			}
+		}(snapshotedTries[i], testCases[i], startWg, finishWg)
 	}
 
-	wg := new(sync.WaitGroup)
-	wg.Add(2)
-	trieA := base.Snapshot()
-	trieB := base.Snapshot()
+	finishWg.Wait()
 
-	go func() {
-		for _, tc := range testCasesA {
-			switch tc.op {
-			case PUT:
-				trieA.Put(tc.key, tc.key)
-			case DEL:
-				trieA.Delete(tc.key)
-			case CLEAR_PREFIX:
-				trieA.ClearPrefix(tc.key)
-			}
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		for _, tc := range testCasesB {
-			switch tc.op {
-			case PUT:
-				trieB.Put(tc.key, tc.key)
-			case DEL:
-				trieB.Delete(tc.key)
-			case CLEAR_PREFIX:
-				trieB.ClearPrefix(tc.key)
-			}
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	require.Equal(t, expectedA.MustHash(), trieA.MustHash())
-	require.Equal(t, expectedB.MustHash(), trieB.MustHash())
+	for i := 0; i < workers; i++ {
+		assert.Equal(t,
+			expectedTries[i].MustHash(),
+			snapshotedTries[i].MustHash())
+	}
 }
 
 func TestTrie_ClearPrefixLimit(t *testing.T) {
@@ -923,7 +865,6 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 	}
 
 	cases := [][]Test{
-
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x36}, value: []byte("pencil")},
@@ -959,7 +900,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 		},
 	}
 
-	testFn := func(testCase []Test, prefix []byte) {
+	testFn := func(t *testing.T, testCase []Test, prefix []byte) {
 		prefixNibbles := codec.KeyLEToNibbles(prefix)
 		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
@@ -1002,11 +943,9 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 	}
 
 	for _, testCase := range cases {
-		t.Run("Test", func(t *testing.T) {
-			for _, prefix := range prefixes {
-				testFn(testCase, prefix)
-			}
-		})
+		for _, prefix := range prefixes {
+			testFn(t, testCase, prefix)
+		}
 	}
 }
 
@@ -1027,7 +966,6 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 	}
 
 	cases := [][]Test{
-
 		{
 			{key: []byte{0x01}, value: []byte("feather")},
 		},
@@ -1147,5 +1085,29 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				require.Equal(t, dcTrieHash, tHash)
 			}
 		}
+	}
+}
+
+func Test_encodeRoot_fuzz(t *testing.T) {
+	generator := newGenerator()
+
+	trie := NewEmptyTrie()
+
+	const randomBatches = 3
+
+	for i := 0; i < randomBatches; i++ {
+		const kvSize = 16
+		kv := generateKeyValues(t, generator, kvSize)
+		for keyString, value := range kv {
+			key := []byte(keyString)
+			trie.Put(key, value)
+
+			retrievedValue := trie.Get(key)
+			assert.Equal(t, value, retrievedValue)
+		}
+		buffer := bytes.NewBuffer(nil)
+		err := trie.root.Encode(buffer)
+		require.NoError(t, err)
+		require.NotEmpty(t, buffer.Bytes())
 	}
 }

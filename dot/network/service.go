@@ -34,7 +34,7 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 63 // 63kb for now
+	maxMessageSize = 1024 * 64 // 64kb for now
 )
 
 var (
@@ -107,7 +107,7 @@ type Service struct {
 	host          *host
 	mdns          *mdns
 	gossip        *gossip
-	bufPool       *sizedBufferPool
+	bufPool       *sync.Pool
 	streamManager *streamManager
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
@@ -181,16 +181,12 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	// pre-allocate pool of buffers used to read from streams.
-	// initially allocate as many buffers as likely necessary which is the number of inbound streams we will have,
-	// which should equal the average number of peers times the number of notifications protocols, which is currently 3.
-	preAllocateInPool := cfg.MinPeers * 3
-	poolSize := cfg.MaxPeers * 3
-	if cfg.noPreAllocate { // testing
-		preAllocateInPool = 0
-		poolSize = cfg.MinPeers * 3
+	bufPool := &sync.Pool{
+		New: func() interface{} {
+			b := make([]byte, maxMessageSize)
+			return &b
+		},
 	}
-	bufPool := newSizedBufferPool(preAllocateInPool, poolSize)
 
 	network := &Service{
 		ctx:                    ctx,

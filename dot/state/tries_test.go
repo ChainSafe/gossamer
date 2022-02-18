@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_newTries(t *testing.T) {
+func Test_NewTries(t *testing.T) {
 	t.Parallel()
 
 	tr := trie.NewEmptyTrie()
 
-	rootToTrie := newTries(tr)
+	rootToTrie := NewTries(tr)
 
-	expectedTries := &tries{
+	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
 			tr.MustHash(): tr,
 		},
@@ -28,36 +28,36 @@ func Test_newTries(t *testing.T) {
 	assert.Equal(t, expectedTries, rootToTrie)
 }
 
-func Test_tries_softSet(t *testing.T) {
+func Test_Tries_softSet(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		tries         *tries
+		tries         *Tries
 		root          common.Hash
 		trie          *trie.Trie
-		expectedTries *tries
+		expectedTries *Tries
 	}{
 		"set new in map": {
-			tries: &tries{
+			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 			root: common.Hash{1, 2, 3},
 			trie: trie.NewEmptyTrie(),
-			expectedTries: &tries{
+			expectedTries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: trie.NewEmptyTrie(),
 				},
 			},
 		},
 		"do not override in map": {
-			tries: &tries{
+			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: {},
 				},
 			},
 			root: common.Hash{1, 2, 3},
 			trie: trie.NewEmptyTrie(),
-			expectedTries: &tries{
+			expectedTries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: {},
 				},
@@ -77,31 +77,31 @@ func Test_tries_softSet(t *testing.T) {
 	}
 }
 
-func Test_tries_delete(t *testing.T) {
+func Test_Tries_delete(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		tries         *tries
+		tries         *Tries
 		root          common.Hash
-		expectedTries *tries
+		expectedTries *Tries
 	}{
 		"not found": {
-			tries: &tries{
+			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 			root: common.Hash{1, 2, 3},
-			expectedTries: &tries{
+			expectedTries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 		},
 		"deleted": {
-			tries: &tries{
+			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: {},
 				},
 			},
 			root: common.Hash{1, 2, 3},
-			expectedTries: &tries{
+			expectedTries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 		},
@@ -118,16 +118,16 @@ func Test_tries_delete(t *testing.T) {
 		})
 	}
 }
-func Test_tries_get(t *testing.T) {
+func Test_Tries_get(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		tries *tries
+		tries *Tries
 		root  common.Hash
 		trie  *trie.Trie
 	}{
 		"found in map": {
-			tries: &tries{
+			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: trie.NewTrie(&node.Leaf{
 						Key: []byte{1, 2, 3},
@@ -141,7 +141,7 @@ func Test_tries_get(t *testing.T) {
 		},
 		"not found in map": {
 			// similar to not found in database
-			tries: &tries{
+			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 			root: common.Hash{1, 2, 3},
@@ -160,20 +160,20 @@ func Test_tries_get(t *testing.T) {
 	}
 }
 
-func Test_tries_len(t *testing.T) {
+func Test_Tries_len(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		tries  *tries
+		tries  *Tries
 		length int
 	}{
 		"empty map": {
-			tries: &tries{
+			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 		},
 		"non empty map": {
-			tries: &tries{
+			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: {},
 				},
