@@ -30,7 +30,7 @@ func errTrieDoesNotExist(hash common.Hash) error {
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	blockState *BlockState
-	tries      *tries
+	tries      *Tries
 
 	db chaindb.Database
 	sync.RWMutex
@@ -41,18 +41,13 @@ type StorageState struct {
 	pruner       pruner.Pruner
 }
 
-// NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
+// NewStorageState creates a new StorageState backed by the given block state
+// and database located at basePath.
 func NewStorageState(db chaindb.Database, blockState *BlockState,
-	t *trie.Trie, onlinePruner pruner.Config) (*StorageState, error) {
+	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
-
-	if t == nil {
-		return nil, fmt.Errorf("cannot have nil trie")
-	}
-
-	tries := newTries(t)
 
 	storageTable := chaindb.NewTable(db, storagePrefix)
 
@@ -74,11 +69,6 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 		observerList: []Observer{},
 		pruner:       p,
 	}, nil
-}
-
-func (s *StorageState) pruneKey(keyHeader *types.Header) {
-	logger.Tracef("pruning trie, number=%d hash=%s", keyHeader.Number, keyHeader.Hash())
-	s.tries.delete(keyHeader.StateRoot)
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
@@ -313,15 +303,4 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 // GenerateTrieProof returns the proofs related to the keys on the state root trie
 func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
 	return trie.GenerateProof(stateRoot[:], keys, s.db)
-}
-
-func (s *StorageState) pruneStorage(closeCh chan interface{}) {
-	for {
-		select {
-		case key := <-s.blockState.pruneKeyCh:
-			s.pruneKey(key)
-		case <-closeCh:
-			return
-		}
-	}
 }

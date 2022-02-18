@@ -66,6 +66,7 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 	RemoveExtrinsicFromPool(ext types.Extrinsic)
 	PendingInPool() []*transaction.ValidTransaction
+	Exists(ext types.Extrinsic) bool
 }
 
 // Network is the interface for the network service

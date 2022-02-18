@@ -21,9 +21,16 @@ jobs:
 
       - run: go install github.com/golang/mock/mockgen@v1.6.0
 
-      - run: go generate -run "mockery" ./...
+      - name: Check devnet module
+        run: |
+          cd devnet && \
+          go generate -run "mockery" -tags integration ./... && \
+          go generate -run "mockgen" -tags integration ./... && \
+          git diff --exit-code && \
+          cd ..
 
-      - run: go generate -run "mockgen" ./...
-
-      - name: mocks updated check
-        run: git diff --exit-code
+      - name: Check Gossamer module
+        run: |
+          go generate -run "mockery" -tags integration ./... && \
+          go generate -run "mockgen" -tags integration ./... && \
+          git diff --exit-code

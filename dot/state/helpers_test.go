@@ -1,29 +1,22 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package state
 
 import (
-	"errors"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
-type writeCall struct {
-	written []byte
-	n       int
-	err     error
-}
-
-var errTest = errors.New("test error")
-
-type Test struct {
-	key   []byte
-	value []byte
-	op    int
+func newTriesEmpty() *Tries {
+	return &Tries{
+		rootToTrie: make(map[common.Hash]*trie.Trie),
+	}
 }
 
 // newGenerator creates a new PRNG seeded with the
