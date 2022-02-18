@@ -55,8 +55,7 @@ type Service struct {
 	codeSubstitutedState CodeSubstitutedState
 
 	// Keystore
-	keys        *keystore.GlobalKeystore
-	newInstance newWasmerInstanceFunc
+	keys *keystore.GlobalKeystore
 }
 
 // Config holds the configuration for the core Service.
@@ -121,7 +120,6 @@ func NewService(cfg *Config) (*Service, error) {
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 		digestHandler:        cfg.DigestHandler,
-		newInstance:          wasmer.NewInstance,
 	}
 
 	return srv, nil
@@ -252,11 +250,12 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 }
 
 func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
-	return s.handleCodeSubstituionWithWasmerInstance(hash, state)
+	return s.handleCodeSubstituionWithWasmerInstance(hash, state, wasmer.NewInstance)
 }
 func (s *Service) handleCodeSubstituionWithWasmerInstance(
 	hash common.Hash,
 	state *rtstorage.TrieState,
+	newInstance newWasmerInstanceFunc,
 ) error {
 	value := s.codeSubstitute[hash]
 	if value == "" {
@@ -289,7 +288,7 @@ func (s *Service) handleCodeSubstituionWithWasmerInstance(
 		cfg.Role = 4
 	}
 
-	next, err := s.newInstance(code, cfg)
+	next, err := newInstance(code, cfg)
 	if err != nil {
 		return err
 	}
