@@ -306,22 +306,19 @@ func (t *Trie) Put(keyLE, value []byte) {
 }
 
 func (t *Trie) put(key, value []byte) {
-	nodeToInsert := &node.Leaf{
-		Value:      value,
-		Generation: t.generation,
-		Dirty:      true,
-	}
-	t.root = t.insert(t.root, key, nodeToInsert)
+	t.root = t.insert(t.root, key, value)
 }
 
-// insert attempts to insert a key with value into the trie
-func (t *Trie) insert(parent Node, key []byte, value Node) (newParent Node) {
-	// TODO change value node to be value []byte?
-	value.SetGeneration(t.generation) // just in case it's not set by the caller.
-
+// insert inserts a value in the trie at the key specified.
+// It may create one or more new nodes or update an existing node.
+func (t *Trie) insert(parent Node, key, value []byte) (newParent Node) {
 	if parent == nil {
-		value.SetKey(key)
-		return value
+		return &node.Leaf{
+			Key:        key,
+			Value:      value,
+			Generation: t.generation,
+			Dirty:      true,
+		}
 	}
 
 	// TODO ensure all values have dirty set to true
@@ -340,13 +337,12 @@ func (t *Trie) insert(parent Node, key []byte, value Node) (newParent Node) {
 	}
 }
 
-func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
-	value Node) (newParent Node) {
-	newValue := value.(*node.Leaf).Value
-
+func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key,
+	value []byte) (newParent Node) {
 	if bytes.Equal(parentLeaf.Key, key) {
-		if !bytes.Equal(newValue, parentLeaf.Value) {
-			parentLeaf.Value = newValue
+		if !bytes.Equal(value, parentLeaf.Value) {
+			parentLeaf.Value = value
+			parentLeaf.Generation = t.generation
 			parentLeaf.SetDirty(true)
 		}
 		return parentLeaf
@@ -364,7 +360,7 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
 
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
-		newBranchParent.Value = newValue
+		newBranchParent.Value = value
 
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
@@ -377,8 +373,6 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
 		return newBranchParent
 	}
 
-	value.SetKey(key[commonPrefixLength+1:])
-
 	if len(parentLeaf.Key) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
 		newBranchParent.Value = parentLeaf.Value
@@ -390,15 +384,21 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
 		newBranchParent.Children[childIndex] = parentLeaf
 	}
 	childIndex := key[commonPrefixLength]
-	newBranchParent.Children[childIndex] = value
+	newBranchParent.Children[childIndex] = &node.Leaf{
+		Key:        key[commonPrefixLength+1:],
+		Value:      value,
+		Generation: t.generation,
+		Dirty:      true,
+	}
 
 	return newBranchParent
 }
 
-func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node) (newParent Node) {
+func (t *Trie) insertInBranch(parentBranch *node.Branch, key, value []byte) (newParent Node) {
 	if bytes.Equal(key, parentBranch.Key) {
 		parentBranch.SetDirty(true)
-		parentBranch.Value = value.GetValue()
+		parentBranch.Generation = t.generation
+		parentBranch.Value = value
 		return parentBranch
 	}
 
@@ -412,7 +412,7 @@ func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node)
 		if child == nil {
 			child = &node.Leaf{
 				Key:        remainingKey,
-				Value:      value.GetValue(),
+				Value:      value,
 				Generation: t.generation,
 				Dirty:      true,
 			}
@@ -423,6 +423,7 @@ func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node)
 
 		parentBranch.Children[childIndex] = child
 		parentBranch.SetDirty(true)
+		parentBranch.Generation = t.generation
 		return parentBranch
 	}
 
@@ -438,10 +439,14 @@ func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node)
 
 	oldParentIndex := parentBranch.Key[commonPrefixLength]
 	remainingOldParentKey := parentBranch.Key[commonPrefixLength+1:]
-	newParentBranch.Children[oldParentIndex] = t.insert(nil, remainingOldParentKey, parentBranch)
+
+	parentBranch.Dirty = true
+	parentBranch.Key = remainingOldParentKey
+	parentBranch.Generation = t.generation
+	newParentBranch.Children[oldParentIndex] = parentBranch
 
 	if len(key) <= commonPrefixLength {
-		newParentBranch.Value = value.(*node.Leaf).Value
+		newParentBranch.Value = value
 	} else {
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
