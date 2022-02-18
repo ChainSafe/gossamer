@@ -94,7 +94,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	}
 
 	execTest := func(t *testing.T, s *Service, blockHash common.Hash, expErr error) {
-		err := s.handleCodeSubstitutionWithWasmerInstance(blockHash, nil, newTestInstance)
+		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, errTestDummyError.Error())
@@ -104,7 +104,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Run("nil value", func(t *testing.T) {
 		t.Parallel()
 		s := &Service{codeSubstitute: map[common.Hash]string{}}
-		err := s.handleCodeSubstitutionWithWasmerInstance(common.Hash{}, nil, newTestInstance)
+		err := s._handleCodeSubstitution(common.Hash{}, nil, newTestInstance)
 		assert.NoError(t, err)
 	})
 
@@ -178,7 +178,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			blockState:           mockBlockState,
 			codeSubstitutedState: mockCodeSubState,
 		}
-		err := s.handleCodeSubstitutionWithWasmerInstance(blockHash, nil, newTestInstance)
+		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.NoError(t, err)
 	})
 }

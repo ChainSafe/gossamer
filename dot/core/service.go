@@ -250,9 +250,9 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 }
 
 func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
-	return s.handleCodeSubstitutionWithWasmerInstance(hash, state, wasmer.NewInstance)
+	return s._handleCodeSubstitution(hash, state, wasmer.NewInstance)
 }
-func (s *Service) handleCodeSubstitutionWithWasmerInstance(
+func (s *Service) _handleCodeSubstitution(
 	hash common.Hash,
 	state *rtstorage.TrieState,
 	newInstance newWasmerInstanceFunc,
