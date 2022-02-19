@@ -22,7 +22,7 @@ import (
 // The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialisation of the node;
 // it is not called during normal startup.
-func (s *defaultService) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
+func (s *service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
 	// get data directory from service
 	basepath, err := filepath.Abs(s.dbPath)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *defaultService) Initialise(gen *genesis.Genesis, header *types.Header, 
 	return nil
 }
 
-func (s *defaultService) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.BabeConfiguration, error) {
+func (s *service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.BabeConfiguration, error) {
 	// load and store initial BABE epoch configuration
 	babeCfg, err := r.BabeConfiguration()
 	if err != nil {
@@ -131,7 +131,7 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *defaultService) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
+func (s *service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 	// write genesis trie to database
 	if err := t.Store(chaindb.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
@@ -150,7 +150,7 @@ func (s *defaultService) storeInitialValues(data *genesis.Data, t *trie.Trie) er
 }
 
 // CreateGenesisRuntime creates runtime instance form genesis
-func (s *defaultService) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
+func (s *service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
 	genTrie, err := rtstorage.NewTrieState(t)
 	if err != nil {

@@ -27,6 +27,7 @@ var logger = log.NewFromGlobal(
 	log.AddContext("pkg", "state"),
 )
 
+// Service is the struct that holds storage, block and network states
 type Service interface {
 	UseMemDB()
 	DB() chaindb.Database
@@ -52,10 +53,10 @@ type Service interface {
 	SetTelemetryClient(telemetry.Client)
 }
 
-var _ Service = &defaultService{}
+var _ Service = &service{}
 
 // Service is the struct that holds storage, block and network states
-type defaultService struct {
+type service struct {
 	dbPath      string
 	logLvl      log.Level
 	db          chaindb.Database
@@ -76,31 +77,31 @@ type defaultService struct {
 	BabeThresholdDenominator uint64
 }
 
-func (s *defaultService) BaseState() *BaseState {
+func (s *service) BaseState() *BaseState {
 	return s.Base
 }
-func (s *defaultService) BlockState() *BlockState {
+func (s *service) BlockState() *BlockState {
 	return s.Block
 }
-func (s *defaultService) StorageState() *StorageState {
+func (s *service) StorageState() *StorageState {
 	return s.Storage
 }
-func (s *defaultService) TransactionState() *TransactionState {
+func (s *service) TransactionState() *TransactionState {
 	return s.Transaction
 }
-func (s *defaultService) EpochState() *EpochState {
+func (s *service) EpochState() *EpochState {
 	return s.Epoch
 }
-func (s *defaultService) GrandpaState() *GrandpaState {
+func (s *service) GrandpaState() *GrandpaState {
 	return s.Grandpa
 }
-func (s *defaultService) SetTelemetryClient(client telemetry.Client) {
+func (s *service) SetTelemetryClient(client telemetry.Client) {
 	s.Telemetry = client
 }
-func (s *defaultService) SetEpochState(epochState *EpochState) {
+func (s *service) SetEpochState(epochState *EpochState) {
 	s.Epoch = epochState
 }
-func (s *defaultService) SetBlockState(blockState *BlockState) {
+func (s *service) SetBlockState(blockState *BlockState) {
 	s.Block = blockState
 }
 
@@ -120,7 +121,7 @@ type Config struct {
 func NewService(config Config) Service {
 	logger.Patch(log.SetLevel(config.LogLevel))
 
-	return &defaultService{
+	return &service{
 		dbPath:    config.Path,
 		logLvl:    config.LogLevel,
 		db:        nil,
@@ -134,25 +135,25 @@ func NewService(config Config) Service {
 	}
 }
 
-func (s *defaultService) StorageEntries(root *common.Hash) (map[string][]byte, error) {
+func (s *service) StorageEntries(root *common.Hash) (map[string][]byte, error) {
 	return s.Storage.Entries(root)
 }
 
 // UseMemDB tells the service to use an in-memory key-value store instead of a persistent database.
 // This should be called after NewService, and before Initialise.
 // This should only be used for testing.
-func (s *defaultService) UseMemDB() {
+func (s *service) UseMemDB() {
 	s.isMemDB = true
 }
 
 // DB returns the Service's database
-func (s *defaultService) DB() chaindb.Database {
+func (s *service) DB() chaindb.Database {
 	return s.db
 }
 
 // SetupBase intitializes state.Base property with
 // the instance of a chain.NewBadger database
-func (s *defaultService) SetupBase() error {
+func (s *service) SetupBase() error {
 	if s.isMemDB {
 		return nil
 	}
@@ -175,7 +176,7 @@ func (s *defaultService) SetupBase() error {
 }
 
 // Start initialises the Storage database and the Block database.
-func (s *defaultService) Start() error {
+func (s *service) Start() error {
 	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
 		return nil
 	}
@@ -241,7 +242,7 @@ func (s *defaultService) Start() error {
 
 // Rewind rewinds the chain to the given block number.
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
-func (s *defaultService) Rewind(toBlock int64) error {
+func (s *service) Rewind(toBlock int64) error {
 	num, _ := s.Block.BestBlockNumber()
 	if toBlock > num.Int64() {
 		return fmt.Errorf("cannot rewind, given height is higher than our current height")
@@ -317,7 +318,7 @@ func (s *defaultService) Rewind(toBlock int64) error {
 }
 
 // Stop closes each state database
-func (s *defaultService) Stop() error {
+func (s *service) Stop() error {
 	close(s.closeCh)
 
 	hash, err := s.Block.GetHighestFinalisedHash()
@@ -336,7 +337,7 @@ func (s *defaultService) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *defaultService) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
+func (s *service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
 	var err error
 	// initialise database using data directory
 	s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
