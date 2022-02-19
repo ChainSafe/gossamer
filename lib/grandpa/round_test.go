@@ -100,8 +100,8 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 		SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kp,

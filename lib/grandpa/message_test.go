@@ -39,7 +39,7 @@ func TestCommitMessageEncode(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err := st.GrandpaState().SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77)
@@ -66,7 +66,7 @@ func TestCommitMessageEncode(t *testing.T) {
 func TestVoteMessageToConsensusMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	v, err := NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
+	v, err := NewVoteFromHash(st.BlockState().BestBlockHash(), st.BlockState())
 	require.NoError(t, err)
 
 	gs.state.setID = 99
@@ -119,7 +119,7 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err := st.GrandpaState().SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77)
@@ -162,7 +162,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 		Number: 1,
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.BlockState().AddBlock(block)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(hash, round, setID)

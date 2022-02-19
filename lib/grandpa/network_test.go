@@ -44,7 +44,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err := st.GrandpaState().SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77)
@@ -63,7 +63,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 		SendMessage(gomock.Any()).
 		AnyTimes()
 
-	h := NewMessageHandler(gs, st.Block, telemetryMock)
+	h := NewMessageHandler(gs, st.BlockState(), telemetryMock)
 	gs.messageHandler = h
 
 	propagate, err := gs.handleNetworkMessage(peer.ID(""), cm)
@@ -94,20 +94,20 @@ func TestSendNeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
-			ParentHash: st.Block.GenesisHash(),
+			ParentHash: st.BlockState().GenesisHash(),
 			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
 		Body: types.Body{},
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.BlockState().AddBlock(block)
 	require.NoError(t, err)
 
 	hash := block.Header.Hash()
 	round := uint64(7)
 	setID := uint64(33)
-	err = st.Block.SetFinalisedHash(hash, round, setID)
+	err = st.BlockState().SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
 
 	expected := &NeighbourMessage{

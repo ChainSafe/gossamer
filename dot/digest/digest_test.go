@@ -48,7 +48,7 @@ func newTestHandler(t *testing.T) *Handler {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	dh, err := NewHandler(log.Critical, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
+	dh, err := NewHandler(log.Critical, stateSrvc.BlockState(), stateSrvc.EpochState(), stateSrvc.GrandpaState())
 	require.NoError(t, err)
 	return dh
 }

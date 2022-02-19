@@ -23,7 +23,7 @@ import (
 )
 
 // helper method to create and start test state service
-func newTestService(t *testing.T) (state *Service) {
+func newTestService(t *testing.T) (state *defaultService) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -33,11 +33,11 @@ func newTestService(t *testing.T) (state *Service) {
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
-	state = NewService(config)
+	state = NewService(config).(*defaultService)
 	return state
 }
 
-func newTestMemDBService(t *testing.T) *Service {
+func newTestMemDBService(t *testing.T) Service {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -124,7 +124,7 @@ func TestService_BlockTree(t *testing.T) {
 		Telemetry: telemetryMock,
 	}
 
-	stateA := NewService(config)
+	stateA := NewService(config).(*defaultService)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(genData, genesisHeader, genTrie)
@@ -146,7 +146,7 @@ func TestService_BlockTree(t *testing.T) {
 	err = stateA.Stop()
 	require.NoError(t, err)
 
-	stateB := NewService(config)
+	stateB := NewService(config).(*defaultService)
 
 	err = stateB.SetupBase()
 	require.NoError(t, err)
@@ -174,7 +174,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 		},
 		Telemetry: telemetryMock,
 	}
-	serv := NewService(config)
+	serv := NewService(config).(*defaultService)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
@@ -223,7 +223,7 @@ func TestService_PruneStorage(t *testing.T) {
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
-	serv := NewService(config)
+	serv := NewService(config).(*defaultService)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
@@ -314,41 +314,41 @@ func TestService_Rewind(t *testing.T) {
 	err = serv.Start()
 	require.NoError(t, err)
 
-	err = serv.Grandpa.setCurrentSetID(3)
+	err = serv.GrandpaState().setCurrentSetID(3)
 	require.NoError(t, err)
 
-	err = serv.Grandpa.setSetIDChangeAtBlock(1, big.NewInt(5))
+	err = serv.GrandpaState().setSetIDChangeAtBlock(1, big.NewInt(5))
 	require.NoError(t, err)
 
-	err = serv.Grandpa.setSetIDChangeAtBlock(2, big.NewInt(8))
+	err = serv.GrandpaState().setSetIDChangeAtBlock(2, big.NewInt(8))
 	require.NoError(t, err)
 
-	err = serv.Grandpa.setSetIDChangeAtBlock(3, big.NewInt(10))
+	err = serv.GrandpaState().setSetIDChangeAtBlock(3, big.NewInt(10))
 	require.NoError(t, err)
 
-	AddBlocksToState(t, serv.Block, 12, false)
-	head := serv.Block.BestBlockHash()
-	err = serv.Block.SetFinalisedHash(head, 0, 0)
+	AddBlocksToState(t, serv.BlockState(), 12, false)
+	head := serv.BlockState().BestBlockHash()
+	err = serv.BlockState().SetFinalisedHash(head, 0, 0)
 	require.NoError(t, err)
 
 	err = serv.Rewind(6)
 	require.NoError(t, err)
 
-	num, err := serv.Block.BestBlockNumber()
+	num, err := serv.BlockState().BestBlockNumber()
 	require.NoError(t, err)
 	require.Equal(t, big.NewInt(6), num)
 
-	setID, err := serv.Grandpa.GetCurrentSetID()
+	setID, err := serv.GrandpaState().GetCurrentSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
 
-	_, err = serv.Grandpa.GetSetIDChange(1)
+	_, err = serv.GrandpaState().GetSetIDChange(1)
 	require.NoError(t, err)
 
-	_, err = serv.Grandpa.GetSetIDChange(2)
+	_, err = serv.GrandpaState().GetSetIDChange(2)
 	require.Equal(t, chaindb.ErrKeyNotFound, err)
 
-	_, err = serv.Grandpa.GetSetIDChange(3)
+	_, err = serv.GrandpaState().GetSetIDChange(3)
 	require.Equal(t, chaindb.ErrKeyNotFound, err)
 }
 
@@ -368,7 +368,7 @@ func TestService_Import(t *testing.T) {
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
-	err = serv.db.Close()
+	err = serv.DB().Close()
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
@@ -403,15 +403,15 @@ func TestService_Import(t *testing.T) {
 	err = serv.Start()
 	require.NoError(t, err)
 
-	bestBlockHeader, err := serv.Block.BestBlockHeader()
+	bestBlockHeader, err := serv.BlockState().BestBlockHeader()
 	require.NoError(t, err)
 	require.Equal(t, header, bestBlockHeader)
 
-	root, err := serv.Storage.StorageRoot()
+	root, err := serv.StorageState().StorageRoot()
 	require.NoError(t, err)
 	require.Equal(t, header.StateRoot, root)
 
-	skip, err := serv.Epoch.SkipVerify(header)
+	skip, err := serv.EpochState().SkipVerify(header)
 	require.NoError(t, err)
 	require.True(t, skip)
 

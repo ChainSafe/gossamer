@@ -52,23 +52,23 @@ type Node struct {
 type nodeBuilderIface interface {
 	nodeInitialised(string) bool
 	initNode(config *Config) error
-	createStateService(config *Config) (*state.Service, error)
-	createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer telemetry.Client) (*network.Service,
+	createStateService(config *Config) (state.Service, error)
+	createNetworkService(cfg *Config, stateSrvc state.Service, telemetryMailer telemetry.Client) (*network.Service,
 		error)
-	createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error)
-	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
+	createRuntimeStorage(st state.Service) (*runtime.NodeStorage, error)
+	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc state.Service, ks *keystore.GlobalKeystore,
 		net *network.Service) error
-	createBlockVerifier(st *state.Service) (*babe.VerificationManager, error)
-	createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error)
-	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
+	createBlockVerifier(st state.Service) (*babe.VerificationManager, error)
+	createDigestHandler(lvl log.Level, st state.Service) (*digest.Handler, error)
+	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st state.Service, net *network.Service,
 		dh *digest.Handler) (*core.Service, error)
-	createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore,
+	createGRANDPAService(cfg *Config, st state.Service, dh *digest.Handler, ks keystore.Keystore,
 		net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error)
-	newSyncService(cfg *Config, st *state.Service, fg dotsync.FinalityGadget, verifier *babe.VerificationManager,
+	newSyncService(cfg *Config, st state.Service, fg dotsync.FinalityGadget, verifier *babe.VerificationManager,
 		cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (*dotsync.Service, error)
-	createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service,
+	createBABEService(cfg *Config, st state.Service, ks keystore.Keystore, cs *core.Service,
 		telemetryMailer telemetry.Client) (*babe.Service, error)
-	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)
+	createSystemService(cfg *types.SystemInfo, stateSrvc state.Service) (*system.Service, error)
 	createRPCService(params rpcServiceSettings) (*rpc.HTTPServer, error)
 }
 
@@ -257,7 +257,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, builder nodeBuilderIface)
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
 
-	gd, err := stateSrvc.Base.LoadGenesisData()
+	gd, err := stateSrvc.BaseState().LoadGenesisData()
 	if err != nil {
 		return nil, fmt.Errorf("cannot load genesis data: %w", err)
 	}
@@ -267,7 +267,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, builder nodeBuilderIface)
 		return nil, fmt.Errorf("cannot setup telemetry mailer: %w", err)
 	}
 
-	stateSrvc.Telemetry = telemetryMailer
+	stateSrvc.SetTelemetryClient(telemetryMailer)
 
 	err = startStateService(cfg, stateSrvc)
 	if err != nil {
@@ -290,7 +290,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, builder nodeBuilderIface)
 		}
 		nodeSrvcs = append(nodeSrvcs, networkSrvc)
 		startupTime := fmt.Sprint(time.Now().UnixNano())
-		genesisHash := stateSrvc.Block.GenesisHash()
+		genesisHash := stateSrvc.BlockState().GenesisHash()
 		netstate := networkSrvc.NetworkState()
 
 		//sent NewSystemConnectedTM only if networkServiceEnabled
@@ -488,13 +488,13 @@ func (n *Node) Stop() {
 }
 
 func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
-	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
+	stateSrvc state.Service, ks *keystore.GlobalKeystore,
 	net *network.Service) error {
-	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
+	blocks := stateSrvc.BlockState().GetNonFinalisedBlocks()
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {
 		hash := &blocks[i]
-		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))
+		code, err := stateSrvc.StorageState().GetStorageByBlockHash(hash, []byte(":code"))
 		if err != nil {
 			return err
 		}
@@ -505,7 +505,7 @@ func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
 		}
 
 		if rt, ok := runtimeCode[codeHash.String()]; ok {
-			stateSrvc.Block.StoreRuntime(*hash, rt)
+			stateSrvc.BlockState().StoreRuntime(*hash, rt)
 			continue
 		}
 

@@ -39,7 +39,7 @@ import (
 type rpcServiceSettings struct {
 	config        *Config
 	nodeStorage   *runtime.NodeStorage
-	state         *state.Service
+	state         state.Service
 	core          *core.Service
 	network       *network.Service
 	blockProducer modules.BlockProducerAPI
@@ -53,7 +53,7 @@ func newInMemoryDB(path string) (chaindb.Database, error) {
 }
 
 // createStateService creates the state service and initialise state database
-func (nodeBuilder) createStateService(cfg *Config) (*state.Service, error) {
+func (nodeBuilder) createStateService(cfg *Config) (state.Service, error) {
 	logger.Debug("creating state service...")
 
 	config := state.Config{
@@ -72,7 +72,7 @@ func (nodeBuilder) createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func startStateService(cfg *Config, stateSrvc *state.Service) error {
+func startStateService(cfg *Config, stateSrvc state.Service) error {
 	logger.Debug("starting state service...")
 
 	// start state service (initialise state database)
@@ -91,7 +91,7 @@ func startStateService(cfg *Config, stateSrvc *state.Service) error {
 	return nil
 }
 
-func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {
+func (nodeBuilder) createRuntimeStorage(st state.Service) (*runtime.NodeStorage, error) {
 	localStorage, err := newInMemoryDB(st.DB().Path())
 	if err != nil {
 		return nil, err
@@ -100,21 +100,21 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 	return &runtime.NodeStorage{
 		LocalStorage:      localStorage,
 		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
-		BaseDB:            st.Base,
+		BaseDB:            st.BaseState(),
 	}, nil
 }
 
-func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
+func createRuntime(cfg *Config, ns runtime.NodeStorage, st state.Service,
 	ks *keystore.GlobalKeystore, net *network.Service, code []byte) (
 	runtime.Instance, error) {
 	logger.Info("creating runtime with interpreter " + cfg.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code
-	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
+	codeSubHash := st.BaseState().LoadCodeSubstitutedBlockHash()
 
 	if !codeSubHash.IsEmpty() {
 		logger.Infof("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash)
-		genData, err := st.Base.LoadGenesisData()
+		genData, err := st.BaseState().LoadGenesisData()
 		if err != nil {
 			return nil, err
 		}
@@ -123,12 +123,12 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		code = common.MustHexToBytes(codeString)
 	}
 
-	ts, err := st.Storage.TrieState(nil)
+	ts, err := st.StorageState().TrieState(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	codeHash, err := st.Storage.LoadCodeHash(nil)
+	codeHash, err := st.StorageState().LoadCodeHash(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		}
 	}
 
-	st.Block.StoreRuntime(st.Block.BestBlockHash(), rt)
+	st.BlockState().StoreRuntime(st.BlockState().BestBlockHash(), rt)
 	return rt, nil
 }
 
@@ -183,7 +183,7 @@ func asAuthority(authority bool) string {
 	return ""
 }
 
-func (nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore,
+func (nodeBuilder) createBABEService(cfg *Config, st state.Service, ks keystore.Keystore,
 	cs *core.Service, telemetryMailer telemetry.Client) (*babe.Service, error) {
 	logger.Info("creating BABE service" +
 		asAuthority(cfg.Core.BabeAuthority) + "...")
@@ -200,10 +200,10 @@ func (nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keystore
 
 	bcfg := &babe.ServiceConfig{
 		LogLvl:             cfg.Log.BlockProducerLvl,
-		BlockState:         st.Block,
-		StorageState:       st.Storage,
-		TransactionState:   st.Transaction,
-		EpochState:         st.Epoch,
+		BlockState:         st.BlockState(),
+		StorageState:       st.StorageState(),
+		TransactionState:   st.TransactionState(),
+		EpochState:         st.EpochState(),
 		BlockImportHandler: cs,
 		Authority:          cfg.Core.BabeAuthority,
 		IsDev:              cfg.Global.ID == "dev",
@@ -229,13 +229,13 @@ func (nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keystore
 
 // createCoreService creates the core service from the provided core configuration
 func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
-	st *state.Service, net *network.Service, dh *digest.Handler) (
+	st state.Service, net *network.Service, dh *digest.Handler) (
 	*core.Service, error) {
 	logger.Debug("creating core service" +
 		asAuthority(cfg.Core.Roles == types.AuthorityRole) +
 		"...")
 
-	genesisData, err := st.Base.LoadGenesisData()
+	genesisData, err := st.BaseState().LoadGenesisData()
 	if err != nil {
 		return nil, err
 	}
@@ -248,15 +248,15 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 	// set core configuration
 	coreConfig := &core.Config{
 		LogLvl:               cfg.Log.CoreLvl,
-		BlockState:           st.Block,
-		EpochState:           st.Epoch,
-		StorageState:         st.Storage,
-		TransactionState:     st.Transaction,
+		BlockState:           st.BlockState(),
+		EpochState:           st.EpochState(),
+		StorageState:         st.StorageState(),
+		TransactionState:     st.TransactionState(),
 		Keystore:             ks,
 		Network:              net,
 		DigestHandler:        dh,
 		CodeSubstitutes:      codeSubs,
-		CodeSubstitutedState: st.Base,
+		CodeSubstitutedState: st.BaseState(),
 	}
 
 	// create new core service
@@ -272,14 +272,14 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func (nodeBuilder) createNetworkService(cfg *Config, stateSrvc *state.Service,
+func (nodeBuilder) createNetworkService(cfg *Config, stateSrvc state.Service,
 	telemetryMailer telemetry.Client) (*network.Service, error) {
 	logger.Debugf(
 		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
 		cfg.Network.NoBootstrap, cfg.Network.NoMDNS)
 
-	slotDuration, err := stateSrvc.Epoch.GetSlotDuration()
+	slotDuration, err := stateSrvc.EpochState().GetSlotDuration()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get slot duration: %w", err)
 	}
@@ -287,7 +287,7 @@ func (nodeBuilder) createNetworkService(cfg *Config, stateSrvc *state.Service,
 	// network service configuation
 	networkConfig := network.Config{
 		LogLvl:            cfg.Log.NetworkLvl,
-		BlockState:        stateSrvc.Block,
+		BlockState:        stateSrvc.BlockState(),
 		BasePath:          cfg.Global.BasePath,
 		Roles:             cfg.Core.Roles,
 		Port:              cfg.Network.Port,
@@ -331,26 +331,26 @@ func (nodeBuilder) createRPCService(params rpcServiceSettings) (*rpc.HTTPServer,
 	)
 	rpcService := rpc.NewService()
 
-	genesisData, err := params.state.Base.LoadGenesisData()
+	genesisData, err := params.state.BaseState().LoadGenesisData()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load genesis data: %s", err)
 	}
 
-	syncStateSrvc, err := modules.NewStateSync(genesisData, params.state.Storage)
+	syncStateSrvc, err := modules.NewStateSync(genesisData, params.state.StorageState())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sync state service: %s", err)
 	}
 
 	rpcConfig := &rpc.HTTPServerConfig{
 		LogLvl:              params.config.Log.RPCLvl,
-		BlockAPI:            params.state.Block,
-		StorageAPI:          params.state.Storage,
+		BlockAPI:            params.state.BlockState(),
+		StorageAPI:          params.state.StorageState(),
 		NetworkAPI:          params.network,
 		CoreAPI:             params.core,
 		NodeStorage:         params.nodeStorage,
 		BlockProducerAPI:    params.blockProducer,
 		BlockFinalityAPI:    params.blockFinality,
-		TransactionQueueAPI: params.state.Transaction,
+		TransactionQueueAPI: params.state.TransactionState(),
 		RPCAPI:              rpcService,
 		SyncStateAPI:        syncStateSrvc,
 		SyncAPI:             params.syncer,
@@ -373,8 +373,8 @@ func (nodeBuilder) createRPCService(params rpcServiceSettings) (*rpc.HTTPServer,
 }
 
 // createSystemService creates a systemService for providing system related information
-func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
-	genesisData, err := stateSrvc.Base.LoadGenesisData()
+func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc state.Service) (*system.Service, error) {
+	genesisData, err := stateSrvc.BaseState().LoadGenesisData()
 	if err != nil {
 		return nil, err
 	}
@@ -383,9 +383,9 @@ func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.S
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
+func (nodeBuilder) createGRANDPAService(cfg *Config, st state.Service, dh *digest.Handler,
 	ks keystore.Keystore, net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
-	rt, err := st.Block.GetRuntime(nil)
+	rt, err := st.BlockState().GetRuntime(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -408,8 +408,8 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, dh *dige
 
 	gsCfg := &grandpa.Config{
 		LogLvl:        cfg.Log.FinalityGadgetLvl,
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: dh,
 		Voters:        voters,
 		Authority:     cfg.Core.GrandpaAuthority,
@@ -425,8 +425,8 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, dh *dige
 	return grandpa.NewService(gsCfg)
 }
 
-func (nodeBuilder) createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
-	ver, err := babe.NewVerificationManager(st.Block, st.Epoch)
+func (nodeBuilder) createBlockVerifier(st state.Service) (*babe.VerificationManager, error) {
+	ver, err := babe.NewVerificationManager(st.BlockState(), st.EpochState())
 	if err != nil {
 		return nil, err
 	}
@@ -434,10 +434,10 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) (*babe.VerificationMan
 	return ver, nil
 }
 
-func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
+func (nodeBuilder) newSyncService(cfg *Config, st state.Service, fg sync.FinalityGadget,
 	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (
 	*sync.Service, error) {
-	slotDuration, err := st.Epoch.GetSlotDuration()
+	slotDuration, err := st.EpochState().GetSlotDuration()
 	if err != nil {
 		return nil, err
 	}
@@ -445,9 +445,9 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg sync.Finali
 	syncCfg := &sync.Config{
 		LogLvl:             cfg.Log.SyncLvl,
 		Network:            net,
-		BlockState:         st.Block,
-		StorageState:       st.Storage,
-		TransactionState:   st.Transaction,
+		BlockState:         st.BlockState(),
+		StorageState:       st.StorageState(),
+		TransactionState:   st.TransactionState(),
 		FinalityGadget:     fg,
 		BabeVerifier:       verifier,
 		BlockImportHandler: cs,
@@ -460,8 +460,8 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg sync.Finali
 	return sync.NewService(syncCfg)
 }
 
-func (nodeBuilder) createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error) {
-	return digest.NewHandler(lvl, st.Block, st.Epoch, st.Grandpa)
+func (nodeBuilder) createDigestHandler(lvl log.Level, st state.Service) (*digest.Handler, error) {
+	return digest.NewHandler(lvl, st.BlockState(), st.EpochState(), st.GrandpaState())
 }
 
 func createPprofService(settings pprof.Settings) (service *pprof.Service) {

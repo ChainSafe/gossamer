@@ -84,17 +84,20 @@ func WriteGenesisSpecFile(data []byte, fp string) error {
 
 // BuildFromDB builds a BuildSpec from the DB located at path
 func BuildFromDB(path string) (*BuildSpec, error) {
+	return buildFromDB(path, state.NewService)
+}
+func buildFromDB(path string,
+	newStateService func(config state.Config) state.Service) (*BuildSpec, error) {
 	tmpGen := &genesis.Genesis{
 		Name:       "",
 		ID:         "",
 		Bootnodes:  nil,
 		ProtocolID: "",
 		Genesis: genesis.Fields{
-			Runtime: nil,
+			Runtime: make(map[string]map[string]interface{}),
+			Raw:     make(map[string]map[string]string),
 		},
 	}
-	tmpGen.Genesis.Raw = make(map[string]map[string]string)
-	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
 	// BootstrapMailer should not return an error here since there is no URLs to connect to
 	disabledTelemetry, err := telemetry.BootstrapMailer(context.TODO(), nil, false, nil)
@@ -108,7 +111,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 		Telemetry: disabledTelemetry,
 	}
 
-	stateSrvc := state.NewService(config)
+	stateSrvc := newStateService(config)
 
 	err = stateSrvc.SetupBase()
 	if err != nil {
@@ -121,7 +124,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 		return nil, fmt.Errorf("cannot start state service: %w", err)
 	}
 	// set genesis fields data
-	ent, err := stateSrvc.Storage.Entries(nil)
+	ent, err := stateSrvc.StorageEntries(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get storage trie entries: %w", err)
 	}

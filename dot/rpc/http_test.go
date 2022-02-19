@@ -396,11 +396,11 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	cfg := &core.Config{
 		LogLvl:               log.Warn,
-		EpochState:           stateSrvc.Epoch,
-		BlockState:           stateSrvc.Block,
-		StorageState:         stateSrvc.Storage,
-		TransactionState:     stateSrvc.Transaction,
-		CodeSubstitutedState: stateSrvc.Base,
+		EpochState:           stateSrvc.EpochState(),
+		BlockState:           stateSrvc.BlockState(),
+		StorageState:         stateSrvc.StorageState(),
+		TransactionState:     stateSrvc.TransactionState(),
+		CodeSubstitutedState: stateSrvc.BaseState(),
 	}
 
 	cfg.DigestHandler = new(coremocks.DigestHandler)
@@ -422,7 +422,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{
-		BaseDB: stateSrvc.Base,
+		BaseDB: stateSrvc.BaseState(),
 	}
 	rtCfg.NodeStorage = nodeStorage
 

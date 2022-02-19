@@ -14,6 +14,9 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -24,8 +27,35 @@ var logger = log.NewFromGlobal(
 	log.AddContext("pkg", "state"),
 )
 
+type Service interface {
+	UseMemDB()
+	DB() chaindb.Database
+	SetupBase() error
+	Start() error
+	Rewind(toBlock int64) error
+	Stop() error
+	Import(header *types.Header, t *trie.Trie, firstSlot uint64) error
+	StorageEntries(root *common.Hash) (map[string][]byte, error)
+	Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error
+	CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error)
+	BlockState() *BlockState
+	StorageState() *StorageState
+	TransactionState() *TransactionState
+	EpochState() *EpochState
+	GrandpaState() *GrandpaState
+	BaseState() *BaseState
+
+	// This is required at the moment since we are modifying internal state of the attributes
+	// in the service.  TODO: Find references to these functions and add these as params to constructor?
+	SetBlockState(*BlockState)
+	SetEpochState(*EpochState)
+	SetTelemetryClient(telemetry.Client)
+}
+
+var _ Service = &defaultService{}
+
 // Service is the struct that holds storage, block and network states
-type Service struct {
+type defaultService struct {
 	dbPath      string
 	logLvl      log.Level
 	db          chaindb.Database
@@ -46,47 +76,83 @@ type Service struct {
 	BabeThresholdDenominator uint64
 }
 
+func (s *defaultService) BaseState() *BaseState {
+	return s.Base
+}
+func (s *defaultService) BlockState() *BlockState {
+	return s.Block
+}
+func (s *defaultService) StorageState() *StorageState {
+	return s.Storage
+}
+func (s *defaultService) TransactionState() *TransactionState {
+	return s.Transaction
+}
+func (s *defaultService) EpochState() *EpochState {
+	return s.Epoch
+}
+func (s *defaultService) GrandpaState() *GrandpaState {
+	return s.Grandpa
+}
+func (s *defaultService) SetTelemetryClient(client telemetry.Client) {
+	s.Telemetry = client
+}
+func (s *defaultService) SetEpochState(epochState *EpochState) {
+	s.Epoch = epochState
+}
+func (s *defaultService) SetBlockState(blockState *BlockState) {
+	s.Block = blockState
+}
+
 // Config is the default configuration used by state service.
 type Config struct {
-	Path      string
-	LogLevel  log.Level
-	PrunerCfg pruner.Config
-	Telemetry telemetry.Client
-	Metrics   metrics.IntervalConfig
+	Path         string
+	LogLevel     log.Level
+	PrunerCfg    pruner.Config
+	Telemetry    telemetry.Client
+	Metrics      metrics.IntervalConfig
+	StorageState *StorageState
+	BlockState   *BlockState
+	GrandpaState *GrandpaState
 }
 
 // NewService create a new instance of Service
-func NewService(config Config) *Service {
+func NewService(config Config) Service {
 	logger.Patch(log.SetLevel(config.LogLevel))
 
-	return &Service{
+	return &defaultService{
 		dbPath:    config.Path,
 		logLvl:    config.LogLevel,
 		db:        nil,
 		isMemDB:   false,
-		Storage:   nil,
-		Block:     nil,
+		Storage:   config.StorageState,
+		Block:     config.BlockState,
+		Grandpa:   config.GrandpaState,
 		closeCh:   make(chan interface{}),
 		PrunerCfg: config.PrunerCfg,
 		Telemetry: config.Telemetry,
 	}
 }
 
+func (s *defaultService) StorageEntries(root *common.Hash) (map[string][]byte, error) {
+	return s.Storage.Entries(root)
+}
+
 // UseMemDB tells the service to use an in-memory key-value store instead of a persistent database.
 // This should be called after NewService, and before Initialise.
 // This should only be used for testing.
-func (s *Service) UseMemDB() {
+func (s *defaultService) UseMemDB() {
 	s.isMemDB = true
 }
 
 // DB returns the Service's database
-func (s *Service) DB() chaindb.Database {
+func (s *defaultService) DB() chaindb.Database {
 	return s.db
 }
 
 // SetupBase intitializes state.Base property with
 // the instance of a chain.NewBadger database
-func (s *Service) SetupBase() error {
+func (s *defaultService) SetupBase() error {
 	if s.isMemDB {
 		return nil
 	}
@@ -109,7 +175,7 @@ func (s *Service) SetupBase() error {
 }
 
 // Start initialises the Storage database and the Block database.
-func (s *Service) Start() error {
+func (s *defaultService) Start() error {
 	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
 		return nil
 	}
@@ -175,7 +241,7 @@ func (s *Service) Start() error {
 
 // Rewind rewinds the chain to the given block number.
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
-func (s *Service) Rewind(toBlock int64) error {
+func (s *defaultService) Rewind(toBlock int64) error {
 	num, _ := s.Block.BestBlockNumber()
 	if toBlock > num.Int64() {
 		return fmt.Errorf("cannot rewind, given height is higher than our current height")
@@ -251,7 +317,7 @@ func (s *Service) Rewind(toBlock int64) error {
 }
 
 // Stop closes each state database
-func (s *Service) Stop() error {
+func (s *defaultService) Stop() error {
 	close(s.closeCh)
 
 	hash, err := s.Block.GetHighestFinalisedHash()
@@ -270,7 +336,7 @@ func (s *Service) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
+func (s *defaultService) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
 	var err error
 	// initialise database using data directory
 	s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)

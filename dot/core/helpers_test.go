@@ -48,7 +48,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	cfg.LogLvl = 3
 
-	var stateSrvc *state.Service
+	var stateSrvc state.Service
 	testDatadirPath := t.TempDir()
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
@@ -77,23 +77,23 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = stateSrvc.Block
+		cfg.BlockState = stateSrvc.BlockState()
 	}
 
 	if cfg.StorageState == nil {
-		cfg.StorageState = stateSrvc.Storage
+		cfg.StorageState = stateSrvc.StorageState()
 	}
 
 	if cfg.TransactionState == nil {
-		cfg.TransactionState = stateSrvc.Transaction
+		cfg.TransactionState = stateSrvc.TransactionState()
 	}
 
 	if cfg.EpochState == nil {
-		cfg.EpochState = stateSrvc.Epoch
+		cfg.EpochState = stateSrvc.EpochState()
 	}
 
 	if cfg.CodeSubstitutedState == nil {
-		cfg.CodeSubstitutedState = stateSrvc.Base
+		cfg.CodeSubstitutedState = stateSrvc.BaseState()
 	}
 
 	if cfg.Runtime == nil {
@@ -109,7 +109,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		nodeStorage := runtime.NodeStorage{}
 
 		if stateSrvc != nil {
-			nodeStorage.BaseDB = stateSrvc.Base
+			nodeStorage.BaseDB = stateSrvc.BaseState()
 		} else {
 			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 			require.NoError(t, err)
@@ -142,7 +142,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.CodeSubstitutedState == nil {
-		cfg.CodeSubstitutedState = stateSrvc.Base
+		cfg.CodeSubstitutedState = stateSrvc.BaseState()
 	}
 
 	s, err := NewService(cfg)

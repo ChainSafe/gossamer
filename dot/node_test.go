@@ -6,27 +6,27 @@ package dot
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core"
-	"github.com/ChainSafe/gossamer/dot/digest"
+	core "github.com/ChainSafe/gossamer/dot/core"
+	digest "github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
-	gsync "github.com/ChainSafe/gossamer/dot/sync"
-	"github.com/ChainSafe/gossamer/dot/system"
+	sync "github.com/ChainSafe/gossamer/dot/sync"
+	system "github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
-	"github.com/ChainSafe/gossamer/lib/babe"
+	babe "github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
+	grandpa "github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
@@ -149,7 +149,7 @@ func TestNewNode(t *testing.T) {
 	assert.NoError(t, err)
 	m := NewMocknodeBuilderIface(ctrl)
 	m.EXPECT().nodeInitialised(dotConfig.Global.BasePath).Return(true)
-	m.EXPECT().createStateService(dotConfig).DoAndReturn(func(cfg *Config) (*state.Service, error) {
+	m.EXPECT().createStateService(dotConfig).DoAndReturn(func(cfg *Config) (state.Service, error) {
 		stateSrvc := state.NewService(config)
 		// create genesis from configuration file
 		gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
@@ -166,7 +166,7 @@ func TestNewNode(t *testing.T) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}
-		stateSrvc.Telemetry = mockTelemetryClient
+		stateSrvc.SetTelemetryClient(mockTelemetryClient)
 		err = stateSrvc.Initialise(gen, header, trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialise state service: %s", err)
@@ -179,30 +179,31 @@ func TestNewNode(t *testing.T) {
 		return stateSrvc, nil
 	})
 
-	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
+	stateSrvc := state.NewService(state.Config{})
+	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(stateSrvc)).Return(&runtime.
 		NodeStorage{}, nil)
-	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
+	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(stateSrvc),
 		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
-	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).Return(&babe.
+	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(stateSrvc)).Return(&babe.
 		VerificationManager{}, nil)
-	m.EXPECT().createDigestHandler(log.Critical, gomock.AssignableToTypeOf(&state.Service{})).Return(&digest.
+	m.EXPECT().createDigestHandler(log.Critical, gomock.AssignableToTypeOf(stateSrvc)).Return(&digest.
 		Handler{}, nil)
-	m.EXPECT().createCoreService(dotConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),
+	m.EXPECT().createCoreService(dotConfig, ks, gomock.AssignableToTypeOf(stateSrvc),
 		gomock.AssignableToTypeOf(&network.Service{}), &digest.Handler{}).Return(&core.Service{}, nil)
-	m.EXPECT().createGRANDPAService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}),
+	m.EXPECT().createGRANDPAService(dotConfig, gomock.AssignableToTypeOf(stateSrvc),
 		&digest.Handler{}, ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&grandpa.Service{}, nil)
-	m.EXPECT().newSyncService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},
+	m.EXPECT().newSyncService(dotConfig, gomock.AssignableToTypeOf(stateSrvc), &grandpa.Service{},
 		&babe.VerificationManager{}, &core.Service{}, gomock.AssignableToTypeOf(&network.Service{}),
-		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&gsync.Service{}, nil)
-	m.EXPECT().createBABEService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}), ks.Babe,
+		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&sync.Service{}, nil)
+	m.EXPECT().createBABEService(dotConfig, gomock.AssignableToTypeOf(stateSrvc), ks.Babe,
 		&core.Service{}, gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(&babe.Service{}, nil)
-	m.EXPECT().createSystemService(&dotConfig.System, gomock.AssignableToTypeOf(&state.Service{})).
-		DoAndReturn(func(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
-			gd, err := stateSrvc.Base.LoadGenesisData()
+	m.EXPECT().createSystemService(&dotConfig.System, gomock.AssignableToTypeOf(stateSrvc)).
+		DoAndReturn(func(cfg *types.SystemInfo, stateSrvc state.Service) (*system.Service, error) {
+			gd, err := stateSrvc.BaseState().LoadGenesisData()
 			return system.NewService(cfg, gd), err
 		})
-	m.EXPECT().createNetworkService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}),
+	m.EXPECT().createNetworkService(dotConfig, gomock.AssignableToTypeOf(stateSrvc),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(testNetwork, nil)
 
 	got, err := newNode(dotConfig, ks, m)
@@ -368,7 +369,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 	type args struct {
 		cfg       *Config
 		ns        *runtime.NodeStorage
-		stateSrvc *state.Service
+		stateSrvc state.Service
 		ks        *keystore.GlobalKeystore
 		net       *network.Service
 	}

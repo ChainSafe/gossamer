@@ -23,8 +23,8 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -34,9 +34,9 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3, false)
+	state.AddBlocksToState(t, st.BlockState(), 3, false)
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.BlockState().BestBlockHeader()
 	require.NoError(t, err)
 
 	vote := NewVoteFromHeader(h)
@@ -58,8 +58,8 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -72,10 +72,10 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	branches := make(map[int]int)
 	branches[6] = 1
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+	state.AddBlocksToStateWithFixedBranches(t, st.BlockState(), 8, branches)
 	leaves := gs.blockState.Leaves()
 
-	vote1, err := NewVoteFromHash(leaves[0], st.Block)
+	vote1, err := NewVoteFromHash(leaves[0], st.BlockState())
 	require.NoError(t, err)
 
 	voter := voters[0]
@@ -84,7 +84,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 		Vote: *vote1,
 	})
 
-	vote2, err := NewVoteFromHash(leaves[1], st.Block)
+	vote2, err := NewVoteFromHash(leaves[1], st.BlockState())
 	require.NoError(t, err)
 
 	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
@@ -105,8 +105,8 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -119,7 +119,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	branches := make(map[int]int)
 	branches[6] = 1
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+	state.AddBlocksToStateWithFixedBranches(t, st.BlockState(), 8, branches)
 	leaves := gs.blockState.Leaves()
 
 	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
@@ -162,8 +162,8 @@ func TestValidateMessage_Valid(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -173,9 +173,9 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3, false)
+	state.AddBlocksToState(t, st.BlockState(), 3, false)
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.BlockState().BestBlockHeader()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -196,8 +196,8 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -207,9 +207,9 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3, false)
+	state.AddBlocksToState(t, st.BlockState(), 3, false)
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.BlockState().BestBlockHeader()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -231,8 +231,8 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -241,9 +241,9 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3, false)
+	state.AddBlocksToState(t, st.BlockState(), 3, false)
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.BlockState().BestBlockHeader()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -265,8 +265,8 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -279,12 +279,12 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	branches := make(map[int]int)
 	branches[6] = 1
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+	state.AddBlocksToStateWithFixedBranches(t, st.BlockState(), 8, branches)
 	leaves := gs.blockState.Leaves()
 
-	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	voteA, err := NewVoteFromHash(leaves[0], st.BlockState())
 	require.NoError(t, err)
-	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	voteB, err := NewVoteFromHash(leaves[1], st.BlockState())
 	require.NoError(t, err)
 
 	voter := voters[0]
@@ -310,8 +310,8 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -321,8 +321,8 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3, false)
-	gs.tracker = newTracker(st.Block, gs.messageHandler)
+	state.AddBlocksToState(t, st.BlockState(), 3, false)
+	gs.tracker = newTracker(st.BlockState(), gs.messageHandler)
 
 	fake := &types.Header{
 		Number: big.NewInt(77),
@@ -345,8 +345,8 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
+		BlockState:    st.BlockState(),
+		GrandpaState:  st.GrandpaState(),
 		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -360,7 +360,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	branches := make(map[int]int)
 	branches[6] = 1
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+	state.AddBlocksToStateWithFixedBranches(t, st.BlockState(), 8, branches)
 	leaves := gs.blockState.Leaves()
 
 	gs.head, err = gs.blockState.GetHeader(leaves[0])

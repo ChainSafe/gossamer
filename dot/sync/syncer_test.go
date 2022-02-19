@@ -93,11 +93,11 @@ func newTestSyncer(t *testing.T) *Service {
 	require.NoError(t, err)
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = stateSrvc.Block
+		cfg.BlockState = stateSrvc.BlockState()
 	}
 
 	if cfg.StorageState == nil {
-		cfg.StorageState = stateSrvc.Storage
+		cfg.StorageState = stateSrvc.StorageState()
 	}
 
 	// initialise runtime
@@ -110,7 +110,7 @@ func newTestSyncer(t *testing.T) *Service {
 	rtCfg.NodeStorage = runtime.NodeStorage{}
 
 	if stateSrvc != nil {
-		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
+		rtCfg.NodeStorage.BaseDB = stateSrvc.BaseState()
 	} else {
 		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 		require.NoError(t, err)
@@ -129,22 +129,22 @@ func newTestSyncer(t *testing.T) *Service {
 		"HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
 		Return(func(block *types.Block, ts *rtstorage.TrieState) error {
 			// store updates state trie nodes in database
-			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
+			if err = stateSrvc.StorageState().StoreTrie(ts, &block.Header); err != nil {
 				logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
 				return err
 			}
 
 			// store block in database
-			err = stateSrvc.Block.AddBlock(block)
+			err = stateSrvc.BlockState().AddBlock(block)
 			require.NoError(t, err)
 
-			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
+			stateSrvc.BlockState().StoreRuntime(block.Header.Hash(), instance)
 			logger.Debugf("imported block %s and stored state trie with root %s",
 				block.Header.Hash(), ts.MustRoot())
 			return nil
 		})
 
-	cfg.TransactionState = stateSrvc.Transaction
+	cfg.TransactionState = stateSrvc.TransactionState()
 	cfg.BabeVerifier = newMockBabeVerifier()
 	cfg.LogLvl = log.Trace
 	cfg.FinalityGadget = newMockFinalityGadget()
