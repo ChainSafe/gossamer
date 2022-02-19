@@ -6,6 +6,7 @@ package dot
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -123,41 +124,41 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 func Test_buildFromDB(t *testing.T) {
 	type args struct {
 		path string
-		// newStateService func(config state.Config) state.Service
+		// need to create a new controller per subtest, so this function wraps the injected function
+		newStateService func(t *testing.T) func(config state.Config) state.Service
 	}
 	tests := []struct {
 		name    string
 		args    args
 		want    *BuildSpec
 		wantErr bool
-		// need to create a new controller per subtest, so this function wraps the injected function
-		newStateService func(t *testing.T) func(config state.Config) state.Service
 	}{
-		{name: "normal conditions",
+		{
+			name: "normal conditions",
 			args: args{
 				path: "somePath",
-			},
-			newStateService: func(t *testing.T) func(config state.Config) state.Service {
-				ctrl := gomock.NewController(t)
-				return func(config state.Config) state.Service {
-					mockStateService := NewMockService(ctrl)
-					mockStateService.EXPECT().SetupBase().MaxTimes(1).Return(nil)
-					mockStateService.EXPECT().Start().MaxTimes(1).Return(nil)
-					var nilHash *common.Hash
-					mockStateService.EXPECT().StorageEntries(gomock.Eq(nilHash)).MaxTimes(1).Return(map[string][]byte{}, nil)
+				newStateService: func(t *testing.T) func(config state.Config) state.Service {
+					ctrl := gomock.NewController(t)
+					return func(config state.Config) state.Service {
+						mockStateService := NewMockService(ctrl)
+						mockStateService.EXPECT().SetupBase().MaxTimes(1).Return(nil)
+						mockStateService.EXPECT().Start().MaxTimes(1).Return(nil)
+						var nilHash *common.Hash
+						mockStateService.EXPECT().StorageEntries(gomock.Eq(nilHash)).MaxTimes(1).Return(map[string][]byte{}, nil)
 
-					mockDB := NewMockDatabase(ctrl)
-					genesisData := genesis.Data{
-						Name:       "someName",
-						ID:         "someID",
-						Bootnodes:  [][]byte{[]byte("some"), []byte("boot"), []byte("nodes")},
-						ProtocolID: "someProtocolID",
+						mockDB := NewMockDatabase(ctrl)
+						genesisData := genesis.Data{
+							Name:       "someName",
+							ID:         "someID",
+							Bootnodes:  [][]byte{[]byte("some"), []byte("boot"), []byte("nodes")},
+							ProtocolID: "someProtocolID",
+						}
+						genesisDataJSON, _ := json.Marshal(genesisData)
+						mockDB.EXPECT().Get(gomock.Eq(common.GenesisDataKey)).MaxTimes(1).Return(genesisDataJSON, nil)
+						mockStateService.EXPECT().DB().MaxTimes(1).Return(mockDB)
+						return mockStateService
 					}
-					genesisDataJSON, _ := json.Marshal(genesisData)
-					mockDB.EXPECT().Get(gomock.Eq(common.GenesisDataKey)).MaxTimes(1).Return(genesisDataJSON, nil)
-					mockStateService.EXPECT().DB().MaxTimes(1).Return(mockDB)
-					return mockStateService
-				}
+				},
 			},
 			want: &BuildSpec{
 				genesis: &genesis.Genesis{
@@ -172,10 +173,41 @@ func Test_buildFromDB(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "service.SetupBase error",
+			args: args{
+				path: "somePath",
+				newStateService: func(t *testing.T) func(config state.Config) state.Service {
+					ctrl := gomock.NewController(t)
+					return func(config state.Config) state.Service {
+						mockStateService := NewMockService(ctrl)
+						mockStateService.EXPECT().SetupBase().MaxTimes(1).Return(fmt.Errorf("someError"))
+						return mockStateService
+					}
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "service.Start error",
+			args: args{
+				path: "somePath",
+				newStateService: func(t *testing.T) func(config state.Config) state.Service {
+					ctrl := gomock.NewController(t)
+					return func(config state.Config) state.Service {
+						mockStateService := NewMockService(ctrl)
+						mockStateService.EXPECT().SetupBase().MaxTimes(1).Return(nil)
+						mockStateService.EXPECT().Start().MaxTimes(1).Return(fmt.Errorf("someError"))
+						return mockStateService
+					}
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := buildFromDB(tt.args.path, tt.newStateService(t))
+			got, err := buildFromDB(tt.args.path, tt.args.newStateService(t))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("buildFromDB() error = %v, wantErr %v", err, tt.wantErr)
 				return

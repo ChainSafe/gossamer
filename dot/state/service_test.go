@@ -23,7 +23,7 @@ import (
 )
 
 // helper method to create and start test state service
-func newTestService(t *testing.T) (state *defaultService) {
+func newTestService(t *testing.T) (state *service) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -33,7 +33,7 @@ func newTestService(t *testing.T) (state *defaultService) {
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
-	state = NewService(config).(*defaultService)
+	state = NewService(config).(*service)
 	return state
 }
 
@@ -124,7 +124,7 @@ func TestService_BlockTree(t *testing.T) {
 		Telemetry: telemetryMock,
 	}
 
-	stateA := NewService(config).(*defaultService)
+	stateA := NewService(config).(*service)
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(genData, genesisHeader, genTrie)
@@ -146,7 +146,7 @@ func TestService_BlockTree(t *testing.T) {
 	err = stateA.Stop()
 	require.NoError(t, err)
 
-	stateB := NewService(config).(*defaultService)
+	stateB := NewService(config).(*service)
 
 	err = stateB.SetupBase()
 	require.NoError(t, err)
@@ -174,7 +174,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 		},
 		Telemetry: telemetryMock,
 	}
-	serv := NewService(config).(*defaultService)
+	serv := NewService(config).(*service)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
@@ -223,7 +223,7 @@ func TestService_PruneStorage(t *testing.T) {
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
-	serv := NewService(config).(*defaultService)
+	serv := NewService(config).(*service)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
