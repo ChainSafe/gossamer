@@ -84,7 +84,7 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 
 	s := NewHTTPServer(cfg)
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	defer s.Stop()
 
@@ -101,10 +101,10 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 
 	for _, item := range testCalls {
 		err = c.WriteMessage(websocket.TextMessage, item.call)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		_, message, err := c.ReadMessage()
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, item.expected, message)
 	}
 }

@@ -152,9 +152,9 @@ func TestService_InsertKey(t *testing.T) {
 			err := s.InsertKey(kr.Alice(), c.keystoreType)
 
 			if c.err == nil {
-				require.Nil(t, err)
+				require.NoError(t, err)
 				res, err := s.HasKey(kr.Alice().Public().Hex(), c.keystoreType)
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.True(t, res)
 			} else {
 				require.NotNil(t, err)

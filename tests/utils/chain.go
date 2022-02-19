@@ -22,7 +22,7 @@ func GetChainHead(t *testing.T, node *Node) *types.Header {
 
 	header := new(modules.ChainBlockHeaderResponse)
 	err = DecodeRPC(t, respBody, header)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	return headerResponseToHeader(t, header)
 }

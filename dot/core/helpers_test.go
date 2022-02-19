@@ -73,10 +73,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc.UseMemDB()
 
 		err := stateSrvc.Initialise(gen, genHeader, genTrie)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		err = stateSrvc.Start()
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	if cfg.BlockState == nil {

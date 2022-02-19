@@ -39,7 +39,7 @@ func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 
 	version, err := instance.Version()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
 	t.Logf("ImplName: %s\n", version.ImplName())
@@ -102,7 +102,7 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
 	version, err := instance.Version()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
 	t.Logf("ImplName: %s\n", version.ImplName())
@@ -185,7 +185,7 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	version, err := instance.Version()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
 	t.Logf("ImplName: %s\n", version.ImplName())
@@ -217,7 +217,7 @@ func TestInstance_Version_DevRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.DEV_RUNTIME)
 
 	version, err := instance.Version()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
 	t.Logf("ImplName: %s\n", version.ImplName())
