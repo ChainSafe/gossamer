@@ -34,6 +34,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: look into this one
 func TestInitNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	genFile := newTestGenesisRawFile(t, cfg)
@@ -108,6 +109,7 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	}
 }
 
+// TODO: this one sigaborts
 func TestNewNode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -250,6 +252,7 @@ func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service
 	return srvc
 }
 
+// TODO: look into this one
 func TestNodeInitialized(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -362,6 +365,7 @@ func TestNode_StartStop(t *testing.T) {
 	}
 }
 
+// TODO: look into this one, 4.5s
 func Test_nodeBuilder_loadRuntime(t *testing.T) {
 	stateSrvc := newStateService(t)
 	cfg := NewTestConfig(t)

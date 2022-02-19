@@ -58,6 +58,7 @@ func setupHeaderFile(t *testing.T) string {
 	return fp
 }
 
+// TODO: this one takes a long time
 func TestImportState(t *testing.T) {
 	t.Parallel()
 
@@ -183,6 +184,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 			err:  errors.New("read .: is a directory"),
 			want: common.Hash{},
 		},
+		// TODO: separate out file generation
 		{
 			name: "working example",
 			args: args{filename: setupStateFile(t)},

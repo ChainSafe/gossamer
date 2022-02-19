@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: fails atm, 2.5s
 func Test_createBlockVerifier(t *testing.T) {
 	cfg := NewTestConfig(t)
 
@@ -85,6 +86,7 @@ func Test_createBlockVerifier(t *testing.T) {
 	}
 }
 
+// TODO: fails atm, 2.5s
 func Test_createRuntimeStorage(t *testing.T) {
 	cfg := NewTestConfig(t)
 
@@ -128,6 +130,7 @@ func Test_createRuntimeStorage(t *testing.T) {
 	}
 }
 
+// TODO: takes 2.5s
 func Test_createSystemService(t *testing.T) {
 	cfg := NewTestConfig(t)
 
@@ -204,6 +207,7 @@ func Test_newInMemoryDB(t *testing.T) {
 	}
 }
 
+// TODO: takes 3.5s
 func Test_nodeBuilder_createBABEService(t *testing.T) {
 	t.Parallel()
 	stateSrvc := newStateService(t)
@@ -307,6 +311,7 @@ func newStateService(t *testing.T) state.Service {
 	return stateSrvc
 }
 
+// TODO: takes 3.5s
 func Test_nodeBuilder_createCoreService(t *testing.T) {
 	t.Parallel()
 	cfg := NewTestConfig(t)
@@ -359,6 +364,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 	}
 }
 
+// TODO: takes 6.5s
 func Test_nodeBuilder_createNetworkService(t *testing.T) {
 	t.Parallel()
 	cfg := NewTestConfig(t)
@@ -398,6 +404,7 @@ func Test_nodeBuilder_createNetworkService(t *testing.T) {
 	}
 }
 
+// TODO: takes 3.6s
 func Test_nodeBuilder_createRPCService(t *testing.T) {
 	t.Parallel()
 	cfg := NewTestConfig(t)
@@ -442,6 +449,7 @@ func Test_nodeBuilder_createRPCService(t *testing.T) {
 	}
 }
 
+// TODO: takes 6.5s
 func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 	t.Parallel()
 	cfg := NewTestConfig(t)
@@ -497,6 +505,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 	}
 }
 
+// TODO: takes 6.5s
 func Test_createRuntime(t *testing.T) {
 	t.Parallel()
 	cfg := NewTestConfig(t)
@@ -555,6 +564,7 @@ func Test_createRuntime(t *testing.T) {
 	}
 }
 
+// TODO: takes 6.5s
 func Test_nodeBuilder_newSyncService(t *testing.T) {
 	t.Parallel()
 	cfg := NewTestConfig(t)
@@ -605,6 +615,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 	}
 }
 
+// TODO: takes 3.6s
 func Test_nodeBuilder_createDigestHandler(t *testing.T) {
 	stateSrvc := newStateService(t)
 	type args struct {
