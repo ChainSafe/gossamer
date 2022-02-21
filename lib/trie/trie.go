@@ -1004,7 +1004,6 @@ func (t *Trie) deleteBranch(branch *node.Branch, key []byte) (
 // of one node in callers.
 // If the branch has a value and no child, it will be changed into a leaf.
 func handleDeletion(branch *node.Branch, key []byte) (newNode Node, branchChildMerged bool) {
-	// TODO try to remove key argument just use branch.Key instead?
 	childrenCount := 0
 	firstChildIndex := -1
 	for i, child := range branch.Children {
