@@ -172,6 +172,116 @@ func Test_Trie_updateGeneration(t *testing.T) {
 	})
 }
 
+// checkTrieForNoMutation verifies modifying the copy of the trie
+// does not affect the original copied trie.
+func checkTrieForNoMutation(t *testing.T, original, copy *Trie) {
+	if original == nil {
+		return
+	}
+
+	copy.generation++
+	assert.NotEqual(t, original.generation, copy.generation)
+
+	if copy.deletedKeys != nil {
+		if len(copy.deletedKeys) == 0 {
+			copy.deletedKeys[common.Hash{1}] = struct{}{}
+		} else {
+			for firstHashKey := range copy.deletedKeys {
+				delete(copy.deletedKeys, firstHashKey)
+				break
+			}
+		}
+		assert.NotEqual(t, original.deletedKeys, copy.deletedKeys)
+	}
+
+	if copy.childTries != nil {
+		if len(copy.childTries) == 0 {
+			copy.childTries[common.Hash{1}] = &Trie{}
+		} else {
+			var firstHashKey common.Hash
+			var firstChildTrie *Trie
+			for firstHashKey, firstChildTrie = range copy.childTries {
+				originalChildTrie := original.childTries[firstHashKey]
+				checkTrieForNoMutation(t, originalChildTrie, firstChildTrie)
+				delete(copy.childTries, firstHashKey)
+				break
+			}
+		}
+		assert.NotEqual(t, original.childTries, copy.childTries)
+	}
+
+	if copy.root != nil {
+		copy.root.SetDirty(!copy.root.IsDirty())
+		assert.NotEqual(t, original.root, copy.root)
+	}
+}
+
+func Test_Trie_DeepCopy(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		trieOriginal *Trie
+		trieCopy     *Trie
+	}{
+		"nil": {},
+		"empty trie": {
+			trieOriginal: &Trie{},
+			trieCopy:     &Trie{},
+		},
+		"filled trie": {
+			trieOriginal: &Trie{
+				generation: 1,
+				root:       &node.Leaf{Key: []byte{1, 2}},
+				childTries: map[common.Hash]*Trie{
+					{1, 2, 3}: {
+						generation: 2,
+						root:       &node.Leaf{Key: []byte{1}},
+						deletedKeys: map[common.Hash]struct{}{
+							{1, 2, 3}: {},
+							{3, 4, 5}: {},
+						},
+					},
+				},
+				deletedKeys: map[common.Hash]struct{}{
+					{1, 2, 3}: {},
+					{3, 4, 5}: {},
+				},
+			},
+			trieCopy: &Trie{
+				generation: 1,
+				root:       &node.Leaf{Key: []byte{1, 2}},
+				childTries: map[common.Hash]*Trie{
+					{1, 2, 3}: {
+						generation: 2,
+						root:       &node.Leaf{Key: []byte{1}},
+						deletedKeys: map[common.Hash]struct{}{
+							{1, 2, 3}: {},
+							{3, 4, 5}: {},
+						},
+					},
+				},
+				deletedKeys: map[common.Hash]struct{}{
+					{1, 2, 3}: {},
+					{3, 4, 5}: {},
+				},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			trieCopy := testCase.trieOriginal.DeepCopy()
+
+			assert.Equal(t, trieCopy, testCase.trieCopy)
+
+			checkTrieForNoMutation(t, testCase.trieOriginal, trieCopy)
+		})
+	}
+}
+
 func Test_Trie_RootNode(t *testing.T) {
 	t.Parallel()
 
