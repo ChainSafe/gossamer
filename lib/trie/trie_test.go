@@ -3540,6 +3540,32 @@ func Test_Trie_delete(t *testing.T) {
 			updated:      true,
 			nodesRemoved: 2,
 		},
+		"delete branch and keep two children": {
+			trie: Trie{
+				generation: 1,
+			},
+			parent: &node.Branch{
+				Key:   []byte{1},
+				Value: []byte{1},
+				Stats: node.NewStats(2),
+				Children: [16]node.Node{
+					&node.Leaf{Key: []byte{2}},
+					&node.Leaf{Key: []byte{2}},
+				},
+			},
+			key: []byte{1},
+			newParent: &node.Branch{
+				Key:        []byte{1},
+				Generation: 1,
+				Dirty:      true,
+				Stats:      node.NewStats(2),
+				Children: [16]node.Node{
+					&node.Leaf{Key: []byte{2}},
+					&node.Leaf{Key: []byte{2}},
+				},
+			},
+			updated: true,
+		},
 	}
 
 	for name, testCase := range testCases {
