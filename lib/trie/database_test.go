@@ -5,14 +5,12 @@ package trie
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -414,13 +412,16 @@ func TestLoadWithChildTriesFails(t *testing.T) {
 	}
 	sampleChildTrie := NewEmptyTrie()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockNode := node.NewMockNode(mockCtrl)
-	mockNode.EXPECT().Encode(gomock.Any()).AnyTimes().Return(nil)
-	// TODO: Mock remaining methods
+	key := []byte{1, 2}
+	value := []byte{3, 4}
+	const dirty = true
+	const generation = 9
 
-	sampleChildTrie.root = mockNode
+	mockNode := node.MockLeaf{
+		Leaf: *node.NewLeaf(key, value, dirty, generation),
+	}
+
+	sampleChildTrie.root = &mockNode
 
 	keyToChild := []byte("test")
 	err := trie.PutChild(keyToChild, sampleChildTrie)
@@ -430,13 +431,14 @@ func TestLoadWithChildTriesFails(t *testing.T) {
 	err = trie.Store(db)
 	require.NoError(t, err)
 
-	mockNode.EXPECT().Encode(gomock.Any()).AnyTimes().Return(errors.New("some error"))
-
+	mockNode.Fail = true
 	res := NewEmptyTrie()
 	err = res.Load(db, trie.MustHash())
-	require.NoError(t, err)
-	fmt.Printf("expected:\n %s\n", trie.String())
-	fmt.Printf("actual:\n %s\n", res.String())
+	// require.NoError(t, err)
+	require.Error(t, err)
+	fmt.Println(err)
+	// fmt.Printf("expected:\n %s\n", trie.String())
+	// fmt.Printf("actual:\n %s\n", res.String())
 
 	require.Equal(t, trie.MustHash(), res.MustHash())
 }

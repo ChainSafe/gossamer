@@ -4,9 +4,12 @@
 package node
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/trie/codec"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/qdm12/gotree"
 )
 
@@ -72,4 +75,57 @@ func bytesToString(b []byte) (s string) {
 		return fmt.Sprintf("0x%x...%x", b[:8], b[len(b)-8:])
 	}
 
+}
+
+type MockLeaf struct {
+	Leaf
+
+	Fail bool
+}
+
+// Encode is a hijackable Encode method.
+func (m *MockLeaf) Encode(buffer Buffer) (err error) {
+	if m.Fail {
+		return errors.New("some error")
+	}
+
+	m.Leaf.encodingMu.RLock()
+	if !m.Leaf.Dirty && m.Leaf.Encoding != nil {
+		_, err = buffer.Write(m.Leaf.Encoding)
+		m.Leaf.encodingMu.RUnlock()
+		if err != nil {
+			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
+		}
+		return nil
+	}
+	m.Leaf.encodingMu.RUnlock()
+
+	err = m.Leaf.encodeHeader(buffer)
+	if err != nil {
+		return fmt.Errorf("cannot encode header: %w", err)
+	}
+
+	keyLE := codec.NibblesToKeyLE(m.Leaf.Key)
+	_, err = buffer.Write(keyLE)
+	if err != nil {
+		return fmt.Errorf("cannot write LE key to buffer: %w", err)
+	}
+
+	encodedValue, err := scale.Marshal(m.Leaf.Value) // TODO scale encoder to write to buffer
+	if err != nil {
+		return fmt.Errorf("cannot scale marshal value: %w", err)
+	}
+
+	_, err = buffer.Write(encodedValue)
+	if err != nil {
+		return fmt.Errorf("cannot write scale encoded value to buffer: %w", err)
+	}
+
+	// TODO remove this copying since it defeats the purpose of `buffer`
+	// and the sync.Pool.
+	m.Leaf.encodingMu.Lock()
+	defer m.Leaf.encodingMu.Unlock()
+	m.Leaf.Encoding = make([]byte, buffer.Len())
+	copy(m.Leaf.Encoding, buffer.Bytes())
+	return nil
 }
