@@ -853,14 +853,14 @@ func (t *Trie) ClearPrefix(prefixLE []byte) {
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, _, _ = t.clearPrefix(t.root, prefix)
+	t.root, _ = t.clearPrefix(t.root, prefix)
 }
 
 func (t *Trie) clearPrefix(parent Node, prefix []byte) (
-	newParent Node, updated bool, nodesRemoved uint32) {
-	// TODO remove updated and use nodesRemoved > 0 instead
+	newParent Node, nodesRemoved uint32) {
 	if parent == nil {
-		return nil, false, 0
+		const nodesRemoved = 0
+		return nil, nodesRemoved
 	}
 
 	newParent = parent
@@ -873,14 +873,15 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 		if newParent.Type() != node.LeafType { // branch
 			nodesRemoved += newParent.(*node.Branch).GetDescendants()
 		}
-		return nil, true, nodesRemoved
+		return nil, nodesRemoved
 	}
 
 	if newParent.Type() == node.LeafType {
 		// not modified so return the leaf of the original
 		// trie generation. The copied newParent will be
 		// garbage collected.
-		return parent, false, 0
+		const nodesRemoved = 0
+		return parent, nodesRemoved
 	}
 
 	branch := newParent.(*node.Branch)
@@ -897,7 +898,7 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 			// trie generation. The copied newParent will be
 			// garbage collected.
 			const nodesRemoved = 0
-			return parent, false, nodesRemoved
+			return parent, nodesRemoved
 		}
 
 		nodesRemoved = 1
@@ -908,7 +909,7 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 		if branchChildMerged {
 			nodesRemoved++
 		}
-		return newParent, true, nodesRemoved
+		return newParent, nodesRemoved
 	}
 
 	noPrefixForNode := len(prefix) <= len(branch.Key) ||
@@ -918,20 +919,19 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 		// trie generation. The copied newParent will be
 		// garbage collected.
 		const nodesRemoved = 0
-		return parent, false, nodesRemoved
+		return parent, nodesRemoved
 	}
 
 	childIndex := prefix[len(branch.Key)]
 	childPrefix := prefix[len(branch.Key)+1:]
 	child := branch.Children[childIndex]
 
-	branch.Children[childIndex], updated, nodesRemoved = t.clearPrefix(child, childPrefix)
-	if !updated {
+	branch.Children[childIndex], nodesRemoved = t.clearPrefix(child, childPrefix)
+	if nodesRemoved == 0 {
 		// branch not modified so return the branch of the original
 		// trie generation. The copied newParent will be
 		// garbage collected.
-		const nodesRemoved = 0
-		return parent, false, nodesRemoved
+		return parent, nodesRemoved
 	}
 
 	branch.SubDescendants(nodesRemoved)
@@ -941,7 +941,7 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 		nodesRemoved++
 	}
 
-	return newParent, true, nodesRemoved
+	return newParent, nodesRemoved
 }
 
 // Delete removes the node of the trie with the key

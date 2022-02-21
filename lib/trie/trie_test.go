@@ -2954,7 +2954,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 		parent       Node
 		prefix       []byte
 		newParent    Node
-		updated      bool
 		nodesRemoved uint32
 	}{
 		"delete one of two children of branch": {
@@ -2975,7 +2974,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				Dirty:      true,
 				Generation: 1,
 			},
-			updated:      true,
 			nodesRemoved: 2,
 		},
 		"nil parent": {},
@@ -2984,7 +2982,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				Key: []byte{1, 2},
 			},
 			prefix:       []byte{1},
-			updated:      true,
 			nodesRemoved: 1,
 		},
 		"leaf parent with key equal prefix": {
@@ -2992,7 +2989,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				Key: []byte{1},
 			},
 			prefix:       []byte{1},
-			updated:      true,
 			nodesRemoved: 1,
 		},
 		"leaf parent with key no common prefix": {
@@ -3029,7 +3025,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				},
 			},
 			prefix:       []byte{1},
-			updated:      true,
 			nodesRemoved: 2,
 		},
 		"branch with key equal prefix": {
@@ -3042,7 +3037,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				},
 			},
 			prefix:       []byte{1, 2},
-			updated:      true,
 			nodesRemoved: 2,
 		},
 		"branch with no common prefix": {
@@ -3136,7 +3130,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 					&node.Leaf{Key: []byte{4}},
 				},
 			},
-			updated:      true,
 			nodesRemoved: 1,
 		},
 		"fully delete child of branch": {
@@ -3158,7 +3151,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				Dirty:      true,
 				Generation: 1,
 			},
-			updated:      true,
 			nodesRemoved: 1,
 		},
 		"partially delete child of branch": {
@@ -3198,7 +3190,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 					},
 				},
 			},
-			updated:      true,
 			nodesRemoved: 1,
 		},
 		"delete one of two children of branch without value": {
@@ -3219,7 +3210,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				Dirty:      true,
 				Generation: 1,
 			},
-			updated:      true,
 			nodesRemoved: 2,
 		},
 	}
@@ -3232,11 +3222,10 @@ func Test_Trie_clearPrefix(t *testing.T) {
 			trie := testCase.trie
 			expectedTrie := *trie.DeepCopy()
 
-			newParent, updated, nodesRemoved :=
+			newParent, nodesRemoved :=
 				trie.clearPrefix(testCase.parent, testCase.prefix)
 
 			assert.Equal(t, testCase.newParent, newParent)
-			assert.Equal(t, testCase.updated, updated)
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, expectedTrie, trie)
 		})
