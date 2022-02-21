@@ -10,6 +10,7 @@ func (b *Branch) Copy(copyChildren bool) Node {
 	cpy := &Branch{
 		Dirty:      b.Dirty,
 		Generation: b.Generation,
+		Stats:      b.Stats,
 	}
 
 	if copyChildren {
