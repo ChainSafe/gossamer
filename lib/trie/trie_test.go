@@ -1020,7 +1020,7 @@ func Test_Trie_insert(t *testing.T) {
 		trie    Trie
 		parent  Node
 		key     []byte
-		value   Node
+		value   []byte
 		newNode Node
 	}{
 		"nil parent": {
@@ -1028,10 +1028,12 @@ func Test_Trie_insert(t *testing.T) {
 				generation: 1,
 			},
 			key:   []byte{1},
-			value: &node.Leaf{},
+			value: []byte("leaf"),
 			newNode: &node.Leaf{
 				Key:        []byte{1},
+				Value:      []byte("leaf"),
 				Generation: 1,
+				Dirty:      true,
 			},
 		},
 		"branch parent": {
@@ -1046,10 +1048,8 @@ func Test_Trie_insert(t *testing.T) {
 					&node.Leaf{Key: []byte{2}},
 				},
 			},
-			key: []byte{1, 0},
-			value: &node.Leaf{
-				Value: []byte("leaf"),
-			},
+			key:   []byte{1, 0},
+			value: []byte("leaf"),
 			newNode: &node.Branch{
 				Key:        []byte{1},
 				Value:      []byte("branch"),
@@ -1074,10 +1074,8 @@ func Test_Trie_insert(t *testing.T) {
 				Key:   []byte{1},
 				Value: []byte("original leaf"),
 			},
-			key: []byte{1},
-			value: &node.Leaf{
-				Value: []byte("new leaf"),
-			},
+			key:   []byte{1},
+			value: []byte("new leaf"),
 			newNode: &node.Leaf{
 				Key:        []byte{1},
 				Value:      []byte("new leaf"),
@@ -1093,10 +1091,8 @@ func Test_Trie_insert(t *testing.T) {
 				Key:   []byte{1},
 				Value: []byte("same"),
 			},
-			key: []byte{1},
-			value: &node.Leaf{
-				Value: []byte("same"),
-			},
+			key:   []byte{1},
+			value: []byte("same"),
 			newNode: &node.Leaf{
 				Key:        []byte{1},
 				Value:      []byte("same"),
@@ -1111,10 +1107,8 @@ func Test_Trie_insert(t *testing.T) {
 				Key:   []byte{1},
 				Value: []byte("original leaf"),
 			},
-			key: []byte{1, 0},
-			value: &node.Leaf{
-				Value: []byte("leaf"),
-			},
+			key:   []byte{1, 0},
+			value: []byte("leaf"),
 			newNode: &node.Branch{
 				Key:        []byte{1},
 				Value:      []byte("original leaf"),
@@ -1125,6 +1119,7 @@ func Test_Trie_insert(t *testing.T) {
 						Key:        []byte{},
 						Value:      []byte("leaf"),
 						Generation: 1,
+						Dirty:      true,
 					},
 				},
 			},
@@ -1137,10 +1132,8 @@ func Test_Trie_insert(t *testing.T) {
 				Key:   []byte{1, 2},
 				Value: []byte("original leaf"),
 			},
-			key: []byte{2, 3},
-			value: &node.Leaf{
-				Value: []byte("leaf"),
-			},
+			key:   []byte{2, 3},
+			value: []byte("leaf"),
 			newNode: &node.Branch{
 				Key:        []byte{},
 				Dirty:      true,
@@ -1157,6 +1150,7 @@ func Test_Trie_insert(t *testing.T) {
 						Key:        []byte{3},
 						Value:      []byte("leaf"),
 						Generation: 1,
+						Dirty:      true,
 					},
 				},
 			},
@@ -1168,10 +1162,8 @@ func Test_Trie_insert(t *testing.T) {
 			parent: &node.Leaf{
 				Key: []byte{1},
 			},
-			key: []byte{1},
-			value: &node.Leaf{
-				Value: []byte("leaf"),
-			},
+			key:   []byte{1},
+			value: []byte("leaf"),
 			newNode: &node.Leaf{
 				Key:        []byte{1},
 				Value:      []byte("leaf"),
@@ -1186,10 +1178,8 @@ func Test_Trie_insert(t *testing.T) {
 			parent: &node.Leaf{
 				Key: []byte{1, 2},
 			},
-			key: []byte{1},
-			value: &node.Leaf{
-				Value: []byte("leaf"),
-			},
+			key:   []byte{1},
+			value: []byte("leaf"),
 			newNode: &node.Branch{
 				Key:        []byte{1},
 				Value:      []byte("leaf"),
@@ -1229,7 +1219,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 	testCases := map[string]struct {
 		parent  *node.Branch
 		key     []byte
-		value   Node
+		value   []byte
 		newNode Node
 	}{
 		"update with branch": {
@@ -1240,10 +1230,8 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					&node.Leaf{Key: []byte{1}},
 				},
 			},
-			key: []byte{2},
-			value: &node.Branch{
-				Value: []byte("new"),
-			},
+			key:   []byte{2},
+			value: []byte("new"),
 			newNode: &node.Branch{
 				Key:   []byte{2},
 				Value: []byte("new"),
@@ -1261,10 +1249,8 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					&node.Leaf{Key: []byte{1}},
 				},
 			},
-			key: []byte{2},
-			value: &node.Leaf{
-				Value: []byte("new"),
-			},
+			key:   []byte{2},
+			value: []byte("new"),
 			newNode: &node.Branch{
 				Key:   []byte{2},
 				Value: []byte("new"),
@@ -1282,10 +1268,8 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					&node.Leaf{Key: []byte{1}},
 				},
 			},
-			key: []byte{2, 3, 4, 5},
-			value: &node.Leaf{
-				Value: []byte{6},
-			},
+			key:   []byte{2, 3, 4, 5},
+			value: []byte{6},
 			newNode: &node.Branch{
 				Key:   []byte{2},
 				Value: []byte{5},
@@ -1315,10 +1299,8 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					},
 				},
 			},
-			key: []byte{2, 3, 4, 5, 6},
-			value: &node.Leaf{
-				Value: []byte{6},
-			},
+			key:   []byte{2, 3, 4, 5, 6},
+			value: []byte{6},
 			newNode: &node.Branch{
 				Key:   []byte{2},
 				Value: []byte{5},
@@ -1349,10 +1331,8 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					&node.Leaf{Key: []byte{1}},
 				},
 			},
-			key: []byte{2, 4, 5, 6},
-			value: &node.Leaf{
-				Value: []byte{6},
-			},
+			key:   []byte{2, 4, 5, 6},
+			value: []byte{6},
 			newNode: &node.Branch{
 				Key:   []byte{2},
 				Dirty: true,
@@ -1369,6 +1349,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					&node.Leaf{
 						Key:   []byte{5, 6},
 						Value: []byte{6},
+						Dirty: true,
 					},
 				},
 			},
@@ -1381,10 +1362,8 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					&node.Leaf{Key: []byte{1}},
 				},
 			},
-			key: []byte{3},
-			value: &node.Leaf{
-				Value: []byte{6},
-			},
+			key:   []byte{3},
+			value: []byte{6},
 			newNode: &node.Branch{
 				Key:   []byte{},
 				Dirty: true,
@@ -1401,6 +1380,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					&node.Leaf{
 						Key:   []byte{},
 						Value: []byte{6},
+						Dirty: true,
 					},
 				},
 			},
@@ -1413,10 +1393,8 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					&node.Leaf{Key: []byte{1}},
 				},
 			},
-			key: []byte{},
-			value: &node.Leaf{
-				Value: []byte{6},
-			},
+			key:   []byte{},
+			value: []byte{6},
 			newNode: &node.Branch{
 				Key:   []byte{},
 				Value: []byte{6},
