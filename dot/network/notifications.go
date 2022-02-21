@@ -419,6 +419,8 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			continue
 		}
 
+		info.outboundHandshakeMutexes.Store(peer, new(sync.Mutex))
+
 		go s.sendData(peer, hs, info, msg)
 	}
 }
