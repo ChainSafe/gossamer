@@ -30,6 +30,7 @@ type Branch struct {
 	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
 	Generation uint64
+	Stats      Stats
 }
 
 // NewBranch creates a new branch using the arguments given.
