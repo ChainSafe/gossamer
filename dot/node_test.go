@@ -6,7 +6,6 @@ package dot
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"os"
 	"testing"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"

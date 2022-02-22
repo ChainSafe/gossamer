@@ -353,9 +353,6 @@ func TestRPCConfig_isWSEnabled(t *testing.T) {
 func Test_networkServiceEnabled(t *testing.T) {
 	t.Parallel()
 
-	type args struct {
-		cfg *Config
-	}
 	tests := []struct {
 		name   string
 		config *Config

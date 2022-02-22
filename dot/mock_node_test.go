@@ -241,10 +241,10 @@ func (mr *MocknodeBuilderIfaceMockRecorder) newSyncService(cfg, st, fg, verifier
 }
 
 // nodeInitialised mocks base method.
-func (m *MocknodeBuilderIface) nodeInitialised(arg0 string) bool {
+func (m *MocknodeBuilderIface) nodeInitialised(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "nodeInitialised", arg0)
-	ret0, _ := ret[0].(bool)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
