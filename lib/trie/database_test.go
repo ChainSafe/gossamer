@@ -410,19 +410,17 @@ func TestLoadWithChildTriesFails(t *testing.T) {
 	for _, test := range testCase {
 		trie.Put(test.key, test.value)
 	}
-	sampleChildTrie := NewEmptyTrie()
 
 	key := []byte{1, 2}
 	value := []byte{3, 4}
 	const dirty = true
-	const generation = 9
+	const generation = 0
 
 	mockNode := node.MockLeaf{
 		Leaf: *node.NewLeaf(key, value, dirty, generation),
 	}
 
-	sampleChildTrie.root = &mockNode
-
+	sampleChildTrie := NewTrie(&mockNode)
 	keyToChild := []byte("test")
 	err := trie.PutChild(keyToChild, sampleChildTrie)
 	require.NoError(t, err)
@@ -431,7 +429,7 @@ func TestLoadWithChildTriesFails(t *testing.T) {
 	err = trie.Store(db)
 	require.NoError(t, err)
 
-	mockNode.Fail = true
+	// mockNode.Fail = true
 	res := NewEmptyTrie()
 	err = res.Load(db, trie.MustHash())
 	// require.NoError(t, err)
