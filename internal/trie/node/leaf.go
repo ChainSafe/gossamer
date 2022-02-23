@@ -5,7 +5,6 @@ package node
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/qdm12/gotree"
 )
@@ -22,13 +21,11 @@ type Leaf struct {
 	Dirty      bool
 	HashDigest []byte
 	Encoding   []byte
-	encodingMu sync.RWMutex
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
 	Generation uint64
-	sync.RWMutex
 }
 
 // NewLeaf creates a new leaf using the arguments given.
