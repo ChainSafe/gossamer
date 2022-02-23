@@ -296,7 +296,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		Digest:         types.NewDigest(),
 	}
 	encMsg, err := bhm.Encode()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, expected, encMsg)
 }
@@ -312,7 +312,7 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 	}
 
 	err := bhm.Decode(announceMessage)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	parentHash := common.MustHexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 
@@ -344,7 +344,7 @@ func TestEncodeTransactionMessageSingleExtrinsic(t *testing.T) {
 	transactionMessage := TransactionMessage{Extrinsics: []types.Extrinsic{extrinsic}}
 
 	encMsg, err := transactionMessage.Encode()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, expected, encMsg)
 }
@@ -368,7 +368,7 @@ func TestEncodeTransactionMessageTwoExtrinsics(t *testing.T) {
 	transactionMessage := TransactionMessage{Extrinsics: []types.Extrinsic{extrinsic1, extrinsic2}}
 
 	encMsg, err := transactionMessage.Encode()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, expected, encMsg)
 }
@@ -381,7 +381,7 @@ func TestDecodeTransactionMessageOneExtrinsic(t *testing.T) {
 
 	decodedMessage := new(TransactionMessage)
 	err := decodedMessage.Decode(originalMessage)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	extrinsic := types.Extrinsic{0x01, 0x02, 0x03, 0x04}
 	expected := TransactionMessage{[]types.Extrinsic{extrinsic}}
@@ -395,11 +395,11 @@ func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
 
 	// (without message type byte prepended)
 	originalMessage, err := common.HexToBytes("0x080c0102031004050607")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	decodedMessage := new(TransactionMessage)
 	err = decodedMessage.Decode(originalMessage)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	extrinsic1 := types.Extrinsic{0x01, 0x02, 0x03}
 	extrinsic2 := types.Extrinsic{0x04, 0x05, 0x06, 0x07}
@@ -418,10 +418,10 @@ func TestDecodeConsensusMessage(t *testing.T) {
 	m := new(ConsensusMessage)
 
 	err := m.Decode(encMsg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	out, err := hex.DecodeString(testData[2:])
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expected := &ConsensusMessage{
 		Data: out,
@@ -430,6 +430,6 @@ func TestDecodeConsensusMessage(t *testing.T) {
 	require.Equal(t, expected, m)
 
 	encodedMessage, err := expected.Encode()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, encMsg, encodedMessage)
 }
