@@ -10,9 +10,8 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
-
-var defaultGenesisSpecPath = "./chain/gssmr/genesis-spec.json"
 
 func createGenesisWithRuntime(fp string) (string, error) {
 	runtime, err := os.ReadFile(filepath.Clean(fp))
@@ -20,7 +19,12 @@ func createGenesisWithRuntime(fp string) (string, error) {
 		return "", err
 	}
 
-	genesis, err := genesis.NewGenesisSpecFromJSON(defaultGenesisSpecPath)
+	genesisPath, err := utils.GetGssmrGenesisPath()
+	if err != nil {
+		return "", fmt.Errorf("cannot find gssmr genesis path: %w", err)
+	}
+
+	genesis, err := genesis.NewGenesisSpecFromJSON(genesisPath)
 	if err != nil {
 		return "", err
 	}
