@@ -644,8 +644,9 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, 
 	return deleted, allDeleted
 }
 
-// clearPrefixLimit deletes the keys having the prefix till limit reached and returns updated trie root node,
-// true if any node in the trie got updated, and next bool returns true if there is no keys left with prefix.
+// clearPrefixLimit deletes the keys having the prefix until the value deletion limit is reached.
+// It returns the updated node newParent, the number of deleted values valuesDeleted and the
+// allDeleted boolean indicating if there is no key left with the prefix.
 func (t *Trie) clearPrefixLimit(parent Node, prefix []byte, limit uint32) (
 	newParent Node, valuesDeleted uint32, allDeleted bool) {
 	if parent == nil {
