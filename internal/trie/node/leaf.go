@@ -68,5 +68,4 @@ func bytesToString(b []byte) (s string) {
 	default:
 		return fmt.Sprintf("0x%x...%x", b[:8], b[len(b)-8:])
 	}
-
 }
