@@ -6,12 +6,14 @@ package trie
 import (
 	"bytes"
 	"encoding/hex"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_NewEmptyTrie(t *testing.T) {
@@ -170,6 +172,114 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				updateGeneration(node, trieGenration, nil)
 			})
 	})
+}
+
+func getPointer(x interface{}) (pointer uintptr, ok bool) {
+	func() {
+		defer func() {
+			ok = recover() == nil
+		}()
+		valueOfX := reflect.ValueOf(x)
+		pointer = valueOfX.Pointer()
+	}()
+	return pointer, ok
+}
+
+func assertPointersNotEqual(t *testing.T, a, b interface{}) {
+	t.Helper()
+	pointerA, okA := getPointer(a)
+	pointerB, okB := getPointer(b)
+	require.Equal(t, okA, okB)
+
+	switch {
+	case pointerA == 0 && pointerB == 0: // nil and nil
+	case okA:
+		assert.NotEqual(t, pointerA, pointerB)
+	default: // values like `int`
+	}
+}
+
+// testTrieForDeepCopy verifies each pointer of the copied trie
+// are different from the new copy trie.
+func testTrieForDeepCopy(t *testing.T, original, copy *Trie) {
+	assertPointersNotEqual(t, original, copy)
+	if original == nil {
+		return
+	}
+	assertPointersNotEqual(t, original.generation, copy.generation)
+	assertPointersNotEqual(t, original.deletedKeys, copy.deletedKeys)
+	assertPointersNotEqual(t, original.childTries, copy.childTries)
+	for hashKey, childTrie := range copy.childTries {
+		originalChildTrie := original.childTries[hashKey]
+		testTrieForDeepCopy(t, originalChildTrie, childTrie)
+	}
+	assertPointersNotEqual(t, original.root, copy.root)
+}
+
+func Test_Trie_DeepCopy(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		trieOriginal *Trie
+		trieCopy     *Trie
+	}{
+		"nil": {},
+		"empty trie": {
+			trieOriginal: &Trie{},
+			trieCopy:     &Trie{},
+		},
+		"filled trie": {
+			trieOriginal: &Trie{
+				generation: 1,
+				root:       &node.Leaf{Key: []byte{1, 2}},
+				childTries: map[common.Hash]*Trie{
+					{1, 2, 3}: {
+						generation: 2,
+						root:       &node.Leaf{Key: []byte{1}},
+						deletedKeys: map[common.Hash]struct{}{
+							{1, 2, 3}: {},
+							{3, 4, 5}: {},
+						},
+					},
+				},
+				deletedKeys: map[common.Hash]struct{}{
+					{1, 2, 3}: {},
+					{3, 4, 5}: {},
+				},
+			},
+			trieCopy: &Trie{
+				generation: 1,
+				root:       &node.Leaf{Key: []byte{1, 2}},
+				childTries: map[common.Hash]*Trie{
+					{1, 2, 3}: {
+						generation: 2,
+						root:       &node.Leaf{Key: []byte{1}},
+						deletedKeys: map[common.Hash]struct{}{
+							{1, 2, 3}: {},
+							{3, 4, 5}: {},
+						},
+					},
+				},
+				deletedKeys: map[common.Hash]struct{}{
+					{1, 2, 3}: {},
+					{3, 4, 5}: {},
+				},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			trieCopy := testCase.trieOriginal.DeepCopy()
+
+			assert.Equal(t, trieCopy, testCase.trieCopy)
+
+			testTrieForDeepCopy(t, testCase.trieOriginal, trieCopy)
+		})
+	}
 }
 
 func Test_Trie_RootNode(t *testing.T) {
