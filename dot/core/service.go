@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -90,7 +89,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilStorageState
 	}
 
-	if reflect.ValueOf(cfg.Network).IsNil() {
+	if cfg.Network == nil {
 		return nil, ErrNilNetwork
 	}
 

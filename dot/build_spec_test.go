@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -24,7 +25,8 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 		{
 			name:    "name test",
 			genesis: &genesis.Genesis{Name: "test"},
-			want: `{
+			want: `
+{
     "name": "test",
     "id": "",
     "chainType": "",
@@ -48,7 +50,8 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 				ProtocolID:      "protocol",
 				ConsensusEngine: "babe",
 			},
-			want: `{
+			want: `
+{
     "name": "test",
     "id": "ID",
     "chainType": "chainType",
@@ -79,7 +82,8 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 				ConsensusEngine:    "babe",
 				CodeSubstitutes:    map[string]string{"key": "value"},
 			},
-			want: `{
+			want: `
+{
     "name": "test",
     "id": "ID",
     "chainType": "chainType",
@@ -107,7 +111,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 			}
 			got, err := b.ToJSON()
 			assert.ErrorIs(t, err, tt.err)
-			assert.Equal(t, tt.want, string(got))
+			assert.Equal(t, strings.TrimSpace(tt.want), string(got))
 		})
 	}
 }
@@ -244,7 +248,6 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	tests := []struct {
 		name      string
 		args      args
-		err       error
 		touchFile bool
 	}{
 		{
@@ -264,16 +267,17 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var expectedErr error
 			if tt.touchFile {
 				path := filepath.Join(t.TempDir(), "test.txt")
 				err := os.WriteFile(path, nil, os.ModePerm)
 				require.NoError(t, err)
 				tt.args.fp = path
-				tt.err = errors.New("file " + path + " already exists, rename to avoid overwriting")
+				expectedErr = errors.New("file " + path + " already exists, rename to avoid overwriting")
 			}
 			err := WriteGenesisSpecFile(tt.args.data, tt.args.fp)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
+			if expectedErr != nil {
+				assert.EqualError(t, err, expectedErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}

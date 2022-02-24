@@ -5,7 +5,6 @@ package dot
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -48,7 +47,7 @@ type Node struct {
 	metricsServer *metrics.Server
 }
 
-//go:generate mockgen -source=node.go -destination=mock_node_test.go -package=$GOPACKAGE
+//go:generate mockgen -source=node.go -destination=mock_node_builder_test.go -package=$GOPACKAGE
 
 type nodeBuilderIface interface {
 	nodeInitialised(string) error
@@ -73,6 +72,8 @@ type nodeBuilderIface interface {
 	createRPCService(params rpcServiceSettings) (*rpc.HTTPServer, error)
 }
 
+var _ nodeBuilderIface = (*nodeBuilder)(nil)
+
 type nodeBuilder struct{}
 
 // NodeInitialized returns true if, within the configured data directory for the
@@ -81,7 +82,7 @@ func NodeInitialized(basepath string) bool {
 	nodeInstance := nodeBuilder{}
 	err := nodeInstance.nodeInitialised(basepath)
 	if err != nil {
-		logger.Errorf("failed to initialise node: %s", err)
+		logger.Errorf("failed to initialise node from base path %s: %s", basepath, err)
 		return false
 	}
 	return true
@@ -93,13 +94,13 @@ func (*nodeBuilder) nodeInitialised(basepath string) error {
 
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
-		return errors.New("node has not been initialised from base path " + basepath + ": " + err.Error())
+		return err
 	}
 
 	// initialise database using data directory
 	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
-		return errors.New("failed to create database from base path " + basepath + ": " + err.Error())
+		return err
 	}
 
 	defer func() {
@@ -111,7 +112,7 @@ func (*nodeBuilder) nodeInitialised(basepath string) error {
 
 	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
-		return errors.New("node has not been initialised from base path " + basepath + ": " + err.Error())
+		return err
 	}
 
 	return nil
@@ -199,7 +200,6 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
 	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
-		//logger.Debugf("problem initialising telemetry: %s", err)
 		return "", err
 	}
 
@@ -232,7 +232,7 @@ func newNode(cfg *Config, ks *keystore.GlobalKeystore, builder nodeBuilderIface)
 		debug.SetGCPercent(prev)
 	}
 
-	if !NodeInitialized(cfg.Global.BasePath) {
+	if builder.nodeInitialised(cfg.Global.BasePath) != nil {
 		err := builder.initNode(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("cannot initialise node: %w", err)

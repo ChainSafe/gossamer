@@ -35,7 +35,7 @@ func TestTrieSnapshot(t *testing.T) {
 	deepCopyTrie := tri.DeepCopy()
 
 	// Take Snapshot of the trie.
-	snapshotedTrie := tri.Snapshot()
+	newTrie := tri.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
 	tHash, err := tri.Hash()
@@ -44,7 +44,7 @@ func TestTrieSnapshot(t *testing.T) {
 	dcTrieHash, err := deepCopyTrie.Hash()
 	require.NoError(t, err)
 
-	newTrieHash, err := snapshotedTrie.Hash()
+	newTrieHash, err := newTrie.Hash()
 	require.NoError(t, err)
 
 	// Root hash for the 3 tries should be equal.
@@ -52,7 +52,7 @@ func TestTrieSnapshot(t *testing.T) {
 	require.Equal(t, tHash, newTrieHash)
 
 	// Modify the current trie.
-	snapshotedTrie.Put(key, value)
+	newTrie.Put(key, value)
 
 	// Get the updated root hash of all tries.
 	tHash, err = tri.Hash()
@@ -61,7 +61,7 @@ func TestTrieSnapshot(t *testing.T) {
 	dcTrieHash, err = deepCopyTrie.Hash()
 	require.NoError(t, err)
 
-	newTrieHash, err = snapshotedTrie.Hash()
+	newTrieHash, err = newTrie.Hash()
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.

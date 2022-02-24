@@ -65,9 +65,7 @@ func TestImportState(t *testing.T) {
 
 	cfg := NewTestConfig(t)
 
-	genFile := newTestGenesisRawFile(t, cfg)
-
-	cfg.Init.Genesis = genFile
+	cfg.Init.Genesis = newTestGenesisRawFile(t, cfg)
 
 	cfg.Global.BasePath = basepath
 	nodeInstance := nodeBuilder{}
@@ -152,31 +150,45 @@ func Test_newHeaderFromFile(t *testing.T) {
 		Digest:         digest,
 	}
 
-	got, err := newHeaderFromFile(setupHeaderFile(t))
-	assert.NoError(t, err)
-
-	assert.Equal(t, expectedHeader, got)
-}
-
-func Test_newHeaderFromFileEmptyArgs(t *testing.T) {
-	t.Parallel()
-
-	_, err := newHeaderFromFile("")
-
-	assert.EqualError(t, err, errors.New("read .: is a directory").Error())
+	tests := []struct {
+		name     string
+		filename string
+		want     *types.Header
+		err      error
+	}{
+		{
+			name: "no arguments",
+			err:  errors.New("read .: is a directory"),
+		},
+		{
+			name:     "working example",
+			filename: setupHeaderFile(t),
+			want:     expectedHeader,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := newHeaderFromFile(tt.filename)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			if tt.want != nil {
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
 }
 
 func Test_newTrieFromPairs(t *testing.T) {
 	t.Parallel()
 
-	type args struct {
-		filename string
-	}
 	tests := []struct {
-		name string
-		args args
-		want common.Hash
-		err  error
+		name     string
+		filename string
+		want     common.Hash
+		err      error
 	}{
 		{
 			name: "no arguments",
@@ -184,14 +196,14 @@ func Test_newTrieFromPairs(t *testing.T) {
 			want: common.Hash{},
 		},
 		{
-			name: "working example",
-			args: args{filename: setupStateFile(t)},
-			want: common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+			name:     "working example",
+			filename: setupStateFile(t),
+			want:     common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newTrieFromPairs(tt.args.filename)
+			got, err := newTrieFromPairs(tt.filename)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

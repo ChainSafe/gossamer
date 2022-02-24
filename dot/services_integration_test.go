@@ -34,7 +34,7 @@ func TestCreateStateService(t *testing.T) {
 
 	nodeInstance := nodeBuilder{}
 	stateSrvc, err := nodeInstance.createStateService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, stateSrvc)
 }
 
@@ -203,8 +203,8 @@ func TestCreateBABEService_Integration(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	nodeInstance := nodeBuilder{}
-	stateSrvc, err := nodeInstance.createStateService(cfg)
+	builder := nodeBuilder{}
+	stateSrvc, err := builder.createStateService(cfg)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -212,18 +212,18 @@ func TestCreateBABEService_Integration(t *testing.T) {
 	require.NoError(t, err)
 	ks.Babe.Insert(kr.Alice())
 
-	ns, err := nodeInstance.createRuntimeStorage(stateSrvc)
+	ns, err := builder.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
-	err = nodeInstance.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
-	require.NoError(t, err)
-
-	dh, err := nodeInstance.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	coreSrvc, err := nodeInstance.createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
-	bs, err := nodeInstance.createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, nil)
+	coreSrvc, err := builder.createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	require.NoError(t, err)
+
+	bs, err := builder.createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }
@@ -310,7 +310,7 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	nodeInstance := nodeBuilder{}
 	stateSrvc, err := nodeInstance.createStateService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
 
@@ -327,7 +327,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	require.NoError(t, err)
 
 	coreSrvc, err := nodeInstance.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sysSrvc, err := nodeInstance.createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
@@ -364,24 +364,20 @@ func TestNewWebSocketServer(t *testing.T) {
 }
 
 func Test_createPprofService(t *testing.T) {
-	type args struct {
-		settings pprof.Settings
-	}
 	tests := []struct {
-		name string
-		args args
-		want *pprof.Service
+		name     string
+		settings pprof.Settings
+		notNil   bool
 	}{
 		{
-			name: "base case",
-			args: args{},
-			want: &pprof.Service{},
+			name:   "base case",
+			notNil: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := createPprofService(tt.args.settings)
-			if tt.want != nil {
+			got := createPprofService(tt.settings)
+			if tt.notNil {
 				assert.NotNil(t, got)
 			} else {
 				assert.Nil(t, got)
@@ -402,14 +398,14 @@ func Test_createDigestHandler(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	nodeInstance := nodeBuilder{}
-	stateSrvc, err := nodeInstance.createStateService(cfg)
+	builder := nodeBuilder{}
+	stateSrvc, err := builder.createStateService(cfg)
 	require.NoError(t, err)
 
 	err = startStateService(cfg, stateSrvc)
 	require.NoError(t, err)
 
-	_, err = nodeInstance.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	_, err = builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)
 
 }

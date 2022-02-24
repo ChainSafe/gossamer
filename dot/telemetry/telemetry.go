@@ -23,8 +23,6 @@ const (
 	txPoolImportMsg = "txpool.import"
 )
 
-//go:generate mockgen -destination=mock_telemetry_client_test.go -package=$GOPACKAGE . Client
-
 // Client is the interface to send messages to telemetry servers
 type Client interface {
 	SendMessage(msg Message)

@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -52,14 +51,7 @@ func NewVerificationManager(blockState BlockState, epochState EpochState) (*Veri
 		return nil, ErrNilBlockState
 	}
 
-	var isNilEpoch bool
-	switch epochState.(type) {
-	case *state.EpochState:
-		isNilEpoch = epochState == (*state.EpochState)(nil)
-	default:
-		isNilEpoch = reflect.ValueOf(epochState).IsNil()
-	}
-	if isNilEpoch {
+	if reflect.ValueOf(epochState).IsNil() {
 		return nil, errNilEpochState
 	}
 
