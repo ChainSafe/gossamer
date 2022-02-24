@@ -23,6 +23,39 @@ docker-compose down
 
 > **_NOTE:_**  The devnet is not stateful, so subsequent runs will start from the genesis block.
 
+## Running Cross Client Devnet
+
+A cross-client devnet is network of gossamer node(s) and substrate node(s).
+
+Steps to run a two node cross client devnet
+
+- Create `genesis-spec.json`
+```
+./polkadot build-spec --disable-default-bootnode --dev > genesis-spec.json
+```
+
+- Edit `genesis-spec.json` as per your needs. Add extra authorities if you want to. In order to add extra authorities, you would want to edit "validatorCount", "minimumValidatorCount", "invulnerables", "stakers", and "session"."keys"
+
+- Create `genesis.json` from `genesis-spec.json`.
+```
+./polkadot build-spec --chain genesis-spec.json --raw --disable-default-bootnode > genesis.json
+```
+
+- Initiate gossamer node
+```
+./bin/gossamer init --force --genesis ../polkadot-testing/genesis.json
+```
+
+- Run polkadot
+```
+./polkadot --alice --chain genesis.json
+```
+
+- Run gossamer
+```
+./bin/gossamer --key bob --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWKFFJcY3rymuRzi8JTt8cdXT9BtSYrggwwMqyzW7c6W6P
+```
+
 ## Prometheus Datadog Integration
 
 All Prometheus metrics from the nodes are piped to Datadog. You can setup your own dashboard and add additional tags by modifying the Dockerfiles.  Currently the metrics are prefixed with `gossamer.local.devnet` and are tagged (Prometheus label) with a `key` tag for `alice`, `bob`, and `charlie`.
