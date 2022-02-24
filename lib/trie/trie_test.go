@@ -6,12 +6,14 @@ package trie
 import (
 	"bytes"
 	"encoding/hex"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_NewEmptyTrie(t *testing.T) {
@@ -172,48 +174,46 @@ func Test_Trie_updateGeneration(t *testing.T) {
 	})
 }
 
-// checkTrieForNoMutation verifies modifying the copy of the trie
-// does not affect the original copied trie.
-func checkTrieForNoMutation(t *testing.T, original, copy *Trie) {
+func getPointer(x interface{}) (pointer uintptr, ok bool) {
+	func() {
+		defer func() {
+			ok = recover() == nil
+		}()
+		valueOfX := reflect.ValueOf(x)
+		pointer = valueOfX.Pointer()
+	}()
+	return pointer, ok
+}
+
+func assertPointersNotEqual(t *testing.T, a, b interface{}) {
+	t.Helper()
+	pointerA, okA := getPointer(a)
+	pointerB, okB := getPointer(b)
+	require.Equal(t, okA, okB)
+
+	switch {
+	case pointerA == 0 && pointerB == 0: // nil and nil
+	case okA:
+		assert.NotEqual(t, pointerA, pointerB)
+	default: // values like `int`
+	}
+}
+
+// testTrieForDeepCopy verifies each pointer of the copied trie
+// are different from the new copy trie.
+func testTrieForDeepCopy(t *testing.T, original, copy *Trie) {
+	assertPointersNotEqual(t, original, copy)
 	if original == nil {
 		return
 	}
-
-	copy.generation++
-	assert.NotEqual(t, original.generation, copy.generation)
-
-	if copy.deletedKeys != nil {
-		if len(copy.deletedKeys) == 0 {
-			copy.deletedKeys[common.Hash{1}] = struct{}{}
-		} else {
-			for firstHashKey := range copy.deletedKeys {
-				delete(copy.deletedKeys, firstHashKey)
-				break
-			}
-		}
-		assert.NotEqual(t, original.deletedKeys, copy.deletedKeys)
+	assertPointersNotEqual(t, original.generation, copy.generation)
+	assertPointersNotEqual(t, original.deletedKeys, copy.deletedKeys)
+	assertPointersNotEqual(t, original.childTries, copy.childTries)
+	for hashKey, childTrie := range copy.childTries {
+		originalChildTrie := original.childTries[hashKey]
+		testTrieForDeepCopy(t, originalChildTrie, childTrie)
 	}
-
-	if copy.childTries != nil {
-		if len(copy.childTries) == 0 {
-			copy.childTries[common.Hash{1}] = &Trie{}
-		} else {
-			var firstHashKey common.Hash
-			var firstChildTrie *Trie
-			for firstHashKey, firstChildTrie = range copy.childTries {
-				originalChildTrie := original.childTries[firstHashKey]
-				checkTrieForNoMutation(t, originalChildTrie, firstChildTrie)
-				delete(copy.childTries, firstHashKey)
-				break
-			}
-		}
-		assert.NotEqual(t, original.childTries, copy.childTries)
-	}
-
-	if copy.root != nil {
-		copy.root.SetDirty(!copy.root.IsDirty())
-		assert.NotEqual(t, original.root, copy.root)
-	}
+	assertPointersNotEqual(t, original.root, copy.root)
 }
 
 func Test_Trie_DeepCopy(t *testing.T) {
@@ -277,7 +277,7 @@ func Test_Trie_DeepCopy(t *testing.T) {
 
 			assert.Equal(t, trieCopy, testCase.trieCopy)
 
-			checkTrieForNoMutation(t, testCase.trieOriginal, trieCopy)
+			testTrieForDeepCopy(t, testCase.trieOriginal, trieCopy)
 		})
 	}
 }
