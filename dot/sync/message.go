@@ -289,7 +289,7 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash,
 		descendant = &hash
 	}
 
-	logger.Tracef("determined descendant %s with number %s and ancestor %s",
+	logger.Tracef("determined descendant %s with number %d and ancestor %s",
 		*descendant, descendantNumber, ancestor)
 	return *descendant, nil
 }

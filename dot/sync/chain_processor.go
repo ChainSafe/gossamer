@@ -143,7 +143,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if bd.Justification != nil {
-			logger.Debugf("handling Justification for block number %s with hash %s...", block.Header.Number, bd.Hash)
+			logger.Debugf("handling Justification for block number %d with hash %s...", block.Header.Number, bd.Hash)
 			s.handleJustification(&block.Header, *bd.Justification)
 		}
 
@@ -178,7 +178,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if err := s.handleBlock(block); err != nil {
-			logger.Debugf("failed to handle block number %s: %s", block.Header.Number, err)
+			logger.Debugf("failed to handle block number %d: %s", block.Header.Number, err)
 			return err
 		}
 
@@ -255,7 +255,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	logger.Debugf("🔗 imported block number %s with hash %s", block.Header.Number, block.Header.Hash())
+	logger.Debugf("🔗 imported block number %d with hash %s", block.Header.Number, block.Header.Hash())
 
 	blockHash := block.Header.Hash()
 	s.telemetry.SendMessage(telemetry.NewBlockImport(
@@ -273,7 +273,7 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 
 	err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
 	if err != nil {
-		logger.Warnf("failed to verify block number %s and hash %s justification: %s", header.Number, header.Hash(), err)
+		logger.Warnf("failed to verify block number %d and hash %s justification: %s", header.Number, header.Hash(), err)
 		return
 	}
 
@@ -283,5 +283,5 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 		return
 	}
 
-	logger.Infof("🔨 finalised block number %s with hash %s", header.Number, header.Hash())
+	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, header.Hash())
 }

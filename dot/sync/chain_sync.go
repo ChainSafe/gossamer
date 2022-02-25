@@ -323,7 +323,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 	}
 
 	cs.workQueue <- ps
-	logger.Debugf("set peer %s head with block number %s and hash %s", p, number, hash)
+	logger.Debugf("set peer %s head with block number %d and hash %s", p, number, hash)
 	return nil
 }
 
@@ -371,7 +371,7 @@ func (cs *chainSync) logSyncSpeed() {
 
 			logger.Infof(
 				"🚣 currently syncing, %d peers connected, "+
-					"target block number %s, %.2f average blocks/second, "+
+					"target block number %d, %.2f average blocks/second, "+
 					"%.2f overall average, finalised block number %s with hash %s",
 				len(cs.network.Peers()),
 				target, cs.benchmarker.mostRecentAverage(),
@@ -578,7 +578,7 @@ func (cs *chainSync) getTarget() uint {
 // in tip mode, this adds the peer's state to the pendingBlocks set and potentially starts
 // a fork sync
 func (cs *chainSync) handleWork(ps *peerState) error {
-	logger.Tracef("handling potential work for target block number %s and hash %s", ps.number, ps.hash)
+	logger.Tracef("handling potential work for target block number %d and hash %s", ps.number, ps.hash)
 	worker, err := cs.handler.handleNewPeerState(ps)
 	if err != nil {
 		return err
@@ -611,7 +611,7 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
 	logger.Debugf("dispatching sync worker id %d, "+
-		"start number %s, target number %s, "+
+		"start number %d, target number %d, "+
 		"start hash %s, target hash %s, "+
 		"request data %d, direction %s",
 		w.id,

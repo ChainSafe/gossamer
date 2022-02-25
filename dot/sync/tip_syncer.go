@@ -164,7 +164,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			continue
 		}
 
-		logger.Tracef("handling pending block number %s with hash %s", block.number, block.hash)
+		logger.Tracef("handling pending block number %d with hash %s", block.number, block.hash)
 
 		if block.header == nil {
 			// case 1
