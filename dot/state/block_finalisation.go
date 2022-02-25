@@ -176,6 +176,17 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		),
 	)
 
+	lastFinalisedHeader, err := bs.GetHeader(bs.lastFinalised)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve header for last finalised block, hash: %s, err: %s", bs.lastFinalised, err)
+	}
+	stateRootTrie := bs.tries.get(lastFinalisedHeader.StateRoot)
+	if stateRootTrie != nil {
+		bs.tries.delete(lastFinalisedHeader.StateRoot)
+	} else {
+		return fmt.Errorf("unable to find trie with stateroot hash: %s", lastFinalisedHeader.StateRoot)
+	}
+
 	bs.lastFinalised = hash
 	return nil
 }
@@ -243,7 +254,6 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 		logger.Tracef("cleaned out finalised block from memory; block number %s with hash %s", block.Header.Number, hash)
 	}
-
 	return batch.Flush()
 }
 
