@@ -171,7 +171,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	}
 	testVRFOutputAndProof := &VrfOutputAndProof{}
 
-	preDigest2, err := types.types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(
+	preDigest2, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(
 		authorityIndex, slot2.number,
 		testVRFOutputAndProof.output,
 		testVRFOutputAndProof.proof,

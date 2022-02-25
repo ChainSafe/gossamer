@@ -95,6 +95,7 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32,
 // Index Returns VDT index
 func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }
 
+// ToPreRuntimeDigest returns the VaryingDataTypeValue as a PreRuntimeDigest
 func ToPreRuntimeDigest(value scale.VaryingDataTypeValue) (*PreRuntimeDigest, error) {
 	digest := NewBabeDigest()
 	err := digest.Set(value)
