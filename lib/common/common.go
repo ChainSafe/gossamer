@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"strconv"
 	"strings"
 )
@@ -86,32 +85,6 @@ func MustHexToBytes(in string) []byte {
 	}
 
 	return out
-}
-
-// MustHexToBigInt turns a 0x prefixed hex string into a big.Int
-// it panic if it cannot decode the string
-func MustHexToBigInt(in string) *big.Int {
-	if len(in) < 2 {
-		panic("invalid string")
-	}
-
-	if strings.Compare(in[:2], "0x") != 0 {
-		panic(ErrNoPrefix)
-	}
-
-	in = in[2:]
-
-	// Ensure we have an even length
-	if len(in)%2 != 0 {
-		in = "0" + in
-	}
-
-	out, err := hex.DecodeString(in)
-	if err != nil {
-		panic(err)
-	}
-
-	return big.NewInt(0).SetBytes(out)
 }
 
 // BytesToHex turns a byte slice into a 0x prefixed hex string
