@@ -143,7 +143,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	setID := uint64(1)
 
 	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)

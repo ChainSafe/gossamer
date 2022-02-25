@@ -483,13 +483,13 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.False(t, fin)
 
 	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
-	prd, err = types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest()
+	prd, err = types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 100))
 	require.NoError(t, err)
 	err = digest2.Add(*prd)
 	require.NoError(t, err)

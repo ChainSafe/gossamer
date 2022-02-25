@@ -240,8 +240,8 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 
 	switch err {
 	case nil:
-		preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
-			epochData.authorityIndex, slotNumber, proof.output, proof.proof).ToPreRuntimeDigest()
+		preRuntimeDigest, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(
+			epochData.authorityIndex, slotNumber, proof.output, proof.proof))
 		if err != nil {
 			return nil, fmt.Errorf("error converting babe primary pre-digest to pre-runtime digest: %w", err)
 		}
@@ -262,8 +262,9 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		if err != nil {
 			return nil, fmt.Errorf("error claim secondary vrf slot at %d: %w", slotNumber, err)
 		}
-		preRuntimeDigest, err := types.NewBabeSecondaryVRFPreDigest(
-			epochData.authorityIndex, slotNumber, proof.output, proof.proof).ToPreRuntimeDigest()
+		preRuntimeDigest, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryVRFPreDigest(
+			epochData.authorityIndex, slotNumber, proof.output, proof.proof))
+
 		if err != nil {
 			return nil, fmt.Errorf("error converting babe secondary vrf pre-digest to pre-runtime digest: %w", err)
 		}
@@ -275,9 +276,9 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		if err != nil {
 			return nil, fmt.Errorf("error claiming secondary plain slot at %d: %w", slotNumber, err)
 		}
+		preRuntimeDigest, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(
+			epochData.authorityIndex, slotNumber))
 
-		preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
-			epochData.authorityIndex, slotNumber).ToPreRuntimeDigest()
 		if err != nil {
 			return nil, fmt.Errorf(
 				"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", slotNumber, err)
