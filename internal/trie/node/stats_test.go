@@ -6,26 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_NewStats(t *testing.T) {
-	t.Parallel()
-
-	const descendants uint32 = 10
-	stats := NewStats(descendants)
-
-	expected := Stats{
-		Descendants: descendants,
-	}
-	assert.Equal(t, expected, stats)
-}
-
 func Test_Branch_GetDescendants(t *testing.T) {
 	t.Parallel()
 
 	const descendants uint32 = 10
 	branch := &Branch{
-		Stats: Stats{
-			Descendants: descendants,
-		},
+		Descendants: descendants,
 	}
 	result := branch.GetDescendants()
 
@@ -41,15 +27,11 @@ func Test_Branch_AddDescendants(t *testing.T) {
 		finalDescendants   uint32 = 12
 	)
 	branch := &Branch{
-		Stats: Stats{
-			Descendants: initialDescendants,
-		},
+		Descendants: initialDescendants,
 	}
 	branch.AddDescendants(addDescendants)
 	expected := &Branch{
-		Stats: Stats{
-			Descendants: finalDescendants,
-		},
+		Descendants: finalDescendants,
 	}
 
 	assert.Equal(t, expected, branch)
@@ -64,15 +46,11 @@ func Test_Branch_SubDescendants(t *testing.T) {
 		finalDescendants   uint32 = 8
 	)
 	branch := &Branch{
-		Stats: Stats{
-			Descendants: initialDescendants,
-		},
+		Descendants: initialDescendants,
 	}
 	branch.SubDescendants(subDescendants)
 	expected := &Branch{
-		Stats: Stats{
-			Descendants: finalDescendants,
-		},
+		Descendants: finalDescendants,
 	}
 
 	assert.Equal(t, expected, branch)

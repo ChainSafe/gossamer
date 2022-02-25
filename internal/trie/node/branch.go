@@ -30,7 +30,12 @@ type Branch struct {
 	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
 	Generation uint64
-	Stats      Stats
+
+	// Statistics
+
+	// Descendants is the number of descendant nodes for
+	// this particular node.
+	Descendants uint32
 }
 
 // NewBranch creates a new branch using the arguments given.

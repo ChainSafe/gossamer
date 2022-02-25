@@ -1091,10 +1091,8 @@ func handleDeletion(branch *node.Branch, key []byte) (newNode Node, branchChildM
 			Value:      childBranch.Value,
 			Generation: branch.Generation,
 			Dirty:      true,
-			Stats: node.Stats{
-				// this is the descendants of the original branch minus one
-				Descendants: childBranch.GetDescendants(),
-			},
+			// this is the descendants of the original branch minus one
+			Descendants: childBranch.GetDescendants(),
 		}
 
 		// Adopt the grand-children
