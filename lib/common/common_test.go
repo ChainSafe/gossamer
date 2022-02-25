@@ -132,6 +132,102 @@ func TestConcat(t *testing.T) {
 	}
 }
 
+func Test_UintToBytes(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		n uint
+		b []byte
+	}{
+		"zero": {
+			n: 0,
+			b: []byte{},
+		},
+		"one": {
+			n: 1,
+			b: []byte{1},
+		},
+		"256": {
+			n: 256,
+			b: []byte{1, 0},
+		},
+		"max uint32": {
+			n: 1<<32 - 1,
+			b: []byte{255, 255, 255, 255},
+		},
+		"one plus max uint32": {
+			n: 1 + (1<<32 - 1),
+			b: []byte{1, 0, 0, 0, 0},
+		},
+		"max int64": {
+			n: 1<<63 - 1,
+			b: []byte{0x7f, 255, 255, 255, 255, 255, 255, 255},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			b := UintToBytes(testCase.n)
+
+			assert.Equal(t, testCase.b, b)
+
+			bigIntBytes := big.NewInt(int64(testCase.n)).Bytes()
+			assert.Equal(t, bigIntBytes, b)
+		})
+	}
+}
+
+func Test_BytesToUint(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		b []byte
+		n uint
+	}{
+		"zero": {
+			b: []byte{},
+			n: 0,
+		},
+		"one": {
+			b: []byte{1},
+			n: 1,
+		},
+		"256": {
+			b: []byte{1, 0},
+			n: 256,
+		},
+		"max uint32": {
+			b: []byte{255, 255, 255, 255},
+			n: 1<<32 - 1,
+		},
+		"one plus max uint32": {
+			b: []byte{1, 0, 0, 0, 0},
+			n: 1 + (1<<32 - 1),
+		},
+		"max int64": {
+			b: []byte{0x7f, 255, 255, 255, 255, 255, 255, 255},
+			n: 1<<63 - 1,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			n := BytesToUint(testCase.b)
+
+			assert.Equal(t, testCase.n, n)
+
+			bigIntUint := uint(big.NewInt(0).SetBytes(testCase.b).Uint64())
+			assert.Equal(t, bigIntUint, n)
+		})
+	}
+}
+
 func TestUint16ToBytes(t *testing.T) {
 	tests := []struct {
 		input    uint16

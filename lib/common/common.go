@@ -137,17 +137,21 @@ func Uint16ToBytes(in uint16) (out []byte) {
 	return out
 }
 
-// UintToBytes converts a uint into Big Endian byte slice
-// using 4 bytes for values that fit in a uint32 and in
-// 8 bytes otherwise.
+// UintToBytes converts a uint into a Big Endian byte slice
+// using a compact number of bytes. This is to imitate
+// the big.Int().Bytes() behaviour.
 func UintToBytes(n uint) (b []byte) {
-	const maxUint32 = uint(^uint32(0))
-	if n > maxUint32 { // uint64
-		b = make([]byte, 8)
-		binary.BigEndian.PutUint64(b, uint64(n))
-	} else { // uint32
-		b = make([]byte, 4)
-		binary.BigEndian.PutUint32(b, uint32(n))
+	b = make([]byte, 0)
+	for n > 255 {
+		b = append(b, 0)
+		copy(b[1:], b)
+		b[0] = byte(n)
+		n >>= 8
+	}
+	if n > 0 {
+		b = append(b, 0)
+		copy(b[1:], b)
+		b[0] = byte(n)
 	}
 	return b
 }
@@ -158,6 +162,28 @@ func UintToBytes(n uint) (b []byte) {
 func UintToHex(n uint) (hexString string) {
 	b := UintToBytes(n)
 	return BytesToHex(b)
+}
+
+// BytesToUint converts a bytes slice in Big Endian compact
+// format to a uint. This is to imitate the
+// big.NewInt(0).SetBytes(b) behaviour.
+func BytesToUint(b []byte) (n uint) {
+	for i := range b {
+		byteValue := uint(b[i])
+		shift := (len(b) - i - 1) * 8
+		n += byteValue << shift
+	}
+	return n
+}
+
+// HexToUint converts a hex string of bytes in Big Endian compact
+// format to a uint. See BytesToUint for more details.
+func HexToUint(hexString string) (n uint, err error) {
+	b, err := HexToBytes(hexString)
+	if err != nil {
+		return 0, err
+	}
+	return BytesToUint(b), nil
 }
 
 // AppendZeroes appends zeroes to the input byte array up until it has length l

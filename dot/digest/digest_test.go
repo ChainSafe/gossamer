@@ -4,7 +4,6 @@
 package digest
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -186,8 +185,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 	nextPause, err := handler.grandpaState.(*state.GrandpaState).GetNextPause()
 	require.NoError(t, err)
-	require.NotNil(t, nextPause) // ensure pause was found
-	require.Equal(t, big.NewInt(int64(p.Delay)), nextPause)
+	require.Equal(t, uint(p.Delay), nextPause)
 
 	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
 	for i, h := range headers {
