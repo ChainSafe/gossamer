@@ -72,27 +72,21 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (
 	// don't retry if we're requesting blocks lower than finalised
 	switch res.direction {
 	case network.Ascending:
-		if res.targetNumber == nil || *res.targetNumber <= fin.Number {
+		if *res.targetNumber <= fin.Number {
 			return nil, nil
 		}
 
 		// if start is lower than finalised, increase it to finalised+1
-		if res.startNumber == nil {
-			res.startNumber = new(uint)
-		}
 		if *res.startNumber <= fin.Number {
 			*res.startNumber = fin.Number + 1
 			res.startHash = common.Hash{}
 		}
 	case network.Descending:
-		if res.startNumber == nil || *res.startNumber <= fin.Number {
+		if *res.startNumber <= fin.Number {
 			return nil, nil
 		}
 
 		// if target is lower than finalised, increase it to finalised+1
-		if res.targetNumber == nil {
-			res.targetNumber = new(uint)
-		}
 		if *res.targetNumber <= fin.Number {
 			*res.targetNumber = fin.Number + 1
 			res.targetHash = common.Hash{}
