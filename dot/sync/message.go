@@ -142,9 +142,8 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 	)
 
 	// determine maximum response size
-	requestMax := uint(*req.Max)
-	if req.Max != nil && requestMax < maxResponseSize {
-		max = requestMax
+	if req.Max != nil && *req.Max < maxResponseSize {
+		max = uint(*req.Max)
 	}
 
 	switch startBlock := req.StartingBlock.Value().(type) {
