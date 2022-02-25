@@ -53,7 +53,7 @@ Steps to run a two node cross client devnet
 
 - Run gossamer
 ```
-./bin/gossamer --key bob --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWKFFJcY3rymuRzi8JTt8cdXT9BtSYrggwwMqyzW7c6W6P
+./bin/gossamer --key bob --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/$PEERID_OF_POLKADOT_NODE
 ```
 
 ## Prometheus Datadog Integration
