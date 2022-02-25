@@ -365,7 +365,6 @@ func TestBuildBlock_failing(t *testing.T) {
 
 	parentHeader := &types.Header{
 		ParentHash: zeroHash,
-		Number:     0,
 	}
 
 	duration, err := time.ParseDuration("1s")

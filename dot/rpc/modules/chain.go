@@ -216,7 +216,7 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 
 		xUint64, err := strconv.ParseUint(x, 10, 64)
 		if err != nil {
-			return "", fmt.Errorf("cannot parse %q as uint64: %w", x, err)
+			return "", err
 		}
 		num = uint(xUint64)
 

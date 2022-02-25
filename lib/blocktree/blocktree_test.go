@@ -119,7 +119,6 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 func createFlatTree(t *testing.T, number uint) (*BlockTree, []common.Hash) {
 	rootHeader := &types.Header{
 		ParentHash: zeroHash,
-		Number:     0,
 		Digest:     createPrimaryBABEDigest(t),
 	}
 
