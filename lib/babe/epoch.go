@@ -238,8 +238,7 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		keypair,
 	)
 
-	switch err {
-	case nil:
+	if err == nil {
 		preRuntimeDigest, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(
 			epochData.authorityIndex, slotNumber, proof.output, proof.proof))
 		if err != nil {
@@ -247,10 +246,9 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		}
 		logger.Debugf("epoch %d: claimed primary slot %d", epochNumber, slotNumber)
 		return preRuntimeDigest, nil
-	default:
-		if !errors.Is(err, errOverPrimarySlotThreshold) {
-			return nil, fmt.Errorf("error running slot lottery at slot %d: %w", slotNumber, err)
-		}
+	} else if !errors.Is(err, errOverPrimarySlotThreshold) {
+		return nil, fmt.Errorf("error running slot lottery at slot %d: %w", slotNumber, err)
+
 	}
 
 	switch epochData.secondary {

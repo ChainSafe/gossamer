@@ -96,23 +96,23 @@ func claimSecondarySlotVRF(randomness Randomness,
 		return nil, fmt.Errorf("cannot get secondary slot author: %w", err)
 	}
 
-	if authorityIndex == secondarySlotAuthor {
-		transcript := makeTranscript(randomness, slot, epoch)
-
-		out, proof, err := keypair.VrfSign(transcript)
-		if err != nil {
-			return nil, fmt.Errorf("cannot verify transcript: %w", err)
-		}
-
-		logger.Debugf("claimed secondary slot, for slot number: %d", slot)
-
-		return &VrfOutputAndProof{
-			output: out,
-			proof:  proof,
-		}, nil
+	if authorityIndex != secondarySlotAuthor {
+		return nil, errNotOurTurnToPropose
 	}
 
-	return nil, errNotOurTurnToPropose
+	transcript := makeTranscript(randomness, slot, epoch)
+
+	out, proof, err := keypair.VrfSign(transcript)
+	if err != nil {
+		return nil, fmt.Errorf("cannot verify transcript: %w", err)
+	}
+
+	logger.Debugf("claimed secondary slot, for slot number: %d", slot)
+
+	return &VrfOutputAndProof{
+		output: out,
+		proof:  proof,
+	}, nil
 }
 
 func claimSecondarySlotPlain(randomness Randomness, slot uint64, authorities []types.Authority, authorityIndex uint32,
@@ -122,12 +122,12 @@ func claimSecondarySlotPlain(randomness Randomness, slot uint64, authorities []t
 		return fmt.Errorf("cannot get secondary slot author: %w", err)
 	}
 
-	if authorityIndex == secondarySlotAuthor {
-		logger.Debugf("claimed secondary slot, for slot number: %d", slot)
-		return nil
+	if authorityIndex != secondarySlotAuthor {
+		return errNotOurTurnToPropose
 	}
 
-	return errNotOurTurnToPropose
+	logger.Debugf("claimed secondary slot, for slot number: %d", slot)
+	return nil
 }
 
 // CalculateThreshold calculates the slot lottery threshold
