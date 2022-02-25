@@ -170,11 +170,11 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 
 func TestHighestBlock(t *testing.T) {
 	type input struct {
-		highestBlock int64
+		highestBlock uint
 		err          error
 	}
 	type output struct {
-		highestBlock int64
+		highestBlock uint
 	}
 	type test struct {
 		name string
