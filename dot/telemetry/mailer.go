@@ -57,7 +57,7 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 		const maxRetries = 5
 
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
-			conn, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
+			conn, response, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 			if err != nil {
 				mailer.logger.Debugf("cannot dial telemetry endpoint %s (try %d of %d): %s",
 					v.Endpoint, connAttempts+1, maxRetries, err)
@@ -76,6 +76,11 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 
 					return nil, ctx.Err()
 				}
+			}
+
+			err = response.Body.Close()
+			if err != nil {
+				mailer.logger.Errorf("cannot close body of response from %s: %s", v.Endpoint, err)
 			}
 
 			mailer.connections = append(mailer.connections, &telemetryConnection{
