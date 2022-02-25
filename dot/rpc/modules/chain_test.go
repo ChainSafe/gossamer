@@ -191,7 +191,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{i},
 			},
 			exp:    []string(nil),
-			expErr: errors.New("error setting number from string"),
+			expErr: errors.New(`cannot parse "a" as uint64: strconv.ParseUint: parsing "a": invalid syntax`),
 		},
 		{
 			name: "GetBlockHash string req Err",
