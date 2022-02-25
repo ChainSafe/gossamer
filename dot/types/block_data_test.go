@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func uintPtr(n uint) *uint { return &n }
-
 var (
 	digestItem = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	digest     = scale.NewVaryingDataTypeSlice(digestItem)
