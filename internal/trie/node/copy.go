@@ -8,9 +8,9 @@ package node
 // children as well.
 func (b *Branch) Copy(copyChildren bool) Node {
 	cpy := &Branch{
-		Dirty:      b.Dirty,
-		Generation: b.Generation,
-		Stats:      b.Stats,
+		Dirty:       b.Dirty,
+		Generation:  b.Generation,
+		Descendants: b.Descendants,
 	}
 
 	if copyChildren {
