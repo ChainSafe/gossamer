@@ -252,19 +252,15 @@ func (s *GrandpaState) SetNextResume(number uint) error {
 }
 
 // GetNextResume returns the block number of the next grandpa resume.
-// If the key is not found in the database, a nil block number is returned
-// to indicate there is no upcoming Grandpa resume.
-// It returns an error on failure.
+// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// is returned.
 func (s *GrandpaState) GetNextResume() (blockNumber uint, err error) {
-	num, err := s.db.Get(resumeKey)
+	value, err := s.db.Get(resumeKey)
 	if err != nil {
-		// The caller should run errors.Is(err, chaindb.ErrKeyNotFound)
-		// to detect when a key is not found.
-		// This method is only used in a single test at this moment.
 		return 0, err
 	}
 
-	return common.BytesToUint(num), nil
+	return common.BytesToUint(value), nil
 }
 
 func prevotesKey(round, setID uint64) []byte {

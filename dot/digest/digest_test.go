@@ -220,7 +220,6 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	nextResume, err := handler.grandpaState.(*state.GrandpaState).GetNextResume()
 	require.NoError(t, err)
-	require.NotNil(t, nextResume) // ensure resume was found
 	require.Equal(t, uint(r.Delay+p.Delay), nextResume)
 }
 
