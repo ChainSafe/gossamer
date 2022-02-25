@@ -87,7 +87,7 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 		return nil, errors.New("invalid number field in header JSON")
 	}
 
-	num := common.MustHexToBigInt(hexNum)
+	num := uint(common.MustHexToBigInt(hexNum).Uint64())
 
 	parentHashStr, ok := jsonHeader["parentHash"].(string)
 	if !ok {

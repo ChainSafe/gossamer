@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -25,7 +24,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	fake := &types.Header{
-		Number: big.NewInt(77),
+		Number: 77,
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -63,7 +62,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 
 	next := &types.Header{
 		ParentHash: parent.Hash(),
-		Number:     big.NewInt(4),
+		Number:     4,
 		Digest:     digest,
 	}
 
@@ -116,7 +115,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	next := &types.Header{
 		ParentHash: parent.Hash(),
-		Number:     big.NewInt(4),
+		Number:     4,
 		Digest:     digest,
 	}
 
@@ -158,7 +157,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	header := &types.Header{
-		Number: big.NewInt(77),
+		Number: 77,
 	}
 
 	hash := header.Hash()

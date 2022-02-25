@@ -3,8 +3,6 @@
 package mocks
 
 import (
-	big "math/big"
-
 	common "github.com/ChainSafe/gossamer/lib/common"
 	mock "github.com/stretchr/testify/mock"
 
@@ -86,16 +84,14 @@ func (_m *BlockState) BestBlockHeader() (*types.Header, error) {
 }
 
 // BestBlockNumber provides a mock function with given fields:
-func (_m *BlockState) BestBlockNumber() (*big.Int, error) {
+func (_m *BlockState) BestBlockNumber() (uint, error) {
 	ret := _m.Called()
 
-	var r0 *big.Int
-	if rf, ok := ret.Get(0).(func() *big.Int); ok {
+	var r0 uint
+	if rf, ok := ret.Get(0).(func() uint); ok {
 		r0 = rf()
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*big.Int)
-		}
+		r0 = ret.Get(0).(uint)
 	}
 
 	var r1 error
@@ -123,11 +119,11 @@ func (_m *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 }
 
 // GetAllBlocksAtNumber provides a mock function with given fields: num
-func (_m *BlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) {
+func (_m *BlockState) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
 	ret := _m.Called(num)
 
 	var r0 []common.Hash
-	if rf, ok := ret.Get(0).(func(*big.Int) []common.Hash); ok {
+	if rf, ok := ret.Get(0).(func(uint) []common.Hash); ok {
 		r0 = rf(num)
 	} else {
 		if ret.Get(0) != nil {
@@ -136,7 +132,7 @@ func (_m *BlockState) GetAllBlocksAtNumber(num *big.Int) ([]common.Hash, error) 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*big.Int) error); ok {
+	if rf, ok := ret.Get(1).(func(uint) error); ok {
 		r1 = rf(num)
 	} else {
 		r1 = ret.Error(1)
@@ -191,13 +187,13 @@ func (_m *BlockState) GetBlockByHash(_a0 common.Hash) (*types.Block, error) {
 	return r0, r1
 }
 
-// GetBlockByNumber provides a mock function with given fields: _a0
-func (_m *BlockState) GetBlockByNumber(_a0 *big.Int) (*types.Block, error) {
-	ret := _m.Called(_a0)
+// GetBlockByNumber provides a mock function with given fields: blockNumber
+func (_m *BlockState) GetBlockByNumber(blockNumber uint) (*types.Block, error) {
+	ret := _m.Called(blockNumber)
 
 	var r0 *types.Block
-	if rf, ok := ret.Get(0).(func(*big.Int) *types.Block); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(uint) *types.Block); ok {
+		r0 = rf(blockNumber)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Block)
@@ -205,8 +201,8 @@ func (_m *BlockState) GetBlockByNumber(_a0 *big.Int) (*types.Block, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*big.Int) error); ok {
-		r1 = rf(_a0)
+	if rf, ok := ret.Get(1).(func(uint) error); ok {
+		r1 = rf(blockNumber)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -230,13 +226,13 @@ func (_m *BlockState) GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	return r0
 }
 
-// GetHashByNumber provides a mock function with given fields: _a0
-func (_m *BlockState) GetHashByNumber(_a0 *big.Int) (common.Hash, error) {
-	ret := _m.Called(_a0)
+// GetHashByNumber provides a mock function with given fields: blockNumber
+func (_m *BlockState) GetHashByNumber(blockNumber uint) (common.Hash, error) {
+	ret := _m.Called(blockNumber)
 
 	var r0 common.Hash
-	if rf, ok := ret.Get(0).(func(*big.Int) common.Hash); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(uint) common.Hash); ok {
+		r0 = rf(blockNumber)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(common.Hash)
@@ -244,8 +240,8 @@ func (_m *BlockState) GetHashByNumber(_a0 *big.Int) (common.Hash, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*big.Int) error); ok {
-		r1 = rf(_a0)
+	if rf, ok := ret.Get(1).(func(uint) error); ok {
+		r1 = rf(blockNumber)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -277,11 +273,11 @@ func (_m *BlockState) GetHeader(_a0 common.Hash) (*types.Header, error) {
 }
 
 // GetHeaderByNumber provides a mock function with given fields: num
-func (_m *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
+func (_m *BlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 	ret := _m.Called(num)
 
 	var r0 *types.Header
-	if rf, ok := ret.Get(0).(func(*big.Int) *types.Header); ok {
+	if rf, ok := ret.Get(0).(func(uint) *types.Header); ok {
 		r0 = rf(num)
 	} else {
 		if ret.Get(0) != nil {
@@ -290,7 +286,7 @@ func (_m *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*big.Int) error); ok {
+	if rf, ok := ret.Get(1).(func(uint) error); ok {
 		r1 = rf(num)
 	} else {
 		r1 = ret.Error(1)

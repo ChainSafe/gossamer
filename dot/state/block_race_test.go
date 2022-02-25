@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"runtime"
 	"sync"
 	"testing"
@@ -40,7 +39,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 			require.NoError(t, err)
 
 			header := &types.Header{
-				Number:    big.NewInt(1),
+				Number:    1,
 				StateRoot: trie.EmptyHash,
 				Digest:    types.NewDigest(),
 			}

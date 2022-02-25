@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -188,6 +189,27 @@ func TestSwapNibbles(t *testing.T) {
 			t.Fatalf("Re-encoding failed. got: %x expected: %x", res, test.key)
 		}
 	}
+}
+
+func Test_Bytes_BigInt_Uint(t *testing.T) {
+	t.Parallel()
+
+	const someValue uint = 45649613
+
+	bigInt := big.NewInt(int64(someValue))
+	bigIntBytes, err := scale.Marshal(bigInt)
+	require.NoError(t, err)
+	t.Log(bigIntBytes)
+	t.Log(bigInt.Bytes())
+
+	uintBytes, err := scale.Marshal(someValue)
+	require.NoError(t, err)
+	t.Log(uintBytes)
+
+	// uint64Bytes := make([]byte, 8)
+	// binary.BigEndian.PutUint64(uint64Bytes, uint64(n))
+
+	// assert.Equal(t, bigIntBytes, uint64Bytes)
 }
 
 func TestMustHexToBigInt(t *testing.T) {

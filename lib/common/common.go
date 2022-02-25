@@ -137,6 +137,29 @@ func Uint16ToBytes(in uint16) (out []byte) {
 	return out
 }
 
+// UintToBytes converts a uint into Big Endian byte slice
+// using 4 bytes for values that fit in a uint32 and in
+// 8 bytes otherwise.
+func UintToBytes(n uint) (b []byte) {
+	const maxUint32 = uint(^uint32(0))
+	if n > maxUint32 { // uint64
+		b = make([]byte, 8)
+		binary.BigEndian.PutUint64(b, uint64(n))
+	} else { // uint32
+		b = make([]byte, 4)
+		binary.BigEndian.PutUint32(b, uint32(n))
+	}
+	return b
+}
+
+// UintToHex converts a uint into the hex string representation
+// of a Big Endian byte slice using 4 bytes for values that fit
+// in a uint32 and in 8 bytes otherwise.
+func UintToHex(n uint) (hexString string) {
+	b := UintToBytes(n)
+	return BytesToHex(b)
+}
+
 // AppendZeroes appends zeroes to the input byte array up until it has length l
 func AppendZeroes(in []byte, l int) []byte {
 	for {

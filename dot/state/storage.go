@@ -88,7 +88,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		}
 
 		deletedNodeHashes := ts.GetDeletedNodeHashes()
-		err = s.pruner.StoreJournalRecord(deletedNodeHashes, insertedNodeHashes, header.Hash(), header.Number.Int64())
+		err = s.pruner.StoreJournalRecord(deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
 		if err != nil {
 			return err
 		}

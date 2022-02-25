@@ -5,7 +5,6 @@ package modules
 
 import (
 	"errors"
-	"math/big"
 	"net/http"
 	"testing"
 
@@ -121,11 +120,11 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 
 	mockBlockAPI := new(mocks.BlockAPI)
 	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
-	mockBlockAPI.On("GetHashByNumber", new(big.Int).SetInt64(int64(21))).Return(testHash, nil)
+	mockBlockAPI.On("GetHashByNumber", uint(21)).Return(testHash, nil)
 
 	mockBlockAPIErr := new(mocks.BlockAPI)
 	mockBlockAPIErr.On("BestBlockHash").Return(testHash, nil)
-	mockBlockAPIErr.On("GetHashByNumber", new(big.Int).SetInt64(int64(21))).Return(nil, errors.New("GetBlockHash Error"))
+	mockBlockAPIErr.On("GetHashByNumber", uint(21)).Return(nil, errors.New("GetBlockHash Error"))
 
 	expRes := ChainHashResponse(testHash.String())
 	type fields struct {
@@ -458,7 +457,7 @@ func TestHeaderToJSON(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(21), vdts)
+	header, err := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 21, vdts)
 	require.NoError(t, err)
 
 	expRes, err := HeaderToJSON(*header)

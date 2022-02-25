@@ -5,7 +5,6 @@
 package core
 
 import (
-	big "math/big"
 	reflect "reflect"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
@@ -101,10 +100,10 @@ func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
 }
 
 // BestBlockNumber mocks base method.
-func (m *MockBlockState) BestBlockNumber() (*big.Int, error) {
+func (m *MockBlockState) BestBlockNumber() (uint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BestBlockNumber")
-	ret0, _ := ret[0].(*big.Int)
+	ret0, _ := ret[0].(uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

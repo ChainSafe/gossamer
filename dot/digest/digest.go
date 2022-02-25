@@ -6,16 +6,12 @@ package digest
 import (
 	"context"
 	"errors"
-	"math"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-var maxUint64 = uint64(math.MaxUint64)
 
 var (
 	_ services.Service = &Handler{}
@@ -46,15 +42,15 @@ type Handler struct {
 
 type grandpaChange struct {
 	auths   []types.Authority
-	atBlock *big.Int
+	atBlock uint
 }
 
 type pause struct {
-	atBlock *big.Int
+	atBlock uint
 }
 
 type resume struct {
-	atBlock *big.Int
+	atBlock uint
 }
 
 // NewHandler returns a new Handler
@@ -96,23 +92,23 @@ func (h *Handler) Stop() error {
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
 // It returns 0 if no change is scheduled.
-func (h *Handler) NextGrandpaAuthorityChange() uint64 {
-	next := maxUint64
+func (h *Handler) NextGrandpaAuthorityChange() (next uint) {
+	next = ^uint(0)
 
 	if h.grandpaScheduledChange != nil {
-		next = h.grandpaScheduledChange.atBlock.Uint64()
+		next = h.grandpaScheduledChange.atBlock
 	}
 
-	if h.grandpaForcedChange != nil && h.grandpaForcedChange.atBlock.Uint64() < next {
-		next = h.grandpaForcedChange.atBlock.Uint64()
+	if h.grandpaForcedChange != nil && h.grandpaForcedChange.atBlock < next {
+		next = h.grandpaForcedChange.atBlock
 	}
 
-	if h.grandpaPause != nil && h.grandpaPause.atBlock.Uint64() < next {
-		next = h.grandpaPause.atBlock.Uint64()
+	if h.grandpaPause != nil && h.grandpaPause.atBlock < next {
+		next = h.grandpaPause.atBlock
 	}
 
-	if h.grandpaResume != nil && h.grandpaResume.atBlock.Uint64() < next {
-		next = h.grandpaResume.atBlock.Uint64()
+	if h.grandpaResume != nil && h.grandpaResume.atBlock < next {
+		next = h.grandpaResume.atBlock
 	}
 
 	return next
@@ -229,14 +225,14 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 	}
 }
 
-func (h *Handler) handleGrandpaChangesOnImport(num *big.Int) error {
+func (h *Handler) handleGrandpaChangesOnImport(num uint) error {
 	resume := h.grandpaResume
-	if resume != nil && num.Cmp(resume.atBlock) > -1 {
+	if resume != nil && num >= resume.atBlock {
 		h.grandpaResume = nil
 	}
 
 	fc := h.grandpaForcedChange
-	if fc != nil && num.Cmp(fc.atBlock) > -1 {
+	if fc != nil && num >= fc.atBlock {
 		err := h.grandpaState.IncrementSetID()
 		if err != nil {
 			return err
@@ -254,14 +250,14 @@ func (h *Handler) handleGrandpaChangesOnImport(num *big.Int) error {
 	return nil
 }
 
-func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
+func (h *Handler) handleGrandpaChangesOnFinalization(num uint) error {
 	pause := h.grandpaPause
-	if pause != nil && num.Cmp(pause.atBlock) > -1 {
+	if pause != nil && num >= pause.atBlock {
 		h.grandpaPause = nil
 	}
 
 	sc := h.grandpaScheduledChange
-	if sc != nil && num.Cmp(sc.atBlock) > -1 {
+	if sc != nil && num >= sc.atBlock {
 		err := h.grandpaState.IncrementSetID()
 		if err != nil {
 			return err
@@ -304,11 +300,11 @@ func (h *Handler) handleScheduledChange(sc types.GrandpaScheduledChange, header 
 	if err != nil {
 		return err
 	}
-	h.logger.Debugf("setting GrandpaScheduledChange at block %s",
-		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
+	h.logger.Debugf("setting GrandpaScheduledChange at block %d",
+		header.Number+uint(sc.Delay))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
-		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))),
+		header.Number+uint(sc.Delay),
 	)
 }
 
@@ -335,11 +331,11 @@ func (h *Handler) handleForcedChange(fc types.GrandpaForcedChange, header *types
 		return err
 	}
 
-	h.logger.Debugf("setting GrandpaForcedChange at block %s",
-		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
+	h.logger.Debugf("setting GrandpaForcedChange at block %d",
+		header.Number+uint(fc.Delay))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
-		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))),
+		header.Number+uint(fc.Delay),
 	)
 }
 
@@ -349,10 +345,8 @@ func (h *Handler) handlePause(p types.GrandpaPause) error {
 		return err
 	}
 
-	delay := big.NewInt(int64(p.Delay))
-
 	h.grandpaPause = &pause{
-		atBlock: big.NewInt(-1).Add(curr.Number, delay),
+		atBlock: curr.Number + uint(p.Delay),
 	}
 
 	return h.grandpaState.SetNextPause(h.grandpaPause.atBlock)
@@ -364,25 +358,22 @@ func (h *Handler) handleResume(r types.GrandpaResume) error {
 		return err
 	}
 
-	delay := big.NewInt(int64(r.Delay))
 	h.grandpaResume = &resume{
-		atBlock: big.NewInt(-1).Add(curr.Number, delay),
+		atBlock: curr.Number + uint(r.Delay),
 	}
 
 	return h.grandpaState.SetNextResume(h.grandpaResume.atBlock)
 }
 
-func newGrandpaChange(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
+func newGrandpaChange(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock uint) (*grandpaChange, error) {
 	auths, err := types.GrandpaAuthoritiesRawToAuthorities(raw)
 	if err != nil {
 		return nil, err
 	}
 
-	d := big.NewInt(int64(delay))
-
 	return &grandpaChange{
 		auths:   auths,
-		atBlock: big.NewInt(-1).Add(currBlock, d),
+		atBlock: currBlock + uint(delay),
 	}, nil
 }
 

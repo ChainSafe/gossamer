@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -95,7 +94,7 @@ func TestImportChannel_Multi(t *testing.T) {
 		go func(i int, ch <-chan *types.Block) {
 			select {
 			case b := <-ch:
-				require.Equal(t, big.NewInt(1), b.Header.Number)
+				require.Equal(t, uint(1), b.Header.Number)
 			case <-time.After(testMessageTimeout):
 				t.Error("did not receive imported block: ch=", i)
 			}
@@ -107,7 +106,6 @@ func TestImportChannel_Multi(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 	AddBlocksToState(t, bs, 1, false)
 	wg.Wait()
-
 }
 
 func TestFinalizedChannel_Multi(t *testing.T) {

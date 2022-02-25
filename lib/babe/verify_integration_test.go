@@ -8,7 +8,6 @@ package babe
 
 import (
 	"errors"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -202,7 +201,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	}
 
 	// create new block header
-	number := big.NewInt(1)
+	const number uint = 1
 	digest := types.NewDigest()
 	err = digest.Add(*preDigest)
 	require.NoError(t, err)

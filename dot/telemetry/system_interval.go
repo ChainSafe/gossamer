@@ -21,9 +21,9 @@ type SystemInterval struct {
 	BandwidthUpload    float64      `json:"bandwidth_upload,omitempty"`
 	Peers              int          `json:"peers,omitempty"`
 	BestHash           *common.Hash `json:"best,omitempty"`
-	BestHeight         *big.Int     `json:"height,omitempty"`
+	BestHeight         uint         `json:"height,omitempty"`
 	FinalisedHash      *common.Hash `json:"finalized_hash,omitempty"`
-	FinalisedHeight    *big.Int     `json:"finalized_height,omitempty"`
+	FinalisedHeight    uint         `json:"finalized_height,omitempty"`
 	TxCount            *big.Int     `json:"txcount,omitempty"`
 	UsedStateCacheSize *big.Int     `json:"used_state_cache_size,omitempty"`
 }
@@ -38,8 +38,8 @@ func NewBandwidth(bandwidthDownload, bandwidthUpload float64, peers int) *System
 }
 
 // NewBlockInterval function to create new Block Interval Telemetry Message
-func NewBlockInterval(beshHash *common.Hash, bestHeight *big.Int, finalisedHash *common.Hash,
-	finalisedHeight, txCount, usedStateCacheSize *big.Int) *SystemInterval {
+func NewBlockInterval(beshHash *common.Hash, bestHeight uint, finalisedHash *common.Hash,
+	finalisedHeight uint, txCount, usedStateCacheSize *big.Int) *SystemInterval {
 	return &SystemInterval{
 		BestHash:           beshHash,
 		BestHeight:         bestHeight,

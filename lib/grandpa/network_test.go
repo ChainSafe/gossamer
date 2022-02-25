@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -95,7 +94,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: st.Block.GenesisHash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     digest,
 		},
 		Body: types.Body{},

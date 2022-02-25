@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
@@ -164,7 +163,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 	require.NoError(t, err)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }

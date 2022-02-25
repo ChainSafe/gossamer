@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -21,7 +20,7 @@ func TestDisjointBlockSet(t *testing.T) {
 	}
 
 	hash := common.Hash{0xa, 0xb}
-	number := big.NewInt(100)
+	const number uint = 100
 	s.addHashAndNumber(hash, number)
 	require.True(t, s.hasBlock(hash))
 	require.Equal(t, 1, s.size())
@@ -36,7 +35,7 @@ func TestDisjointBlockSet(t *testing.T) {
 	require.Equal(t, expected, blocks[0])
 
 	header := &types.Header{
-		Number: big.NewInt(100),
+		Number: 100,
 	}
 	s.addHeader(header)
 	require.True(t, s.hasBlock(header.Hash()))
@@ -51,7 +50,7 @@ func TestDisjointBlockSet(t *testing.T) {
 	require.Equal(t, expected, s.getBlock(header.Hash()))
 
 	header2 := &types.Header{
-		Number: big.NewInt(999),
+		Number: 999,
 	}
 	s.addHashAndNumber(header2.Hash(), header2.Number)
 	require.Equal(t, 3, s.size())
@@ -84,7 +83,7 @@ func TestDisjointBlockSet(t *testing.T) {
 	require.Equal(t, 2, s.size())
 	require.False(t, s.hasBlock(hash))
 
-	s.removeLowerBlocks(big.NewInt(998))
+	s.removeLowerBlocks(998)
 	require.Equal(t, 1, s.size())
 	require.False(t, s.hasBlock(header.Hash()))
 	require.True(t, s.hasBlock(header2.Hash()))
@@ -93,9 +92,9 @@ func TestDisjointBlockSet(t *testing.T) {
 func TestPendingBlock_toBlockData(t *testing.T) {
 	pb := &pendingBlock{
 		hash:   common.Hash{0xa, 0xb, 0xc},
-		number: big.NewInt(1),
+		number: 1,
 		header: &types.Header{
-			Number: big.NewInt(1),
+			Number: 1,
 		},
 		body: &types.Body{{0x1, 0x2, 0x3}},
 	}
@@ -114,7 +113,7 @@ func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
 	header1 := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 	block1 := &types.Block{
 		Header: *header1,
@@ -123,7 +122,7 @@ func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
 
 	header2 := &types.Header{
 		ParentHash: header1.Hash(),
-		Number:     big.NewInt(2),
+		Number:     2,
 	}
 	block2 := &types.Block{
 		Header: *header2,
@@ -133,7 +132,7 @@ func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
 
 	header3 := &types.Header{
 		ParentHash: header2.Hash(),
-		Number:     big.NewInt(3),
+		Number:     3,
 	}
 	block3 := &types.Block{
 		Header: *header3,
@@ -143,7 +142,7 @@ func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
 
 	header2NotDescendant := &types.Header{
 		ParentHash: common.Hash{0xff},
-		Number:     big.NewInt(2),
+		Number:     2,
 	}
 	block2NotDescendant := &types.Block{
 		Header: *header2NotDescendant,
@@ -165,7 +164,7 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
 	// the ready list should contain only block 1 and 2, as block 3 is incomplete (body is missing)
 	header1 := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 	block1 := &types.Block{
 		Header: *header1,
@@ -174,7 +173,7 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 
 	header2 := &types.Header{
 		ParentHash: header1.Hash(),
-		Number:     big.NewInt(2),
+		Number:     2,
 	}
 	block2 := &types.Block{
 		Header: *header2,
@@ -184,13 +183,13 @@ func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
 
 	header3 := &types.Header{
 		ParentHash: header2.Hash(),
-		Number:     big.NewInt(3),
+		Number:     3,
 	}
 	s.addHeader(header3)
 
 	header2NotDescendant := &types.Header{
 		ParentHash: common.Hash{0xff},
-		Number:     big.NewInt(2),
+		Number:     2,
 	}
 	block2NotDescendant := &types.Block{
 		Header: *header2NotDescendant,

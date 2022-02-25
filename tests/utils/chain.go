@@ -101,7 +101,7 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 
 	nb, err := common.HexToBytes(header.Number)
 	require.NoError(t, err)
-	number := big.NewInt(0).SetBytes(nb)
+	number := uint(big.NewInt(0).SetBytes(nb).Uint64())
 
 	stateRoot, err := common.HexToHash(header.StateRoot)
 	require.NoError(t, err)

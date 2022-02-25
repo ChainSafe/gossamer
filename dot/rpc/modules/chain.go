@@ -5,9 +5,9 @@ package modules
 
 import (
 	"fmt"
-	"math/big"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -202,11 +202,10 @@ func (cm *ChainModule) unwindRequest(req interface{}) ([]string, error) {
 // lookupHashByInterface parses given interface to determine block number, then
 //  finds hash for that block number
 func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
-	num := new(big.Int)
+	var num uint
 	switch x := i.(type) {
 	case float64:
-		f := big.NewFloat(x)
-		f.Int(num)
+		num = uint(x)
 	case string:
 		// remove leading 0x (if there is one)
 		re, err := regexp.Compile(`0x`)
@@ -215,11 +214,11 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 		}
 		x = re.ReplaceAllString(x, "")
 
-		// cast string to big.Int
-		_, ok := num.SetString(x, 10)
-		if !ok {
-			return "", fmt.Errorf("error setting number from string")
+		xUint64, err := strconv.ParseUint(x, 10, 64)
+		if err != nil {
+			return "", fmt.Errorf("cannot parse %q as uint64: %w", x, err)
 		}
+		num = uint(xUint64)
 
 	default:
 		return "", fmt.Errorf("unknown request number type: %T", x)
@@ -241,10 +240,10 @@ func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest:         ChainBlockHeaderDigest{},
 	}
-	if header.Number.Int64() == 0 {
+	if header.Number == 0 {
 		res.Number = "0x00" // needs two 0 chars for hex decoding to work
 	} else {
-		res.Number = common.BytesToHex(header.Number.Bytes())
+		res.Number = common.UintToHex(header.Number)
 	}
 
 	for _, item := range header.Digest.Types {
