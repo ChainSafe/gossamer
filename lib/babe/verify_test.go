@@ -301,7 +301,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 		VRFOutput:  output,
 		VRFProof:   proof,
 	}
-	prd1, err := secDigest1.ToPreRuntimeDigest()
+	prd1, err := types.ToPreRuntimeDigest(secDigest1)
 	assert.NoError(t, err)
 
 	auth := types.NewAuthority(kp.Public(), uint64(1))
@@ -362,7 +362,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	//BabeSecondaryPlainPreDigest case
 	secDigest := types.BabeSecondaryPlainPreDigest{AuthorityIndex: 0, SlotNumber: uint64(1)}
-	prd, err := secDigest.ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(secDigest)
 	assert.NoError(t, err)
 
 	authSec := types.NewAuthority(kp.Public(), uint64(1))
@@ -519,12 +519,12 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	testHeaderPrimary.Digest = testDigestPrimary
 
 	// Secondary Plain Test Header
-	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+	testParentPrd, err := types.ToPreRuntimeDigest(testBabeSecondaryPlainPreDigest)
 	assert.NoError(t, err)
 	testParentHeader := newTestHeader(t, *testParentPrd)
 
 	testParentHash := encodeAndHashHeader(t, testParentHeader)
-	testSecondaryPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+	testSecondaryPrd, err := types.ToPreRuntimeDigest(testBabeSecondaryPlainPreDigest)
 	assert.NoError(t, err)
 	testSecPlainHeader := newTestHeader(t, *testSecondaryPrd)
 	testSecPlainHeader.ParentHash = testParentHash
@@ -565,13 +565,13 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	header2 := newTestHeader(t, testInvalidPreRuntimeDigest, testInvalidSeal)
 
 	// Case 3: Invalid Seal Length
-	babePrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
+	babePrd, err := types.ToPreRuntimeDigest(testBabePrimaryPreDigest)
 	assert.NoError(t, err)
 	header3 := newTestHeader(t, *babePrd, testInvalidSeal)
 	babeVerifier := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 
 	// Case 4: Invalid signature - BabePrimaryPreDigest
-	babePrd2, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
+	babePrd2, err := types.ToPreRuntimeDigest(testBabePrimaryPreDigest)
 	assert.NoError(t, err)
 	header4 := newTestHeader(t, *babePrd2)
 
@@ -579,7 +579,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeVerifier2 := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, false)
 
 	// Case 5: Invalid signature - BabeSecondaryPlainPreDigest
-	babeSecPlainPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+	babeSecPlainPrd, err := types.ToPreRuntimeDigest(testBabeSecondaryPlainPreDigest)
 	assert.NoError(t, err)
 	header5 := newTestHeader(t, *babeSecPlainPrd)
 
@@ -595,12 +595,12 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeVerifier4 := newTestVerifier(t, kp, mockBlockState, scale.MaxUint128, true)
 
 	// Case 7: GetAuthorityIndex Err
-	babeParentPrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
+	babeParentPrd, err := types.ToPreRuntimeDigest(testBabePrimaryPreDigest)
 	assert.NoError(t, err)
 	babeParentHeader := newTestHeader(t, *babeParentPrd)
 
 	parentHash := encodeAndHashHeader(t, babeParentHeader)
-	babePrd3, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
+	babePrd3, err := types.ToPreRuntimeDigest(testBabePrimaryPreDigest)
 	assert.NoError(t, err)
 
 	header7 := newTestHeader(t, *babePrd3)
@@ -617,7 +617,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeVerifier7 := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
 
 	// Case 10: Equivocate case secondary plain
-	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+	babeSecPlainPrd2, err := types.ToPreRuntimeDigest(testBabeSecondaryPlainPreDigest)
 	assert.NoError(t, err)
 	header8 := newTestHeader(t, *babeSecPlainPrd2)
 

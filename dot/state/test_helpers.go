@@ -77,7 +77,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 	for i := startNum + 1; i <= depth+startNum; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
 		digest := types.NewDigest()
-		prd, err := d.ToPreRuntimeDigest()
+		prd, err := types.ToPreRuntimeDigest(*d)
 		require.NoError(t, err)
 		err = digest.Add(*prd)
 		require.NoError(t, err)
@@ -166,7 +166,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	// create base tree
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
-		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+		d, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}))
 		require.NoError(t, err)
 		require.NotNil(t, d)
 		digest := types.NewDigest()
@@ -208,7 +208,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
-			d, err := types.NewBabePrimaryPreDigest(0, uint64(i+j+99), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+			d, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(0, uint64(i+j+99), [32]byte{}, [64]byte{}))
 			require.NoError(t, err)
 			require.NotNil(t, d)
 			digest := types.NewDigest()

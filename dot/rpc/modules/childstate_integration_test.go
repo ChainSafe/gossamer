@@ -267,7 +267,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)

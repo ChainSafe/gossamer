@@ -43,7 +43,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	require.NoError(t, err)
 
 	di := types.NewDigestItem()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = di.Set(*prd)
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	require.NoError(t, err)
 
 	di := types.NewDigestItem()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = di.Set(*prd)
 	require.NoError(t, err)
@@ -127,7 +127,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	require.NoError(t, err)
 
 	di := types.NewDigestItem()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = di.Set(*prd)
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	require.NoError(t, err)
 
 	di := types.NewDigestItem()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = di.Set(*prd)
 	require.NoError(t, err)
@@ -315,7 +315,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
 	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)
@@ -388,7 +388,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) {
 	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)

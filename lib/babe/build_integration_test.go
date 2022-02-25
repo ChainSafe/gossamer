@@ -92,7 +92,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	preRuntimeDigest, err := babeService.runLottery(slotNumber, epoch, epochData)
+	preRuntimeDigest, err := claimSlot(epoch, slotNumber, epochData, babeService.keypair)
 	require.NoError(t, err)
 
 	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
@@ -171,11 +171,11 @@ func TestApplyExtrinsic(t *testing.T) {
 	}
 	testVRFOutputAndProof := &VrfOutputAndProof{}
 
-	preDigest2, err := types.NewBabePrimaryPreDigest(
+	preDigest2, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(
 		authorityIndex, slot2.number,
 		testVRFOutputAndProof.output,
 		testVRFOutputAndProof.proof,
-	).ToPreRuntimeDigest()
+	))
 	require.NoError(t, err)
 
 	parentHash := babeService.blockState.GenesisHash()
@@ -187,11 +187,11 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	preDigest, err := types.NewBabePrimaryPreDigest(
+	preDigest, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(
 		authorityIndex, slot.number,
 		testVRFOutputAndProof.output,
 		testVRFOutputAndProof.proof,
-	).ToPreRuntimeDigest()
+	))
 	require.NoError(t, err)
 
 	digest := types.NewDigest()

@@ -30,7 +30,7 @@ var testHash = testHeader.Hash()
 
 func newTestDigest() scale.VaryingDataTypeSlice {
 	digest := types.NewDigest()
-	prd, _ := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, _ := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	digest.Add(*prd)
 	return digest
 }
@@ -204,7 +204,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)
@@ -262,7 +262,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	fm.Vote = *NewVote(testHash, uint32(round))
 
 	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)
@@ -377,7 +377,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	gs.state.round = round + 1
 
 	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)

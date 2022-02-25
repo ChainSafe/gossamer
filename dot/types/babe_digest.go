@@ -5,6 +5,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -51,20 +52,6 @@ func NewBabePrimaryPreDigest(authorityIndex uint32,
 	}
 }
 
-// ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
-func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
-	digest := NewBabeDigest()
-	err := digest.Set(*d)
-	if err != nil {
-		return nil, err
-	}
-	enc, err := scale.Marshal(digest)
-	if err != nil {
-		return nil, err
-	}
-	return NewBABEPreRuntimeDigest(enc), nil
-}
-
 // Index Returns VDT index
 func (d BabePrimaryPreDigest) Index() uint { return 1 }
 
@@ -80,20 +67,6 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 		AuthorityIndex: authorityIndex,
 		SlotNumber:     slotNumber,
 	}
-}
-
-// ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
-func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
-	digest := NewBabeDigest()
-	err := digest.Set(*d)
-	if err != nil {
-		return nil, err
-	}
-	enc, err := scale.Marshal(digest)
-	if err != nil {
-		return nil, err
-	}
-	return NewBABEPreRuntimeDigest(enc), nil
 }
 
 // Index Returns VDT index
@@ -121,3 +94,19 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32,
 
 // Index Returns VDT index
 func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }
+
+// ToPreRuntimeDigest returns the VaryingDataTypeValue as a PreRuntimeDigest
+func ToPreRuntimeDigest(value scale.VaryingDataTypeValue) (*PreRuntimeDigest, error) {
+	digest := NewBabeDigest()
+	err := digest.Set(value)
+	if err != nil {
+		return nil, fmt.Errorf("cannot set varying data type value to babe digest: %w", err)
+	}
+
+	enc, err := scale.Marshal(digest)
+	if err != nil {
+		return nil, fmt.Errorf("cannot marshal babe digest: %w", err)
+	}
+
+	return NewBABEPreRuntimeDigest(enc), nil
+}
