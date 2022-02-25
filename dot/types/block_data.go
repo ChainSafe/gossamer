@@ -26,14 +26,9 @@ func NewEmptyBlockData() *BlockData {
 	return &BlockData{}
 }
 
-// Number returns the BlockNumber of the BlockData's header, nil if it doesn't exist
-func (bd *BlockData) Number() *uint {
-	if bd == nil || bd.Header == nil {
-		return nil
-	}
-
-	number := bd.Header.Number
-	return &number
+// Number returns the block header number.
+func (bd *BlockData) Number() uint {
+	return bd.Header.Number
 }
 
 func (bd *BlockData) String() string {

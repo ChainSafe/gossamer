@@ -49,7 +49,7 @@ func TestNumber(t *testing.T) {
 	}
 
 	num := bd.Number()
-	require.Equal(t, uintPtr(5), num)
+	require.Equal(t, uint(5), num)
 }
 
 func TestBlockDataEncodeAndDecodeEmpty(t *testing.T) {
