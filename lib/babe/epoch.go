@@ -248,7 +248,6 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		return preRuntimeDigest, nil
 	} else if !errors.Is(err, errOverPrimarySlotThreshold) {
 		return nil, fmt.Errorf("error running slot lottery at slot %d: %w", slotNumber, err)
-
 	}
 
 	switch epochData.secondary {
@@ -283,7 +282,8 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		}
 		logger.Debugf("epoch %d: claimed secondary plain slot %d", epochNumber, slotNumber)
 		return preRuntimeDigest, nil
+	default:
+		// this should never occur
+		return nil, errors.New("invalid slot claiming technique")
 	}
-
-	return nil, errors.New("invalid slot claiming technique")
 }
