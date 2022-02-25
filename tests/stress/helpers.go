@@ -4,6 +4,7 @@
 package stress
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -194,7 +195,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 			break
 		}
 
-		if err == errFinalizedBlockMismatch {
+		if errors.Is(err, errFinalizedBlockMismatch) {
 			return common.Hash{}, fmt.Errorf("%w: round=%d hashes=%v", err, round, hashes)
 		}
 
