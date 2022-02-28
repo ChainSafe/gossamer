@@ -609,7 +609,7 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = s.handleCodeSubstitution(blockHash, ts)
+	err = s.handleCodeSubstitution(blockHash, ts, wasmer.NewInstance)
 	require.NoError(t, err)
 	codSub := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
 	require.Equal(t, blockHash, codSub)
@@ -638,7 +638,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = s.handleCodeSubstitution(blockHash, ts)
+	err = s.handleCodeSubstitution(blockHash, ts, wasmer.NewInstance)
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
