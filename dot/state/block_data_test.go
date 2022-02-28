@@ -15,7 +15,7 @@ import (
 )
 
 func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
-	s := newTestBlockState(t, nil)
+	s := newTestBlockState(t, nil, newTriesEmpty())
 	require.NotNil(t, s)
 
 	var genesisHeader = &types.Header{
@@ -28,10 +28,10 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	parentHash := genesisHeader.Hash()
 
 	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	header := &types.Header{
 		ParentHash:     parentHash,
@@ -66,19 +66,19 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	for _, blockdata := range bds {
 
 		err := s.CompareAndSetBlockData(blockdata)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// test Receipt
 		if blockdata.Receipt != nil {
 			receipt, err := s.GetReceipt(blockdata.Hash)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, *blockdata.Receipt, receipt)
 		}
 
 		// test MessageQueue
 		if blockdata.MessageQueue != nil {
 			messageQueue, err := s.GetMessageQueue(blockdata.Hash)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, *blockdata.MessageQueue, messageQueue)
 		}
 	}

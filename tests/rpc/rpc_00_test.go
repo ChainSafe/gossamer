@@ -45,7 +45,7 @@ func getResponse(t *testing.T, test *testCase) interface{} {
 	}
 
 	respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(currentPort), test.params)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	target := reflect.New(reflect.TypeOf(test.expected)).Interface()
 	err = utils.DecodeRPC(t, respBody, target)

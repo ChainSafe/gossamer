@@ -72,6 +72,8 @@ type NetworkAPI interface {
 	RemoveReservedPeers(addrs ...string) error
 }
 
+//go:generate mockery --name BlockProducerAPI --structname BlockProducerAPI --case underscore --keeptree
+
 // BlockProducerAPI is the interface for BlockProducer methods
 type BlockProducerAPI interface {
 	Pause() error

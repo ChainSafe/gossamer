@@ -399,12 +399,12 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 	vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
 
 	body, err := extrinsicsToBody(inh, []*transaction.ValidTransaction{vtx})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, body)
 	require.Len(t, body, 3)
 
 	contains, err := body.HasExtrinsic(ext)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.True(t, contains)
 }
 

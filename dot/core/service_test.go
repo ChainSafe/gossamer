@@ -164,7 +164,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	}
 
 	execTest := func(t *testing.T, s *Service, blockHash common.Hash, expErr error) {
-		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
+		err := s.handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, errTestDummyError.Error())
@@ -174,7 +174,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Run("nil value", func(t *testing.T) {
 		t.Parallel()
 		s := &Service{codeSubstitute: map[common.Hash]string{}}
-		err := s._handleCodeSubstitution(common.Hash{}, nil, newTestInstance)
+		err := s.handleCodeSubstitution(common.Hash{}, nil, newTestInstance)
 		assert.NoError(t, err)
 	})
 
@@ -248,7 +248,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			blockState:           mockBlockState,
 			codeSubstitutedState: mockCodeSubState,
 		}
-		err := s._handleCodeSubstitution(blockHash, nil, newTestInstance)
+		err := s.handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.NoError(t, err)
 	})
 }
@@ -414,7 +414,7 @@ func Test_Service_handleBlock(t *testing.T) {
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
-			ctx:           context.TODO(),
+			ctx:           context.Background(),
 		}
 		execTest(t, s, &block, trieState, nil)
 	})
@@ -480,7 +480,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
 			net:           mockNetwork,
-			ctx:           context.TODO(),
+			ctx:           context.Background(),
 		}
 		execTest(t, s, &block, trieState, nil)
 	})
@@ -511,7 +511,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		runtimeMock := new(mocksruntime.Instance)
 		runtimeMock.On("ValidateTransaction", types.Extrinsic{21}).Return(nil, errTestDummyError)
 		mockTxnState := NewMockTransactionState(ctrl)
-		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).MaxTimes(2)
+		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)

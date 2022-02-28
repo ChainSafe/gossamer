@@ -396,7 +396,12 @@ func TestDir(t *testing.T, name string) string {
 
 // GenerateGenesisThreeAuth generates Genesis file with three authority.
 func GenerateGenesisThreeAuth() {
-	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 3)
+	genesisPath, err := utils.GetGssmrGenesisPath()
+	if err != nil {
+		panic(err)
+	}
+
+	bs, err := dot.BuildFromGenesis(genesisPath, 3)
 	if err != nil {
 		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
@@ -405,8 +410,8 @@ func GenerateGenesisThreeAuth() {
 }
 
 // GenerateGenesisSixAuth generates Genesis file with six authority.
-func GenerateGenesisSixAuth() {
-	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 6)
+func GenerateGenesisSixAuth(t *testing.T) {
+	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPathTest(t), 6)
 	if err != nil {
 		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)

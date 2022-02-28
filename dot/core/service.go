@@ -33,6 +33,8 @@ var (
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
+type wasmerInstanceFunc func(code []byte, cfg *wasmer.Config) (instance *wasmer.Instance, err error)
+
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
@@ -231,7 +233,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if there was a runtime code substitution
-	if err := s.handleCodeSubstitution(block.Header.Hash(), state); err != nil {
+	if err := s.handleCodeSubstitution(block.Header.Hash(), state, wasmer.NewInstance); err != nil {
 		logger.Criticalf("failed to substitute runtime code: %s", err)
 		return err
 	}
@@ -249,13 +251,10 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
-	return s._handleCodeSubstitution(hash, state, wasmer.NewInstance)
-}
-func (s *Service) _handleCodeSubstitution(
+func (s *Service) handleCodeSubstitution(
 	hash common.Hash,
 	state *rtstorage.TrieState,
-	newInstance func(code []byte, cfg *wasmer.Config) (*wasmer.Instance, error),
+	instance wasmerInstanceFunc,
 ) error {
 	value := s.codeSubstitute[hash]
 	if value == "" {
@@ -288,7 +287,7 @@ func (s *Service) _handleCodeSubstitution(
 		cfg.Role = 4
 	}
 
-	next, err := newInstance(code, cfg)
+	next, err := instance(code, cfg)
 	if err != nil {
 		return err
 	}
@@ -425,16 +424,17 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			continue
 		}
 
-		val, err := rt.ValidateTransaction(tx.Extrinsic)
+		txnValidity, err := rt.ValidateTransaction(tx.Extrinsic)
 		if err != nil {
-			// failed to validate tx, remove it from the pool or queue
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
 
-		tx = transaction.NewValidTransaction(tx.Extrinsic, val)
+		tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
+
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
+
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
 		logger.Tracef("moved transaction %s to queue", h)
 	}
