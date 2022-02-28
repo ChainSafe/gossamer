@@ -231,7 +231,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if there was a runtime code substitution
-	if err := s.handleCodeSubstitution(block.Header.Hash(), state); err != nil {
+	if err := s.handleCodeSubstitution(block.Header.Hash(), state, wasmer.NewInstance); err != nil {
 		logger.Criticalf("failed to substitute runtime code: %s", err)
 		return err
 	}
@@ -249,10 +249,10 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
-	return s._handleCodeSubstitution(hash, state, wasmer.NewInstance)
-}
-func (s *Service) _handleCodeSubstitution(
+//func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
+//	return s.handleCodeSubstitution(hash, state, wasmer.NewInstance)
+//}
+func (s *Service) handleCodeSubstitution(
 	hash common.Hash,
 	state *rtstorage.TrieState,
 	newInstance newWasmerInstanceFunc,
