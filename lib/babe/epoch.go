@@ -222,7 +222,7 @@ func (b *Service) incrementEpoch() (uint64, error) {
 	return next, nil
 }
 
-// claimSlot claims slot for a specific slot number.
+// claimSlot attempts to claim a slot for a specific slot number.
 // It returns an encoded VrfOutputAndProof if the validator is authorised
 // to produce a block for that slot.
 // It returns the wrapped error errOverPrimarySlotThreshold
@@ -252,19 +252,21 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 
 	switch epochData.secondary {
 	case types.PrimarySlots:
-		return nil, errSecondarySlotProductionDisabled
+		return nil, errNotOurTurnToPropose
 	case types.PrimaryAndSecondaryVRFSlots:
 		proof, err := claimSecondarySlotVRF(
 			epochData.randomness, slotNumber, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
 		if err != nil {
 			return nil, fmt.Errorf("error claim secondary vrf slot at %d: %w", slotNumber, err)
 		}
+
 		preRuntimeDigest, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryVRFPreDigest(
 			epochData.authorityIndex, slotNumber, proof.output, proof.proof))
 
 		if err != nil {
 			return nil, fmt.Errorf("error converting babe secondary vrf pre-digest to pre-runtime digest: %w", err)
 		}
+
 		logger.Debugf("epoch %d: claimed secondary vrf slot %d", epochNumber, slotNumber)
 		return preRuntimeDigest, nil
 	case types.PrimaryAndSecondaryPlainSlots:
@@ -273,6 +275,7 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		if err != nil {
 			return nil, fmt.Errorf("error claiming secondary plain slot at %d: %w", slotNumber, err)
 		}
+
 		preRuntimeDigest, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(
 			epochData.authorityIndex, slotNumber))
 
@@ -280,10 +283,11 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 			return nil, fmt.Errorf(
 				"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", slotNumber, err)
 		}
+
 		logger.Debugf("epoch %d: claimed secondary plain slot %d", epochNumber, slotNumber)
 		return preRuntimeDigest, nil
 	default:
 		// this should never occur
-		return nil, errors.New("invalid slot claiming technique")
+		return nil, errInvalidSlotTechnique
 	}
 }

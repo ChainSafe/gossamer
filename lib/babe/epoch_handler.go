@@ -43,7 +43,7 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			continue
 		}
 
-		if errors.Is(err, errNotOurTurnToPropose) || errors.Is(err, errSecondarySlotProductionDisabled) {
+		if errors.Is(err, errNotOurTurnToPropose) {
 			continue
 		}
 

@@ -644,42 +644,83 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 }
 
 func TestStress_SecondarySlotProduction(t *testing.T) {
-	const numNodes = 3
+	testcases := []struct {
+		description  string
+		genesis      string
+		allowedSlots gosstypes.AllowedSlots
+	}{
 
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
-	require.NoError(t, err)
-
-	primaryCount := 0
-	secondaryCount := 0
-	otherCount := 0
-	for i := 1; i < 20; i++ {
-		fmt.Printf("%d iteration\n", i)
-		hash, err := utils.GetBlockHash(t, nodes[0], fmt.Sprintf("%d", i))
-		require.NoError(t, err)
-
-		block := utils.GetBlock(t, nodes[0], hash)
-		header := block.Header
-
-		preDigestItem := header.Digest.Types[0]
-
-		preDigest, ok := preDigestItem.Value().(gosstypes.PreRuntimeDigest)
-		require.True(t, ok)
-
-		babePreDigest, err := gosstypes.DecodeBabePreDigest(preDigest.Data)
-		require.NoError(t, err)
-
-		switch babePreDigest.(type) {
-		case gosstypes.BabePrimaryPreDigest:
-			primaryCount++
-		case gosstypes.BabeSecondaryVRFPreDigest:
-			otherCount++
-		case gosstypes.BabeSecondaryPlainPreDigest:
-			secondaryCount++
-		}
-		require.NotNil(t, babePreDigest)
-
-		time.Sleep(10 * time.Second)
+		{
+			description:  "with secondary vrf slots enabled",
+			genesis:      utils.GenesisTwoAuthsSecondaryVRF_0_9_10,
+			allowedSlots: gosstypes.PrimaryAndSecondaryVRFSlots,
+		},
+		// TODO: We are not able to pickup the right value of AllowedSlots
+		// from these genesis file. It is always being read as PrimaryAndSecondaryVRFSlots.
+		// We have to fix that in order to properly test below cases.
+		// {
+		// 	description:  "with secondary plain slots enabled",
+		// 	genesis:      utils.GenesisTwoAuthsSecondaryPlain_0_9_10,
+		// 	allowedSlots: gosstypes.PrimaryAndSecondaryPlainSlots,
+		// },
+		// {
+		// 	description:  "with secondary slots disabled",
+		// 	genesis:      utils.GenesisTwoAuthsPrimary_0_9_10,
+		// 	allowedSlots: gosstypes.PrimarySlots,
+		// },
 	}
+	const numNodes = 2
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			nodes, err := utils.InitializeAndStartNodes(t, numNodes, c.genesis, utils.ConfigDefault)
+			require.NoError(t, err)
+			defer utils.StopNodes(t, nodes)
 
-	assert.Greater(t, secondaryCount, 0)
+			primaryCount := 0
+			secondaryPlainCount := 0
+			secondaryVRFCount := 0
+
+			for i := 1; i < 10; i++ {
+				fmt.Printf("%d iteration\n", i)
+				hash, err := utils.GetBlockHash(t, nodes[0], fmt.Sprintf("%d", i))
+				require.NoError(t, err)
+
+				block := utils.GetBlock(t, nodes[0], hash)
+				header := block.Header
+
+				preDigestItem := header.Digest.Types[0]
+
+				preDigest, ok := preDigestItem.Value().(gosstypes.PreRuntimeDigest)
+				require.True(t, ok)
+
+				babePreDigest, err := gosstypes.DecodeBabePreDigest(preDigest.Data)
+				require.NoError(t, err)
+
+				switch babePreDigest.(type) {
+				case gosstypes.BabePrimaryPreDigest:
+					primaryCount++
+				case gosstypes.BabeSecondaryVRFPreDigest:
+					secondaryVRFCount++
+				case gosstypes.BabeSecondaryPlainPreDigest:
+					secondaryPlainCount++
+				}
+				require.NotNil(t, babePreDigest)
+
+				time.Sleep(10 * time.Second)
+			}
+
+			switch c.allowedSlots {
+			case gosstypes.PrimaryAndSecondaryPlainSlots:
+				assert.Greater(t, secondaryPlainCount, 0)
+				assert.Empty(t, secondaryVRFCount)
+			case gosstypes.PrimaryAndSecondaryVRFSlots:
+				assert.Greater(t, secondaryVRFCount, 0)
+				assert.Empty(t, secondaryPlainCount)
+			case gosstypes.PrimarySlots:
+				assert.Empty(t, secondaryPlainCount)
+				assert.Empty(t, secondaryVRFCount)
+			}
+		})
+	}
 }

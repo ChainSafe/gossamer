@@ -123,8 +123,6 @@ func (h *Handler) HandleDigests(header *types.Header) {
 	for i, d := range header.Digest.Types {
 		val, ok := d.Value().(types.ConsensusDigest)
 		if ok {
-			// TODO: handleConsensusDigest never gets called other than the first time. (In development as well)
-			// i.e., header.Digest does not have consensus digest. Why?
 			err := h.handleConsensusDigest(&val, header)
 			if err != nil {
 				h.logger.Errorf("cannot handle digests for block number %s, index %d, digest %s: %s",
