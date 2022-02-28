@@ -652,7 +652,7 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 
 		{
 			description:  "with secondary vrf slots enabled",
-			genesis:      utils.GenesisTwoAuthsSecondaryVRF_0_9_10,
+			genesis:      utils.GenesisTwoAuthsSecondaryVRF0_9_10,
 			allowedSlots: gosstypes.PrimaryAndSecondaryVRFSlots,
 		},
 		// TODO: We are not able to pickup the right value of AllowedSlots

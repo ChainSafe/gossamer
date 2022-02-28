@@ -44,8 +44,10 @@ var (
 	// GenesisOneAuth is the genesis file that has 1 authority
 	GenesisOneAuth = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
 	// GenesisThreeAuths is the genesis file that has 3 authorities
-	GenesisThreeAuths                  = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
-	GenesisTwoAuthsSecondaryVRF_0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
+	GenesisThreeAuths = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
+	// GenesisTwoAuthsSecondaryVRF0_9_10 is the genesis file that has 2 authorities and block production by
+	// secondary VRF slots enabled
+	GenesisTwoAuthsSecondaryVRF0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
 
 	// GenesisSixAuths is the genesis file that has 6 authorities
 	GenesisSixAuths = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
