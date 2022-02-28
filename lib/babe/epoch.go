@@ -262,7 +262,6 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 
 		preRuntimeDigest, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryVRFPreDigest(
 			epochData.authorityIndex, slotNumber, proof.output, proof.proof))
-
 		if err != nil {
 			return nil, fmt.Errorf("error converting babe secondary vrf pre-digest to pre-runtime digest: %w", err)
 		}
