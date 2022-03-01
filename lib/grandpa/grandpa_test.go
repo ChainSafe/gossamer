@@ -60,7 +60,9 @@ func newTestState(t *testing.T) *state.Service {
 	t.Cleanup(func() { db.Close() })
 
 	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
-	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader, telemetryMock)
+	tries, err := state.NewTries(genTrie)
+	require.NoError(t, err)
+	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
@@ -862,7 +864,6 @@ func TestFindParentWithNumber(t *testing.T) {
 
 	p, err := gs.findParentWithNumber(v, 1)
 	require.NoError(t, err)
-	t.Log(st.Block.BlocktreeAsString())
 
 	expected, err := st.Block.GetBlockByNumber(big.NewInt(1))
 	require.NoError(t, err)

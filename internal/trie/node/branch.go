@@ -4,12 +4,15 @@
 package node
 
 import (
-	"sync"
-
 	"github.com/qdm12/gotree"
 )
 
 var _ Node = (*Branch)(nil)
+
+const (
+	// ChildrenCapacity is the maximum number of children in a branch node.
+	ChildrenCapacity = 16
+)
 
 // Branch is a branch in the trie.
 type Branch struct {
@@ -27,7 +30,6 @@ type Branch struct {
 	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
 	Generation uint64
-	sync.RWMutex
 }
 
 // NewBranch creates a new branch using the arguments given.

@@ -8,8 +8,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
+
+func newTriesEmpty() *Tries {
+	return &Tries{
+		rootToTrie: make(map[common.Hash]*trie.Trie),
+	}
+}
 
 // newGenerator creates a new PRNG seeded with the
 // unix nanoseconds value of the current time.
