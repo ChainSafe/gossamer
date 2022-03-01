@@ -160,14 +160,19 @@ func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *b
 }
 
 // IncrementSetID increments the set ID
-func (s *GrandpaState) IncrementSetID() error {
+func (s *GrandpaState) IncrementSetID() (newSetID uint64, err error) {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	nextSetID := currSetID + 1
-	return s.setCurrentSetID(nextSetID)
+	err = s.setCurrentSetID(nextSetID)
+	if err != nil {
+		return 0, err
+	}
+
+	return newSetID, nil
 }
 
 // setSetIDChangeAtBlock sets a set ID change at a certain block

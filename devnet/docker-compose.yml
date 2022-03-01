@@ -1,6 +1,5 @@
 services: 
   alice:
-    platform: linux/amd64
     build:
       context: ./..
       dockerfile: devnet/alice.Dockerfile
@@ -12,10 +11,8 @@ services:
       - 8546
       - 8540
       - 9876
-      - 6060
 
   bob:
-    platform: linux/amd64
     build:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
@@ -28,12 +25,10 @@ services:
       - 8546
       - 8540
       - 9876
-      - 6060
     depends_on:
       - alice
 
   charlie:
-    platform: linux/amd64
     build:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
@@ -48,3 +43,4 @@ services:
       - 9876
     depends_on:
       - alice
+
