@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"math/big"
 	"os"
@@ -55,19 +56,38 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 }
 
 func newTestDigest(t *testing.T) scale.VaryingDataTypeSlice {
+	testBabeDigest := types.NewBabeDigest()
+	err := testBabeDigest.Set(types.BabePrimaryPreDigest{
+		VRFOutput: [sr25519.VRFOutputLength]byte{
+			0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33,
+			152, 85, 184, 34, 120, 61, 161, 164, 223, 76,
+			53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
+		VRFProof: [sr25519.VRFProofLength]byte{
+			120, 23, 235, 159, 115, 122, 207, 206, 123, 232,
+			75, 243, 115, 255, 131, 181, 219, 241, 200, 206,
+			21, 22, 238, 16, 68, 49, 86, 99, 76, 139, 39, 0,
+			102, 106, 181, 136, 97, 141, 187, 1, 234, 183, 241,
+			28, 27, 229, 133, 8, 32, 246, 245, 206, 199, 142,
+			134, 124, 226, 217, 95, 30, 176, 246, 5, 3},
+		AuthorityIndex: 17,
+		SlotNumber:     420,
+	})
+	require.NoError(t, err)
+	data, err := scale.Marshal(testBabeDigest)
+	require.NoError(t, err)
 	vdts := types.NewDigest()
-	err := vdts.Add(
+	err = vdts.Add(
 		types.PreRuntimeDigest{
 			ConsensusEngineID: types.BabeEngineID,
-			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+			Data:              data,
 		},
 		types.ConsensusDigest{
 			ConsensusEngineID: types.BabeEngineID,
-			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"), //nolint:lll
+			Data:              data,
 		},
 		types.SealDigest{
 			ConsensusEngineID: types.BabeEngineID,
-			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"), //nolint:lll
+			Data:              data,
 		},
 	)
 	require.NoError(t, err)
