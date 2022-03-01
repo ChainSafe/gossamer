@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: move mock EXPECTS to caller
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	t.Helper()
