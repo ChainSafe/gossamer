@@ -40,6 +40,13 @@ import (
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
+type testAccountData struct {
+	Free       *scale.Uint128
+	Reserved   *scale.Uint128
+	MiscFrozen *scale.Uint128
+	FreeFrozen *scale.Uint128
+}
+
 func balanceKey(t *testing.T, pub []byte) []byte {
 	var bKey []byte
 	h0, err := common.Twox128Hash([]byte("System"))
@@ -101,16 +108,19 @@ func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance) {
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	// set state to genesis state
 	genState, err := storage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	cfg := &wasmer.Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
 	nodeStorage := runtime.NodeStorage{}
 	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
-	cfg.NodeStorage = nodeStorage
+	cfg := &wasmer.Config{
+		InstanceConfig: runtime.InstanceConfig{
+			Storage:     genState,
+			LogLvl:      log.Error,
+			NodeStorage: nodeStorage,
+		},
+		Imports: nil,
+	}
 
 	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -121,12 +131,7 @@ func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance) {
 
 	accInfo := types.AccountInfo{
 		Nonce: 0,
-		Data: struct {
-			Free       *scale.Uint128
-			Reserved   *scale.Uint128
-			MiscFrozen *scale.Uint128
-			FreeFrozen *scale.Uint128
-		}{
+		Data: testAccountData{
 			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
 			Reserved:   scale.MustNewUint128(big.NewInt(0)),
 			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
