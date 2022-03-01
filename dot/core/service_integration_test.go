@@ -88,7 +88,8 @@ func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance) {
 	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
-	alicePub := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+	keyring, err := keystore.NewSr25519Keyring()
+	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
 	aliceBalanceKey := balanceKey(t, alicePub)
 
 	accInfo := types.AccountInfo{
