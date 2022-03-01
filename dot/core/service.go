@@ -216,9 +216,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
-	// handle consensus digests
-	s.digestHandler.HandleDigests(&block.Header)
-
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if err != nil {
 		return err
