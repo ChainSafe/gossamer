@@ -48,20 +48,40 @@ func Test_Branch_SetDirty(t *testing.T) {
 		expected *Branch
 	}{
 		"not dirty to not dirty": {
-			branch:   &Branch{},
-			expected: &Branch{},
+			branch: &Branch{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+			},
+			expected: &Branch{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+			},
 		},
 		"not dirty to dirty": {
-			branch:   &Branch{},
+			branch: &Branch{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+			},
 			dirty:    true,
 			expected: &Branch{Dirty: true},
 		},
 		"dirty to not dirty": {
-			branch:   &Branch{Dirty: true},
-			expected: &Branch{},
+			branch: &Branch{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+				Dirty:      true,
+			},
+			expected: &Branch{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+			},
 		},
 		"dirty to dirty": {
-			branch:   &Branch{Dirty: true},
+			branch: &Branch{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+				Dirty:      true,
+			},
 			dirty:    true,
 			expected: &Branch{Dirty: true},
 		},
@@ -118,20 +138,40 @@ func Test_Leaf_SetDirty(t *testing.T) {
 		expected *Leaf
 	}{
 		"not dirty to not dirty": {
-			leaf:     &Leaf{},
-			expected: &Leaf{},
+			leaf: &Leaf{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+			},
+			expected: &Leaf{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+			},
 		},
 		"not dirty to dirty": {
-			leaf:     &Leaf{},
+			leaf: &Leaf{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+			},
 			dirty:    true,
 			expected: &Leaf{Dirty: true},
 		},
 		"dirty to not dirty": {
-			leaf:     &Leaf{Dirty: true},
-			expected: &Leaf{},
+			leaf: &Leaf{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+				Dirty:      true,
+			},
+			expected: &Leaf{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+			},
 		},
 		"dirty to dirty": {
-			leaf:     &Leaf{Dirty: true},
+			leaf: &Leaf{
+				Encoding:   []byte{1},
+				HashDigest: []byte{1},
+				Dirty:      true,
+			},
 			dirty:    true,
 			expected: &Leaf{Dirty: true},
 		},

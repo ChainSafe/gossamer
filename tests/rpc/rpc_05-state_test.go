@@ -335,7 +335,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
@@ -352,7 +352,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 	}
 	t.Run(test.description, func(t *testing.T) {
 		respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(nodes[0].RPCPort), test.params)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotContains(t, string(respBody), "json: cannot unmarshal")
 		fmt.Println(string(respBody))
 	})

@@ -161,7 +161,7 @@ var parallelEncodingRateLimit = make(chan struct{}, parallelLimit)
 func encodeChildrenOpportunisticParallel(children [16]Node, buffer io.Writer) (err error) {
 	// Buffered channels since children might be encoded in this
 	// goroutine or another one.
-	resultsCh := make(chan encodingAsyncResult, len(children))
+	resultsCh := make(chan encodingAsyncResult, ChildrenCapacity)
 
 	for i, child := range children {
 		if isNodeNil(child) || child.Type() == LeafType {
@@ -183,7 +183,7 @@ func encodeChildrenOpportunisticParallel(children [16]Node, buffer io.Writer) (e
 	}
 
 	currentIndex := 0
-	resultBuffers := make([]*bytes.Buffer, len(children))
+	resultBuffers := make([]*bytes.Buffer, ChildrenCapacity)
 	for range children {
 		result := <-resultsCh
 		if result.err != nil && err == nil { // only set the first error we get
@@ -193,7 +193,7 @@ func encodeChildrenOpportunisticParallel(children [16]Node, buffer io.Writer) (e
 		resultBuffers[result.index] = result.buffer
 
 		// write as many completed buffers to the result buffer.
-		for currentIndex < len(children) &&
+		for currentIndex < ChildrenCapacity &&
 			resultBuffers[currentIndex] != nil {
 			bufferSlice := resultBuffers[currentIndex].Bytes()
 			if err == nil && len(bufferSlice) > 0 {

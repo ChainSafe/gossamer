@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -351,6 +350,8 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil, nil)
 }
 
+//go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
+
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
@@ -373,8 +374,12 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		srvc = newTestStateService(t)
 	}
 
-	mocknet := new(coremocks.Network)
-	mocknet.On("GossipMessage", mock.AnythingOfType("network.NotificationsMessage"))
+	ctrl := gomock.NewController(t)
+
+	mocknet := NewMockNetwork(ctrl)
+	mocknet.EXPECT().GossipMessage(
+		gomock.AssignableToTypeOf(new(network.TransactionMessage))).
+		AnyTimes()
 
 	digestHandlerMock := NewMockDigestHandler(nil)
 

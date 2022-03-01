@@ -102,7 +102,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 60)
 
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
@@ -338,6 +338,7 @@ func TestSync_Restart(t *testing.T) {
 }
 
 func TestSync_SubmitExtrinsic(t *testing.T) {
+	t.Skip()
 	t.Log("starting gossamer...")
 
 	// index of node to submit tx to
