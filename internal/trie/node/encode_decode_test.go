@@ -60,7 +60,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 						HashDigest: []byte{0x41, 0x9, 0x4, 0xa},
 					},
 				},
-				Dirty: true,
+				Dirty:       true,
+				Descendants: 1,
 			},
 		},
 	}

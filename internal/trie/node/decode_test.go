@@ -176,7 +176,8 @@ func Test_decodeBranch(t *testing.T) {
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
 				},
-				Dirty: true,
+				Dirty:       true,
+				Descendants: 1,
 			},
 		},
 		"value decoding error for node type 3": {
@@ -211,7 +212,8 @@ func Test_decodeBranch(t *testing.T) {
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
 				},
-				Dirty: true,
+				Dirty:       true,
+				Descendants: 1,
 			},
 		},
 	}
