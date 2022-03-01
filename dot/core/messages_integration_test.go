@@ -7,6 +7,8 @@
 package core
 
 import (
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"math/big"
 	"testing"
 	"time"
@@ -77,6 +79,10 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		Keystore: keystore.NewGlobalKeystore(),
 	}
 
+	digestHandler := NewMockDigestHandler(ctrl)
+	digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
+	cfg.DigestHandler = digestHandler
+
 	s := NewTestService(t, cfg)
 	err := s.Start()
 	require.NoError(t, err)
@@ -132,9 +138,22 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
+	digestHandler := NewMockDigestHandler(ctrl)
+	digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
+
+	net := NewMockNetwork(ctrl)
+	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).AnyTimes()
+	net.EXPECT().IsSynced().Return(true).AnyTimes()
+	net.EXPECT().ReportPeer(
+		gomock.AssignableToTypeOf(peerset.ReputationChange{}),
+		gomock.AssignableToTypeOf(peer.ID("")),
+	).AnyTimes()
+
 	cfg := &Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(telemetryMock),
+		DigestHandler:    digestHandler,
+		Network:          net,
 	}
 
 	s := NewTestService(t, cfg)

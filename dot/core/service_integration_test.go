@@ -9,6 +9,8 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"math/big"
 	"os"
 	"testing"
@@ -50,7 +52,6 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 	bKey = append(bKey, h2...)
 	bKey = append(bKey, pub...)
 	return bKey
-	//return append(append(append(h0, h1...), h2...), pub...)
 }
 
 func newTestDigest(t *testing.T) scale.VaryingDataTypeSlice {
@@ -164,9 +165,14 @@ func TestStartService(t *testing.T) {
 func TestAnnounceBlock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	net := NewMockNetwork(ctrl)
+
 	cfg := &Config{
 		Network: net,
 	}
+
+	digestHandler := NewMockDigestHandler(ctrl)
+	digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
+	cfg.DigestHandler = digestHandler
 
 	s := NewTestService(t, cfg)
 	err := s.Start()
@@ -297,6 +303,11 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 	cfg := &Config{
 		Keystore: ks,
 	}
+
+	ctrl := gomock.NewController(t)
+	digestHandler := NewMockDigestHandler(ctrl)
+	cfg.DigestHandler = digestHandler
+
 	s := NewTestService(t, cfg)
 
 	res, err := s.HasKey(kr.Alice().Public().Hex(), "xxxx")
@@ -553,7 +564,21 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 }
 
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := &Config{}
+	ctrl := gomock.NewController(t)
+	digestHandler := NewMockDigestHandler(ctrl)
+	digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
+	cfg.DigestHandler = digestHandler
+
+	net := NewMockNetwork(ctrl)
+	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).AnyTimes()
+	net.EXPECT().IsSynced().Return(true).AnyTimes()
+	net.EXPECT().ReportPeer(
+		gomock.AssignableToTypeOf(peerset.ReputationChange{}),
+		gomock.AssignableToTypeOf(peer.ID("")),
+	).AnyTimes()
+	cfg.Network = net
+	s := NewTestService(t, cfg)
 
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)

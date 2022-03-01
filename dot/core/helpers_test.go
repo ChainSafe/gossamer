@@ -7,10 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -21,10 +18,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: move mock EXPECTS to caller
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	t.Helper()
@@ -35,9 +32,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.DigestHandler == nil {
-		digestHandler := NewMockDigestHandler(ctrl)
-		digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header))).AnyTimes()
-		cfg.DigestHandler = digestHandler
+		cfg.DigestHandler = NewMockDigestHandler(ctrl)
 	}
 
 	if cfg.Keystore == nil {
@@ -126,14 +121,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	if cfg.Network == nil {
-		net := NewMockNetwork(ctrl)
-		net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).AnyTimes()
-		net.EXPECT().IsSynced().Return(true).AnyTimes()
-		net.EXPECT().ReportPeer(
-			gomock.AssignableToTypeOf(peerset.ReputationChange{}),
-			gomock.AssignableToTypeOf(peer.ID("")),
-		).AnyTimes()
-		cfg.Network = net
+		cfg.Network = NewMockNetwork(ctrl)
 	}
 
 	if cfg.CodeSubstitutes == nil {
