@@ -5,6 +5,7 @@ package digest
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
+	"golang.org/x/net/context"
 
 	"github.com/stretchr/testify/require"
 )
@@ -380,16 +382,13 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 	require.NoError(t, err)
 
 	return &types.Header{
+		Number: big.NewInt(1),
 		Digest: digest,
 	}
 }
 
 func TestHandler_HandleNextEpochData(t *testing.T) {
-	expData := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000") //nolint:lll
-
-	handler := newTestHandler(t)
-	handler.Start()
-	defer handler.Stop()
+	expectedDigestBytes := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000") //nolint:lll
 
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -414,7 +413,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
-	require.Equal(t, expData, data)
+	require.Equal(t, expectedDigestBytes, data)
 
 	d := &types.ConsensusDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -423,8 +422,34 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 
 	header := createHeaderWithPreDigest(t, 10)
 
+	finalisedCh := make(chan *types.FinalisationInfo)
+
+	handler := newTestHandler(t)
+	handler.finalised = finalisedCh
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		handler.handleBlockFinalisation(ctx)
+	}()
+
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
+
+	finalisedCh <- &types.FinalisationInfo{
+		Header: *header,
+		Round:  1,
+		SetID:  1,
+	}
+
+	// Before check the epoch data was stored
+	// we need to wait for both handle functions finish
+	cancel()
+	wg.Wait()
 
 	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
 	require.NoError(t, err)
@@ -440,10 +465,6 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 }
 
 func TestHandler_HandleNextConfigData(t *testing.T) {
-	handler := newTestHandler(t)
-	handler.Start()
-	defer handler.Stop()
-
 	var digest = types.NewBabeConsensusDigest()
 	err := digest.Set(types.NextConfigData{
 		C1:             1,
@@ -462,8 +483,34 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	header := createHeaderWithPreDigest(t, 10)
 
+	finalisedCh := make(chan *types.FinalisationInfo)
+
+	handler := newTestHandler(t)
+	handler.finalised = finalisedCh
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		handler.handleBlockFinalisation(ctx)
+	}()
+
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
+
+	finalisedCh <- &types.FinalisationInfo{
+		Header: *header,
+		Round:  1,
+		SetID:  1,
+	}
+
+	// Before check the config data was stored
+	// we need to wait for both handle functions finish
+	cancel()
+	wg.Wait()
 
 	act, ok := digest.Value().(types.NextConfigData)
 	if !ok {
