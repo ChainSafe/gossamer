@@ -38,13 +38,19 @@ import (
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func balanceKey(t *testing.T, pub []byte) []byte {
+	var bKey []byte
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
+	bKey = append(bKey, h0...)
 	h1, err := common.Twox128Hash([]byte("Account"))
 	require.NoError(t, err)
+	bKey = append(bKey, h1...)
 	h2, err := common.Blake2b128(pub)
 	require.NoError(t, err)
-	return append(append(append(h0, h1...), h2...), pub...)
+	bKey = append(bKey, h2...)
+	bKey = append(bKey, pub...)
+	return bKey
+	//return append(append(append(h0, h1...), h2...), pub...)
 }
 
 func newTestDigest(t *testing.T) scale.VaryingDataTypeSlice {
