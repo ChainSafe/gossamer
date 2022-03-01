@@ -36,7 +36,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.DigestHandler == nil {
 		digestHandler := NewMockDigestHandler(ctrl)
-		digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
+		digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header))).AnyTimes()
 		cfg.DigestHandler = digestHandler
 	}
 
@@ -127,12 +127,12 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.Network == nil {
 		net := NewMockNetwork(ctrl)
-		net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage)))
-		net.EXPECT().IsSynced().Return(true)
+		net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).AnyTimes()
+		net.EXPECT().IsSynced().Return(true).AnyTimes()
 		net.EXPECT().ReportPeer(
 			gomock.AssignableToTypeOf(peerset.ReputationChange{}),
 			gomock.AssignableToTypeOf(peer.ID("")),
-		)
+		).AnyTimes()
 		cfg.Network = net
 	}
 
