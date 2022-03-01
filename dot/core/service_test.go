@@ -61,11 +61,14 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 	)
 	require.NoError(t, err)
 
-	bob, err := ctypes.NewMultiAddressFromHexAccountID(
-		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	keyring, err := keystore.NewSr25519Keyring()
+	bobPub := keyring.Bob().Public().Hex()
+
+	bob, err := ctypes.NewMultiAddressFromHexAccountID(bobPub)
 	require.NoError(t, err)
 
-	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
+	const balanceTransfer = "Balances.transfer"
+	call, err := ctypes.NewCall(meta, balanceTransfer, bob, ctypes.NewUCompactFromUInt(12345))
 	require.NoError(t, err)
 
 	// Create the extrinsic
