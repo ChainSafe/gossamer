@@ -14,13 +14,16 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
 func TestChildStateGetKeys(t *testing.T) {
-	childStateModule, currBlockHash := setupChildStateStorage(t)
+	trieMetrics := triemetricsnoop.New()
+
+	childStateModule, currBlockHash := setupChildStateStorage(t, trieMetrics)
 
 	req := &GetKeysRequest{
 		Key:    []byte(":child_storage_key"),
@@ -61,7 +64,9 @@ func TestChildStateGetKeys(t *testing.T) {
 }
 
 func TestChildStateGetStorageSize(t *testing.T) {
-	mod, blockHash := setupChildStateStorage(t)
+	trieMetrics := triemetricsnoop.New()
+
+	mod, blockHash := setupChildStateStorage(t, trieMetrics)
 	invalidHash := common.BytesToHash([]byte("invalid block hash"))
 
 	tests := []struct {
@@ -125,7 +130,9 @@ func TestChildStateGetStorageSize(t *testing.T) {
 }
 
 func TestGetStorageHash(t *testing.T) {
-	mod, blockHash := setupChildStateStorage(t)
+	trieMetrics := triemetricsnoop.New()
+
+	mod, blockHash := setupChildStateStorage(t, trieMetrics)
 	invalidBlockHash := common.BytesToHash([]byte("invalid block hash"))
 
 	tests := []struct {
@@ -185,7 +192,9 @@ func TestGetStorageHash(t *testing.T) {
 }
 
 func TestGetChildStorage(t *testing.T) {
-	mod, blockHash := setupChildStateStorage(t)
+	trieMetrics := triemetricsnoop.New()
+
+	mod, blockHash := setupChildStateStorage(t, trieMetrics)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -238,10 +247,10 @@ func TestGetChildStorage(t *testing.T) {
 	}
 }
 
-func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
+func setupChildStateStorage(t *testing.T, trieMetrics trie.Metrics) (*ChildStateModule, common.Hash) {
 	t.Helper()
 
-	st := newTestStateService(t)
+	st := newTestStateService(t, trieMetrics)
 
 	tr, err := st.Storage.TrieState(nil)
 	require.NoError(t, err)
@@ -249,7 +258,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	tr.Set([]byte(":first_key"), []byte(":value1"))
 	tr.Set([]byte(":second_key"), []byte(":second_value"))
 
-	childTr := trie.NewEmptyTrie()
+	childTr := trie.NewEmptyTrie(trieMetrics)
 	childTr.Put([]byte(":child_first"), []byte(":child_first_value"))
 	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
 	childTr.Put([]byte(":another_child"), []byte("value"))

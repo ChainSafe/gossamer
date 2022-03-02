@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
+	"github.com/ChainSafe/gossamer/internal/trie/metrics/prometheus"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -64,7 +65,12 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create trie from genesis
-	t, err := genesis.NewTrieFromGenesis(gen)
+	trieMetrics, err := prometheus.New()
+	if err != nil {
+		return fmt.Errorf("cannot setup Prometheus trie metrics: %w", err)
+	}
+
+	t, err := genesis.NewTrieFromGenesis(gen, trieMetrics)
 	if err != nil {
 		return fmt.Errorf("failed to create trie from genesis: %w", err)
 	}

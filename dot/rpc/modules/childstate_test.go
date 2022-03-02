@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -18,17 +19,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
+func createTestTrieState(t *testing.T, trieMetrics trie.Metrics) (*trie.Trie, common.Hash) {
 	t.Helper()
 
-	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 	tr, err := rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
 	tr.Set([]byte(":first_key"), []byte(":value1"))
 	tr.Set([]byte(":second_key"), []byte(":second_value"))
 
-	childTr := trie.NewEmptyTrie()
+	childTr := trie.NewEmptyTrie(trieMetrics)
 	childTr.Put([]byte(":child_first"), []byte(":child_first_value"))
 	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
 	childTr.Put([]byte(":another_child"), []byte("value"))
@@ -43,7 +44,7 @@ func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 }
 
 func TestChildStateModule_GetKeys(t *testing.T) {
-	//nolint
+	//nolint:lll
 	expStr := []string{
 		"0x11f3ba2e1cdd6d62f2ff9b5589e7ff81ba7fb8745735dc3be2a2c61a72c39e78",
 		"0x1cb6f36e027abb2091cfb5110ab5087f5e0621c4869aa60c02be9adcc98a0d1d",
@@ -82,7 +83,8 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 		"0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950f5537bdb2a1f626b6772616e8088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee",
 		"0xe2e62dd81c48a88f73b6f6463555fd8eba7fb8745735dc3be2a2c61a72c39e78"}
 
-	tr, sr := createTestTrieState(t)
+	trieMetrics := triemetricsnoop.New()
+	tr, sr := createTestTrieState(t, trieMetrics)
 
 	mockStorageAPI := new(apimocks.StorageAPI)
 	mockErrorStorageAPI1 := new(apimocks.StorageAPI)
@@ -193,7 +195,8 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 }
 
 func TestChildStateModule_GetStorageSize(t *testing.T) {
-	_, sr := createTestTrieState(t)
+	trieMetrics := triemetricsnoop.New()
+	_, sr := createTestTrieState(t, trieMetrics)
 
 	mockStorageAPI := new(apimocks.StorageAPI)
 	mockErrorStorageAPI1 := new(apimocks.StorageAPI)
@@ -305,7 +308,8 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 }
 
 func TestChildStateModule_GetStorageHash(t *testing.T) {
-	_, sr := createTestTrieState(t)
+	trieMetrics := triemetricsnoop.New()
+	_, sr := createTestTrieState(t, trieMetrics)
 
 	mockStorageAPI := new(apimocks.StorageAPI)
 	mockErrorStorageAPI1 := new(apimocks.StorageAPI)
@@ -417,7 +421,8 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 }
 
 func TestChildStateModule_GetStorage(t *testing.T) {
-	_, sr := createTestTrieState(t)
+	trieMetrics := triemetricsnoop.New()
+	_, sr := createTestTrieState(t, trieMetrics)
 
 	mockStorageAPI := new(apimocks.StorageAPI)
 	mockErrorStorageAPI1 := new(apimocks.StorageAPI)

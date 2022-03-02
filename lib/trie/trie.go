@@ -14,7 +14,7 @@ import (
 )
 
 // EmptyHash is the empty trie hash.
-var EmptyHash, _ = NewEmptyTrie().Hash()
+var EmptyHash, _ = new(Trie).Hash()
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
@@ -22,20 +22,24 @@ type Trie struct {
 	root        Node
 	childTries  map[common.Hash]*Trie
 	deletedKeys map[common.Hash]struct{}
+	metrics     Metrics
 }
 
-// NewEmptyTrie creates a trie with a nil root
-func NewEmptyTrie() *Trie {
-	return NewTrie(nil)
+// NewEmptyTrie creates a trie with a nil root and uses
+// the metrics given as argument.
+func NewEmptyTrie(metrics Metrics) (trie *Trie) {
+	return NewTrie(nil, metrics)
 }
 
-// NewTrie creates a trie with an existing root node
-func NewTrie(root Node) *Trie {
+// NewTrie creates a trie with an existing root node and uses
+// the metrics given as argument.
+func NewTrie(root Node, m Metrics) (trie *Trie) {
 	return &Trie{
 		root:        root,
 		childTries:  make(map[common.Hash]*Trie),
 		generation:  0, // Initially zero but increases after every snapshot.
 		deletedKeys: make(map[common.Hash]struct{}),
+		metrics:     m,
 	}
 }
 
@@ -59,6 +63,7 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 		root:        t.root,
 		childTries:  childTries,
 		deletedKeys: make(map[common.Hash]struct{}),
+		metrics:     t.metrics,
 	}
 }
 
@@ -100,6 +105,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 
 	trieCopy = &Trie{
 		generation: t.generation,
+		metrics:    t.metrics,
 	}
 
 	if t.deletedKeys != nil {
@@ -306,7 +312,11 @@ func (t *Trie) Put(keyLE, value []byte) {
 }
 
 func (t *Trie) put(key, value []byte) {
-	t.root, _ = t.insert(t.root, key, value)
+	var nodesCreated uint32
+	t.root, nodesCreated = t.insert(t.root, key, value)
+	if nodesCreated > 0 {
+		t.metrics.NodesAdd(nodesCreated)
+	}
 }
 
 // insert inserts a value in the trie at the key specified.
@@ -656,7 +666,12 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, deleted, _, allDeleted = t.clearPrefixLimit(t.root, prefix, limit)
+	var nodesRemoved uint32
+	t.root, deleted, nodesRemoved, allDeleted = t.clearPrefixLimit(t.root, prefix, limit)
+	if nodesRemoved > 0 {
+		t.metrics.NodesSub(nodesRemoved)
+	}
+
 	return deleted, allDeleted
 }
 
@@ -846,14 +861,31 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit uint32) (
 // prefix given in little Endian format.
 func (t *Trie) ClearPrefix(prefixLE []byte) {
 	if len(prefixLE) == 0 {
+		var nodesRemoved uint32
+		if t.root != nil {
+			nodesRemoved = 1
+			if t.root.Type() != node.LeafType {
+				rootBranch := t.root.(*node.Branch)
+				nodesRemoved += rootBranch.GetDescendants()
+			}
+		}
+		if nodesRemoved > 0 {
+			t.metrics.NodesSub(nodesRemoved)
+		}
+
 		t.root = nil
+
 		return
 	}
 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, _ = t.clearPrefix(t.root, prefix)
+	var nodesRemoved uint32
+	t.root, nodesRemoved = t.clearPrefix(t.root, prefix)
+	if nodesRemoved > 0 {
+		t.metrics.NodesSub(nodesRemoved)
+	}
 }
 
 func (t *Trie) clearPrefix(parent Node, prefix []byte) (
@@ -949,7 +981,13 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 // If no node is found at this key, nothing is deleted.
 func (t *Trie) Delete(keyLE []byte) {
 	key := codec.KeyLEToNibbles(keyLE)
-	t.root, _, _ = t.delete(t.root, key)
+
+	var nodesRemoved uint32
+	t.root, _, nodesRemoved = t.delete(t.root, key)
+
+	if nodesRemoved > 0 {
+		t.metrics.NodesSub(nodesRemoved)
+	}
 }
 
 func (t *Trie) delete(parent Node, key []byte) (

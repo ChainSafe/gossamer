@@ -39,12 +39,15 @@ type StorageState struct {
 	changedLock  sync.RWMutex
 	observerList []Observer
 	pruner       pruner.Pruner
+
+	// Metrics
+	trieMetrics trie.Metrics
 }
 
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
 func NewStorageState(db chaindb.Database, blockState *BlockState,
-	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
+	tries *Tries, onlinePruner pruner.Config, trieMetrics trie.Metrics) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -68,6 +71,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 		db:           storageTable,
 		observerList: []Observer{},
 		pruner:       p,
+		trieMetrics:  trieMetrics,
 	}, nil
 }
 
@@ -141,7 +145,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
+	t := trie.NewEmptyTrie(s.trieMetrics)
 	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err

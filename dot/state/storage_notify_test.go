@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
@@ -29,7 +30,8 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 		triesGauge: triesGauge,
 	}
 
-	ss := newTestStorageState(t, tries)
+	trieMetrics := triemetricsnoop.New()
+	ss := newTestStorageState(t, tries, trieMetrics)
 
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
@@ -73,7 +75,8 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 		triesGauge: triesGauge,
 	}
 
-	ss := newTestStorageState(t, tries)
+	trieMetrics := triemetricsnoop.New()
+	ss := newTestStorageState(t, tries, trieMetrics)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
@@ -136,7 +139,8 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 		triesGauge: triesGauge,
 	}
 
-	ss := newTestStorageState(t, tries)
+	trieMetrics := triemetricsnoop.New()
+	ss := newTestStorageState(t, tries, trieMetrics)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 

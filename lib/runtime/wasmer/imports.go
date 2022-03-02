@@ -109,6 +109,7 @@ import (
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/internal/log"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -788,7 +789,8 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	data := asMemorySlice(instanceContext, dataSpan)
 
-	t := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+	t := trie.NewEmptyTrie(trieMetrics)
 
 	type kv struct {
 		Key, Value []byte
@@ -832,7 +834,8 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	data := asMemorySlice(instanceContext, dataSpan)
 
-	t := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+	t := trie.NewEmptyTrie(trieMetrics)
 	var values [][]byte
 	err := scale.Unmarshal(data, &values)
 	if err != nil {
@@ -941,7 +944,11 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 		Imports: ImportsNodeRuntime,
 	}
 	cfg.LogLvl = log.DoNotChange
-	cfg.Storage, _ = rtstorage.NewTrieState(nil)
+
+	metrics := triemetricsnoop.New()
+	emptyTrie := trie.NewEmptyTrie(metrics)
+
+	cfg.Storage, _ = rtstorage.NewTrieState(emptyTrie)
 
 	instance, err := NewInstance(data, cfg)
 	if err != nil {

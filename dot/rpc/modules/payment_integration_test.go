@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,9 @@ import (
 )
 
 func TestPaymentQueryInfo(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetricsnoop.New()
+
+	state := newTestStateService(t, trieMetrics)
 	bestBlockHash := state.Block.BestBlockHash()
 
 	t.Run("When there is no errors", func(t *testing.T) {

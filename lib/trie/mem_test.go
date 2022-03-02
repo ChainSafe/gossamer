@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"testing"
 
+	metricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,8 +22,9 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 		t.SkipNow()
 	}
 
+	trieMetrics := metricsnoop.New()
 	triesMap := map[string]*Trie{
-		"first": NewEmptyTrie(),
+		"first": NewEmptyTrie(trieMetrics),
 	}
 
 	generator := newGenerator()

@@ -163,6 +163,12 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 	if err != nil {
 		return fmt.Errorf("cannot decode root node: %w", err)
 	}
+
+	if root.Type() != node.LeafType { // branch
+		rootBranch := root.(*node.Branch)
+		t.metrics.NodesAdd(rootBranch.Descendants)
+	}
+
 	t.root = root
 	t.root.SetDirty(false)
 	t.root.SetEncodingAndHash(encodedNode, rootHashBytes)
@@ -207,7 +213,8 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 	}
 
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
-		childTrie := NewEmptyTrie()
+		childTrie := NewEmptyTrie(t.metrics)
+
 		value := t.Get(key)
 		err := childTrie.Load(db, common.NewHash(value))
 		if err != nil {

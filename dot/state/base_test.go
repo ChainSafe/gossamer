@@ -6,6 +6,7 @@ package state
 import (
 	"testing"
 
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -15,7 +16,9 @@ import (
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	db := NewInMemoryDB(t)
-	tt := trie.NewEmptyTrie()
+
+	trieMetrics := triemetricsnoop.New()
+	tt := trie.NewEmptyTrie(trieMetrics)
 
 	generator := newGenerator()
 	const size = 500
@@ -34,7 +37,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 
 	expected := tt.MustHash()
 
-	tt = trie.NewEmptyTrie()
+	tt = trie.NewEmptyTrie(trieMetrics)
 	err = tt.Load(db, encroot)
 	require.NoError(t, err)
 	require.Equal(t, expected, tt.MustHash())

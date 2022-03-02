@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	babemocks "github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -42,7 +43,8 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	db := state.NewInMemoryDB(t)
 
-	_, genesisTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	trieMetrics := triemetricsnoop.New()
+	_, genesisTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 	tries, err := state.NewTries(genesisTrie)
 	require.NoError(t, err)
 	bs, err := state.NewBlockStateFromGenesis(db, tries, genesisHeader, telemetryMock)
@@ -57,7 +59,10 @@ func newBABEService(t *testing.T) *babe.Service {
 	require.NoError(t, err)
 
 	bs, es := newState(t)
-	tt := trie.NewEmptyTrie()
+
+	trieMetrics := triemetricsnoop.New()
+	tt := trie.NewEmptyTrie(trieMetrics)
+
 	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 	bs.StoreRuntime(bs.GenesisHash(), rt)
 	tt.Put(

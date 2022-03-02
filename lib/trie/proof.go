@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/internal/trie/record"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -36,7 +37,9 @@ var (
 func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
 	trackedProofs := make(map[string][]byte)
 
-	proofTrie := NewEmptyTrie()
+	metrics := triemetricsnoop.New()
+	proofTrie := NewEmptyTrie(metrics)
+
 	if err := proofTrie.Load(db, common.BytesToHash(root)); err != nil {
 		return nil, err
 	}
@@ -83,7 +86,9 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 		set[hexKey] = struct{}{}
 	}
 
-	proofTrie := NewEmptyTrie()
+	metrics := triemetricsnoop.New()
+	proofTrie := NewEmptyTrie(metrics)
+
 	if err := proofTrie.loadFromProof(proof, root); err != nil {
 		return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
 	}

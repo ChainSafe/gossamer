@@ -11,17 +11,22 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+//go:generate mockgen -destination=metrics_mock_test.go -package $GOPACKAGE . Metrics
+
 func Test_NewEmptyTrie(t *testing.T) {
+	expectedMetrics := NewMockMetrics(nil)
 	expectedTrie := &Trie{
 		childTries:  make(map[common.Hash]*Trie),
 		deletedKeys: map[common.Hash]struct{}{},
+		metrics:     expectedMetrics,
 	}
-	trie := NewEmptyTrie()
+
+	trie := NewEmptyTrie(expectedMetrics)
 	assert.Equal(t, expectedTrie, trie)
 }
 
@@ -30,6 +35,8 @@ func Test_NewTrie(t *testing.T) {
 		Key:   []byte{0},
 		Value: []byte{17},
 	}
+	expectedMetrics := NewMockMetrics(nil)
+
 	expectedTrie := &Trie{
 		root: &node.Leaf{
 			Key:   []byte{0},
@@ -37,8 +44,11 @@ func Test_NewTrie(t *testing.T) {
 		},
 		childTries:  make(map[common.Hash]*Trie),
 		deletedKeys: map[common.Hash]struct{}{},
+		metrics:     expectedMetrics,
 	}
-	trie := NewTrie(root)
+
+	trie := NewTrie(root, expectedMetrics)
+
 	assert.Equal(t, expectedTrie, trie)
 }
 
@@ -569,8 +579,9 @@ func Test_Trie_Entries(t *testing.T) {
 				},
 			},
 		}
+		metrics := (Metrics)(nil)
 
-		trie := NewTrie(root)
+		trie := NewTrie(root, metrics)
 
 		entries := trie.Entries()
 
@@ -623,8 +634,9 @@ func Test_Trie_Entries(t *testing.T) {
 				},
 			},
 		}
+		metrics := (Metrics)(nil)
 
-		trie := NewTrie(root)
+		trie := NewTrie(root, metrics)
 
 		entries := trie.Entries()
 
@@ -642,27 +654,32 @@ func Test_Trie_Entries(t *testing.T) {
 
 	t.Run("end to end", func(t *testing.T) {
 		t.Parallel()
+		ctrl := gomock.NewController(t)
 
-		trie := Trie{
-			root:        nil,
-			childTries:  make(map[common.Hash]*Trie),
-			deletedKeys: make(map[common.Hash]struct{}),
+		metrics := NewMockMetrics(ctrl)
+		call := metrics.EXPECT().NodesAdd(uint32(1))
+		call = metrics.EXPECT().NodesAdd(uint32(1)).After(call)
+		call = metrics.EXPECT().NodesAdd(uint32(2)).After(call)
+		metrics.EXPECT().NodesAdd(uint32(1)).After(call)
+
+		trie := NewEmptyTrie(metrics)
+
+		keyValues := []keyValue{
+			{key: []byte("ab"), value: []byte("pen")},
+			{key: []byte("abc"), value: []byte("penguin")},
+			{key: []byte("hy"), value: []byte("feather")},
+			{key: []byte("cb"), value: []byte("noot")},
 		}
+		expectedEntries := make(map[string][]byte, len(keyValues))
 
-		kv := map[string][]byte{
-			"ab":  []byte("pen"),
-			"abc": []byte("penguin"),
-			"hy":  []byte("feather"),
-			"cb":  []byte("noot"),
-		}
-
-		for k, v := range kv {
-			trie.Put([]byte(k), v)
+		for _, keyValue := range keyValues {
+			expectedEntries[string(keyValue.key)] = keyValue.value
+			trie.Put(keyValue.key, keyValue.value)
 		}
 
 		entries := trie.Entries()
 
-		assert.Equal(t, kv, entries)
+		assert.Equal(t, expectedEntries, entries)
 	})
 }
 
@@ -992,6 +1009,7 @@ func Test_Trie_Put(t *testing.T) {
 
 	testCases := map[string]struct {
 		trie         Trie
+		newMetrics   func(ctrl *gomock.Controller) Metrics
 		key          []byte
 		value        []byte
 		expectedTrie Trie
@@ -1003,6 +1021,11 @@ func Test_Trie_Put(t *testing.T) {
 					Key:   []byte{1, 2, 0, 5},
 					Value: []byte{1},
 				},
+			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesAdd(uint32(2))
+				return metrics
 			},
 			key:   []byte{0x12, 0x16},
 			value: []byte{2},
@@ -1036,8 +1059,15 @@ func Test_Trie_Put(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
 			trie := testCase.trie
+			if testCase.newMetrics != nil {
+				metrics := testCase.newMetrics(ctrl)
+				trie.metrics = metrics
+				testCase.expectedTrie.metrics = metrics
+			}
+
 			trie.Put(testCase.key, testCase.value)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
@@ -1050,6 +1080,7 @@ func Test_Trie_put(t *testing.T) {
 
 	testCases := map[string]struct {
 		trie         Trie
+		newMetrics   func(ctrl *gomock.Controller) Metrics
 		key          []byte
 		value        []byte
 		expectedTrie Trie
@@ -1057,6 +1088,11 @@ func Test_Trie_put(t *testing.T) {
 		"nil everything": {
 			trie: Trie{
 				generation: 1,
+			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesAdd(uint32(1))
+				return metrics
 			},
 			expectedTrie: Trie{
 				generation: 1,
@@ -1069,6 +1105,11 @@ func Test_Trie_put(t *testing.T) {
 		"empty trie with nil key and value": {
 			trie: Trie{
 				generation: 1,
+			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesAdd(uint32(1))
+				return metrics
 			},
 			value: []byte{3, 4},
 			expectedTrie: Trie{
@@ -1083,6 +1124,11 @@ func Test_Trie_put(t *testing.T) {
 		"empty trie with key and value": {
 			trie: Trie{
 				generation: 1,
+			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesAdd(uint32(1))
+				return metrics
 			},
 			key:   []byte{1, 2},
 			value: []byte{3, 4},
@@ -1103,6 +1149,11 @@ func Test_Trie_put(t *testing.T) {
 					Key:   []byte{1, 0, 5},
 					Value: []byte{1},
 				},
+			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesAdd(uint32(2))
+				return metrics
 			},
 			key:   []byte{1, 1, 6},
 			value: []byte{2},
@@ -1136,8 +1187,15 @@ func Test_Trie_put(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
 			trie := testCase.trie
+			if testCase.newMetrics != nil {
+				metrics := testCase.newMetrics(ctrl)
+				trie.metrics = metrics
+				testCase.expectedTrie.metrics = metrics
+			}
+
 			trie.put(testCase.key, testCase.value)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
@@ -1604,6 +1662,7 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 
 	testCases := map[string]struct {
 		trie         Trie
+		newMetrics   func(ctrl *gomock.Controller) Metrics
 		data         map[string]string
 		expectedTrie Trie
 		errWrapped   error
@@ -1628,6 +1687,13 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 			errMessage: "cannot convert value hex to bytes: encoding/hex: odd length hex string: 0xa",
 		},
 		"load into empty trie": {
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesAdd(uint32(1))
+				metrics.EXPECT().NodesAdd(uint32(1))
+				metrics.EXPECT().NodesAdd(uint32(1))
+				return metrics
+			},
 			data: map[string]string{
 				"0x01":   "0x06",
 				"0x0120": "0x07",
@@ -1680,6 +1746,11 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 				"0x0120": "0x07",
 				"0x0130": "0x08",
 			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesAdd(uint32(1))
+				return metrics
+			},
 			expectedTrie: Trie{
 				root: &node.Branch{
 					Key:         []byte{00, 01},
@@ -1711,6 +1782,13 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			if testCase.newMetrics != nil {
+				metrics := testCase.newMetrics(ctrl)
+				testCase.trie.metrics = metrics
+				testCase.expectedTrie.metrics = metrics
+			}
 
 			err := testCase.trie.LoadFromMap(testCase.data)
 
@@ -2154,6 +2232,7 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 
 	testCases := map[string]struct {
 		trie         Trie
+		newMetrics   func(ctrl *gomock.Controller) Metrics
 		prefix       []byte
 		limit        uint32
 		deleted      uint32
@@ -2175,6 +2254,11 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 					},
 				},
 			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesSub(uint32(2))
+				return metrics
+			},
 			prefix:     []byte{0x12},
 			limit:      5,
 			deleted:    2,
@@ -2186,8 +2270,14 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
 			trie := testCase.trie
+			if testCase.newMetrics != nil {
+				metrics := testCase.newMetrics(ctrl)
+				trie.metrics = metrics
+				testCase.expectedTrie.metrics = metrics
+			}
 
 			deleted, allDeleted := trie.ClearPrefixLimit(testCase.prefix, testCase.limit)
 
@@ -2878,6 +2968,7 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 
 	testCases := map[string]struct {
 		trie         Trie
+		newMetrics   func(ctrl *gomock.Controller) Metrics
 		prefix       []byte
 		expectedTrie Trie
 	}{
@@ -2885,10 +2976,20 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 			trie: Trie{
 				root: &node.Leaf{},
 			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesSub(uint32(1))
+				return metrics
+			},
 		},
 		"empty prefix": {
 			trie: Trie{
 				root: &node.Leaf{},
+			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesSub(uint32(1))
+				return metrics
 			},
 			prefix: []byte{},
 		},
@@ -2916,6 +3017,11 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 					},
 				},
 			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesSub(uint32(2))
+				return metrics
+			},
 			prefix: []byte{0x12, 0x16},
 			expectedTrie: Trie{
 				root: &node.Leaf{
@@ -2930,6 +3036,14 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			trie := testCase.trie
+			if testCase.newMetrics != nil {
+				metrics := testCase.newMetrics(ctrl)
+				trie.metrics = metrics
+				testCase.expectedTrie.metrics = metrics
+			}
 
 			// Check for no mutation
 			var expectedPrefix []byte
@@ -2938,9 +3052,9 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 				copy(expectedPrefix, testCase.prefix)
 			}
 
-			testCase.trie.ClearPrefix(testCase.prefix)
+			trie.ClearPrefix(testCase.prefix)
 
-			assert.Equal(t, testCase.expectedTrie, testCase.trie)
+			assert.Equal(t, testCase.expectedTrie, trie)
 			assert.Equal(t, expectedPrefix, testCase.prefix)
 		})
 	}
@@ -3237,6 +3351,7 @@ func Test_Trie_Delete(t *testing.T) {
 
 	testCases := map[string]struct {
 		trie         Trie
+		newMetrics   func(ctrl *gomock.Controller) Metrics
 		key          []byte
 		expectedTrie Trie
 	}{
@@ -3244,10 +3359,20 @@ func Test_Trie_Delete(t *testing.T) {
 			trie: Trie{
 				root: &node.Leaf{},
 			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesSub(uint32(1))
+				return metrics
+			},
 		},
 		"empty key": {
 			trie: Trie{
 				root: &node.Leaf{},
+			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesSub(uint32(1))
+				return metrics
 			},
 		},
 		"empty trie": {
@@ -3278,6 +3403,11 @@ func Test_Trie_Delete(t *testing.T) {
 					},
 				},
 			},
+			newMetrics: func(ctrl *gomock.Controller) Metrics {
+				metrics := NewMockMetrics(ctrl)
+				metrics.EXPECT().NodesSub(uint32(1))
+				return metrics
+			},
 			key: []byte{0x12, 0x16},
 			expectedTrie: Trie{
 				generation: 1,
@@ -3307,6 +3437,13 @@ func Test_Trie_Delete(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			if testCase.newMetrics != nil {
+				metrics := testCase.newMetrics(ctrl)
+				testCase.trie.metrics = metrics
+				testCase.expectedTrie.metrics = metrics
+			}
 
 			// Check for no mutation
 			var expectedKey []byte

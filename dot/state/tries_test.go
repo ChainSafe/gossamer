@@ -6,6 +6,7 @@ package state
 import (
 	"testing"
 
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -18,7 +19,8 @@ import (
 func Test_NewTries(t *testing.T) {
 	t.Parallel()
 
-	tr := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+	tr := trie.NewEmptyTrie(trieMetrics)
 
 	rootToTrie, err := NewTries(tr)
 	require.NoError(t, err)
@@ -42,6 +44,8 @@ func Test_NewTries(t *testing.T) {
 func Test_Tries_softSet(t *testing.T) {
 	t.Parallel()
 
+	trieMetrics := triemetricsnoop.New()
+
 	testCases := map[string]struct {
 		rootToTrie         map[common.Hash]*trie.Trie
 		root               common.Hash
@@ -52,10 +56,10 @@ func Test_Tries_softSet(t *testing.T) {
 		"set new in map": {
 			rootToTrie:    map[common.Hash]*trie.Trie{},
 			root:          common.Hash{1, 2, 3},
-			trie:          trie.NewEmptyTrie(),
+			trie:          trie.NewEmptyTrie(trieMetrics),
 			triesGaugeInc: true,
 			expectedRootToTrie: map[common.Hash]*trie.Trie{
-				{1, 2, 3}: trie.NewEmptyTrie(),
+				{1, 2, 3}: trie.NewEmptyTrie(trieMetrics),
 			},
 		},
 		"do not override in map": {
@@ -63,7 +67,7 @@ func Test_Tries_softSet(t *testing.T) {
 				{1, 2, 3}: {},
 			},
 			root: common.Hash{1, 2, 3},
-			trie: trie.NewEmptyTrie(),
+			trie: trie.NewEmptyTrie(trieMetrics),
 			expectedRootToTrie: map[common.Hash]*trie.Trie{
 				{1, 2, 3}: {},
 			},
@@ -158,13 +162,13 @@ func Test_Tries_get(t *testing.T) {
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: trie.NewTrie(&node.Leaf{
 						Key: []byte{1, 2, 3},
-					}),
+					}, nil),
 				},
 			},
 			root: common.Hash{1, 2, 3},
 			trie: trie.NewTrie(&node.Leaf{
 				Key: []byte{1, 2, 3},
-			}),
+			}, nil),
 		},
 		"not found in map": {
 			// similar to not found in database

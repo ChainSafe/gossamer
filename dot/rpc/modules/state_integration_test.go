@@ -19,7 +19,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -55,7 +57,8 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 		TransactionVersion: 2,
 	}
 
-	sm, hash, _ := setupStateModule(t)
+	trieMetrics := triemetricsnoop.New()
+	sm, hash, _ := setupStateModule(t, trieMetrics)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -96,7 +99,8 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 }
 
 func TestStateModule_GetPairs(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
+	trieMetrics := triemetricsnoop.New()
+	sm, hash, _ := setupStateModule(t, trieMetrics)
 
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
@@ -166,7 +170,8 @@ func TestStateModule_GetPairs(t *testing.T) {
 }
 
 func TestStateModule_GetStorage(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
+	trieMetrics := triemetricsnoop.New()
+	sm, hash, _ := setupStateModule(t, trieMetrics)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -216,7 +221,8 @@ func TestStateModule_GetStorage(t *testing.T) {
 }
 
 func TestStateModule_GetStorageHash(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
+	trieMetrics := triemetricsnoop.New()
+	sm, hash, _ := setupStateModule(t, trieMetrics)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -264,7 +270,8 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 }
 
 func TestStateModule_GetStorageSize(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
+	trieMetrics := triemetricsnoop.New()
+	sm, hash, _ := setupStateModule(t, trieMetrics)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -367,7 +374,8 @@ func TestStateModule_QueryStorage(t *testing.T) {
 
 func TestStateModule_GetMetadata(t *testing.T) {
 	t.Skip() // TODO: update expected_metadata (#1026)
-	sm, hash, _ := setupStateModule(t)
+	trieMetrics := triemetricsnoop.New()
+	sm, hash, _ := setupStateModule(t, trieMetrics)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -408,7 +416,8 @@ func TestStateModule_GetMetadata(t *testing.T) {
 }
 
 func TestStateModule_GetKeysPaged(t *testing.T) {
-	sm, _, stateRootHash := setupStateModule(t)
+	trieMetrics := triemetricsnoop.New()
+	sm, _, stateRootHash := setupStateModule(t, trieMetrics)
 
 	testCases := []struct {
 		name     string
@@ -513,10 +522,10 @@ func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 	require.Equal(t, res.Proof, expectedProof)
 }
 
-func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
+func setupStateModule(t *testing.T, trieMetrics trie.Metrics) (*StateModule, *common.Hash, *common.Hash) {
 	// setup service
 	net := newNetworkService(t)
-	chain := newTestStateService(t)
+	chain := newTestStateService(t, trieMetrics)
 	// init storage with test data
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
@@ -557,6 +566,6 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	hash, err := chain.Block.GetHashByNumber(big.NewInt(3))
 	require.NoError(t, err)
 
-	core := newCoreService(t, chain)
+	core := newCoreService(t, chain, trieMetrics)
 	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }

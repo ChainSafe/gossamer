@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,16 +66,20 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		keyValues []keyValue
+		keyValues       []keyValue
+		metricsNodesAdd []uint32
 	}{
 		"first": {
-			keyValues: getDBKeyValuesA(),
+			keyValues:       getDBKeyValuesA(),
+			metricsNodesAdd: []uint32{1, 1, 1, 2, 1, 2, 1, 1, 2},
 		},
 		"second": {
-			keyValues: getDBKeyValuesB(),
+			keyValues:       getDBKeyValuesB(),
+			metricsNodesAdd: []uint32{1, 1, 2, 2, 1, 2, 1, 2},
 		},
 		"third": {
-			keyValues: getDBKeyValuesC(),
+			keyValues:       getDBKeyValuesC(),
+			metricsNodesAdd: []uint32{1, 2, 2, 2, 1, 1, 2},
 		},
 	}
 
@@ -82,8 +87,19 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-			trie := NewEmptyTrie()
+			metrics := NewMockMetrics(ctrl)
+			var previousCall *gomock.Call
+			for _, n := range testCase.metricsNodesAdd {
+				call := metrics.EXPECT().NodesAdd(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			trie := NewEmptyTrie(metrics)
 
 			for _, keyValue := range testCase.keyValues {
 				trie.Put(keyValue.key, keyValue.value)
@@ -93,7 +109,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 			err := trie.Store(db)
 			require.NoError(t, err)
 
-			res := NewEmptyTrie()
+			res := NewEmptyTrie(metrics)
 			err = res.Load(db, trie.MustHash())
 			require.NoError(t, err)
 			require.Equal(t, trie.MustHash(), res.MustHash())
@@ -111,16 +127,20 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		keyValues []keyValue
+		keyValues       []keyValue
+		metricsNodesAdd []uint32
 	}{
 		"first": {
-			keyValues: getDBKeyValuesA(),
+			keyValues:       getDBKeyValuesA(),
+			metricsNodesAdd: []uint32{1, 1, 1, 2, 1, 2, 1, 1, 1, 3},
 		},
 		"second": {
-			keyValues: getDBKeyValuesB(),
+			keyValues:       getDBKeyValuesB(),
+			metricsNodesAdd: []uint32{1, 1, 2, 2, 1, 2, 1, 1, 3},
 		},
 		"third": {
-			keyValues: getDBKeyValuesC(),
+			keyValues:       getDBKeyValuesC(),
+			metricsNodesAdd: []uint32{1, 2, 2, 2, 1, 1, 2},
 		},
 	}
 
@@ -128,8 +148,19 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-			trie := NewEmptyTrie()
+			metrics := NewMockMetrics(ctrl)
+			var previousCall *gomock.Call
+			for _, n := range testCase.metricsNodesAdd {
+				call := metrics.EXPECT().NodesAdd(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			trie := NewEmptyTrie(metrics)
 			db := newTestDB(t)
 
 			for i, keyValue := range testCase.keyValues {
@@ -155,7 +186,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 			err = trie.WriteDirty(db)
 			require.NoError(t, err)
 
-			res := NewEmptyTrie()
+			res := NewEmptyTrie(metrics)
 			err = res.Load(db, trie.MustHash())
 			require.NoError(t, err)
 			require.Equal(t, trie.MustHash(), res.MustHash())
@@ -180,16 +211,24 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		keyValues []keyValue
+		keyValues           []keyValue
+		metricsNodesAddPut  []uint32
+		metricsNodesAddLoad []uint32
 	}{
 		"first": {
-			keyValues: getDBKeyValuesA(),
+			keyValues:           getDBKeyValuesA(),
+			metricsNodesAddPut:  []uint32{1, 1, 1, 2, 1, 2, 1, 1},
+			metricsNodesAddLoad: []uint32{2},
 		},
 		"second": {
-			keyValues: getDBKeyValuesB(),
+			keyValues:           getDBKeyValuesB(),
+			metricsNodesAddPut:  []uint32{1, 1, 2, 2, 1, 2, 1},
+			metricsNodesAddLoad: []uint32{2},
 		},
 		"third": {
-			keyValues: getDBKeyValuesC(),
+			keyValues:           getDBKeyValuesC(),
+			metricsNodesAddPut:  []uint32{1, 2, 2, 2, 1, 1},
+			metricsNodesAddLoad: []uint32{2},
 		},
 	}
 
@@ -197,8 +236,20 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-			trie := NewEmptyTrie()
+			metrics := NewMockMetrics(ctrl)
+			var previousCall *gomock.Call
+			for _, n := range testCase.metricsNodesAddPut {
+				call := metrics.EXPECT().NodesAdd(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			trie := NewEmptyTrie(metrics)
+
 			db := newTestDB(t)
 
 			for _, keyValue := range testCase.keyValues {
@@ -216,7 +267,15 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			res := NewEmptyTrie()
+			for _, n := range testCase.metricsNodesAddLoad {
+				call := metrics.EXPECT().NodesAdd(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			res := NewEmptyTrie(metrics)
 			err := res.Load(db, trie.MustHash())
 			require.NoError(t, err)
 			require.Equal(t, trie.MustHash(), res.MustHash())
@@ -234,16 +293,33 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		keyValues []keyValue
+		keyValues       []keyValue
+		metricsNodesAdd []uint32
+		metricsNodesSub []uint32
 	}{
 		"first": {
 			keyValues: getDBKeyValuesA(),
+			metricsNodesAdd: []uint32{
+				1, 1, 1, 2, 1, 2, 1, 1, 2, 1, 1, 1, 2, 1, 2, 1, 1, 2, 1, 1, 1,
+				2, 1, 2, 1, 1, 2, 1, 1, 1, 2, 1, 2, 1, 1, 2, 1, 1, 1, 2, 1, 2,
+				1, 1, 2, 1, 1, 1, 2, 1, 2, 1, 1, 2, 1, 1, 1, 2, 1, 2, 1, 1, 2,
+				1, 1, 1, 2, 1, 2, 1, 1, 2},
+			metricsNodesSub: []uint32{1, 1, 1, 1, 1, 1, 1},
 		},
 		"second": {
 			keyValues: getDBKeyValuesB(),
+			metricsNodesAdd: []uint32{
+				1, 1, 2, 2, 1, 2, 1, 2, 1, 1, 2, 2, 1, 2, 1, 2, 1, 1, 2, 2, 1,
+				2, 1, 2, 1, 1, 2, 2, 1, 2, 1, 2, 1, 1, 2, 2, 1, 2, 1, 2, 1, 1,
+				2, 2, 1, 2, 1, 2, 1, 1, 2, 2, 1, 2, 1, 2},
+			metricsNodesSub: []uint32{1, 2, 2, 1, 1, 1, 1},
 		},
 		"third": {
 			keyValues: getDBKeyValuesC(),
+			metricsNodesAdd: []uint32{
+				1, 2, 2, 2, 1, 1, 2, 1, 2, 2, 2, 1, 1, 2, 1, 2, 2, 2, 1, 1, 2,
+				1, 2, 2, 2, 1, 1, 2, 1, 2, 2, 2, 1, 1, 2, 1, 2, 2, 2, 1, 1, 2},
+			metricsNodesSub: []uint32{1, 1, 1, 1, 1, 1},
 		},
 	}
 
@@ -251,9 +327,30 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			metrics := NewMockMetrics(ctrl)
+
+			var previousCall *gomock.Call
+			for _, n := range testCase.metricsNodesAdd {
+				call := metrics.EXPECT().NodesAdd(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			previousCall = nil
+			for _, n := range testCase.metricsNodesSub {
+				call := metrics.EXPECT().NodesSub(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
 
 			for _, curr := range testCase.keyValues {
-				trie := NewEmptyTrie()
+				trie := NewEmptyTrie(metrics)
 
 				for _, keyValue := range testCase.keyValues {
 					trie.Put(keyValue.key, keyValue.value)
@@ -266,7 +363,7 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 				err = trie.DeleteFromDB(db, curr.key)
 				require.NoError(t, err)
 
-				res := NewEmptyTrie()
+				res := NewEmptyTrie(metrics)
 				err = res.Load(db, trie.MustHash())
 				require.NoError(t, err)
 				require.Equal(t, trie.MustHash(), res.MustHash())
@@ -291,16 +388,23 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		keyValues []keyValue
+		keyValues       []keyValue
+		metricsNodesAdd []uint32
+		metricsNodesSub []uint32
 	}{
 		"first": {
-			keyValues: getDBKeyValuesA(),
+			keyValues:       getDBKeyValuesA(),
+			metricsNodesAdd: []uint32{1, 1, 1, 2, 1, 2, 1, 1, 2},
+			metricsNodesSub: []uint32{3},
 		},
 		"second": {
-			keyValues: getDBKeyValuesB(),
+			keyValues:       getDBKeyValuesB(),
+			metricsNodesAdd: []uint32{1, 1, 2, 2, 1, 2, 1, 2},
+			metricsNodesSub: []uint32{4},
 		},
 		"third": {
-			keyValues: getDBKeyValuesC(),
+			keyValues:       getDBKeyValuesC(),
+			metricsNodesAdd: []uint32{1, 2, 2, 2, 1, 1, 2},
 		},
 	}
 
@@ -308,8 +412,28 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-			trie := NewEmptyTrie()
+			metrics := NewMockMetrics(ctrl)
+			var previousCall *gomock.Call
+			for _, n := range testCase.metricsNodesAdd {
+				call := metrics.EXPECT().NodesAdd(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			previousCall = nil
+			for _, n := range testCase.metricsNodesSub {
+				call := metrics.EXPECT().NodesSub(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			trie := NewEmptyTrie(metrics)
 
 			for _, keyValue := range testCase.keyValues {
 				trie.Put(keyValue.key, keyValue.value)
@@ -322,7 +446,7 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 			err = trie.ClearPrefixFromDB(db, []byte{0x01, 0x35})
 			require.NoError(t, err)
 
-			res := NewEmptyTrie()
+			res := NewEmptyTrie(metrics)
 			err = res.Load(db, trie.MustHash())
 			require.NoError(t, err)
 
@@ -335,16 +459,20 @@ func TestTrie_GetFromDB(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		keyValues []keyValue
+		keyValues       []keyValue
+		metricsNodesAdd []uint32
 	}{
 		"first": {
-			keyValues: getDBKeyValuesA(),
+			keyValues:       getDBKeyValuesA(),
+			metricsNodesAdd: []uint32{1, 1, 1, 2, 1, 2, 1, 1},
 		},
 		"second": {
-			keyValues: getDBKeyValuesB(),
+			keyValues:       getDBKeyValuesB(),
+			metricsNodesAdd: []uint32{1, 1, 2, 2, 1, 2, 1},
 		},
 		"third": {
-			keyValues: getDBKeyValuesC(),
+			keyValues:       getDBKeyValuesC(),
+			metricsNodesAdd: []uint32{1, 2, 2, 2, 1, 1},
 		},
 	}
 
@@ -352,8 +480,19 @@ func TestTrie_GetFromDB(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-			trie := NewEmptyTrie()
+			metrics := NewMockMetrics(ctrl)
+			var previousCall *gomock.Call
+			for _, n := range testCase.metricsNodesAdd {
+				call := metrics.EXPECT().NodesAdd(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			trie := NewEmptyTrie(metrics)
 
 			for _, keyValue := range testCase.keyValues {
 				trie.Put(keyValue.key, keyValue.value)

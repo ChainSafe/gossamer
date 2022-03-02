@@ -14,6 +14,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/log"
+	triemetricsnoop "github.com/ChainSafe/gossamer/internal/trie/metrics/noop"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -1194,7 +1195,8 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie(trieMetrics))
 	require.NoError(t, err)
 
 	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
@@ -1234,7 +1236,8 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie(trieMetrics))
 	require.NoError(t, err)
 
 	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
@@ -1274,7 +1277,9 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 		{[]byte("keyThree"), []byte("value3")},
 	}
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	err := inst.ctx.Storage.SetChild(testChildKey, emptyTrie)
 	require.NoError(t, err)
 
 	for _, kv := range testKeyValuePair {
@@ -1305,7 +1310,9 @@ func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	err := inst.ctx.Storage.SetChild(testChildKey, emptyTrie)
 	require.NoError(t, err)
 
 	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
@@ -1330,7 +1337,9 @@ func Test_ext_default_child_storage_get_version_1(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	err := inst.ctx.Storage.SetChild(testChildKey, emptyTrie)
 	require.NoError(t, err)
 
 	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
@@ -1365,7 +1374,9 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 
 	key := testKeyValuePair[0].key
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	err := inst.ctx.Storage.SetChild(testChildKey, emptyTrie)
 	require.NoError(t, err)
 
 	for _, kv := range testKeyValuePair {
@@ -1393,7 +1404,9 @@ func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	err := inst.ctx.Storage.SetChild(testChildKey, emptyTrie)
 	require.NoError(t, err)
 
 	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
@@ -1426,7 +1439,9 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	err := inst.ctx.Storage.SetChild(testChildKey, emptyTrie)
 	require.NoError(t, err)
 
 	// Check if value is not set
@@ -1455,7 +1470,9 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	trieMetrics := triemetricsnoop.New()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	err := inst.ctx.Storage.SetChild(testChildKey, emptyTrie)
 	require.NoError(t, err)
 
 	// Confirm if value is set
@@ -1477,7 +1494,8 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	tr := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+	tr := trie.NewEmptyTrie(trieMetrics)
 	tr.Put([]byte(`key2`), []byte(`value2`))
 	tr.Put([]byte(`key1`), []byte(`value1`))
 	err := inst.ctx.Storage.SetChild(testChildKey, tr)
@@ -1511,7 +1529,8 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	tr := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+	tr := trie.NewEmptyTrie(trieMetrics)
 	tr.Put([]byte(`key2`), []byte(`value2`))
 	tr.Put([]byte(`key1`), []byte(`value1`))
 	err := inst.ctx.Storage.SetChild(testChildKey, tr)
@@ -1545,7 +1564,8 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	tr := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+	tr := trie.NewEmptyTrie(trieMetrics)
 	tr.Put([]byte(`key2`), []byte(`value2`))
 	tr.Put([]byte(`key1`), []byte(`value1`))
 	err := inst.ctx.Storage.SetChild(testChildKey, tr)
@@ -1576,7 +1596,8 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	tr := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+	tr := trie.NewEmptyTrie(trieMetrics)
 	tr.Put([]byte(`key2`), []byte(`value2`))
 	tr.Put([]byte(`key1`), []byte(`value1`))
 	tr.Put([]byte(`key3`), []byte(`value3`))
@@ -1758,7 +1779,8 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 	err = scale.Unmarshal(res, &hash)
 	require.NoError(t, err)
 
-	tt := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+	tt := trie.NewEmptyTrie(trieMetrics)
 	tt.Put([]byte("noot"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
@@ -1777,13 +1799,15 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	otherTrie := trie.NewEmptyTrie()
+	trieMetrics := triemetricsnoop.New()
+
+	otherTrie := trie.NewEmptyTrie(trieMetrics)
 	otherTrie.Put([]byte("simple"), []byte("cat"))
 
 	otherHash, err := otherTrie.Hash()
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := trie.NewEmptyTrie(trieMetrics)
 	tr.Put([]byte("do"), []byte("verb"))
 	tr.Put([]byte("domain"), []byte("website"))
 	tr.Put([]byte("other"), []byte("random"))

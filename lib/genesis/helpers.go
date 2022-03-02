@@ -60,9 +60,9 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 }
 
 // NewTrieFromGenesis creates a new trie from the raw genesis data
-func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
-
+// using the trie metrics given.
+func NewTrieFromGenesis(g *Genesis, trieMetrics trie.Metrics) (*trie.Trie, error) {
+	t := trie.NewEmptyTrie(trieMetrics)
 	r := g.GenesisFields().Raw["top"]
 
 	err := t.LoadFromMap(r)
