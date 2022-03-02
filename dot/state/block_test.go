@@ -37,6 +37,12 @@ func newTestBlockState(t *testing.T, header *types.Header, tries *Tries) *BlockS
 
 	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+	err = tr.Load(bs.db, header.StateRoot)
+	require.NoError(t, err)
+	bs.tries.softSet(header.StateRoot, tr)
+
 	return bs
 }
 
@@ -262,17 +268,8 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 }
 
 func TestFinalization_DeleteBlock(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Set(0.00).Times(5)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	bs := newTestBlockState(t, testGenesisHeader, tries)
-	AddBlocksToState(t, bs, 5, false)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	AddBlocksToState(t, bs, 5, false, true)
 
 	btBefore := bs.bt.DeepCopy()
 	before := bs.bt.GetAllBlocks()
@@ -482,14 +479,7 @@ func TestAddBlockToBlockTree(t *testing.T) {
 }
 
 func TestNumberIsFinalised(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Set(0.00).Times(2)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
+	tries := newTriesEmpty()
 
 	bs := newTestBlockState(t, testGenesisHeader, tries)
 	fin, err := bs.NumberIsFinalised(big.NewInt(0))

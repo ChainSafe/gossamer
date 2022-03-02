@@ -9,8 +9,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,11 +25,9 @@ func Test_NewTries(t *testing.T) {
 		rootToTrie: map[common.Hash]*trie.Trie{
 			tr.MustHash(): tr,
 		},
-		triesGauge: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "gossamer_storage",
-			Name:      "tries_cached_total",
-			Help:      "total number of tries cached in memory",
-		}),
+		triesGauge:    triesGauge,
+		setCounter:    setCounter,
+		deleteCounter: deleteCounter,
 	}
 
 	assert.Equal(t, expectedTries, rootToTrie)
@@ -74,17 +70,8 @@ func Test_Tries_softSet(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			triesGauge := NewMockGauge(ctrl)
-			if testCase.triesGaugeInc {
-				triesGauge.EXPECT().Inc()
-			}
-
-			tries := &Tries{
-				rootToTrie: testCase.rootToTrie,
-				triesGauge: triesGauge,
-			}
+			tries := newTriesEmpty()
+			tries.rootToTrie = testCase.rootToTrie
 
 			tries.softSet(testCase.root, testCase.trie)
 
@@ -129,15 +116,8 @@ func Test_Tries_delete(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			triesGauge := NewMockGauge(ctrl)
-			triesGauge.EXPECT().Set(testCase.triesGaugeSet)
-
-			tries := &Tries{
-				rootToTrie: testCase.rootToTrie,
-				triesGauge: triesGauge,
-			}
+			tries := newTriesEmpty()
+			tries.rootToTrie = testCase.rootToTrie
 
 			tries.delete(testCase.root)
 
