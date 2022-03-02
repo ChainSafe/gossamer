@@ -5,7 +5,6 @@ package state
 
 import (
 	"crypto/rand"
-	"encoding/binary"
 	"fmt"
 	"math/big"
 	"testing"
@@ -61,8 +60,7 @@ type testBranch struct {
 }
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
-	withBranches bool, withFakeStateRoots ...interface{}) ([]*types.Header, []*types.Header) {
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranches bool) ([]*types.Header, []*types.Header) {
 	var (
 		currentChain, branchChains []*types.Header
 		branches                   []testBranch
@@ -83,30 +81,15 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 		err = digest.Add(*prd)
 		require.NoError(t, err)
 
-		var stateRoot common.Hash
-
-		if len(withFakeStateRoots) > 0 {
-			// generate some dummy state root based on block number
-			bs := make([]byte, 4)
-			binary.LittleEndian.PutUint32(bs, uint32(i))
-			stateRoot = common.Hash{bs[0], bs[1], bs[2], bs[3]}
-		} else {
-			stateRoot = trie.EmptyHash
-		}
-
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				StateRoot:  stateRoot,
+				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
 			},
 			Body: types.Body{},
 		}
-
-		// write to tries, since this will need to be deleted
-		blockState.tries.softSet(stateRoot, trie.NewEmptyTrie())
-
 		currentChain = append(currentChain, &block.Header)
 
 		hash := block.Header.Hash()

@@ -269,7 +269,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 
 func TestFinalization_DeleteBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
-	AddBlocksToState(t, bs, 5, false, true)
+	AddBlocksToState(t, bs, 5, false)
 
 	btBefore := bs.bt.DeepCopy()
 	before := bs.bt.GetAllBlocks()
