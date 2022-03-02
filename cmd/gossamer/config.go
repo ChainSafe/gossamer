@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -154,6 +155,16 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	if err != nil {
 		logger.Errorf("failed to set chain configuration: %s", err)
 		return nil, err
+	}
+
+	setDotPruningConfig(ctx, tomlCfg, &cfg.Global)
+
+	if !cfg.Global.Pruning.IsValid() {
+		return nil, fmt.Errorf("--%s must be either %s or %s", PruningFlag.Name, pruner.Full, pruner.Archive)
+	}
+
+	if cfg.Global.RetainBlocks < dev.DefaultRetainBlocks {
+		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, dev.DefaultRetainBlocks)
 	}
 
 	setDotBasepathConfigFromFlags(ctx, &cfg.Global)
@@ -458,6 +469,21 @@ func setDotBasepathConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 	if cfg.BasePath == "" {
 		cfg.BasePath = dot.GssmrConfig().Global.BasePath
 	}
+}
+
+func setDotPruningConfig(ctx *cli.Context, tomlConfig *ctoml.Config, cfg *dot.GlobalConfig) {
+	setDotPruningConfigFromToml(tomlConfig, cfg)
+	setDotPruningConfigFromFlags(ctx, cfg)
+}
+
+func setDotPruningConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
+	cfg.RetainBlocks = tomlCfg.Global.RetainBlocks
+	cfg.Pruning = pruner.Mode(tomlCfg.Global.Pruning)
+}
+
+func setDotPruningConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
+	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)
+	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 }
 
 // setDotGlobalConfigFromFlags sets dot.GlobalConfig using flag values from the cli context
