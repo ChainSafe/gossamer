@@ -113,7 +113,7 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 	var hashes map[common.Hash][]string
 	var err error
 
-	timeout := time.After(60 * time.Second)
+	timeout := time.After(120 * time.Second)
 doneBlockProduction:
 	for {
 		time.Sleep(time.Second)

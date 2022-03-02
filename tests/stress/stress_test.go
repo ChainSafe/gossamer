@@ -102,7 +102,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
-	time.Sleep(time.Second * 60)
+	time.Sleep(time.Second * 30)
 
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
@@ -118,6 +118,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 			require.NoError(t, err, i)
 			continue
 		}
+		t.Log("hashes", hashes)
 
 		// there will only be one key in the mapping
 		for _, nodesWithHash := range hashes {
