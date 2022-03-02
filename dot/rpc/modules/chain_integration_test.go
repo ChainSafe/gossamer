@@ -158,7 +158,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	req := &ChainHashRequest{Bhash: &hash}
 
 	err = svc.GetBlock(nil, req, res)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, expected, res)
 }
@@ -227,7 +227,7 @@ func TestChainGetBlockHash_Latest(t *testing.T) {
 	req := ChainBlockNumberRequest{nil}
 
 	err := svc.GetBlockHash(nil, &req, &res)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expected := state.Block.BestBlockHash()
 	require.Equal(t, expected.String(), res)
@@ -242,7 +242,7 @@ func TestChainGetBlockHash_ByNumber(t *testing.T) {
 	req := ChainBlockNumberRequest{"1"}
 
 	err := svc.GetBlockHash(nil, &req, &res)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
 	require.NoError(t, err)
@@ -278,7 +278,7 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 	req := ChainBlockNumberRequest{nums}
 
 	err := svc.GetBlockHash(nil, &req, &res)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expected0, err := state.Block.GetBlockByNumber(big.NewInt(0))
 	require.NoError(t, err)

@@ -7,9 +7,6 @@ package node
 // Setting copyChildren to true will deep copy
 // children as well.
 func (b *Branch) Copy(copyChildren bool) Node {
-	b.RLock()
-	defer b.RUnlock()
-
 	cpy := &Branch{
 		Dirty:      b.Dirty,
 		Generation: b.Generation,
@@ -52,12 +49,6 @@ func (b *Branch) Copy(copyChildren bool) Node {
 
 // Copy deep copies the leaf.
 func (l *Leaf) Copy(_ bool) Node {
-	l.RLock()
-	defer l.RUnlock()
-
-	l.encodingMu.RLock()
-	defer l.encodingMu.RUnlock()
-
 	cpy := &Leaf{
 		Dirty:      l.Dirty,
 		Generation: l.Generation,

@@ -88,7 +88,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			}
 
 			// Verify expected values.
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, expected, res)
 		})
 	}

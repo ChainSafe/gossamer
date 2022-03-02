@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"testing"
@@ -193,10 +194,17 @@ func TestMain(m *testing.M) {
 	if reexec.Init() {
 		return
 	}
-	defaultGssmrConfigPath = "../../chain/gssmr/config.toml"
-	defaultKusamaConfigPath = "../../chain/kusama/config.toml"
-	defaultPolkadotConfigPath = "../../chain/polkadot/config.toml"
-	defaultDevConfigPath = "../../chain/dev/config.toml"
+
+	rootPath, err := utils.GetProjectRootPath()
+	if err != nil {
+		panic(err)
+	}
+
+	defaultGssmrConfigPath = filepath.Join(rootPath, "./chain/gssmr/config.toml")
+	defaultKusamaConfigPath = filepath.Join(rootPath, "./chain/kusama/config.toml")
+	defaultPolkadotConfigPath = filepath.Join(rootPath, "./chain/polkadot/config.toml")
+	defaultDevConfigPath = filepath.Join(rootPath, "./chain/dev/config.toml")
+
 	os.Exit(m.Run())
 }
 
@@ -215,11 +223,12 @@ func TestInvalidCommand(t *testing.T) {
 }
 
 func TestBuildSpecCommandWithOutput(t *testing.T) {
-	tmpOutputfile := "/tmp/raw-genesis-spec-output.json"
+	const tmpOutputfile = "/tmp/raw-genesis-spec-output.json"
+
 	buildSpecCommand := runTestGossamer(t,
 		"build-spec",
 		"--raw",
-		"--genesis-spec", "../../chain/gssmr/genesis-spec.json",
+		"--genesis-spec", utils.GetGssmrGenesisPathTest(t),
 		"--output", tmpOutputfile)
 
 	time.Sleep(5 * time.Second)
