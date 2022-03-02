@@ -52,15 +52,6 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
-	// ctrl := gomock.NewController(t)
-
-	// triesGauge := NewMockGauge(ctrl)
-	// triesGauge.EXPECT().Inc().Times(2)
-	// tries := &Tries{
-	// 	rootToTrie: make(map[common.Hash]*trie.Trie),
-	// 	triesGauge: triesGauge,
-	// }
-
 	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
