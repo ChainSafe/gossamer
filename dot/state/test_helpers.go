@@ -60,7 +60,8 @@ type testBranch struct {
 }
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int, withBranches bool) ([]*types.Header, []*types.Header) {
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
+	withBranches bool) ([]*types.Header, []*types.Header) {
 	var (
 		currentChain, branchChains []*types.Header
 		branches                   []testBranch
