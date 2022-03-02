@@ -671,7 +671,6 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 	}
 	const numNodes = 2
 	for _, c := range testcases {
-		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			nodes, err := utils.InitializeAndStartNodes(t, numNodes, c.genesis, utils.ConfigDefault)
 			require.NoError(t, err)
