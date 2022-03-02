@@ -92,12 +92,10 @@ func NewBlockBuilder(
 func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
-	preDigest := b.preRuntimeDigest
-
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
 	digest := types.NewDigest()
-	err := digest.Add(*preDigest)
+	err := digest.Add(*b.preRuntimeDigest)
 	if err != nil {
 		return nil, err
 	}

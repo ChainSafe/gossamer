@@ -60,7 +60,7 @@ type epochData struct {
 	authorityIndex uint32
 	authorities    []types.Authority
 	threshold      *scale.Uint128
-	secondary      types.AllowedSlots
+	allowedSlots   types.AllowedSlots
 }
 
 func (ed *epochData) String() string {

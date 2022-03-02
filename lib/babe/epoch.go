@@ -139,7 +139,7 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 		authorities:    data.Authorities,
 		authorityIndex: idx,
 		threshold:      threshold,
-		secondary:      types.AllowedSlots(cfgData.SecondarySlots),
+		allowedSlots:   types.AllowedSlots(cfgData.SecondarySlots),
 	}
 
 	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
@@ -166,7 +166,7 @@ func (b *Service) getLatestEpochData() (resEpochData *epochData, error error) {
 		return nil, fmt.Errorf("cannot get epoch state latest config data: %w", err)
 	}
 
-	resEpochData.secondary = types.AllowedSlots(configData.SecondarySlots)
+	resEpochData.allowedSlots = types.AllowedSlots(configData.SecondarySlots)
 
 	resEpochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(resEpochData.authorities))
 	if err != nil {
@@ -189,13 +189,9 @@ func (b *Service) getFirstAuthoringSlot(epoch uint64, epochData *epochData) (uin
 	startSlot := getCurrentSlot(b.constants.slotDuration)
 	for i := startSlot; i < startSlot+b.constants.epochLength; i++ {
 		_, err := claimSlot(epoch, i, epochData, b.keypair)
-		if err != nil {
-			if errors.Is(err, errOverPrimarySlotThreshold) {
-				continue
-			}
-			if errors.Is(err, errNotOurTurnToPropose) {
-				continue
-			}
+		if errors.Is(err, errOverPrimarySlotThreshold) || errors.Is(err, errNotOurTurnToPropose) {
+			continue
+		} else if err != nil {
 			return 0, fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 		}
 
@@ -250,7 +246,7 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		return nil, fmt.Errorf("error running slot lottery at slot %d: %w", slotNumber, err)
 	}
 
-	switch epochData.secondary {
+	switch epochData.allowedSlots {
 	case types.PrimarySlots:
 		return nil, errNotOurTurnToPropose
 	case types.PrimaryAndSecondaryVRFSlots:
