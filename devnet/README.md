@@ -30,6 +30,7 @@ A cross-client devnet is network of gossamer node(s) and substrate node(s).
 Steps to run a two node cross client devnet
 
 - Create `genesis-spec.json`
+
 ```
 ./polkadot build-spec --disable-default-bootnode --dev > genesis-spec.json
 ```
