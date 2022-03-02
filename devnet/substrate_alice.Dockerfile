@@ -1,35 +1,45 @@
-FROM parity/polkadot:v0.9.10 AS polkadot
-FROM golang:1.17
-
-ARG CHAIN=cross-client
-ARG VERSION=v0.9.10
-ARG DD_API_KEY=somekey
+FROM golang:1.17 as openmetrics
 ARG METRICS_NAMESPACE=substrate.local.devnet
 
-ENV CHAIN=${CHAIN}
-ENV DD_API_KEY=${DD_API_KEY}
+WORKDIR /devnet
 
-RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
-
-COPY --from=polkadot /usr/bin/polkadot /usr/bin/polkadot
-
-WORKDIR /gossamer
-
-COPY go.mod go.sum ./
+COPY ./devnet/go.mod ./devnet/go.sum ./
 RUN go mod download
 
-COPY . .
+COPY ./devnet .
+RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > conf.yaml
 
-WORKDIR /gossamer/devnet
+FROM parity/polkadot:v0.9.17
 
-RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+ARG CHAIN=cross-client
+ARG DD_API_KEY=somekey
+
+ENV DD_API_KEY=${DD_API_KEY}
+ENV CHAIN=${CHAIN}
+
+USER root
+RUN apt update && apt install -y curl
+
+WORKDIR /cross-client
+
+RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh --output install_script.sh && \
+    chmod +x ./install_script.sh
+
+RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" ./install_script.sh
+COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/
+
+RUN service datadog-agent start
+
+USER polkadot
+
+COPY ./devnet/chain ./chain/
 
 # The substrate node-key argument should be a 32 bytes long sr25519 secret key
 # while gossamer nodes uses a 64 bytes long sr25519 key (32 bytes long to secret key + 32 bytes long to public key).
 # Then to keep both substrate and gossamer alice nodes with the same libp2p node keys we just need to use
 # the first 32 bytes from `alice.node.key` which means the 32 bytes long sr25519 secret key used here.
-ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
-    --chain chain/$CHAIN/genesis-raw.json \
+ENTRYPOINT /usr/bin/polkadot \
+    --chain ./chain/$CHAIN/genesis-raw.json \
     --alice \
     --port 7001 \
     --rpc-port 8545 \
