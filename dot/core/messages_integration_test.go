@@ -7,18 +7,15 @@
 package core
 
 import (
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -27,6 +24,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 )
 
 func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {

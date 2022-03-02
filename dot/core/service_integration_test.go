@@ -9,20 +9,19 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"math/big"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -34,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -126,6 +126,7 @@ func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance) {
 	require.NoError(t, err)
 
 	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
 	aliceBalanceKey := balanceKey(t, alicePub)
 
@@ -571,8 +572,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		res = append(res, tx)
 	}
 	// Extrinsic is removed. so empty res
-	require.Equal(t, 0, len(res))
-	require.Equal(t, res, []*transaction.ValidTransaction{})
+	require.Equal(t, []*transaction.ValidTransaction{}, res)
 }
 
 func TestService_GetRuntimeVersion(t *testing.T) {
