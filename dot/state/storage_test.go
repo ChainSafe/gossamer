@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -182,7 +183,12 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	blockState, err := NewBlockStateFromGenesis(db, genHeader, telemetryMock)
 	require.NoError(t, err)
 
-	testChildTrie := trie.NewEmptyTrie()
+	key := []byte{1, 2}
+	value := []byte{3, 4}
+	const dirty = true
+	const generation = 0
+	testChildTrie := trie.NewTrie(node.NewLeaf(key, value, dirty, generation))
+
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
 	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
@@ -213,7 +219,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
-	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
+	value, err = storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)
