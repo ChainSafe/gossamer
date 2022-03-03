@@ -553,7 +553,7 @@ func (s *Service) playGrandpaRound() error {
 }
 
 func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplete <-chan struct{}) {
-	ticker := time.NewTicker(s.interval * 4)
+	ticker := time.NewTicker(s.interval * 32)
 	defer ticker.Stop()
 
 	// Though this looks like we are sending messages multiple times,

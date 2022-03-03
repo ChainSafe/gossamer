@@ -35,7 +35,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 				continue
 			}
 
-			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
+			logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
 			vm := msg.msg
 
 			switch vm.Message.Stage {

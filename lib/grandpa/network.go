@@ -126,6 +126,8 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, ErrInvalidMessageType
 	}
 
+	logger.Debugf("received message!!! %v", cm)
+
 	if len(cm.Data) < 2 {
 		return false, nil
 	}
@@ -170,7 +172,7 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 	}
 
 	s.network.GossipMessage(cm)
-	logger.Tracef("sent message: %v", msg)
+	logger.Debugf("sent message: %v", msg)
 	return nil
 }
 

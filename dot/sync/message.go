@@ -30,6 +30,7 @@ func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*networ
 }
 
 func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+	logger.Infof("handling BlockRequestMessage: %v", req)
 	var (
 		startHash              *common.Hash
 		endHash                = req.EndBlockHash
@@ -123,13 +124,13 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Debugf("handling BlockRequestMessage with direction %s "+
+		logger.Infof("handling BlockRequestMessage with direction %s "+
 			"from start block with number %d to end block with number %d",
 			req.Direction, startNumber, endNumber)
 		return s.handleAscendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debugf("handling BlockRequestMessage with direction %s from start block with hash %s to end block with hash %s",
+	logger.Infof("handling BlockRequestMessage with direction %s from start block with hash %s to end block with hash %s",
 		req.Direction, *startHash, *endHash)
 	return s.handleChainByHash(*startHash, *endHash, max, req.RequestedData, req.Direction)
 }
