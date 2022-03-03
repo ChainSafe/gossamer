@@ -114,9 +114,11 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	tries := NewTries(trie.NewEmptyTrie())
+	tries, err := NewTries(trie.NewEmptyTrie())
+	if err != nil {
+		return fmt.Errorf("cannot create tries: %w", err)
+	}
 
-	var err error
 	// create block state
 	s.Block, err = NewBlockState(s.db, tries, s.Telemetry)
 	if err != nil {

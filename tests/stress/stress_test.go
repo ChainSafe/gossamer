@@ -339,6 +339,7 @@ func TestSync_Restart(t *testing.T) {
 }
 
 func TestSync_SubmitExtrinsic(t *testing.T) {
+	t.Skip()
 	t.Log("starting gossamer...")
 
 	// index of node to submit tx to

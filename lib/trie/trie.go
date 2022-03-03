@@ -306,22 +306,19 @@ func (t *Trie) Put(keyLE, value []byte) {
 }
 
 func (t *Trie) put(key, value []byte) {
-	nodeToInsert := &node.Leaf{
-		Value:      value,
-		Generation: t.generation,
-		Dirty:      true,
-	}
-	t.root = t.insert(t.root, key, nodeToInsert)
+	t.root = t.insert(t.root, key, value)
 }
 
-// insert attempts to insert a key with value into the trie
-func (t *Trie) insert(parent Node, key []byte, value Node) (newParent Node) {
-	// TODO change value node to be value []byte?
-	value.SetGeneration(t.generation) // just in case it's not set by the caller.
-
+// insert inserts a value in the trie at the key specified.
+// It may create one or more new nodes or update an existing node.
+func (t *Trie) insert(parent Node, key, value []byte) (newParent Node) {
 	if parent == nil {
-		value.SetKey(key)
-		return value
+		return &node.Leaf{
+			Key:        key,
+			Value:      value,
+			Generation: t.generation,
+			Dirty:      true,
+		}
 	}
 
 	// TODO ensure all values have dirty set to true
@@ -340,13 +337,12 @@ func (t *Trie) insert(parent Node, key []byte, value Node) (newParent Node) {
 	}
 }
 
-func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
-	value Node) (newParent Node) {
-	newValue := value.(*node.Leaf).Value
-
+func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key,
+	value []byte) (newParent Node) {
 	if bytes.Equal(parentLeaf.Key, key) {
-		if !bytes.Equal(newValue, parentLeaf.Value) {
-			parentLeaf.Value = newValue
+		if !bytes.Equal(value, parentLeaf.Value) {
+			parentLeaf.Value = value
+			parentLeaf.Generation = t.generation
 			parentLeaf.SetDirty(true)
 		}
 		return parentLeaf
@@ -364,20 +360,18 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
 
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
-		newBranchParent.Value = newValue
+		newBranchParent.Value = value
 
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
 			childIndex := parentLeafKey[commonPrefixLength]
 			parentLeaf.Key = parentLeaf.Key[commonPrefixLength+1:]
-			parentLeaf.Dirty = true
+			parentLeaf.SetDirty(true)
 			newBranchParent.Children[childIndex] = parentLeaf
 		}
 
 		return newBranchParent
 	}
-
-	value.SetKey(key[commonPrefixLength+1:])
 
 	if len(parentLeaf.Key) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
@@ -390,15 +384,21 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key []byte,
 		newBranchParent.Children[childIndex] = parentLeaf
 	}
 	childIndex := key[commonPrefixLength]
-	newBranchParent.Children[childIndex] = value
+	newBranchParent.Children[childIndex] = &node.Leaf{
+		Key:        key[commonPrefixLength+1:],
+		Value:      value,
+		Generation: t.generation,
+		Dirty:      true,
+	}
 
 	return newBranchParent
 }
 
-func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node) (newParent Node) {
+func (t *Trie) insertInBranch(parentBranch *node.Branch, key, value []byte) (newParent Node) {
 	if bytes.Equal(key, parentBranch.Key) {
 		parentBranch.SetDirty(true)
-		parentBranch.Value = value.GetValue()
+		parentBranch.Generation = t.generation
+		parentBranch.Value = value
 		return parentBranch
 	}
 
@@ -412,7 +412,7 @@ func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node)
 		if child == nil {
 			child = &node.Leaf{
 				Key:        remainingKey,
-				Value:      value.GetValue(),
+				Value:      value,
 				Generation: t.generation,
 				Dirty:      true,
 			}
@@ -423,6 +423,7 @@ func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node)
 
 		parentBranch.Children[childIndex] = child
 		parentBranch.SetDirty(true)
+		parentBranch.Generation = t.generation
 		return parentBranch
 	}
 
@@ -438,10 +439,13 @@ func (t *Trie) insertInBranch(parentBranch *node.Branch, key []byte, value Node)
 
 	oldParentIndex := parentBranch.Key[commonPrefixLength]
 	remainingOldParentKey := parentBranch.Key[commonPrefixLength+1:]
-	newParentBranch.Children[oldParentIndex] = t.insert(nil, remainingOldParentKey, parentBranch)
+
+	parentBranch.Key = remainingOldParentKey
+	parentBranch.Generation = t.generation
+	newParentBranch.Children[oldParentIndex] = parentBranch
 
 	if len(key) <= commonPrefixLength {
-		newParentBranch.Value = value.(*node.Leaf).Value
+		newParentBranch.Value = value
 	} else {
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
@@ -636,19 +640,17 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	initialLimit := limit
-	t.root, _, allDeleted = t.clearPrefixLimit(t.root, prefix, &limit)
-	deleted = initialLimit - limit
+	t.root, deleted, allDeleted = t.clearPrefixLimit(t.root, prefix, limit)
 	return deleted, allDeleted
 }
 
-// clearPrefixLimit deletes the keys having the prefix till limit reached and returns updated trie root node,
-// true if any node in the trie got updated, and next bool returns true if there is no keys left with prefix.
-// TODO return deleted count and deduce updated from deleted count, do not pass limit as pointer.
-func (t *Trie) clearPrefixLimit(parent Node, prefix []byte, limit *uint32) (
-	newParent Node, updated bool, allDeleted bool) {
+// clearPrefixLimit deletes the keys having the prefix until the value deletion limit is reached.
+// It returns the updated node newParent, the number of deleted values valuesDeleted and the
+// allDeleted boolean indicating if there is no key left with the prefix.
+func (t *Trie) clearPrefixLimit(parent Node, prefix []byte, limit uint32) (
+	newParent Node, valuesDeleted uint32, allDeleted bool) {
 	if parent == nil {
-		return nil, false, true
+		return nil, 0, true
 	}
 
 	newParent = parent
@@ -662,38 +664,36 @@ func (t *Trie) clearPrefixLimit(parent Node, prefix []byte, limit *uint32) (
 		// TODO check this is the same behaviour as in substrate
 		const allDeleted = true
 		if bytes.HasPrefix(leaf.Key, prefix) {
-			*limit--
-			return nil, true, allDeleted
+			valuesDeleted = 1
+			return nil, valuesDeleted, allDeleted
 		}
 		// not modified so return the leaf of the original
 		// trie generation. The copied leaf newParent will be
 		// garbage collected.
-		return parent, false, allDeleted
+		return parent, 0, allDeleted
 	}
 
 	branch := newParent.(*node.Branch)
-	newParent, updated, allDeleted = t.clearPrefixLimitBranch(branch, prefix, limit)
-	if !updated {
+	newParent, valuesDeleted, allDeleted = t.clearPrefixLimitBranch(branch, prefix, limit)
+	if valuesDeleted == 0 {
 		// not modified so return the node of the original
 		// trie generation. The copied newParent will be
 		// garbage collected.
 		newParent = parent
 	}
 
-	return newParent, updated, allDeleted
+	return newParent, valuesDeleted, allDeleted
 }
 
-func (t *Trie) clearPrefixLimitBranch(branch *node.Branch, prefix []byte, limit *uint32) (
-	newParent Node, updated, allDeleted bool) {
+func (t *Trie) clearPrefixLimitBranch(branch *node.Branch, prefix []byte, limit uint32) (
+	newParent Node, valuesDeleted uint32, allDeleted bool) {
 	newParent = branch
 
 	if bytes.HasPrefix(branch.Key, prefix) {
-		updated = true // at least one node will be deleted
 		nilPrefix := ([]byte)(nil)
-		// TODO return deleted count to replace updated boolean and update limit
-		newParent = t.deleteNodesLimit(branch, nilPrefix, limit)
+		newParent, valuesDeleted = t.deleteNodesLimit(branch, nilPrefix, limit)
 		allDeleted = newParent == nil
-		return newParent, updated, allDeleted
+		return newParent, valuesDeleted, allDeleted
 	}
 
 	if len(prefix) == len(branch.Key)+1 &&
@@ -705,8 +705,9 @@ func (t *Trie) clearPrefixLimitBranch(branch *node.Branch, prefix []byte, limit 
 	noPrefixForNode := len(prefix) <= len(branch.Key) ||
 		lenCommonPrefix(branch.Key, prefix) < len(branch.Key)
 	if noPrefixForNode {
-		updated, allDeleted = false, true
-		return newParent, updated, allDeleted
+		valuesDeleted = 0
+		allDeleted = true
+		return newParent, valuesDeleted, allDeleted
 	}
 
 	childIndex := prefix[len(branch.Key)]
@@ -714,17 +715,17 @@ func (t *Trie) clearPrefixLimitBranch(branch *node.Branch, prefix []byte, limit 
 	child := branch.Children[childIndex]
 
 	newParent = branch // mostly just a reminder for the reader
-	branch.Children[childIndex], updated, allDeleted = t.clearPrefixLimit(child, childPrefix, limit)
-	if updated {
+	branch.Children[childIndex], valuesDeleted, allDeleted = t.clearPrefixLimit(child, childPrefix, limit)
+	if valuesDeleted > 0 {
 		branch.SetDirty(true)
 		newParent = handleDeletion(branch, prefix)
 	}
 
-	return newParent, newParent.IsDirty(), allDeleted
+	return newParent, valuesDeleted, allDeleted
 }
 
-func (t *Trie) clearPrefixLimitChild(branch *node.Branch, prefix []byte, limit *uint32) (
-	newParent Node, updated, allDeleted bool) {
+func (t *Trie) clearPrefixLimitChild(branch *node.Branch, prefix []byte, limit uint32) (
+	newParent Node, valuesDeleted uint32, allDeleted bool) {
 	newParent = branch
 
 	childIndex := prefix[len(branch.Key)]
@@ -732,28 +733,28 @@ func (t *Trie) clearPrefixLimitChild(branch *node.Branch, prefix []byte, limit *
 
 	if child == nil {
 		// TODO ensure this is the same behaviour as in substrate
-		updated, allDeleted = false, true
-		return newParent, updated, allDeleted
+		allDeleted = true
+		return newParent, 0, allDeleted
 	}
 
 	nilPrefix := ([]byte)(nil)
-	branch.Children[childIndex] = t.deleteNodesLimit(child, nilPrefix, limit)
+	branch.Children[childIndex], valuesDeleted = t.deleteNodesLimit(child, nilPrefix, limit)
 	branch.SetDirty(true)
 
 	newParent = handleDeletion(branch, prefix)
 
-	updated = true
 	allDeleted = branch.Children[childIndex] == nil
-	return newParent, updated, allDeleted
+	return newParent, valuesDeleted, allDeleted
 }
 
-func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newParent Node) {
-	if *limit == 0 {
-		return parent
+func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit uint32) (
+	newParent Node, valuesDeleted uint32) {
+	if limit == 0 {
+		return parent, 0
 	}
 
 	if parent == nil {
-		return nil
+		return nil, 0
 	}
 
 	newParent = parent
@@ -762,8 +763,8 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newP
 	}
 
 	if newParent.Type() == node.LeafType {
-		*limit--
-		return nil
+		valuesDeleted = 1
+		return nil, valuesDeleted
 	}
 
 	branch := newParent.(*node.Branch)
@@ -772,33 +773,36 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit *uint32) (newP
 
 	nilChildren := node.ChildrenCapacity - branch.NumChildren()
 
+	var newDeleted uint32
 	for i, child := range branch.Children {
 		if child == nil {
 			continue
 		}
 
-		branch.Children[i] = t.deleteNodesLimit(child, fullKey, limit)
+		branch.Children[i], newDeleted = t.deleteNodesLimit(child, fullKey, limit)
 		if branch.Children[i] == nil {
 			nilChildren++
 		}
+		limit -= newDeleted
+		valuesDeleted += newDeleted
 
 		branch.SetDirty(true)
 		newParent = handleDeletion(branch, fullKey)
 		if nilChildren == node.ChildrenCapacity &&
 			branch.Value == nil {
-			return nil
+			return nil, valuesDeleted
 		}
 
-		if *limit == 0 {
-			return newParent
+		if limit == 0 {
+			return newParent, valuesDeleted
 		}
 	}
 
 	if branch.Value != nil {
-		*limit--
+		valuesDeleted++
 	}
 
-	return nil
+	return nil, valuesDeleted
 }
 
 // ClearPrefix deletes all nodes in the trie for which the key contains the

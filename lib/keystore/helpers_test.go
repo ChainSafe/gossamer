@@ -24,12 +24,12 @@ import (
 func TestLoadKeystore(t *testing.T) {
 	ks := NewBasicKeystore("test", crypto.Sr25519Type)
 	err := LoadKeystore("alice", ks)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, 1, ks.Size())
 
 	ks = NewBasicKeystore("test", crypto.Ed25519Type)
 	err = LoadKeystore("bob", ks)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, 1, ks.Size())
 }
 
@@ -259,23 +259,23 @@ func TestUnlockKeys(t *testing.T) {
 	testdir := t.TempDir()
 
 	keyfile, err := GenerateKeypair("sr25519", nil, testdir, testPassword)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Log(keyfile)
 
 	ks := NewBasicKeystore("test", crypto.Sr25519Type)
 
 	err = UnlockKeys(ks, testdir, "0", string(testPassword))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	priv, err := ReadFromFileAndDecrypt(keyfile, testPassword)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	pub, err := priv.Public()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	kp, err := PrivateKeyToKeypair(priv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expected := ks.GetKeypair(pub)
 	if !reflect.DeepEqual(expected, kp) {

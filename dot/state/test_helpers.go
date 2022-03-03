@@ -96,7 +96,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 
 		hash := block.Header.Hash()
 		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		previousHash = hash
 
@@ -140,7 +140,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 
 			hash := block.Header.Hash()
 			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			previousHash = hash
 			arrivalTime = arrivalTime.Add(inc)
@@ -184,7 +184,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 		hash := block.Header.Hash()
 		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		blockState.StoreRuntime(hash, rt)
 
@@ -226,7 +226,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 			hash := block.Header.Hash()
 			err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			blockState.StoreRuntime(hash, rt)
 

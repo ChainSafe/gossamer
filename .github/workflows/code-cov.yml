@@ -1,18 +1,20 @@
 on:
   pull_request:
-    paths:
-      - .github/workflows/code-cov.yml
-      - "**/*.go"
-      - "chain/**"
-      - "cmd/**"
-      - "dot/**"
-      - "internal/**"
-      - "lib/**"
-      - "pkg/**"
-      - "tests/**"
-      - .codecov.yml
-      - go.mod
-      - go.sum
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/code-cov.yml
+    #   - "**/*.go"
+    #   - "chain/**"
+    #   - "cmd/**"
+    #   - "dot/**"
+    #   - "internal/**"
+    #   - "lib/**"
+    #   - "pkg/**"
+    #   - "tests/**"
+    #   - .codecov.yml
+    #   - go.mod
+    #   - go.sum
 name: code-cov
 env:
   GO111MODULE: on
