@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/mux"
@@ -61,54 +60,22 @@ type handshakeReader struct {
 }
 
 type notificationsProtocol struct {
-	protocolID               protocol.ID
-	getHandshake             HandshakeGetter
-	handshakeDecoder         HandshakeDecoder
-	handshakeValidator       HandshakeValidator
-	outboundHandshakeMutexes *sync.Map //map[peer.ID]*sync.Mutex
-	inboundHandshakeData     *sync.Map //map[peer.ID]*handshakeData
-	outboundHandshakeData    *sync.Map //map[peer.ID]*handshakeData
+	protocolID         protocol.ID
+	getHandshake       HandshakeGetter
+	handshakeDecoder   HandshakeDecoder
+	handshakeValidator HandshakeValidator
+	peersData          *peersData
 }
 
 func newNotificationsProtocol(protocolID protocol.ID, handshakeGetter HandshakeGetter,
 	handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator) *notificationsProtocol {
 	return &notificationsProtocol{
-		protocolID:               protocolID,
-		getHandshake:             handshakeGetter,
-		handshakeValidator:       handshakeValidator,
-		handshakeDecoder:         handshakeDecoder,
-		outboundHandshakeMutexes: new(sync.Map),
-		inboundHandshakeData:     new(sync.Map),
-		outboundHandshakeData:    new(sync.Map),
+		protocolID:         protocolID,
+		getHandshake:       handshakeGetter,
+		handshakeValidator: handshakeValidator,
+		handshakeDecoder:   handshakeDecoder,
+		peersData:          newPeersData(),
 	}
-}
-
-func (n *notificationsProtocol) getInboundHandshakeData(pid peer.ID) (*handshakeData, bool) {
-	var (
-		data interface{}
-		has  bool
-	)
-
-	data, has = n.inboundHandshakeData.Load(pid)
-	if !has {
-		return nil, false
-	}
-
-	return data.(*handshakeData), true
-}
-
-func (n *notificationsProtocol) getOutboundHandshakeData(pid peer.ID) (*handshakeData, bool) {
-	var (
-		data interface{}
-		has  bool
-	)
-
-	data, has = n.outboundHandshakeData.Load(pid)
-	if !has {
-		return nil, false
-	}
-
-	return data.(*handshakeData), true
 }
 
 type handshakeData struct {
@@ -131,18 +98,15 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
-		var (
-			hsData *handshakeData
-			has    bool
-		)
 
+		var hsData *handshakeData
 		if inbound {
-			hsData, has = info.getInboundHandshakeData(peer)
+			hsData = info.peersData.getInbound(peer)
 		} else {
-			hsData, has = info.getOutboundHandshakeData(peer)
+			hsData = info.peersData.getOutbound(peer)
 		}
 
-		if !has || !hsData.received {
+		if hsData == nil || !hsData.received {
 			return handshakeDecoder(in)
 		}
 
@@ -185,11 +149,12 @@ func (s *Service) createNotificationsMessageHandler(
 			// note: if this function is being called, it's being called via SetStreamHandler,
 			// ie it is an inbound stream and we only send the handshake over it.
 			// we do not send any other data over this stream, we would need to open a new outbound stream.
-			if _, has := info.getInboundHandshakeData(peer); !has {
+			hsData := info.peersData.getInbound(peer)
+			if hsData == nil {
 				logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
 
-				hsData := newHandshakeData(true, false, stream)
-				info.inboundHandshakeData.Store(peer, hsData)
+				hsData = newHandshakeData(true, false, stream)
+				info.peersData.setInbound(peer, hsData)
 
 				err := info.handshakeValidator(peer, hs)
 				if err != nil {
@@ -200,7 +165,7 @@ func (s *Service) createNotificationsMessageHandler(
 				}
 
 				hsData.validated = true
-				info.inboundHandshakeData.Store(peer, hsData)
+				info.peersData.setInbound(peer, hsData)
 
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
@@ -263,7 +228,7 @@ func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream lib
 		peerID,
 	)
 
-	info.outboundHandshakeData.Delete(peerID)
+	info.peersData.deleteOutbound(peerID)
 	_ = stream.Close()
 }
 
@@ -318,25 +283,25 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 }
 
 func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsProtocol) (libp2pnetwork.Stream, error) {
-	mu, has := info.outboundHandshakeMutexes.Load(peer)
-	if !has {
-		// this should not happen
-		return nil, errMissingHandshakeMutex
-	}
-
 	// multiple processes could each call this upcoming section, opening multiple streams and
 	// sending multiple handshakes. thus, we need to have a per-peer and per-protocol lock
-	mu.(*sync.Mutex).Lock()
-	defer mu.(*sync.Mutex).Unlock()
 
-	hsData, has := info.getOutboundHandshakeData(peer)
+	// Note: we need to extract the mutex here since some sketchy test code
+	// sometimes deletes it from its peerid->mutex map in info.peersData
+	// so we cannot have a method on peersData to lock and unlock the mutex
+	// from the map
+	peerMutex := info.peersData.getMutex(peer)
+	peerMutex.Lock()
+	defer peerMutex.Unlock()
+
+	hsData := info.peersData.getOutbound(peer)
 	switch {
-	case has && !hsData.validated:
+	case hsData != nil && !hsData.validated:
 		// peer has sent us an invalid handshake in the past, ignore
 		return nil, errInvalidHandshakeForPeer
-	case has && hsData.validated:
+	case hsData != nil && hsData.validated:
 		return hsData.stream, nil
-	case !has:
+	case hsData == nil:
 		hsData = newHandshakeData(false, false, nil)
 	}
 
@@ -388,7 +353,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		hsData.validated = false
 		hsData.stream = nil
 		_ = stream.Reset()
-		info.outboundHandshakeData.Store(peer, hsData)
+		info.peersData.setOutbound(peer, hsData)
 		// don't delete handshake data, as we want to store that the handshake for this peer was invalid
 		// and not to exchange messages over this protocol with it
 		return nil, err
@@ -396,7 +361,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 
 	hsData.validated = true
 	hsData.handshake = resp
-	info.outboundHandshakeData.Store(peer, hsData)
+	info.peersData.setOutbound(peer, hsData)
 	logger.Tracef("sender: validated handshake from peer %s using protocol %s", peer, info.protocolID)
 	return hsData.stream, nil
 }
@@ -419,7 +384,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			continue
 		}
 
-		info.outboundHandshakeMutexes.Store(peer, new(sync.Mutex))
+		info.peersData.setMutex(peer)
 
 		go s.sendData(peer, hs, info, msg)
 	}
