@@ -3,7 +3,7 @@
 
 FROM golang:1.17
 
-ARG CHAIN=gssmr
+ARG CHAIN=cross-client
 ARG DD_API_KEY=somekey
 
 ENV DD_API_KEY=${DD_API_KEY}
