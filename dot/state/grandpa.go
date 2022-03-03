@@ -194,7 +194,7 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 
 	for {
 		changeUpper, err := s.GetSetIDChange(curr + 1)
-		if err == chaindb.ErrKeyNotFound {
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
 			if curr == 0 {
 				return 0, nil
 			}
