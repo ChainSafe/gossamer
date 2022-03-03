@@ -273,7 +273,6 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 
 		preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
 			epochData.authorityIndex, slotNumber).ToPreRuntimeDigest()
-
 		if err != nil {
 			return nil, fmt.Errorf(
 				"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", slotNumber, err)
