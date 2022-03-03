@@ -43,7 +43,7 @@ Steps to run a two node cross client devnet
 
 - Initiate gossamer node
 ```
-./bin/gossamer init --force --genesis ../polkadot-testing/genesis.json
+./bin/gossamer init --genesis ../polkadot-testing/genesis.json
 ```
 
 - Run polkadot
