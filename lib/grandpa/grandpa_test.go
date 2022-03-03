@@ -1352,7 +1352,7 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth int) {
 	for i := startNum + 1; i <= depth; i++ {
 		arrivalTime := time.Now()
 
-		d, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}))
+		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
 		require.NoError(t, err)
 		require.NotNil(t, d)
 		digest := types.NewDigest()
@@ -1393,7 +1393,7 @@ func addBlocksAndReturnTheLastOne(
 
 	bfcNumber := int(previousHead.Number.Int64() + 1)
 
-	d, err := types.ToPreRuntimeDigest(*types.NewBabePrimaryPreDigest(0, uint64(bfcNumber), [32]byte{}, [64]byte{}))
+	d, err := types.NewBabePrimaryPreDigest(0, uint64(bfcNumber), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
 	require.NoError(t, err)
 	require.NotNil(t, d)
 	digest := types.NewDigest()

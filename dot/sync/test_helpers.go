@@ -18,7 +18,7 @@ import (
 // BuildBlock ...
 func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
 	digest := types.NewDigest()
-	prd, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
 	err = digest.Add(*prd)
 	require.NoError(t, err)

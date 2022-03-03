@@ -204,7 +204,7 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 func TestChainProcessor_HandleJustification(t *testing.T) {
 	syncer := newTestSyncer(t)
 
-	d, err := types.ToPreRuntimeDigest(*types.NewBabeSecondaryPlainPreDigest(0, 1))
+	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
 	digest := types.NewDigest()
 	err = digest.Add(*d)

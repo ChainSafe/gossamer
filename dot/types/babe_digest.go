@@ -52,6 +52,11 @@ func NewBabePrimaryPreDigest(authorityIndex uint32,
 	}
 }
 
+// ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
+func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(*d)
+}
+
 // Index Returns VDT index
 func (d BabePrimaryPreDigest) Index() uint { return 1 }
 
@@ -67,6 +72,11 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 		AuthorityIndex: authorityIndex,
 		SlotNumber:     slotNumber,
 	}
+}
+
+// ToPreRuntimeDigest returns the BabeSecondaryPlainPreDigest as a PreRuntimeDigest
+func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(*d)
 }
 
 // Index Returns VDT index
@@ -92,11 +102,16 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32,
 	}
 }
 
+// ToPreRuntimeDigest returns the BabeSecondaryVRFPreDigest as a PreRuntimeDigest
+func (d *BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(*d)
+}
+
 // Index Returns VDT index
 func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }
 
-// ToPreRuntimeDigest returns the VaryingDataTypeValue as a PreRuntimeDigest
-func ToPreRuntimeDigest(value scale.VaryingDataTypeValue) (*PreRuntimeDigest, error) {
+// toPreRuntimeDigest returns the VaryingDataTypeValue as a PreRuntimeDigest
+func toPreRuntimeDigest(value scale.VaryingDataTypeValue) (*PreRuntimeDigest, error) {
 	digest := NewBabeDigest()
 	err := digest.Set(value)
 	if err != nil {
