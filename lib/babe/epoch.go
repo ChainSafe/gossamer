@@ -268,7 +268,7 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		err = claimSecondarySlotPlain(
 			epochData.randomness, slotNumber, epochData.authorities, epochData.authorityIndex)
 		if err != nil {
-			return nil, fmt.Errorf("error claiming secondary plain slot at %d: %w", slotNumber, err)
+			return nil, fmt.Errorf("cannot claim secondary plain slot at %d: %w", slotNumber, err)
 		}
 
 		preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
