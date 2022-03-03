@@ -47,7 +47,7 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 			continue
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to create new epoch handler: %w", err)
 	}
 
 	return &epochHandler{

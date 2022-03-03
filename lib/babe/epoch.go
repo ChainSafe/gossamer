@@ -235,8 +235,8 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 	)
 
 	if err == nil {
-		preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
-			epochData.authorityIndex, slotNumber, proof.output, proof.proof).ToPreRuntimeDigest()
+		babePrimaryPreDigest := types.NewBabePrimaryPreDigest(epochData.authorityIndex, slotNumber, proof.output, proof.proof)
+		preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
 		if err != nil {
 			return nil, fmt.Errorf("error converting babe primary pre-digest to pre-runtime digest: %w", err)
 		}
@@ -255,9 +255,9 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		if err != nil {
 			return nil, fmt.Errorf("error claim secondary vrf slot at %d: %w", slotNumber, err)
 		}
-
-		preRuntimeDigest, err := types.NewBabeSecondaryVRFPreDigest(
-			epochData.authorityIndex, slotNumber, proof.output, proof.proof).ToPreRuntimeDigest()
+		babeSecondaryVRFPreDigest := types.NewBabeSecondaryVRFPreDigest(
+			epochData.authorityIndex, slotNumber, proof.output, proof.proof)
+		preRuntimeDigest, err := babeSecondaryVRFPreDigest.ToPreRuntimeDigest()
 		if err != nil {
 			return nil, fmt.Errorf("error converting babe secondary vrf pre-digest to pre-runtime digest: %w", err)
 		}
