@@ -24,7 +24,7 @@ ENV CHAIN=${CHAIN}
 ENV key=${key}
 
 USER root
-RUN apt update && apt install -y curl
+RUN apt update && apt install -y curl && rm -r /var/cache/* /var/lib/apt/lists/*
 
 WORKDIR /cross-client
 
@@ -34,13 +34,11 @@ RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh --output
 RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" ./install_script.sh
 COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/
 
-RUN service datadog-agent start
-
 USER polkadot
 
 COPY ./devnet/chain ./chain/
 
-ENTRYPOINT /usr/bin/polkadot \
+ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
     --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --chain chain/$CHAIN/genesis-raw.json \
     --port 7001 \

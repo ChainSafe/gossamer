@@ -21,7 +21,7 @@ ENV DD_API_KEY=${DD_API_KEY}
 ENV CHAIN=${CHAIN}
 
 USER root
-RUN apt update && apt install -y curl
+RUN apt update && apt install -y curl && rm -r /var/cache/* /var/lib/apt/lists/*
 
 WORKDIR /cross-client
 
@@ -31,8 +31,6 @@ RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh --output
 RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" ./install_script.sh
 COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/
 
-RUN service datadog-agent start
-
 USER polkadot
 
 COPY ./devnet/chain ./chain/
@@ -41,7 +39,7 @@ COPY ./devnet/chain ./chain/
 # while gossamer nodes uses a 64 bytes long sr25519 key (32 bytes long to secret key + 32 bytes long to public key).
 # Then to keep both substrate and gossamer alice nodes with the same libp2p node keys we just need to use
 # the first 32 bytes from `alice.node.key` which means the 32 bytes long sr25519 secret key used here.
-ENTRYPOINT /usr/bin/polkadot \
+ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
     --chain ./chain/$CHAIN/genesis-raw.json \
     --alice \
     --port 7001 \
