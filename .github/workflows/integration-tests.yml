@@ -1,17 +1,19 @@
 on:
   pull_request:
-    paths:
-      - .github/workflows/integration-tests.yml
-      - "**/*.go"
-      - "chain/**"
-      - "cmd/**"
-      - "dot/**"
-      - "internal/**"
-      - "lib/**"
-      - "pkg/**"
-      - "tests/**"
-      - go.mod
-      - go.sum
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/integration-tests.yml
+    #   - "**/*.go"
+    #   - "chain/**"
+    #   - "cmd/**"
+    #   - "dot/**"
+    #   - "internal/**"
+    #   - "lib/**"
+    #   - "pkg/**"
+    #   - "tests/**"
+    #   - go.mod
+    #   - go.sum
 name: integration-tests
 
 jobs:
@@ -19,10 +21,11 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        packages: [
-          github.com/ChainSafe/gossamer/dot/rpc/modules,
-          github.com/ChainSafe/gossamer/lib/babe
-        ]
+        packages:
+          [
+            github.com/ChainSafe/gossamer/dot/rpc/modules,
+            github.com/ChainSafe/gossamer/lib/babe,
+          ]
     runs-on: ubuntu-latest
     steps:
       - id: go-cache-paths
@@ -53,4 +56,3 @@ jobs:
 
       - name: Run integration tests
         run: go test -timeout=30m -tags integration ${{ matrix.packages }}
-

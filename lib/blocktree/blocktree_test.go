@@ -139,7 +139,7 @@ func createFlatTree(t *testing.T, number int) (*BlockTree, []common.Hash) {
 		hashes = append(hashes, hash)
 
 		err := bt.AddBlock(header, time.Unix(0, 0))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		previousHash = hash
 	}
 
@@ -189,7 +189,7 @@ func TestBlockTree_AddBlock(t *testing.T) {
 
 	hash := header.Hash()
 	err := bt.AddBlock(header, time.Unix(0, 0))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	node := bt.getNode(hash)
 

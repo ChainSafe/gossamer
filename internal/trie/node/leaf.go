@@ -6,7 +6,6 @@ package node
 import (
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -25,13 +24,11 @@ type Leaf struct {
 	Dirty      bool
 	HashDigest []byte
 	Encoding   []byte
-	encodingMu sync.RWMutex
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
 	Generation uint64
-	sync.RWMutex
 }
 
 // NewLeaf creates a new leaf using the arguments given.
@@ -74,7 +71,6 @@ func bytesToString(b []byte) (s string) {
 	default:
 		return fmt.Sprintf("0x%x...%x", b[:8], b[len(b)-8:])
 	}
-
 }
 
 type MockLeaf struct {
@@ -89,16 +85,13 @@ func (m *MockLeaf) Encode(buffer Buffer) (err error) {
 		return errors.New("some error")
 	}
 
-	m.Leaf.encodingMu.RLock()
 	if !m.Leaf.Dirty && m.Leaf.Encoding != nil {
 		_, err = buffer.Write(m.Leaf.Encoding)
-		m.Leaf.encodingMu.RUnlock()
 		if err != nil {
 			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
 		}
 		return nil
 	}
-	m.Leaf.encodingMu.RUnlock()
 
 	err = m.Leaf.encodeHeader(buffer)
 	if err != nil {
@@ -123,8 +116,6 @@ func (m *MockLeaf) Encode(buffer Buffer) (err error) {
 
 	// TODO remove this copying since it defeats the purpose of `buffer`
 	// and the sync.Pool.
-	m.Leaf.encodingMu.Lock()
-	defer m.Leaf.encodingMu.Unlock()
 	m.Leaf.Encoding = make([]byte, buffer.Len())
 	copy(m.Leaf.Encoding, buffer.Bytes())
 	return nil

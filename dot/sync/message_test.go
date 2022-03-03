@@ -19,7 +19,7 @@ import (
 func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
@@ -41,7 +41,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 		previousHash = block.Header.Hash()
 
 		err := blockState.AddBlock(block)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 }
 

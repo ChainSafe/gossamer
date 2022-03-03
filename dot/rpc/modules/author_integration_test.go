@@ -153,7 +153,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expectedExtrinsic := types.NewExtrinsic(extBytes)
 	expected := &transaction.ValidTransaction{
@@ -341,7 +341,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			ks, err := integrationTestController.keystore.GetKeystore([]byte(tt.ksType))
 			require.NoError(t, err)
@@ -360,7 +360,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 
 	kr, err := keystore.NewSr25519Keyring()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ks.Babe.Insert(kr.Alice())
 
@@ -552,7 +552,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expectedExtrinsic := types.NewExtrinsic(extBytes)
 	expected := &transaction.ValidTransaction{

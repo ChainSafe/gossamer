@@ -79,7 +79,7 @@ func TestNewUint64OrHashFromBytes(t *testing.T) {
 			data := append([]byte{x.targetFirstByte}, x.targetHash...)
 
 			uint64OrHash := NewUint64OrHashFromBytes(data)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, uint64OrHash)
 			require.IsType(t, x.expectedType, uint64OrHash.Value())
 			if x.expectedType == (uint64)(0) {

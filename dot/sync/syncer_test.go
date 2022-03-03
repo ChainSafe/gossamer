@@ -156,7 +156,7 @@ func newTestSyncer(t *testing.T) *Service {
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	fp := "../../chain/gssmr/genesis.json"
+	fp := utils.GetGssmrGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 

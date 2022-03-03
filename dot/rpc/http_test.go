@@ -14,9 +14,11 @@ import (
 	"time"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
+	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -364,6 +366,8 @@ func externalIP() (string, error) {
 }
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+//go:generate mockgen -destination=mock_digesthandler_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core DigestHandler
+//go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
 
 func newCoreServiceTest(t *testing.T) *core.Service {
 	t.Helper()
@@ -403,8 +407,11 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 		CodeSubstitutedState: stateSrvc.Base,
 	}
 
-	cfg.DigestHandler = new(coremocks.DigestHandler)
-	cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
+	digestHandler := NewMockDigestHandler(ctrl)
+	digestHandler.EXPECT().
+		HandleDigests(gomock.AssignableToTypeOf(new(types.Header))).
+		AnyTimes()
+	cfg.DigestHandler = digestHandler
 
 	cfg.Keystore = keystore.NewGlobalKeystore()
 	kp, err := sr25519.GenerateKeypair()
@@ -431,11 +438,15 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
-	net := new(coremocks.Network)
-	net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
-	net.On("IsSynced").Return(true)
-	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
-
+	net := NewMockNetwork(ctrl)
+	net.EXPECT().
+		GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).
+		AnyTimes()
+	net.EXPECT().IsSynced().Return(true).AnyTimes()
+	net.EXPECT().ReportPeer(
+		gomock.AssignableToTypeOf(new(peerset.ReputationChange)),
+		gomock.AssignableToTypeOf(peer.ID(""))).
+		AnyTimes()
 	cfg.Network = net
 
 	cfg.CodeSubstitutes = make(map[common.Hash]string)
