@@ -80,7 +80,7 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 
 			err = response.Body.Close()
 			if err != nil {
-				mailer.logger.Errorf("cannot close body of response from %s: %s", v.Endpoint, err)
+				mailer.logger.Warnf("cannot close body of response from %s: %s", v.Endpoint, err)
 			}
 
 			mailer.connections = append(mailer.connections, &telemetryConnection{
