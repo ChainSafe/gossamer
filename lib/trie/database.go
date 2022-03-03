@@ -51,7 +51,16 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return err
 	}
 
-	err = db.Put(hash, encoding)
+	key := hash
+	if bytes.Equal(hash, encoding) {
+		hashArray, err := common.Blake2bHash(hash)
+		if err != nil {
+			return err
+		}
+		key = hashArray[:]
+	}
+
+	err = db.Put(key, encoding)
 	if err != nil {
 		return err
 	}
@@ -184,7 +193,18 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 			continue
 		}
 
-		hash := child.GetHash()
+		encoding, hash, err := child.EncodeAndHash()
+		if err != nil {
+			return err
+		}
+		if bytes.Equal(hash, encoding) {
+			hashArray, err := common.Blake2bHash(hash)
+			if err != nil {
+				return err
+			}
+			hash = hashArray[:]
+		}
+
 		encodedNode, err := db.Get(hash)
 		if err != nil {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", hash, err)

@@ -67,6 +67,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
 		require.Equal(t, trie.MustHash(), res.MustHash())
+		require.Equal(t, trie.String(), res.String())
 
 		for _, test := range testCase {
 			val, err := GetFromDB(db, trie.MustHash(), test.key)
@@ -395,10 +396,10 @@ func TestLoadWithChildTriesFails(t *testing.T) {
 	// Run load and check that it fails
 
 	testCase := []Test{
-		{key: []byte{0x01, 0x35}, value: []byte("pen")},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-		{key: []byte{0xf2}, value: []byte("feather")},
+		// {key: []byte{0x01, 0x35}, value: []byte("pen")},
+		// {key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		// {key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+		// {key: []byte{0xf2}, value: []byte("feather")},
 		{key: []byte{0xf2, 0x3}, value: []byte("f")},
 		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
 		{key: []byte{0x07}, value: []byte("ramen")},
@@ -416,27 +417,42 @@ func TestLoadWithChildTriesFails(t *testing.T) {
 	const dirty = true
 	const generation = 0
 
-	mockNode := node.MockLeaf{
-		Leaf: *node.NewLeaf(key, value, dirty, generation),
-	}
+	// mockNode := node.MockLeaf{
+	// 	Leaf: *node.NewLeaf(key, value, dirty, generation),
+	// }
 
-	sampleChildTrie := NewTrie(&mockNode)
+	// mockNode := *node.NewLeaf(key, value, dirty, generation)
+
+	// sampleChildTrie := NewTrie(&mockNode)
+
+	sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
+
+	db := newTestDB(t)
 	keyToChild := []byte("test")
 	err := trie.PutChild(keyToChild, sampleChildTrie)
 	require.NoError(t, err)
 
-	db := newTestDB(t)
+	// newChildTrie, err := trie.GetChild(keyToChild)
+	// require.NoError(t, err)
+	// fmt.Printf("old child trie\n%s\n", sampleChildTrie.String())
+
+	// fmt.Printf("new child trie\n%s\n", newChildTrie.String())
+
 	err = trie.Store(db)
 	require.NoError(t, err)
 
 	// mockNode.Fail = true
 	res := NewEmptyTrie()
+
 	err = res.Load(db, trie.MustHash())
-	// require.NoError(t, err)
-	require.Error(t, err)
-	fmt.Println(err)
-	// fmt.Printf("expected:\n %s\n", trie.String())
-	// fmt.Printf("actual:\n %s\n", res.String())
+	require.NoError(t, err)
+
+	//	require.Error(t, err)
+	// fmt.Println(err)
+	// fmt.Printf("original:\n %s\n", trie.String())
+	// fmt.Printf("loaded:\n %s\n", res.String())
+	fmt.Printf("trie.childTries:\n %s\n", trie.childTries)
+	fmt.Printf("res.childTries:\n %s\n", res.childTries)
 
 	require.Equal(t, trie.MustHash(), res.MustHash())
 }
