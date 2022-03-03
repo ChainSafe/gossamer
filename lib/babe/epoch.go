@@ -253,7 +253,7 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		proof, err := claimSecondarySlotVRF(
 			epochData.randomness, slotNumber, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
 		if err != nil {
-			return nil, fmt.Errorf("error claim secondary vrf slot at %d: %w", slotNumber, err)
+			return nil, fmt.Errorf("cannot claim secondary vrf slot at %d: %w", slotNumber, err)
 		}
 		babeSecondaryVRFPreDigest := types.NewBabeSecondaryVRFPreDigest(
 			epochData.authorityIndex, slotNumber, proof.output, proof.proof)
