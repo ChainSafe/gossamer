@@ -3,9 +3,11 @@ on:
   pull_request:
     branches:
       - development
-    paths:
-      - .github/workflows/mocks.yml
-      - "**/*.go"
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/mocks.yml
+    #   - "**/*.go"
 
 jobs:
   mocks-check:

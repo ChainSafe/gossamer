@@ -65,9 +65,9 @@ func TestConfigFromChainFlag(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			cfg, err := createDotConfig(ctx)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			cfg.System = types.SystemInfo{}
 			require.Equal(t, c.expected, cfg)
 		})
@@ -103,9 +103,9 @@ func TestInitConfigFromFlags(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			cfg, err := createInitConfig(ctx)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, c.expected, cfg.Init)
 		})
 	}
@@ -259,9 +259,9 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			cfg, err := createDotConfig(ctx)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			require.Equal(t, c.expected, cfg.Global)
 		})
@@ -309,7 +309,7 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			cfg, err := createDotConfig(ctx)
 			require.NotNil(t, err)
@@ -358,9 +358,9 @@ func TestAccountConfigFromFlags(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			cfg, err := createDotConfig(ctx)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, c.expected, cfg.Account)
 		})
 	}
@@ -411,9 +411,9 @@ func TestCoreConfigFromFlags(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			cfg, err := createDotConfig(ctx)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, c.expected, cfg.Core)
 		})
 	}
@@ -547,9 +547,9 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			cfg, err := createDotConfig(ctx)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, c.expected, cfg.Network)
 		})
 	}
@@ -756,9 +756,9 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			cfg, err := createDotConfig(ctx)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, c.expected, cfg.RPC)
 		})
 	}
@@ -774,7 +774,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 		[]string{"config", "genesis", "name"},
 		[]interface{}{testCfgFile.Name(), genFile, testCfg.Global.Name},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
@@ -809,7 +809,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	}
 
 	cfg, err := createDotConfig(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	cfg.Init.Genesis = genFile
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
@@ -828,7 +828,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		[]string{"config", "genesis", "name"},
 		[]interface{}{testCfgFile.Name(), "", testCfg.Global.Name},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
@@ -863,7 +863,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 	}
 
 	cfg, err := createDotConfig(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
 	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
@@ -878,7 +878,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		[]string{"config", "genesis", "name"},
 		[]interface{}{testCfgFile.Name(), genFile, testCfg.Global.Name},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
@@ -922,24 +922,24 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	}
 
 	cfg, err := createDotConfig(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	cfg.Init.Genesis = genFile
 
 	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genFile)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = state.NewBaseState(db).StoreGenesisData(gen.GenesisData())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = db.Close()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = updateDotConfigFromGenesisData(ctx, cfg) // name should not be updated if provided as flag value
-	require.Nil(t, err)
+	require.NoError(t, err)
 	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
@@ -991,9 +991,9 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			createdCfg, err := createDotConfig(ctx)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, c.expected, createdCfg.Global.Name)
 		})
 	}
@@ -1024,9 +1024,9 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 	c := whenNameFlagIsDefined
 	t.Run(c.description, func(t *testing.T) {
 		ctx, err := newTestContext(c.description, c.flags, c.values)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		createdCfg, err := createDotConfig(ctx)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, c.expected, createdCfg.Global.Name)
 	})
 
@@ -1047,9 +1047,9 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 	c = whenNameIsDefinedOnTomlConfig
 	t.Run(c.description, func(t *testing.T) {
 		ctx, err := newTestContext(c.description, c.flags, c.values)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		createdCfg, err := createDotConfig(ctx)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, c.expected, createdCfg.Global.Name)
 	})
 
@@ -1069,9 +1069,9 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 
 	t.Run(c.description, func(t *testing.T) {
 		ctx, err := newTestContext(whenThereIsNoName.description, whenThereIsNoName.flags, whenThereIsNoName.values)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		createdCfg, err := createDotConfig(ctx)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotEmpty(t, createdCfg.Global.Name)
 		require.NotEqual(t, cfg.Global.Name, createdCfg.Global.Name)
 	})

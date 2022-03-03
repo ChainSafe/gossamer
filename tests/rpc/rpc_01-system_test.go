@@ -91,7 +91,7 @@ func TestSystemRPC(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodes(t, 3, utils.GenesisDefault, utils.ConfigDefault)
 
 	//use only first server for tests
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 

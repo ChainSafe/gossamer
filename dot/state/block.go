@@ -27,8 +27,7 @@ import (
 )
 
 const (
-	pruneKeyBufferSize = 1000
-	blockPrefix        = "block"
+	blockPrefix = "block"
 )
 
 var (
@@ -59,7 +58,8 @@ type BlockState struct {
 	sync.RWMutex
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
-	unfinalisedBlocks *sync.Map // map[common.Hash]*types.Block
+	unfinalisedBlocks *hashToBlockMap
+	tries             *Tries
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
@@ -69,21 +69,19 @@ type BlockState struct {
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
-	pruneKeyCh chan *types.Header
-
 	telemetry telemetry.Client
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, telemetry telemetry.Client) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		unfinalisedBlocks:          new(sync.Map),
+		unfinalisedBlocks:          newHashToBlockMap(),
+		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
-		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		telemetry:                  telemetry,
 	}
@@ -107,16 +105,16 @@ func NewBlockState(db chaindb.Database, telemetry telemetry.Client) (*BlockState
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header,
+func NewBlockStateFromGenesis(db chaindb.Database, trs *Tries, header *types.Header,
 	telemetryMailer telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		unfinalisedBlocks:          new(sync.Map),
+		unfinalisedBlocks:          newHashToBlockMap(),
+		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
-		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),
@@ -186,46 +184,9 @@ func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
 }
 
-func (bs *BlockState) storeUnfinalisedBlock(block *types.Block) {
-	bs.unfinalisedBlocks.Store(block.Header.Hash(), block)
-}
-
-func (bs *BlockState) hasUnfinalisedBlock(hash common.Hash) bool {
-	_, has := bs.unfinalisedBlocks.Load(hash)
-	return has
-}
-
-func (bs *BlockState) getUnfinalisedHeader(hash common.Hash) (*types.Header, bool) {
-	block, has := bs.getUnfinalisedBlock(hash)
-	if !has {
-		return nil, false
-	}
-
-	return &block.Header, true
-}
-
-func (bs *BlockState) getUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {
-	block, has := bs.unfinalisedBlocks.Load(hash)
-	if !has {
-		return nil, false
-	}
-
-	// TODO: dot/core tx re-org test seems to abort here due to block body being invalid?
-	return block.(*types.Block), true
-}
-
-func (bs *BlockState) getAndDeleteUnfinalisedBlock(hash common.Hash) (*types.Block, bool) {
-	block, has := bs.unfinalisedBlocks.LoadAndDelete(hash)
-	if !has {
-		return nil, false
-	}
-
-	return block.(*types.Block), true
-}
-
 // HasHeader returns if the db contains a header with the given hash
 func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
-	if bs.hasUnfinalisedBlock(hash) {
+	if bs.unfinalisedBlocks.getBlock(hash) != nil {
 		return true, nil
 	}
 
@@ -233,9 +194,9 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 }
 
 // GetHeader returns a BlockHeader for a given hash
-func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
-	header, has := bs.getUnfinalisedHeader(hash)
-	if has {
+func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err error) {
+	header = bs.unfinalisedBlocks.getBlockHeader(hash)
+	if header != nil {
 		return header, nil
 	}
 
@@ -315,8 +276,8 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	bs.RLock()
 	defer bs.RUnlock()
 
-	block, has := bs.getUnfinalisedBlock(hash)
-	if has {
+	block := bs.unfinalisedBlocks.getBlock(hash)
+	if block != nil {
 		return block, nil
 	}
 
@@ -348,7 +309,7 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 	bs.RLock()
 	defer bs.RUnlock()
 
-	if bs.hasUnfinalisedBlock(hash) {
+	if bs.unfinalisedBlocks.getBlock(hash) != nil {
 		return true, nil
 	}
 
@@ -356,10 +317,10 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 }
 
 // GetBlockBody will return Body for a given hash
-func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
-	block, has := bs.getUnfinalisedBlock(hash)
-	if has {
-		return &block.Body, nil
+func (bs *BlockState) GetBlockBody(hash common.Hash) (body *types.Body, err error) {
+	body = bs.unfinalisedBlocks.getBlockBody(hash)
+	if body != nil {
+		return body, nil
 	}
 
 	data, err := bs.db.Get(blockBodyKey(hash))
@@ -419,7 +380,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		return err
 	}
 
-	bs.storeUnfinalisedBlock(block)
+	bs.unfinalisedBlocks.store(block)
 	go bs.notifyImported(block)
 	return nil
 }
@@ -435,7 +396,7 @@ func (bs *BlockState) AddBlockToBlockTree(block *types.Block) error {
 		arrivalTime = time.Now()
 	}
 
-	bs.storeUnfinalisedBlock(block)
+	bs.unfinalisedBlocks.store(block)
 	return bs.bt.AddBlock(&block.Header, arrivalTime)
 }
 

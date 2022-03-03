@@ -289,7 +289,7 @@ func TestService_PruneStorage(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	for _, v := range prunedArr {
-		tr := serv.Storage.tries.get(v.hash)
+		tr := serv.Storage.blockState.tries.get(v.hash)
 		require.Nil(t, tr)
 	}
 }
