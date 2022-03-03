@@ -461,6 +461,7 @@ var (
 	// InitFlags are flags that are valid for use with the init subcommand
 	InitFlags = []cli.Flag{
 		BasePathFlag,
+		ConfigFlag,
 		ForceFlag,
 		GenesisFlag,
 	}
