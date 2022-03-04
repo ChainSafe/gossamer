@@ -12,14 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPeerSetBanned(t *testing.T) {
+func Test_Ban_Reject_Accept_Peer(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
 	processor := NewMockMessageProcessor(ctrl)
-	processor.EXPECT().Process(Message{Status: Drop, setID: 0x0, PeerID: "testPeer1"})
-	processor.EXPECT().Process(Message{Status: Reject, setID: 0x0, PeerID: "testPeer1"})
-	processor.EXPECT().Process(Message{Status: Accept, setID: 0x0, PeerID: "testPeer1"})
 
 	handler := newTestPeerSet(t, 25, 25, nil, nil, false, processor)
 
@@ -34,16 +31,19 @@ func TestPeerSetBanned(t *testing.T) {
 	rpc := newReputationChange(BannedThresholdValue-1, "")
 
 	// we need one for the message to be processed.
+	processor.EXPECT().Process(Message{Status: Drop, setID: 0x0, PeerID: "testPeer1"})
 	handler.ReportPeer(rpc, peer1)
 	time.Sleep(time.Millisecond * 100)
 
 	// check that an incoming connection from that node gets refused.
+	processor.EXPECT().Process(Message{Status: Reject, setID: 0x0, PeerID: "testPeer1"})
 	handler.Incoming(0, peer1)
 
 	// wait a bit for the node's reputation to go above the threshold.
 	time.Sleep(time.Millisecond * 1200)
 
 	// try again. This time the node should be accepted.
+	processor.EXPECT().Process(Message{Status: Accept, setID: 0x0, PeerID: "testPeer1"})
 	handler.Incoming(0, peer1)
 }
 
