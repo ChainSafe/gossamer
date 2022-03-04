@@ -563,9 +563,9 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		return err
 	}
 
-	// This is for reserved only mode.
 	for _, pid := range peers {
 		if ps.isReservedOnly {
+			// This is for reserved only mode.
 			if _, ok := ps.reservedNode[pid]; !ok {
 				rejectMessage := Message{
 					Status: Reject,
