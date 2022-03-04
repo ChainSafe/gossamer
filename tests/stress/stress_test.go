@@ -650,25 +650,11 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 		genesis      string
 		allowedSlots gosstypes.AllowedSlots
 	}{
-
 		{
 			description:  "with secondary vrf slots enabled",
 			genesis:      utils.GenesisTwoAuthsSecondaryVRF0_9_10,
 			allowedSlots: gosstypes.PrimaryAndSecondaryVRFSlots,
 		},
-		// TODO: We are not able to pickup the right value of AllowedSlots
-		// from these genesis file. It is always being read as PrimaryAndSecondaryVRFSlots.
-		// We have to fix that in order to properly test below cases.
-		// {
-		// 	description:  "with secondary plain slots enabled",
-		// 	genesis:      utils.GenesisTwoAuthsSecondaryPlain_0_9_10,
-		// 	allowedSlots: gosstypes.PrimaryAndSecondaryPlainSlots,
-		// },
-		// {
-		// 	description:  "with secondary slots disabled",
-		// 	genesis:      utils.GenesisTwoAuthsPrimary_0_9_10,
-		// 	allowedSlots: gosstypes.PrimarySlots,
-		// },
 	}
 	const numNodes = 2
 	for _, c := range testcases {
