@@ -36,6 +36,7 @@ func Test_NewTries(t *testing.T) {
 
 //go:generate mockgen -destination=mock_gauge_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Gauge
 //go:generate mockgen -destination=mock_counter_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Counter
+
 func Test_Tries_softSet(t *testing.T) {
 	t.Parallel()
 
