@@ -104,12 +104,14 @@ func Test_Tries_delete(t *testing.T) {
 		root               common.Hash
 		deleteCounterInc   bool
 		expectedRootToTrie map[common.Hash]*trie.Trie
+		triesGaugeSet      float64
 	}{
 		"not found": {
 			rootToTrie: map[common.Hash]*trie.Trie{
 				{3, 4, 5}: {},
 			},
-			root: common.Hash{1, 2, 3},
+			root:          common.Hash{1, 2, 3},
+			triesGaugeSet: 1,
 			expectedRootToTrie: map[common.Hash]*trie.Trie{
 				{3, 4, 5}: {},
 			},
@@ -120,7 +122,8 @@ func Test_Tries_delete(t *testing.T) {
 				{1, 2, 3}: {},
 				{3, 4, 5}: {},
 			},
-			root: common.Hash{1, 2, 3},
+			root:          common.Hash{1, 2, 3},
+			triesGaugeSet: 1,
 			expectedRootToTrie: map[common.Hash]*trie.Trie{
 				{3, 4, 5}: {},
 			},
@@ -133,6 +136,9 @@ func Test_Tries_delete(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
+			triesGauge := NewMockGauge(ctrl)
+			triesGauge.EXPECT().Set(testCase.triesGaugeSet)
+
 			deleteCounter := NewMockCounter(ctrl)
 			if testCase.deleteCounterInc {
 				deleteCounter.EXPECT().Inc()
@@ -141,7 +147,6 @@ func Test_Tries_delete(t *testing.T) {
 			tries := &Tries{
 				rootToTrie:    testCase.rootToTrie,
 				triesGauge:    triesGauge,
-				setCounter:    setCounter,
 				deleteCounter: deleteCounter,
 			}
 

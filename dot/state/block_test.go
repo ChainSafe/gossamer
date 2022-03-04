@@ -38,6 +38,8 @@ func newTestBlockState(t *testing.T, header *types.Header, tries *Tries) *BlockS
 	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
 
+	// loads in-memory tries with genesis state root, should be deleted
+	// after another block is finalised
 	tr := trie.NewEmptyTrie()
 	err = tr.Load(bs.db, header.StateRoot)
 	require.NoError(t, err)
