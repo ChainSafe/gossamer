@@ -145,8 +145,6 @@ func Test_Tries_delete(t *testing.T) {
 				deleteCounter: deleteCounter,
 			}
 
-			tries.rootToTrie = testCase.rootToTrie
-
 			tries.delete(testCase.root)
 
 			assert.Equal(t, testCase.expectedRootToTrie, tries.rootToTrie)
