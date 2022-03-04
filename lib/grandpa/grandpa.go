@@ -377,7 +377,7 @@ func (s *Service) initiate() error {
 		}
 
 		err = s.playGrandpaRound()
-		if err == ErrServicePaused {
+		if errors.Is(err, ErrServicePaused) {
 			logger.Info("service paused")
 			// wait for service to un-pause
 			<-s.resumed
@@ -1163,7 +1163,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 
 		// find common ancestor, check if votes for it is >threshold or not
 		pred, err := s.blockState.HighestCommonAncestor(v.Hash, curr)
-		if err == blocktree.ErrNodeNotFound {
+		if errors.Is(err, blocktree.ErrNodeNotFound) {
 			continue
 		} else if err != nil {
 			return nil, err

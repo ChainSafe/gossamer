@@ -146,14 +146,14 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
-		block, has := bs.getAndDeleteUnfinalisedBlock(hash)
-		if !has {
+		blockHeader := bs.unfinalisedBlocks.delete(hash)
+		if blockHeader == nil {
 			continue
 		}
 
-		bs.tries.delete(block.Header.StateRoot)
+		bs.tries.delete(blockHeader.StateRoot)
 
-		logger.Tracef("pruned block number %s with hash %s", block.Header.Number, hash)
+		logger.Tracef("pruned block number %s with hash %s", blockHeader.Number, hash)
 	}
 
 	// if nothing was previously finalised, set the first slot of the network to the
@@ -207,8 +207,8 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			continue
 		}
 
-		block, has := bs.getUnfinalisedBlock(hash)
-		if !has {
+		block := bs.unfinalisedBlocks.getBlock(hash)
+		if block == nil {
 			return fmt.Errorf("failed to find block in unfinalised block map, block=%s", hash)
 		}
 
@@ -234,14 +234,14 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		}
 
 		// delete from the unfinalisedBlockMap and delete reference to in-memory trie
-		block, has = bs.getAndDeleteUnfinalisedBlock(hash)
-		if !has {
+		blockHeader := bs.unfinalisedBlocks.delete(hash)
+		if blockHeader == nil {
 			continue
 		}
 
-		bs.tries.delete(block.Header.StateRoot)
+		bs.tries.delete(blockHeader.StateRoot)
 
-		logger.Tracef("cleaned out finalised block from memory; block number %s with hash %s", block.Header.Number, hash)
+		logger.Tracef("cleaned out finalised block from memory; block number %s with hash %s", blockHeader.Number, hash)
 	}
 
 	return batch.Flush()
