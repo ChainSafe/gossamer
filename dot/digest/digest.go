@@ -239,7 +239,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 				continue
 			}
 
-			err := h.defineHeaderBabeDigest(&info.Header)
+			err := h.setBABEDigestsOnFinalization(&info.Header)
 			if err != nil {
 				h.logger.Errorf("failed to store babe next epoch digest: %s", err)
 			}
@@ -254,15 +254,15 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 	}
 }
 
-// defineHeaderBabeDigest is called only when a block is finalised
+// setBABEDigestsOnFinalization is called only when a block is finalised
 // and defines the correct next epoch data and next config data
-func (h *Handler) defineHeaderBabeDigest(header *types.Header) error {
+func (h *Handler) setBABEDigestsOnFinalization(header *types.Header) error {
 	h.babeConsensusDigestLock.Lock()
 	defer h.babeConsensusDigestLock.Unlock()
 
 	nextEpochData, has := h.nextEpochData[header.Hash()]
 	if has {
-		h.logger.Debugf("defining BABENextEpochData data: %v for hash: %s", nextEpochData, header.Hash())
+		h.logger.Debugf("setting BABENextEpochData data: %v for hash: %s", nextEpochData, header.Hash())
 		err := h.handleNextEpochData(nextEpochData, header)
 		if err != nil {
 			return err
@@ -273,7 +273,7 @@ func (h *Handler) defineHeaderBabeDigest(header *types.Header) error {
 
 	nextEpochConfigData, has := h.nextConfigData[header.Hash()]
 	if has {
-		h.logger.Debugf("defining BABENextConfigData data: %v for hash: %s", nextEpochConfigData, header.Hash())
+		h.logger.Debugf("setting BABENextConfigData data: %v for hash: %s", nextEpochConfigData, header.Hash())
 		err := h.handleNextConfigData(nextEpochConfigData, header)
 		if err != nil {
 			return err
@@ -449,7 +449,7 @@ func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Hea
 		return err
 	}
 
-	h.logger.Debugf("defined data for block number %s and epoch %d with data: %v",
+	h.logger.Debugf("setting data for block number %s and epoch %d with data: %v",
 		header.Number, currEpoch+1, data)
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
