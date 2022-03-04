@@ -17,8 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-type blockHashEpoch = common.Hash
-
 var maxUint64 = uint64(math.MaxUint64)
 
 var (
