@@ -72,16 +72,18 @@ func TestPeerSetIncoming(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	processor := NewMockMessageProcessor(ctrl)
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: bootNode})
-	processor.EXPECT().Process(Message{Status: Accept, setID: 0, PeerID: incomingPeer})
-	processor.EXPECT().Process(Message{Status: Accept, setID: 0, PeerID: incoming2})
-	processor.EXPECT().Process(Message{Status: Reject, setID: 0, PeerID: incoming3})
 
+	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: bootNode})
 	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode},
 		[]peer.ID{}, false, processor)
 
+	processor.EXPECT().Process(Message{Status: Accept, setID: 0, PeerID: incomingPeer})
 	handler.Incoming(0, incomingPeer)
+
+	processor.EXPECT().Process(Message{Status: Accept, setID: 0, PeerID: incoming2})
 	handler.Incoming(0, incoming2)
+
+	processor.EXPECT().Process(Message{Status: Reject, setID: 0, PeerID: incoming3})
 	handler.Incoming(0, incoming3)
 }
 
@@ -90,14 +92,15 @@ func TestPeerSetDiscovered(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	processor := NewMockMessageProcessor(ctrl)
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: reservedPeer})
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: discovered1})
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: discovered2})
-
 	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false, processor)
 
+	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: reservedPeer})
 	handler.AddPeer(0, discovered1)
+
+	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: discovered1})
 	handler.AddPeer(0, discovered1)
+
+	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: discovered2})
 	handler.AddPeer(0, discovered2)
 }
 
@@ -106,10 +109,6 @@ func TestReAllocAfterBanned(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	processor := NewMockMessageProcessor(ctrl)
-	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: peer1})
-	processor.EXPECT().Process(Message{Status: Reject, setID: 0, PeerID: peer1})
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: peer1})
-
 	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false, processor)
 
 	ps := handler.peerSet
@@ -121,14 +120,16 @@ func TestReAllocAfterBanned(t *testing.T) {
 	}
 
 	// We ban a node by setting its reputation under the threshold.
+	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: peer1})
 	rep := newReputationChange(BannedThresholdValue-1, "")
 
 	// we need one for the message to be processed.
+	processor.EXPECT().Process(Message{Status: Reject, setID: 0, PeerID: peer1})
 	handler.ReportPeer(rep, peer1)
 	time.Sleep(time.Millisecond * 100)
 
 	// Check that an incoming connection from that node gets refused.
-
+	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: peer1})
 	handler.Incoming(0, peer1)
 	time.Sleep(time.Second * 2)
 
@@ -139,17 +140,17 @@ func TestRemovePeer(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	processor := NewMockMessageProcessor(ctrl)
+
 	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: "testDiscovered1"})
 	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: "testDiscovered2"})
-	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: "testDiscovered1"})
-	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: "testDiscovered2"})
-
 	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2},
 		nil, false, processor)
 
 	ps := handler.peerSet
 	time.Sleep(time.Millisecond * 500)
 
+	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: "testDiscovered1"})
+	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: "testDiscovered2"})
 	handler.RemovePeer(0, discovered1, discovered2)
 
 	require.Equal(t, 0, len(ps.peerState.nodes))
@@ -160,11 +161,9 @@ func TestSetReservePeer(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	processor := NewMockMessageProcessor(ctrl)
+
 	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: reservedPeer})
 	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: reservedPeer2})
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: "newRsrPeer"})
-	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: reservedPeer2})
-
 	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2},
 		true, processor)
 
@@ -172,6 +171,8 @@ func TestSetReservePeer(t *testing.T) {
 
 	newRsrPeerSet := peer.IDSlice{reservedPeer, peer.ID("newRsrPeer")}
 	// add newRsrPeer but remove reservedPeer2
+	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: "newRsrPeer"})
+	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: reservedPeer2})
 	handler.SetReservedPeer(0, newRsrPeerSet...)
 
 	require.Equal(t, len(newRsrPeerSet), len(ps.reservedNode))
