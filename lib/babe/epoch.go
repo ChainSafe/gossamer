@@ -253,7 +253,7 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		proof, err := claimSecondarySlotVRF(
 			epochData.randomness, slotNumber, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
 		if err != nil {
-			return nil, fmt.Errorf("error claim secondary vrf slot at %d: %w", slotNumber, err)
+			return nil, fmt.Errorf("cannot claim secondary vrf slot at %d: %w", slotNumber, err)
 		}
 		babeSecondaryVRFPreDigest := types.NewBabeSecondaryVRFPreDigest(
 			epochData.authorityIndex, slotNumber, proof.output, proof.proof)
@@ -268,12 +268,11 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		err = claimSecondarySlotPlain(
 			epochData.randomness, slotNumber, epochData.authorities, epochData.authorityIndex)
 		if err != nil {
-			return nil, fmt.Errorf("error claiming secondary plain slot at %d: %w", slotNumber, err)
+			return nil, fmt.Errorf("cannot claim secondary plain slot at %d: %w", slotNumber, err)
 		}
 
 		preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
 			epochData.authorityIndex, slotNumber).ToPreRuntimeDigest()
-
 		if err != nil {
 			return nil, fmt.Errorf(
 				"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", slotNumber, err)
