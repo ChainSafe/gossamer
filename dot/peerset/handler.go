@@ -45,7 +45,7 @@ func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
 	}
 }
 
-// RemoveReservedPeer remove reserved peer from peerSet.
+// RemoveReservedPeer removes reserved peer from peerSet.
 func (h *Handler) RemoveReservedPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.removeReservedPeers(setID, peers...)
 	if err != nil {
@@ -54,7 +54,7 @@ func (h *Handler) RemoveReservedPeer(setID int, peers ...peer.ID) {
 	}
 }
 
-// SetReservedPeer set the reserve peer into peerSet
+// SetReservedPeer sets the reserve peer into peerSet
 func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
 	// TODO: this is not used yet, might required to implement RPC Call for this.
 	err := h.peerSet.setReservedPeer(setID, peers...)
@@ -119,11 +119,11 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 }
 
 // Start starts peerSet processing
-func (h *Handler) Start(ctx context.Context, processMessageFn func(Message)) {
-	h.peerSet.start(ctx, processMessageFn)
+func (h *Handler) Start(ctx context.Context, processor MessageProcessor) {
+	h.peerSet.start(ctx, processor)
 }
 
-// SortedPeers return chan for sorted connected peer in the peerSet.
+// SortedPeers returns a sorted peer ID slice for connected peers in the peerSet.
 func (h *Handler) SortedPeers(setIdx int) peer.IDSlice {
 	return h.peerSet.peerState.sortedPeers(setIdx)
 }

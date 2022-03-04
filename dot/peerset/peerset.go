@@ -141,6 +141,12 @@ func newReputationChange(value Reputation, reason string) ReputationChange {
 	return ReputationChange{value, reason}
 }
 
+// MessageProcessor interface allows network layer to receive and
+// process messages from the peerstate layer
+type MessageProcessor interface {
+	Process(Message)
+}
+
 // PeerSet is a container for all the components of a peerSet.
 type PeerSet struct {
 	sync.Mutex
@@ -158,7 +164,7 @@ type PeerSet struct {
 	// second, to match the period of the Reputation updates.
 	nextPeriodicAllocSlots time.Duration
 
-	processMessageFn func(Message)
+	processor MessageProcessor
 }
 
 // config is configuration of a single set.
@@ -324,11 +330,13 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				return err
 			}
 
-			ps.processMessageFn(Message{
+			dropMessage := Message{
 				Status: Drop,
 				setID:  uint64(i),
 				PeerID: pid,
-			})
+			}
+
+			ps.processor.Process(dropMessage)
 
 			if err = ps.allocSlots(i); err != nil {
 				return err
@@ -371,12 +379,13 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			return err
 		}
 
-		ps.processMessageFn(Message{
+		connectMessage := Message{
 			Status: Connect,
 			setID:  uint64(setIdx),
 			PeerID: reservePeer,
-		})
+		}
 
+		ps.processor.Process(connectMessage)
 	}
 
 	// nothing more to do if we're in reserved mode.
@@ -401,11 +410,13 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			break
 		}
 
-		ps.processMessageFn(Message{
+		connectMessage := Message{
 			Status: Connect,
 			setID:  uint64(setIdx),
 			PeerID: peerID,
-		})
+		}
+
+		ps.processor.Process(connectMessage)
 
 		logger.Debugf("Sent connect message to peer %s", peerID)
 	}
@@ -458,11 +469,13 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 				return err
 			}
 
-			ps.processMessageFn(Message{
+			dropMessage := Message{
 				Status: Drop,
 				setID:  uint64(setID),
 				PeerID: peerID,
-			})
+			}
+
+			ps.processor.Process(dropMessage)
 		}
 	}
 
@@ -516,11 +529,13 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 		}
 
 		if status := ps.peerState.peerStatus(setID, pid); status == connectedPeer {
-			ps.processMessageFn(Message{
+			dropMessage := Message{
 				Status: Drop,
 				setID:  uint64(setID),
 				PeerID: pid,
-			})
+			}
+
+			ps.processor.Process(dropMessage)
 
 			// disconnect and forget
 			err := ps.peerState.disconnect(setID, pid)
@@ -552,11 +567,13 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	for _, pid := range peers {
 		if ps.isReservedOnly {
 			if _, ok := ps.reservedNode[pid]; !ok {
-				ps.processMessageFn(Message{
+				rejectMessage := Message{
 					Status: Reject,
 					setID:  uint64(setID),
 					PeerID: pid,
-				})
+				}
+
+				ps.processor.Process(rejectMessage)
 				continue
 			}
 		}
@@ -577,34 +594,38 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 
 		state.RLock()
 		node, has := state.nodes[pid]
-
 		if has {
 			nodeReputation = node.rep
 		}
-
 		state.RUnlock()
 
 		switch {
 		case nodeReputation < BannedThresholdValue:
-			ps.processMessageFn(Message{
+			rejectMessage := Message{
 				Status: Reject,
 				setID:  uint64(setID),
 				PeerID: pid,
-			})
+			}
+
+			ps.processor.Process(rejectMessage)
 
 		case state.tryAcceptIncoming(setID, pid) != nil:
-			ps.processMessageFn(Message{
+			rejectMessage := Message{
 				Status: Reject,
 				setID:  uint64(setID),
 				PeerID: pid,
-			})
+			}
+
+			ps.processor.Process(rejectMessage)
 		default:
 			logger.Debugf("incoming connection accepted from peer %s", pid)
-			ps.processMessageFn(Message{
+			acceptMessage := Message{
 				Status: Accept,
 				setID:  uint64(setID),
 				PeerID: pid,
-			})
+			}
+
+			ps.processor.Process(acceptMessage)
 		}
 	}
 
@@ -645,11 +666,14 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 		if err = state.disconnect(setIdx, pid); err != nil {
 			return err
 		}
-		ps.processMessageFn(Message{
+
+		dropMessage := Message{
 			Status: Drop,
 			setID:  uint64(setIdx),
 			PeerID: pid,
-		})
+		}
+
+		ps.processor.Process(dropMessage)
 
 		// TODO: figure out the condition of connection refuse.
 		if reason == RefusedDrop {
@@ -663,8 +687,8 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 }
 
 // start handles all the action for the peerSet.
-func (ps *PeerSet) start(ctx context.Context, processMessageFn func(Message)) {
-	ps.processMessageFn = processMessageFn
+func (ps *PeerSet) start(ctx context.Context, processor MessageProcessor) {
+	ps.processor = processor
 	go ps.doWork(ctx)
 }
 

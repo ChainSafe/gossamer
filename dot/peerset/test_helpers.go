@@ -25,8 +25,10 @@ const (
 	peer2         = peer.ID("testPeer2")
 )
 
+//go:generate mockgen -destination=mock_message_processor_test.go -package $GOPACKAGE . MessageProcessor
+
 func newTestPeerSet(t *testing.T, in, out uint32, bootNodes,
-	reservedPeers []peer.ID, reservedOnly bool, processMessage func(Message)) *Handler {
+	reservedPeers []peer.ID, reservedOnly bool, processor MessageProcessor) *Handler {
 	t.Helper()
 	con := &ConfigSet{
 		Set: []*config{
@@ -42,7 +44,7 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNodes,
 	handler, err := NewPeerSetHandler(con)
 	require.NoError(t, err)
 
-	handler.Start(context.Background(), processMessage)
+	handler.Start(context.Background(), processor)
 
 	handler.AddPeer(0, bootNodes...)
 	handler.AddReservedPeer(0, reservedPeers...)

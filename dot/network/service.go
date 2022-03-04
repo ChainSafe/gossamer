@@ -690,14 +690,14 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 }
 
 func (s *Service) startPeerSetHandler() {
-	s.host.cm.peerSetHandler.Start(s.ctx, s.processMessage)
+	s.host.cm.peerSetHandler.Start(s.ctx, s)
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()
 	}
 }
 
-func (s *Service) processMessage(msg peerset.Message) {
+func (s *Service) Process(msg peerset.Message) {
 	peerID := msg.PeerID
 	if peerID == "" {
 		logger.Errorf("found empty peer id in peerset message")
