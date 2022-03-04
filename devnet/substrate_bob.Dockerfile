@@ -16,7 +16,8 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 FROM parity/polkadot:v0.9.17
 
 ARG key
-ARG CHAIN=cross-client
+# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot v0.9.10
+ARG CHAIN=3-auth-node-0.9.10
 ARG DD_API_KEY=somekey
 
 ENV DD_API_KEY=${DD_API_KEY}
