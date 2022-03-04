@@ -1,6 +1,6 @@
 # Copyright 2022 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
-
+ARG POLKADOT_VERSION=v0.9.10
 FROM golang:1.17 as openmetrics
 
 ARG METRICS_NAMESPACE=substrate.local.devnet
@@ -13,18 +13,22 @@ RUN go mod download
 COPY ./devnet .
 RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > conf.yaml
 
-FROM parity/polkadot:v0.9.17
+FROM parity/polkadot:${POLKADOT_VERSION}
 
-ARG key
-# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot v0.9.10
-ARG CHAIN=3-auth-node-0.9.10
+ARG POLKADOT_VERSION
+# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
+ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
 ARG DD_API_KEY=somekey
+ARG key
 
 ENV DD_API_KEY=${DD_API_KEY}
 ENV CHAIN=${CHAIN}
 ENV key=${key}
 
 USER root
+RUN gpg --recv-keys --keyserver hkps://keys.mailvelope.com 9D4B2B6EB8F97156D19669A9FF0812D491B96798
+RUN gpg --export 9D4B2B6EB8F97156D19669A9FF0812D491B96798 > /usr/share/keyrings/parity.gpg
+
 RUN apt update && apt install -y curl && rm -r /var/cache/* /var/lib/apt/lists/*
 
 WORKDIR /cross-client

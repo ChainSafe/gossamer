@@ -1,10 +1,13 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
+
 FROM golang:1.17
 
-# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot v0.9.10
-ARG CHAIN=3-auth-node-0.9.10
+ARG POLKADOT_VERSION=v0.9.10
+
+# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
+ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
 ARG DD_API_KEY=somekey
 
 ENV DD_API_KEY=${DD_API_KEY}
