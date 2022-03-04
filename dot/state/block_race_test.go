@@ -28,7 +28,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 		dbs[i] = NewInMemoryDB(t)
 	}
 
-	tries := newTriesEmpty() // not used in this test
+	tries := newTriesEmpty()
 
 	pend := new(sync.WaitGroup)
 	pend.Add(threads)
