@@ -118,7 +118,6 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 			require.NoError(t, err, i)
 			continue
 		}
-		t.Log("hashes", hashes)
 
 		// there will only be one key in the mapping
 		for _, nodesWithHash := range hashes {
