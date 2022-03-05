@@ -173,20 +173,28 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	if !bs.lastFinalised.Equal(hash) {
 		defer func(lastFinalised common.Hash) {
-			lastFinalisedHeader, err := bs.GetHeader(lastFinalised)
+			err := bs.deleteFromTries(lastFinalised)
 			if err != nil {
-				logger.Debugf("unable to retrieve header for last finalised block, hash: %s, err: %s", bs.lastFinalised, err)
-			}
-			stateRootTrie := bs.tries.get(lastFinalisedHeader.StateRoot)
-			if stateRootTrie != nil {
-				bs.tries.delete(lastFinalisedHeader.StateRoot)
-			} else {
-				logger.Errorf("unable to find trie with stateroot hash: %s", lastFinalisedHeader.StateRoot)
+				logger.Debugf("%v", err)
 			}
 		}(bs.lastFinalised)
 	}
 
 	bs.lastFinalised = hash
+	return nil
+}
+
+func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
+	lastFinalisedHeader, err := bs.GetHeader(lastFinalised)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve header for last finalised block, hash: %s, err: %s", bs.lastFinalised, err)
+	}
+	stateRootTrie := bs.tries.get(lastFinalisedHeader.StateRoot)
+	if stateRootTrie != nil {
+		bs.tries.delete(lastFinalisedHeader.StateRoot)
+	} else {
+		return fmt.Errorf("unable to find trie with stateroot hash: %s", lastFinalisedHeader.StateRoot)
+	}
 	return nil
 }
 
