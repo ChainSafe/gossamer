@@ -121,7 +121,7 @@ func (h *Handler) HandleDigests(header *types.Header) {
 		if ok {
 			err := h.handleConsensusDigest(&val, header)
 			if err != nil {
-				h.logger.Errorf("cannot handle digests for block number %s, index %d, digest %s: %s",
+				h.logger.Errorf("cannot handle digests for block number %d, index %d, digest %s: %s",
 					header.Number, i, d.Value(), err)
 			}
 		}
@@ -394,7 +394,7 @@ func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Hea
 		return err
 	}
 
-	h.logger.Debugf("setting data for block number %s and epoch %d with data: %v",
+	h.logger.Debugf("setting data for block number %d and epoch %d with data: %v",
 		header.Number, currEpoch+1, data)
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
@@ -405,7 +405,7 @@ func (h *Handler) handleNextConfigData(config types.NextConfigData, header *type
 		return err
 	}
 
-	h.logger.Debugf("setting BABE config data for block number %s and epoch %d with data: %v",
+	h.logger.Debugf("setting BABE config data for block number %d and epoch %d with data: %v",
 		header.Number, currEpoch+1, config.ToConfigData())
 	// set EpochState config data for upcoming epoch
 	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())

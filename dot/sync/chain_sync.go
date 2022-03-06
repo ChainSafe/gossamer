@@ -372,15 +372,15 @@ func (cs *chainSync) logSyncSpeed() {
 			logger.Infof(
 				"🚣 currently syncing, %d peers connected, "+
 					"target block number %d, %.2f average blocks/second, "+
-					"%.2f overall average, finalised block number %s with hash %s",
+					"%.2f overall average, finalised block number %d with hash %s",
 				len(cs.network.Peers()),
 				target, cs.benchmarker.mostRecentAverage(),
 				cs.benchmarker.average(), finalised.Number, finalised.Hash())
 		case tip:
 			logger.Infof(
 				"💤 node waiting, %d peers connected, "+
-					"head block number %s with hash %s, "+
-					"finalised block number %s with hash %s",
+					"head block number %d with hash %s, "+
+					"finalised block number %d with hash %s",
 				len(cs.network.Peers()),
 				after.Number, after.Hash(),
 				finalised.Number, finalised.Hash())
@@ -749,7 +749,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 		return
 	}
 
-	logger.Tracef("new ready block number %s with hash %s", bd.Header.Number, bd.Hash)
+	logger.Tracef("new ready block number %d with hash %s", bd.Header.Number, bd.Hash)
 
 	// see if there are any descendents in the pending queue that are now ready to be processed,
 	// as we have just become aware of their parent block

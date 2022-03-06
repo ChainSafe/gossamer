@@ -131,7 +131,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		logger.Debugf(
-			"skipping block number %s with hash %s, already have",
+			"skipping block number %d with hash %s, already have",
 			block.Header.Number, bd.Hash) // TODO is this valid?
 
 		err = s.blockState.AddBlockToBlockTree(block)
