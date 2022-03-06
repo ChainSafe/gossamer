@@ -436,7 +436,6 @@ func (t *Trie) insertInBranch(parentBranch *node.Branch, key, value []byte) (new
 			}
 		} else {
 			child = t.insert(child, remainingKey, value)
-			// child.SetDirty(true)
 		}
 
 		parentBranch.Children[childIndex] = child
