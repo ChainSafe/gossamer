@@ -52,8 +52,8 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return err
 	}
 
-	key := common.BytesToHash(hash).ToBytes()
-	fmt.Printf("hash in db 0x%x, less than 32: %t\n", key, len(hash) < 32)
+	// key := common.BytesToHash(hash).ToBytes()
+	// fmt.Printf("hash in db 0x%x, less than 32: %t\n", key, len(hash) < 32)
 	// if bytes.Equal(hash, encoding) {
 	// 	hashArray, err := common.Blake2bHash(hash)
 	// 	if err != nil {
@@ -62,7 +62,7 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 	// 	key = hashArray[:]
 	// }
 
-	err = db.Put(key, encoding)
+	err = db.Put(hash, encoding)
 	if err != nil {
 		return err
 	}
@@ -161,9 +161,19 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 		t.root = nil
 		return nil
 	}
+	fmt.Println("rootHash", rootHash.ToBytes())
 
-	rootHashBytes := rootHash[:]
+	// withoutEmptyBits := []byte{}
+	counter := 0
+	for _, v := range rootHash.ToBytes() {
+		if v != 0 {
+			break
+		}
+		counter++
+	}
 
+	rootHashBytes := rootHash[counter:]
+	// rootHashBytes := withoutEmptyBits
 	fmt.Printf("key in db get 0x%x\n", rootHashBytes)
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
@@ -217,7 +227,7 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		// }
 		fmt.Printf("key in db get 2 0x%x\n", hash)
 
-		encodedNode, err := db.Get(common.BytesToHash(hash).ToBytes())
+		encodedNode, err := db.Get(hash)
 		if err != nil {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", hash, err)
 		}
@@ -372,7 +382,7 @@ func getFromDB(db chaindb.Database, n Node, key []byte) (
 	}
 
 	childHash := childWithHashOnly.GetHash()
-	encodedChild, err := db.Get(common.BytesToHash(childHash).ToBytes())
+	encodedChild, err := db.Get(childHash)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"cannot find child with hash 0x%x in database: %w",
