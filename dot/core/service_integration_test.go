@@ -102,7 +102,7 @@ func newTestDigest(t *testing.T, slotNumber uint64) scale.VaryingDataTypeSlice {
 	return vdts
 }
 
-func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance) {
+func generateTestValidTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
 	projectRootPath := utils.GetProjectRootPathTest(t) + "/chain/gssmr/genesis.json"
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
@@ -127,21 +127,7 @@ func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance) {
 	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
-	keyring, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	aliceBalanceKey := balanceKey(t, alicePub)
-
-	accInfo := types.AccountInfo{
-		Nonce: 0,
-		Data: testAccountData{
-			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
-			Reserved:   scale.MustNewUint128(big.NewInt(0)),
-			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
-			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
-		},
-	}
-
+	aliceBalanceKey := balanceKey(t, pubKey)
 	encBal, err := scale.Marshal(accInfo)
 	require.NoError(t, err)
 
@@ -499,7 +485,19 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	encExt, rt := generateTestValidTxns(t)
+	accInfo := types.AccountInfo{
+		Nonce: 0,
+		Data: testAccountData{
+			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
+			Reserved:   scale.MustNewUint128(big.NewInt(0)),
+			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
+		},
+	}
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
+	encExt, rt := generateTestValidTxns(t, alicePub, accInfo)
 	cfg := &Config{
 		Runtime: rt,
 	}
@@ -541,7 +539,19 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
-	encExt, _ := generateTestValidTxns(t)
+	accInfo := types.AccountInfo{
+		Nonce: 0,
+		Data: testAccountData{
+			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
+			Reserved:   scale.MustNewUint128(big.NewInt(0)),
+			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
+		},
+	}
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
+	encExt, _ := generateTestValidTxns(t, alicePub, accInfo)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
