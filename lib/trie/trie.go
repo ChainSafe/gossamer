@@ -358,7 +358,6 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key,
 
 		parentLeaf = t.snapshotLeafOnOldGeneration(parentLeaf)
 		parentLeaf.Value = value
-		parentLeaf.Generation = t.generation
 		parentLeaf.SetDirty(true)
 		return parentLeaf
 	}
