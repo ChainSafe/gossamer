@@ -9,6 +9,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"math/big"
 	"os"
 	"testing"
@@ -102,7 +103,8 @@ func newTestDigest(t *testing.T) scale.VaryingDataTypeSlice {
 }
 
 func generateTestValidTxns(t *testing.T) ([]byte, runtime.Instance) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+	projectRootPath := utils.GetProjectRootPathTest(t) + "/chain/gssmr/genesis.json"
+	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
