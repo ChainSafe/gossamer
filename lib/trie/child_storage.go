@@ -41,9 +41,11 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
-	hash := [32]byte{}
-	copy(hash[:], childHash)
-	return t.childTries[common.Hash(hash)], nil
+	_, ok := t.childTries[common.BytesToHash(childHash)]
+	if ok {
+		fmt.Println("Oh yeah it exists")
+	}
+	return t.childTries[common.BytesToHash(childHash)], nil
 }
 
 // PutIntoChild puts a key-value pair into the child trie located in the main trie at key :child_storage:[keyToChild]

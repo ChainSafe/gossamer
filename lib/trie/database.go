@@ -152,7 +152,7 @@ func (t *Trie) Load(db chaindb.Database, rootHashBytes []byte) error {
 	}
 
 	// counter := 0
-	// for _, v := range rootHash.ToBytes() {
+	// for _, v := range rootHashBytes {
 	// 	if v != 0 {
 	// 		break
 	// 	}
@@ -160,8 +160,9 @@ func (t *Trie) Load(db chaindb.Database, rootHashBytes []byte) error {
 	// }
 
 	// // remove initial 0 bits
-	// rootHashBytes := rootHash[counter:]
+	// rootHashBytes = rootHashBytes[counter:]
 
+	fmt.Printf("rootHashBytes 0x%x\n", rootHashBytes)
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
 		return fmt.Errorf("failed to find root key 0x%x: %w", rootHashBytes, err)
