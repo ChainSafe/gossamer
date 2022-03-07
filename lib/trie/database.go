@@ -26,6 +26,7 @@ var (
 // Generally, this will only be used for the genesis trie.
 func (t *Trie) Store(db chaindb.Database) error {
 	for _, v := range t.childTries {
+		fmt.Println("this one")
 		if err := v.Store(db); err != nil {
 			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.GetHash(), err)
 		}
@@ -51,14 +52,15 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return err
 	}
 
-	key := hash
-	if bytes.Equal(hash, encoding) {
-		hashArray, err := common.Blake2bHash(hash)
-		if err != nil {
-			return err
-		}
-		key = hashArray[:]
-	}
+	key := common.BytesToHash(hash).ToBytes()
+	fmt.Printf("hash in db 0x%x, less than 32: %t\n", key, len(hash) < 32)
+	// if bytes.Equal(hash, encoding) {
+	// 	hashArray, err := common.Blake2bHash(hash)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	key = hashArray[:]
+	// }
 
 	err = db.Put(key, encoding)
 	if err != nil {
@@ -162,6 +164,7 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 
 	rootHashBytes := rootHash[:]
 
+	fmt.Printf("key in db get 0x%x\n", rootHashBytes)
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
 		return fmt.Errorf("failed to find root key %s: %w", rootHash, err)
@@ -172,11 +175,15 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 	if err != nil {
 		return fmt.Errorf("cannot decode root node: %w", err)
 	}
+
 	t.root = root
 	t.root.SetDirty(false)
 	t.root.SetEncodingAndHash(encodedNode, rootHashBytes)
+	fmt.Printf("what is being loaded:\n%s\n", t.String())
 
-	return t.load(db, t.root)
+	err = t.load(db, t.root)
+
+	return err
 }
 
 func (t *Trie) load(db chaindb.Database, n Node) error {
@@ -193,19 +200,24 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 			continue
 		}
 
-		encoding, hash, err := child.EncodeAndHash()
-		if err != nil {
-			return err
-		}
-		if bytes.Equal(hash, encoding) {
-			hashArray, err := common.Blake2bHash(hash)
-			if err != nil {
-				return err
-			}
-			hash = hashArray[:]
-		}
+		hash := child.GetHash()
+		// _, hash, err := child.EncodeAndHash()
+		// if err != nil {
+		// 	return err
+		// }
+		fmt.Printf("printing the node %s\n", child.String())
+		// fmt.Printf("child.GetHash(): 0x%x\n", hash)
 
-		encodedNode, err := db.Get(hash)
+		// if bytes.Equal(hash, encoding) {
+		// 	hashArray, err := common.Blake2bHash(hash)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	hash = hashArray[:]
+		// }
+		fmt.Printf("key in db get 2 0x%x\n", hash)
+
+		encodedNode, err := db.Get(common.BytesToHash(hash).ToBytes())
 		if err != nil {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", hash, err)
 		}
@@ -230,9 +242,13 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
 		// TODO: Tests this error
-		err := childTrie.Load(db, common.NewHash(value))
+		// tempHash, _ := common.HexToHash("0xca95d093b5303f296c2fff7fc207eebed6a1b93e161d458f0c9861457f62afee")
+		rootHash := common.BytesToHash(value)
+		// rootHash, _ := common.Blake2bHash(value)
+		fmt.Printf("rootHash loading: %s\n", rootHash)
+		err := childTrie.Load(db, rootHash)
 		if err != nil {
-			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
+			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
 		}
 
 		// TODO: Test this error
@@ -356,7 +372,7 @@ func getFromDB(db chaindb.Database, n Node, key []byte) (
 	}
 
 	childHash := childWithHashOnly.GetHash()
-	encodedChild, err := db.Get(childHash)
+	encodedChild, err := db.Get(common.BytesToHash(childHash).ToBytes())
 	if err != nil {
 		return nil, fmt.Errorf(
 			"cannot find child with hash 0x%x in database: %w",
@@ -399,8 +415,8 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 			n.GetHash(), err)
 	}
 
-	if n == t.root {
-		// hash root node even if its encoding is under 32 bytes
+	// hash root node even if its encoding is under 32 bytes
+	if n == t.root && len(encoding) < 32 {
 		encodingDigest, err := common.Blake2bHash(encoding)
 		if err != nil {
 			return fmt.Errorf("cannot hash root node encoding: %w", err)
@@ -409,6 +425,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 		hash = encodingDigest[:]
 	}
 
+	fmt.Printf("wonder if here, hash 0x%x\n", hash)
 	err = db.Put(hash, encoding)
 	if err != nil {
 		return fmt.Errorf(

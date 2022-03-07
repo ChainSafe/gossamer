@@ -228,9 +228,6 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		"0",
 	))
 
-	// blockState, err := NewBlockStateFromGenesis(db, genHeader, telemetryMock)
-	// require.NoError(t, err)
-
 	key := []byte{1, 2}
 	value := []byte{3, 4}
 	const dirty = true
