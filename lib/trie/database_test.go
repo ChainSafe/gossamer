@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -389,59 +390,58 @@ func TestTrie_GetFromDB(t *testing.T) {
 	}
 }
 
-// func TestLoadWithChildTriesFails(t *testing.T) {
-// 	// Use a fake node implementation in which Encode always fails
-// 	// Make that root of one of the childtries
-// 	// Run load and check that it fails
+func TestLoadWithChildTriesFails(t *testing.T) {
+	// Use a fake node implementation in which Encode always fails
+	// Make that root of one of the childtries
+	// Run load and check that it fails
 
-// 	testCase := []Test{
-// 		// {key: []byte{0x01, 0x35}, value: []byte("pen")},
-// 		// {key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-// 		// {key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-// 		// {key: []byte{0xf2}, value: []byte("feather")},
-// 		{key: []byte{0xf2, 0x3}, value: []byte("f")},
-// 		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-// 		{key: []byte{0x07}, value: []byte("ramen")},
-// 		{key: []byte{0}, value: nil},
-// 	}
+	testCase := []Test{
+		// {key: []byte{0x01, 0x35}, value: []byte("pen")},
+		// {key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		// {key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+		// {key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0xf2, 0x3}, value: []byte("f")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{0x07}, value: []byte("ramen")},
+		{key: []byte{0}, value: nil},
+	}
 
-// 	trie := NewEmptyTrie()
+	trie := NewEmptyTrie()
 
-// 	for _, test := range testCase {
-// 		trie.Put(test.key, test.value)
-// 	}
+	for _, test := range testCase {
+		trie.Put(test.key, test.value)
+	}
 
-// 	key := []byte{1, 2}
-// 	value := []byte{3, 4}
-// 	const dirty = true
-// 	const generation = 0
+	key := []byte{1, 2}
+	value := []byte{3, 4}
+	const dirty = true
+	const generation = 0
 
-// 	// mockNode := node.MockLeaf{
-// 	// 	Leaf: *node.NewLeaf(key, value, dirty, generation),
-// 	// }
+	// mockNode := node.MockLeaf{
+	// 	Leaf: *node.NewLeaf(key, value, dirty, generation),
+	// }
 
-// 	// mockNode := *node.NewLeaf(key, value, dirty, generation)
+	// mockNode := *node.NewLeaf(key, value, dirty, generation)
 
-// 	// sampleChildTrie := NewTrie(&mockNode)
+	// sampleChildTrie := NewTrie(&mockNode)
 
-// 	sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
+	sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
 
-// 	db := newTestDB(t)
-// 	keyToChild := []byte("This handout will help you understand how paragraphs are formed, how to develop stronger paragraphs, and how to completely and clearly express your ideas.")
-// 	err := trie.PutChild(keyToChild, sampleChildTrie)
-// 	require.NoError(t, err)
+	db := newTestDB(t)
+	keyToChild := []byte("This handout will help you understand how paragraphs are formed, how to develop stronger paragraphs, and how to completely and clearly express your ideas.")
+	err := trie.PutChild(keyToChild, sampleChildTrie)
+	require.NoError(t, err)
 
-// 	err = trie.Store(db)
-// 	require.NoError(t, err)
+	err = trie.Store(db)
+	require.NoError(t, err)
 
-// 	// mockNode.Fail = true
-// 	res := NewEmptyTrie()
+	// mockNode.Fail = true
+	res := NewEmptyTrie()
 
-// 	rootHash := common.BytesToHash(trie.root.GetHash())
-// 	err = res.Load(db, rootHash)
-// 	require.NoError(t, err)
+	err = res.Load(db, trie.root.GetHash())
+	require.NoError(t, err)
 
-// 	require.Equal(t, trie.String(), res.String())
-// 	require.Equal(t, trie.childTries, res.childTries)
-// 	require.Equal(t, trie.MustHash(), res.MustHash())
-// }
+	require.Equal(t, trie.String(), res.String())
+	require.Equal(t, trie.childTries, res.childTries)
+	require.Equal(t, trie.MustHash(), res.MustHash())
+}
