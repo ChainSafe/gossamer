@@ -36,7 +36,8 @@ import (
 
 var errTestDummyError = errors.New("test dummy error")
 
-func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extrinsic, body *types.Body) {
+func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
+	t.Helper()
 	rawMeta := common.MustHexToBytes(testdata.NewTestMetadata())
 	var decoded []byte
 	err := scale.Unmarshal(rawMeta, &decoded)
@@ -45,6 +46,12 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 	meta := &ctypes.Metadata{}
 	err = ctypes.DecodeFromBytes(decoded, meta)
 	require.NoError(t, err)
+	return meta
+}
+
+func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extrinsic, body *types.Body) {
+	t.Helper()
+	meta := generateTestCentrifugeMetadata(t)
 
 	testAPIItem := runtime.APIItem{
 		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
@@ -59,7 +66,6 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 		[]runtime.APIItem{testAPIItem},
 		5,
 	)
-	require.NoError(t, err)
 
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)

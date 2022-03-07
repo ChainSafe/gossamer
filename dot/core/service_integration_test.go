@@ -9,7 +9,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"math/big"
 	"os"
 	"testing"
@@ -32,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -102,7 +102,7 @@ func newTestDigest(t *testing.T, slotNumber uint64) scale.VaryingDataTypeSlice {
 	return vdts
 }
 
-func generateTestValidTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
+func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
 	projectRootPath := utils.GetProjectRootPathTest(t) + "/chain/gssmr/genesis.json"
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
@@ -497,7 +497,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	encExt, rt := generateTestValidTxns(t, alicePub, accInfo)
+	encExt, rt := generateTestValidRemarkTxns(t, alicePub, accInfo)
 	cfg := &Config{
 		Runtime: rt,
 	}
@@ -516,6 +516,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	s := NewTestService(t, cfg)
 	s.transactionState = ts
 
+	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L195
 	provides := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000")
 	val := &transaction.Validity{
 		Priority:  39325240425794630,
@@ -551,7 +552,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	encExt, _ := generateTestValidTxns(t, alicePub, accInfo)
+	encExt, _ := generateTestValidRemarkTxns(t, alicePub, accInfo)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
