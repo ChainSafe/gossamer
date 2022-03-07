@@ -73,6 +73,7 @@ var (
 	errFirstBlockTimeout        = errors.New("timed out waiting for first block")
 	errChannelClosed            = errors.New("block notifier channel was closed")
 	errOverPrimarySlotThreshold = errors.New("cannot claim slot, over primary threshold")
+	errNotOurTurnToPropose      = errors.New("cannot claim slot, not our turn to propose a block")
 	errNoConfigData             = errors.New("cannot find ConfigData for epoch")
 	errGetEpochData             = errors.New("get epochData error")
 	errFailedFinalisation       = errors.New("failed to check finalisation")
@@ -83,6 +84,7 @@ var (
 	errMissingDigestItems       = errors.New("block header is missing digest items")
 	errDescendant               = errors.New("descendant err")
 	errServicePaused            = errors.New("service paused")
+	errInvalidSlotTechnique     = errors.New("invalid slot claiming technique")
 
 	other         Other
 	invalidCustom InvalidCustom
