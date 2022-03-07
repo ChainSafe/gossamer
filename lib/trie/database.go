@@ -26,7 +26,6 @@ var (
 // Generally, this will only be used for the genesis trie.
 func (t *Trie) Store(db chaindb.Database) error {
 	for _, v := range t.childTries {
-		fmt.Println("this one")
 		if err := v.Store(db); err != nil {
 			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.GetHash(), err)
 		}
@@ -51,16 +50,6 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 	if err != nil {
 		return err
 	}
-
-	// key := common.BytesToHash(hash).ToBytes()
-	// fmt.Printf("hash in db 0x%x, less than 32: %t\n", key, len(hash) < 32)
-	// if bytes.Equal(hash, encoding) {
-	// 	hashArray, err := common.Blake2bHash(hash)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	key = hashArray[:]
-	// }
 
 	err = db.Put(hash, encoding)
 	if err != nil {
@@ -161,9 +150,7 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 		t.root = nil
 		return nil
 	}
-	fmt.Println("rootHash", rootHash.ToBytes())
 
-	// withoutEmptyBits := []byte{}
 	counter := 0
 	for _, v := range rootHash.ToBytes() {
 		if v != 0 {
@@ -172,9 +159,9 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 		counter++
 	}
 
+	// remove initial 0 bits
 	rootHashBytes := rootHash[counter:]
-	// rootHashBytes := withoutEmptyBits
-	fmt.Printf("key in db get 0x%x\n", rootHashBytes)
+
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
 		return fmt.Errorf("failed to find root key %s: %w", rootHash, err)
@@ -189,11 +176,8 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 	t.root = root
 	t.root.SetDirty(false)
 	t.root.SetEncodingAndHash(encodedNode, rootHashBytes)
-	fmt.Printf("what is being loaded:\n%s\n", t.String())
 
-	err = t.load(db, t.root)
-
-	return err
+	return t.load(db, t.root)
 }
 
 func (t *Trie) load(db chaindb.Database, n Node) error {
@@ -211,21 +195,6 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		}
 
 		hash := child.GetHash()
-		// _, hash, err := child.EncodeAndHash()
-		// if err != nil {
-		// 	return err
-		// }
-		fmt.Printf("printing the node %s\n", child.String())
-		// fmt.Printf("child.GetHash(): 0x%x\n", hash)
-
-		// if bytes.Equal(hash, encoding) {
-		// 	hashArray, err := common.Blake2bHash(hash)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	hash = hashArray[:]
-		// }
-		fmt.Printf("key in db get 2 0x%x\n", hash)
 
 		encodedNode, err := db.Get(hash)
 		if err != nil {
@@ -252,10 +221,7 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
 		// TODO: Tests this error
-		// tempHash, _ := common.HexToHash("0xca95d093b5303f296c2fff7fc207eebed6a1b93e161d458f0c9861457f62afee")
 		rootHash := common.BytesToHash(value)
-		// rootHash, _ := common.Blake2bHash(value)
-		fmt.Printf("rootHash loading: %s\n", rootHash)
 		err := childTrie.Load(db, rootHash)
 		if err != nil {
 			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
@@ -435,7 +401,6 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 		hash = encodingDigest[:]
 	}
 
-	fmt.Printf("wonder if here, hash 0x%x\n", hash)
 	err = db.Put(hash, encoding)
 	if err != nil {
 		return fmt.Errorf(
