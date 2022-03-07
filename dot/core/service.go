@@ -376,12 +376,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
 			decExt := &ctypes.Extrinsic{}
 			decoder := cscale.NewDecoder(bytes.NewReader(ext))
-			_, err := decoder.DecodeUintCompact()
-			if err != nil {
-				return err
-			}
-
-			if err = decoder.Decode(&decExt.Version); err != nil {
+			if err = decoder.Decode(&decExt); err != nil {
 				continue
 			}
 

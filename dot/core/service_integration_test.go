@@ -63,7 +63,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 	return bKey
 }
 
-func newTestDigest(t *testing.T) scale.VaryingDataTypeSlice {
+func newTestDigest(t *testing.T, slotNumber uint64) scale.VaryingDataTypeSlice {
 	testBabeDigest := types.NewBabeDigest()
 	err := testBabeDigest.Set(types.BabePrimaryPreDigest{
 		VRFOutput: [sr25519.VRFOutputLength]byte{
@@ -78,7 +78,7 @@ func newTestDigest(t *testing.T) scale.VaryingDataTypeSlice {
 			28, 27, 229, 133, 8, 32, 246, 245, 206, 199, 142,
 			134, 124, 226, 217, 95, 30, 176, 246, 5, 3},
 		AuthorityIndex: 17,
-		SlotNumber:     420,
+		SlotNumber:     slotNumber,
 	})
 	require.NoError(t, err)
 	data, err := scale.Marshal(testBabeDigest)
@@ -799,7 +799,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	storageStateTrie.Set(testKey, testValue)
 	require.NoError(t, err)
 
-	digest := newTestDigest(t)
+	digest := newTestDigest(t, 420)
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
@@ -830,7 +830,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	require.NoError(t, err)
 
-	digest := newTestDigest(t)
+	digest := newTestDigest(t, 420)
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
@@ -860,7 +860,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	digest := newTestDigest(t)
+	digest := newTestDigest(t, 420)
 	header, err := types.NewHeader(
 		s.blockState.GenesisHash(),
 		common.Hash{}, common.Hash{},
@@ -948,7 +948,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 
-	digest := newTestDigest(t)
+	digest := newTestDigest(t, 420)
 	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(number), digest)
 	require.NoError(t, err)
