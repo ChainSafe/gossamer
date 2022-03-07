@@ -37,7 +37,7 @@ func GenerateProof(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, e
 	trackedProofs := make(map[string][]byte)
 
 	proofTrie := NewEmptyTrie()
-	if err := proofTrie.Load(db, common.BytesToHash(root)); err != nil {
+	if err := proofTrie.Load(db, root); err != nil {
 		return nil, err
 	}
 
