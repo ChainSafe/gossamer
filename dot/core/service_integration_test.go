@@ -959,7 +959,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 
-	digest := newTestDigest(t, 420)
+	digest := newTestDigest(t, 421)
 	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(number), digest)
 	require.NoError(t, err)
