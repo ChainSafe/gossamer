@@ -44,8 +44,8 @@ type Handler struct {
 	grandpaResume          *resume
 
 	babeConsensusDigestLock sync.Mutex
-	nextEpochData           map[common.Hash]types.NextEpochData
-	nextConfigData          map[common.Hash]types.NextConfigData
+	nextEpochData           map[uint64]map[common.Hash]types.NextEpochData
+	nextConfigData          map[uint64]map[common.Hash]types.NextConfigData
 
 	logger log.LeveledLogger
 }
@@ -82,8 +82,8 @@ func NewHandler(lvl log.Level, blockState BlockState, epochState EpochState,
 		imported:       imported,
 		finalised:      finalised,
 		logger:         logger,
-		nextEpochData:  make(map[common.Hash]types.NextEpochData),
-		nextConfigData: make(map[common.Hash]types.NextConfigData),
+		nextEpochData:  make(map[uint64]map[common.Hash]types.NextEpochData),
+		nextConfigData: make(map[uint64]map[common.Hash]types.NextConfigData),
 	}, nil
 }
 
@@ -192,21 +192,38 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 	h.babeConsensusDigestLock.Lock()
 	defer h.babeConsensusDigestLock.Unlock()
 
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	nextEpoch := currEpoch + 1
 	headerHash := header.Hash()
 
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
-		h.logger.Debugf("stored BABENextEpochData data: %v for hash: %s\n", digest, headerHash)
-		h.nextEpochData[headerHash] = val
-		return nil
+		h.logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d\n", digest, headerHash, nextEpoch)
+
+		_, has := h.nextEpochData[nextEpoch]
+		if !has {
+			h.nextEpochData[nextEpoch] = make(map[common.Hash]types.NextEpochData)
+		}
+		h.nextEpochData[nextEpoch][headerHash] = val
+
+		return h.handleNextEpochData(val, nextEpoch, header)
 
 	case types.BABEOnDisabled:
 		return h.handleBABEOnDisabled(val, header)
 
 	case types.NextConfigData:
-		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s\n", digest, headerHash)
-		h.nextConfigData[headerHash] = val
-		return nil
+		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d\n", digest, headerHash, nextEpoch)
+		_, has := h.nextConfigData[nextEpoch]
+		if !has {
+			h.nextConfigData[nextEpoch] = make(map[common.Hash]types.NextConfigData)
+		}
+		h.nextConfigData[nextEpoch][headerHash] = val
+
+		return h.handleNextConfigData(val, nextEpoch, header)
 	}
 
 	return errors.New("invalid consensus digest data")
@@ -260,26 +277,33 @@ func (h *Handler) setBABEDigestsOnFinalization(header *types.Header) error {
 	h.babeConsensusDigestLock.Lock()
 	defer h.babeConsensusDigestLock.Unlock()
 
-	nextEpochData, has := h.nextEpochData[header.Hash()]
-	if has {
-		h.logger.Debugf("setting BABENextEpochData data: %v for hash: %s", nextEpochData, header.Hash())
-		err := h.handleNextEpochData(nextEpochData, header)
-		if err != nil {
-			return err
-		}
-
-		h.nextEpochData = make(map[common.Hash]types.NextEpochData)
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
 	}
 
-	nextEpochConfigData, has := h.nextConfigData[header.Hash()]
+	nextEpoch := currEpoch + 1
+
+	nextEpochData, has := h.nextEpochData[nextEpoch]
 	if has {
-		h.logger.Debugf("setting BABENextConfigData data: %v for hash: %s", nextEpochConfigData, header.Hash())
-		err := h.handleNextConfigData(nextEpochConfigData, header)
-		if err != nil {
-			return err
+		nextEpochData, has := nextEpochData[header.Hash()]
+		if has {
+			h.logger.Debugf("setting BABENextEpochData data: %v for hash: %s to epoch: %d", nextEpochData, header.Hash(), nextEpoch)
+			return h.handleNextEpochData(nextEpochData, nextEpoch, header)
 		}
 
-		h.nextConfigData = make(map[common.Hash]types.NextConfigData)
+		delete(h.nextEpochData, nextEpoch)
+	}
+
+	nextConfigData, has := h.nextConfigData[nextEpoch]
+	if has {
+		nextEpochConfigData, has := nextConfigData[header.Hash()]
+		if has {
+			h.logger.Debugf("setting BABENextConfigData data: %v for hash: %s to epoch: %d", nextConfigData, header.Hash(), nextEpoch)
+			return h.handleNextConfigData(nextEpochConfigData, nextEpoch, header)
+		}
+
+		delete(h.nextConfigData, nextEpoch)
 	}
 
 	return nil
@@ -437,12 +461,7 @@ func (h *Handler) handleBABEOnDisabled(_ types.BABEOnDisabled, _ *types.Header) 
 	return nil
 }
 
-func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Header) error {
-	currEpoch, err := h.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
+func (h *Handler) handleNextEpochData(act types.NextEpochData, nextEpoch uint64, header *types.Header) error {
 	// set EpochState epoch data for upcoming epoch
 	data, err := act.ToEpochData()
 	if err != nil {
@@ -450,18 +469,13 @@ func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Hea
 	}
 
 	h.logger.Debugf("setting data for block number %s and epoch %d with data: %v",
-		header.Number, currEpoch+1, data)
-	return h.epochState.SetEpochData(currEpoch+1, data)
+		header.Number, nextEpoch, data)
+	return h.epochState.SetEpochData(nextEpoch, data)
 }
 
-func (h *Handler) handleNextConfigData(config types.NextConfigData, header *types.Header) error {
-	currEpoch, err := h.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
+func (h *Handler) handleNextConfigData(config types.NextConfigData, nextEpoch uint64, header *types.Header) error {
 	h.logger.Debugf("defined BABE config data for block number %s and epoch %d with data: %v",
-		header.Number, currEpoch+1, config.ToConfigData())
+		header.Number, nextEpoch, config.ToConfigData())
 	// set EpochState config data for upcoming epoch
-	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())
+	return h.epochState.SetConfigData(nextEpoch, config.ToConfigData())
 }
