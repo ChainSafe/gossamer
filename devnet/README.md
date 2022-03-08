@@ -42,7 +42,7 @@ Steps to run a two node cross client devnet
 ./polkadot build-spec --chain genesis-spec.json --raw --disable-default-bootnode > genesis.json
 ```
 
-- Initiate gossamer node
+- Use the `genesis.json` file generated in the previous step to initialize a gossamer node:
 ```
 ./bin/gossamer init --genesis ../polkadot-testing/genesis.json
 ```
