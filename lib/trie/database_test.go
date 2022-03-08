@@ -390,26 +390,16 @@ func TestTrie_GetFromDB(t *testing.T) {
 	}
 }
 
-func TestLoadWithChildTriesFails(t *testing.T) {
-	// Use a fake node implementation in which Encode always fails
-	// Make that root of one of the childtries
-	// Run load and check that it fails
-
+func TestStoreAndLoadWithChildTries(t *testing.T) {
 	testCase := []Test{
-		// {key: []byte{0x01, 0x35}, value: []byte("pen")},
-		// {key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		// {key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-		// {key: []byte{0xf2}, value: []byte("feather")},
 		{key: []byte{0xf2, 0x3}, value: []byte("f")},
 		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
 		{key: []byte{0x07}, value: []byte("ramen")},
 		{key: []byte{0}, value: nil},
-	}
-
-	trie := NewEmptyTrie()
-
-	for _, test := range testCase {
-		trie.Put(test.key, test.value)
+		{
+			key:   []byte("The boxed moved. That was a problem."),
+			value: []byte("The question now was whether or not Peter was going to open it up and look inside to see why it had moved."), // nolint
+		},
 	}
 
 	key := []byte{1, 2}
@@ -417,31 +407,40 @@ func TestLoadWithChildTriesFails(t *testing.T) {
 	const dirty = true
 	const generation = 0
 
-	// mockNode := node.MockLeaf{
-	// 	Leaf: *node.NewLeaf(key, value, dirty, generation),
-	// }
+	t.Run("happy path, tries being loaded are same as trie being read", func(t *testing.T) {
+		// hash could be different for keys smaller than 32 and larger than 32 bits.
+		// thus, testing with keys of different sizes.
+		keysToTest := [][]byte{
+			[]byte("This handout will help you understand how paragraphs are formed, how to develop stronger paragraphs."),
+			[]byte("This handout"),
+			[]byte("test"),
+		}
 
-	// mockNode := *node.NewLeaf(key, value, dirty, generation)
+		for _, keyToChild := range keysToTest {
+			trie := NewEmptyTrie()
 
-	// sampleChildTrie := NewTrie(&mockNode)
+			for _, test := range testCase {
+				trie.Put(test.key, test.value)
+			}
 
-	sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
+			db := newTestDB(t)
 
-	db := newTestDB(t)
-	keyToChild := []byte("This handout will help you understand how paragraphs are formed, how to develop stronger paragraphs, and how to completely and clearly express your ideas.")
-	err := trie.PutChild(keyToChild, sampleChildTrie)
-	require.NoError(t, err)
+			sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
 
-	err = trie.Store(db)
-	require.NoError(t, err)
+			err := trie.PutChild(keyToChild, sampleChildTrie)
+			require.NoError(t, err)
 
-	// mockNode.Fail = true
-	res := NewEmptyTrie()
+			err = trie.Store(db)
+			require.NoError(t, err)
 
-	err = res.Load(db, trie.root.GetHash())
-	require.NoError(t, err)
+			res := NewEmptyTrie()
 
-	require.Equal(t, trie.String(), res.String())
-	require.Equal(t, trie.childTries, res.childTries)
-	require.Equal(t, trie.MustHash(), res.MustHash())
+			err = res.Load(db, trie.root.GetHash())
+			require.NoError(t, err)
+
+			require.Equal(t, trie.childTries, res.childTries)
+		}
+
+	})
+
 }
