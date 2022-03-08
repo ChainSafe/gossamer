@@ -41,6 +41,7 @@ import (
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
+//nolint
 type testAccountData struct {
 	Free       *scale.Uint128
 	Reserved   *scale.Uint128
