@@ -126,7 +126,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, ErrInvalidMessageType
 	}
 
-	logger.Debugf("received message!!! %v", cm)
+	//logger.Debugf("received message!!! %v", cm)
 
 	if len(cm.Data) < 2 {
 		return false, nil

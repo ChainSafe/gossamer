@@ -129,18 +129,18 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	switch m.Message.Stage {
-	case prevote, primaryProposal:
-		pv, has := s.loadVote(pk.AsBytes(), prevote)
-		if has && pv.Vote.Hash.Equal(m.Message.Hash) {
-			return nil, errVoteExists
-		}
-	case precommit:
-		pc, has := s.loadVote(pk.AsBytes(), precommit)
-		if has && pc.Vote.Hash.Equal(m.Message.Hash) {
-			return nil, errVoteExists
-		}
-	}
+	// switch m.Message.Stage {
+	// case prevote, primaryProposal:
+	// 	pv, has := s.loadVote(pk.AsBytes(), prevote)
+	// 	if has && pv.Vote.Hash.Equal(m.Message.Hash) {
+	// 		return nil, errVoteExists
+	// 	}
+	// case precommit:
+	// 	pc, has := s.loadVote(pk.AsBytes(), precommit)
+	// 	if has && pc.Vote.Hash.Equal(m.Message.Hash) {
+	// 		return nil, errVoteExists
+	// 	}
+	// }
 
 	err = validateMessageSignature(pk, m)
 	if err != nil {
@@ -197,7 +197,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	// if the vote is from ourselves, ignore
 	kb := [32]byte(s.publicKeyBytes())
 	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
-		return vote, nil
+		return nil, errVoteFromSelf
 	}
 
 	err = s.validateVote(vote)
@@ -230,6 +230,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		s.prevotes.Store(pk.AsBytes(), just)
 	case precommit:
 		s.precommits.Store(pk.AsBytes(), just)
+		logger.Debugf("stored precommit: num=%d", s.lenVotes(precommit))
 	}
 
 	return vote, nil

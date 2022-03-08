@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -82,6 +83,8 @@ func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) {
 }
 
 func (t *tracker) handleBlocks() {
+	ticker := time.NewTicker(time.Second)
+
 	for {
 		select {
 		case b := <-t.in:
@@ -90,6 +93,8 @@ func (t *tracker) handleBlocks() {
 			}
 
 			t.handleBlock(b)
+		case <-ticker.C:
+			t.handleTick()
 		case <-t.stopped:
 			return
 		}
@@ -120,5 +125,31 @@ func (t *tracker) handleBlock(b *types.Block) {
 		}
 
 		delete(t.commitMessages, h)
+	}
+}
+
+func (t *tracker) handleTick() {
+	t.mapLock.Lock()
+	defer t.mapLock.Unlock()
+
+	for _, vms := range t.voteMessages {
+		for _, v := range vms {
+			// handleMessage would never error for vote message
+			_, err := t.handler.handleMessage(v.from, v.msg)
+			if err != nil {
+				logger.Warnf("failed to handle vote message %v: %s", v, err)
+			}
+		}
+
+		//delete(t.voteMessages, h)
+	}
+
+	for _, cm := range t.commitMessages {
+		_, err := t.handler.handleMessage("", cm)
+		if err != nil {
+			logger.Warnf("failed to handle commit message %v: %s", cm, err)
+		}
+
+		//delete(t.commitMessages, h)
 	}
 }

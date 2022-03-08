@@ -520,7 +520,16 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debug("receiving pre-commit messages...")
 	// through goroutine s.receiveMessages(ctx)
-	time.Sleep(s.interval)
+	//time.Sleep(s.interval)
+	for {
+		if len(s.state.voters) == 1 {
+			break
+		}
+
+		if s.lenVotes(precommit) > 0 {
+			break
+		}
+	}
 
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
@@ -538,6 +547,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	s.precommits.Store(s.publicKeyBytes(), spc)
+	logger.Debugf("stored precommit: num=%d", s.lenVotes(precommit))
 	logger.Debugf("sending pre-commit message %s...", pc)
 
 	// continue to send precommit messages until round is done
