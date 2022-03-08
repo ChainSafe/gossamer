@@ -91,7 +91,6 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 			},
 			Body: types.Body{},
 		}
-
 		currentChain = append(currentChain, &block.Header)
 
 		hash := block.Header.Hash()

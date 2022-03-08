@@ -103,7 +103,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
-	time.Sleep(time.Second * 60)
+	time.Sleep(time.Second * 30)
 
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
