@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
@@ -64,16 +63,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 }
 
 func TestBlockState_SetFinalisedHash(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Set(0.00)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	h, err := bs.GetFinalisedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
@@ -84,10 +74,13 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	require.NotNil(t, di)
 	err = digest.Add(*di)
 	require.NoError(t, err)
+
+	someStateRoot := common.Hash{1, 1}
 	header := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
 		Digest:     digest,
+		StateRoot:  someStateRoot,
 	}
 
 	testhash := header.Hash()
@@ -100,6 +93,9 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// set tries with some state root
+	bs.tries.softSet(someStateRoot, trie.NewEmptyTrie())
+
 	err = bs.SetFinalisedHash(testhash, 1, 1)
 	require.NoError(t, err)
 
@@ -109,16 +105,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 }
 
 func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Set(0.00).Times(2)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	firstSlot := uint64(42069)
 
 	digest := types.NewDigest()

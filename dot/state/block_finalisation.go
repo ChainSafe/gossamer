@@ -118,7 +118,6 @@ func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
 	bs.Lock()
 	defer bs.Unlock()
-
 	has, _ := bs.HasHeader(hash)
 	if !has {
 		return fmt.Errorf("cannot finalise unknown block %s", hash)
@@ -134,10 +133,6 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	if err := bs.setHighestRoundAndSetID(round, setID); err != nil {
 		return fmt.Errorf("failed to set highest round and set ID: %w", err)
-	}
-
-	if err := bs.handleFinalisedBlock(hash); err != nil {
-		return fmt.Errorf("failed to set number->hash mapping on finalisation: %w", err)
 	}
 
 	if round > 0 {
@@ -176,7 +171,30 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		),
 	)
 
+	if !bs.lastFinalised.Equal(hash) {
+		defer func(lastFinalised common.Hash) {
+			err := bs.deleteFromTries(lastFinalised)
+			if err != nil {
+				logger.Debugf("%v", err)
+			}
+		}(bs.lastFinalised)
+	}
+
 	bs.lastFinalised = hash
+	return nil
+}
+
+func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
+	lastFinalisedHeader, err := bs.GetHeader(lastFinalised)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve header for last finalised block, hash: %s, err: %s", bs.lastFinalised, err)
+	}
+	stateRootTrie := bs.tries.get(lastFinalisedHeader.StateRoot)
+	if stateRootTrie != nil {
+		bs.tries.delete(lastFinalisedHeader.StateRoot)
+	} else {
+		return fmt.Errorf("unable to find trie with stateroot hash: %s", lastFinalisedHeader.StateRoot)
+	}
 	return nil
 }
 
@@ -243,7 +261,6 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 		logger.Tracef("cleaned out finalised block from memory; block number %s with hash %s", blockHeader.Number, hash)
 	}
-
 	return batch.Flush()
 }
 

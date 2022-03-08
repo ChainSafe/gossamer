@@ -32,16 +32,7 @@ func newTestStorageState(t *testing.T, tries *Tries) *StorageState {
 }
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc()
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	storage := newTestStorageState(t, tries)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -61,16 +52,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc().Times(2)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	storage := newTestStorageState(t, tries)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -105,17 +87,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 }
 
 func TestStorage_TrieState(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc().Times(3)
-	triesGauge.EXPECT().Set(1.00).Times(1)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	storage := newTestStorageState(t, tries)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 	ts.Set([]byte("noot"), []byte("washere"))
@@ -135,17 +107,7 @@ func TestStorage_TrieState(t *testing.T) {
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc().Times(4)
-	triesGauge.EXPECT().Set(1.00).Times(3)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	storage := newTestStorageState(t, tries)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -190,16 +152,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc().Times(2)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	storage := newTestStorageState(t, tries)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -233,13 +186,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc().Times(2)
-	triesGauge.EXPECT().Set(0.00)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
+	tries := newTriesEmpty()
 
 	blockState, err := NewBlockStateFromGenesis(db, tries, genHeader, telemetryMock)
 	require.NoError(t, err)
