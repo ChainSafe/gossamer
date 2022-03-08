@@ -35,7 +35,7 @@ Steps to run a two node cross client devnet
 ./polkadot build-spec --disable-default-bootnode --dev > genesis-spec.json
 ```
 
-- Edit `genesis-spec.json` as per your needs. Add extra authorities if you want to. In order to add extra authorities, you would want to edit "validatorCount", "minimumValidatorCount", "invulnerables", "stakers", and "session"."keys"
+- Edit the generated `genesis-spec.json` file as per your needs. Add extra authorities if you want to. In order to add extra authorities, you would want to edit "validatorCount", "minimumValidatorCount", "invulnerables", "stakers", and "session"."keys", for a devnet genesis spec file you would want to use the parity `subkey` cli tool to retrieve the right account key values, eg. `subkey inspect //Alice` or `subkey inspect //Alice/Stash`.
 
 - Create `genesis.json` from `genesis-spec.json`.
 ```bash
