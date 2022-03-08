@@ -391,21 +391,15 @@ func TestTrie_GetFromDB(t *testing.T) {
 }
 
 func TestStoreAndLoadWithChildTries(t *testing.T) {
-	// Use a fake node implementation in which Encode always fails
-	// Make that root of one of the childtries
-	// Run load and check that it fails
-
 	testCase := []Test{
 		{key: []byte{0xf2, 0x3}, value: []byte("f")},
 		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
 		{key: []byte{0x07}, value: []byte("ramen")},
 		{key: []byte{0}, value: nil},
-	}
-
-	trie := NewEmptyTrie()
-
-	for _, test := range testCase {
-		trie.Put(test.key, test.value)
+		{
+			key:   []byte("The boxed moved. That was a problem."),
+			value: []byte("The question now was whether or not Peter was going to open it up and look inside to see why it had moved."), // nolint
+		},
 	}
 
 	key := []byte{1, 2}
@@ -414,15 +408,23 @@ func TestStoreAndLoadWithChildTries(t *testing.T) {
 	const generation = 0
 
 	t.Run("happy path, tries being loaded are same as trie being read", func(t *testing.T) {
-
 		// hash could be different for keys smaller than 32 and larger than 32 bits.
 		// thus, testing with keys of different sizes.
 		keysToTest := [][]byte{
 			[]byte("This handout will help you understand how paragraphs are formed, how to develop stronger paragraphs."),
+			[]byte("This handout"),
+			[]byte("test"),
 		}
 
-		db := newTestDB(t)
 		for _, keyToChild := range keysToTest {
+			trie := NewEmptyTrie()
+
+			for _, test := range testCase {
+				trie.Put(test.key, test.value)
+			}
+
+			db := newTestDB(t)
+
 			sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
 
 			err := trie.PutChild(keyToChild, sampleChildTrie)

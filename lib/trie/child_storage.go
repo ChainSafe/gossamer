@@ -18,8 +18,8 @@ var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 // PutChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 // A child trie is added as a node (K, V) in main trie. K is the child storage key
 // associated to the child trie, and V is the Merkle value of its corresponding child trie.
-// To get merkle value of a node, we get value of the node. It the value is shorter than
-// 32 bits we use it as merkle value. Otherwise, we use it's blake2b hash as merkle value.
+// To get merkle value of a node, we get value of the node. If the value is shorter than
+// 32 bits, we use it as merkle value. Otherwise, we use it's blake2b hash as merkle value.
 func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 	_, hash, err := child.root.EncodeAndHash()
 	if err != nil {
