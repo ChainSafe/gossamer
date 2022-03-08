@@ -5,6 +5,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"sync"
 
@@ -204,9 +205,9 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	// store block in database
 	if err = s.blockState.AddBlock(block); err != nil {
-		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
+		if errors.Is(err, blocktree.ErrParentNotFound) && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 			return err
-		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
+		} else if errors.Is(err, blocktree.ErrBlockExists) || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
 			// this is fine
 		} else {
 			return err

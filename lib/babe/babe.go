@@ -386,6 +386,7 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 		// stop current epoch handler
 		cancel()
 	case err := <-errCh:
+		// TODO: errEpochPast is sent on this channel, but it doesnot get logged here
 		cleanup()
 		logger.Errorf("error from epochHandler: %s", err)
 	}
@@ -400,7 +401,10 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	return next, nil
 }
 
-func (b *Service) handleSlot(epoch, slotNum uint64, authorityIndex uint32, proof *VrfOutputAndProof) error {
+func (b *Service) handleSlot(epoch, slotNum uint64,
+	authorityIndex uint32,
+	preRuntimeDigest *types.PreRuntimeDigest,
+) error {
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		return err
@@ -442,7 +446,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64, authorityIndex uint32, proof
 
 	rt.SetContextStorage(ts)
 
-	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, proof)
+	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
 	if err != nil {
 		return err
 	}
