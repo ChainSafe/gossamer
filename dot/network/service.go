@@ -697,6 +697,7 @@ func (s *Service) startPeerSetHandler() {
 	}
 }
 
+// Process will connect, drop or reject a peer based on a peerset message
 func (s *Service) Process(msg peerset.Message) {
 	peerID := msg.PeerID
 	if peerID == "" {
