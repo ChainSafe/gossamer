@@ -4,8 +4,6 @@
 package modules
 
 import (
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -41,7 +39,7 @@ type BlockAPI interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	BestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
-	GetHashByNumber(blockNumber *big.Int) (common.Hash, error)
+	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
@@ -159,5 +157,5 @@ type SyncStateAPI interface {
 
 // SyncAPI is the interface to interact with the sync service
 type SyncAPI interface {
-	HighestBlock() int64
+	HighestBlock() uint
 }

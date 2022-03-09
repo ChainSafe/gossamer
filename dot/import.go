@@ -6,6 +6,7 @@ package dot
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -87,7 +88,10 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 		return nil, errors.New("invalid number field in header JSON")
 	}
 
-	num := common.MustHexToBigInt(hexNum)
+	num, err := common.HexToUint(hexNum)
+	if err != nil {
+		return nil, fmt.Errorf("cannot convert number field: %w", err)
+	}
 
 	parentHashStr, ok := jsonHeader["parentHash"].(string)
 	if !ok {

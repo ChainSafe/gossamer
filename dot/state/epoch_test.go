@@ -5,7 +5,6 @@ package state
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -232,7 +231,7 @@ func TestEpochGet_BABENextEpochData_BABENextConfigData(t *testing.T) {
 	t.Parallel()
 
 	header := types.Header{
-		Number:    big.NewInt(1),
+		Number:    1,
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigest(),
 	}

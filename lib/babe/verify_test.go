@@ -6,7 +6,6 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -794,22 +793,22 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	mockEpochStateThresholdErr := NewMockEpochState(ctrl)
 	mockEpochStateOk := NewMockEpochState(ctrl)
 
-	mockEpochStateGetErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(nil, errNoConfigData)
+	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0)).Return(nil, errNoConfigData)
 
-	mockEpochStateHasErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(&types.EpochData{}, nil)
-	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errNoConfigData)
+	mockEpochStateHasErr.EXPECT().GetEpochData(uint64(0)).Return(&types.EpochData{}, nil)
+	mockEpochStateHasErr.EXPECT().HasConfigData(uint64(0)).Return(false, errNoConfigData)
 
-	mockEpochStateThresholdErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(&types.EpochData{}, nil)
-	mockEpochStateThresholdErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
-	mockEpochStateThresholdErr.EXPECT().GetConfigData(gomock.Eq(uint64(0))).
+	mockEpochStateThresholdErr.EXPECT().GetEpochData(uint64(0)).Return(&types.EpochData{}, nil)
+	mockEpochStateThresholdErr.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
+	mockEpochStateThresholdErr.EXPECT().GetConfigData(uint64(0)).
 		Return(&types.ConfigData{
 			C1: 3,
 			C2: 1,
 		}, nil)
 
-	mockEpochStateOk.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(&types.EpochData{}, nil)
-	mockEpochStateOk.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
-	mockEpochStateOk.EXPECT().GetConfigData(gomock.Eq(uint64(0))).
+	mockEpochStateOk.EXPECT().GetEpochData(uint64(0)).Return(&types.EpochData{}, nil)
+	mockEpochStateOk.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
+	mockEpochStateOk.EXPECT().GetConfigData(uint64(0)).
 		Return(&types.ConfigData{
 			C1: 1,
 			C2: 3,
@@ -878,7 +877,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	assert.NoError(t, err)
 
 	testBlockHeaderEmpty := types.NewEmptyHeader()
-	testBlockHeaderEmpty.Number = big.NewInt(2)
+	testBlockHeaderEmpty.Number = 2
 
 	ctrl := gomock.NewController(t)
 	mockBlockStateEmpty := NewMockBlockState(ctrl)
@@ -895,34 +894,34 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	mockEpochStateNilBlockStateErr := NewMockEpochState(ctrl)
 	mockEpochStateVerifyAuthorshipErr := NewMockEpochState(ctrl)
 
-	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, errFailedFinalisation)
+	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(uint(1)).Return(false, errFailedFinalisation)
 
-	mockBlockStateNotFinal.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
+	mockBlockStateNotFinal.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
 
-	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(gomock.Eq(big.NewInt(1))).Return(false, nil)
-	mockEpochStateSetSlotErr.EXPECT().SetFirstSlot(gomock.Eq(uint64(1))).Return(errSetFirstSlot)
+	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
+	mockEpochStateSetSlotErr.EXPECT().SetFirstSlot(uint64(1)).Return(errSetFirstSlot)
 
-	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).
+	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).
 		Return(uint64(0), errGetEpoch)
 
-	mockEpochStateSkipVerifyErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
-	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errGetEpochData)
-	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(false, errSkipVerify)
+	mockEpochStateSkipVerifyErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
+	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(uint64(1)).Return(nil, errGetEpochData)
+	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, errSkipVerify)
 
-	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
-	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(nil, errGetEpochData)
-	mockEpochStateSkipVerifyTrue.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(true, nil)
+	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
+	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochData(uint64(1)).Return(nil, errGetEpochData)
+	mockEpochStateSkipVerifyTrue.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(true, nil)
 
-	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
-	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochData(gomock.Eq(uint64(1))).
+	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
+	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochData(uint64(1)).
 		Return(nil, errGetEpochData)
-	mockEpochStateGetVerifierInfoErr.EXPECT().SkipVerify(gomock.Eq(testBlockHeaderEmpty)).Return(false, nil)
+	mockEpochStateGetVerifierInfoErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, nil)
 
-	mockEpochStateNilBlockStateErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
-	mockEpochStateVerifyAuthorshipErr.EXPECT().GetEpochForBlock(gomock.Eq(testBlockHeaderEmpty)).Return(uint64(1), nil)
+	mockEpochStateNilBlockStateErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
+	mockEpochStateVerifyAuthorshipErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
 
 	block1Header := types.NewEmptyHeader()
-	block1Header.Number = big.NewInt(1)
+	block1Header.Number = 1
 
 	testBabeSecondaryVRFPreDigest := types.BabeSecondaryVRFPreDigest{
 		AuthorityIndex: 1,
@@ -933,7 +932,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	block1Header2 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-	block1Header2.Number = big.NewInt(1)
+	block1Header2.Number = 1
 
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
@@ -1047,7 +1046,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	assert.NoError(t, err)
 
 	testHeader := types.NewEmptyHeader()
-	testHeader.Number = big.NewInt(2)
+	testHeader.Number = 2
 
 	ctrl := gomock.NewController(t)
 	mockBlockStateEmpty := NewMockBlockState(ctrl)
@@ -1063,22 +1062,22 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	mockEpochStateOk2 := NewMockEpochState(ctrl)
 	mockEpochStateOk3 := NewMockEpochState(ctrl)
 
-	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(0), errGetEpoch)
+	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), errGetEpoch)
 
-	mockEpochStateGetEpochDataErr.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(0), nil)
-	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(gomock.Eq(uint64(0))).Return(nil, errGetEpochData)
+	mockEpochStateGetEpochDataErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), nil)
+	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(uint64(0)).Return(nil, errGetEpochData)
 
-	mockEpochStateIndexLenErr.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(2), nil)
+	mockEpochStateIndexLenErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
 
-	mockEpochStateSetDisabledProd.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(2), nil)
+	mockEpochStateSetDisabledProd.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
 
-	mockEpochStateOk.EXPECT().GetEpochForBlock(gomock.Eq(types.NewEmptyHeader())).Return(uint64(2), nil)
+	mockEpochStateOk.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
 	mockBlockStateIsDescendantErr.EXPECT().IsDescendantOf(gomock.Any(), gomock.Any()).Return(false, errDescendant)
 
-	mockEpochStateOk2.EXPECT().GetEpochForBlock(gomock.Eq(testHeader)).Return(uint64(2), nil)
+	mockEpochStateOk2.EXPECT().GetEpochForBlock(testHeader).Return(uint64(2), nil)
 	mockBlockStateAuthorityDisabled.EXPECT().IsDescendantOf(gomock.Any(), gomock.Any()).Return(true, nil)
 
-	mockEpochStateOk3.EXPECT().GetEpochForBlock(gomock.Eq(testHeader)).Return(uint64(2), nil)
+	mockEpochStateOk3.EXPECT().GetEpochForBlock(testHeader).Return(uint64(2), nil)
 	mockBlockStateOk.EXPECT().IsDescendantOf(gomock.Any(), gomock.Any()).Return(false, nil)
 
 	authority := types.NewAuthority(kp.Public(), uint64(1))
@@ -1090,7 +1089,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 
 	disabledInfo := []*onDisabledInfo{
 		{
-			blockNumber: big.NewInt(2),
+			blockNumber: 2,
 		},
 	}
 

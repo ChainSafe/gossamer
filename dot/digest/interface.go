@@ -4,8 +4,6 @@
 package digest
 
 import (
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
@@ -34,9 +32,9 @@ type EpochState interface {
 
 // GrandpaState is the interface for the state.GrandpaState
 type GrandpaState interface {
-	SetNextChange(authorities []grandpa.Voter, number *big.Int) error
+	SetNextChange(authorities []grandpa.Voter, number uint) error
 	IncrementSetID() (newSetID uint64, err error)
-	SetNextPause(number *big.Int) error
-	SetNextResume(number *big.Int) error
+	SetNextPause(number uint) error
+	SetNextResume(number uint) error
 	GetCurrentSetID() (uint64, error)
 }

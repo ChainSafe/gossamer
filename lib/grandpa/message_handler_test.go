@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 
 var testHeader = &types.Header{
 	ParentHash: testGenesisHeader.Hash(),
-	Number:     big.NewInt(1),
+	Number:     1,
 	Digest:     newTestDigest(),
 }
 
@@ -214,7 +213,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	block := &types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(1),
+			Number:     1,
 			ParentHash: st.Block.GenesisHash(),
 			Digest:     digest,
 		},
@@ -269,7 +268,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     digest,
 		},
 		Body: types.Body{},
@@ -384,7 +383,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     digest,
 		},
 		Body: types.Body{},
@@ -606,7 +605,7 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	}
 
 	gs, st := newTestService(t)
-	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
+	err := st.Grandpa.SetNextChange(auths, 1)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -648,7 +647,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	}
 
 	gs, st := newTestService(t)
-	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
+	err := st.Grandpa.SetNextChange(auths, 1)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -702,7 +701,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	}
 
 	gs, st := newTestService(t)
-	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
+	err := st.Grandpa.SetNextChange(auths, 1)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -809,7 +808,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, now)
 
 	bfcHash := bfcBlock.Header.Hash()
-	bfcNumber := bfcBlock.Header.Number.Int64()
+	bfcNumber := bfcBlock.Header.Number
 
 	// many of equivocatory votes
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
@@ -876,7 +875,7 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, now)
 
 	bfcHash := bfcBlock.Header.Hash()
-	bfcNumber := bfcBlock.Header.Number.Int64()
+	bfcNumber := bfcBlock.Header.Number
 
 	// many of equivocatory votes
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
@@ -955,7 +954,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 	bfcBlock := addBlocksAndReturnTheLastOne(t, st.Block, previousBlocksToAdd, now)
 
 	bfcHash := bfcBlock.Header.Hash()
-	bfcNumber := bfcBlock.Header.Number.Int64()
+	bfcNumber := bfcBlock.Header.Number
 
 	// many of equivocatory votes
 	ed25519Keyring, err := keystore.NewEd25519Keyring()

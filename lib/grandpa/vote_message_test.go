@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -70,8 +69,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	branches := make(map[int]int)
-	branches[6] = 1
+	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
 	leaves := gs.blockState.Leaves()
 
@@ -117,8 +115,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	branches := make(map[int]int)
-	branches[6] = 1
+	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
 	leaves := gs.blockState.Leaves()
 
@@ -277,8 +274,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	branches := make(map[int]int)
-	branches[6] = 1
+	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
 	leaves := gs.blockState.Leaves()
 
@@ -325,7 +321,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	gs.tracker = newTracker(st.Block, gs.messageHandler)
 
 	fake := &types.Header{
-		Number: big.NewInt(77),
+		Number: 77,
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -358,8 +354,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
-	branches := make(map[int]int)
-	branches[6] = 1
+	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
 	leaves := gs.blockState.Leaves()
 

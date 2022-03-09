@@ -4,7 +4,6 @@
 package digest
 
 import (
-	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -83,7 +82,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	}
 
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 
 	err = handler.handleConsensusDigest(d, header)
@@ -142,7 +141,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 	}
 
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 
 	err = handler.handleConsensusDigest(d, header)
@@ -188,8 +187,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 	nextPause, err := handler.grandpaState.(*state.GrandpaState).GetNextPause()
 	require.NoError(t, err)
-	require.NotNil(t, nextPause) // ensure pause was found
-	require.Equal(t, big.NewInt(int64(p.Delay)), nextPause)
+	require.Equal(t, uint(p.Delay), nextPause)
 
 	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
 	for i, h := range headers {
@@ -224,8 +222,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	nextResume, err := handler.grandpaState.(*state.GrandpaState).GetNextResume()
 	require.NoError(t, err)
-	require.NotNil(t, nextResume) // ensure resume was found
-	require.Equal(t, big.NewInt(int64(r.Delay)+int64(p.Delay)), nextResume)
+	require.Equal(t, uint(r.Delay+p.Delay), nextResume)
 }
 
 func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
@@ -233,10 +230,10 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 	handler.Start()
 	defer handler.Stop()
 
-	block := uint32(3)
+	const block uint = 3
 	sc := types.GrandpaScheduledChange{
 		Auths: []types.GrandpaAuthoritiesRaw{},
-		Delay: block,
+		Delay: uint32(block),
 	}
 
 	var digest = types.NewGrandpaConsensusDigest()
@@ -251,14 +248,14 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 		Data:              data,
 	}
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	next := handler.NextGrandpaAuthorityChange()
-	require.Equal(t, uint64(block), next)
+	require.Equal(t, block, next)
 
 	nextSetID := uint64(1)
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
@@ -295,7 +292,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	}
 
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 
 	err = handler.handleConsensusDigest(d, header)
@@ -308,12 +305,12 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 
-	earlier := uint32(4)
+	const earlier uint = 4
 	fc := types.GrandpaForcedChange{
 		Auths: []types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
-		Delay: earlier,
+		Delay: uint32(earlier),
 	}
 
 	digest = types.NewGrandpaConsensusDigest()
@@ -332,7 +329,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	next := handler.NextGrandpaAuthorityChange()
-	require.Equal(t, uint64(earlier+1), next)
+	require.Equal(t, earlier+1, next)
 
 	auths, err = handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
 	require.NoError(t, err)
@@ -344,7 +341,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	handler := newTestHandler(t)
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 
 	var digest = types.NewBabeConsensusDigest()
@@ -382,7 +379,7 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 	require.NoError(t, err)
 
 	return &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 		Digest: digest,
 	}
 }

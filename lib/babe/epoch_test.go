@@ -4,7 +4,6 @@
 package babe
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -23,9 +22,9 @@ func TestBabeService_checkAndSetFirstSlot(t *testing.T) {
 	mockEpochState0 := NewMockEpochState(ctrl)
 	mockEpochState1 := NewMockEpochState(ctrl)
 
-	mockEpochState0.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(0))).Return(uint64(1), nil)
-	mockEpochState1.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(0))).Return(uint64(99), nil)
-	mockEpochState1.EXPECT().SetFirstSlot(gomock.Eq(uint64(1))).Return(nil)
+	mockEpochState0.EXPECT().GetStartSlotForEpoch(uint64(0)).Return(uint64(1), nil)
+	mockEpochState1.EXPECT().GetStartSlotForEpoch(uint64(0)).Return(uint64(99), nil)
+	mockEpochState1.EXPECT().SetFirstSlot(uint64(1)).Return(nil)
 
 	testBabeSecondaryPlainPreDigest := types.BabeSecondaryPlainPreDigest{
 		SlotNumber: 1,
@@ -38,8 +37,8 @@ func TestBabeService_checkAndSetFirstSlot(t *testing.T) {
 		Header: *header,
 	}
 
-	mockBlockState.EXPECT().GetBlockByNumber(gomock.Eq(big.NewInt(1))).Return(block, nil)
-	mockBlockState.EXPECT().GetBlockByNumber(gomock.Eq(big.NewInt(1))).Return(block, nil)
+	mockBlockState.EXPECT().GetBlockByNumber(uint(1)).Return(block, nil)
+	mockBlockState.EXPECT().GetBlockByNumber(uint(1)).Return(block, nil)
 
 	bs0 := &Service{
 		epochState: mockEpochState0,
@@ -78,12 +77,12 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 	mockEpochState1 := NewMockEpochState(ctrl)
 	mockEpochState2 := NewMockEpochState(ctrl)
 
-	mockEpochState0.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(0))).Return(uint64(1), nil)
-	mockEpochState1.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(1))).Return(uint64(201), nil)
-	mockEpochState2.EXPECT().GetStartSlotForEpoch(gomock.Eq(uint64(1))).Return(uint64(201), nil)
+	mockEpochState0.EXPECT().GetStartSlotForEpoch(uint64(0)).Return(uint64(1), nil)
+	mockEpochState1.EXPECT().GetStartSlotForEpoch(uint64(1)).Return(uint64(201), nil)
+	mockEpochState2.EXPECT().GetStartSlotForEpoch(uint64(1)).Return(uint64(201), nil)
 
-	mockEpochState1.EXPECT().HasEpochData(gomock.Eq(uint64(1))).Return(true, nil)
-	mockEpochState2.EXPECT().HasEpochData(gomock.Eq(uint64(1))).Return(true, nil)
+	mockEpochState1.EXPECT().HasEpochData(uint64(1)).Return(true, nil)
+	mockEpochState2.EXPECT().HasEpochData(uint64(1)).Return(true, nil)
 
 	kp := keyring.Alice().(*sr25519.Keypair)
 	authority := types.NewAuthority(kp.Public(), uint64(1))
@@ -92,18 +91,18 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 		Authorities: []types.Authority{*authority},
 	}
 
-	mockEpochState1.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(testEpochData, nil)
-	mockEpochState2.EXPECT().GetEpochData(gomock.Eq(uint64(1))).Return(testEpochData, nil)
+	mockEpochState1.EXPECT().GetEpochData(uint64(1)).Return(testEpochData, nil)
+	mockEpochState2.EXPECT().GetEpochData(uint64(1)).Return(testEpochData, nil)
 
-	mockEpochState1.EXPECT().HasConfigData(gomock.Eq(uint64(1))).Return(true, nil)
-	mockEpochState2.EXPECT().HasConfigData(gomock.Eq(uint64(1))).Return(false, nil)
+	mockEpochState1.EXPECT().HasConfigData(uint64(1)).Return(true, nil)
+	mockEpochState2.EXPECT().HasConfigData(uint64(1)).Return(false, nil)
 
 	testConfigData := &types.ConfigData{
 		C1: 1,
 		C2: 1,
 	}
 
-	mockEpochState1.EXPECT().GetConfigData(gomock.Eq(uint64(1))).Return(testConfigData, nil)
+	mockEpochState1.EXPECT().GetConfigData(uint64(1)).Return(testConfigData, nil)
 
 	testLatestConfigData := &types.ConfigData{
 		C1: 1,
