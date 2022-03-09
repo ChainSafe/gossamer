@@ -129,19 +129,6 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	// switch m.Message.Stage {
-	// case prevote, primaryProposal:
-	// 	pv, has := s.loadVote(pk.AsBytes(), prevote)
-	// 	if has && pv.Vote.Hash.Equal(m.Message.Hash) {
-	// 		return nil, errVoteExists
-	// 	}
-	// case precommit:
-	// 	pc, has := s.loadVote(pk.AsBytes(), precommit)
-	// 	if has && pc.Vote.Hash.Equal(m.Message.Hash) {
-	// 		return nil, errVoteExists
-	// 	}
-	// }
-
 	err = validateMessageSignature(pk, m)
 	if err != nil {
 		return nil, err
