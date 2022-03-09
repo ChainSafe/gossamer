@@ -246,6 +246,7 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 	return raw.ToEpochData()
 }
 
+// GetEpochDataForHeader retrieves the right epoch data that belongs to the header parameter
 func (s *EpochState) GetEpochDataForHeader(epoch uint64, header *types.Header) (*types.EpochData, error) {
 	s.nextEpochLock.RLock()
 	defer s.nextEpochLock.RUnlock()
@@ -332,6 +333,7 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 	return info, nil
 }
 
+// GetConfigDataForHeader retrieves the right epoch configuration data that belongs to the header parameter
 func (s *EpochState) GetConfigDataForHeader(epoch uint64, header *types.Header) (*types.ConfigData, error) {
 	s.nextEpochLock.RLock()
 	defer s.nextEpochLock.RUnlock()
@@ -371,11 +373,12 @@ func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 // HasConfigData returns whether config data exists for a given epoch
 func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 	has, err := s.db.Has(configDataKey(epoch))
+
 	if errors.Is(chaindb.ErrKeyNotFound, err) {
 		s.nextEpochLock.Lock()
 		defer s.nextEpochLock.Unlock()
 
-		_, has := s.nextConfigData[epoch]
+		_, has = s.nextConfigData[epoch]
 		return has, nil
 	}
 
@@ -445,61 +448,61 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 }
 
 // StoreBABENextEpochData stores the types.NextEpochData under epoch and hash keys
-func (b *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, val types.NextEpochData) {
-	b.nextEpochLock.Lock()
-	defer b.nextEpochLock.Unlock()
+func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, val types.NextEpochData) {
+	s.nextEpochLock.Lock()
+	defer s.nextEpochLock.Unlock()
 
-	_, has := b.nextEpochData[epoch]
+	_, has := s.nextEpochData[epoch]
 	if !has {
-		b.nextEpochData[epoch] = make(map[common.Hash]types.NextEpochData)
+		s.nextEpochData[epoch] = make(map[common.Hash]types.NextEpochData)
 	}
-	b.nextEpochData[epoch][hash] = val
+	s.nextEpochData[epoch][hash] = val
 }
 
 // StoreBABENextConfigData stores the types.NextConfigData under epoch and hash keys
-func (b *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val types.NextConfigData) {
-	b.nextEpochLock.Lock()
-	defer b.nextEpochLock.Unlock()
+func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val types.NextConfigData) {
+	s.nextEpochLock.Lock()
+	defer s.nextEpochLock.Unlock()
 
-	_, has := b.nextConfigData[epoch]
+	_, has := s.nextConfigData[epoch]
 	if !has {
-		b.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigData)
+		s.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigData)
 	}
-	b.nextConfigData[epoch][hash] = val
+	s.nextConfigData[epoch][hash] = val
 }
 
 // GetBABENextEpochDataToFinalize retrieves the types.NextEpochData by epoch and hash keys
 // and delete all the entries for the epoch
-func (b *EpochState) GetBABENextEpochDataToFinalize(epoch uint64, hash common.Hash) (types.NextEpochData, bool) {
-	b.nextEpochLock.RLock()
-	defer b.nextEpochLock.RUnlock()
+func (s *EpochState) GetBABENextEpochDataToFinalize(epoch uint64, hash common.Hash) (types.NextEpochData, bool) {
+	s.nextEpochLock.RLock()
+	defer s.nextEpochLock.RUnlock()
 
-	epochData, has := b.nextEpochData[epoch]
+	epochData, has := s.nextEpochData[epoch]
 	if !has {
 		return types.NextEpochData{}, false
 	}
 
 	nextEpochData, has := epochData[hash]
 	if has {
-		delete(b.nextConfigData, epoch)
+		delete(s.nextConfigData, epoch)
 	}
 	return nextEpochData, has
 }
 
 // GetBABENextConfigDataToFinalize retrieves the types.NextConfigData by epoch and hash keys
 // and delete all the entries for the epoch
-func (b *EpochState) GetBABENextConfigDataToFinalize(epoch uint64, hash common.Hash) (types.NextConfigData, bool) {
-	b.nextEpochLock.RLock()
-	defer b.nextEpochLock.RUnlock()
+func (s *EpochState) GetBABENextConfigDataToFinalize(epoch uint64, hash common.Hash) (types.NextConfigData, bool) {
+	s.nextEpochLock.RLock()
+	defer s.nextEpochLock.RUnlock()
 
-	epochData, has := b.nextConfigData[epoch]
+	epochData, has := s.nextConfigData[epoch]
 	if !has {
 		return types.NextConfigData{}, false
 	}
 
 	nextConfigData, has := epochData[hash]
 	if has {
-		delete(b.nextConfigData, epoch)
+		delete(s.nextConfigData, epoch)
 	}
 
 	return nextConfigData, has

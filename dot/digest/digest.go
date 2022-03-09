@@ -258,13 +258,15 @@ func (h *Handler) setBABEDigestsOnFinalization(header *types.Header) error {
 
 	nextEpochData, has := h.epochState.GetBABENextEpochDataToFinalize(nextEpoch, headerHash)
 	if has {
-		h.logger.Debugf("setting BABENextEpochData data: %v for hash: %s to epoch: %d", nextEpochData, header.Hash(), nextEpoch)
+		h.logger.Debugf("setting BABENextEpochData data: %v for hash: %s to epoch: %d",
+			nextEpochData, header.Hash(), nextEpoch)
 		return h.handleNextEpochData(nextEpochData, nextEpoch, header)
 	}
 
 	nextConfigData, has := h.epochState.GetBABENextConfigDataToFinalize(nextEpoch, headerHash)
 	if has {
-		h.logger.Debugf("setting BABENextConfigData data: %v for hash: %s to epoch: %d", nextConfigData, header.Hash(), nextEpoch)
+		h.logger.Debugf("setting BABENextConfigData data: %v for hash: %s to epoch: %d",
+			nextConfigData, header.Hash(), nextEpoch)
 		return h.handleNextConfigData(nextConfigData, nextEpoch, header)
 	}
 
