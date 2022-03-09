@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 )
 
@@ -24,6 +25,11 @@ type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetEpochData(epoch uint64, info *types.EpochData) error
 	SetConfigData(epoch uint64, info *types.ConfigData) error
+
+	StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData)
+	StoreBABENextConfigData(epoch uint64, hash common.Hash, nextEpochData types.NextConfigData)
+	GetBABENextEpochDataToFinalize(epoch uint64, hash common.Hash) (types.NextEpochData, bool)
+	GetBABENextConfigDataToFinalize(epoch uint64, hash common.Hash) (types.NextConfigData, bool)
 }
 
 // GrandpaState is the interface for the state.GrandpaState

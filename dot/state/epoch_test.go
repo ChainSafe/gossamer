@@ -5,12 +5,15 @@ package state
 
 import (
 	"fmt"
+	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -223,4 +226,93 @@ func TestEpochState_GetEpochFromTime(t *testing.T) {
 	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100 - 1))
 	require.NoError(t, err)
 	require.Equal(t, uint64(99), epoch)
+}
+
+func TestEpochGet_BABENextEpochData_BABENextConfigData(t *testing.T) {
+	t.Parallel()
+
+	header := types.Header{
+		Number:    big.NewInt(1),
+		StateRoot: trie.EmptyHash,
+		Digest:    types.NewDigest(),
+	}
+
+	epochState := &EpochState{
+		nextEpochData:  make(map[uint64]map[common.Hash]types.NextEpochData),
+		nextConfigData: make(map[uint64]map[common.Hash]types.NextConfigData),
+	}
+
+	aliceKey, err := sr25519.NewKeypairFromPrivateKeyString(
+		"0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a")
+	require.NoError(t, err)
+
+	nextEpochData := types.NextEpochData{
+		Authorities: []types.AuthorityRaw{
+			{
+				Key:    aliceKey.Public().(*sr25519.PublicKey).AsBytes(),
+				Weight: 0,
+			},
+		},
+	}
+
+	nextConfigData := types.NextConfigData{
+		C1:             10,   // random value
+		C2:             7,    // random value
+		SecondarySlots: 0x01, // random value
+	}
+
+	const epoch uint64 = 1
+	epochState.nextEpochData[epoch] = map[common.Hash]types.NextEpochData{
+		header.Hash(): nextEpochData,
+	}
+
+	epochState.nextConfigData[epoch] = map[common.Hash]types.NextConfigData{
+		header.Hash(): nextConfigData,
+	}
+
+	tests := []struct {
+		epoch              uint64
+		hash               common.Hash
+		expectedEpochData  types.NextEpochData
+		expectedConfigData types.NextConfigData
+		empty              bool
+	}{
+		{
+			epoch:              1,
+			hash:               header.Hash(),
+			expectedEpochData:  nextEpochData,
+			expectedConfigData: nextConfigData,
+		},
+		{
+			epoch: 1,
+			hash:  common.Hash{},
+			empty: true,
+		},
+		{
+			epoch: 2,
+			hash:  header.Hash(),
+			empty: true,
+		},
+	}
+
+	// should retrieve the next epoch info and then remove from map
+	for _, tt := range tests {
+		nextEpochData, has := epochState.GetBABENextEpochDataToFinalize(tt.epoch, tt.hash)
+		if tt.empty {
+			require.False(t, has)
+		} else {
+			require.Equal(t, tt.expectedEpochData, nextEpochData)
+			_, has = epochState.GetBABENextEpochDataToFinalize(tt.epoch, tt.hash)
+			require.False(t, has)
+		}
+
+		nexConfigData, has := epochState.GetBABENextConfigDataToFinalize(tt.epoch, tt.hash)
+		if tt.empty {
+			require.False(t, has)
+		} else {
+			require.Equal(t, tt.expectedConfigData, nexConfigData)
+			_, has = epochState.GetBABENextConfigDataToFinalize(tt.epoch, tt.hash)
+			require.False(t, has)
+		}
+	}
 }

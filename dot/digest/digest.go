@@ -8,11 +8,9 @@ import (
 	"errors"
 	"math"
 	"math/big"
-	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -43,10 +41,6 @@ type Handler struct {
 	grandpaPause           *pause
 	grandpaResume          *resume
 
-	babeConsensusDigestLock sync.Mutex
-	nextEpochData           map[uint64]map[common.Hash]types.NextEpochData
-	nextConfigData          map[uint64]map[common.Hash]types.NextConfigData
-
 	logger log.LeveledLogger
 }
 
@@ -74,16 +68,14 @@ func NewHandler(lvl log.Level, blockState BlockState, epochState EpochState,
 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Handler{
-		ctx:            ctx,
-		cancel:         cancel,
-		blockState:     blockState,
-		epochState:     epochState,
-		grandpaState:   grandpaState,
-		imported:       imported,
-		finalised:      finalised,
-		logger:         logger,
-		nextEpochData:  make(map[uint64]map[common.Hash]types.NextEpochData),
-		nextConfigData: make(map[uint64]map[common.Hash]types.NextConfigData),
+		ctx:          ctx,
+		cancel:       cancel,
+		blockState:   blockState,
+		epochState:   epochState,
+		grandpaState: grandpaState,
+		imported:     imported,
+		finalised:    finalised,
+		logger:       logger,
 	}, nil
 }
 
@@ -189,9 +181,6 @@ func (h *Handler) handleGrandpaConsensusDigest(digest scale.VaryingDataType, hea
 }
 
 func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
-	h.babeConsensusDigestLock.Lock()
-	defer h.babeConsensusDigestLock.Unlock()
-
 	currEpoch, err := h.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
@@ -203,27 +192,16 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
 		h.logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d\n", digest, headerHash, nextEpoch)
-
-		_, has := h.nextEpochData[nextEpoch]
-		if !has {
-			h.nextEpochData[nextEpoch] = make(map[common.Hash]types.NextEpochData)
-		}
-		h.nextEpochData[nextEpoch][headerHash] = val
-
-		return h.handleNextEpochData(val, nextEpoch, header)
+		h.epochState.StoreBABENextEpochData(nextEpoch, headerHash, val)
+		return nil
 
 	case types.BABEOnDisabled:
 		return h.handleBABEOnDisabled(val, header)
 
 	case types.NextConfigData:
 		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d\n", digest, headerHash, nextEpoch)
-		_, has := h.nextConfigData[nextEpoch]
-		if !has {
-			h.nextConfigData[nextEpoch] = make(map[common.Hash]types.NextConfigData)
-		}
-		h.nextConfigData[nextEpoch][headerHash] = val
-
-		return h.handleNextConfigData(val, nextEpoch, header)
+		h.epochState.StoreBABENextConfigData(nextEpoch, headerHash, val)
+		return nil
 	}
 
 	return errors.New("invalid consensus digest data")
@@ -274,36 +252,24 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 // setBABEDigestsOnFinalization is called only when a block is finalised
 // and defines the correct next epoch data and next config data
 func (h *Handler) setBABEDigestsOnFinalization(header *types.Header) error {
-	h.babeConsensusDigestLock.Lock()
-	defer h.babeConsensusDigestLock.Unlock()
-
 	currEpoch, err := h.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}
 
 	nextEpoch := currEpoch + 1
+	headerHash := header.Hash()
 
-	nextEpochData, has := h.nextEpochData[nextEpoch]
+	nextEpochData, has := h.epochState.GetBABENextEpochDataToFinalize(nextEpoch, headerHash)
 	if has {
-		nextEpochData, has := nextEpochData[header.Hash()]
-		if has {
-			h.logger.Debugf("setting BABENextEpochData data: %v for hash: %s to epoch: %d", nextEpochData, header.Hash(), nextEpoch)
-			return h.handleNextEpochData(nextEpochData, nextEpoch, header)
-		}
-
-		delete(h.nextEpochData, nextEpoch)
+		h.logger.Debugf("setting BABENextEpochData data: %v for hash: %s to epoch: %d", nextEpochData, header.Hash(), nextEpoch)
+		return h.handleNextEpochData(nextEpochData, nextEpoch, header)
 	}
 
-	nextConfigData, has := h.nextConfigData[nextEpoch]
+	nextConfigData, has := h.epochState.GetBABENextConfigDataToFinalize(nextEpoch, headerHash)
 	if has {
-		nextEpochConfigData, has := nextConfigData[header.Hash()]
-		if has {
-			h.logger.Debugf("setting BABENextConfigData data: %v for hash: %s to epoch: %d", nextConfigData, header.Hash(), nextEpoch)
-			return h.handleNextConfigData(nextEpochConfigData, nextEpoch, header)
-		}
-
-		delete(h.nextConfigData, nextEpoch)
+		h.logger.Debugf("setting BABENextConfigData data: %v for hash: %s to epoch: %d", nextConfigData, header.Hash(), nextEpoch)
+		return h.handleNextConfigData(nextConfigData, nextEpoch, header)
 	}
 
 	return nil

@@ -544,6 +544,21 @@ func (mr *MockEpochStateMockRecorder) GetConfigData(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigData", reflect.TypeOf((*MockEpochState)(nil).GetConfigData), arg0)
 }
 
+// GetConfigDataForHeader mocks base method.
+func (m *MockEpochState) GetConfigDataForHeader(arg0 uint64, arg1 *types.Header) (*types.ConfigData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigDataForHeader", arg0, arg1)
+	ret0, _ := ret[0].(*types.ConfigData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigDataForHeader indicates an expected call of GetConfigDataForHeader.
+func (mr *MockEpochStateMockRecorder) GetConfigDataForHeader(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigDataForHeader", reflect.TypeOf((*MockEpochState)(nil).GetConfigDataForHeader), arg0, arg1)
+}
+
 // GetCurrentEpoch mocks base method.
 func (m *MockEpochState) GetCurrentEpoch() (uint64, error) {
 	m.ctrl.T.Helper()
@@ -572,6 +587,21 @@ func (m *MockEpochState) GetEpochData(arg0 uint64) (*types.EpochData, error) {
 func (mr *MockEpochStateMockRecorder) GetEpochData(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochData", reflect.TypeOf((*MockEpochState)(nil).GetEpochData), arg0)
+}
+
+// GetEpochDataForHeader mocks base method.
+func (m *MockEpochState) GetEpochDataForHeader(arg0 uint64, arg1 *types.Header) (*types.EpochData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEpochDataForHeader", arg0, arg1)
+	ret0, _ := ret[0].(*types.EpochData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEpochDataForHeader indicates an expected call of GetEpochDataForHeader.
+func (mr *MockEpochStateMockRecorder) GetEpochDataForHeader(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochDataForHeader", reflect.TypeOf((*MockEpochState)(nil).GetEpochDataForHeader), arg0, arg1)
 }
 
 // GetEpochForBlock mocks base method.

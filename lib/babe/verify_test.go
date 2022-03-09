@@ -738,10 +738,10 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 	mockEpochStateHasErr := NewMockEpochState(ctrl)
 	mockEpochStateGetErr := NewMockEpochState(ctrl)
 
-	mockEpochStateEmpty.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, nil)
-	mockEpochStateHasErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(false, errNoConfigData)
-	mockEpochStateGetErr.EXPECT().HasConfigData(gomock.Eq(uint64(0))).Return(true, nil)
-	mockEpochStateGetErr.EXPECT().GetConfigData(gomock.Eq(uint64(0))).Return(nil, errNoConfigData)
+	mockEpochStateEmpty.EXPECT().HasConfigData(uint64(0)).Return(false, nil)
+	mockEpochStateHasErr.EXPECT().HasConfigData(uint64(0)).Return(false, errNoConfigData)
+	mockEpochStateGetErr.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
+	mockEpochStateGetErr.EXPECT().GetConfigData(uint64(0)).Return(nil, errNoConfigData)
 
 	vm0, err := NewVerificationManager(mockBlockState, mockEpochStateEmpty)
 	assert.NoError(t, err)
@@ -775,7 +775,7 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := tt.vm
-			res, err := v.getConfigData(tt.epoch)
+			res, err := v.getConfigData(tt.epoch, types.NewEmptyHeader())
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -857,7 +857,7 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := tt.vm
-			res, err := v.getVerifierInfo(tt.epoch)
+			res, err := v.getVerifierInfo(tt.epoch, types.NewEmptyHeader())
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {

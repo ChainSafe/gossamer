@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -46,6 +48,10 @@ type EpochState struct {
 	blockState  *BlockState
 	epochLength uint64 // measured in slots
 	skipToEpoch uint64
+
+	nextEpochLock  sync.RWMutex
+	nextEpochData  map[uint64]map[common.Hash]types.NextEpochData
+	nextConfigData map[uint64]map[common.Hash]types.NextConfigData
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
@@ -69,10 +75,12 @@ func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState,
 	}
 
 	s := &EpochState{
-		baseState:   NewBaseState(db),
-		blockState:  blockState,
-		db:          epochDB,
-		epochLength: genesisConfig.EpochLength,
+		baseState:      NewBaseState(db),
+		blockState:     blockState,
+		db:             epochDB,
+		epochLength:    genesisConfig.EpochLength,
+		nextEpochData:  make(map[uint64]map[common.Hash]types.NextEpochData),
+		nextConfigData: make(map[uint64]map[common.Hash]types.NextConfigData),
 	}
 
 	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
@@ -127,11 +135,13 @@ func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, er
 	}
 
 	return &EpochState{
-		baseState:   baseState,
-		blockState:  blockState,
-		db:          chaindb.NewTable(db, epochPrefix),
-		epochLength: epochLength,
-		skipToEpoch: skipToEpoch,
+		baseState:      baseState,
+		blockState:     blockState,
+		db:             chaindb.NewTable(db, epochPrefix),
+		epochLength:    epochLength,
+		skipToEpoch:    skipToEpoch,
+		nextEpochData:  make(map[uint64]map[common.Hash]types.NextEpochData),
+		nextConfigData: make(map[uint64]map[common.Hash]types.NextConfigData),
 	}, nil
 }
 
@@ -237,6 +247,31 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 	return raw.ToEpochData()
 }
 
+func (s *EpochState) GetEpochDataForHeader(epoch uint64, header *types.Header) (*types.EpochData, error) {
+	s.nextEpochLock.RLock()
+	defer s.nextEpochLock.RUnlock()
+
+	atEpoch, has := s.nextEpochData[epoch]
+	if !has {
+		return nil, fmt.Errorf("epoch %d not found in memory stored epoch data", epoch)
+	}
+
+	headerHash := header.Hash()
+
+	for hash, value := range atEpoch {
+		isDescendant, err := s.blockState.IsDescendantOf(hash, headerHash)
+		if err != nil {
+			return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
+		}
+
+		if isDescendant {
+			return value.ToEpochData()
+		}
+	}
+
+	return nil, fmt.Errorf("cannot find epoch data for header %s", headerHash)
+}
+
 // GetLatestEpochData returns the EpochData for the current epoch
 func (s *EpochState) GetLatestEpochData() (*types.EpochData, error) {
 	curr, err := s.GetCurrentEpoch()
@@ -249,7 +284,16 @@ func (s *EpochState) GetLatestEpochData() (*types.EpochData, error) {
 
 // HasEpochData returns whether epoch data exists for a given epoch
 func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
-	return s.db.Has(epochDataKey(epoch))
+	has, err := s.db.Has(epochDataKey(epoch))
+	if errors.Is(chaindb.ErrKeyNotFound, err) {
+		s.nextEpochLock.Lock()
+		defer s.nextEpochLock.Unlock()
+
+		_, has = s.nextEpochData[epoch]
+		return has, nil
+	}
+
+	return has, err
 }
 
 // SetConfigData sets the BABE config data for a given epoch
@@ -289,6 +333,31 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 	return info, nil
 }
 
+func (s *EpochState) GetConfigDataForHeader(epoch uint64, header *types.Header) (*types.ConfigData, error) {
+	s.nextEpochLock.RLock()
+	defer s.nextEpochLock.RUnlock()
+
+	atEpoch, has := s.nextConfigData[epoch]
+	if !has {
+		return nil, fmt.Errorf("epoch %d not found in memory stored config data", epoch)
+	}
+
+	headerHash := header.Hash()
+
+	for hash, value := range atEpoch {
+		isDescendant, err := s.blockState.IsDescendantOf(hash, headerHash)
+		if err != nil {
+			return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
+		}
+
+		if isDescendant {
+			return value.ToConfigData(), nil
+		}
+	}
+
+	return nil, fmt.Errorf("cannot find config data for header %s", headerHash)
+}
+
 // GetLatestConfigData returns the most recently set ConfigData
 func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 	b, err := s.db.Get(latestConfigDataKey)
@@ -302,7 +371,16 @@ func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 
 // HasConfigData returns whether config data exists for a given epoch
 func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
-	return s.db.Has(configDataKey(epoch))
+	has, err := s.db.Has(configDataKey(epoch))
+	if errors.Is(chaindb.ErrKeyNotFound, err) {
+		s.nextEpochLock.Lock()
+		defer s.nextEpochLock.Unlock()
+
+		_, has := s.nextConfigData[epoch]
+		return has, nil
+	}
+
+	return has, err
 }
 
 // GetStartSlotForEpoch returns the first slot in the given epoch.
@@ -365,4 +443,59 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (b *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, val types.NextEpochData) {
+	b.nextEpochLock.Lock()
+	defer b.nextEpochLock.Unlock()
+
+	_, has := b.nextEpochData[epoch]
+	if !has {
+		b.nextEpochData[epoch] = make(map[common.Hash]types.NextEpochData)
+	}
+	b.nextEpochData[epoch][hash] = val
+}
+
+func (b *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val types.NextConfigData) {
+	b.nextEpochLock.Lock()
+	defer b.nextEpochLock.Unlock()
+
+	_, has := b.nextConfigData[epoch]
+	if !has {
+		b.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigData)
+	}
+	b.nextConfigData[epoch][hash] = val
+}
+
+func (b *EpochState) GetBABENextEpochDataToFinalize(epoch uint64, hash common.Hash) (types.NextEpochData, bool) {
+	b.nextEpochLock.RLock()
+	defer b.nextEpochLock.RUnlock()
+
+	epochData, has := b.nextEpochData[epoch]
+	if !has {
+		return types.NextEpochData{}, false
+	}
+
+	nextEpochData, has := epochData[hash]
+	if has {
+		delete(b.nextConfigData, epoch)
+	}
+	return nextEpochData, has
+}
+
+func (b *EpochState) GetBABENextConfigDataToFinalize(epoch uint64, hash common.Hash) (types.NextConfigData, bool) {
+	b.nextEpochLock.RLock()
+	defer b.nextEpochLock.RUnlock()
+
+	epochData, has := b.nextConfigData[epoch]
+	if !has {
+		return types.NextConfigData{}, false
+	}
+
+	nextConfigData, has := epochData[hash]
+	if has {
+		delete(b.nextConfigData, epoch)
+	}
+
+	return nextConfigData, has
 }

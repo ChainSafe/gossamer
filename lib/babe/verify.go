@@ -4,10 +4,12 @@
 package babe
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -73,7 +75,7 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 	defer v.lock.Unlock()
 
 	if _, has := v.epochInfo[epoch]; !has {
-		info, err := v.getVerifierInfo(epoch)
+		info, err := v.getVerifierInfo(epoch, header)
 		if err != nil {
 			return err
 		}
@@ -167,7 +169,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	v.lock.Lock()
 
 	if info, has = v.epochInfo[epoch]; !has {
-		info, err = v.getVerifierInfo(epoch)
+		info, err = v.getVerifierInfo(epoch, header)
 		if err != nil {
 			v.lock.Unlock()
 			// SkipVerify is set to true only in the case where we have imported a state at a given height,
@@ -197,13 +199,18 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	return verifier.verifyAuthorshipRight(header)
 }
 
-func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
+func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header) (*verifierInfo, error) {
 	epochData, err := v.epochState.GetEpochData(epoch)
-	if err != nil {
+	if errors.Is(chaindb.ErrKeyNotFound, err) {
+		epochData, err = v.epochState.GetEpochDataForHeader(epoch, header)
+		if err != nil {
+			return nil, fmt.Errorf("epoch data was not found for epoch %d: %w", epoch, err)
+		}
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
 	}
 
-	configData, err := v.getConfigData(epoch)
+	configData, err := v.getConfigData(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config data: %w", err)
 	}
@@ -221,16 +228,24 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, erro
 	}, nil
 }
 
-func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, error) {
+func (v *VerificationManager) getConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error) {
 	for i := int(epoch); i >= 0; i-- {
 		has, err := v.epochState.HasConfigData(uint64(i))
 		if err != nil {
 			return nil, err
+		} else if !has {
+			continue
 		}
 
-		if has {
-			return v.epochState.GetConfigData(uint64(i))
+		configData, err := v.epochState.GetConfigData(uint64(i))
+		if errors.Is(chaindb.ErrKeyNotFound, err) {
+			configData, err = v.epochState.GetConfigDataForHeader(epoch, header)
+			if err != nil {
+				return nil, fmt.Errorf("config data was not found for epoch %d: %w", epoch, err)
+			}
 		}
+
+		return configData, err
 	}
 
 	return nil, errNoConfigData
