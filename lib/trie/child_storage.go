@@ -21,7 +21,7 @@ var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 // To get merkle value of a node, we get value of the node. If the value is shorter than
 // 32 bits, we use it as merkle value. Otherwise, we use it's blake2b hash as merkle value.
 func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
-	_, hash, err := child.root.EncodeAndHash()
+	_, hash, err := child.root.EncodeAndHash(true)
 	if err != nil {
 		return err
 	}

@@ -119,7 +119,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.branch.EncodeAndHash()
+			encoding, hash, err := testCase.branch.EncodeAndHash(false)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -241,7 +241,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.leaf.EncodeAndHash()
+			encoding, hash, err := testCase.leaf.EncodeAndHash(false)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

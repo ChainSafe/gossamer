@@ -10,11 +10,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,16 +44,7 @@ func TestFreeImportedBlockNotifierChannel(t *testing.T) {
 }
 
 func TestFinalizedChannel(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Set(0.00).Times(3)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	ch := bs.GetFinalisedNotifierChannel()
 
@@ -111,16 +99,7 @@ func TestImportChannel_Multi(t *testing.T) {
 }
 
 func TestFinalizedChannel_Multi(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Set(0.00)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	num := 5
 	chs := make([]chan *types.FinalisationInfo, num)
