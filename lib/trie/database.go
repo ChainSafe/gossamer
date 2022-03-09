@@ -216,7 +216,7 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		}
 
 		// TODO: Test this error
-		err = t.PutChild(value, childTrie)
+		err = t.PutChild(key[len(ChildStorageKeyPrefix):], childTrie)
 		if err != nil {
 			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
 				childTrie.root.GetHash(), err)

@@ -193,7 +193,6 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
-<<<<<<< HEAD
 	triesGauge := NewMockGauge(ctrl)
 	triesGauge.EXPECT().Inc().Times(2)
 	triesGauge.EXPECT().Set(0.00)
@@ -202,9 +201,6 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		rootToTrie: make(map[common.Hash]*trie.Trie),
 		triesGauge: triesGauge,
 	}
-=======
-	tries := newTriesEmpty()
->>>>>>> kishan/fix/encode-and-hash
 
 	blockState, err := NewBlockStateFromGenesis(db, tries, genHeader, telemetryMock)
 	require.NoError(t, err)
@@ -226,8 +222,8 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	rootHash, err := genTrie.Hash()
 	require.NoError(t, err)
 
-	// _, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
-	// require.NoError(t, err)
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
 	storage.blockState.tries.delete(rootHash)
