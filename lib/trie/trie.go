@@ -733,6 +733,7 @@ func (t *Trie) clearPrefixLimitBranch(branch *node.Branch, prefix []byte, limit 
 
 	branch = t.prepBranchForMutation(branch)
 	branch.Children[childIndex] = child
+	branch.SubDescendants(nodesRemoved)
 	newParent, branchChildMerged := handleDeletion(branch, prefix)
 	if branchChildMerged {
 		nodesRemoved++
