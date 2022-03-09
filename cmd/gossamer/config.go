@@ -206,10 +206,10 @@ func createImportStateConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
-func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
+func createBuildSpecConfig(ctx *cli.Context) *dot.Config {
 	cfg := &dot.Config{}
 	setDotBasepathConfigFromFlags(ctx, &cfg.Global)
-	return cfg, nil
+	return cfg
 }
 
 // createExportConfig creates a new dot configuration from the provided flag values

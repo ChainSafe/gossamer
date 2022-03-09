@@ -364,10 +364,8 @@ func buildSpecAction(ctx *cli.Context) error {
 		}
 		bs = bspec
 	} else {
-		cfg, e := createBuildSpecConfig(ctx)
-		if e != nil {
-			return e
-		}
+		cfg := createBuildSpecConfig(ctx)
+
 		// expand data directory and update node configuration (performed separately
 		// from createDotConfig because dot config should not include expanded path)
 		cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
