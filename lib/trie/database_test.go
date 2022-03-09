@@ -419,10 +419,12 @@ func TestStoreAndLoadWithChildTries(t *testing.T) {
 		for _, keyToChild := range keysToTest {
 			trie := NewEmptyTrie()
 
+			fmt.Println("we come here")
 			for _, test := range testCase {
 				trie.Put(test.key, test.value)
 			}
 
+			fmt.Printf("root is nil: %t\n", trie.root == nil)
 			db := newTestDB(t)
 
 			sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
@@ -433,13 +435,13 @@ func TestStoreAndLoadWithChildTries(t *testing.T) {
 			err = trie.Store(db)
 			require.NoError(t, err)
 
-			res := NewEmptyTrie()
+			// res := NewEmptyTrie()
 
-			err = res.Load(db, trie.root.GetHash())
-			require.NoError(t, err)
+			// err = res.Load(db, trie.root.GetHash())
+			// require.NoError(t, err)
 
-			require.Equal(t, trie.childTries, res.childTries)
-			fmt.Printf("original\n%s\n\nloaded\n%s\n\n", trie.String(), res.String())
+			// require.Equal(t, trie.childTries, res.childTries)
+			// fmt.Printf("original\n%s\n\nloaded\n%s\n\n", trie.String(), res.String())
 			// require.Equal(t, trie.String(), res.String())
 		}
 
