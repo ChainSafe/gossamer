@@ -24,7 +24,6 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        go-version: [1.17.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -35,7 +34,7 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: 1.17.x
       - uses: actions/checkout@v3
 
       # cache go build cache
