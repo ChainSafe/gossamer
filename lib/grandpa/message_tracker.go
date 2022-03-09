@@ -140,7 +140,7 @@ func (t *tracker) handleTick() {
 				logger.Debugf("failed to handle vote message %v: %s", v, err)
 			}
 
-			if v.msg.Round < t.handler.grandpa.state.round {
+			if v.msg.Round < t.handler.grandpa.state.round && v.msg.SetID == t.handler.grandpa.state.round {
 				delete(t.voteMessages, v.msg.Message.Hash)
 			}
 		}
