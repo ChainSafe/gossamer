@@ -464,6 +464,8 @@ var (
 		ConfigFlag,
 		ForceFlag,
 		GenesisFlag,
+		PruningFlag,
+		RetainBlockNumberFlag,
 	}
 
 	BuildSpecFlags = []cli.Flag{
