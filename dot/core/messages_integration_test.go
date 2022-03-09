@@ -7,7 +7,6 @@
 package core
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -90,7 +89,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 
 	newBlock := types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(1),
+			Number:     1,
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},

@@ -4,7 +4,6 @@
 package network
 
 import (
-	"math/big"
 	"sync"
 	"testing"
 
@@ -40,7 +39,7 @@ func TestEncodeBlockAnnounce(t *testing.T) {
 
 	testBlockAnnounce := BlockAnnounceMessage{
 		ParentHash:     common.Hash{1},
-		Number:         big.NewInt(77),
+		Number:         77,
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
 		Digest:         digestVdt,
@@ -76,14 +75,14 @@ func TestDecodeBlockAnnounce(t *testing.T) {
 
 	expected := BlockAnnounceMessage{
 		ParentHash:     common.Hash{1},
-		Number:         big.NewInt(77),
+		Number:         77,
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
 		Digest:         digestVdt,
 	}
 
 	act := BlockAnnounceMessage{
-		Number: big.NewInt(0),
+		Number: 0,
 		Digest: types.NewDigest(),
 	}
 	err = scale.Unmarshal(enc, &act)
@@ -139,7 +138,7 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 
 	peerID := peer.ID("noot")
 	msg := &BlockAnnounceMessage{
-		Number: big.NewInt(10),
+		Number: 10,
 		Digest: types.NewDigest(),
 	}
 

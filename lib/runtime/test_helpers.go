@@ -6,7 +6,6 @@ package runtime
 import (
 	"context"
 	"io"
-	"math/big"
 	"net/http"
 	"os"
 	"path"
@@ -217,7 +216,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 
 	header := &types.Header{
 		ParentHash: parentHash,
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     types.NewDigest(),
 	}
 
@@ -272,7 +271,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 	}
 

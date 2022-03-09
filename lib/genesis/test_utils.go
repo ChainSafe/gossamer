@@ -5,7 +5,6 @@ package genesis
 
 import (
 	"encoding/json"
-	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
@@ -125,7 +124,7 @@ func newGenesisTrieAndHeader(t *testing.T, gen *Genesis) (*trie.Trie, *types.Hea
 	require.NoError(t, err)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	return genTrie, genesisHeader

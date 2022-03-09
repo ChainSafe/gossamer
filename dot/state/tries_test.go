@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,17 +26,16 @@ func Test_NewTries(t *testing.T) {
 		rootToTrie: map[common.Hash]*trie.Trie{
 			tr.MustHash(): tr,
 		},
-		triesGauge: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "gossamer_storage",
-			Name:      "tries_cached_total",
-			Help:      "total number of tries cached in memory",
-		}),
+		triesGauge:    triesGauge,
+		setCounter:    setCounter,
+		deleteCounter: deleteCounter,
 	}
 
 	assert.Equal(t, expectedTries, rootToTrie)
 }
 
 //go:generate mockgen -destination=mock_gauge_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Gauge
+//go:generate mockgen -destination=mock_counter_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Counter
 
 func Test_Tries_softSet(t *testing.T) {
 	t.Parallel()
@@ -81,9 +79,15 @@ func Test_Tries_softSet(t *testing.T) {
 				triesGauge.EXPECT().Inc()
 			}
 
+			setCounter := NewMockCounter(ctrl)
+			if testCase.triesGaugeInc {
+				setCounter.EXPECT().Inc()
+			}
+
 			tries := &Tries{
 				rootToTrie: testCase.rootToTrie,
 				triesGauge: triesGauge,
+				setCounter: setCounter,
 			}
 
 			tries.softSet(testCase.root, testCase.trie)
@@ -99,8 +103,9 @@ func Test_Tries_delete(t *testing.T) {
 	testCases := map[string]struct {
 		rootToTrie         map[common.Hash]*trie.Trie
 		root               common.Hash
-		triesGaugeSet      float64
+		deleteCounterInc   bool
 		expectedRootToTrie map[common.Hash]*trie.Trie
+		triesGaugeSet      float64
 	}{
 		"not found": {
 			rootToTrie: map[common.Hash]*trie.Trie{
@@ -111,6 +116,7 @@ func Test_Tries_delete(t *testing.T) {
 			expectedRootToTrie: map[common.Hash]*trie.Trie{
 				{3, 4, 5}: {},
 			},
+			deleteCounterInc: true,
 		},
 		"deleted": {
 			rootToTrie: map[common.Hash]*trie.Trie{
@@ -122,6 +128,7 @@ func Test_Tries_delete(t *testing.T) {
 			expectedRootToTrie: map[common.Hash]*trie.Trie{
 				{3, 4, 5}: {},
 			},
+			deleteCounterInc: true,
 		},
 	}
 
@@ -130,13 +137,18 @@ func Test_Tries_delete(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-
 			triesGauge := NewMockGauge(ctrl)
 			triesGauge.EXPECT().Set(testCase.triesGaugeSet)
 
+			deleteCounter := NewMockCounter(ctrl)
+			if testCase.deleteCounterInc {
+				deleteCounter.EXPECT().Inc()
+			}
+
 			tries := &Tries{
-				rootToTrie: testCase.rootToTrie,
-				triesGauge: triesGauge,
+				rootToTrie:    testCase.rootToTrie,
+				triesGauge:    triesGauge,
+				deleteCounter: deleteCounter,
 			}
 
 			tries.delete(testCase.root)

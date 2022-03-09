@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"runtime"
 	"sync"
 	"testing"
@@ -28,7 +27,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 		dbs[i] = NewInMemoryDB(t)
 	}
 
-	tries := (*Tries)(nil) // not used in this test
+	tries := newTriesEmpty()
 
 	pend := new(sync.WaitGroup)
 	pend.Add(threads)
@@ -40,7 +39,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 			require.NoError(t, err)
 
 			header := &types.Header{
-				Number:    big.NewInt(1),
+				Number:    1,
 				StateRoot: trie.EmptyHash,
 				Digest:    types.NewDigest(),
 			}

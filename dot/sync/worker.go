@@ -5,7 +5,6 @@ package sync
 
 import (
 	"context"
-	"math/big"
 	"sync"
 	"time"
 
@@ -73,9 +72,9 @@ type worker struct {
 	peersTried map[peer.ID]struct{}
 
 	startHash    common.Hash
-	startNumber  *big.Int
+	startNumber  *uint
 	targetHash   common.Hash
-	targetNumber *big.Int
+	targetNumber *uint
 
 	// if this worker is tied to a specific pending block, this field is set
 	pendingBlock *pendingBlock
@@ -92,3 +91,5 @@ type workerError struct {
 	err error
 	who peer.ID // whose response caused the error, if any
 }
+
+func uintPtr(n uint) *uint { return &n }

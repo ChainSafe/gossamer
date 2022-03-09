@@ -5,7 +5,6 @@ package babe
 
 import (
 	"fmt"
-	"math/big"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -27,7 +26,7 @@ type verifierInfo struct {
 // block for the rest of the epoch. the block hash is used to check if the block being verified
 // is a descendent of the block that included the `OnDisabled` digest.
 type onDisabledInfo struct {
-	blockNumber *big.Int
+	blockNumber uint
 	blockHash   common.Hash
 }
 
@@ -113,7 +112,7 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 			return err
 		}
 
-		if isDescendant && header.Number.Cmp(info.blockNumber) >= 0 {
+		if isDescendant && header.Number >= info.blockNumber {
 			// this authority has already been disabled on this branch
 			return ErrAuthorityAlreadyDisabled
 		}
@@ -137,9 +136,8 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	// special case for block 1 - the network doesn't necessarily start in epoch 1.
 	// if this happens, the database will be missing info for epochs before the first block.
-	if header.Number.Cmp(big.NewInt(1)) == 0 {
-
-		block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
+	if header.Number == 1 {
+		block1IsFinal, err := v.blockState.NumberIsFinalised(header.Number)
 		if err != nil {
 			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
 		}

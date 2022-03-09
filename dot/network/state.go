@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -17,11 +16,11 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (*big.Int, error)
+	BestBlockNumber() (blockNumber uint, err error)
 	GenesisHash() common.Hash
 	HasBlockBody(common.Hash) (bool, error)
 	GetHighestFinalisedHeader() (*types.Header, error)
-	GetHashByNumber(num *big.Int) (common.Hash, error)
+	GetHashByNumber(num uint) (common.Hash, error)
 }
 
 // Syncer is implemented by the syncing service

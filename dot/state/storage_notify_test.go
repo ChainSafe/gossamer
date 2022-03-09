@@ -13,23 +13,12 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStorageState_RegisterStorageObserver(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc().Times(2)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	ss := newTestStorageState(t, tries)
+	ss := newTestStorageState(t, newTriesEmpty())
 
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
@@ -64,16 +53,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 }
 
 func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc().Times(2)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	ss := newTestStorageState(t, tries)
+	ss := newTestStorageState(t, newTriesEmpty())
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
@@ -125,18 +105,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	t.Skip() // this seems to fail often on CI
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	// TODO restrict those mock calls once test is fixed.
-	triesGauge.EXPECT().Inc().AnyTimes()
-	triesGauge.EXPECT().Set(gomock.Any()).AnyTimes()
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	ss := newTestStorageState(t, tries)
+	ss := newTestStorageState(t, newTriesEmpty())
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
