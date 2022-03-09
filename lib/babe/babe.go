@@ -155,7 +155,7 @@ func (b *Service) waitForFirstBlock() error {
 		return fmt.Errorf("cannot get best block header: %w", err)
 	}
 
-	if head.Number.Uint64() > 0 {
+	if head.Number > 0 {
 		return nil
 	}
 
@@ -179,7 +179,7 @@ func (b *Service) waitForFirstBlock() error {
 				return errChannelClosed
 			}
 
-			if ok && block.Header.Number.Int64() > 0 {
+			if ok && block.Header.Number > 0 {
 				cleanup()
 				return nil
 			}
@@ -461,7 +461,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 	b.telemetry.SendMessage(
 		telemetry.NewPreparedBlockForProposing(
 			block.Header.Hash(),
-			block.Header.Number.String(),
+			fmt.Sprint(block.Header.Number),
 		),
 	)
 

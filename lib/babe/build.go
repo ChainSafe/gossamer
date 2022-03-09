@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -93,7 +92,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
 	// create new block header
-	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
+	number := parent.Number + 1
 	digest := types.NewDigest()
 	err := digest.Add(*b.preRuntimeDigest)
 	if err != nil {

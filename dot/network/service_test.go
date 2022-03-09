@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -56,9 +55,9 @@ func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 		BlockData: make([]*types.BlockData, blockRequestSize),
 	}
 
-	for i := 0; i < blockRequestSize; i++ {
+	for i := uint(0); i < blockRequestSize; i++ {
 		testHeader := &types.Header{
-			Number: big.NewInt(int64(77 + i)),
+			Number: 77 + i,
 			Digest: types.NewDigest(),
 		}
 
@@ -96,7 +95,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg.BlockState == nil {
 		header := &types.Header{
 			ParentHash:     common.Hash{},
-			Number:         big.NewInt(1),
+			Number:         1,
 			StateRoot:      common.Hash{},
 			ExtrinsicsRoot: common.Hash{},
 			Digest:         types.NewDigest(),
@@ -107,7 +106,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
 		blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
 		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
-		blockstate.EXPECT().BestBlockNumber().Return(big.NewInt(1), nil).AnyTimes()
+		blockstate.EXPECT().BestBlockNumber().Return(uint(1), nil).AnyTimes()
 
 		blockstate.EXPECT().HasBlockBody(
 			gomock.AssignableToTypeOf(common.Hash([32]byte{}))).Return(false, nil).AnyTimes()
@@ -222,7 +221,7 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	anounceMessage := &BlockAnnounceMessage{
-		Number: big.NewInt(128 * 7),
+		Number: 128 * 7,
 		Digest: types.NewDigest(),
 	}
 
@@ -282,7 +281,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	})
 
 	announceMessage := &BlockAnnounceMessage{
-		Number: big.NewInt(128 * 7),
+		Number: 128 * 7,
 		Digest: types.NewDigest(),
 	}
 

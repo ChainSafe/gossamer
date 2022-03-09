@@ -10,7 +10,7 @@ import (
 
 type syncBenchmarker struct {
 	start           time.Time
-	startBlock      uint64
+	startBlock      uint
 	blocksPerSecond *ring.Ring
 	samplesToKeep   int
 }
@@ -26,12 +26,12 @@ func newSyncBenchmarker(samplesToKeep int) *syncBenchmarker {
 	}
 }
 
-func (b *syncBenchmarker) begin(now time.Time, block uint64) {
+func (b *syncBenchmarker) begin(now time.Time, block uint) {
 	b.start = now
 	b.startBlock = block
 }
 
-func (b *syncBenchmarker) end(now time.Time, block uint64) {
+func (b *syncBenchmarker) end(now time.Time, block uint) {
 	duration := now.Sub(b.start)
 	blocks := block - b.startBlock
 	bps := float64(blocks) / duration.Seconds()

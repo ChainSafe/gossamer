@@ -9,7 +9,6 @@ package dot
 import (
 	"encoding/json"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
@@ -85,7 +84,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 
 	expected := &types.Header{
 		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),
-		Number:         big.NewInt(1482002),
+		Number:         1482002,
 		StateRoot:      common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
 		ExtrinsicsRoot: common.MustHexToHash("0xda26dc8c1455f8f81cae12e4fc59e23ce961b2c837f6d3f664283af906d344e0"),
 		Digest:         digest,

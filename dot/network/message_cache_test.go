@@ -4,7 +4,6 @@
 package network
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ func TestMessageCache(t *testing.T) {
 	peerID := peer.ID("gossamer")
 	msg := &BlockAnnounceMessage{
 		ParentHash:     common.Hash{1},
-		Number:         big.NewInt(77),
+		Number:         77,
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
 		Digest:         types.NewDigest(),

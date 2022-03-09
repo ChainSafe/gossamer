@@ -5,7 +5,6 @@ package state
 
 import (
 	"context"
-	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -164,10 +163,10 @@ func Test_hashToBlockMap_store(t *testing.T) {
 						0x26, 0x36, 0x30, 0x28, 0x11, 0x5a, 0x9f, 0x2c,
 						0xf9, 0x63, 0xee, 0xed, 0x52, 0x6b, 0x8b, 0x33,
 						0xe5, 0x31, 0x6f, 0x8, 0xb5, 0xd, 0xd, 0xc3,
-					}: {Header: types.Header{Number: big.NewInt(99)}},
+					}: {Header: types.Header{Number: 99}},
 				},
 			},
-			block: &types.Block{Header: types.Header{Number: big.NewInt(1)}},
+			block: &types.Block{Header: types.Header{Number: 1}},
 			expectedMap: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{
@@ -175,7 +174,7 @@ func Test_hashToBlockMap_store(t *testing.T) {
 						0x26, 0x36, 0x30, 0x28, 0x11, 0x5a, 0x9f, 0x2c,
 						0xf9, 0x63, 0xee, 0xed, 0x52, 0x6b, 0x8b, 0x33,
 						0xe5, 0x31, 0x6f, 0x8, 0xb5, 0xd, 0xd, 0xc3,
-					}: {Header: headerWithHash(types.Header{Number: big.NewInt(1)})},
+					}: {Header: headerWithHash(types.Header{Number: 1})},
 				},
 			},
 		},
@@ -183,7 +182,7 @@ func Test_hashToBlockMap_store(t *testing.T) {
 			initialMap: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{},
 			},
-			block: &types.Block{Header: types.Header{Number: big.NewInt(1)}},
+			block: &types.Block{Header: types.Header{Number: 1}},
 			expectedMap: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{
@@ -191,7 +190,7 @@ func Test_hashToBlockMap_store(t *testing.T) {
 						0x26, 0x36, 0x30, 0x28, 0x11, 0x5a, 0x9f, 0x2c,
 						0xf9, 0x63, 0xee, 0xed, 0x52, 0x6b, 0x8b, 0x33,
 						0xe5, 0x31, 0x6f, 0x8, 0xb5, 0xd, 0xd, 0xc3,
-					}: {Header: headerWithHash(types.Header{Number: big.NewInt(1)})},
+					}: {Header: headerWithHash(types.Header{Number: 1})},
 				},
 			},
 		},
@@ -298,7 +297,7 @@ func Test_hashToBlockMap_threadSafety(t *testing.T) {
 		0xe5, 0x31, 0x6f, 0x8, 0xb5, 0xd, 0xd, 0xc3,
 	}
 	block := &types.Block{
-		Header: types.Header{Number: big.NewInt(1)},
+		Header: types.Header{Number: 1},
 	}
 
 	for i := 0; i < parallelism; i++ {

@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -40,15 +39,15 @@ func (s *tipSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 		return nil, err
 	}
 
-	if ps.number.Cmp(fin.Number) <= 0 {
+	if ps.number <= fin.Number {
 		return nil, nil //nolint:nilnil
 	}
 
 	return &worker{
 		startHash:    ps.hash,
-		startNumber:  ps.number,
+		startNumber:  uintPtr(ps.number),
 		targetHash:   ps.hash,
-		targetNumber: ps.number,
+		targetNumber: uintPtr(ps.number),
 		requestData:  bootstrapRequestData,
 	}, nil
 }
@@ -73,23 +72,23 @@ func (s *tipSyncer) handleWorkerResult(res *worker) (
 	// don't retry if we're requesting blocks lower than finalised
 	switch res.direction {
 	case network.Ascending:
-		if res.targetNumber.Cmp(fin.Number) <= 0 {
+		if *res.targetNumber <= fin.Number {
 			return nil, nil
 		}
 
 		// if start is lower than finalised, increase it to finalised+1
-		if res.startNumber.Cmp(fin.Number) <= 0 {
-			res.startNumber = big.NewInt(0).Add(fin.Number, big.NewInt(1))
+		if *res.startNumber <= fin.Number {
+			*res.startNumber = fin.Number + 1
 			res.startHash = common.Hash{}
 		}
 	case network.Descending:
-		if res.startNumber.Cmp(fin.Number) <= 0 {
+		if *res.startNumber <= fin.Number {
 			return nil, nil
 		}
 
 		// if target is lower than finalised, increase it to finalised+1
-		if res.targetNumber.Cmp(fin.Number) <= 0 {
-			res.targetNumber = big.NewInt(0).Add(fin.Number, big.NewInt(1))
+		if *res.targetNumber <= fin.Number {
+			*res.targetNumber = fin.Number + 1
 			res.targetHash = common.Hash{}
 		}
 	}
@@ -114,28 +113,15 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 			continue
 		}
 
-		targetDiff := w.targetNumber.Cmp(curr.targetNumber)
-		startDiff := w.startNumber.Cmp(curr.startNumber)
-
 		switch w.direction {
 		case network.Ascending:
-			// worker target is greater than existing worker's target
-			if targetDiff > 0 {
-				continue
-			}
-
-			// worker start is less than existing worker's start
-			if startDiff < 0 {
+			if *w.targetNumber > *curr.targetNumber ||
+				*w.startNumber < *curr.startNumber {
 				continue
 			}
 		case network.Descending:
-			// worker target is less than existing worker's target
-			if targetDiff < 0 {
-				continue
-			}
-
-			// worker start is greater than existing worker's start
-			if startDiff > 0 {
+			if *w.targetNumber < *curr.targetNumber ||
+				*w.startNumber > *curr.startNumber {
 				continue
 			}
 		}
@@ -172,21 +158,21 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 	var workers []*worker
 
 	for _, block := range s.pendingBlocks.getBlocks() {
-		if block.number.Cmp(fin.Number) <= 0 {
+		if block.number <= fin.Number {
 			// delete from pending set (this should not happen, it should have already been deleted)
 			s.pendingBlocks.removeBlock(block.hash)
 			continue
 		}
 
-		logger.Tracef("handling pending block number %s with hash %s", block.number, block.hash)
+		logger.Tracef("handling pending block number %d with hash %s", block.number, block.hash)
 
 		if block.header == nil {
 			// case 1
 			workers = append(workers, &worker{
 				startHash:    block.hash,
-				startNumber:  block.number,
+				startNumber:  uintPtr(block.number),
 				targetHash:   fin.Hash(),
-				targetNumber: fin.Number,
+				targetNumber: uintPtr(fin.Number),
 				direction:    network.Descending,
 				requestData:  bootstrapRequestData,
 				pendingBlock: block,
@@ -198,9 +184,9 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			// case 2
 			workers = append(workers, &worker{
 				startHash:    block.hash,
-				startNumber:  block.number,
+				startNumber:  uintPtr(block.number),
 				targetHash:   block.hash,
-				targetNumber: block.number,
+				targetNumber: uintPtr(block.number),
 				requestData:  network.RequestedDataBody + network.RequestedDataJustification,
 				pendingBlock: block,
 			})
@@ -223,8 +209,8 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 		// request descending chain from (parent of pending block) -> (last finalised block)
 		workers = append(workers, &worker{
 			startHash:    block.header.ParentHash,
-			startNumber:  big.NewInt(0).Sub(block.number, big.NewInt(1)),
-			targetNumber: fin.Number,
+			startNumber:  uintPtr(block.number - 1),
+			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
 			pendingBlock: block,

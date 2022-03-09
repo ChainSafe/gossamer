@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -78,7 +77,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	someStateRoot := common.Hash{1, 1}
 	header := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 		StateRoot:  someStateRoot,
 	}
@@ -122,13 +121,13 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	require.NoError(t, err)
 
 	header1 := types.Header{
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	header2 := types.Header{
-		Number:     big.NewInt(2),
+		Number:     2,
 		Digest:     digest2,
 		ParentHash: header1.Hash(),
 	}

@@ -5,7 +5,6 @@ package network
 
 import (
 	"errors"
-	"math/big"
 	"reflect"
 	"sync"
 	"testing"
@@ -64,7 +63,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	testBlockAnnounce := &BlockAnnounceMessage{
 		ParentHash:     common.Hash{1},
-		Number:         big.NewInt(77),
+		Number:         77,
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
 		Digest:         types.NewDigest(),
@@ -135,7 +134,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	})
 
 	msg := &BlockAnnounceMessage{
-		Number: big.NewInt(10),
+		Number: 10,
 		Digest: types.NewDigest(),
 	}
 

@@ -106,17 +106,17 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 		return fmt.Errorf("failed to get highest finalised header: %w", err)
 	}
 
-	latestBlockNum := header.Number.Int64()
+	latestBlockNum := header.Number
 	keys := make(map[common.Hash]struct{})
 
 	logger.Infof("Latest block number is %d", latestBlockNum)
 
-	if latestBlockNum-p.retainBlockNum <= 0 {
+	if latestBlockNum-uint(p.retainBlockNum) <= 0 {
 		return fmt.Errorf("not enough block to perform pruning")
 	}
 
 	// loop from latest to last `retainBlockNum` blocks
-	for blockNum := header.Number.Int64(); blockNum > 0 && blockNum >= latestBlockNum-p.retainBlockNum; {
+	for blockNum := header.Number; blockNum > 0 && blockNum >= latestBlockNum-uint(p.retainBlockNum); {
 		var tr *trie.Trie
 		tr, err = p.storageState.LoadFromDB(header.StateRoot)
 		if err != nil {
@@ -130,7 +130,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 		if err != nil {
 			return err
 		}
-		blockNum = header.Number.Int64()
+		blockNum = header.Number
 	}
 
 	for key := range keys {
