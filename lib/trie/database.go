@@ -46,7 +46,7 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	encoding, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
 		decodedNode.SetDirty(dirty)
 		decodedNode.SetEncodingAndHash(rawNode, nil)
 
-		_, hash, err := decodedNode.EncodeAndHash()
+		_, hash, err := decodedNode.EncodeAndHash(decodedNode == t.root)
 		if err != nil {
 			return fmt.Errorf("cannot encode and hash node at index %d: %w", i, err)
 		}
@@ -370,7 +370,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	encoding, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
@@ -446,7 +446,7 @@ func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (e
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	encoding, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",

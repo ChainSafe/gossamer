@@ -18,24 +18,24 @@ type recorder interface {
 
 // findAndRecord search for a desired key recording all the nodes in the path including the desired node
 func findAndRecord(t *Trie, key []byte, recorder recorder) error {
-	return find(t.root, key, recorder)
+	return find(t.root, key, recorder, true)
 }
 
-func find(parent Node, key []byte, recorder recorder) error {
-	enc, hash, err := parent.EncodeAndHash()
+func find(current Node, key []byte, recorder recorder, isCurrentRoot bool) error {
+	enc, hash, err := current.EncodeAndHash(isCurrentRoot)
 	if err != nil {
 		return err
 	}
 
 	recorder.Record(hash, enc)
 
-	switch parent.Type() {
+	switch current.Type() {
 	case node.BranchType, node.BranchWithValueType:
 	default: // not a branch
 		return nil
 	}
 
-	b := parent.(*node.Branch)
+	b := current.(*node.Branch)
 
 	length := lenCommonPrefix(b.Key, key)
 
@@ -49,5 +49,5 @@ func find(parent Node, key []byte, recorder recorder) error {
 		return nil
 	}
 
-	return find(b.Children[key[length]], key[length+1:], recorder)
+	return find(b.Children[key[length]], key[length+1:], recorder, false)
 }
