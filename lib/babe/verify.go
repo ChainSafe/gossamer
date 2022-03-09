@@ -129,6 +129,7 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 }
 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
+// It checks the next epoch and config data stored in memory only if it cannot retrieves the data from database
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	var (

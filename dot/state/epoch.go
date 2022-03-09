@@ -444,6 +444,7 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 	return false, nil
 }
 
+// StoreBABENextEpochData stores the types.NextEpochData under epoch and hash keys
 func (b *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, val types.NextEpochData) {
 	b.nextEpochLock.Lock()
 	defer b.nextEpochLock.Unlock()
@@ -455,6 +456,7 @@ func (b *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, val 
 	b.nextEpochData[epoch][hash] = val
 }
 
+// StoreBABENextConfigData stores the types.NextConfigData under epoch and hash keys
 func (b *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val types.NextConfigData) {
 	b.nextEpochLock.Lock()
 	defer b.nextEpochLock.Unlock()
@@ -466,6 +468,8 @@ func (b *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val
 	b.nextConfigData[epoch][hash] = val
 }
 
+// GetBABENextEpochDataToFinalize retrieves the types.NextEpochData by epoch and hash keys
+// and delete all the entries for the epoch
 func (b *EpochState) GetBABENextEpochDataToFinalize(epoch uint64, hash common.Hash) (types.NextEpochData, bool) {
 	b.nextEpochLock.RLock()
 	defer b.nextEpochLock.RUnlock()
@@ -482,6 +486,8 @@ func (b *EpochState) GetBABENextEpochDataToFinalize(epoch uint64, hash common.Ha
 	return nextEpochData, has
 }
 
+// GetBABENextConfigDataToFinalize retrieves the types.NextConfigData by epoch and hash keys
+// and delete all the entries for the epoch
 func (b *EpochState) GetBABENextConfigDataToFinalize(epoch uint64, hash common.Hash) (types.NextConfigData, bool) {
 	b.nextEpochLock.RLock()
 	defer b.nextEpochLock.RUnlock()
