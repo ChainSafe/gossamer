@@ -17,6 +17,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/stretchr/testify/require"
 )
