@@ -6,7 +6,6 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -57,7 +56,7 @@ func (b *Service) checkAndSetFirstSlot() error {
 		return fmt.Errorf("cannot set first slot: %w", err)
 	}
 
-	block, err := b.blockState.GetBlockByNumber(big.NewInt(1))
+	block, err := b.blockState.GetBlockByNumber(1)
 	if err != nil {
 		return fmt.Errorf("cannot get block with number 1: %w", err)
 	}

@@ -6,7 +6,6 @@ package network
 import (
 	"errors"
 	"io"
-	"math/big"
 	"testing"
 	"time"
 
@@ -136,7 +135,7 @@ func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, erro
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := BlockAnnounceMessage{
-		Number: big.NewInt(0),
+		Number: 0,
 		Digest: types.NewDigest(),
 	}
 	err := msg.Decode(in)

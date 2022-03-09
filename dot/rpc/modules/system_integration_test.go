@@ -327,7 +327,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	err = chain.Block.AddBlock(&types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(3),
+			Number:     3,
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
 			Digest:     digest,
@@ -404,7 +404,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 func TestSyncState(t *testing.T) {
 	fakeCommonHash := common.NewHash([]byte("fake"))
 	fakeHeader := &types.Header{
-		Number: big.NewInt(int64(49)),
+		Number: 49,
 	}
 
 	blockapiMock := new(mocks.BlockAPI)
@@ -416,7 +416,7 @@ func TestSyncState(t *testing.T) {
 
 	syncapiCtrl := gomock.NewController(t)
 	syncapiMock := NewMockSyncAPI(syncapiCtrl)
-	syncapiMock.EXPECT().HighestBlock().Return(int64(90))
+	syncapiMock.EXPECT().HighestBlock().Return(uint(90))
 
 	sysmodule := new(SystemModule)
 	sysmodule.blockAPI = blockapiMock

@@ -19,7 +19,12 @@ import (
 // Ref: http://www.mathwords.com/o/outlier.htm
 //
 // returns: sum of all the non-outliers elements
-func removeOutliers(dataArr []*big.Int) (sum *big.Int, count int64) {
+func removeOutliers(dataArrUint []uint) (sum *big.Int, count uint) {
+	dataArr := make([]*big.Int, len(dataArrUint))
+	for i, v := range dataArrUint {
+		dataArr[i] = big.NewInt(int64(v))
+	}
+
 	length := len(dataArr)
 
 	switch length {
@@ -54,7 +59,6 @@ func removeOutliers(dataArr []*big.Int) (sum *big.Int, count int64) {
 	upper := big.NewInt(0).Add(q3, iqr1_5)
 
 	sum = big.NewInt(0)
-	count = int64(0)
 	for _, v := range dataArr {
 		// collect valid (non-outlier) values
 		lowPass := v.Cmp(lower)

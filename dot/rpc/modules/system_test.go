@@ -322,7 +322,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 
 	ctrlSyncAPI := gomock.NewController(t)
 	mockSyncAPI := NewMockSyncAPI(ctrlSyncAPI)
-	mockSyncAPI.EXPECT().HighestBlock().Return(int64(21))
+	mockSyncAPI.EXPECT().HighestBlock().Return(uint(21))
 
 	type args struct {
 		r   *http.Request

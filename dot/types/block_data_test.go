@@ -4,7 +4,6 @@
 package types
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,7 +34,7 @@ func TestNumber(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(5), testDigest)
+	headerVdt, err := NewHeader(testHash, testHash, testHash, 5, testDigest)
 	require.NoError(t, err)
 
 	bd := BlockData{
@@ -48,7 +47,7 @@ func TestNumber(t *testing.T) {
 	}
 
 	num := bd.Number()
-	require.Equal(t, big.NewInt(5), num)
+	require.Equal(t, uint(5), num)
 }
 
 func TestBlockDataEncodeAndDecodeEmpty(t *testing.T) {
@@ -91,7 +90,7 @@ func TestBlockDataEncodeAndDecodeHeader(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
+	headerVdt, err := NewHeader(testHash, testHash, testHash, 1, testDigest)
 	require.NoError(t, err)
 
 	bd := BlockData{
@@ -161,7 +160,7 @@ func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
+	headerVdt, err := NewHeader(testHash, testHash, testHash, 1, testDigest)
 	require.NoError(t, err)
 
 	bd := BlockData{

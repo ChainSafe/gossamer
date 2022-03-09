@@ -9,7 +9,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"sort"
 	"testing"
@@ -82,7 +81,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 	newBlock := types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(1),
+			Number:     1,
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},
@@ -275,9 +274,9 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 	s := NewTestService(t, nil)
-	height := 5
-	branch := 3
-	branches := map[int]int{branch: 1}
+	const height = 5
+	const branch = 3
+	branches := map[uint]int{branch: 1}
 	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), height, branches)
 
 	leaves := s.blockState.(*state.BlockState).Leaves()
@@ -303,8 +302,8 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	}
 
 	s := NewTestService(t, cfg)
-	height := 5
-	branch := 3
+	const height = 5
+	const branch = 3
 	state.AddBlocksToState(t, s.blockState.(*state.BlockState), height, false)
 
 	// create extrinsic
@@ -321,7 +320,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// get common ancestor
-	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumber(big.NewInt(int64(branch - 1)))
+	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumber(branch - 1)
 	require.NoError(t, err)
 
 	// build "re-org" chain
@@ -330,7 +329,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: ancestor.Header.Hash(),
-			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
+			Number:     ancestor.Header.Number + 1,
 			Digest:     digest,
 		},
 		Body: types.Body([]types.Extrinsic{tx}),
@@ -535,7 +534,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	newBlock1 := &types.Block{
 		Header: types.Header{
 			ParentHash: hash,
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     types.NewDigest()},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
@@ -543,7 +542,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	newBlockRTUpdate := &types.Block{
 		Header: types.Header{
 			ParentHash: hash,
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     digest,
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
@@ -629,7 +628,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	newBlock := &types.Block{
 		Header: types.Header{
 			ParentHash: blockHash,
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     types.NewDigest(),
 		},
 		Body: *body,
@@ -674,7 +673,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -704,7 +703,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -735,7 +734,7 @@ func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	header, err := types.NewHeader(
 		s.blockState.GenesisHash(),
 		common.Hash{}, common.Hash{},
-		big.NewInt(1), types.NewDigest())
+		1, types.NewDigest())
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -812,7 +811,7 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 
 func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	key, value []byte, parentHash common.Hash,
-	number int64) *types.Block {
+	number uint) *types.Block {
 	t.Helper()
 
 	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
@@ -820,7 +819,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(number), types.NewDigest())
+		common.Hash{}, number, types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)

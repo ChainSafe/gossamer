@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -71,7 +70,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			StateRoot:  root,
 			Digest:     createPrimaryBABEDigest(t),
 		},
@@ -198,7 +197,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	err = storage.StoreTrie(trieState, header)

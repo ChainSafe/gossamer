@@ -7,19 +7,18 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRemoveOutlier(t *testing.T) {
 	t.Parallel()
-	arr := []*big.Int{
-		big.NewInt(100), big.NewInt(-100), big.NewInt(60),
-		big.NewInt(80), big.NewInt(20), big.NewInt(40),
-		big.NewInt(50), big.NewInt(1000),
-	}
-	expectedSum := big.NewInt(350) // excluding the outlier -100 and 1000
+
+	arr := []uint{100, 0, 260, 280, 220, 240, 250, 1000}
+
+	expectedSum := big.NewInt(1350) // excluding the outlier -100 and 1000
+	expectedCount := uint(7)
 
 	sum, count := removeOutliers(arr)
-	require.Equal(t, int64(6), count)
-	require.Equal(t, expectedSum, sum)
+	assert.Equal(t, expectedSum, sum)
+	assert.Equal(t, expectedCount, count)
 }

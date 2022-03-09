@@ -83,7 +83,7 @@ func startStateService(cfg *Config, stateSrvc *state.Service) error {
 	}
 
 	if cfg.State.Rewind != 0 {
-		err = stateSrvc.Rewind(int64(cfg.State.Rewind))
+		err = stateSrvc.Rewind(cfg.State.Rewind)
 		if err != nil {
 			return fmt.Errorf("failed to rewind state: %w", err)
 		}

@@ -81,9 +81,9 @@ func TestHandler_SendMulti(t *testing.T) {
 		NewTxpoolImport(1, 2),
 		NewSystemConnected(false, "chain", &firstHash,
 			"systemName", "nodeName", "netID", "startTime", "0.1"),
-		NewBlockImport(&firstHash, big.NewInt(2), "NetworkInitialSync"),
-		NewBlockInterval(&firstHash, big.NewInt(32375), &secondHash,
-			big.NewInt(32256), big.NewInt(0), big.NewInt(1234)),
+		NewBlockImport(&firstHash, 2, "NetworkInitialSync"),
+		NewBlockInterval(&firstHash, 32375, &secondHash,
+			32256, big.NewInt(0), big.NewInt(1234)),
 		NewAfgAuthoritySet("authority_id", "authority_set_id", "json-stringified-ids-of-authorities"),
 		NewAfgFinalizedBlocksUpTo(firstHash, "1"),
 		NewAfgReceivedCommit(secondHash, "1", []string{}),
@@ -210,7 +210,7 @@ func TestListenerConcurrency(t *testing.T) {
 
 			for ctx.Err() == nil {
 				bestHash := common.Hash{}
-				msg := NewBlockImport(&bestHash, big.NewInt(2), "NetworkInitialSync")
+				msg := NewBlockImport(&bestHash, 2, "NetworkInitialSync")
 				mailer.SendMessage(msg)
 			}
 		}()
@@ -223,7 +223,7 @@ func TestListenerConcurrency(t *testing.T) {
 func TestTelemetryMarshalMessage(t *testing.T) {
 	tests := map[string]struct {
 		message  Message
-		expected *regexp.Regexp
+		expected string
 	}{
 		"AfgAuthoritySet_marshal": {
 			message: &AfgAuthoritySet{
@@ -231,18 +231,18 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				AuthoritySetID: "0",
 				Authorities:    "authorities",
 			},
-			expected: regexp.MustCompile(`^{"authority_id":"0","authority_set_id":"0","authorities"` +
+			expected: `^{"authority_id":"0","authority_set_id":"0","authorities"` +
 				`:"authorities","msg":"afg.authority_set","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.` +
-				`[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"AfgFinalizedBlocksUpTo_marshal": {
 			message: &AfgFinalizedBlocksUpTo{
 				Hash:   common.Hash{},
 				Number: "0",
 			},
-			expected: regexp.MustCompile(`^{"hash":"0x[0]{64}","number":"0",` +
+			expected: `^{"hash":"0x[0]{64}","number":"0",` +
 				`"msg":"afg.finalized_blocks_up_to","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"AfgReceivedPrecommit_marshal": {
 			message: &AfgReceivedPrecommit{
@@ -250,9 +250,9 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				TargetNumber: "0",
 				Voter:        "0x0",
 			},
-			expected: regexp.MustCompile(`^{"target_hash":"0x[0]{64}","target_number":"0","voter":"0x0",` +
+			expected: `^{"target_hash":"0x[0]{64}","target_number":"0","voter":"0x0",` +
 				`"msg":"afg.received_precommit","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"AfgReceivedPrevoteTM_marshal": {
 			message: &AfgReceivedPrevote{
@@ -260,9 +260,9 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				TargetNumber: "0",
 				Voter:        "0x0",
 			},
-			expected: regexp.MustCompile(`^{"target_hash":"0x[0]{64}","target_number":"0","voter":"0x0",` +
+			expected: `^{"target_hash":"0x[0]{64}","target_number":"0","voter":"0x0",` +
 				`"msg":"afg.received_prevote","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"AfgReceivedCommit_marshal": {
 			message: &AfgReceivedCommit{
@@ -270,38 +270,37 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				TargetNumber:               "0",
 				ContainsPrecommitsSignedBy: []string{"0x0", "0x1"},
 			},
-			expected: regexp.MustCompile(`^{"target_hash":"0x[0]{64}","target_number":"0",` +
+			expected: `^{"target_hash":"0x[0]{64}","target_number":"0",` +
 				`"contains_precommits_signed_by":\["0x0","0x1"\],` +
 				`"msg":"afg.received_commit","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"BlockImport_marshal": {
 			message: &BlockImport{
 				BestHash: &common.Hash{},
-				Height:   &big.Int{},
 				Origin:   "0x0",
 			},
-			expected: regexp.MustCompile(`^{"best":"0x[0]{64}","height":0,"origin":"0x0",` +
+			expected: `^{"best":"0x[0]{64}","height":0,"origin":"0x0",` +
 				`"msg":"block.import","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"NotifyFinalized_marshal": {
 			message: &NotifyFinalized{
 				Best:   common.Hash{},
 				Height: "0",
 			},
-			expected: regexp.MustCompile(`^{"best":"0x[0]{64}","height":"0",` +
+			expected: `^{"best":"0x[0]{64}","height":"0",` +
 				`"msg":"notify.finalized","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"PreparedBlockForProposing_marshal": {
 			message: &PreparedBlockForProposing{
 				Hash:   common.Hash{},
 				Number: "0",
 			},
-			expected: regexp.MustCompile(`^{"hash":"0x[0]{64}","number":"0",` +
+			expected: `^{"hash":"0x[0]{64}","number":"0",` +
 				`"msg":"prepared_block_for_proposing","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"SystemConnected_marshal": {
 			message: &SystemConnected{
@@ -314,10 +313,10 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				StartupTime:    "0ms",
 				Version:        "0",
 			},
-			expected: regexp.MustCompile(`^{"authority":true,"chain":"0x0","genesis_hash":"0x[0]{64}",` +
+			expected: `^{"authority":true,"chain":"0x0","genesis_hash":"0x[0]{64}",` +
 				`"implementation":"gossamer","name":"gossamer","network_id":"0","startup_time":"0ms",` +
 				`"version":"0","msg":"system.connected","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"SystemInterval_marshal": {
 			message: &SystemInterval{
@@ -325,26 +324,24 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 				BandwidthUpload:    1.5,
 				Peers:              1,
 				BestHash:           &common.Hash{},
-				BestHeight:         &big.Int{},
 				FinalisedHash:      &common.Hash{},
-				FinalisedHeight:    &big.Int{},
 				TxCount:            &big.Int{},
 				UsedStateCacheSize: &big.Int{},
 			},
-			expected: regexp.MustCompile(`^{"bandwidth_download":1.5,"bandwidth_upload":1.5,"peers":1,` +
-				`"best":"0x[0]{64}","height":0,"finalized_hash":"0x[0]{64}","finalized_height":0,` +
+			expected: `^{"bandwidth_download":1.5,"bandwidth_upload":1.5,"peers":1,` +
+				`"best":"0x[0]{64}","finalized_hash":"0x[0]{64}",` +
 				`"txcount":0,"used_state_cache_size":0,"msg":"system.interval","ts":` +
 				`"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 		"TxpoolImport_marshal": {
 			message: &TxpoolImport{
 				Ready:  11,
 				Future: 10,
 			},
-			expected: regexp.MustCompile(`^{"ready":11,"future":10,` +
+			expected: `^{"ready":11,"future":10,` +
 				`"msg":"txpool.import","ts":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:` +
-				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`),
+				`[0-9]{2}.[0-9]+Z|([+-][0-9]{2}:[0-9]{2})"}$`,
 		},
 	}
 
@@ -354,7 +351,7 @@ func TestTelemetryMarshalMessage(t *testing.T) {
 			t.Parallel()
 			telemetryBytes, err := json.Marshal(tt.message)
 			require.NoError(t, err)
-			assert.True(t, tt.expected.MatchString(string(telemetryBytes)))
+			assert.Regexp(t, tt.expected, string(telemetryBytes))
 		})
 	}
 }

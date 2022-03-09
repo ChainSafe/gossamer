@@ -255,7 +255,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 		PreVoteJustification:   pvs,
 		PreCommitJustification: pcs,
 		Hash:                   header.Hash(),
-		Number:                 uint32(header.Number.Uint64()),
+		Number:                 uint32(header.Number),
 	}, nil
 }
 
