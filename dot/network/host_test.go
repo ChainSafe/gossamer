@@ -348,19 +348,19 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
 
 	// Set handshake data to received
-	info.peersData.setInbound(nodeB.host.id(), &handshakeData{
+	info.peersData.setInboundHandshakeData(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 	})
 
 	// Verify that handshake data exists.
-	data := info.peersData.getInbound(nodeB.host.id())
+	data := info.peersData.getInboundHandshakeData(nodeB.host.id())
 	require.NotNil(t, data)
 
 	nodeB.host.close()
 
 	// Verify that handshake data is cleared.
-	data = info.peersData.getInbound(nodeB.host.id())
+	data = info.peersData.getInboundHandshakeData(nodeB.host.id())
 	require.Nil(t, data)
 }
 

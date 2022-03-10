@@ -64,7 +64,7 @@ func (s *Service) resetInboundStream(stream libp2pnetwork.Stream) {
 			continue
 		}
 
-		prtl.peersData.deleteInbound(peerID)
+		prtl.peersData.deleteInboundHandshakeData(peerID)
 		break
 	}
 

@@ -190,10 +190,10 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 
 	// don't need to lock here, since function is always called inside the func returned by
 	// `createNotificationsMessageHandler` which locks the map beforehand.
-	data := np.peersData.getInbound(from)
+	data := np.peersData.getInboundHandshakeData(from)
 	if data != nil {
 		data.handshake = hs
-		np.peersData.setInbound(from, data)
+		np.peersData.setInboundHandshakeData(from, data)
 	}
 
 	// if peer has higher best block than us, begin syncing

@@ -44,19 +44,19 @@ func (p *peersData) deleteMutex(peerID peer.ID) {
 	delete(p.mutexes, peerID)
 }
 
-func (p *peersData) getInbound(peerID peer.ID) (data *handshakeData) {
+func (p *peersData) getInboundHandshakeData(peerID peer.ID) (data *handshakeData) {
 	p.inboundMu.RLock()
 	defer p.inboundMu.RUnlock()
 	return p.inbound[peerID]
 }
 
-func (p *peersData) setInbound(peerID peer.ID, data *handshakeData) {
+func (p *peersData) setInboundHandshakeData(peerID peer.ID, data *handshakeData) {
 	p.inboundMu.Lock()
 	defer p.inboundMu.Unlock()
 	p.inbound[peerID] = data
 }
 
-func (p *peersData) deleteInbound(peerID peer.ID) {
+func (p *peersData) deleteInboundHandshakeData(peerID peer.ID) {
 	p.inboundMu.Lock()
 	defer p.inboundMu.Unlock()
 	delete(p.inbound, peerID)
@@ -73,19 +73,19 @@ func (p *peersData) countInboundStreams() (count int64) {
 	return count
 }
 
-func (p *peersData) getOutbound(peerID peer.ID) (data *handshakeData) {
+func (p *peersData) getOutboundHandshakeData(peerID peer.ID) (data *handshakeData) {
 	p.outboundMu.RLock()
 	defer p.outboundMu.RUnlock()
 	return p.outbound[peerID]
 }
 
-func (p *peersData) setOutbound(peerID peer.ID, data *handshakeData) {
+func (p *peersData) setOutboundHandshakeData(peerID peer.ID, data *handshakeData) {
 	p.outboundMu.Lock()
 	defer p.outboundMu.Unlock()
 	p.outbound[peerID] = data
 }
 
-func (p *peersData) deleteOutbound(peerID peer.ID) {
+func (p *peersData) deleteOutboundHandshakeData(peerID peer.ID) {
 	p.outboundMu.Lock()
 	defer p.outboundMu.Unlock()
 	delete(p.outbound, peerID)

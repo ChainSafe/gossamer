@@ -41,7 +41,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// haven't received handshake from peer
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-	info.peersData.setInbound(testPeerID, &handshakeData{
+	info.peersData.setInboundHandshakeData(testPeerID, &handshakeData{
 		received: false,
 	})
 
@@ -71,9 +71,9 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	require.NoError(t, err)
 
 	// set handshake data to received
-	hsData := info.peersData.getInbound(testPeerID)
+	hsData := info.peersData.getInboundHandshakeData(testPeerID)
 	hsData.received = true
-	info.peersData.setInbound(testPeerID, hsData)
+	info.peersData.setInboundHandshakeData(testPeerID, hsData)
 	msg, err = decoder(enc, testPeerID, true)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
@@ -125,7 +125,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage, nil)
 
 	// set handshake data to received
-	info.peersData.setInbound(testPeerID, &handshakeData{
+	info.peersData.setInboundHandshakeData(testPeerID, &handshakeData{
 		received:  true,
 		validated: true,
 	})
@@ -194,7 +194,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	err = handler(stream, testHandshake)
 	require.Equal(t, errCannotValidateHandshake, err)
-	data := info.peersData.getInbound(testPeerID)
+	data := info.peersData.getInboundHandshakeData(testPeerID)
 	require.NotNil(t, data)
 	require.True(t, data.received)
 	require.False(t, data.validated)
@@ -207,11 +207,11 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		GenesisHash:     s.blockState.GenesisHash(),
 	}
 
-	info.peersData.deleteInbound(testPeerID)
+	info.peersData.deleteInboundHandshakeData(testPeerID)
 
 	err = handler(stream, testHandshake)
 	require.NoError(t, err)
-	data = info.peersData.getInbound(testPeerID)
+	data = info.peersData.getInboundHandshakeData(testPeerID)
 	require.NotNil(t, data)
 	require.True(t, data.received)
 	require.True(t, data.validated)
@@ -264,7 +264,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 
 	// clear handshake data from connection handler
 	time.Sleep(time.Millisecond * 100)
-	info.peersData.deleteOutbound(nodeB.host.id())
+	info.peersData.deleteOutboundHandshakeData(nodeB.host.id())
 	connAToB := nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
 	for _, stream := range connAToB[0].GetStreams() {
 		_ = stream.Close()
@@ -283,7 +283,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// handshake data shouldn't exist, as nodeB hasn't responded yet
-	data := info.peersData.getOutbound(nodeB.host.id())
+	data := info.peersData.getOutboundHandshakeData(nodeB.host.id())
 	require.Nil(t, data)
 
 	// a stream should be open until timeout
@@ -295,7 +295,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	time.Sleep(handshakeTimeout)
 
 	// handshake data shouldn't exist still
-	data = info.peersData.getOutbound(nodeB.host.id())
+	data = info.peersData.getOutboundHandshakeData(nodeB.host.id())
 	require.Nil(t, data)
 
 	// stream should be closed
@@ -354,7 +354,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	handler := srvc1.createNotificationsMessageHandler(info, srvc1.handleTransactionMessage, txnBatchHandler)
 
 	// set handshake data to received
-	info.peersData.setInbound(srvc2.host.id(), &handshakeData{
+	info.peersData.setInboundHandshakeData(srvc2.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 	})

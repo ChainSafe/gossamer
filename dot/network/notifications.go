@@ -101,9 +101,9 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 
 		var hsData *handshakeData
 		if inbound {
-			hsData = info.peersData.getInbound(peer)
+			hsData = info.peersData.getInboundHandshakeData(peer)
 		} else {
-			hsData = info.peersData.getOutbound(peer)
+			hsData = info.peersData.getOutboundHandshakeData(peer)
 		}
 
 		if hsData == nil || !hsData.received {
@@ -149,12 +149,12 @@ func (s *Service) createNotificationsMessageHandler(
 			// note: if this function is being called, it's being called via SetStreamHandler,
 			// ie it is an inbound stream and we only send the handshake over it.
 			// we do not send any other data over this stream, we would need to open a new outbound stream.
-			hsData := info.peersData.getInbound(peer)
+			hsData := info.peersData.getInboundHandshakeData(peer)
 			if hsData == nil {
 				logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
 
 				hsData = newHandshakeData(true, false, stream)
-				info.peersData.setInbound(peer, hsData)
+				info.peersData.setInboundHandshakeData(peer, hsData)
 
 				err := info.handshakeValidator(peer, hs)
 				if err != nil {
@@ -165,7 +165,7 @@ func (s *Service) createNotificationsMessageHandler(
 				}
 
 				hsData.validated = true
-				info.peersData.setInbound(peer, hsData)
+				info.peersData.setInboundHandshakeData(peer, hsData)
 
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
@@ -228,7 +228,7 @@ func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream lib
 		peerID,
 	)
 
-	info.peersData.deleteOutbound(peerID)
+	info.peersData.deleteOutboundHandshakeData(peerID)
 	_ = stream.Close()
 }
 
@@ -294,7 +294,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 	peerMutex.Lock()
 	defer peerMutex.Unlock()
 
-	hsData := info.peersData.getOutbound(peer)
+	hsData := info.peersData.getOutboundHandshakeData(peer)
 	switch {
 	case hsData != nil && !hsData.validated:
 		// peer has sent us an invalid handshake in the past, ignore
@@ -353,7 +353,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		hsData.validated = false
 		hsData.stream = nil
 		_ = stream.Reset()
-		info.peersData.setOutbound(peer, hsData)
+		info.peersData.setOutboundHandshakeData(peer, hsData)
 		// don't delete handshake data, as we want to store that the handshake for this peer was invalid
 		// and not to exchange messages over this protocol with it
 		return nil, err
@@ -361,7 +361,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 
 	hsData.validated = true
 	hsData.handshake = resp
-	info.peersData.setOutbound(peer, hsData)
+	info.peersData.setOutboundHandshakeData(peer, hsData)
 	logger.Tracef("sender: validated handshake from peer %s using protocol %s", peer, info.protocolID)
 	return hsData.stream, nil
 }

@@ -291,8 +291,8 @@ func (s *Service) Start() error {
 	s.host.cm.disconnectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
 			prtl.peersData.deleteMutex(peerID)
-			prtl.peersData.deleteInbound(peerID)
-			prtl.peersData.deleteOutbound(peerID)
+			prtl.peersData.deleteInboundHandshakeData(peerID)
+			prtl.peersData.deleteOutboundHandshakeData(peerID)
 		}
 	}
 
@@ -616,7 +616,7 @@ func (s *Service) Peers() []common.PeerInfo {
 	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
-		data := np.peersData.getInbound(p)
+		data := np.peersData.getInboundHandshakeData(p)
 		if data == nil || data.handshake == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
