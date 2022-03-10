@@ -6,7 +6,6 @@ package sync
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ const (
 
 func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	header, err := types.NewHeader(common.NewHash([]byte{0}),
-		trie.EmptyHash, trie.EmptyHash, big.NewInt(0), types.NewDigest())
+		trie.EmptyHash, trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	bs := new(syncmocks.BlockState)
@@ -66,7 +65,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 
 	testPeer := peer.ID("noot")
 	hash := common.Hash{0xa, 0xb}
-	number := big.NewInt(1000)
+	const number = 1000
 	err := cs.setPeerHead(testPeer, hash, number)
 	require.NoError(t, err)
 
@@ -82,22 +81,21 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	// test case where peer has a lower head than us, but they are on the same chain as us
 	cs.blockState = new(syncmocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}),
-		trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
+		trie.EmptyHash, trie.EmptyHash, number, types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
 	fin, err := types.NewHeader(common.NewHash([]byte{0}),
-		trie.EmptyHash, trie.EmptyHash, big.NewInt(998), types.NewDigest())
+		trie.EmptyHash, trie.EmptyHash, number-2, types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(hash, nil)
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(hash, nil)
 
-	number = big.NewInt(999)
-	err = cs.setPeerHead(testPeer, hash, number)
+	err = cs.setPeerHead(testPeer, hash, number-1)
 	require.NoError(t, err)
 	expected = &peerState{
 		who:    testPeer,
 		hash:   hash,
-		number: number,
+		number: number - 1,
 	}
 	require.Equal(t, expected, cs.peerState[testPeer])
 	select {
@@ -110,18 +108,17 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	cs.blockState = new(syncmocks.BlockState)
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
 	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
-		trie.EmptyHash, big.NewInt(1000), types.NewDigest())
+		trie.EmptyHash, number, types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.Hash{}, nil)
 
-	number = big.NewInt(999)
-	err = cs.setPeerHead(testPeer, hash, number)
+	err = cs.setPeerHead(testPeer, hash, number-1)
 	require.True(t, errors.Is(err, errPeerOnInvalidFork))
 	expected = &peerState{
 		who:    testPeer,
 		hash:   hash,
-		number: number,
+		number: number - 1,
 	}
 	require.Equal(t, expected, cs.peerState[testPeer])
 	select {
@@ -135,19 +132,18 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
 	fin, err = types.NewHeader(
 		common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash,
-		big.NewInt(998), types.NewDigest())
+		number-2, types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.Hash{}, nil)
 	cs.blockState.(*syncmocks.BlockState).On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
-	number = big.NewInt(999)
-	err = cs.setPeerHead(testPeer, hash, number)
+	err = cs.setPeerHead(testPeer, hash, number-1)
 	require.NoError(t, err)
 	expected = &peerState{
 		who:    testPeer,
 		hash:   hash,
-		number: number,
+		number: number - 1,
 	}
 	require.Equal(t, expected, cs.peerState[testPeer])
 	select {
@@ -165,7 +161,7 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 
 	testPeer := peer.ID("noot")
 	cs.peerState[testPeer] = &peerState{
-		number: big.NewInt(1000),
+		number: 1000,
 	}
 
 	cs.workQueue <- cs.peerState[testPeer]
@@ -188,7 +184,7 @@ func TestChainSync_sync_tip(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 	cs.blockState = new(syncmocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}),
-		trie.EmptyHash, trie.EmptyHash, big.NewInt(1000), types.NewDigest())
+		trie.EmptyHash, trie.EmptyHash, 1000, types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
@@ -198,7 +194,7 @@ func TestChainSync_sync_tip(t *testing.T) {
 
 	testPeer := peer.ID("noot")
 	cs.peerState[testPeer] = &peerState{
-		number: big.NewInt(999),
+		number: 999,
 	}
 
 	cs.workQueue <- cs.peerState[testPeer]
@@ -208,62 +204,52 @@ func TestChainSync_sync_tip(t *testing.T) {
 
 func TestChainSync_getTarget(t *testing.T) {
 	cs, _ := newTestChainSync(t)
-	require.Equal(t, big.NewInt(2<<32-1), cs.getTarget())
 
 	cs.peerState = map[peer.ID]*peerState{
 		"a": {
-			number: big.NewInt(-100), // outlier
+			number: 0, // outlier
 		},
 		"b": {
-			number: big.NewInt(10),
+			number: 110,
 		},
 		"c": {
-			number: big.NewInt(20),
+			number: 120,
 		},
 		"d": {
-			number: big.NewInt(30),
+			number: 130,
 		},
 		"e": {
-			number: big.NewInt(40),
+			number: 140,
 		},
 		"f": {
-			number: big.NewInt(50),
+			number: 150,
 		},
 		"g": {
-			number: big.NewInt(1000), // outlier
+			number: 1000, // outlier
 		},
 	}
 
-	require.Equal(t, big.NewInt(30), cs.getTarget()) // sum:150/count:5 = avg:30
+	require.Equal(t, uint(130), cs.getTarget()) // sum:650/count:5 = avg:130
 
 	cs.peerState = map[peer.ID]*peerState{
 		"testA": {
-			number: big.NewInt(1000),
+			number: 1000,
 		},
 		"testB": {
-			number: big.NewInt(2000),
+			number: 2000,
 		},
 	}
 
-	require.Equal(t, big.NewInt(1500), cs.getTarget())
+	require.Equal(t, uint(1500), cs.getTarget())
 }
 
 func TestWorkerToRequests(t *testing.T) {
-	_, err := workerToRequests(&worker{})
-	require.Equal(t, errWorkerMissingStartNumber, err)
-
 	w := &worker{
-		startNumber: big.NewInt(1),
-	}
-	_, err = workerToRequests(w)
-	require.Equal(t, errWorkerMissingTargetNumber, err)
-
-	w = &worker{
-		startNumber:  big.NewInt(10),
-		targetNumber: big.NewInt(1),
+		startNumber:  uintPtr(10),
+		targetNumber: uintPtr(1),
 		direction:    network.Ascending,
 	}
-	_, err = workerToRequests(w)
+	_, err := workerToRequests(w)
 	require.Equal(t, errInvalidDirection, err)
 
 	type testCase struct {
@@ -280,8 +266,8 @@ func TestWorkerToRequests(t *testing.T) {
 	testCases := []testCase{
 		{
 			w: &worker{
-				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + maxResponseSize),
+				startNumber:  uintPtr(1),
+				targetNumber: uintPtr(1 + maxResponseSize),
 				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
@@ -297,8 +283,8 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 		{
 			w: &worker{
-				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + (maxResponseSize * 2)),
+				startNumber:  uintPtr(1),
+				targetNumber: uintPtr(1 + (maxResponseSize * 2)),
 				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
@@ -321,8 +307,8 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 		{
 			w: &worker{
-				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(10),
+				startNumber:  uintPtr(1),
+				targetNumber: uintPtr(10),
 				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
@@ -338,8 +324,8 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 		{
 			w: &worker{
-				startNumber:  big.NewInt(10),
-				targetNumber: big.NewInt(1),
+				startNumber:  uintPtr(10),
+				targetNumber: uintPtr(1),
 				direction:    network.Descending,
 				requestData:  bootstrapRequestData,
 			},
@@ -355,8 +341,8 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 		{
 			w: &worker{
-				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + maxResponseSize + (maxResponseSize / 2)),
+				startNumber:  uintPtr(1),
+				targetNumber: uintPtr(1 + maxResponseSize + (maxResponseSize / 2)),
 				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
@@ -379,8 +365,8 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 		{
 			w: &worker{
-				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(10),
+				startNumber:  uintPtr(1),
+				targetNumber: uintPtr(10),
 				targetHash:   common.Hash{0xa},
 				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
@@ -397,9 +383,9 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 		{
 			w: &worker{
-				startNumber:  big.NewInt(1),
+				startNumber:  uintPtr(1),
 				startHash:    common.Hash{0xb},
-				targetNumber: big.NewInt(10),
+				targetNumber: uintPtr(10),
 				targetHash:   common.Hash{0xc},
 				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
@@ -416,8 +402,8 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 		{
 			w: &worker{
-				startNumber:  big.NewInt(10),
-				targetNumber: big.NewInt(10),
+				startNumber:  uintPtr(10),
+				targetNumber: uintPtr(10),
 				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
@@ -432,8 +418,8 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 		{
 			w: &worker{
-				startNumber:  big.NewInt(1 + maxResponseSize + (maxResponseSize / 2)),
-				targetNumber: big.NewInt(1),
+				startNumber:  uintPtr(1 + maxResponseSize + (maxResponseSize / 2)),
+				targetNumber: uintPtr(1),
 				direction:    network.Descending,
 				requestData:  bootstrapRequestData,
 			},
@@ -501,13 +487,13 @@ func TestChainSync_validateResponse(t *testing.T) {
 		BlockData: []*types.BlockData{
 			{
 				Header: &types.Header{
-					Number: big.NewInt(1),
+					Number: 1,
 				},
 				Body: &types.Body{},
 			},
 			{
 				Header: &types.Header{
-					Number: big.NewInt(2),
+					Number: 2,
 				},
 				Body: &types.Body{},
 			},
@@ -515,7 +501,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 	}
 
 	hash := (&types.Header{
-		Number: big.NewInt(2),
+		Number: 2,
 	}).Hash()
 	err = cs.validateResponse(req, resp, "")
 	require.Equal(t, errResponseIsNotChain, err)
@@ -523,17 +509,17 @@ func TestChainSync_validateResponse(t *testing.T) {
 	cs.pendingBlocks.removeBlock(hash)
 
 	parent := (&types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}).Hash()
 	header3 := &types.Header{
 		ParentHash: parent,
-		Number:     big.NewInt(3),
+		Number:     3,
 	}
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Header: &types.Header{
-					Number: big.NewInt(1),
+					Number: 1,
 				},
 				Body: &types.Body{},
 			},
@@ -548,7 +534,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 
 	hash = (&types.Header{
 		ParentHash: parent,
-		Number:     big.NewInt(3),
+		Number:     3,
 	}).Hash()
 	err = cs.validateResponse(req, resp, "")
 	require.Equal(t, errResponseIsNotChain, err)
@@ -558,20 +544,20 @@ func TestChainSync_validateResponse(t *testing.T) {
 	cs.pendingBlocks.removeBlock(hash)
 
 	parent = (&types.Header{
-		Number: big.NewInt(2),
+		Number: 2,
 	}).Hash()
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Header: &types.Header{
-					Number: big.NewInt(2),
+					Number: 2,
 				},
 				Body: &types.Body{},
 			},
 			{
 				Header: &types.Header{
 					ParentHash: parent,
-					Number:     big.NewInt(3),
+					Number:     3,
 				},
 				Body: &types.Body{},
 			},
@@ -609,7 +595,7 @@ func TestChainSync_validateResponse_firstBlock(t *testing.T) {
 	}
 
 	header := &types.Header{
-		Number: big.NewInt(2),
+		Number: 2,
 	}
 
 	resp := &network.BlockResponseMessage{
@@ -617,7 +603,7 @@ func TestChainSync_validateResponse_firstBlock(t *testing.T) {
 			{
 				Hash: header.Hash(),
 				Header: &types.Header{
-					Number: big.NewInt(2),
+					Number: 2,
 				},
 				Body:          &types.Body{},
 				Justification: &[]byte{0},
@@ -651,7 +637,7 @@ func TestChainSync_doSync(t *testing.T) {
 	require.Equal(t, errNoPeers, workerErr.err)
 
 	cs.peerState["noot"] = &peerState{
-		number: big.NewInt(100),
+		number: 100,
 	}
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
@@ -663,7 +649,7 @@ func TestChainSync_doSync(t *testing.T) {
 			{
 				Hash: common.Hash{0x1},
 				Header: &types.Header{
-					Number: big.NewInt(1),
+					Number: 1,
 				},
 				Body: &types.Body{},
 			},
@@ -682,7 +668,7 @@ func TestChainSync_doSync(t *testing.T) {
 	require.Equal(t, resp.BlockData[0], bd)
 
 	parent := (&types.Header{
-		Number: big.NewInt(2),
+		Number: 2,
 	}).Hash()
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
@@ -690,14 +676,14 @@ func TestChainSync_doSync(t *testing.T) {
 				Hash: common.Hash{0x3},
 				Header: &types.Header{
 					ParentHash: parent,
-					Number:     big.NewInt(3),
+					Number:     3,
 				},
 				Body: &types.Body{},
 			},
 			{
 				Hash: common.Hash{0x2},
 				Header: &types.Header{
-					Number: big.NewInt(2),
+					Number: 2,
 				},
 				Body: &types.Body{},
 			},
@@ -727,7 +713,7 @@ func TestHandleReadyBlock(t *testing.T) {
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
 	header1 := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 	block1 := &types.Block{
 		Header: *header1,
@@ -736,7 +722,7 @@ func TestHandleReadyBlock(t *testing.T) {
 
 	header2 := &types.Header{
 		ParentHash: header1.Hash(),
-		Number:     big.NewInt(2),
+		Number:     2,
 	}
 	block2 := &types.Block{
 		Header: *header2,
@@ -746,7 +732,7 @@ func TestHandleReadyBlock(t *testing.T) {
 
 	header3 := &types.Header{
 		ParentHash: header2.Hash(),
-		Number:     big.NewInt(3),
+		Number:     3,
 	}
 	block3 := &types.Block{
 		Header: *header3,
@@ -756,7 +742,7 @@ func TestHandleReadyBlock(t *testing.T) {
 
 	header2NotDescendant := &types.Header{
 		ParentHash: common.Hash{0xff},
-		Number:     big.NewInt(2),
+		Number:     2,
 	}
 	block2NotDescendant := &types.Block{
 		Header: *header2NotDescendant,
@@ -786,10 +772,10 @@ func TestChainSync_determineSyncPeers(t *testing.T) {
 
 	// test base case
 	cs.peerState[testPeerA] = &peerState{
-		number: big.NewInt(129),
+		number: 129,
 	}
 	cs.peerState[testPeerB] = &peerState{
-		number: big.NewInt(257),
+		number: 257,
 	}
 
 	peers := cs.determineSyncPeers(req, peersTried)
@@ -832,7 +818,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 		peerState map[peer.ID]*peerState
 	}
 	type output struct {
-		highestBlock int64
+		highestBlock uint
 		err          error
 	}
 	type test struct {
@@ -865,7 +851,7 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has only one peer with number 90 should return 90, nil",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest": {number: big.NewInt(90)},
+					"idtest": {number: 90},
 				},
 			},
 			out: output{
@@ -874,23 +860,11 @@ func TestChainSync_highestBlock(t *testing.T) {
 			},
 		},
 		{
-			name: "when has only one peer with number nil should return 0, errNilBlockData",
-			in: input{
-				peerState: map[peer.ID]*peerState{
-					"idtest": {number: nil},
-				},
-			},
-			out: output{
-				highestBlock: 0,
-				err:          errNilBlockData,
-			},
-		},
-		{
 			name: "when has two peers (p1, p2) with p1.number 90 and p2.number 190 should return 190, nil",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest#1": {number: big.NewInt(90)},
-					"idtest#2": {number: big.NewInt(190)},
+					"idtest#1": {number: 90},
+					"idtest#2": {number: 190},
 				},
 			},
 			out: output{
@@ -902,52 +876,13 @@ func TestChainSync_highestBlock(t *testing.T) {
 			name: "when has two peers (p1, p2) with p1.number 190 and p2.number 90 should return 190, nil",
 			in: input{
 				peerState: map[peer.ID]*peerState{
-					"idtest#1": {number: big.NewInt(190)},
-					"idtest#2": {number: big.NewInt(90)},
+					"idtest#1": {number: 190},
+					"idtest#2": {number: 90},
 				},
 			},
 			out: output{
 				highestBlock: 190,
 				err:          nil,
-			},
-		},
-		{
-			name: "when has two peers (p1, p2) with p1.number nil and p2.number 90 should return 90, nil",
-			in: input{
-				peerState: map[peer.ID]*peerState{
-					"idtest#1": {number: nil},
-					"idtest#2": {number: big.NewInt(90)},
-				},
-			},
-			out: output{
-				highestBlock: 90,
-				err:          nil,
-			},
-		},
-		{
-			name: "when has two peers (p1, p2) with p1.number 90 and p2.number nil should return 90, nil",
-			in: input{
-				peerState: map[peer.ID]*peerState{
-					"idtest#1": {number: big.NewInt(90)},
-					"idtest#2": {number: nil},
-				},
-			},
-			out: output{
-				highestBlock: 90,
-				err:          nil,
-			},
-		},
-		{
-			name: "when has two peers (p1, p2) with p1.number nil and p2.number nil should return 0, errNilBlockData",
-			in: input{
-				peerState: map[peer.ID]*peerState{
-					"idtest#1": {number: nil},
-					"idtest#2": {number: nil},
-				},
-			},
-			out: output{
-				highestBlock: 0,
-				err:          errNilBlockData,
 			},
 		},
 	}

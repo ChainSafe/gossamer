@@ -103,15 +103,22 @@ func (s *chainProcessor) processReadyBlocks() {
 }
 
 // processBlockData processes the BlockData from a BlockResponse and
-// eturns the index of the last BlockData it handled on success,
+// returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if bd == nil {
 		return ErrNilBlockData
 	}
 
-	hasHeader, _ := s.blockState.HasHeader(bd.Hash)
-	hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
+	hasHeader, err := s.blockState.HasHeader(bd.Hash)
+	if err != nil {
+		return fmt.Errorf("failed to check if block state has header for hash %s: %w", bd.Hash, err)
+	}
+	hasBody, err := s.blockState.HasBlockBody(bd.Hash)
+	if err != nil {
+		return fmt.Errorf("failed to check block state has body for hash %s: %w", bd.Hash, err)
+	}
+
 	if hasHeader && hasBody {
 		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
@@ -124,7 +131,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		logger.Debugf(
-			"skipping block number %s with hash %s, already have",
+			"skipping block number %d with hash %s, already have",
 			block.Header.Number, bd.Hash) // TODO is this valid?
 
 		err = s.blockState.AddBlockToBlockTree(block)
@@ -136,7 +143,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if bd.Justification != nil {
-			logger.Debugf("handling Justification for block number %s with hash %s...", block.Header.Number, bd.Hash)
+			logger.Debugf("handling Justification for block number %d with hash %s...", block.Header.Number, bd.Hash)
 			s.handleJustification(&block.Header, *bd.Justification)
 		}
 
@@ -171,7 +178,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if err := s.handleBlock(block); err != nil {
-			logger.Debugf("failed to handle block number %s: %s", block.Header.Number, err)
+			logger.Debugf("failed to handle block number %d: %s", block.Header.Number, err)
 			return err
 		}
 
@@ -179,7 +186,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	}
 
 	if bd.Justification != nil && bd.Header != nil {
-		logger.Debugf("handling Justification for block number %s with hash %s...", bd.Number(), bd.Hash)
+		logger.Debugf("handling Justification for block number %d with hash %s...", bd.Number(), bd.Hash)
 		s.handleJustification(bd.Header, *bd.Justification)
 	}
 
@@ -248,7 +255,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	logger.Debugf("🔗 imported block number %s with hash %s", block.Header.Number, block.Header.Hash())
+	logger.Debugf("🔗 imported block number %d with hash %s", block.Header.Number, block.Header.Hash())
 
 	blockHash := block.Header.Hash()
 	s.telemetry.SendMessage(telemetry.NewBlockImport(
@@ -266,7 +273,7 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 
 	err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
 	if err != nil {
-		logger.Warnf("failed to verify block number %s and hash %s justification: %s", header.Number, header.Hash(), err)
+		logger.Warnf("failed to verify block number %d and hash %s justification: %s", header.Number, header.Hash(), err)
 		return
 	}
 
@@ -276,5 +283,5 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 		return
 	}
 
-	logger.Infof("🔨 finalised block number %s with hash %s", header.Number, header.Hash())
+	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, header.Hash())
 }

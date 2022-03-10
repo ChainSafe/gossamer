@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -81,7 +80,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 	}
 
 	// ignore neighbour messages where our best finalised number is greater than theirs
-	if uint32(currFinalized.Number.Int64()) >= msg.Number {
+	if currFinalized.Number >= uint(msg.Number) {
 		return nil
 	}
 
@@ -93,7 +92,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 	}
 
 	// ignore neighbour messages that are above our head
-	if int64(msg.Number) > head.Int64() {
+	if uint(msg.Number) > head {
 		return nil
 	}
 
@@ -473,7 +472,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return err
 	}
 
-	setID, err := s.grandpaState.GetSetIDByBlockNumber(big.NewInt(int64(fj.Commit.Number)))
+	setID, err := s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
 	if err != nil {
 		return fmt.Errorf("cannot get set ID from block number: %w", err)
 	}

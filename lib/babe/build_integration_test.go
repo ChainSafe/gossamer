@@ -8,7 +8,6 @@ package babe
 
 import (
 	"bytes"
-	"math/big"
 	"testing"
 	"time"
 
@@ -41,21 +40,21 @@ func TestSeal(t *testing.T) {
 	babeService.epochHandler, err = babeService.initiateAndGetEpochHandler(0)
 	require.NoError(t, err)
 
-	authoringSlots := getAuthoringSlots(babeService.epochHandler.slotToProof)
+	authoringSlots := getAuthoringSlots(babeService.epochHandler.slotToPreRuntimeDigest)
 	require.NotEmpty(t, authoringSlots)
 
 	builder, _ := NewBlockBuilder(
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
-		babeService.epochHandler.slotToProof[authoringSlots[0]],
 		babeService.epochHandler.epochData.authorityIndex,
+		babeService.epochHandler.slotToPreRuntimeDigest[authoringSlots[0]],
 	)
 
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.NewDigest())
+	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	encHeader, err := scale.Marshal(*header)
@@ -92,10 +91,10 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	outAndProof, err := babeService.runLottery(slotNumber, epoch, epochData)
+	preRuntimeDigest, err := claimSlot(epoch, slotNumber, epochData, babeService.keypair)
 	require.NoError(t, err)
 
-	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, outAndProof)
+	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
 	require.NoError(t, err)
 
 	babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
@@ -127,7 +126,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
-		Number:     big.NewInt(1),
+		Number:     1,
 	}
 
 	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
@@ -154,14 +153,6 @@ func TestApplyExtrinsic(t *testing.T) {
 	babeService := createTestService(t, cfg)
 	const authorityIndex = 0
 
-	builder, _ := NewBlockBuilder(
-		babeService.keypair,
-		babeService.transactionState,
-		babeService.blockState,
-		&VrfOutputAndProof{},
-		authorityIndex,
-	)
-
 	duration, err := time.ParseDuration("1s")
 	require.NoError(t, err)
 
@@ -177,8 +168,13 @@ func TestApplyExtrinsic(t *testing.T) {
 		duration: duration,
 		number:   2,
 	}
+	testVRFOutputAndProof := &VrfOutputAndProof{}
 
-	preDigest2, err := builder.buildBlockPreDigest(slot2)
+	preDigest2, err := types.NewBabePrimaryPreDigest(
+		authorityIndex, slot2.number,
+		testVRFOutputAndProof.output,
+		testVRFOutputAndProof.proof,
+	).ToPreRuntimeDigest()
 	require.NoError(t, err)
 
 	parentHash := babeService.blockState.GenesisHash()
@@ -190,21 +186,25 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	preDigest, err := builder.buildBlockPreDigest(slot)
+	preDigest, err := types.NewBabePrimaryPreDigest(
+		authorityIndex, slot.number,
+		testVRFOutputAndProof.output,
+		testVRFOutputAndProof.proof,
+	).ToPreRuntimeDigest()
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
 	err = digest.Add(*preDigest)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), digest)
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, digest)
 	require.NoError(t, err)
 
 	//initialise block header
 	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	_, err = builder.buildBlockInherents(slot, rt)
+	_, err = buildBlockInherents(slot, rt)
 	require.NoError(t, err)
 
 	header1, err := rt.FinalizeBlock()
@@ -218,12 +218,12 @@ func TestApplyExtrinsic(t *testing.T) {
 	digest2 := types.NewDigest()
 	err = digest2.Add(*preDigest2)
 	require.NoError(t, err)
-	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), digest2)
+	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, 2, digest2)
 	require.NoError(t, err)
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
-	_, err = builder.buildBlockInherents(slot, rt)
+	_, err = buildBlockInherents(slot, rt)
 	require.NoError(t, err)
 
 	res, err := rt.ApplyExtrinsic(extBytes)
@@ -247,7 +247,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	babeService := createTestService(t, cfg)
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	rt, err := babeService.blockState.GetRuntime(nil)
@@ -365,7 +365,6 @@ func TestBuildBlock_failing(t *testing.T) {
 
 	parentHeader := &types.Header{
 		ParentHash: zeroHash,
-		Number:     big.NewInt(0),
 	}
 
 	duration, err := time.ParseDuration("1s")
@@ -381,7 +380,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	require.NoError(t, err)
 
 	const authorityIndex uint32 = 0
-	_, err = babeService.buildBlock(parentHeader, slot, rt, authorityIndex, &VrfOutputAndProof{})
+	_, err = babeService.buildBlock(parentHeader, slot, rt, authorityIndex, &types.PreRuntimeDigest{})
 	require.NotNil(t, err)
 	require.Equal(t, "cannot build extrinsics: error applying extrinsic: Apply error, type: Payment",
 		err.Error(), "Did not receive expected error text")

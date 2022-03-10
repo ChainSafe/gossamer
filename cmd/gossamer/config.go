@@ -139,7 +139,7 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	setDotRPCConfig(ctx, tomlCfg.RPC, &cfg.RPC)
 	setDotPprofConfig(ctx, tomlCfg.Pprof, &cfg.Pprof)
 
-	if rewind := ctx.GlobalInt(RewindFlag.Name); rewind != 0 {
+	if rewind := ctx.GlobalUint(RewindFlag.Name); rewind != 0 {
 		cfg.State.Rewind = rewind
 	}
 

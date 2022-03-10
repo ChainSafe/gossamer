@@ -108,7 +108,7 @@ func makeDir(fp string) error {
 // saveKey attempts to save a private key to the provided filepath
 func saveKey(priv crypto.PrivKey, fp string) (err error) {
 	pth := path.Join(filepath.Clean(fp), DefaultKeyFile)
-	f, err := os.Create(pth)
+	f, err := os.Create(filepath.Clean(pth))
 	if err != nil {
 		return err
 	}

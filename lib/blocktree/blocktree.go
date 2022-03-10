@@ -5,7 +5,6 @@ package blocktree
 
 import (
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
@@ -77,15 +76,14 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err 
 		return ErrBlockExists
 	}
 
-	number := big.NewInt(0)
-	number.Add(parent.number, big.NewInt(1))
+	number := parent.number + 1
 
-	if number.Cmp(header.Number) != 0 {
+	if number != header.Number {
 		return errUnexpectedNumber
 	}
 
 	var isPrimary bool
-	if header.Number.Uint64() != 0 {
+	if header.Number != 0 {
 		isPrimary, err = types.IsPrimary(header)
 		if err != nil {
 			return fmt.Errorf("failed to check if block was primary: %w", err)
@@ -118,9 +116,9 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 		return hashes
 	}
 
-	number := big.NewInt(0).Add(bt.getNode(hash).number, big.NewInt(1))
+	number := bt.getNode(hash).number + 1
 
-	if bt.root.number.Cmp(number) == 0 {
+	if bt.root.number == number {
 		hashes = append(hashes, bt.root.hash)
 		return hashes
 	}
@@ -334,24 +332,24 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 
 // GetHashByNumber returns the block hash with the given number that is on the best chain.
 // If the number is lower or higher than the numbers in the blocktree, an error is returned.
-func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
+func (bt *BlockTree) GetHashByNumber(num uint) (common.Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
 
 	best := bt.leaves.bestBlock()
-	if best.number.Cmp(num) == -1 {
+	if best.number < num {
 		return common.Hash{}, ErrNumGreaterThanHighest
 	}
 
-	if best.number.Cmp(num) == 0 {
+	if best.number == num {
 		return best.hash, nil
 	}
 
-	if bt.root.number.Cmp(num) == 1 {
+	if bt.root.number > num {
 		return common.Hash{}, ErrNumLowerThanRoot
 	}
 
-	if bt.root.number.Cmp(num) == 0 {
+	if bt.root.number == num {
 		return bt.root.hash, nil
 	}
 
@@ -361,7 +359,7 @@ func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
 			return common.Hash{}, ErrNodeNotFound
 		}
 
-		if curr.number.Cmp(num) == 0 {
+		if curr.number == num {
 			return curr.hash, nil
 		}
 

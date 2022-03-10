@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
+// https://github.com/paritytech/substrate/blob/b07765f9ecc4c508fb4d0fba930b476c8509f5c2/client/consensus/babe/src/authorship.rs#L98
 func getSecondarySlotAuthor(slot uint64, numAuths int, randomness Randomness) (uint32, error) {
 	s := make([]byte, 8)
 	binary.LittleEndian.PutUint64(s, slot)

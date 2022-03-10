@@ -19,7 +19,7 @@ help: Makefile
 
 .PHONY: lint
 lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44
 	golangci-lint run --build-tags integration --timeout 10m
 
 clean:
