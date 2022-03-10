@@ -23,14 +23,15 @@ type streamData struct {
 // This prevents keeping stale streams open and continuously trying to
 // read from it, which takes up lots of CPU over time.
 type streamManager struct {
-	ctx           context.Context
-	streamDataMap *sync.Map //map[string]*streamData
+	ctx          context.Context
+	streamDataMu sync.RWMutex
+	streamData   map[string]*streamData
 }
 
 func newStreamManager(ctx context.Context) *streamManager {
 	return &streamManager{
-		ctx:           ctx,
-		streamDataMap: new(sync.Map),
+		ctx:        ctx,
+		streamData: make(map[string]*streamData),
 	}
 }
 
@@ -51,18 +52,18 @@ func (sm *streamManager) start() {
 }
 
 func (sm *streamManager) cleanupStreams() {
-	sm.streamDataMap.Range(func(id, data interface{}) bool {
-		sdata := data.(*streamData)
-		lastReceived := sdata.lastReceivedMessage
-		stream := sdata.stream
+	sm.streamDataMu.Lock()
+	defer sm.streamDataMu.Unlock()
+
+	for id, data := range sm.streamData {
+		lastReceived := data.lastReceivedMessage
+		stream := data.stream
 
 		if time.Since(lastReceived) > cleanupStreamInterval {
 			_ = stream.Close()
-			sm.streamDataMap.Delete(id)
+			delete(sm.streamData, id)
 		}
-
-		return true
-	})
+	}
 }
 
 func (sm *streamManager) logNewStream(stream network.Stream) {
@@ -72,16 +73,20 @@ func (sm *streamManager) logNewStream(stream network.Stream) {
 		lastReceivedMessage: time.Now(),
 		stream:              stream,
 	}
-	sm.streamDataMap.Store(stream.ID(), data)
+
+	sm.streamDataMu.Lock()
+	defer sm.streamDataMu.Unlock()
+	sm.streamData[stream.ID()] = data
 }
 
 func (sm *streamManager) logMessageReceived(streamID string) {
-	data, has := sm.streamDataMap.Load(streamID)
-	if !has {
+	sm.streamDataMu.Lock()
+	defer sm.streamDataMu.Unlock()
+
+	data := sm.streamData[streamID]
+	if data == nil {
 		return
 	}
 
-	sdata := data.(*streamData)
-	sdata.lastReceivedMessage = time.Now()
-	sm.streamDataMap.Store(streamID, sdata)
+	data.lastReceivedMessage = time.Now()
 }
