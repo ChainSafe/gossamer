@@ -64,7 +64,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 		require.NoError(t, err)
 
 		res := NewEmptyTrie()
-		err = res.Load(db, trie.MustHash().ToBytes())
+		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
 		require.Equal(t, trie.MustHash(), res.MustHash())
 		require.Equal(t, trie.String(), res.String())
@@ -136,7 +136,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		require.NoError(t, err)
 
 		res := NewEmptyTrie()
-		err = res.Load(db, trie.MustHash().ToBytes())
+		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
 		require.Equal(t, trie.MustHash(), res.MustHash())
 
@@ -206,7 +206,7 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 		}
 
 		res := NewEmptyTrie()
-		err := res.Load(db, trie.MustHash().ToBytes())
+		err := res.Load(db, trie.MustHash())
 		require.NoError(t, err)
 		require.Equal(t, trie.MustHash(), res.MustHash())
 
@@ -266,7 +266,7 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 			require.NoError(t, err)
 
 			res := NewEmptyTrie()
-			err = res.Load(db, trie.MustHash().ToBytes())
+			err = res.Load(db, trie.MustHash())
 			require.NoError(t, err)
 			require.Equal(t, trie.MustHash(), res.MustHash())
 
@@ -331,7 +331,7 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 		require.NoError(t, err)
 
 		res := NewEmptyTrie()
-		err = res.Load(db, trie.MustHash().ToBytes())
+		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
 
 		require.Equal(t, trie.MustHash(), res.MustHash())
@@ -435,7 +435,7 @@ func TestStoreAndLoadWithChildTries(t *testing.T) {
 
 			res := NewEmptyTrie()
 
-			err = res.Load(db, trie.root.GetHash())
+			err = res.Load(db, trie.MustHash())
 			require.NoError(t, err)
 
 			require.Equal(t, trie.childTries, res.childTries)

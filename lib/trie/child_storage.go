@@ -38,10 +38,6 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
-	_, ok := t.childTries[common.BytesToHash(childHash)]
-	if ok {
-		fmt.Println("Oh yeah it exists")
-	}
 	return t.childTries[common.BytesToHash(childHash)], nil
 }
 
