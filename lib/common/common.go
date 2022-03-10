@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"strconv"
 	"strings"
 )
@@ -88,32 +87,6 @@ func MustHexToBytes(in string) []byte {
 	return out
 }
 
-// MustHexToBigInt turns a 0x prefixed hex string into a big.Int
-// it panic if it cannot decode the string
-func MustHexToBigInt(in string) *big.Int {
-	if len(in) < 2 {
-		panic("invalid string")
-	}
-
-	if strings.Compare(in[:2], "0x") != 0 {
-		panic(ErrNoPrefix)
-	}
-
-	in = in[2:]
-
-	// Ensure we have an even length
-	if len(in)%2 != 0 {
-		in = "0" + in
-	}
-
-	out, err := hex.DecodeString(in)
-	if err != nil {
-		panic(err)
-	}
-
-	return big.NewInt(0).SetBytes(out)
-}
-
 // BytesToHex turns a byte slice into a 0x prefixed hex string
 func BytesToHex(in []byte) string {
 	s := hex.EncodeToString(in)
@@ -135,6 +108,55 @@ func Uint16ToBytes(in uint16) (out []byte) {
 	out[0] = byte(in & 0x00ff)
 	out[1] = byte(in >> 8 & 0x00ff)
 	return out
+}
+
+// UintToBytes converts a uint into a Big Endian byte slice
+// using a compact number of bytes. This is to imitate
+// the big.Int().Bytes() behaviour.
+func UintToBytes(n uint) (b []byte) {
+	b = make([]byte, 0)
+	for n > 255 {
+		b = append(b, 0)
+		copy(b[1:], b)
+		b[0] = byte(n)
+		n >>= 8
+	}
+	if n > 0 {
+		b = append(b, 0)
+		copy(b[1:], b)
+		b[0] = byte(n)
+	}
+	return b
+}
+
+// UintToHex converts a uint into the hex string representation
+// of a Big Endian byte slice using 4 bytes for values that fit
+// in a uint32 and in 8 bytes otherwise.
+func UintToHex(n uint) (hexString string) {
+	b := UintToBytes(n)
+	return BytesToHex(b)
+}
+
+// BytesToUint converts a bytes slice in Big Endian compact
+// format to a uint. This is to imitate the
+// big.NewInt(0).SetBytes(b) behaviour.
+func BytesToUint(b []byte) (n uint) {
+	for i := range b {
+		byteValue := uint(b[i])
+		shift := (len(b) - i - 1) * 8
+		n += byteValue << shift
+	}
+	return n
+}
+
+// HexToUint converts a hex string of bytes in Big Endian compact
+// format to a uint. See BytesToUint for more details.
+func HexToUint(hexString string) (n uint, err error) {
+	b, err := HexToBytes(hexString)
+	if err != nil {
+		return 0, err
+	}
+	return BytesToUint(b), nil
 }
 
 // AppendZeroes appends zeroes to the input byte array up until it has length l

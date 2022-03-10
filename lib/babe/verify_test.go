@@ -6,7 +6,6 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -878,7 +877,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	assert.NoError(t, err)
 
 	testBlockHeaderEmpty := types.NewEmptyHeader()
-	testBlockHeaderEmpty.Number = big.NewInt(2)
+	testBlockHeaderEmpty.Number = 2
 
 	ctrl := gomock.NewController(t)
 	mockBlockStateEmpty := NewMockBlockState(ctrl)
@@ -895,11 +894,11 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	mockEpochStateNilBlockStateErr := NewMockEpochState(ctrl)
 	mockEpochStateVerifyAuthorshipErr := NewMockEpochState(ctrl)
 
-	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(big.NewInt(1)).Return(false, errFailedFinalisation)
+	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(uint(1)).Return(false, errFailedFinalisation)
 
-	mockBlockStateNotFinal.EXPECT().NumberIsFinalised(big.NewInt(1)).Return(false, nil)
+	mockBlockStateNotFinal.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
 
-	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(big.NewInt(1)).Return(false, nil)
+	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
 	mockEpochStateSetSlotErr.EXPECT().SetFirstSlot(uint64(1)).Return(errSetFirstSlot)
 
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).
@@ -922,7 +921,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	mockEpochStateVerifyAuthorshipErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
 
 	block1Header := types.NewEmptyHeader()
-	block1Header.Number = big.NewInt(1)
+	block1Header.Number = 1
 
 	testBabeSecondaryVRFPreDigest := types.BabeSecondaryVRFPreDigest{
 		AuthorityIndex: 1,
@@ -933,7 +932,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	block1Header2 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-	block1Header2.Number = big.NewInt(1)
+	block1Header2.Number = 1
 
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
@@ -1047,7 +1046,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	assert.NoError(t, err)
 
 	testHeader := types.NewEmptyHeader()
-	testHeader.Number = big.NewInt(2)
+	testHeader.Number = 2
 
 	ctrl := gomock.NewController(t)
 	mockBlockStateEmpty := NewMockBlockState(ctrl)
@@ -1090,7 +1089,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 
 	disabledInfo := []*onDisabledInfo{
 		{
-			blockNumber: big.NewInt(2),
+			blockNumber: 2,
 		},
 	}
 

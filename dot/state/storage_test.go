@@ -5,7 +5,6 @@ package state
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -73,7 +72,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			StateRoot:  root,
 			Digest:     createPrimaryBABEDigest(t),
 		},
@@ -193,14 +192,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Inc().Times(2)
-	triesGauge.EXPECT().Set(0.00)
-
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
+	tries := newTriesEmpty()
 
 	blockState, err := NewBlockStateFromGenesis(db, tries, genHeader, telemetryMock)
 	require.NoError(t, err)
@@ -213,7 +205,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	fmt.Printf("genTrie.RootNode().GetHash() %s\n", genTrie.RootNode().GetHash())
 
 	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	err = storage.StoreTrie(trieState, header)

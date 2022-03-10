@@ -6,7 +6,6 @@ package state
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -26,13 +25,13 @@ func (bs *BlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
 }
 
 // NumberIsFinalised checks if a block number is finalised or not
-func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
+func (bs *BlockState) NumberIsFinalised(num uint) (bool, error) {
 	header, err := bs.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, err
 	}
 
-	return num.Cmp(header.Number) <= 0, nil
+	return num <= header.Number, nil
 }
 
 // GetFinalisedHeader returns the finalised block header by round and setID
@@ -148,7 +147,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 		bs.tries.delete(blockHeader.StateRoot)
 
-		logger.Tracef("pruned block number %s with hash %s", blockHeader.Number, hash)
+		logger.Tracef("pruned block number %d with hash %s", blockHeader.Number, hash)
 	}
 
 	// if nothing was previously finalised, set the first slot of the network to the
@@ -167,7 +166,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	bs.telemetry.SendMessage(
 		telemetry.NewNotifyFinalized(
 			header.Hash(),
-			header.Number.String(),
+			fmt.Sprint(header.Number),
 		),
 	)
 
@@ -247,7 +246,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			return err
 		}
 
-		if err = batch.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes()); err != nil {
+		if err = batch.Put(headerHashKey(uint64(block.Header.Number)), hash.ToBytes()); err != nil {
 			return err
 		}
 
@@ -259,13 +258,13 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 		bs.tries.delete(blockHeader.StateRoot)
 
-		logger.Tracef("cleaned out finalised block from memory; block number %s with hash %s", blockHeader.Number, hash)
+		logger.Tracef("cleaned out finalised block from memory; block number %d with hash %s", blockHeader.Number, hash)
 	}
 	return batch.Flush()
 }
 
 func (bs *BlockState) setFirstSlotOnFinalisation() error {
-	header, err := bs.GetHeaderByNumber(big.NewInt(1))
+	header, err := bs.GetHeaderByNumber(1)
 	if err != nil {
 		return err
 	}

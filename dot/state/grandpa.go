@@ -6,7 +6,6 @@ package state
 import (
 	"encoding/binary"
 	"errors"
-	"math/big"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -48,7 +47,7 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.
 		return nil, err
 	}
 
-	if err := s.setSetIDChangeAtBlock(genesisSetID, big.NewInt(0)); err != nil {
+	if err := s.setSetIDChangeAtBlock(genesisSetID, 0); err != nil {
 		return nil, err
 	}
 
@@ -139,7 +138,7 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 }
 
 // SetNextChange sets the next authority change
-func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *big.Int) error {
+func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number uint) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
 		return err
@@ -171,22 +170,22 @@ func (s *GrandpaState) IncrementSetID() error {
 }
 
 // setSetIDChangeAtBlock sets a set ID change at a certain block
-func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number *big.Int) error {
-	return s.db.Put(setIDChangeKey(setID), number.Bytes())
+func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number uint) error {
+	return s.db.Put(setIDChangeKey(setID), common.UintToBytes(number))
 }
 
 // GetSetIDChange returs the block number where the set ID was updated
-func (s *GrandpaState) GetSetIDChange(setID uint64) (*big.Int, error) {
+func (s *GrandpaState) GetSetIDChange(setID uint64) (blockNumber uint, err error) {
 	num, err := s.db.Get(setIDChangeKey(setID))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return big.NewInt(0).SetBytes(num), nil
+	return common.BytesToUint(num), nil
 }
 
 // GetSetIDByBlockNumber returns the set ID for a given block number
-func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
+func (s *GrandpaState) GetSetIDByBlockNumber(num uint) (uint64, error) {
 	curr, err := s.GetCurrentSetID()
 	if err != nil {
 		return 0, err
@@ -212,11 +211,11 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 
 		// if the given block number is greater or equal to the block number of the set ID change,
 		// return the current set ID
-		if num.Cmp(changeUpper) < 1 && num.Cmp(changeLower) == 1 {
+		if num <= changeUpper && num > changeLower {
 			return curr, nil
 		}
 
-		if num.Cmp(changeUpper) == 1 {
+		if num > changeUpper {
 			return curr + 1, nil
 		}
 
@@ -229,43 +228,39 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 }
 
 // SetNextPause sets the next grandpa pause at the given block number
-func (s *GrandpaState) SetNextPause(number *big.Int) error {
-	return s.db.Put(pauseKey, number.Bytes())
+func (s *GrandpaState) SetNextPause(number uint) error {
+	value := common.UintToBytes(number)
+	return s.db.Put(pauseKey, value)
 }
 
 // GetNextPause returns the block number of the next grandpa pause.
-// If the key is not found in the database, a nil block number is returned
-// to indicate there is no upcoming Grandpa pause.
-// It returns an error on failure.
-func (s *GrandpaState) GetNextPause() (*big.Int, error) {
-	num, err := s.db.Get(pauseKey)
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
-		return nil, nil //nolint:nilnil
-	} else if err != nil {
-		return nil, err
+// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// is returned.
+func (s *GrandpaState) GetNextPause() (blockNumber uint, err error) {
+	value, err := s.db.Get(pauseKey)
+	if err != nil {
+		return 0, err
 	}
 
-	return big.NewInt(0).SetBytes(num), nil
+	return common.BytesToUint(value), nil
 }
 
 // SetNextResume sets the next grandpa resume at the given block number
-func (s *GrandpaState) SetNextResume(number *big.Int) error {
-	return s.db.Put(resumeKey, number.Bytes())
+func (s *GrandpaState) SetNextResume(number uint) error {
+	value := common.UintToBytes(number)
+	return s.db.Put(resumeKey, value)
 }
 
 // GetNextResume returns the block number of the next grandpa resume.
-// If the key is not found in the database, a nil block number is returned
-// to indicate there is no upcoming Grandpa resume.
-// It returns an error on failure.
-func (s *GrandpaState) GetNextResume() (*big.Int, error) {
-	num, err := s.db.Get(resumeKey)
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
-		return nil, nil //nolint:nilnil
-	} else if err != nil {
-		return nil, err
+// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// is returned.
+func (s *GrandpaState) GetNextResume() (blockNumber uint, err error) {
+	value, err := s.db.Get(resumeKey)
+	if err != nil {
+		return 0, err
 	}
 
-	return big.NewInt(0).SetBytes(num), nil
+	return common.BytesToUint(value), nil
 }
 
 func prevotesKey(round, setID uint64) []byte {

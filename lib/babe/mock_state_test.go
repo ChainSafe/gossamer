@@ -5,7 +5,6 @@
 package babe
 
 import (
-	big "math/big"
 	reflect "reflect"
 	time "time"
 
@@ -99,10 +98,10 @@ func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
 }
 
 // BestBlockNumber mocks base method.
-func (m *MockBlockState) BestBlockNumber() (*big.Int, error) {
+func (m *MockBlockState) BestBlockNumber() (uint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BestBlockNumber")
-	ret0, _ := ret[0].(*big.Int)
+	ret0, _ := ret[0].(uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -184,7 +183,7 @@ func (mr *MockBlockStateMockRecorder) GetBlockByHash(arg0 interface{}) *gomock.C
 }
 
 // GetBlockByNumber mocks base method.
-func (m *MockBlockState) GetBlockByNumber(arg0 *big.Int) (*types.Block, error) {
+func (m *MockBlockState) GetBlockByNumber(arg0 uint) (*types.Block, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlockByNumber", arg0)
 	ret0, _ := ret[0].(*types.Block)
@@ -288,7 +287,7 @@ func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 interface{}) *go
 }
 
 // NumberIsFinalised mocks base method.
-func (m *MockBlockState) NumberIsFinalised(arg0 *big.Int) (bool, error) {
+func (m *MockBlockState) NumberIsFinalised(arg0 uint) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NumberIsFinalised", arg0)
 	ret0, _ := ret[0].(bool)

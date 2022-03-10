@@ -4,7 +4,6 @@
 package babe
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -38,8 +37,8 @@ func TestBabeService_checkAndSetFirstSlot(t *testing.T) {
 		Header: *header,
 	}
 
-	mockBlockState.EXPECT().GetBlockByNumber(big.NewInt(1)).Return(block, nil)
-	mockBlockState.EXPECT().GetBlockByNumber(big.NewInt(1)).Return(block, nil)
+	mockBlockState.EXPECT().GetBlockByNumber(uint(1)).Return(block, nil)
+	mockBlockState.EXPECT().GetBlockByNumber(uint(1)).Return(block, nil)
 
 	bs0 := &Service{
 		epochState: mockEpochState0,
