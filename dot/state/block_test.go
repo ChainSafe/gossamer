@@ -41,7 +41,7 @@ func newTestBlockState(t *testing.T, header *types.Header, tries *Tries) *BlockS
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
 	tr := trie.NewEmptyTrie()
-	err = tr.Load(bs.db, header.StateRoot)
+	err = tr.Load(bs.db, header.StateRoot.ToBytes())
 	require.NoError(t, err)
 	bs.tries.softSet(header.StateRoot, tr)
 

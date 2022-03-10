@@ -215,12 +215,11 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
 		}
 
-		// TODO: Test this error
-		err = t.PutChild(key[len(ChildStorageKeyPrefix):], childTrie)
+		hash, err := childTrie.Hash()
 		if err != nil {
-			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
-				childTrie.root.GetHash(), err)
+			return err
 		}
+		t.childTries[hash] = childTrie
 	}
 
 	return nil
