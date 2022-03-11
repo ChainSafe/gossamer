@@ -9,7 +9,6 @@ package modules
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -275,7 +274,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	b := &types.Block{
 		Header: types.Header{
 			ParentHash: bb.Header.Hash(),
-			Number:     big.NewInt(0).Add(big.NewInt(1), bb.Header.Number),
+			Number:     bb.Header.Number + 1,
 			StateRoot:  stateRoot,
 			Digest:     digest,
 		},

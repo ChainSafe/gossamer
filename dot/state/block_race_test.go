@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"runtime"
 	"sync"
 	"testing"
@@ -28,17 +27,19 @@ func TestConcurrencySetHeader(t *testing.T) {
 		dbs[i] = NewInMemoryDB(t)
 	}
 
+	tries := newTriesEmpty()
+
 	pend := new(sync.WaitGroup)
 	pend.Add(threads)
 	for i := 0; i < threads; i++ {
 		go func(index int) {
 			defer pend.Done()
 
-			bs, err := NewBlockStateFromGenesis(dbs[index], testGenesisHeader, telemetryMock)
+			bs, err := NewBlockStateFromGenesis(dbs[index], tries, testGenesisHeader, telemetryMock)
 			require.NoError(t, err)
 
 			header := &types.Header{
-				Number:    big.NewInt(1),
+				Number:    1,
 				StateRoot: trie.EmptyHash,
 				Digest:    types.NewDigest(),
 			}

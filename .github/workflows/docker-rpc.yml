@@ -1,17 +1,19 @@
 on:
   pull_request:
-    paths:
-      - .github/workflows/docker-rpc.yml
-      - "**/*.go"
-      - "chain/**"
-      - "cmd/**"
-      - "dot/**"
-      - "internal/**"
-      - "lib/**"
-      - "pkg/**"
-      - "tests/rpc/**"
-      - go.mod
-      - go.sum
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/docker-rpc.yml
+    #   - "**/*.go"
+    #   - "chain/**"
+    #   - "cmd/**"
+    #   - "dot/**"
+    #   - "internal/**"
+    #   - "lib/**"
+    #   - "pkg/**"
+    #   - "tests/rpc/**"
+    #   - go.mod
+    #   - go.sum
 name: docker-rpc
 env:
   GO111MODULE: on

@@ -7,7 +7,6 @@
 package core
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
@@ -70,7 +68,9 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 }
 
 func TestService_HandleBlockProduced(t *testing.T) {
-	net := new(mocks.Network)
+	ctrl := gomock.NewController(t)
+
+	net := NewMockNetwork(ctrl)
 	cfg := &Config{
 		Network:  net,
 		Keystore: keystore.NewGlobalKeystore(),
@@ -89,7 +89,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 
 	newBlock := types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(1),
+			Number:     1,
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},
@@ -105,7 +105,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		BestBlock:      true,
 	}
 
-	net.On("GossipMessage", expected)
+	net.EXPECT().GossipMessage(expected)
 
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
@@ -114,7 +114,6 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
-	net.AssertCalled(t, "GossipMessage", expected)
 }
 
 func TestService_HandleTransactionMessage(t *testing.T) {

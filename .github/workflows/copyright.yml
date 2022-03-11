@@ -3,16 +3,18 @@ on:
   pull_request:
     branches:
       - development
-    paths:
-      - .github/workflows/copyright.yml
-      - "**/*.go"
-      - "**/*.proto"
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/copyright.yml
+    #   - "**/*.go"
+    #   - "**/*.proto"
 
 jobs:
   copyright-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions/setup-go@v2
         with:

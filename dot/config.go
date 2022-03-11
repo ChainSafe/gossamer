@@ -158,7 +158,7 @@ func (r *RPCConfig) String() string {
 
 // StateConfig is the config for the State service
 type StateConfig struct {
-	Rewind int
+	Rewind uint
 }
 
 // networkServiceEnabled returns true if the network service is enabled

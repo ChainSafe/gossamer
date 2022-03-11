@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"math/big"
 	"testing"
 	"time"
 
@@ -38,7 +37,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	// syncer makes request for chain
 	startNum := 1
-	start, err := variadic.NewUint64OrHash(startNum)
+	start, err := variadic.NewUint32OrHash(startNum)
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
@@ -58,7 +57,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	// syncer makes request for chain again (block 129+)
 	startNum = 129
-	start, err = variadic.NewUint64OrHash(startNum)
+	start, err = variadic.NewUint32OrHash(startNum)
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -109,7 +108,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	}
 
 	startNum := 15
-	start, err := variadic.NewUint64OrHash(startNum)
+	start, err := variadic.NewUint32OrHash(startNum)
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
@@ -212,7 +211,7 @@ func TestChainProcessor_HandleJustification(t *testing.T) {
 
 	header := &types.Header{
 		ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 	}
 
@@ -238,7 +237,7 @@ func TestChainProcessor_processReadyBlocks_errFailedToGetParent(t *testing.T) {
 	defer processor.cancel()
 
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 
 	processor.readyBlocks.push(&types.BlockData{

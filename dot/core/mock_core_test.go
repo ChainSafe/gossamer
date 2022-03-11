@@ -5,7 +5,6 @@
 package core
 
 import (
-	big "math/big"
 	reflect "reflect"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
@@ -101,10 +100,10 @@ func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
 }
 
 // BestBlockNumber mocks base method.
-func (m *MockBlockState) BestBlockNumber() (*big.Int, error) {
+func (m *MockBlockState) BestBlockNumber() (uint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BestBlockNumber")
-	ret0, _ := ret[0].(*big.Int)
+	ret0, _ := ret[0].(uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -557,6 +556,20 @@ func (m *MockTransactionState) AddToPool(arg0 *transaction.ValidTransaction) com
 func (mr *MockTransactionStateMockRecorder) AddToPool(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToPool", reflect.TypeOf((*MockTransactionState)(nil).AddToPool), arg0)
+}
+
+// Exists mocks base method.
+func (m *MockTransactionState) Exists(arg0 types.Extrinsic) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Exists", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// Exists indicates an expected call of Exists.
+func (mr *MockTransactionStateMockRecorder) Exists(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockTransactionState)(nil).Exists), arg0)
 }
 
 // PendingInPool mocks base method.

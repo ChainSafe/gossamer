@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -84,7 +85,7 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 
 	s := NewHTTPServer(cfg)
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	defer s.Stop()
 
@@ -93,18 +94,22 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
 	log.Printf("connecting to %s", u.String())
 
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	c, response, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
+	defer func() {
+		err := response.Body.Close()
+		assert.NoError(t, err)
+	}()
 	defer c.Close()
 
 	for _, item := range testCalls {
 		err = c.WriteMessage(websocket.TextMessage, item.call)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		_, message, err := c.ReadMessage()
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, item.expected, message)
 	}
 }

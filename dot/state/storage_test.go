@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -21,17 +20,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestStorageState(t *testing.T) *StorageState {
+func newTestStorageState(t *testing.T, tries *Tries) *StorageState {
 	db := NewInMemoryDB(t)
-	bs := newTestBlockState(t, testGenesisHeader)
 
-	s, err := NewStorageState(db, bs, trie.NewEmptyTrie(), pruner.Config{})
+	bs := newTestBlockState(t, testGenesisHeader, tries)
+
+	s, err := NewStorageState(db, bs, tries, pruner.Config{})
 	require.NoError(t, err)
 	return s
 }
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
-	storage := newTestStorageState(t)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -51,7 +51,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
-	storage := newTestStorageState(t)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -70,7 +70,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			StateRoot:  root,
 			Digest:     createPrimaryBABEDigest(t),
 		},
@@ -86,7 +86,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 }
 
 func TestStorage_TrieState(t *testing.T) {
-	storage := newTestStorageState(t)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 	ts.Set([]byte("noot"), []byte("washere"))
@@ -99,14 +99,14 @@ func TestStorage_TrieState(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 
 	// get trie from db
-	storage.tries.delete(root)
+	storage.blockState.tries.delete(root)
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
 	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
-	storage := newTestStorageState(t)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -131,19 +131,19 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.tries.delete(root)
+	storage.blockState.tries.delete(root)
 
 	data, err := storage.GetStorage(&root, trieKV[0].key)
 	require.NoError(t, err)
 	require.Equal(t, trieKV[0].value, data)
 
-	storage.tries.delete(root)
+	storage.blockState.tries.delete(root)
 
 	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(prefixKeys))
 
-	storage.tries.delete(root)
+	storage.blockState.tries.delete(root)
 
 	entries, err := storage.Entries(&root)
 	require.NoError(t, err)
@@ -151,7 +151,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
-	storage := newTestStorageState(t)
+	storage := newTestStorageState(t, newTriesEmpty())
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -161,7 +161,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
-	require.Equal(t, 2, storage.tries.len())
+	require.Equal(t, 2, storage.blockState.tries.len())
 }
 
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
@@ -179,23 +179,25 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		"0",
 	))
 
-	blockState, err := NewBlockStateFromGenesis(db, genHeader, telemetryMock)
-	require.NoError(t, err)
-
 	testChildTrie := trie.NewEmptyTrie()
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
 	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
-	storage, err := NewStorageState(db, blockState, genTrie, pruner.Config{})
+	tries := newTriesEmpty()
+
+	blockState, err := NewBlockStateFromGenesis(db, tries, genHeader, telemetryMock)
+	require.NoError(t, err)
+
+	storage, err := NewStorageState(db, blockState, tries, pruner.Config{})
 	require.NoError(t, err)
 
 	trieState, err := runtime.NewTrieState(genTrie)
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	err = storage.StoreTrie(trieState, header)
@@ -208,7 +210,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.tries.delete(rootHash)
+	storage.blockState.tries.delete(rootHash)
 
 	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)

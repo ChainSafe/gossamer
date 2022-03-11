@@ -1,48 +1,43 @@
 on:
   pull_request:
-    types:
-      - opened
-      - edited
-      - reopened
-    paths:
-      - .github/workflows/checks.yml
-      - .github/PULL_REQUEST/pull_request.go
-      - .golangci.yml
-      - "**/*.go"
-      - go.mod
-      - go.sum
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/checks.yml
+    #   - .github/PULL_REQUEST/pull_request.go
+    #   - .golangci.yml
+    #   - "**/*.go"
+    #   - go.mod
+    #   - go.sum
 
 name: checks
 env:
   GO111MODULE: on
 
 jobs:
-  checks:
+  linting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions/setup-go@v2
         with:
           go-version: "1.17.x"
-      - uses: actions/checkout@v2
 
-      - name: setup golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |
-          sh -s -- -b $(go env GOPATH)/bin v1.43.0
-
-      - run: golangci-lint run --timeout 10m
+      - name: Lint
+        run: make lint
 
   check-description:
     name: Checks PR has title and body description
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    # Commented to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.17.x"
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Checks PR has title and body description
         run: |
           go run .github/PULL_REQUEST/pull_request.go

@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/ChainSafe/chaindb"
@@ -345,7 +344,7 @@ func (s *EpochState) SetFirstSlot(slot uint64) error {
 		return err
 	}
 
-	if header.Number.Cmp(big.NewInt(1)) > -1 {
+	if header.Number >= 1 {
 		return errors.New("first slot has already been set")
 	}
 

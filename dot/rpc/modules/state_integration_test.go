@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"sort"
 	"strings"
@@ -88,7 +87,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			}
 
 			// Verify expected values.
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, expected, res)
 		})
 	}
@@ -539,7 +538,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	b := &types.Block{
 		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
-			Number:     big.NewInt(3),
+			Number:     3,
 			StateRoot:  sr1,
 			Digest:     digest,
 		},
@@ -554,7 +553,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	chain.Block.StoreRuntime(b.Header.Hash(), rt)
 
-	hash, err := chain.Block.GetHashByNumber(big.NewInt(3))
+	hash, err := chain.Block.GetHashByNumber(3)
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)

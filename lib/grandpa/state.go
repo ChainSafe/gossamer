@@ -4,8 +4,6 @@
 package grandpa
 
 import (
-	"math/big"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 
@@ -19,7 +17,7 @@ type BlockState interface {
 	GenesisHash() common.Hash
 	HasHeader(hash common.Hash) (bool, error)
 	GetHeader(hash common.Hash) (*types.Header, error)
-	GetHeaderByNumber(num *big.Int) (*types.Header, error)
+	GetHeaderByNumber(num uint) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
@@ -36,8 +34,8 @@ type BlockState interface {
 	SetJustification(hash common.Hash, data []byte) error
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
-	GetHashByNumber(num *big.Int) (common.Hash, error)
-	BestBlockNumber() (*big.Int, error)
+	GetHashByNumber(num uint) (common.Hash, error)
+	BestBlockNumber() (blockNumber uint, err error)
 	GetHighestRoundAndSetID() (uint64, uint64, error)
 }
 
@@ -45,7 +43,7 @@ type BlockState interface {
 type GrandpaState interface { //nolint:revive
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(setID uint64) ([]types.GrandpaVoter, error)
-	GetSetIDByBlockNumber(num *big.Int) (uint64, error)
+	GetSetIDByBlockNumber(num uint) (uint64, error)
 	SetLatestRound(round uint64) error
 	GetLatestRound() (uint64, error)
 	SetPrevotes(round, setID uint64, data []SignedVote) error
@@ -54,11 +52,9 @@ type GrandpaState interface { //nolint:revive
 	GetPrecommits(round, setID uint64) ([]SignedVote, error)
 }
 
-//go:generate mockery --name DigestHandler --structname DigestHandler --case underscore --keeptree
-
 // DigestHandler is the interface required by GRANDPA for the digest handler
 type DigestHandler interface { // TODO: use GrandpaState instead (#1871)
-	NextGrandpaAuthorityChange() uint64
+	NextGrandpaAuthorityChange() uint
 }
 
 //go:generate mockery --name Network --structname Network --case underscore --keeptree

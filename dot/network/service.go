@@ -34,7 +34,7 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 63 // 63kb for now
+	maxMessageSize = 1024 * 64 // 64kb for now
 )
 
 var (
@@ -284,16 +284,16 @@ func (s *Service) Start() error {
 	// it creates a per-protocol mutex for sending outbound handshakes to the peer
 	s.host.cm.connectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
-			prtl.outboundHandshakeMutexes.Store(peerID, new(sync.Mutex))
+			prtl.peersData.setMutex(peerID)
 		}
 	}
 
 	// when a peer gets disconnected, we should clear all handshake data we have for it.
 	s.host.cm.disconnectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
-			prtl.outboundHandshakeMutexes.Delete(peerID)
-			prtl.inboundHandshakeData.Delete(peerID)
-			prtl.outboundHandshakeData.Delete(peerID)
+			prtl.peersData.deleteMutex(peerID)
+			prtl.peersData.deleteInboundHandshakeData(peerID)
+			prtl.peersData.deleteOutboundHandshakeData(peerID)
 		}
 	}
 
@@ -375,26 +375,10 @@ func (s *Service) getNumStreams(protocolID byte, inbound bool) (count int64) {
 		return 0
 	}
 
-	var hsData *sync.Map
 	if inbound {
-		hsData = np.inboundHandshakeData
-	} else {
-		hsData = np.outboundHandshakeData
+		return np.peersData.countInboundStreams()
 	}
-
-	hsData.Range(func(_, data interface{}) bool {
-		if data == nil {
-			return true
-		}
-
-		if data.(*handshakeData).stream != nil {
-			count++
-		}
-
-		return true
-	})
-
-	return count
+	return np.peersData.countOutboundStreams()
 }
 
 func (s *Service) logPeerCount() {
@@ -631,8 +615,8 @@ func (s *Service) Peers() []common.PeerInfo {
 	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
-		data, has := np.getInboundHandshakeData(p)
-		if !has || data.handshake == nil {
+		data := np.peersData.getInboundHandshakeData(p)
+		if data == nil || data.handshake == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
 			})
