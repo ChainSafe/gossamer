@@ -64,12 +64,11 @@ func newMockNetwork() *mocks.Network {
 
 func newTestSyncer(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockTelemetryClient := NewMockClient(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
 
-	wasmer.DefaultTestLogLvl = 3
+	wasmer.DefaultTestLogLvl = log.Warn
 
 	cfg := &Config{}
 	testDatadirPath := t.TempDir()

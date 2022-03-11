@@ -214,6 +214,7 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 	require.Equal(t, expected, w)
 	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
 }
+
 func TestTipSyncer_handleTick_case3(t *testing.T) {
 	s := newTestTipSyncer(t)
 
