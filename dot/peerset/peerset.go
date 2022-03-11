@@ -145,7 +145,7 @@ func newReputationChange(value Reputation, reason string) ReputationChange {
 	return ReputationChange{value, reason}
 }
 
-// MessageProcessor interface allows network layer to receive and
+// MessageProcessor interface allows the network layer to receive and
 // process messages from the peerstate layer
 type MessageProcessor interface {
 	Process(Message)
