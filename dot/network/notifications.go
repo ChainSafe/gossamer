@@ -253,7 +253,9 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	if s.host.messageCache != nil && s.host.messageCache.exists(peer, msg) {
+	_, isConsensusMsg := msg.(*ConsensusMessage)
+
+	if s.host.messageCache != nil && s.host.messageCache.exists(peer, msg) && !isConsensusMsg {
 		logger.Tracef("message has already been sent, ignoring: peer=%s msg=%s", peer, msg)
 		return
 	}

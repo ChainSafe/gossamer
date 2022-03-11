@@ -11,50 +11,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewUint64OrHash(t *testing.T) {
+func TestNewUint32OrHash(t *testing.T) {
 	hash, err := common.HexToHash("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	res, err := NewUint64OrHash(hash)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if resValue, ok := res.Value().(common.Hash); !ok || resValue != hash {
-		t.Fatalf("Fail: got %x expected %x", resValue, hash)
-	}
+	res, err := NewUint32OrHash(hash)
+	require.NoError(t, err)
+	require.Equal(t, res.Value(), hash)
 
 	num := 77
 
-	res, err = NewUint64OrHash(num)
-	if err != nil {
-		t.Fatal(err)
-	}
+	res, err = NewUint32OrHash(num)
+	require.NoError(t, err)
+	require.Equal(t, uint32(num), res.Value())
 
-	if resValue, ok := res.Value().(uint64); !ok || resValue != uint64(num) {
-		t.Fatalf("Fail: got %d expected %d", resValue, num)
-	}
-
-	res, err = NewUint64OrHash(uint64(num))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if resValue, ok := res.Value().(uint64); !ok || resValue != uint64(num) {
-		t.Fatalf("Fail: got %d expected %d", resValue, uint64(num))
-	}
+	res, err = NewUint32OrHash(uint32(num))
+	require.NoError(t, err)
+	require.Equal(t, uint32(num), res.Value())
 }
 
-func TestNewUint64OrHashFromBytes(t *testing.T) {
+func TestNewUint32OrHashFromBytes(t *testing.T) {
 	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	if err != nil || genesisHash == nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, uint64(1))
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(1))
 
 	for _, x := range []struct {
 		description     string
@@ -72,24 +53,23 @@ func TestNewUint64OrHashFromBytes(t *testing.T) {
 			description:     "block request with Block Number int type 1",
 			targetHash:      buf,
 			targetFirstByte: 1,
-			expectedType:    (uint64)(0),
+			expectedType:    (uint32)(0),
 		},
 	} {
 		t.Run(x.description, func(t *testing.T) {
 			data := append([]byte{x.targetFirstByte}, x.targetHash...)
 
-			uint64OrHash := NewUint64OrHashFromBytes(data)
+			val := NewUint32OrHashFromBytes(data)
 			require.NoError(t, err)
-			require.NotNil(t, uint64OrHash)
-			require.IsType(t, x.expectedType, uint64OrHash.Value())
-			if x.expectedType == (uint64)(0) {
-				startingBlockByteArray := make([]byte, 8)
-				binary.LittleEndian.PutUint64(startingBlockByteArray, uint64OrHash.Value().(uint64))
+			require.IsType(t, x.expectedType, val.Value())
+
+			if x.expectedType == (uint32)(0) {
+				startingBlockByteArray := make([]byte, 4)
+				binary.LittleEndian.PutUint32(startingBlockByteArray, val.Value().(uint32))
 				require.Equal(t, x.targetHash, startingBlockByteArray)
 			} else {
-				require.Equal(t, common.NewHash(x.targetHash), uint64OrHash.Value())
+				require.Equal(t, common.NewHash(x.targetHash), val.Value())
 			}
 		})
 	}
-
 }
