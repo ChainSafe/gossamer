@@ -11,7 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const logStringPattern = "call=%s, set-id=%d, reputation change %v, peers=[%s]"
+const logStringPattern = "call=%s, set-id=%d, reputation change %s, peers=[%s]"
 
 // Handler manages peerSet.
 type Handler struct {
@@ -40,7 +40,7 @@ func (h *Handler) SetReservedOnlyPeer(setID int, peers ...peer.ID) {
 func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.addReservedPeers(setID, peers...)
 	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, addReservedPeer, setID, nil, stringfyPeers(peers))
+		msg := fmt.Sprintf(logStringPattern, addReservedPeer, setID, "", stringfyPeers(peers))
 		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
@@ -49,17 +49,17 @@ func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
 func (h *Handler) RemoveReservedPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.removeReservedPeers(setID, peers...)
 	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, removeReservedPeer, setID, nil, stringfyPeers(peers))
+		msg := fmt.Sprintf(logStringPattern, removeReservedPeer, setID, "", stringfyPeers(peers))
 		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
 
 // SetReservedPeer sets the reserve peer into peerSet
 func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
-	// TODO: this is not used yet, might required to implement RPC Call for this.
+	// TODO: this is not used yet, it might be required to implement an RPC Call for this.
 	err := h.peerSet.setReservedPeer(setID, peers...)
 	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, setReservedPeers, setID, nil, stringfyPeers(peers))
+		msg := fmt.Sprintf(logStringPattern, setReservedPeers, setID, "", stringfyPeers(peers))
 		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
@@ -68,7 +68,7 @@ func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
 func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.addPeer(setID, peers)
 	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, addToPeerSet, setID, nil, stringfyPeers(peers))
+		msg := fmt.Sprintf(logStringPattern, addToPeerSet, setID, "", stringfyPeers(peers))
 		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
@@ -77,7 +77,7 @@ func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
 func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.removePeer(setID, peers...)
 	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, removeFromPeerSet, setID, nil, stringfyPeers(peers))
+		msg := fmt.Sprintf(logStringPattern, removeFromPeerSet, setID, "", stringfyPeers(peers))
 		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
@@ -86,7 +86,7 @@ func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
 func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
 	err := h.peerSet.reportPeer(rep, peers...)
 	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, reportPeer, 0, rep, stringfyPeers(peers))
+		msg := fmt.Sprintf(logStringPattern, reportPeer, 0, rep.String(), stringfyPeers(peers))
 		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
@@ -95,7 +95,7 @@ func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
 func (h *Handler) Incoming(setID int, peers ...peer.ID) {
 	err := h.peerSet.incoming(setID, peers...)
 	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, incoming, setID, nil, stringfyPeers(peers))
+		msg := fmt.Sprintf(logStringPattern, incoming, setID, "", stringfyPeers(peers))
 		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }
@@ -104,7 +104,7 @@ func (h *Handler) Incoming(setID int, peers ...peer.ID) {
 func (h *Handler) DisconnectPeer(setID int, peers ...peer.ID) {
 	err := h.peerSet.disconnect(setID, UnknownDrop, peers...)
 	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, disconnect, setID, nil, stringfyPeers(peers))
+		msg := fmt.Sprintf(logStringPattern, disconnect, setID, "", stringfyPeers(peers))
 		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
 	}
 }

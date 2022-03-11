@@ -137,6 +137,10 @@ type ReputationChange struct {
 	Reason string
 }
 
+func (r *ReputationChange) String() string {
+	return fmt.Sprintf("value: %d, reason: %s", r.Value, r.Reason)
+}
+
 func newReputationChange(value Reputation, reason string) ReputationChange {
 	return ReputationChange{value, reason}
 }
@@ -264,7 +268,7 @@ func (ps *PeerSet) updateTime() error {
 		for _, peerID := range ps.peerState.peers() {
 			after, err := ps.peerState.updateReputationByTick(peerID)
 			if err != nil {
-				return err
+				return fmt.Errorf("cannot update reputation by tick: %w", err)
 			}
 
 			if after != 0 {
@@ -280,7 +284,7 @@ func (ps *PeerSet) updateTime() error {
 
 				lastDiscoveredTime, err := ps.peerState.lastConnectedAndDiscovered(set, peerID)
 				if err != nil {
-					return err
+					return fmt.Errorf("cannot get last connected peer: %w", err)
 				}
 
 				if lastDiscoveredTime.Add(forgetAfterTime).Second() >= currTime.Second() {
@@ -290,7 +294,7 @@ func (ps *PeerSet) updateTime() error {
 				// forget peer removes the peer from the list of members of the set.
 				err = ps.peerState.forgetPeer(set, peerID)
 				if err != nil {
-					return err
+					return fmt.Errorf("cannot forget peer %s from set %d: %w", peerID, set, err)
 				}
 			}
 		}
@@ -305,13 +309,13 @@ func (ps *PeerSet) updateTime() error {
 func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	// we want reputations to be up-to-date before adjusting them.
 	if err := ps.updateTime(); err != nil {
-		return err
+		return fmt.Errorf("cannot update time: %w", err)
 	}
 
 	for _, pid := range peers {
 		rep, err := ps.peerState.addReputation(pid, change)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot add reputation (%s) to peer %s: %w", pid, change.String(), err)
 		}
 
 		if rep >= BannedThresholdValue {
@@ -327,7 +331,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 			// disconnect peer
 			err = ps.peerState.disconnect(i, pid)
 			if err != nil {
-				return err
+				return fmt.Errorf("cannot disconnect peer %s at set %d: %w", pid, i, err)
 			}
 
 			dropMessage := Message{
@@ -339,7 +343,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 			ps.processor.Process(dropMessage)
 
 			if err = ps.allocSlots(i); err != nil {
-				return err
+				return fmt.Errorf("could not allocate slots: %w", err)
 			}
 		}
 	}
@@ -350,7 +354,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 func (ps *PeerSet) allocSlots(setIdx int) error {
 	err := ps.updateTime()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot update time: %w", err)
 	}
 
 	peerState := ps.peerState
@@ -366,7 +370,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		var node *node
 		node, err = ps.peerState.getNode(reservePeer)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot get node using peer id %s: %w", reservePeer, err)
 		}
 
 		if node.rep < BannedThresholdValue {
@@ -376,7 +380,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if err = peerState.tryOutgoing(setIdx, reservePeer); err != nil {
-			return err
+			return fmt.Errorf("cannot set peer %s from set %d as outgoing: %w", reservePeer, setIdx, err)
 		}
 
 		connectMessage := Message{
@@ -466,7 +470,7 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 		if ps.peerState.peerStatus(setID, peerID) == connectedPeer {
 			err := ps.peerState.disconnect(setID, peerID)
 			if err != nil {
-				return err
+				return fmt.Errorf("cannot disconnect peer %s at set %d: %w", peerID, setID, err)
 			}
 
 			dropMessage := Message{
@@ -483,8 +487,11 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 }
 
 func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
-	toInsert, toRemove := make([]peer.ID, 0, len(peers)), make([]peer.ID, 0, len(peers))
+	toInsert := make([]peer.ID, 0, len(peers))
+	toRemove := make([]peer.ID, 0, len(peers))
+
 	peerIDMap := make(map[peer.ID]struct{}, len(peers))
+
 	for _, pid := range peers {
 		peerIDMap[pid] = struct{}{}
 		if _, ok := ps.reservedNode[pid]; ok {
@@ -515,7 +522,7 @@ func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 
 		ps.peerState.discover(setID, pid)
 		if err := ps.allocSlots(setID); err != nil {
-			return err
+			return fmt.Errorf("could not allocate slots: %w", err)
 		}
 	}
 	return nil
@@ -540,15 +547,15 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 			// disconnect and forget
 			err := ps.peerState.disconnect(setID, pid)
 			if err != nil {
-				return err
+				return fmt.Errorf("cannot disconnect peer %s at set %d: %w", pid, setID, err)
 			}
 
 			if err = ps.peerState.forgetPeer(setID, pid); err != nil {
-				return err
+				return fmt.Errorf("cannot forget peer %s from set %d: %w", pid, setID, err)
 			}
 		} else if status == notConnectedPeer {
 			if err := ps.peerState.forgetPeer(setID, pid); err != nil {
-				return err
+				return fmt.Errorf("cannot forget peer %s from set %d: %w", pid, setID, err)
 			}
 		}
 	}
@@ -560,7 +567,7 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 // connected to this peer.
 func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	if err := ps.updateTime(); err != nil {
-		return err
+		return fmt.Errorf("cannot update time: %w", err)
 	}
 
 	for _, pid := range peers {
@@ -649,7 +656,7 @@ const (
 func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) error {
 	err := ps.updateTime()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot update time: %w", err)
 	}
 
 	state := ps.peerState
@@ -664,7 +671,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 		state.nodes[pid] = n
 
 		if err = state.disconnect(setIdx, pid); err != nil {
-			return err
+			return fmt.Errorf("cannot disconnect peer %s at set %d: %w", pid, setIdx, err)
 		}
 
 		dropMessage := Message{
@@ -678,7 +685,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 		// TODO: figure out the condition of connection refuse.
 		if reason == RefusedDrop {
 			if err = ps.removePeer(setIdx, pid); err != nil {
-				return err
+				return fmt.Errorf("cannot remove peer %s at set %d: %w", pid, setIdx, err)
 			}
 		}
 	}
