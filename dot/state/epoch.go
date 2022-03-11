@@ -347,8 +347,6 @@ func (s *EpochState) GetConfigDataForHeader(epoch uint64, header *types.Header) 
 
 	for hash, value := range atEpoch {
 		isDescendant, err := s.blockState.IsDescendantOf(hash, headerHash)
-		fmt.Printf("COMPARE: %s <- %s (%v)\n", hash, headerHash, isDescendant)
-
 		if err != nil {
 			return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
 		}
@@ -475,7 +473,7 @@ func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val
 
 // FinalizeBABENextEpochData retrieves the types.NextEpochData by epoch and hash keys
 // and delete all the entries for the epoch
-func (s *EpochState) FinalizeBABENextEpochData(epoch uint64, finalizedHeader *types.Header) error {
+func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
 	s.nextEpochLock.RLock()
 	defer s.nextEpochLock.RUnlock()
 
@@ -484,28 +482,23 @@ func (s *EpochState) FinalizeBABENextEpochData(epoch uint64, finalizedHeader *ty
 		return nil
 	}
 
-	finalizedHash := finalizedHeader.Hash()
-
 	for hash, nextEpochData := range epochData {
-		isDescendant, err := s.blockState.IsDescendantOf(hash, finalizedHash)
-		fmt.Printf("COMPARE: %s <- %s (%v)\n", hash, finalizedHash, isDescendant)
-
+		persisted, err := s.blockState.HasHeaderInDatabase(hash)
 		if err != nil {
-			return fmt.Errorf("cannot verify the ancestry: %w", err)
+			return fmt.Errorf("failed to check header exists at database: %w", err)
 		}
 
-		if isDescendant {
-			epochData, err := nextEpochData.ToEpochData()
-			if err != nil {
-				return fmt.Errorf("cannot transform epoch data: %w", err)
-			}
-
-			logger.Debugf("setting data for block number %s and epoch %d with data: %v",
-				finalizedHeader.Number, epoch, epochData)
-
-			delete(s.nextConfigData, epoch)
-			return s.SetEpochData(epoch, epochData)
+		if !persisted {
+			continue
 		}
+
+		epochData, err := nextEpochData.ToEpochData()
+		if err != nil {
+			return fmt.Errorf("cannot transform epoch data: %w", err)
+		}
+
+		delete(s.nextEpochData, epoch)
+		return s.SetEpochData(epoch, epochData)
 	}
 
 	return nil
@@ -513,7 +506,7 @@ func (s *EpochState) FinalizeBABENextEpochData(epoch uint64, finalizedHeader *ty
 
 // FinalizeBABENextConfigDataToFinalize retrieves the types.NextConfigData by epoch and hash keys
 // and delete all the entries for the epoch
-func (s *EpochState) FinalizeBABENextConfigDataToFinalize(epoch uint64, finalizedHeader *types.Header) error {
+func (s *EpochState) FinalizeBABENextConfigDataToFinalize(epoch uint64) error {
 	s.nextEpochLock.RLock()
 	defer s.nextEpochLock.RUnlock()
 
@@ -522,22 +515,19 @@ func (s *EpochState) FinalizeBABENextConfigDataToFinalize(epoch uint64, finalize
 		return nil
 	}
 
-	finalizedHash := finalizedHeader.Hash()
 	for hash, nextConfigData := range epochData {
-		isDescendant, err := s.blockState.IsDescendantOf(hash, finalizedHash)
-
+		persisted, err := s.blockState.HasHeaderInDatabase(hash)
 		if err != nil {
-			return fmt.Errorf("cannot verify the ancestry: %w", err)
+			return fmt.Errorf("failed to check header exists at database: %w", err)
 		}
 
-		if isDescendant {
-			configData := nextConfigData.ToConfigData()
-			logger.Debugf("defined BABE config data for block number %s and epoch %d with data: %v",
-				finalizedHeader.Number, epoch, configData)
-
-			delete(s.nextConfigData, epoch)
-			return s.SetConfigData(epoch, configData)
+		if !persisted {
+			continue
 		}
+
+		configData := nextConfigData.ToConfigData()
+		delete(s.nextConfigData, epoch)
+		return s.SetConfigData(epoch, configData)
 	}
 
 	return nil

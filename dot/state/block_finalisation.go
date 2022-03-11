@@ -147,7 +147,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 		bs.tries.delete(blockHeader.StateRoot)
 
-		logger.Debugf("pruned block number %d with hash %s", blockHeader.Number, hash)
+		logger.Tracef("pruned block number %d with hash %s", blockHeader.Number, hash)
 	}
 
 	// if nothing was previously finalised, set the first slot of the network to the
@@ -229,8 +229,6 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			return fmt.Errorf("failed to find block in unfinalised block map, block=%s", hash)
 		}
 
-		fmt.Println("SUBCHAIN BLOCK -> ", block.Header.Hash())
-
 		if err = bs.SetHeader(&block.Header); err != nil {
 			return err
 		}
@@ -260,7 +258,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 		bs.tries.delete(blockHeader.StateRoot)
 
-		logger.Debugf("cleaned out finalised block from memory; block number %d with hash %s", blockHeader.Number, hash)
+		logger.Tracef("cleaned out finalised block from memory; block number %d with hash %s", blockHeader.Number, hash)
 	}
 	return batch.Flush()
 }

@@ -6,7 +6,6 @@ package digest
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -254,18 +253,16 @@ func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) er
 		return err
 	}
 
-	fmt.Println("GOT A FINALIZED BLOCK!!!", currEpoch+1, finalizedHeader.Hash())
-
 	nextEpoch := currEpoch + 1
 
-	err = h.epochState.FinalizeBABENextEpochData(nextEpoch, finalizedHeader)
+	err = h.epochState.FinalizeBABENextEpochData(nextEpoch)
 	if err != nil {
 		h.logger.Debugf("failed to store BABENextEpochData for block number %d (%s): %w",
 			finalizedHeader.Number, finalizedHeader.Hash(), err)
 		return err
 	}
 
-	err = h.epochState.FinalizeBABENextConfigDataToFinalize(nextEpoch, finalizedHeader)
+	err = h.epochState.FinalizeBABENextConfigDataToFinalize(nextEpoch)
 	if err != nil {
 		h.logger.Debugf("failed to store BABENextConfigData for block number %d (%s): %w",
 			finalizedHeader.Number, finalizedHeader.Hash(), err)
@@ -420,11 +417,4 @@ func newGrandpaChange(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock
 func (h *Handler) handleBABEOnDisabled(_ types.BABEOnDisabled, _ *types.Header) error {
 	h.logger.Debug("handling BABEOnDisabled")
 	return nil
-}
-
-func (h *Handler) handleNextConfigData(config types.NextConfigData, nextEpoch uint64, header *types.Header) error {
-	h.logger.Debugf("defined BABE config data for block number %s and epoch %d with data: %v",
-		header.Number, nextEpoch, config.ToConfigData())
-	// set EpochState config data for upcoming epoch
-	return h.epochState.SetConfigData(nextEpoch, config.ToConfigData())
 }

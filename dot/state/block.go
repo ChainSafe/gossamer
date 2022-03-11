@@ -183,12 +183,18 @@ func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
 }
 
-// HasHeader returns if the db contains a header with the given hash
+// HasHeader returns if the hash are stored in the memory unfinalised blocks or
+// persisted in database
 func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	if bs.unfinalisedBlocks.getBlock(hash) != nil {
 		return true, nil
 	}
 
+	return bs.db.Has(headerKey(hash))
+}
+
+// HasHeaderInDatabase returns if only database contains a header with the given hash
+func (bs *BlockState) HasHeaderInDatabase(hash common.Hash) (bool, error) {
 	return bs.db.Has(headerKey(hash))
 }
 
