@@ -95,6 +95,42 @@ func Test_Decode(t *testing.T) {
 				Dirty: true,
 			},
 		},
+		"branch with two inlined children": {
+			reader: bytes.NewReader(
+				[]byte{
+					158, // node type 2 (branch without value) and Key length 30
+					// Key data start
+					195, 101, 195, 207, 89, 214,
+					113, 235, 114, 218, 14, 122,
+					65, 19, 196, 16, 2, 80, 95,
+					14, 123, 144, 18, 9, 107,
+					65, 196, 235, 58, 175,
+					// Key data end
+					148, 127, 110, 164, 41, 8, 0, 0, 104, 95, 15, 31, 5,
+					21, 244, 98, 205, 207, 132, 224, 241, 214, 4, 93, 252,
+					187, 32, 134, 92, 74, 43, 127, 1, 0, 0,
+				},
+			),
+			n: &Branch{
+				Key: []byte{12, 3, 6, 5, 12, 3, 12, 15, 5, 9, 13, 6, 7, 1, 14, 11, 7, 2, 13, 10, 0, 14, 7, 10, 4, 1, 1, 3, 12, 4},
+				Children: [16]Node{
+					nil, nil, nil, nil,
+					&Leaf{
+						Key:   []byte{14, 7, 11, 9, 0, 1, 2, 0, 9, 6, 11, 4, 1, 12, 4, 14, 11, 3, 10, 10, 15, 9, 4, 7, 15, 6, 14, 10, 4, 2, 9},
+						Value: []byte{0, 0},
+						Dirty: true,
+					},
+					nil, nil, nil, nil,
+					&Leaf{
+						Key:   []byte{15, 1, 15, 0, 5, 1, 5, 15, 4, 6, 2, 12, 13, 12, 15, 8, 4, 14, 0, 15, 1, 13, 6, 0, 4, 5, 13, 15, 12, 11, 11},
+						Value: []byte{134, 92, 74, 43, 127, 1, 0, 0},
+						Dirty: true,
+					},
+					nil, nil, nil, nil, nil, nil,
+				},
+				Dirty: true,
+			},
+		},
 	}
 
 	for name, testCase := range testCases {

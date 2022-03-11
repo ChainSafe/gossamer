@@ -78,8 +78,8 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 	return nil
 }
 
-// loadFromProof create a partial trie based on the proof slice, as it only contains nodes that are in the proof afaik.
-func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
+// LoadFromProof create a partial trie based on the proof slice, as it only contains nodes that are in the proof afaik.
+func (t *Trie) LoadFromProof(rawProof [][]byte, rootHash []byte) error {
 	if len(rawProof) == 0 {
 		return ErrEmptyProof
 	}
