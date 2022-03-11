@@ -11,35 +11,35 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// Uint64OrHash represents an optional interface type (int,hash).
-type Uint64OrHash struct {
+// Uint32OrHash represents a variadic type that is either uint32 or common.Hash.
+type Uint32OrHash struct {
 	value interface{}
 }
 
-// NewUint64OrHash returns a new variadic.Uint64OrHash given an int, uint64, or Hash
-func NewUint64OrHash(value interface{}) (*Uint64OrHash, error) {
+// NewUint32OrHash returns a new variadic.Uint32OrHash given an int, uint32, or Hash
+func NewUint32OrHash(value interface{}) (*Uint32OrHash, error) {
 	switch v := value.(type) {
-	case int:
-		return &Uint64OrHash{
-			value: uint64(v),
+	case int: // in order to accept constants int such as `NewUint32OrHash(1)`
+		return &Uint32OrHash{
+			value: uint32(v),
 		}, nil
-	case uint64:
-		return &Uint64OrHash{
+	case uint32:
+		return &Uint32OrHash{
 			value: v,
 		}, nil
 	case common.Hash:
-		return &Uint64OrHash{
+		return &Uint32OrHash{
 			value: v,
 		}, nil
 	default:
-		return nil, errors.New("value is not uint64 or common.Hash")
+		return nil, errors.New("value is not uint32 or common.Hash")
 	}
 }
 
-// MustNewUint64OrHash returns a new variadic.Uint64OrHash given an int, uint64, or Hash
+// MustNewUint32OrHash returns a new variadic.Uint32OrHash given an int, uint32, or Hash
 // It panics if the input value is invalid
-func MustNewUint64OrHash(value interface{}) *Uint64OrHash {
-	val, err := NewUint64OrHash(value)
+func MustNewUint32OrHash(value interface{}) *Uint32OrHash {
+	val, err := NewUint32OrHash(value)
 	if err != nil {
 		panic(err)
 	}
@@ -47,20 +47,20 @@ func MustNewUint64OrHash(value interface{}) *Uint64OrHash {
 	return val
 }
 
-// NewUint64OrHashFromBytes returns a new variadic.Uint64OrHash from an encoded variadic uint64 or hash
-func NewUint64OrHashFromBytes(data []byte) *Uint64OrHash {
+// NewUint32OrHashFromBytes returns a new variadic.Uint32OrHash from an encoded variadic uint32 or hash
+func NewUint32OrHashFromBytes(data []byte) *Uint32OrHash {
 	firstByte := data[0]
 	if firstByte == 0 {
-		return &Uint64OrHash{
+		return &Uint32OrHash{
 			value: common.NewHash(data[1:]),
 		}
 	} else if firstByte == 1 {
 		num := data[1:]
-		if len(num) < 8 {
-			num = common.AppendZeroes(num, 8)
+		if len(num) < 4 {
+			num = common.AppendZeroes(num, 4)
 		}
-		return &Uint64OrHash{
-			value: binary.LittleEndian.Uint64(num),
+		return &Uint32OrHash{
+			value: binary.LittleEndian.Uint32(num),
 		}
 	} else {
 		return nil
@@ -68,7 +68,7 @@ func NewUint64OrHashFromBytes(data []byte) *Uint64OrHash {
 }
 
 // Value returns the interface value.
-func (x *Uint64OrHash) Value() interface{} {
+func (x *Uint32OrHash) Value() interface{} {
 	if x == nil {
 		return nil
 	}
@@ -76,7 +76,7 @@ func (x *Uint64OrHash) Value() interface{} {
 }
 
 // IsHash returns true if the value is a hash
-func (x *Uint64OrHash) IsHash() bool {
+func (x *Uint32OrHash) IsHash() bool {
 	if x == nil {
 		return false
 	}
@@ -84,8 +84,8 @@ func (x *Uint64OrHash) IsHash() bool {
 	return is
 }
 
-// Hash returns the value as a common.Hash. it panics if the value is not a hash.
-func (x *Uint64OrHash) Hash() common.Hash {
+// Hash returns the value as a common.Hash. It panics if the value is not a hash.
+func (x *Uint32OrHash) Hash() common.Hash {
 	if !x.IsHash() {
 		panic("value is not common.Hash")
 	}
@@ -93,32 +93,31 @@ func (x *Uint64OrHash) Hash() common.Hash {
 	return x.value.(common.Hash)
 }
 
-// IsUint64 returns true if the value is a hash
-func (x *Uint64OrHash) IsUint64() bool {
+// IsUint32 returns true if the value is a uint32
+func (x *Uint32OrHash) IsUint32() bool {
 	if x == nil {
 		return false
 	}
-	_, is := x.value.(uint64)
+	_, is := x.value.(uint32)
 	return is
 }
 
-// Uint64 returns the value as a uint64. it panics if the value is not a hash.
-func (x *Uint64OrHash) Uint64() uint64 {
-	if !x.IsUint64() {
-		panic("value is not uint64")
+// Uint32 returns the value as a uint32. It panics if the value is not a uint32.
+func (x *Uint32OrHash) Uint32() uint32 {
+	if !x.IsUint32() {
+		panic("value is not uint32")
 	}
 
-	return x.value.(uint64)
+	return x.value.(uint32)
 }
 
-// Encode will encode a uint64 or hash into the SCALE spec
-func (x *Uint64OrHash) Encode() ([]byte, error) {
+// Encode will encode a Uint32OrHash using SCALE
+func (x *Uint32OrHash) Encode() ([]byte, error) {
 	var encMsg []byte
 	switch c := x.Value().(type) {
-	case uint64:
-		startingBlockByteArray := make([]byte, 8)
-		binary.LittleEndian.PutUint64(startingBlockByteArray, c)
-
+	case uint32:
+		startingBlockByteArray := make([]byte, 4)
+		binary.LittleEndian.PutUint32(startingBlockByteArray, c)
 		encMsg = append(encMsg, append([]byte{1}, startingBlockByteArray...)...)
 	case common.Hash:
 		encMsg = append(encMsg, append([]byte{0}, c.ToBytes()...)...)
@@ -126,8 +125,8 @@ func (x *Uint64OrHash) Encode() ([]byte, error) {
 	return encMsg, nil
 }
 
-// Decode will decode the Uint64OrHash into a hash or uint64
-func (x *Uint64OrHash) Decode(r io.Reader) error {
+// Decode decodes a value into a Uint32OrHash
+func (x *Uint32OrHash) Decode(r io.Reader) error {
 	startingBlockType, err := common.ReadByte(r)
 	if err != nil {
 		return err
@@ -140,12 +139,12 @@ func (x *Uint64OrHash) Decode(r io.Reader) error {
 		}
 		x.value = common.NewHash(hash)
 	} else {
-		num := make([]byte, 8)
+		num := make([]byte, 4)
 		_, err = r.Read(num)
 		if err != nil {
 			return err
 		}
-		x.value = binary.LittleEndian.Uint64(num)
+		x.value = binary.LittleEndian.Uint32(num)
 	}
 	return nil
 }

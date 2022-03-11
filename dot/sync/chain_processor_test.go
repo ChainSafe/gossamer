@@ -37,7 +37,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	// syncer makes request for chain
 	startNum := 1
-	start, err := variadic.NewUint64OrHash(startNum)
+	start, err := variadic.NewUint32OrHash(startNum)
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
@@ -57,7 +57,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	// syncer makes request for chain again (block 129+)
 	startNum = 129
-	start, err = variadic.NewUint64OrHash(startNum)
+	start, err = variadic.NewUint32OrHash(startNum)
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -108,7 +108,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	}
 
 	startNum := 15
-	start, err := variadic.NewUint64OrHash(startNum)
+	start, err := variadic.NewUint32OrHash(startNum)
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{

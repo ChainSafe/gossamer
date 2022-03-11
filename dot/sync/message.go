@@ -42,7 +42,7 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 	}
 
 	switch startBlock := req.StartingBlock.Value().(type) {
-	case uint64:
+	case uint32:
 		if startBlock == 0 {
 			startBlock = 1
 		}
@@ -147,7 +147,7 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 	}
 
 	switch startBlock := req.StartingBlock.Value().(type) {
-	case uint64:
+	case uint32:
 		bestBlockNumber, err := s.blockState.BestBlockNumber()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get best block %d for request: %w", bestBlockNumber, err)
