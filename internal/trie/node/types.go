@@ -17,3 +17,6 @@ const (
 	// InvalidType is used in tests only
 	InvalidType
 )
+
+// HashLength is 256 bits
+const HashLength = 32
