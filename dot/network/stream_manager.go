@@ -24,7 +24,7 @@ type streamData struct {
 // read from it, which takes up lots of CPU over time.
 type streamManager struct {
 	ctx          context.Context
-	streamDataMu sync.RWMutex
+	streamDataMu sync.Mutex
 	streamData   map[string]*streamData
 }
 
