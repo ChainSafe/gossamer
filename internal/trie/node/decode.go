@@ -106,7 +106,8 @@ func decodeBranch(reader io.Reader, header byte) (branch *Branch, err error) {
 		}
 
 		// Handle inlined leaf nodes.
-		if Type(hash[0]>>6) == LeafType && len(hash) != HashLength {
+		const hashLength = 32
+		if Type(hash[0]>>6) == LeafType && len(hash) != hashLength {
 			leaf, err := decodeLeaf(bytes.NewReader(hash[1:]), hash[0])
 			if err != nil {
 				return nil, fmt.Errorf("%w: at index %d: %s",

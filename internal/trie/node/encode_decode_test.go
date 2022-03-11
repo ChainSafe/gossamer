@@ -5,6 +5,7 @@ package node
 
 import (
 	"bytes"
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +44,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Dirty: true,
 			},
 		},
-		"branch with child": {
+		"branch with child leaf inline": {
 			branchToEncode: &Branch{
 				Key: []byte{5},
 				Children: [16]Node{
@@ -60,6 +61,47 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 						Key:   []byte{9},
 						Value: []byte{10},
 						Dirty: true,
+					},
+				},
+				Dirty: true,
+			},
+		},
+		"branch with child leaf hash": {
+			branchToEncode: &Branch{
+				Key: []byte{5},
+				Children: [16]Node{
+					&Leaf{
+						Key: []byte{
+							10, 11, 12, 13,
+							14, 15, 16, 17,
+							18, 19, 20, 21,
+							14, 15, 16, 17,
+							10, 11, 12, 13,
+							14, 15, 16, 17,
+						},
+						Value: []byte{
+							10, 11, 12, 13,
+							14, 15, 16, 17,
+							10, 11, 12, 13,
+							14, 15, 16, 17,
+							10, 11, 12, 13,
+						},
+					},
+				},
+			},
+			branchDecoded: &Branch{
+				Key: []byte{5},
+				Children: [16]Node{
+					&Leaf{
+						HashDigest: []byte{
+							2, 18, 48, 30, 98,
+							133, 244, 78, 70,
+							161, 196, 105, 228,
+							190, 159, 228, 199, 29,
+							254, 212, 160, 55, 199,
+							21, 186, 226, 204, 145,
+							132, 5, 39, 204,
+						},
 					},
 				},
 				Dirty: true,
@@ -85,6 +127,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			resultBranch, err := decodeBranch(buffer, header)
 			require.NoError(t, err)
 
+			log.Println(resultBranch)
 			assert.Equal(t, testCase.branchDecoded, resultBranch)
 		})
 	}
