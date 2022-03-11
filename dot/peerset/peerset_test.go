@@ -92,12 +92,12 @@ func TestPeerSetDiscovered(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	processor := NewMockMessageProcessor(ctrl)
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false, processor)
 
 	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: reservedPeer})
-	handler.AddPeer(0, discovered1)
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false, processor)
 
 	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: discovered1})
+	handler.AddPeer(0, discovered1)
 	handler.AddPeer(0, discovered1)
 
 	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: discovered2})
