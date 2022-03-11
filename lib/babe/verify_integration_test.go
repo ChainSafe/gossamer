@@ -574,6 +574,8 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 
 	expectedThreshold, err := CalculateThreshold(aliceBlockNextConfigData.C1,
 		aliceBlockNextConfigData.C2, len(authorities[3:]))
+	require.NoError(t, err)
+
 	for _, headerToVerify := range forkAliceChain {
 		verifierInfo, err := verificationManager.getVerifierInfo(epochToTest, &headerToVerify)
 		require.NoError(t, err)
@@ -594,6 +596,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 
 	expectedThreshold, err = CalculateThreshold(bobBlockNextConfigData.C1,
 		bobBlockNextConfigData.C2, len(authorities[6:]))
+	require.NoError(t, err)
 
 	for _, headerToVerify := range forkBobChain {
 		verifierInfo, err := verificationManager.getVerifierInfo(epochToTest, &headerToVerify)
@@ -652,7 +655,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	require.Equal(t, expectedThreshold, verifierInfo.threshold)
 }
 
-// issueConsensusDigestsBlocksFromGenesis will create diferent
+// issueConsensusDigestsBlocksFromGenesis will create different
 // blocks that contains different consensus messages digests
 func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.Header,
 	kp *sr25519.Keypair, stateService *state.Service,
