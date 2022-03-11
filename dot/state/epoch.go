@@ -347,6 +347,8 @@ func (s *EpochState) GetConfigDataForHeader(epoch uint64, header *types.Header) 
 
 	for hash, value := range atEpoch {
 		isDescendant, err := s.blockState.IsDescendantOf(hash, headerHash)
+		fmt.Printf("COMPARE: %s <- %s (%v)\n", hash, headerHash, isDescendant)
+
 		if err != nil {
 			return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
 		}
@@ -471,39 +473,72 @@ func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val
 	s.nextConfigData[epoch][hash] = val
 }
 
-// GetBABENextEpochDataToFinalize retrieves the types.NextEpochData by epoch and hash keys
+// FinalizeBABENextEpochData retrieves the types.NextEpochData by epoch and hash keys
 // and delete all the entries for the epoch
-func (s *EpochState) GetBABENextEpochDataToFinalize(epoch uint64, hash common.Hash) (types.NextEpochData, bool) {
+func (s *EpochState) FinalizeBABENextEpochData(epoch uint64, finalizedHeader *types.Header) error {
 	s.nextEpochLock.RLock()
 	defer s.nextEpochLock.RUnlock()
 
 	epochData, has := s.nextEpochData[epoch]
 	if !has {
-		return types.NextEpochData{}, false
+		return nil
 	}
 
-	nextEpochData, has := epochData[hash]
-	if has {
-		delete(s.nextConfigData, epoch)
+	finalizedHash := finalizedHeader.Hash()
+
+	for hash, nextEpochData := range epochData {
+		isDescendant, err := s.blockState.IsDescendantOf(hash, finalizedHash)
+		fmt.Printf("COMPARE: %s <- %s (%v)\n", hash, finalizedHash, isDescendant)
+
+		if err != nil {
+			return fmt.Errorf("cannot verify the ancestry: %w", err)
+		}
+
+		if isDescendant {
+			epochData, err := nextEpochData.ToEpochData()
+			if err != nil {
+				return fmt.Errorf("cannot transform epoch data: %w", err)
+			}
+
+			logger.Debugf("setting data for block number %s and epoch %d with data: %v",
+				finalizedHeader.Number, epoch, epochData)
+
+			delete(s.nextConfigData, epoch)
+			return s.SetEpochData(epoch, epochData)
+		}
 	}
-	return nextEpochData, has
+
+	return nil
 }
 
-// GetBABENextConfigDataToFinalize retrieves the types.NextConfigData by epoch and hash keys
+// FinalizeBABENextConfigDataToFinalize retrieves the types.NextConfigData by epoch and hash keys
 // and delete all the entries for the epoch
-func (s *EpochState) GetBABENextConfigDataToFinalize(epoch uint64, hash common.Hash) (types.NextConfigData, bool) {
+func (s *EpochState) FinalizeBABENextConfigDataToFinalize(epoch uint64, finalizedHeader *types.Header) error {
 	s.nextEpochLock.RLock()
 	defer s.nextEpochLock.RUnlock()
 
 	epochData, has := s.nextConfigData[epoch]
 	if !has {
-		return types.NextConfigData{}, false
+		return nil
 	}
 
-	nextConfigData, has := epochData[hash]
-	if has {
-		delete(s.nextConfigData, epoch)
+	finalizedHash := finalizedHeader.Hash()
+	for hash, nextConfigData := range epochData {
+		isDescendant, err := s.blockState.IsDescendantOf(hash, finalizedHash)
+
+		if err != nil {
+			return fmt.Errorf("cannot verify the ancestry: %w", err)
+		}
+
+		if isDescendant {
+			configData := nextConfigData.ToConfigData()
+			logger.Debugf("defined BABE config data for block number %s and epoch %d with data: %v",
+				finalizedHeader.Number, epoch, configData)
+
+			delete(s.nextConfigData, epoch)
+			return s.SetConfigData(epoch, configData)
+		}
 	}
 
-	return nextConfigData, has
+	return nil
 }

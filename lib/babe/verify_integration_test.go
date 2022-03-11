@@ -545,7 +545,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 
 	// wait for digest handleBlockImport goroutine gets the imported
 	// block, process its digest and store the info at epoch state
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 2)
 
 	/*
 	* Simulate a fork from the genesis file, the fork alice and the fork bob
@@ -599,7 +599,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		verifierInfo, err := verificationManager.getVerifierInfo(epochToTest, &headerToVerify)
 		require.NoError(t, err)
 
-		require.Equal(t, len(authorities[:3]), len(verifierInfo.authorities))
+		require.Equal(t, len(authorities[6:]), len(verifierInfo.authorities))
 		rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
 
 		for i, auth := range verifierInfo.authorities {
@@ -611,6 +611,45 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		require.True(t, verifierInfo.secondarySlots)
 		require.Equal(t, expectedThreshold, verifierInfo.threshold)
 	}
+
+	telemetryMock.EXPECT().SendMessage(
+		telemetry.NewNotifyFinalized(
+			forkBobLastHeader.Hash(),
+			fmt.Sprint(forkBobLastHeader.Number),
+		),
+	)
+	err = stateService.Block.SetFinalisedHash(forkBobLastHeader.Hash(), 1, 1)
+	require.NoError(t, err)
+
+	// wait for digest handleBlockFinalize goroutine gets the finalized
+	// block, clean up the in memory data and store the finalized digest in db
+	time.Sleep(time.Second * 2)
+
+	// should not exists in memory data as a chain was finalized
+	_, err = epochState.GetEpochDataForHeader(epochToTest, forkBobLastHeader)
+	require.EqualError(t, err, fmt.Sprintf("epoch %d not found in memory stored epoch data", epochToTest))
+
+	_, err = epochState.GetConfigDataForHeader(epochToTest, forkBobLastHeader)
+	require.EqualError(t, err, fmt.Sprintf("epoch %d not found in memory stored config data", epochToTest))
+
+	// as a chain was finalized any block built upon it should use the database stored data
+	blockUponFinalizedHeader := issueNewBlockFrom(t, forkBobLastHeader,
+		keyring.KeyBob, stateService)
+
+	verifierInfo, err := verificationManager.getVerifierInfo(epochToTest, blockUponFinalizedHeader)
+	require.NoError(t, err)
+
+	require.Equal(t, len(authorities[6:]), len(verifierInfo.authorities))
+	rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
+
+	for i, auth := range verifierInfo.authorities {
+		rawAuthorities[i] = *auth.ToRaw()
+	}
+
+	// should keep the original authorities
+	require.ElementsMatch(t, authorities[6:], rawAuthorities)
+	require.True(t, verifierInfo.secondarySlots)
+	require.Equal(t, expectedThreshold, verifierInfo.threshold)
 }
 
 // issueConsensusDigestsBlocksFromGenesis will create diferent
