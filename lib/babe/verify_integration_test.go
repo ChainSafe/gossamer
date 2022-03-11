@@ -569,9 +569,11 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		forkBobChain[idx] = *forkBobLastHeader
 	}
 
-	// each block from the fork alice should use the digest that contains the
-	// authority nodes change
+	// verify if each block from the fork alice get the right digest
 	const epochToTest = 1
+
+	expectedThreshold, err := CalculateThreshold(aliceBlockNextConfigData.C1,
+		aliceBlockNextConfigData.C2, len(authorities[3:]))
 	for _, headerToVerify := range forkAliceChain {
 		verifierInfo, err := verificationManager.getVerifierInfo(epochToTest, &headerToVerify)
 		require.NoError(t, err)
@@ -584,43 +586,31 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		}
 
 		require.ElementsMatch(t, authorities[3:], rawAuthorities)
+		require.True(t, verifierInfo.secondarySlots)
+		require.Equal(t, expectedThreshold, verifierInfo.threshold)
 	}
 
-	// each block from the fork bob should use the digest that contains the
-	// config data and secondary slot change
-	// expectedThreshold, err := CalculateThreshold(bobBlockNextConfigData.C1,
-	// 	bobBlockNextConfigData.C2, len(authorities[:3]))
+	// each block from the fork bob should use the right digest
 
-	// for _, headerToVerify := range forkBobChain {
-	// 	verifierInfo, err := verificationManager.getVerifierInfo(epochToTest, &headerToVerify)
-	// 	require.NoError(t, err)
+	expectedThreshold, err = CalculateThreshold(bobBlockNextConfigData.C1,
+		bobBlockNextConfigData.C2, len(authorities[6:]))
 
-	// 	require.Equal(t, len(authorities[:3]), len(verifierInfo.authorities))
-	// 	rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
+	for _, headerToVerify := range forkBobChain {
+		verifierInfo, err := verificationManager.getVerifierInfo(epochToTest, &headerToVerify)
+		require.NoError(t, err)
 
-	// 	for i, auth := range verifierInfo.authorities {
-	// 		rawAuthorities[i] = *auth.ToRaw()
-	// 	}
+		require.Equal(t, len(authorities[:3]), len(verifierInfo.authorities))
+		rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
 
-	// 	// should keep the original authorities
-	// 	require.ElementsMatch(t, authorities[:3], rawAuthorities)
-	// 	require.True(t, verifierInfo.secondarySlots)
-	// 	require.Equal(t, expectedThreshold, verifierInfo.threshold)
-	// }
-	// each block
+		for i, auth := range verifierInfo.authorities {
+			rawAuthorities[i] = *auth.ToRaw()
+		}
 
-	// // check if the verifier info retrieve the right in memory epoch data
-	// verifierInfo, err := verificationManager.getVerifierInfo(1, headerToGetVerifyInfo)
-	// require.NoError(t, err)
-	// require.Equal(t, len(authorities[3:]), len(verifierInfo.authorities))
-
-	// rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
-
-	// for i, auth := range verifierInfo.authorities {
-	// 	rawAuthorities[i] = *auth.ToRaw()
-	// }
-
-	// require.ElementsMatch(t, authorities[3:], rawAuthorities)
+		// should keep the original authorities
+		require.ElementsMatch(t, authorities[6:], rawAuthorities)
+		require.True(t, verifierInfo.secondarySlots)
+		require.Equal(t, expectedThreshold, verifierInfo.threshold)
+	}
 }
 
 // issueConsensusDigestsBlocksFromGenesis will create diferent
@@ -654,7 +644,7 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 		Data:              nextEpochData,
 	}
 
-	nextConfigData, err := scale.Marshal(babeConsensusDigestNextEpoch)
+	nextConfigData, err := scale.Marshal(babeConsensusDigestNextConfigData)
 	require.NoError(t, err)
 
 	nextConfigConsensusDigest := types.ConsensusDigest{
@@ -662,8 +652,7 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 		Data:              nextConfigData,
 	}
 
-	digest := scale.NewVaryingDataTypeSlice(scale.MustNewVaryingDataType(
-		types.PreRuntimeDigest{}, types.ConsensusDigest{}, types.ConsensusDigest{}))
+	digest := types.NewDigest()
 	require.NoError(t, digest.Add(*preRuntimeDigest, nextEpochConsensusDigest, nextConfigConsensusDigest))
 
 	headerWhoOwnsNextEpochDigest := &types.Header{

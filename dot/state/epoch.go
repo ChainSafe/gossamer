@@ -374,7 +374,7 @@ func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 	has, err := s.db.Has(configDataKey(epoch))
 
-	if errors.Is(chaindb.ErrKeyNotFound, err) {
+	if !has || errors.Is(chaindb.ErrKeyNotFound, err) {
 		s.nextEpochLock.Lock()
 		defer s.nextEpochLock.Unlock()
 
