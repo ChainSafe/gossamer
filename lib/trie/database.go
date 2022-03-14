@@ -145,15 +145,16 @@ func (t *Trie) loadProof(proofHashToNode map[string]Node, n Node) {
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db chaindb.Database, rootHashBytes []byte) error {
-	if len(rootHashBytes) == 0 {
+func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
+	if rootHash == EmptyHash {
 		t.root = nil
 		return nil
 	}
+	rootHashBytes := rootHash.ToBytes()
 
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
-		return fmt.Errorf("failed to find root key 0x%x: %w", rootHashBytes, err)
+		return fmt.Errorf("failed to find root key %s: %w", rootHash, err)
 	}
 
 	reader := bytes.NewReader(encodedNode)
@@ -210,17 +211,17 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
 		// TODO: Tests this error
-		err := childTrie.Load(db, value)
+		rootHash := common.BytesToHash(value)
+		err := childTrie.Load(db, rootHash)
 		if err != nil {
-			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
+			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
 		}
 
-		// TODO: Test this error
-		err = t.PutChild(value, childTrie)
+		hash, err := childTrie.Hash()
 		if err != nil {
-			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
-				childTrie.root.GetHash(), err)
+			return err
 		}
+		t.childTries[hash] = childTrie
 	}
 
 	return nil

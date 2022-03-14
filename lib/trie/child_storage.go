@@ -19,15 +19,14 @@ var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 // A child trie is added as a node (K, V) in main trie. K is the child storage key
 // associated to the child trie, and V is the root hash of the child trie.
 func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
-	_, hash, err := child.root.EncodeAndHash(true)
+	hash, err := child.Hash()
 	if err != nil {
 		return err
 	}
-
 	key := append(ChildStorageKeyPrefix, keyToChild...)
 
-	t.Put(key, hash)
-	t.childTries[common.BytesToHash(hash)] = child
+	t.Put(key, hash.ToBytes())
+	t.childTries[hash] = child
 	return nil
 }
 
@@ -39,9 +38,7 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
-	hash := [32]byte{}
-	copy(hash[:], childHash)
-	return t.childTries[common.Hash(hash)], nil
+	return t.childTries[common.BytesToHash(childHash)], nil
 }
 
 // PutIntoChild puts a key-value pair into the child trie located in the main trie at key :child_storage:[keyToChild]

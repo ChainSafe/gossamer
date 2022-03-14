@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 const (
@@ -396,7 +397,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	dbTrie := NewEmptyTrie()
-	err = dbTrie.Load(storageDB, newTrie.root.GetHash())
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.GetHash()))
 	require.NoError(t, err)
 }
 

@@ -35,7 +35,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	expected := tt.MustHash()
 
 	tt = trie.NewEmptyTrie()
-	err = tt.Load(db, encroot.ToBytes())
+	err = tt.Load(db, encroot)
 	require.NoError(t, err)
 	require.Equal(t, expected, tt.MustHash())
 }
