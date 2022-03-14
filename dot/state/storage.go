@@ -142,7 +142,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
-	err := t.Load(s.db, root.ToBytes())
+	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 
 	tr, err := s.LoadFromDB(*root)
 	if err != nil {
-		return nil, errTrieDoesNotExist(*root)
+		return nil, fmt.Errorf("%s, %w", err, errTrieDoesNotExist(*root))
 	}
 
 	return tr, nil
