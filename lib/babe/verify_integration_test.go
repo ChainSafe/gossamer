@@ -713,7 +713,8 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 }
 
 // issueNewBlockFrom will create and store a new block following a chain
-func issueNewBlockFrom(t *testing.T, parentHeader *types.Header, kp *sr25519.Keypair, stateService *state.Service) *types.Header {
+func issueNewBlockFrom(t *testing.T, parentHeader *types.Header,
+	kp *sr25519.Keypair, stateService *state.Service) *types.Header {
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	require.NoError(t, err)
 

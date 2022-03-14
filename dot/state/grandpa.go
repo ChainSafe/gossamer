@@ -6,6 +6,7 @@ package state
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -162,13 +163,13 @@ func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number ui
 func (s *GrandpaState) IncrementSetID() (newSetID uint64, err error) {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("cannot get current set ID: %w", err)
 	}
 
 	nextSetID := currSetID + 1
 	err = s.setCurrentSetID(nextSetID)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("cannot set current set ID: %w", err)
 	}
 
 	return newSetID, nil
