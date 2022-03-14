@@ -45,6 +45,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 		expectedBranch *Branch
 		encoding       []byte
 		hash           []byte
+		isRoot         bool
 		errWrapped     error
 		errMessage     string
 	}{
@@ -56,6 +57,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{0x80, 0x0, 0x0},
 			hash:     []byte{0x80, 0x0, 0x0},
+			isRoot:   false,
 		},
 		"small branch encoding": {
 			branch: &Branch{
@@ -68,6 +70,20 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 			hash:     []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
+			isRoot:   false,
+		},
+		"small branch encoding for root node": {
+			branch: &Branch{
+				Key:   []byte{1},
+				Value: []byte{2},
+			},
+			expectedBranch: &Branch{
+				Encoding:   []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
+				HashDigest: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
+			},
+			encoding: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
+			hash:     []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
+			isRoot:   true,
 		},
 		"branch dirty with precomputed encoding and hash": {
 			branch: &Branch{
@@ -83,6 +99,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 			hash:     []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
+			isRoot:   false,
 		},
 		"branch not dirty with precomputed encoding and hash": {
 			branch: &Branch{
@@ -100,6 +117,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{3},
 			hash:     []byte{4},
+			isRoot:   false,
 		},
 		"large branch encoding": {
 			branch: &Branch{
@@ -111,6 +129,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{0xbf, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0, 0x0}, //nolint:lll
 			hash:     []byte{0x6b, 0xd8, 0xcc, 0xac, 0x71, 0x77, 0x44, 0x17, 0xfe, 0xe0, 0xde, 0xda, 0xd5, 0x97, 0x6e, 0x69, 0xeb, 0xe9, 0xdd, 0x80, 0x1d, 0x4b, 0x51, 0xf1, 0x5b, 0xf3, 0x4a, 0x93, 0x27, 0x32, 0x2c, 0xb0},                           //nolint:lll
+			isRoot:   false,
 		},
 	}
 
@@ -119,7 +138,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.branch.EncodeAndHash(false)
+			encoding, hash, err := testCase.branch.EncodeAndHash(testCase.isRoot)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -167,6 +186,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 		expectedLeaf *Leaf
 		encoding     []byte
 		hash         []byte
+		isRoot       bool
 		errWrapped   error
 		errMessage   string
 	}{
@@ -178,6 +198,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{0x40, 0x0},
 			hash:     []byte{0x40, 0x0},
+			isRoot:   false,
 		},
 		"small leaf encoding": {
 			leaf: &Leaf{
@@ -190,6 +211,20 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{0x41, 0x1, 0x4, 0x2},
 			hash:     []byte{0x41, 0x1, 0x4, 0x2},
+			isRoot:   false,
+		},
+		"small leaf encoding for root node": {
+			leaf: &Leaf{
+				Key:   []byte{1},
+				Value: []byte{2},
+			},
+			expectedLeaf: &Leaf{
+				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
+				HashDigest: []byte{0x41, 0x1, 0x4, 0x2},
+			},
+			encoding: []byte{0x41, 0x1, 0x4, 0x2},
+			hash:     []byte{0x41, 0x1, 0x4, 0x2},
+			isRoot:   true,
 		},
 		"leaf dirty with precomputed encoding and hash": {
 			leaf: &Leaf{
@@ -205,6 +240,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{0x41, 0x1, 0x4, 0x2},
 			hash:     []byte{0x41, 0x1, 0x4, 0x2},
+			isRoot:   false,
 		},
 		"leaf not dirty with precomputed encoding and hash": {
 			leaf: &Leaf{
@@ -222,6 +258,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{3},
 			hash:     []byte{4},
+			isRoot:   false,
 		},
 		"large leaf encoding": {
 			leaf: &Leaf{
@@ -233,6 +270,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 			},
 			encoding: []byte{0x7f, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0}, //nolint:lll
 			hash:     []byte{0xfb, 0xae, 0x31, 0x4b, 0xef, 0x31, 0x9, 0xc7, 0x62, 0x99, 0x9d, 0x40, 0x9b, 0xd4, 0xdc, 0x64, 0xe7, 0x39, 0x46, 0x8b, 0xd3, 0xaf, 0xe8, 0x63, 0x9d, 0xf9, 0x41, 0x40, 0x76, 0x40, 0x10, 0xa3},                       //nolint:lll
+			isRoot:   false,
 		},
 	}
 
@@ -241,7 +279,7 @@ func Test_Leaf_EncodeAndHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.leaf.EncodeAndHash(false)
+			encoding, hash, err := testCase.leaf.EncodeAndHash(testCase.isRoot)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

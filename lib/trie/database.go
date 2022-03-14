@@ -97,7 +97,7 @@ func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
 		decodedNode.SetDirty(dirty)
 		decodedNode.SetEncodingAndHash(rawNode, nil)
 
-		_, hash, err := decodedNode.EncodeAndHash(decodedNode == t.root)
+		_, hash, err := decodedNode.EncodeAndHash(false)
 		if err != nil {
 			return fmt.Errorf("cannot encode and hash node at index %d: %w", i, err)
 		}

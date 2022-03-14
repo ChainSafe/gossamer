@@ -21,21 +21,21 @@ func findAndRecord(t *Trie, key []byte, recorder recorder) error {
 	return find(t.root, key, recorder, true)
 }
 
-func find(current Node, key []byte, recorder recorder, isCurrentRoot bool) error {
-	enc, hash, err := current.EncodeAndHash(isCurrentRoot)
+func find(parent Node, key []byte, recorder recorder, isCurrentRoot bool) error {
+	enc, hash, err := parent.EncodeAndHash(isCurrentRoot)
 	if err != nil {
 		return err
 	}
 
 	recorder.Record(hash, enc)
 
-	switch current.Type() {
+	switch parent.Type() {
 	case node.BranchType, node.BranchWithValueType:
 	default: // not a branch
 		return nil
 	}
 
-	b := current.(*node.Branch)
+	b := parent.(*node.Branch)
 
 	length := lenCommonPrefix(b.Key, key)
 
