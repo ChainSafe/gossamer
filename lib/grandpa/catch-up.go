@@ -153,7 +153,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	head, err := c.grandpa.blockState.GetHeader(msg.Hash)
 	if err != nil {
 		logger.Debugf("failed to process catch up response for round %d, storing the catch up response to retry", msg.Round)
-		return err
+		return return fmt.Errorf("cannot get header from grandpa block state: %w", err)
 	}
 
 	c.grandpa.head = head
