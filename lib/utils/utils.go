@@ -181,6 +181,11 @@ func GetDevGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev/genesis.json")
 }
 
+// GetDevGenesisSpecPathTest gets the dev genesis spec path
+func GetDevGenesisSpecPathTest(t *testing.T) string {
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev/genesis-spec.json")
+}
+
 // GetGssmrGenesisPath gets the gssmr genesis path
 // and returns an error if it cannot find it.
 func GetGssmrGenesisPath() (path string, err error) {

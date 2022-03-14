@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -16,8 +17,9 @@ import (
 
 func TestNetwork_MaxPeers(t *testing.T) {
 	numNodes := 9 // 9 block producers
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	utils.Logger.Patch(log.SetLevel(log.Info))
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
