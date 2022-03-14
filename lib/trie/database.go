@@ -186,6 +186,11 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 
 		hash := child.GetHash()
 
+		_, isLeaf := child.(*node.Leaf)
+		if len(hash) == 0 && isLeaf {
+			// node has already been loaded inline
+			continue
+		}
 		encodedNode, err := db.Get(hash)
 		if err != nil {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", hash, err)
