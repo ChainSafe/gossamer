@@ -117,7 +117,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	}
 
 	if msg.SetID != setID {
-		return ErrSetIDMismatch
+		return fmt.Errorf("%w: received %d and expected %d", ErrSetIDMismatch, msg.SetID, setID)
 	}
 
 	// catch up only if we are behind by more than catchup threshold
