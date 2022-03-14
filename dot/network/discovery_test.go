@@ -35,7 +35,7 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 		require.NoError(t, err)
 		disc := &discovery{
 			ctx: srvc.ctx,
-			h:   srvc.host.h,
+			h:   srvc.host.p2pHost,
 			ds:  ds,
 		}
 
@@ -200,7 +200,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	time.Sleep(time.Millisecond * 500)
 
 	// assert B and C can discover each other
-	addrs := nodeB.host.h.Peerstore().Addrs(nodeC.host.id())
+	addrs := nodeB.host.p2pHost.Peerstore().Addrs(nodeC.host.id())
 	require.NotEqual(t, 0, len(addrs))
 
 }

@@ -125,7 +125,7 @@ func (h *Handler) SetMessageProcessor(processor MessageProcessor) {
 
 // Start starts peerSet processing
 func (h *Handler) Start(ctx context.Context) {
-	h.peerSet.start(ctx)
+	go h.peerSet.periodicallyAllocateSlots(ctx)
 }
 
 // SortedPeers returns a sorted peer ID slice for connected peers in the peerSet.

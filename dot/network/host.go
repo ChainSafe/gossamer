@@ -68,7 +68,7 @@ const (
 // host wraps libp2p host with network host configuration and services
 type host struct {
 	ctx             context.Context
-	h               libp2phost.Host
+	p2pHost         libp2phost.Host
 	discovery       *discovery
 	bootnodes       []peer.AddrInfo
 	persistentPeers []peer.AddrInfo
@@ -211,7 +211,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	host := &host{
 		ctx:             ctx,
-		h:               h,
+		p2pHost:         h,
 		discovery:       discovery,
 		bootnodes:       bns,
 		protocolID:      pid,
@@ -237,14 +237,14 @@ func (h *host) close() error {
 	}
 
 	// close libp2p host
-	err = h.h.Close()
+	err = h.p2pHost.Close()
 	if err != nil {
 		logger.Errorf("Failed to close libp2p host: %s", err)
 		return err
 	}
 
 	h.closeSync.Do(func() {
-		err = h.h.Peerstore().Close()
+		err = h.p2pHost.Peerstore().Close()
 		if err != nil {
 			logger.Errorf("Failed to close libp2p peerstore: %s", err)
 			return
@@ -261,28 +261,28 @@ func (h *host) close() error {
 
 // registerStreamHandler registers the stream handler for the given protocol id.
 func (h *host) registerStreamHandler(pid protocol.ID, handler func(libp2pnetwork.Stream)) {
-	h.h.SetStreamHandler(pid, handler)
+	h.p2pHost.SetStreamHandler(pid, handler)
 }
 
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
-	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+	h.p2pHost.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	ctx, cancel := context.WithTimeout(h.ctx, connectTimeout)
 	defer cancel()
-	err = h.h.Connect(ctx, p)
+	err = h.p2pHost.Connect(ctx, p)
 	return err
 }
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
 	for _, info := range h.persistentPeers {
-		h.h.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+		h.p2pHost.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
 		h.cm.peerSetHandler.AddReservedPeer(0, info.ID)
 	}
 
 	for _, addrInfo := range h.bootnodes {
 		logger.Debugf("bootstrapping to peer %s", addrInfo.ID)
-		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
+		h.p2pHost.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 		h.cm.peerSetHandler.AddPeer(0, addrInfo.ID)
 	}
 }
@@ -291,7 +291,7 @@ func (h *host) bootstrap() {
 // the newly created stream.
 func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stream, error) {
 	// open outbound stream with host protocol id
-	stream, err := h.h.NewStream(h.ctx, p, pid)
+	stream, err := h.p2pHost.NewStream(h.ctx, p, pid)
 	if err != nil {
 		logger.Tracef("failed to open new stream with peer %s using protocol %s: %s", p, pid, err)
 		return nil, err
@@ -335,12 +335,12 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 
 // id returns the host id
 func (h *host) id() peer.ID {
-	return h.h.ID()
+	return h.p2pHost.ID()
 }
 
 // Peers returns connected peers
 func (h *host) peers() []peer.ID {
-	return h.h.Network().Peers()
+	return h.p2pHost.Network().Peers()
 }
 
 // addReservedPeers adds the peers `addrs` to the protected peers list and connects to them
@@ -355,7 +355,7 @@ func (h *host) addReservedPeers(addrs ...string) error {
 		if err != nil {
 			return err
 		}
-		h.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
+		h.p2pHost.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 		h.cm.peerSetHandler.AddReservedPeer(0, addrInfo.ID)
 	}
 
@@ -370,7 +370,7 @@ func (h *host) removeReservedPeers(ids ...string) error {
 			return err
 		}
 		h.cm.peerSetHandler.RemoveReservedPeer(0, peerID)
-		h.h.ConnManager().Unprotect(peerID, "")
+		h.p2pHost.ConnManager().Unprotect(peerID, "")
 	}
 
 	return nil
@@ -379,7 +379,7 @@ func (h *host) removeReservedPeers(ids ...string) error {
 // supportsProtocol checks if the protocol is supported by peerID
 // returns an error if could not get peer protocols
 func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {
-	peerProtocols, err := h.h.Peerstore().SupportsProtocols(peerID, string(protocol))
+	peerProtocols, err := h.p2pHost.Peerstore().SupportsProtocols(peerID, string(protocol))
 	if err != nil {
 		return false, err
 	}
@@ -389,21 +389,21 @@ func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, err
 
 // peerCount returns the number of connected peers
 func (h *host) peerCount() int {
-	peers := h.h.Network().Peers()
+	peers := h.p2pHost.Network().Peers()
 	return len(peers)
 }
 
 // addrInfo returns the libp2p peer.AddrInfo of the host
 func (h *host) addrInfo() peer.AddrInfo {
 	return peer.AddrInfo{
-		ID:    h.h.ID(),
-		Addrs: h.h.Addrs(),
+		ID:    h.p2pHost.ID(),
+		Addrs: h.p2pHost.Addrs(),
 	}
 }
 
 // multiaddrs returns the multiaddresses of the host
 func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
-	addrs := h.h.Addrs()
+	addrs := h.p2pHost.Addrs()
 	for _, addr := range addrs {
 		multiaddr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", addr, h.id()))
 		if err != nil {
@@ -416,16 +416,16 @@ func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 
 // protocols returns all protocols currently supported by the node
 func (h *host) protocols() []string {
-	return h.h.Mux().Protocols()
+	return h.p2pHost.Mux().Protocols()
 }
 
 // closePeer closes connection with peer.
 func (h *host) closePeer(peer peer.ID) error {
-	return h.h.Network().ClosePeer(peer)
+	return h.p2pHost.Network().ClosePeer(peer)
 }
 
 func (h *host) closeProtocolStream(pID protocol.ID, p peer.ID) {
-	connToPeer := h.h.Network().ConnsToPeer(p)
+	connToPeer := h.p2pHost.Network().ConnsToPeer(p)
 	for _, c := range connToPeer {
 		for _, st := range c.GetStreams() {
 			if st.Protocol() != pID {
@@ -448,7 +448,7 @@ func (h *host) Process(msg peerset.Message) {
 	}
 	switch msg.Status {
 	case peerset.Connect:
-		addrInfo := h.h.Peerstore().PeerInfo(peerID)
+		addrInfo := h.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
 			addrInfo, err = h.discovery.findPeer(peerID)

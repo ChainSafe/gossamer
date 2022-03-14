@@ -170,13 +170,13 @@ func TestBootstrap(t *testing.T) {
 
 	peerCountA := nodeA.host.peerCount()
 	if peerCountA == 0 {
-		peerCountA := len(nodeA.host.h.Peerstore().Peers())
+		peerCountA := len(nodeA.host.p2pHost.Peerstore().Peers())
 		require.NotZero(t, peerCountA)
 	}
 
 	peerCountB := nodeB.host.peerCount()
 	if peerCountB == 0 {
-		peerCountB := len(nodeB.host.h.Peerstore().Peers())
+		peerCountB := len(nodeB.host.p2pHost.Peerstore().Peers())
 		require.NotZero(t, peerCountB)
 	}
 }
@@ -498,7 +498,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
-	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	isProtected := nodeA.host.p2pHost.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
 	require.False(t, isProtected)
 
 	err = nodeA.host.removeReservedPeers("unknown_perr_id")
@@ -583,7 +583,7 @@ func TestPeerConnect(t *testing.T) {
 	nodeB.noGossip = true
 
 	addrInfoB := nodeB.host.addrInfo()
-	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
@@ -621,7 +621,7 @@ func TestBannedPeer(t *testing.T) {
 	nodeB.noGossip = true
 
 	addrInfoB := nodeB.host.addrInfo()
-	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
@@ -674,7 +674,7 @@ func TestPeerReputation(t *testing.T) {
 	nodeB.noGossip = true
 
 	addrInfoB := nodeB.host.addrInfo()
-	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)

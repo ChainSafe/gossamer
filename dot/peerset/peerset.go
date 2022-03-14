@@ -367,8 +367,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			peerState.discover(setIdx, reservePeer)
 		}
 
-		var node *node
-		node, err = ps.peerState.getNode(reservePeer)
+		node, err := ps.peerState.getNode(reservePeer)
 		if err != nil {
 			return fmt.Errorf("cannot get node using peer id %s: %w", reservePeer, err)
 		}
@@ -605,34 +604,33 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		}
 		state.RUnlock()
 
+		var message Message
+
 		switch {
 		case nodeReputation < BannedThresholdValue:
-			rejectMessage := Message{
+			message = Message{
 				Status: Reject,
 				setID:  uint64(setID),
 				PeerID: pid,
 			}
-
-			ps.processor.Process(rejectMessage)
 
 		case state.tryAcceptIncoming(setID, pid) != nil:
-			rejectMessage := Message{
+			message = Message{
 				Status: Reject,
 				setID:  uint64(setID),
 				PeerID: pid,
 			}
 
-			ps.processor.Process(rejectMessage)
 		default:
 			logger.Debugf("incoming connection accepted from peer %s", pid)
-			acceptMessage := Message{
+			message = Message{
 				Status: Accept,
 				setID:  uint64(setID),
 				PeerID: pid,
 			}
-
-			ps.processor.Process(acceptMessage)
 		}
+
+		ps.processor.Process(message)
 	}
 
 	return nil
@@ -690,11 +688,6 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 	}
 
 	return ps.allocSlots(setIdx)
-}
-
-// start handles all the action for the peerSet.
-func (ps *PeerSet) start(ctx context.Context) {
-	go ps.periodicallyAllocateSlots(ctx)
 }
 
 func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {

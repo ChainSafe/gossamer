@@ -277,7 +277,7 @@ func (s *Service) Start() error {
 
 	// since this opens block announce streams, it should happen after the protocol is registered
 	// NOTE: this only handles *incoming* connections
-	s.host.h.Network().SetConnHandler(s.handleConn)
+	s.host.p2pHost.Network().SetConnHandler(s.handleConn)
 
 	// this handles all new connections (incoming and outgoing)
 	// it creates a per-protocol mutex for sending outbound handshakes to the peer
@@ -341,9 +341,9 @@ func (s *Service) updateMetrics() {
 			return
 		case <-ticker.C:
 			peerCountGauge.Set(float64(s.host.peerCount()))
-			connectionsGauge.Set(float64(len(s.host.h.Network().Conns())))
+			connectionsGauge.Set(float64(len(s.host.p2pHost.Network().Conns())))
 			nodeLatencyGauge.Set(float64(
-				s.host.h.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
+				s.host.p2pHost.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
 			inboundBlockAnnounceStreamsGauge.Set(float64(
 				s.getNumStreams(BlockAnnounceMsgType, true)))
 			outboundBlockAnnounceStreamsGauge.Set(float64(
@@ -357,7 +357,7 @@ func (s *Service) updateMetrics() {
 }
 
 func (s *Service) getTotalStreams(inbound bool) (count int64) {
-	for _, conn := range s.host.h.Network().Conns() {
+	for _, conn := range s.host.p2pHost.Network().Conns() {
 		for _, stream := range conn.GetStreams() {
 			streamIsInbound := isInbound(stream)
 			if (streamIsInbound && inbound) || (!streamIsInbound && !inbound) {

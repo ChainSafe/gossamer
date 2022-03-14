@@ -269,7 +269,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream, err := nodeA.host.h.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
+	stream, err := nodeA.host.p2pHost.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
 	require.NoError(t, err)
 	require.NotNil(t, stream)
 
@@ -361,7 +361,7 @@ func TestPersistPeerStore(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	require.NotEmpty(t, nodeA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
+	require.NotEmpty(t, nodeA.host.p2pHost.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
 
 	// Stop a node and reinitialise a new node with same base path.
 	err = nodeA.Stop()
@@ -369,7 +369,7 @@ func TestPersistPeerStore(t *testing.T) {
 
 	// Since nodeAA uses the persistent peerstore of nodeA, it should be have nodeB in it's peerstore.
 	nodeAA := createTestService(t, nodeA.cfg)
-	require.NotEmpty(t, nodeAA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
+	require.NotEmpty(t, nodeAA.host.p2pHost.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
 }
 
 func TestHandleConn(t *testing.T) {

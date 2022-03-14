@@ -82,12 +82,12 @@ func TestMaxPeers(t *testing.T) {
 			continue
 		}
 
-		n.host.h.Peerstore().AddAddrs(ainfo.ID, ainfo.Addrs, peerstore.PermanentAddrTTL)
+		n.host.p2pHost.Peerstore().AddAddrs(ainfo.ID, ainfo.Addrs, peerstore.PermanentAddrTTL)
 		n.host.cm.peerSetHandler.AddPeer(0, ainfo.ID)
 	}
 
 	time.Sleep(200 * time.Millisecond)
-	p := nodes[0].host.h.Peerstore().Peers()
+	p := nodes[0].host.p2pHost.Peerstore().Peers()
 	require.LessOrEqual(t, max, len(p))
 }
 
@@ -152,7 +152,7 @@ func TestPersistentPeers(t *testing.T) {
 	time.Sleep(time.Millisecond * 600)
 
 	// B should have connected to A during bootstrap
-	conns := nodeB.host.h.Network().ConnsToPeer(nodeA.host.id())
+	conns := nodeB.host.p2pHost.Network().ConnsToPeer(nodeA.host.id())
 	require.NotEqual(t, 0, len(conns))
 
 	// if A disconnects from B, B should reconnect
@@ -160,7 +160,7 @@ func TestPersistentPeers(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 500)
 
-	conns = nodeB.host.h.Network().ConnsToPeer(nodeA.host.id())
+	conns = nodeB.host.p2pHost.Network().ConnsToPeer(nodeA.host.id())
 	require.NotEqual(t, 0, len(conns))
 }
 
@@ -239,7 +239,7 @@ func TestSetReservedPeer(t *testing.T) {
 
 	require.Equal(t, 2, node3.host.peerCount())
 
-	node3.host.h.Peerstore().AddAddrs(addrC.ID, addrC.Addrs, peerstore.PermanentAddrTTL)
+	node3.host.p2pHost.Peerstore().AddAddrs(addrC.ID, addrC.Addrs, peerstore.PermanentAddrTTL)
 	node3.host.cm.peerSetHandler.SetReservedPeer(0, addrC.ID)
 	time.Sleep(200 * time.Millisecond)
 

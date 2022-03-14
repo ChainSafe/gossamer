@@ -112,7 +112,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
+	stream, err := s.host.p2pHost.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
 	require.NoError(t, err)
 
 	// create info and handler
@@ -181,7 +181,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	}
 	require.NoError(t, err)
 
-	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
+	stream, err := s.host.p2pHost.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
 	require.NoError(t, err)
 
 	// try invalid handshake
@@ -248,7 +248,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	info := newNotificationsProtocol(nodeA.host.protocolID+blockAnnounceID,
 		nodeA.getBlockAnnounceHandshake, testHandshakeDecoder, nodeA.validateBlockAnnounceHandshake)
 
-	nodeB.host.h.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
+	nodeB.host.p2pHost.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
 		// should not respond to a handshake message
 	})
 
@@ -265,7 +265,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	// clear handshake data from connection handler
 	time.Sleep(time.Millisecond * 100)
 	info.peersData.deleteOutboundHandshakeData(nodeB.host.id())
-	connAToB := nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	connAToB := nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	for _, stream := range connAToB[0].GetStreams() {
 		_ = stream.Close()
 	}
@@ -287,7 +287,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	require.Nil(t, data)
 
 	// a stream should be open until timeout
-	connAToB = nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	connAToB = nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	require.Len(t, connAToB, 1)
 	require.Len(t, connAToB[0].GetStreams(), 1)
 
@@ -299,7 +299,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	require.Nil(t, data)
 
 	// stream should be closed
-	connAToB = nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	connAToB = nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	require.Len(t, connAToB, 1)
 	require.Len(t, connAToB[0].GetStreams(), 0)
 }
@@ -341,7 +341,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	require.NoError(t, err)
 
 	txnProtocolID := srvc1.host.protocolID + transactionsID
-	stream, err := srvc1.host.h.NewStream(srvc1.ctx, srvc2.host.id(), txnProtocolID)
+	stream, err := srvc1.host.p2pHost.NewStream(srvc1.ctx, srvc2.host.id(), txnProtocolID)
 	require.NoError(t, err)
 
 	// create info and handler
