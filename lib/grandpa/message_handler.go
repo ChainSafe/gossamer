@@ -113,7 +113,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 
 	highestRound, setID, err := h.blockState.GetHighestRoundAndSetID()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get highest round and set id: %w", err)
 	}
 
 	if msg.SetID != setID {
