@@ -80,7 +80,7 @@ func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 
 	cm, err := req.ToConsensusMessage()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot convert request to consensus message: %w", err)
 	}
 
 	err = c.grandpa.network.SendMessage(to, cm)
