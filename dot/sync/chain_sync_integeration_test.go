@@ -43,8 +43,8 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	net := new(syncmocks.Network)
-	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).
-		Return(nil, nil)
+	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
+		mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
 
 	readyBlocks := newBlockQueue(maxResponseSize)
@@ -659,7 +659,8 @@ func TestChainSync_doSync(t *testing.T) {
 	}
 
 	cs.network = new(syncmocks.Network)
-	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
+	cs.network.(*syncmocks.Network).On("DoBlockRequest",
+		mock.AnythingOfType("peer.ID"),
 		mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
@@ -692,7 +693,8 @@ func TestChainSync_doSync(t *testing.T) {
 	// test to see if descending blocks get reversed
 	req.Direction = network.Descending
 	cs.network = new(syncmocks.Network)
-	cs.network.(*syncmocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
+	cs.network.(*syncmocks.Network).On("DoBlockRequest",
+		mock.AnythingOfType("peer.ID"),
 		mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
