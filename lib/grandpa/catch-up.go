@@ -116,7 +116,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	if msg.Round <= c.grandpa.state.round {
-		return ErrInvalidCatchUpResponseRound
+		return fmt.Errorf("%w: received round %d but grandpa round in state is %d", ErrInvalidCatchUpResponseRound, msg.Round, c.grandpa.state.round)
 	}
 
 	if c.bestResponse.Load().(*CatchUpResponse).Round >= msg.Round {
