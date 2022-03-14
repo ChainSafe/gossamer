@@ -226,13 +226,13 @@ func callWebsocket(t *testing.T, test *testCase) {
 			case int:
 				// check for result subscription number
 				resNum := 0
-				err = utils.DecodeWebsocket(t, v, &resNum)
+				err = utils.DecodeWebsocket(v, &resNum)
 				require.NoError(t, err)
 
 			case map[string]interface{}:
 				// check result map response
 				resMap := make(map[string]interface{})
-				err = utils.DecodeWebsocket(t, v, &resMap)
+				err = utils.DecodeWebsocket(v, &resMap)
 				require.NoError(t, err)
 
 				// check values in map are expected type

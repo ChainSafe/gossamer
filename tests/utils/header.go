@@ -4,30 +4,46 @@
 package utils
 
 import (
-	"testing"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/stretchr/testify/require"
 )
 
 // headerResponseToHeader converts a *ChainBlockHeaderResponse to a *types.Header
-func headerResponseToHeader(t *testing.T, header *modules.ChainBlockHeaderResponse) *types.Header {
-	parentHash, err := common.HexToHash(header.ParentHash)
-	require.NoError(t, err)
+func headerResponseToHeader(rpcHeader modules.ChainBlockHeaderResponse) (header *types.Header, err error) {
+	parentHash, err := common.HexToHash(rpcHeader.ParentHash)
+	if err != nil {
+		return nil, fmt.Errorf("malformed rpc header parent hash: %w", err)
+	}
 
-	nb, err := common.HexToBytes(header.Number)
-	require.NoError(t, err)
+	nb, err := common.HexToBytes(rpcHeader.Number)
+	if err != nil {
+		return nil, fmt.Errorf("malformed number hex string: %w", err)
+	}
+
 	number := common.BytesToUint(nb)
 
-	stateRoot, err := common.HexToHash(header.StateRoot)
-	require.NoError(t, err)
+	stateRoot, err := common.HexToHash(rpcHeader.StateRoot)
+	if err != nil {
+		return nil, fmt.Errorf("malformed state root: %w", err)
+	}
 
-	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
-	require.NoError(t, err)
+	extrinsicsRoot, err := common.HexToHash(rpcHeader.ExtrinsicsRoot)
+	if err != nil {
+		return nil, fmt.Errorf("malformed extrinsic root: %w", err)
+	}
 
-	h, err := types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigest(t, header.Digest.Logs))
-	require.NoError(t, err)
-	return h
+	digest, err := rpcLogsToDigest(rpcHeader.Digest.Logs)
+	if err != nil {
+		return nil, fmt.Errorf("malformed digest logs: %w", err)
+	}
+
+	header, err = types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, digest)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create new header: %w", err)
+	}
+
+	return header, nil
 }

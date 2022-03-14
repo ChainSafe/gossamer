@@ -5,25 +5,27 @@ package utils
 
 import (
 	"context"
-	"testing"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/stretchr/testify/require"
 )
 
 // GetPeers calls the endpoint system_peers
-func GetPeers(ctx context.Context, t *testing.T, rpcPort string) []common.PeerInfo {
+func GetPeers(ctx context.Context, rpcPort string) (peers []common.PeerInfo, err error) {
 	endpoint := NewEndpoint(rpcPort)
 	const method = "system_peers"
 	const params = "[]"
 	respBody, err := PostRPC(ctx, endpoint, method, params)
-	require.NoError(t, err)
+	if err != nil {
+		return nil, fmt.Errorf("cannot post RPC: %w", err)
+	}
 
-	resp := new(modules.SystemPeersResponse)
-	err = DecodeRPC(respBody, resp)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	var peersResponse modules.SystemPeersResponse
+	err = DecodeRPC(respBody, &peersResponse)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode RPC: %w", err)
+	}
 
-	return *resp
+	return peersResponse, nil
 }
